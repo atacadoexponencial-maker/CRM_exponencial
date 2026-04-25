@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
@@ -8,6 +9,7 @@ import {
 import { MoreHorizontal } from "lucide-react"
 import { createClient } from "@/integrations/supabase/server"
 import { AdicionarUsuarioDialog } from "./adicionar-usuario-dialog"
+import { listarUsuarios } from "./actions"
 
 const papelVariant: Record<string, "default" | "outline" | "secondary"> = {
   admin: "default",
@@ -24,23 +26,23 @@ const papelLabel: Record<string, string> = {
 export default async function UsuariosPage() {
   const supabase = await createClient()
 
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect("/login")
+
   const { data: perfil } = await supabase
     .from("profiles")
-    .select("workspace_id")
+    .select("role, workspace_id")
+    .eq("id", user.id)
     .single()
 
-  const workspaceId = perfil?.workspace_id ?? ""
+  if (perfil?.role !== "admin") redirect("/perfil")
 
-  const [{ data: usuarios }, { data: times }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, name, role, status, user_teams(team_id, teams(name))")
-      .eq("workspace_id", workspaceId)
-      .order("name"),
+  const [usuarios, { data: times }] = await Promise.all([
+    listarUsuarios(),
     supabase
       .from("teams")
       .select("id, name")
-      .eq("workspace_id", workspaceId)
+      .eq("workspace_id", perfil.workspace_id)
       .order("name"),
   ])
 
@@ -64,53 +66,46 @@ export default async function UsuariosPage() {
             </tr>
           </thead>
           <tbody>
-            {(usuarios ?? []).map((usuario) => {
-              const nomesDosTimes = (usuario.user_teams ?? [])
-                .map((ut: { teams: { name: string }[] | null }) => ut.teams?.[0]?.name)
-                .filter(Boolean)
-                .join(", ")
-
-              return (
-                <tr key={usuario.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-medium">{usuario.name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">—</td>
-                  <td className="px-4 py-3">
-                    <Badge variant={papelVariant[usuario.role] ?? "secondary"}>
-                      {papelLabel[usuario.role] ?? usuario.role}
+            {usuarios.map((usuario) => (
+              <tr key={usuario.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                <td className="px-4 py-3 font-medium">{usuario.name}</td>
+                <td className="px-4 py-3 text-muted-foreground">{usuario.email || "—"}</td>
+                <td className="px-4 py-3">
+                  <Badge variant={papelVariant[usuario.role] ?? "secondary"}>
+                    {papelLabel[usuario.role] ?? usuario.role}
+                  </Badge>
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {usuario.times.join(", ") || "—"}
+                </td>
+                <td className="px-4 py-3">
+                  {usuario.status === "active" ? (
+                    <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
+                      Ativo
                     </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {nomesDosTimes || "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    {usuario.status === "active" ? (
-                      <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
-                        Ativo
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">Inativo</Badge>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger className="inline-flex h-6 w-6 items-center justify-center rounded-md hover:bg-accent transition-colors">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Abrir menu</span>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Editar papel</DropdownMenuItem>
-                        <DropdownMenuItem>Gerenciar times</DropdownMenuItem>
-                        {usuario.status === "active" ? (
-                          <DropdownMenuItem variant="destructive">Desativar</DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem>Reativar</DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
-              )
-            })}
+                  ) : (
+                    <Badge variant="secondary">Inativo</Badge>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="inline-flex h-6 w-6 items-center justify-center rounded-md hover:bg-accent transition-colors">
+                      <MoreHorizontal className="h-4 w-4" />
+                      <span className="sr-only">Abrir menu</span>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem>Editar papel</DropdownMenuItem>
+                      <DropdownMenuItem>Gerenciar times</DropdownMenuItem>
+                      {usuario.status === "active" ? (
+                        <DropdownMenuItem variant="destructive">Desativar</DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem>Reativar</DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
