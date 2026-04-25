@@ -1,14 +1,8 @@
 import { redirect } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from "lucide-react"
 import { createClient } from "@/integrations/supabase/server"
 import { AdicionarUsuarioDialog } from "./adicionar-usuario-dialog"
+import { AcoesUsuario } from "./acoes-usuario"
 import { listarUsuarios } from "./actions"
 
 const papelVariant: Record<string, "default" | "outline" | "secondary"> = {
@@ -88,21 +82,10 @@ export default async function UsuariosPage() {
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="inline-flex h-6 w-6 items-center justify-center rounded-md hover:bg-accent transition-colors">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Abrir menu</span>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Editar papel</DropdownMenuItem>
-                      <DropdownMenuItem>Gerenciar times</DropdownMenuItem>
-                      {usuario.status === "active" ? (
-                        <DropdownMenuItem variant="destructive">Desativar</DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem>Reativar</DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <AcoesUsuario
+                    usuario={usuario}
+                    ehEuMesmo={usuario.id === user.id}
+                  />
                 </td>
               </tr>
             ))}

@@ -10,7 +10,7 @@ vi.mock("@/integrations/supabase/server", () => ({
 
 import { createClient } from "@supabase/supabase-js"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
-import { adicionarUsuario, listarUsuarios } from "@/app/(auth)/configuracoes/usuarios/actions"
+import { adicionarUsuario, listarUsuarios, editarPapel } from "@/app/(auth)/configuracoes/usuarios/actions"
 
 const mockCreateClient = vi.mocked(createClient)
 const mockSsrCreateClient = vi.mocked(createSsrClient)
@@ -175,6 +175,59 @@ describe("Issue 15 — Listar usuários da empresa", () => {
     expect(usuario.role).toBe("admin")
     expect(usuario.status).toBe("active")
     expect(usuario.times).toContain("Expansão")
+  })
+})
+
+describe("Issue 16 — Editar papel de usuário", () => {
+  const CALLER_ID = "caller-user-id"
+  const OUTRO_USUARIO_ID = "outro-user-id"
+
+  beforeAll(() => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "http://localhost:54321"
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key"
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  function buildAdminClientParaUpdate(updateError: unknown = null) {
+    const mockEq2 = vi.fn().mockResolvedValue({ error: updateError })
+    const mockEq1 = vi.fn().mockReturnValue({ eq: mockEq2 })
+    const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq1 })
+    const mockFrom = vi.fn().mockReturnValue({ update: mockUpdate })
+    mockCreateClient.mockReturnValue({
+      from: mockFrom,
+    } as unknown as ReturnType<typeof createClient>)
+    return { mockUpdate, mockFrom }
+  }
+
+  it("admin altera papel de 'atendente' para 'gerente'", async () => {
+    buildSsrMock("admin")
+    const { mockUpdate } = buildAdminClientParaUpdate()
+
+    const resultado = await editarPapel(OUTRO_USUARIO_ID, "gerente")
+
+    expect(resultado.erro).toBeUndefined()
+    expect(mockUpdate).toHaveBeenCalledWith({ role: "gerente" })
+  })
+
+  it("admin não consegue alterar o próprio papel", async () => {
+    buildSsrMock("admin")
+
+    const resultado = await editarPapel(CALLER_ID, "gerente")
+
+    expect(resultado.erro).toBe("Você não pode alterar o próprio papel")
+    expect(mockCreateClient).not.toHaveBeenCalled()
+  })
+
+  it("atendente não consegue alterar papel de ninguém", async () => {
+    buildSsrMock("atendente")
+
+    const resultado = await editarPapel(OUTRO_USUARIO_ID, "gerente")
+
+    expect(resultado.erro).toBe("Sem permissão")
+    expect(mockCreateClient).not.toHaveBeenCalled()
   })
 })
 
