@@ -58,6 +58,7 @@ export default function CadastroPage() {
       return
     }
 
+    router.refresh()
     router.push("/configuracoes/usuarios")
   }
 
