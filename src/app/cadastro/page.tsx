@@ -6,7 +6,7 @@ import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { verificarEmailEmUso } from "./actions"
+import { verificarEmailEmUso, criarWorkspace } from "./actions"
 
 export const schema = z.object({
   nomeEmpresa: z.string().min(1, "Nome da empresa é obrigatório"),
@@ -40,7 +40,17 @@ export default function CadastroPage() {
       setError("email", { type: "manual", message: "Não foi possível verificar o e-mail. Tente novamente." })
       return
     }
-    // submissão ao Supabase é escopo de outra issue
+
+    let workspaceId: string
+    try {
+      workspaceId = await criarWorkspace(data.nomeEmpresa)
+    } catch {
+      setError("nomeEmpresa", { type: "manual", message: "Não foi possível criar o workspace. Tente novamente." })
+      return
+    }
+
+    // criação do Admin e times padrão é escopo da issue 11 — workspaceId disponível
+    void workspaceId
   }
 
   return (
