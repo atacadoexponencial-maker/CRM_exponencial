@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { verificarEmailEmUso } from "./actions"
 
-const schema = z.object({
+export const schema = z.object({
   nomeEmpresa: z.string().min(1, "Nome da empresa é obrigatório"),
   nomeResponsavel: z.string().min(1, "Nome do responsável é obrigatório"),
   email: z.string().min(1, "E-mail é obrigatório").email("E-mail inválido"),
