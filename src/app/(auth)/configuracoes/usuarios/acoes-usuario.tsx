@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal } from "lucide-react"
-import { editarPapel, gerenciarTimes } from "./actions"
+import { editarPapel, gerenciarTimes, desativarUsuario } from "./actions"
 
 type Team = { id: string; name: string }
 
@@ -50,6 +50,10 @@ export function AcoesUsuario({
   const [timesSelecionados, setTimesSelecionados] = useState<string[]>([])
   const [erroTimes, setErroTimes] = useState<string | null>(null)
   const [salvandoTimes, setSalvandoTimes] = useState(false)
+
+  const [dialogDesativarAberto, setDialogDesativarAberto] = useState(false)
+  const [erroDesativar, setErroDesativar] = useState<string | null>(null)
+  const [desativando, setDesativando] = useState(false)
 
   async function handleSalvar() {
     setErro(null)
@@ -99,6 +103,19 @@ export function AcoesUsuario({
     router.refresh()
   }
 
+  async function handleDesativar() {
+    setErroDesativar(null)
+    setDesativando(true)
+    const resultado = await desativarUsuario(usuario.id)
+    setDesativando(false)
+    if (resultado.erro) {
+      setErroDesativar(resultado.erro)
+      return
+    }
+    setDialogDesativarAberto(false)
+    router.refresh()
+  }
+
   return (
     <>
       <DropdownMenu>
@@ -117,7 +134,13 @@ export function AcoesUsuario({
             Gerenciar times
           </DropdownMenuItem>
           {usuario.status === "active" ? (
-            <DropdownMenuItem variant="destructive">Desativar</DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              disabled={ehEuMesmo}
+              onSelect={() => { setErroDesativar(null); setDialogDesativarAberto(true) }}
+            >
+              Desativar
+            </DropdownMenuItem>
           ) : (
             <DropdownMenuItem>Reativar</DropdownMenuItem>
           )}
@@ -195,6 +218,32 @@ export function AcoesUsuario({
               </DialogClose>
               <Button onClick={handleSalvarTimes} disabled={salvandoTimes}>
                 {salvandoTimes ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </div>
+        </DialogPopup>
+      </Dialog>
+      <Dialog open={dialogDesativarAberto} onOpenChange={setDialogDesativarAberto}>
+        <DialogPopup>
+          <DialogTitle className="mb-4">Desativar usuário</DialogTitle>
+
+          <div className="flex flex-col gap-4">
+            {erroDesativar && (
+              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {erroDesativar}
+              </p>
+            )}
+
+            <p className="text-sm">
+              Tem certeza que deseja desativar <strong>{usuario.name}</strong>? O usuário perderá o acesso ao sistema.
+            </p>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <DialogClose render={<Button type="button" variant="outline" />}>
+                Cancelar
+              </DialogClose>
+              <Button variant="destructive" onClick={handleDesativar} disabled={desativando}>
+                {desativando ? "Desativando..." : "Desativar"}
               </Button>
             </div>
           </div>

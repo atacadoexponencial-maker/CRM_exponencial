@@ -159,6 +159,40 @@ export async function adicionarUsuario(data: {
   return {}
 }
 
+export async function desativarUsuario(
+  usuarioId: string
+): Promise<{ erro?: string }> {
+  const ssrClient = await createSsrClient()
+  const { data: { user } } = await ssrClient.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  if (user.id === usuarioId) return { erro: "Você não pode desativar a si mesmo" }
+
+  const { data: perfil } = await ssrClient
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  const adminClient = createClient(url, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+
+  const { error } = await adminClient
+    .from("profiles")
+    .update({ status: "inactive" })
+    .eq("id", usuarioId)
+    .eq("workspace_id", perfil.workspace_id)
+
+  if (error) return { erro: "Não foi possível desativar o usuário. Tente novamente." }
+
+  return {}
+}
+
 export async function gerenciarTimes(
   usuarioId: string,
   timesIds: string[]

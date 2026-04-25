@@ -34,6 +34,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
+  if (user && !isAuthRoute) {
+    const { data: perfil } = await supabase
+      .from('profiles')
+      .select('status')
+      .eq('id', user.id)
+      .single()
+
+    if (perfil?.status === 'inactive') {
+      await supabase.auth.signOut()
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+  }
+
   return supabaseResponse
 }
 

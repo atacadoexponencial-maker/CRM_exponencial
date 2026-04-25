@@ -10,7 +10,7 @@ vi.mock("@/integrations/supabase/server", () => ({
 
 import { createClient } from "@supabase/supabase-js"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
-import { adicionarUsuario, listarUsuarios, editarPapel, gerenciarTimes } from "@/app/(auth)/configuracoes/usuarios/actions"
+import { adicionarUsuario, listarUsuarios, editarPapel, gerenciarTimes, desativarUsuario } from "@/app/(auth)/configuracoes/usuarios/actions"
 
 const mockCreateClient = vi.mocked(createClient)
 const mockSsrCreateClient = vi.mocked(createSsrClient)
@@ -383,5 +383,59 @@ describe("Issues 17 e 18 — Gerenciar times do usuário", () => {
       { user_id: USUARIO_ID, team_id: TIME_EXPANSAO_ID },
       { user_id: USUARIO_ID, team_id: TIME_RETENCAO_ID },
     ])
+  })
+})
+
+describe("Issue 19 — Desativar usuário", () => {
+  const CALLER_ID = "caller-user-id"
+  const OUTRO_USUARIO_ID = "outro-user-id"
+
+  beforeAll(() => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "http://localhost:54321"
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key"
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  function buildAdminClientParaDesativar(updateError: unknown = null) {
+    const mockEq2 = vi.fn().mockResolvedValue({ error: updateError })
+    const mockEq1 = vi.fn().mockReturnValue({ eq: mockEq2 })
+    const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq1 })
+    const mockFrom = vi.fn().mockReturnValue({ update: mockUpdate })
+    mockCreateClient.mockReturnValue({
+      from: mockFrom,
+    } as unknown as ReturnType<typeof createClient>)
+    return { mockUpdate }
+  }
+
+  it("admin desativa um atendente (status muda para 'inactive')", async () => {
+    buildSsrMock("admin")
+    const { mockUpdate } = buildAdminClientParaDesativar()
+
+    const resultado = await desativarUsuario(OUTRO_USUARIO_ID)
+
+    expect(resultado.erro).toBeUndefined()
+    expect(mockUpdate).toHaveBeenCalledWith({ status: "inactive" })
+  })
+
+  it("usuário desativado perde acesso ao sistema (action retorna sucesso, status gravado como 'inactive')", async () => {
+    buildSsrMock("admin")
+    const { mockUpdate } = buildAdminClientParaDesativar()
+
+    const resultado = await desativarUsuario(OUTRO_USUARIO_ID)
+
+    expect(resultado.erro).toBeUndefined()
+    expect(mockUpdate).toHaveBeenCalledWith({ status: "inactive" })
+  })
+
+  it("admin não consegue desativar a si mesmo", async () => {
+    buildSsrMock("admin")
+
+    const resultado = await desativarUsuario(CALLER_ID)
+
+    expect(resultado.erro).toBe("Você não pode desativar a si mesmo")
+    expect(mockCreateClient).not.toHaveBeenCalled()
   })
 })
