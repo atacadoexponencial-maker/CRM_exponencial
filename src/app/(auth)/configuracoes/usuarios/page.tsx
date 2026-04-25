@@ -85,6 +85,7 @@ export default async function UsuariosPage() {
                   <AcoesUsuario
                     usuario={usuario}
                     ehEuMesmo={usuario.id === user.id}
+                    times={times ?? []}
                   />
                 </td>
               </tr>

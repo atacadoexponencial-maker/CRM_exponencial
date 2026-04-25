@@ -10,7 +10,7 @@ vi.mock("@/integrations/supabase/server", () => ({
 
 import { createClient } from "@supabase/supabase-js"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
-import { adicionarUsuario, listarUsuarios, editarPapel } from "@/app/(auth)/configuracoes/usuarios/actions"
+import { adicionarUsuario, listarUsuarios, editarPapel, gerenciarTimes } from "@/app/(auth)/configuracoes/usuarios/actions"
 
 const mockCreateClient = vi.mocked(createClient)
 const mockSsrCreateClient = vi.mocked(createSsrClient)
@@ -307,5 +307,81 @@ describe("Issue 14 — Adicionar usuário", () => {
 
     expect(resultado.erro).toBe("Sem permissão")
     expect(mockCreateClient).not.toHaveBeenCalled()
+  })
+})
+
+describe("Issues 17 e 18 — Gerenciar times do usuário", () => {
+  const USUARIO_ID = "usuario-alvo-id"
+  const TIME_EXPANSAO_ID = "time-expansao-id"
+  const TIME_RETENCAO_ID = "time-retencao-id"
+
+  beforeAll(() => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "http://localhost:54321"
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key"
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  function buildAdminClientParaGerenciarTimes({
+    teamsDoWorkspace = [{ id: TIME_EXPANSAO_ID }, { id: TIME_RETENCAO_ID }],
+    deleteError = null,
+    insertError = null,
+  } = {}) {
+    const mockIn = vi.fn().mockResolvedValue({ error: deleteError })
+    const mockDeleteEq = vi.fn().mockReturnValue({ in: mockIn })
+    const mockDelete = vi.fn().mockReturnValue({ eq: mockDeleteEq })
+    const mockInsert = vi.fn().mockResolvedValue({ error: insertError })
+    const mockSelectEq = vi.fn().mockResolvedValue({ data: teamsDoWorkspace, error: null })
+    const mockSelect = vi.fn().mockReturnValue({ eq: mockSelectEq })
+
+    const mockFrom = vi.fn().mockImplementation((table: string) => {
+      if (table === "teams") return { select: mockSelect }
+      if (table === "user_teams") return { delete: mockDelete, insert: mockInsert }
+      return {}
+    })
+
+    mockCreateClient.mockReturnValue({
+      from: mockFrom,
+    } as unknown as ReturnType<typeof createClient>)
+
+    return { mockDelete, mockInsert, mockIn }
+  }
+
+  it("admin adiciona usuário ao time Expansão", async () => {
+    buildSsrMock("admin")
+    const { mockInsert } = buildAdminClientParaGerenciarTimes()
+
+    const resultado = await gerenciarTimes(USUARIO_ID, [TIME_EXPANSAO_ID])
+
+    expect(resultado.erro).toBeUndefined()
+    expect(mockInsert).toHaveBeenCalledWith([
+      { user_id: USUARIO_ID, team_id: TIME_EXPANSAO_ID },
+    ])
+  })
+
+  it("admin remove usuário do time Expansão (salva lista vazia)", async () => {
+    buildSsrMock("admin")
+    const { mockInsert, mockIn } = buildAdminClientParaGerenciarTimes()
+
+    const resultado = await gerenciarTimes(USUARIO_ID, [])
+
+    expect(resultado.erro).toBeUndefined()
+    expect(mockIn).toHaveBeenCalled()
+    expect(mockInsert).not.toHaveBeenCalled()
+  })
+
+  it("usuário pode pertencer a múltiplos times simultaneamente", async () => {
+    buildSsrMock("admin")
+    const { mockInsert } = buildAdminClientParaGerenciarTimes()
+
+    const resultado = await gerenciarTimes(USUARIO_ID, [TIME_EXPANSAO_ID, TIME_RETENCAO_ID])
+
+    expect(resultado.erro).toBeUndefined()
+    expect(mockInsert).toHaveBeenCalledWith([
+      { user_id: USUARIO_ID, team_id: TIME_EXPANSAO_ID },
+      { user_id: USUARIO_ID, team_id: TIME_RETENCAO_ID },
+    ])
   })
 })
