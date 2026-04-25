@@ -6,6 +6,7 @@ import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { verificarEmailEmUso } from "./actions"
 
 const schema = z.object({
   nomeEmpresa: z.string().min(1, "Nome da empresa é obrigatório"),
@@ -21,10 +22,21 @@ export default function CadastroPage() {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
-  function onSubmit(_data: FormData) {
+  async function onSubmit(data: FormData) {
+    try {
+      const emUso = await verificarEmailEmUso(data.email)
+      if (emUso) {
+        setError("email", { type: "manual", message: "E-mail já está em uso" })
+        return
+      }
+    } catch {
+      setError("email", { type: "manual", message: "Não foi possível verificar o e-mail. Tente novamente." })
+      return
+    }
     // submissão ao Supabase é escopo de outra issue
   }
 
