@@ -4,8 +4,15 @@ vi.mock("@supabase/supabase-js", () => ({
   createClient: vi.fn(),
 }))
 
+vi.mock("@/integrations/supabase/server", () => ({
+  createClient: vi.fn(),
+}))
+
 import { createClient } from "@supabase/supabase-js"
-import { verificarEmailEmUso, criarWorkspace } from "@/app/cadastro/actions"
+import { createClient as createSsrClient } from "@/integrations/supabase/server"
+import { verificarEmailEmUso, criarWorkspace, criarAdminETimesPadrao } from "@/app/cadastro/actions"
+
+const mockSsrCreateClient = vi.mocked(createSsrClient)
 
 const mockCreateClient = vi.mocked(createClient)
 
@@ -132,5 +139,86 @@ describe("Issue 10 — Criar workspace isolado da empresa", () => {
     ])
 
     expect(id1).not.toBe(id2)
+  })
+})
+
+describe("Issue 11 — Criar Admin e times padrão ao cadastrar empresa", () => {
+  const WORKSPACE_ID = "workspace-test-id"
+
+  beforeAll(() => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "http://localhost:54321"
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key"
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    const mockSignIn = vi.fn().mockResolvedValue({ error: null })
+    mockSsrCreateClient.mockResolvedValue({
+      auth: { signInWithPassword: mockSignIn },
+    } as unknown as Awaited<ReturnType<typeof createSsrClient>>)
+  })
+
+  function buildAdminClientMock(teamsData: unknown[] = []) {
+    const mockCreateUser = vi.fn().mockResolvedValue({
+      data: { user: { id: "user-admin-id" } },
+      error: null,
+    })
+    const mockProfileInsert = vi.fn().mockResolvedValue({ error: null })
+    const mockTeamsInsert = vi.fn().mockImplementation((data: unknown[]) => {
+      teamsData.push(...data)
+      return Promise.resolve({ error: null })
+    })
+    const mockFrom = vi.fn().mockImplementation((table: string) => {
+      if (table === "profiles") return { insert: mockProfileInsert }
+      if (table === "teams") return { insert: mockTeamsInsert }
+      return { insert: vi.fn().mockResolvedValue({ error: null }) }
+    })
+    mockCreateClient.mockReturnValue({
+      auth: { admin: { createUser: mockCreateUser } },
+      from: mockFrom,
+    } as unknown as ReturnType<typeof createClient>)
+    return { mockCreateUser, mockProfileInsert, mockTeamsInsert, mockFrom }
+  }
+
+  it("primeiro usuário criado tem papel 'admin'", async () => {
+    const { mockProfileInsert } = buildAdminClientMock()
+
+    await criarAdminETimesPadrao(WORKSPACE_ID, "João Silva", "joao@empresa.com", "senha123!")
+
+    expect(mockProfileInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ role: "admin", workspace_id: WORKSPACE_ID })
+    )
+  })
+
+  it("times 'Expansão' e 'Retenção' são criados automaticamente", async () => {
+    const captured: unknown[] = []
+    buildAdminClientMock(captured)
+
+    await criarAdminETimesPadrao(WORKSPACE_ID, "João Silva", "joao@empresa.com", "senha123!")
+
+    const names = (captured as Array<{ name: string }>).map((t) => t.name)
+    expect(names).toContain("Expansão")
+    expect(names).toContain("Retenção")
+  })
+
+  it("times padrão têm flag is_default = true", async () => {
+    const captured: unknown[] = []
+    buildAdminClientMock(captured)
+
+    await criarAdminETimesPadrao(WORKSPACE_ID, "João Silva", "joao@empresa.com", "senha123!")
+
+    const teams = captured as Array<{ is_default: boolean }>
+    expect(teams.every((t) => t.is_default === true)).toBe(true)
+  })
+
+  it("times padrão pertencem à empresa correta (não vazam para outra empresa)", async () => {
+    const captured: unknown[] = []
+    buildAdminClientMock(captured)
+
+    await criarAdminETimesPadrao(WORKSPACE_ID, "João Silva", "joao@empresa.com", "senha123!")
+
+    const teams = captured as Array<{ workspace_id: string }>
+    expect(teams.every((t) => t.workspace_id === WORKSPACE_ID)).toBe(true)
   })
 })

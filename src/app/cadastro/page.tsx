@@ -1,12 +1,13 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { verificarEmailEmUso, criarWorkspace } from "./actions"
+import { verificarEmailEmUso, criarWorkspace, criarAdminETimesPadrao } from "./actions"
 
 export const schema = z.object({
   nomeEmpresa: z.string().min(1, "Nome da empresa é obrigatório"),
@@ -22,6 +23,7 @@ export const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 export default function CadastroPage() {
+  const router = useRouter()
   const {
     register,
     handleSubmit,
@@ -49,8 +51,14 @@ export default function CadastroPage() {
       return
     }
 
-    // criação do Admin e times padrão é escopo da issue 11 — workspaceId disponível
-    void workspaceId
+    try {
+      await criarAdminETimesPadrao(workspaceId, data.nomeResponsavel, data.email, data.senha)
+    } catch {
+      setError("nomeEmpresa", { type: "manual", message: "Não foi possível concluir o cadastro. Tente novamente." })
+      return
+    }
+
+    router.push("/configuracoes/usuarios")
   }
 
   return (
