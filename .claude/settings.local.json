@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Read(//c/Users/marce/OneDrive/Estudo/**)",
-      "Bash(npx create-next-app@latest crm-exponencial --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git --yes)"
-    ]
-  }
-}

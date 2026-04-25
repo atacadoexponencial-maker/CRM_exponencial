@@ -38,6 +38,9 @@ yarn-error.log*
 # pre-desenvolvimento (documentação local, não vai para o repositório)
 /pre-desenvolvimento/
 
+# configurações locais do Claude Code
+.claude/settings.local.json
+
 # vercel
 .vercel
 
