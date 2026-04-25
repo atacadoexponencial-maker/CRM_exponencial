@@ -57,5 +57,10 @@ describe("Schema de validação do cadastro", () => {
     expect(erro?.message).toBe("Senha deve ter pelo menos 8 caracteres")
   })
 
-  it.todo("rejeita quando confirmação de senha não coincide com senha — issue 09")
+  it("rejeita quando confirmação de senha não coincide com senha", () => {
+    const result = schema.safeParse({ ...dadosValidos, confirmarSenha: "outra-senha" })
+    expect(result.success).toBe(false)
+    const erro = result.error?.issues.find((i) => i.path.includes("confirmarSenha"))
+    expect(erro?.message).toBe("As senhas não coincidem")
+  })
 })
