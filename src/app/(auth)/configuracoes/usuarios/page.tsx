@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
@@ -7,46 +6,49 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal } from "lucide-react"
-
-const usuarios = [
-  {
-    id: 1,
-    nome: "Ana Costa",
-    email: "ana@empresa.com",
-    papel: "Admin" as const,
-    times: ["Expansão", "Retenção"],
-    status: "Ativo" as const,
-  },
-  {
-    id: 2,
-    nome: "Carlos Lima",
-    email: "carlos@empresa.com",
-    papel: "Gerente" as const,
-    times: ["Expansão"],
-    status: "Ativo" as const,
-  },
-  {
-    id: 3,
-    nome: "Beatriz Souza",
-    email: "beatriz@empresa.com",
-    papel: "Atendente" as const,
-    times: ["Retenção"],
-    status: "Inativo" as const,
-  },
-]
+import { createClient } from "@/integrations/supabase/server"
+import { AdicionarUsuarioDialog } from "./adicionar-usuario-dialog"
 
 const papelVariant: Record<string, "default" | "outline" | "secondary"> = {
-  Admin: "default",
-  Gerente: "outline",
-  Atendente: "secondary",
+  admin: "default",
+  gerente: "outline",
+  atendente: "secondary",
 }
 
-export default function UsuariosPage() {
+const papelLabel: Record<string, string> = {
+  admin: "Admin",
+  gerente: "Gerente",
+  atendente: "Atendente",
+}
+
+export default async function UsuariosPage() {
+  const supabase = await createClient()
+
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .single()
+
+  const workspaceId = perfil?.workspace_id ?? ""
+
+  const [{ data: usuarios }, { data: times }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, name, role, status, user_teams(team_id, teams(name))")
+      .eq("workspace_id", workspaceId)
+      .order("name"),
+    supabase
+      .from("teams")
+      .select("id, name")
+      .eq("workspace_id", workspaceId)
+      .order("name"),
+  ])
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">Usuários</h1>
-        <Button>Adicionar usuário</Button>
+        <AdicionarUsuarioDialog times={times ?? []} />
       </div>
 
       <div className="overflow-x-auto rounded-lg border">
@@ -62,44 +64,53 @@ export default function UsuariosPage() {
             </tr>
           </thead>
           <tbody>
-            {usuarios.map((usuario) => (
-              <tr key={usuario.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                <td className="px-4 py-3 font-medium">{usuario.nome}</td>
-                <td className="px-4 py-3 text-muted-foreground">{usuario.email}</td>
-                <td className="px-4 py-3">
-                  <Badge variant={papelVariant[usuario.papel]}>{usuario.papel}</Badge>
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {usuario.times.join(", ")}
-                </td>
-                <td className="px-4 py-3">
-                  {usuario.status === "Ativo" ? (
-                    <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
-                      Ativo
+            {(usuarios ?? []).map((usuario) => {
+              const nomesDosTimes = (usuario.user_teams ?? [])
+                .map((ut: { teams: { name: string }[] | null }) => ut.teams?.[0]?.name)
+                .filter(Boolean)
+                .join(", ")
+
+              return (
+                <tr key={usuario.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3 font-medium">{usuario.name}</td>
+                  <td className="px-4 py-3 text-muted-foreground">—</td>
+                  <td className="px-4 py-3">
+                    <Badge variant={papelVariant[usuario.role] ?? "secondary"}>
+                      {papelLabel[usuario.role] ?? usuario.role}
                     </Badge>
-                  ) : (
-                    <Badge variant="secondary">Inativo</Badge>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="inline-flex h-6 w-6 items-center justify-center rounded-md hover:bg-accent transition-colors">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Abrir menu</span>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Editar papel</DropdownMenuItem>
-                      <DropdownMenuItem>Gerenciar times</DropdownMenuItem>
-                      {usuario.status === "Ativo" ? (
-                        <DropdownMenuItem variant="destructive">Desativar</DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem>Reativar</DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {nomesDosTimes || "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {usuario.status === "active" ? (
+                      <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
+                        Ativo
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary">Inativo</Badge>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="inline-flex h-6 w-6 items-center justify-center rounded-md hover:bg-accent transition-colors">
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">Abrir menu</span>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>Editar papel</DropdownMenuItem>
+                        <DropdownMenuItem>Gerenciar times</DropdownMenuItem>
+                        {usuario.status === "active" ? (
+                          <DropdownMenuItem variant="destructive">Desativar</DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem>Reativar</DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
