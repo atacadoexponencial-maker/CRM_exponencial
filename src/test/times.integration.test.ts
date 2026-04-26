@@ -11,7 +11,7 @@ vi.mock("@/integrations/supabase/server", () => ({
 }))
 
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
-import { listarTimes, criarTime as criarTimeAction } from "@/app/(auth)/configuracoes/times/actions"
+import { listarTimes, criarTime as criarTimeAction, editarNomeTime } from "@/app/(auth)/configuracoes/times/actions"
 
 const mockSsrCreateClient = vi.mocked(createSsrClient)
 
@@ -234,5 +234,52 @@ describe("Issue 22 — Criar time personalizado", () => {
     expect(times).toHaveLength(1)
     expect(times![0].workspace_id).toBe(workspaceId)
     if (times?.[0]) criados.teamIds.push(times[0].id)
+  })
+})
+
+// ---------------------------------------------------------------------------
+
+describe("Issue 23 — Editar nome de time personalizado", () => {
+  let adminEmail: string
+  let timePersonalizadoId: string
+  let timeExpansaoId: string
+  let timeRetencaoId: string
+
+  beforeAll(async () => {
+    const ts = Date.now()
+    adminEmail = `admin-editar-time-${ts}@test.com`
+    const { workspaceId } = await criarWorkspaceComAdmin("Empresa Editar Time", adminEmail)
+
+    timePersonalizadoId = await criarTime(workspaceId, "Time Para Editar", false)
+    timeExpansaoId = await criarTime(workspaceId, "Expansão", true)
+    timeRetencaoId = await criarTime(workspaceId, "Retenção", true)
+  })
+
+  beforeEach(async () => {
+    const client = await autenticarComo(adminEmail)
+    mockSsrCreateClient.mockResolvedValue(client as never)
+  })
+
+  it("admin edita nome de time personalizado", async () => {
+    const resultado = await editarNomeTime(timePersonalizadoId, "Nome Editado")
+    expect(resultado.erro).toBeUndefined()
+
+    const { data: time } = await serviceClient
+      .from("teams")
+      .select("name")
+      .eq("id", timePersonalizadoId)
+      .single()
+
+    expect(time?.name).toBe("Nome Editado")
+  })
+
+  it("admin não consegue editar nome do time 'Expansão'", async () => {
+    const resultado = await editarNomeTime(timeExpansaoId, "Novo Nome Expansão")
+    expect(resultado.erro).toBeDefined()
+  })
+
+  it("admin não consegue editar nome do time 'Retenção'", async () => {
+    const resultado = await editarNomeTime(timeRetencaoId, "Novo Nome Retenção")
+    expect(resultado.erro).toBeDefined()
   })
 })

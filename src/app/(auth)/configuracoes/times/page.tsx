@@ -1,13 +1,7 @@
 import { redirect } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { CriarTimeDialog } from "./criar-time-dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from "lucide-react"
+import { AcoesTime } from "./acoes-time"
 import { createClient } from "@/integrations/supabase/server"
 import { listarTimes } from "./actions"
 
@@ -67,16 +61,7 @@ export default async function TimesPage() {
               </div>
 
               {!time.isDefault && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger className="inline-flex h-6 w-6 items-center justify-center rounded-md hover:bg-accent transition-colors">
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">Abrir menu</span>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>Editar nome</DropdownMenuItem>
-                    <DropdownMenuItem variant="destructive">Excluir</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <AcoesTime timeId={time.id} nomeAtual={time.name} />
               )}
             </div>
 
