@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal } from "lucide-react"
-import { editarPapel, gerenciarTimes, desativarUsuario } from "./actions"
+import { editarPapel, gerenciarTimes, desativarUsuario, reativarUsuario } from "./actions"
 
 type Team = { id: string; name: string }
 
@@ -54,6 +54,10 @@ export function AcoesUsuario({
   const [dialogDesativarAberto, setDialogDesativarAberto] = useState(false)
   const [erroDesativar, setErroDesativar] = useState<string | null>(null)
   const [desativando, setDesativando] = useState(false)
+
+  const [dialogReativarAberto, setDialogReativarAberto] = useState(false)
+  const [erroReativar, setErroReativar] = useState<string | null>(null)
+  const [reativando, setReativando] = useState(false)
 
   async function handleSalvar() {
     setErro(null)
@@ -103,6 +107,19 @@ export function AcoesUsuario({
     router.refresh()
   }
 
+  async function handleReativar() {
+    setErroReativar(null)
+    setReativando(true)
+    const resultado = await reativarUsuario(usuario.id)
+    setReativando(false)
+    if (resultado.erro) {
+      setErroReativar(resultado.erro)
+      return
+    }
+    setDialogReativarAberto(false)
+    router.refresh()
+  }
+
   async function handleDesativar() {
     setErroDesativar(null)
     setDesativando(true)
@@ -142,7 +159,11 @@ export function AcoesUsuario({
               Desativar
             </DropdownMenuItem>
           ) : (
-            <DropdownMenuItem>Reativar</DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => { setErroReativar(null); setDialogReativarAberto(true) }}
+            >
+              Reativar
+            </DropdownMenuItem>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
@@ -244,6 +265,32 @@ export function AcoesUsuario({
               </DialogClose>
               <Button variant="destructive" onClick={handleDesativar} disabled={desativando}>
                 {desativando ? "Desativando..." : "Desativar"}
+              </Button>
+            </div>
+          </div>
+        </DialogPopup>
+      </Dialog>
+      <Dialog open={dialogReativarAberto} onOpenChange={setDialogReativarAberto}>
+        <DialogPopup>
+          <DialogTitle className="mb-4">Reativar usuário</DialogTitle>
+
+          <div className="flex flex-col gap-4">
+            {erroReativar && (
+              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {erroReativar}
+              </p>
+            )}
+
+            <p className="text-sm">
+              Tem certeza que deseja reativar <strong>{usuario.name}</strong>? O usuário voltará a ter acesso ao sistema.
+            </p>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <DialogClose render={<Button type="button" variant="outline" />}>
+                Cancelar
+              </DialogClose>
+              <Button onClick={handleReativar} disabled={reativando}>
+                {reativando ? "Reativando..." : "Reativar"}
               </Button>
             </div>
           </div>

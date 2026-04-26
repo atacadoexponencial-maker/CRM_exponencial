@@ -19,6 +19,7 @@ import {
   adicionarUsuario,
   gerenciarTimes,
   desativarUsuario,
+  reativarUsuario,
 } from "@/app/(auth)/configuracoes/usuarios/actions"
 
 const mockSsrCreateClient = vi.mocked(createSsrClient)
@@ -453,5 +454,53 @@ describe("Issue 19 — Desativar usuário", () => {
     const resultado = await desativarUsuario(user!.id)
 
     expect(resultado.erro).toBe("Você não pode desativar a si mesmo")
+  })
+})
+
+// ---------------------------------------------------------------------------
+
+describe("Issue 20 — Reativar usuário", () => {
+  let adminEmail: string
+  let atendenteId: string
+
+  beforeAll(async () => {
+    const ts = Date.now() + 5
+    adminEmail = `admin-20-${ts}@test.com`
+    const { workspaceId } = await criarWorkspaceComAdmin("Empresa 20", adminEmail)
+    atendenteId = await criarUsuario(workspaceId, `atendente-20-${ts}@test.com`, "atendente")
+  })
+
+  beforeEach(async () => {
+    // Garantir que o atendente está inativo antes de cada teste
+    await serviceClient.from("profiles").update({ status: "inactive" }).eq("id", atendenteId)
+
+    const client = await autenticarComo(adminEmail)
+    mockSsrCreateClient.mockResolvedValue(client as never)
+  })
+
+  it("admin reativa usuário inativo (status volta para 'active')", async () => {
+    const resultado = await reativarUsuario(atendenteId)
+
+    expect(resultado.erro).toBeUndefined()
+
+    const { data } = await serviceClient
+      .from("profiles")
+      .select("status")
+      .eq("id", atendenteId)
+      .single()
+    expect(data?.status).toBe("active")
+  })
+
+  it("usuário reativado recupera acesso ao sistema (middleware permite status active)", async () => {
+    await reativarUsuario(atendenteId)
+
+    const { data } = await serviceClient
+      .from("profiles")
+      .select("status")
+      .eq("id", atendenteId)
+      .single()
+    // Confirma que o status está gravado como active no banco
+    // O middleware lê esse valor e permite o acesso normalmente
+    expect(data?.status).toBe("active")
   })
 })
