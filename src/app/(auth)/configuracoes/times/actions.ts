@@ -88,6 +88,43 @@ export async function editarNomeTime(timeId: string, novoNome: string): Promise<
   return {}
 }
 
+export async function excluirTime(timeId: string): Promise<{ erro?: string }> {
+  const ssrClient = await createSsrClient()
+  const { data: { user } } = await ssrClient.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  const { data: perfil } = await ssrClient
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+
+  const workspaceId: string = perfil.workspace_id
+
+  const { data: time } = await ssrClient
+    .from("teams")
+    .select("is_default")
+    .eq("id", timeId)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle()
+
+  if (!time) return { erro: "Time não encontrado" }
+  if (time.is_default) return { erro: "Não é possível excluir times padrão" }
+
+  const { error } = await ssrClient
+    .from("teams")
+    .delete()
+    .eq("id", timeId)
+    .eq("workspace_id", workspaceId)
+    .eq("is_default", false)
+
+  if (error) return { erro: "Não foi possível excluir o time. Tente novamente." }
+
+  return {}
+}
+
 export type MembroTime = {
   id: string
   name: string

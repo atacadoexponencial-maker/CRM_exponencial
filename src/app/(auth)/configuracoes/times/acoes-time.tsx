@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal } from "lucide-react"
-import { editarNomeTime } from "./actions"
+import { editarNomeTime, excluirTime } from "./actions"
 
 export function AcoesTime({
   timeId,
@@ -32,6 +32,10 @@ export function AcoesTime({
   const [novoNome, setNovoNome] = useState(nomeAtual)
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
+
+  const [dialogExcluirAberto, setDialogExcluirAberto] = useState(false)
+  const [erroExcluir, setErroExcluir] = useState<string | null>(null)
+  const [excluindo, setExcluindo] = useState(false)
 
   function handleDialogEditarOpenChange(open: boolean) {
     setDialogEditarAberto(open)
@@ -54,6 +58,19 @@ export function AcoesTime({
     router.refresh()
   }
 
+  async function handleExcluir() {
+    setErroExcluir(null)
+    setExcluindo(true)
+    const resultado = await excluirTime(timeId)
+    setExcluindo(false)
+    if (resultado.erro) {
+      setErroExcluir(resultado.erro)
+      return
+    }
+    setDialogExcluirAberto(false)
+    router.refresh()
+  }
+
   return (
     <>
       <DropdownMenu>
@@ -65,7 +82,10 @@ export function AcoesTime({
           <DropdownMenuItem onSelect={() => handleDialogEditarOpenChange(true)}>
             Editar nome
           </DropdownMenuItem>
-          <DropdownMenuItem variant="destructive">
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={() => { setErroExcluir(null); setDialogExcluirAberto(true) }}
+          >
             Excluir
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -98,6 +118,32 @@ export function AcoesTime({
               </DialogClose>
               <Button onClick={handleSalvar} disabled={salvando}>
                 {salvando ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </div>
+        </DialogPopup>
+      </Dialog>
+      <Dialog open={dialogExcluirAberto} onOpenChange={setDialogExcluirAberto}>
+        <DialogPopup>
+          <DialogTitle className="mb-4">Excluir time</DialogTitle>
+
+          <div className="flex flex-col gap-4">
+            {erroExcluir && (
+              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {erroExcluir}
+              </p>
+            )}
+
+            <p className="text-sm">
+              Tem certeza que deseja excluir <strong>{nomeAtual}</strong>? Os membros do time não serão excluídos.
+            </p>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <DialogClose render={<Button type="button" variant="outline" />}>
+                Cancelar
+              </DialogClose>
+              <Button variant="destructive" onClick={handleExcluir} disabled={excluindo}>
+                {excluindo ? "Excluindo..." : "Excluir"}
               </Button>
             </div>
           </div>

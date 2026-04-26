@@ -11,7 +11,7 @@ vi.mock("@/integrations/supabase/server", () => ({
 }))
 
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
-import { listarTimes, criarTime as criarTimeAction, editarNomeTime } from "@/app/(auth)/configuracoes/times/actions"
+import { listarTimes, criarTime as criarTimeAction, editarNomeTime, excluirTime } from "@/app/(auth)/configuracoes/times/actions"
 
 const mockSsrCreateClient = vi.mocked(createSsrClient)
 
@@ -280,6 +280,101 @@ describe("Issue 23 — Editar nome de time personalizado", () => {
 
   it("admin não consegue editar nome do time 'Retenção'", async () => {
     const resultado = await editarNomeTime(timeRetencaoId, "Novo Nome Retenção")
+    expect(resultado.erro).toBeDefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+
+describe("Issue 24 — Excluir time personalizado", () => {
+  let adminEmail: string
+  let workspaceId: string
+  let membroId: string
+  let timeExpansaoId: string
+  let timeRetencaoId: string
+
+  beforeAll(async () => {
+    const ts = Date.now()
+    adminEmail = `admin-excluir-time-${ts}@test.com`
+    const resultado = await criarWorkspaceComAdmin("Empresa Excluir Time", adminEmail)
+    workspaceId = resultado.workspaceId
+
+    // Membro que será associado ao time para verificar que não é excluído
+    const { data: authData } = await serviceClient.auth.admin.createUser({
+      email: `membro-excluir-${ts}@test.com`,
+      password: "senha-test-123!",
+      email_confirm: true,
+    })
+    membroId = authData.user!.id
+    await serviceClient.from("profiles").insert({
+      id: membroId,
+      workspace_id: workspaceId,
+      name: "Membro Teste",
+      role: "atendente",
+      status: "active",
+    })
+    criados.userIds.push(membroId)
+
+    timeExpansaoId = await criarTime(workspaceId, "Expansão", true)
+    timeRetencaoId = await criarTime(workspaceId, "Retenção", true)
+  })
+
+  beforeEach(async () => {
+    const client = await autenticarComo(adminEmail)
+    mockSsrCreateClient.mockResolvedValue(client as never)
+  })
+
+  it("admin exclui time personalizado", async () => {
+    const timeId = await criarTime(workspaceId, "Time Para Excluir", false)
+
+    const resultado = await excluirTime(timeId)
+    expect(resultado.erro).toBeUndefined()
+
+    const { data: time } = await serviceClient
+      .from("teams")
+      .select("id")
+      .eq("id", timeId)
+      .maybeSingle()
+
+    expect(time).toBeNull()
+    // Remove do array de cleanup pois já foi excluído
+    const idx = criados.teamIds.indexOf(timeId)
+    if (idx !== -1) criados.teamIds.splice(idx, 1)
+  })
+
+  it("usuários do time excluído não são excluídos (apenas desassociados)", async () => {
+    const timeId = await criarTime(workspaceId, "Time Com Membro", false)
+    await serviceClient.from("user_teams").insert({ user_id: membroId, team_id: timeId })
+
+    const resultado = await excluirTime(timeId)
+    expect(resultado.erro).toBeUndefined()
+
+    // Time excluído
+    const { data: time } = await serviceClient
+      .from("teams").select("id").eq("id", timeId).maybeSingle()
+    expect(time).toBeNull()
+
+    // Membro ainda existe
+    const { data: perfil } = await serviceClient
+      .from("profiles").select("id").eq("id", membroId).maybeSingle()
+    expect(perfil).not.toBeNull()
+
+    // Associação removida via cascade
+    const { data: assoc } = await serviceClient
+      .from("user_teams").select("user_id").eq("user_id", membroId).eq("team_id", timeId).maybeSingle()
+    expect(assoc).toBeNull()
+
+    const idx = criados.teamIds.indexOf(timeId)
+    if (idx !== -1) criados.teamIds.splice(idx, 1)
+  })
+
+  it("admin não consegue excluir o time 'Expansão'", async () => {
+    const resultado = await excluirTime(timeExpansaoId)
+    expect(resultado.erro).toBeDefined()
+  })
+
+  it("admin não consegue excluir o time 'Retenção'", async () => {
+    const resultado = await excluirTime(timeRetencaoId)
     expect(resultado.erro).toBeDefined()
   })
 })
