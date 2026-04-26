@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { CriarTimeDialog } from "./criar-time-dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,7 +43,7 @@ export default async function TimesPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">Times</h1>
-        <Button>Criar time</Button>
+        <CriarTimeDialog />
       </div>
 
       <div className="flex flex-col gap-4">

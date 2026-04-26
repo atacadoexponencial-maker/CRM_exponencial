@@ -11,7 +11,7 @@ vi.mock("@/integrations/supabase/server", () => ({
 }))
 
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
-import { listarTimes } from "@/app/(auth)/configuracoes/times/actions"
+import { listarTimes, criarTime as criarTimeAction } from "@/app/(auth)/configuracoes/times/actions"
 
 const mockSsrCreateClient = vi.mocked(createSsrClient)
 
@@ -151,6 +151,7 @@ describe("Issue 21 — Listar times da empresa", () => {
   })
 
   it("lista inclui times padrão e personalizado com isDefault correto", async () => {
+
     const lista = await listarTimes()
 
     const expansao = lista.find((t) => t.id === timeExpansaoAId)
@@ -170,5 +171,68 @@ describe("Issue 21 — Listar times da empresa", () => {
 
     // Cada time retorna array de membros
     expect(Array.isArray(expansao!.membros)).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+
+describe("Issue 22 — Criar time personalizado", () => {
+  let adminEmail: string
+  let workspaceId: string
+
+  beforeAll(async () => {
+    const ts = Date.now()
+    adminEmail = `admin-criar-time-${ts}@test.com`
+    const { workspaceId: wsId } = await criarWorkspaceComAdmin("Empresa Criar Time", adminEmail)
+    workspaceId = wsId
+  })
+
+  beforeEach(async () => {
+    const client = await autenticarComo(adminEmail)
+    mockSsrCreateClient.mockResolvedValue(client as never)
+  })
+
+  it("admin cria time com nome válido", async () => {
+    const resultado = await criarTimeAction("Time Novo Valido")
+    expect(resultado.erro).toBeUndefined()
+
+    const { data: times } = await serviceClient
+      .from("teams")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("name", "Time Novo Valido")
+
+    expect(times).toHaveLength(1)
+    if (times?.[0]) criados.teamIds.push(times[0].id)
+  })
+
+  it("time criado tem is_default = false", async () => {
+    const resultado = await criarTimeAction("Time Personalizado Test")
+    expect(resultado.erro).toBeUndefined()
+
+    const { data: times } = await serviceClient
+      .from("teams")
+      .select("id, is_default")
+      .eq("workspace_id", workspaceId)
+      .eq("name", "Time Personalizado Test")
+
+    expect(times).toHaveLength(1)
+    expect(times![0].is_default).toBe(false)
+    if (times?.[0]) criados.teamIds.push(times[0].id)
+  })
+
+  it("time criado pertence ao workspace correto", async () => {
+    const resultado = await criarTimeAction("Time do Workspace Correto")
+    expect(resultado.erro).toBeUndefined()
+
+    const { data: times } = await serviceClient
+      .from("teams")
+      .select("id, workspace_id")
+      .eq("workspace_id", workspaceId)
+      .eq("name", "Time do Workspace Correto")
+
+    expect(times).toHaveLength(1)
+    expect(times![0].workspace_id).toBe(workspaceId)
+    if (times?.[0]) criados.teamIds.push(times[0].id)
   })
 })

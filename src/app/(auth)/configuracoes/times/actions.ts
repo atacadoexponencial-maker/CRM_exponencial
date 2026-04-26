@@ -2,6 +2,42 @@
 
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 
+export async function criarTime(nome: string): Promise<{ erro?: string }> {
+  const nomeTrimado = nome.trim()
+  if (!nomeTrimado) return { erro: "Nome é obrigatório" }
+
+  const ssrClient = await createSsrClient()
+  const { data: { user } } = await ssrClient.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  const { data: perfil } = await ssrClient
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+
+  const workspaceId: string = perfil.workspace_id
+
+  const { data: existente } = await ssrClient
+    .from("teams")
+    .select("id")
+    .eq("workspace_id", workspaceId)
+    .ilike("name", nomeTrimado)
+    .maybeSingle()
+
+  if (existente) return { erro: "Já existe um time com esse nome" }
+
+  const { error } = await ssrClient
+    .from("teams")
+    .insert({ workspace_id: workspaceId, name: nomeTrimado, is_default: false })
+
+  if (error) return { erro: "Não foi possível criar o time. Tente novamente." }
+
+  return {}
+}
+
 export type MembroTime = {
   id: string
   name: string
