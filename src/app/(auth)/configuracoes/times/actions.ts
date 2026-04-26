@@ -125,6 +125,71 @@ export async function excluirTime(timeId: string): Promise<{ erro?: string }> {
   return {}
 }
 
+export async function listarUsuariosDoWorkspace(): Promise<{ id: string; name: string }[]> {
+  const ssrClient = await createSsrClient()
+  const { data: { user } } = await ssrClient.auth.getUser()
+  if (!user) return []
+
+  const { data: perfil } = await ssrClient
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (!perfil) return []
+
+  const { data: usuarios } = await ssrClient
+    .from("profiles")
+    .select("id, name")
+    .eq("workspace_id", perfil.workspace_id)
+    .order("name")
+
+  return (usuarios ?? []).map((u) => ({ id: u.id, name: u.name }))
+}
+
+export async function gerenciarMembrosTime(
+  timeId: string,
+  usuariosIds: string[]
+): Promise<{ erro?: string }> {
+  const ssrClient = await createSsrClient()
+  const { data: { user } } = await ssrClient.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  const { data: perfil } = await ssrClient
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+
+  const workspaceId: string = perfil.workspace_id
+
+  const { data: time } = await ssrClient
+    .from("teams")
+    .select("id")
+    .eq("id", timeId)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle()
+
+  if (!time) return { erro: "Time não encontrado" }
+
+  const { error: deleteError } = await ssrClient
+    .from("user_teams")
+    .delete()
+    .eq("team_id", timeId)
+
+  if (deleteError) return { erro: "Não foi possível salvar. Tente novamente." }
+
+  if (usuariosIds.length > 0) {
+    const novasAssociacoes = usuariosIds.map((userId) => ({ user_id: userId, team_id: timeId }))
+    const { error: insertError } = await ssrClient.from("user_teams").insert(novasAssociacoes)
+    if (insertError) return { erro: "Não foi possível salvar. Tente novamente." }
+  }
+
+  return {}
+}
+
 export type MembroTime = {
   id: string
   name: string

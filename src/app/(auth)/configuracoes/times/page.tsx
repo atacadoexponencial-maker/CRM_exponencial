@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { CriarTimeDialog } from "./criar-time-dialog"
 import { AcoesTime } from "./acoes-time"
 import { createClient } from "@/integrations/supabase/server"
-import { listarTimes } from "./actions"
+import { listarTimes, listarUsuariosDoWorkspace } from "./actions"
 
 function Iniciais({ nome }: { nome: string }) {
   const partes = nome.trim().split(" ")
@@ -31,7 +31,7 @@ export default async function TimesPage() {
 
   if (perfil?.role !== "admin") redirect("/perfil")
 
-  const times = await listarTimes()
+  const [times, todosUsuarios] = await Promise.all([listarTimes(), listarUsuariosDoWorkspace()])
 
   return (
     <div>
@@ -60,9 +60,13 @@ export default async function TimesPage() {
                 </span>
               </div>
 
-              {!time.isDefault && (
-                <AcoesTime timeId={time.id} nomeAtual={time.name} />
-              )}
+              <AcoesTime
+                timeId={time.id}
+                nomeAtual={time.name}
+                isDefault={time.isDefault}
+                membrosAtuaisIds={time.membros.map((m) => m.id)}
+                todosUsuarios={todosUsuarios}
+              />
             </div>
 
             <div className="px-4 py-3 flex flex-wrap gap-3">

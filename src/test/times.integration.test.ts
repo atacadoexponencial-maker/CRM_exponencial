@@ -11,7 +11,7 @@ vi.mock("@/integrations/supabase/server", () => ({
 }))
 
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
-import { listarTimes, criarTime as criarTimeAction, editarNomeTime, excluirTime } from "@/app/(auth)/configuracoes/times/actions"
+import { listarTimes, criarTime as criarTimeAction, editarNomeTime, excluirTime, gerenciarMembrosTime } from "@/app/(auth)/configuracoes/times/actions"
 
 const mockSsrCreateClient = vi.mocked(createSsrClient)
 
@@ -376,5 +376,94 @@ describe("Issue 24 — Excluir time personalizado", () => {
   it("admin não consegue excluir o time 'Retenção'", async () => {
     const resultado = await excluirTime(timeRetencaoId)
     expect(resultado.erro).toBeDefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+
+describe("Issue 25 — Gerenciar membros do time", () => {
+  let adminEmail: string
+  let workspaceId: string
+  let usuarioId: string
+  let timeId: string
+  let timeExpansaoId: string
+  let timeRetencaoId: string
+
+  beforeAll(async () => {
+    const ts = Date.now()
+    adminEmail = `admin-membros-${ts}@test.com`
+    const resultado = await criarWorkspaceComAdmin("Empresa Membros Time", adminEmail)
+    workspaceId = resultado.workspaceId
+
+    const { data: authData } = await serviceClient.auth.admin.createUser({
+      email: `usuario-membros-${ts}@test.com`,
+      password: "senha-test-123!",
+      email_confirm: true,
+    })
+    usuarioId = authData.user!.id
+    await serviceClient.from("profiles").insert({
+      id: usuarioId,
+      workspace_id: workspaceId,
+      name: "Usuário Membros",
+      role: "atendente",
+      status: "active",
+    })
+    criados.userIds.push(usuarioId)
+
+    timeId = await criarTime(workspaceId, "Time Gerenciar Membros", false)
+    timeExpansaoId = await criarTime(workspaceId, "Expansão", true)
+    timeRetencaoId = await criarTime(workspaceId, "Retenção", true)
+  })
+
+  beforeEach(async () => {
+    const client = await autenticarComo(adminEmail)
+    mockSsrCreateClient.mockResolvedValue(client as never)
+  })
+
+  it("admin adiciona usuário a um time pela tela de times", async () => {
+    const resultado = await gerenciarMembrosTime(timeId, [usuarioId])
+    expect(resultado.erro).toBeUndefined()
+
+    const { data: assoc } = await serviceClient
+      .from("user_teams")
+      .select("user_id")
+      .eq("team_id", timeId)
+      .eq("user_id", usuarioId)
+      .maybeSingle()
+
+    expect(assoc).not.toBeNull()
+  })
+
+  it("admin remove usuário de um time pela tela de times", async () => {
+    // Garante que o usuário está no time antes de remover
+    await serviceClient.from("user_teams").upsert({ user_id: usuarioId, team_id: timeId })
+
+    const resultado = await gerenciarMembrosTime(timeId, [])
+    expect(resultado.erro).toBeUndefined()
+
+    const { data: assoc } = await serviceClient
+      .from("user_teams")
+      .select("user_id")
+      .eq("team_id", timeId)
+      .eq("user_id", usuarioId)
+      .maybeSingle()
+
+    expect(assoc).toBeNull()
+  })
+
+  it("mesmo usuário pode estar em Expansão e Retenção ao mesmo tempo", async () => {
+    const r1 = await gerenciarMembrosTime(timeExpansaoId, [usuarioId])
+    expect(r1.erro).toBeUndefined()
+
+    const r2 = await gerenciarMembrosTime(timeRetencaoId, [usuarioId])
+    expect(r2.erro).toBeUndefined()
+
+    const { data: assocExpansao } = await serviceClient
+      .from("user_teams").select("user_id").eq("team_id", timeExpansaoId).eq("user_id", usuarioId).maybeSingle()
+    const { data: assocRetencao } = await serviceClient
+      .from("user_teams").select("user_id").eq("team_id", timeRetencaoId).eq("user_id", usuarioId).maybeSingle()
+
+    expect(assocExpansao).not.toBeNull()
+    expect(assocRetencao).not.toBeNull()
   })
 })
