@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -7,35 +8,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal } from "lucide-react"
-
-const times = [
-  {
-    id: 1,
-    nome: "Expansão",
-    tipo: "Padrão" as const,
-    membros: [
-      { id: 1, nome: "Ana Costa" },
-      { id: 2, nome: "Carlos Lima" },
-    ],
-  },
-  {
-    id: 2,
-    nome: "Retenção",
-    tipo: "Padrão" as const,
-    membros: [
-      { id: 3, nome: "Beatriz Souza" },
-    ],
-  },
-  {
-    id: 3,
-    nome: "Prospecção",
-    tipo: "Personalizado" as const,
-    membros: [
-      { id: 2, nome: "Carlos Lima" },
-      { id: 3, nome: "Beatriz Souza" },
-    ],
-  },
-]
+import { createClient } from "@/integrations/supabase/server"
+import { listarTimes } from "./actions"
 
 function Iniciais({ nome }: { nome: string }) {
   const partes = nome.trim().split(" ")
@@ -49,7 +23,22 @@ function Iniciais({ nome }: { nome: string }) {
   )
 }
 
-export default function TimesPage() {
+export default async function TimesPage() {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect("/login")
+
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") redirect("/perfil")
+
+  const times = await listarTimes()
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -62,22 +51,22 @@ export default function TimesPage() {
           <div key={time.id} className="rounded-lg border">
             <div className="flex items-center justify-between px-4 py-3 border-b">
               <div className="flex items-center gap-3">
-                <span className="font-medium">{time.nome}</span>
+                <span className="font-medium">{time.name}</span>
                 <Badge
                   className={
-                    time.tipo === "Padrão"
+                    time.isDefault
                       ? "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
                       : "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800"
                   }
                 >
-                  {time.tipo}
+                  {time.isDefault ? "Padrão" : "Personalizado"}
                 </Badge>
                 <span className="text-sm text-muted-foreground">
                   {time.membros.length} {time.membros.length === 1 ? "membro" : "membros"}
                 </span>
               </div>
 
-              {time.tipo === "Personalizado" && (
+              {!time.isDefault && (
                 <DropdownMenu>
                   <DropdownMenuTrigger className="inline-flex h-6 w-6 items-center justify-center rounded-md hover:bg-accent transition-colors">
                     <MoreHorizontal className="h-4 w-4" />
@@ -94,8 +83,8 @@ export default function TimesPage() {
             <div className="px-4 py-3 flex flex-wrap gap-3">
               {time.membros.map((membro) => (
                 <div key={membro.id} className="flex items-center gap-2 text-sm">
-                  <Iniciais nome={membro.nome} />
-                  <span>{membro.nome}</span>
+                  <Iniciais nome={membro.name} />
+                  <span>{membro.name}</span>
                 </div>
               ))}
             </div>
