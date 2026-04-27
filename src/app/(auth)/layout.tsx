@@ -7,6 +7,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <span className="font-semibold text-sm">CRM Exponencial</span>
           <nav className="flex items-center gap-6 text-sm">
+            <Link href="/chat" className="text-muted-foreground hover:text-foreground transition-colors">
+              Chat
+            </Link>
             <Link href="/configuracoes/usuarios" className="text-muted-foreground hover:text-foreground transition-colors">
               Usuários
             </Link>
@@ -22,7 +25,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </nav>
         </div>
       </header>
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8">
+      <main className="flex-1 flex flex-col">
         {children}
       </main>
     </div>
