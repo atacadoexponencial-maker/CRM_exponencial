@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 import { createClient } from "@/integrations/supabase/server"
 
 export async function editarNomePerfil(
@@ -49,4 +50,10 @@ export async function alterarSenha(
   if (updateError) return { erro: "Não foi possível alterar a senha. Tente novamente." }
 
   return {}
+}
+
+export async function realizarLogout() {
+  const ssrClient = await createClient()
+  await ssrClient.auth.signOut()
+  redirect("/login")
 }

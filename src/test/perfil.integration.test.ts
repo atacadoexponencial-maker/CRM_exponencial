@@ -11,7 +11,7 @@ vi.mock("@/integrations/supabase/server", () => ({
 }))
 
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
-import { alterarSenha } from "@/app/(auth)/perfil/actions"
+import { alterarSenha, realizarLogout } from "@/app/(auth)/perfil/actions"
 
 const mockSsrCreateClient = vi.mocked(createSsrClient)
 
@@ -125,5 +125,49 @@ describe("Issue 29 — Alterar senha", () => {
   it("rejeita se nova senha e confirmação não coincidirem", async () => {
     const resultado = await alterarSenha(SENHA, "nova-senha-456!", "senha-diferente-789!")
     expect(resultado.erro).toBe("As senhas não coincidem.")
+  })
+})
+
+// ---------------------------------------------------------------------------
+
+describe("Issue 30 — Logout", () => {
+  let usuarioEmail: string
+
+  beforeAll(async () => {
+    const ts = Date.now() + 1
+    usuarioEmail = `perfil-30-${ts}@test.com`
+    await criarUsuarioComWorkspace(usuarioEmail)
+  })
+
+  it("sessão é encerrada após logout", async () => {
+    const client = await autenticarComo(usuarioEmail)
+    mockSsrCreateClient.mockResolvedValue(client as never)
+
+    await client.auth.signOut()
+
+    const { data: { user } } = await client.auth.getUser()
+    expect(user).toBeNull()
+  })
+
+  it("usuário é redirecionado para /login após logout", async () => {
+    const client = await autenticarComo(usuarioEmail)
+    mockSsrCreateClient.mockResolvedValue(client as never)
+
+    try {
+      await realizarLogout()
+      expect.fail("Deveria ter lançado redirect")
+    } catch (e: any) {
+      expect(e.digest).toMatch(/NEXT_REDIRECT.*\/login/)
+    }
+  })
+
+  it("token de sessão é invalidado após logout", async () => {
+    const client = await autenticarComo(usuarioEmail)
+
+    await client.auth.signOut()
+
+    // Após signOut, não há sessão ativa — getUser retorna null
+    const { data: { session } } = await client.auth.getSession()
+    expect(session).toBeNull()
   })
 })

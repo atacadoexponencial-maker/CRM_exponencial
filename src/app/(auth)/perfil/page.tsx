@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { createClient } from "@/integrations/supabase/server"
 import { FormPerfil } from "./form-perfil"
 import { FormAlterarSenha } from "./form-alterar-senha"
+import { realizarLogout } from "./actions"
 
 export default async function PerfilPage() {
   const supabase = await createClient()
@@ -28,7 +29,9 @@ export default async function PerfilPage() {
       </section>
 
       <section>
-        <Button variant="outline">Sair</Button>
+        <form action={realizarLogout}>
+          <Button type="submit" variant="outline">Sair</Button>
+        </form>
       </section>
     </div>
   )
