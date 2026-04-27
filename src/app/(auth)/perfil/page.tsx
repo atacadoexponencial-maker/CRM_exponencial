@@ -1,33 +1,26 @@
+import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { createClient } from "@/integrations/supabase/server"
+import { FormPerfil } from "./form-perfil"
 
-export default function PerfilPage() {
+export default async function PerfilPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect("/login")
+
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("name")
+    .eq("id", user.id)
+    .single()
+
   return (
     <div className="max-w-lg flex flex-col gap-10">
       <section>
         <h2 className="text-lg font-semibold mb-4">Dados do perfil</h2>
-        <form className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nome">Nome</Label>
-            <Input id="nome" type="text" defaultValue="Ana Costa" />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="email">E-mail</Label>
-            <Input
-              id="email"
-              type="email"
-              defaultValue="ana@empresa.com"
-              readOnly
-              className="opacity-50 cursor-not-allowed"
-            />
-          </div>
-
-          <div>
-            <Button type="submit">Salvar</Button>
-          </div>
-        </form>
+        <FormPerfil nome={perfil?.name ?? ""} email={user.email ?? ""} />
       </section>
 
       <section>
