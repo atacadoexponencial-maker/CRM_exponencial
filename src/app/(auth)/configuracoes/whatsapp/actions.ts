@@ -108,3 +108,57 @@ export async function completarConexaoWhatsApp(params: {
   revalidatePath("/configuracoes/whatsapp")
   return {}
 }
+
+export async function desconectarWhatsApp(
+  id: string
+): Promise<{ erro?: string }> {
+  const ssrClient = await createSsrClient()
+  const { data: { user } } = await ssrClient.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  const { data: perfil } = await ssrClient
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+
+  const { error } = await ssrClient
+    .from("whatsapp_connections")
+    .update({ status: "disconnected" })
+    .eq("id", id)
+    .eq("workspace_id", perfil.workspace_id)
+
+  if (error) return { erro: "Não foi possível atualizar o número. Tente novamente." }
+
+  revalidatePath("/configuracoes/whatsapp")
+  return {}
+}
+
+export async function reconectarWhatsApp(
+  id: string
+): Promise<{ erro?: string }> {
+  const ssrClient = await createSsrClient()
+  const { data: { user } } = await ssrClient.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  const { data: perfil } = await ssrClient
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+
+  const { error } = await ssrClient
+    .from("whatsapp_connections")
+    .update({ status: "connected" })
+    .eq("id", id)
+    .eq("workspace_id", perfil.workspace_id)
+
+  if (error) return { erro: "Não foi possível atualizar o número. Tente novamente." }
+
+  revalidatePath("/configuracoes/whatsapp")
+  return {}
+}
