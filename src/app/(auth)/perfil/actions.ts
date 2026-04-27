@@ -23,3 +23,30 @@ export async function editarNomePerfil(
   revalidatePath("/perfil")
   return {}
 }
+
+export async function alterarSenha(
+  senhaAtual: string,
+  novaSenha: string,
+  confirmarSenha: string
+): Promise<{ erro?: string }> {
+  if (novaSenha !== confirmarSenha) return { erro: "As senhas não coincidem." }
+
+  const ssrClient = await createClient()
+  const { data: { user } } = await ssrClient.auth.getUser()
+  if (!user || !user.email) return { erro: "Não autorizado" }
+
+  const { error: signInError } = await ssrClient.auth.signInWithPassword({
+    email: user.email,
+    password: senhaAtual,
+  })
+
+  if (signInError) return { erro: "Senha atual incorreta." }
+
+  const { error: updateError } = await ssrClient.auth.updateUser({
+    password: novaSenha,
+  })
+
+  if (updateError) return { erro: "Não foi possível alterar a senha. Tente novamente." }
+
+  return {}
+}
