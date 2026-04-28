@@ -9,9 +9,11 @@ import type { Mensagem } from "../mock-mensagens"
 interface ChatLayoutProps {
   conversas: Conversa[]
   mensagens: Record<string, Mensagem[]>
+  papel: string
+  nomeUsuario: string
 }
 
-export function ChatLayout({ conversas, mensagens }: ChatLayoutProps) {
+export function ChatLayout({ conversas, mensagens, papel, nomeUsuario }: ChatLayoutProps) {
   const [conversaAtivaId, setConversaAtivaId] = useState<string | null>(null)
   const [mensagensLocais, setMensagensLocais] = useState<Record<string, Mensagem[]>>(mensagens)
 
@@ -36,6 +38,8 @@ export function ChatLayout({ conversas, mensagens }: ChatLayoutProps) {
           conversas={conversas}
           conversaAtivaId={conversaAtivaId}
           onConversaClick={setConversaAtivaId}
+          papel={papel}
+          nomeUsuario={nomeUsuario}
         />
       </aside>
 

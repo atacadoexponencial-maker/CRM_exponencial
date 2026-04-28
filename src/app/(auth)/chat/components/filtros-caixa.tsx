@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ItemConversa } from "./item-conversa"
-import type { Conversa, FiltroStatus } from "../mock-conversas"
+import type { Conversa, FiltroStatus, FiltroVisibilidade } from "../mock-conversas"
 
 const FILTROS_STATUS: { label: string; valor: FiltroStatus }[] = [
   { label: "Todas", valor: "todas" },
@@ -13,7 +13,11 @@ const FILTROS_STATUS: { label: string; valor: FiltroStatus }[] = [
   { label: "Resolvidas", valor: "resolvida" },
 ]
 
-const FILTROS_VISIBILIDADE = ["Minhas", "Meu time", "Todas"]
+const FILTROS_VISIBILIDADE: { label: string; valor: FiltroVisibilidade }[] = [
+  { label: "Minhas", valor: "minhas" },
+  { label: "Meu time", valor: "meu_time" },
+  { label: "Todas", valor: "todas" },
+]
 
 const ETIQUETAS_DISPONIVEIS = ["Novo cliente", "Recompra", "VIP"]
 
@@ -21,14 +25,20 @@ interface FiltrosCaixaProps {
   conversas: Conversa[]
   conversaAtivaId: string | null
   onConversaClick: (id: string) => void
+  papel: string
+  nomeUsuario: string
 }
 
-export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick }: FiltrosCaixaProps) {
+export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, papel, nomeUsuario }: FiltrosCaixaProps) {
   const [status, setStatus] = useState<FiltroStatus>("todas")
+  const [visibilidade, setVisibilidade] = useState<FiltroVisibilidade>(
+    papel === "atendente" ? "minhas" : "todas"
+  )
   const [etiqueta, setEtiqueta] = useState<string | null>(null)
   const [busca, setBusca] = useState("")
 
   const conversasFiltradas = conversas.filter((c) => {
+    if (visibilidade === "minhas" && c.atribuidaA !== nomeUsuario) return false
     if (status !== "todas" && c.status !== status) return false
     if (etiqueta && !c.etiquetas.some((e) => e.nome === etiqueta)) return false
     if (busca.trim()) {
@@ -72,14 +82,18 @@ export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick }: Fi
         </div>
 
         <div className="flex gap-1 flex-wrap">
-          {FILTROS_VISIBILIDADE.map((label) => (
+          {FILTROS_VISIBILIDADE.filter((f) => !(papel === "atendente" && f.valor === "todas")).map((f) => (
             <button
-              key={label}
-              disabled
-              title="Disponível após login"
-              className="px-2.5 py-1 text-xs rounded-md border border-border text-muted-foreground opacity-40 cursor-not-allowed"
+              key={f.valor}
+              onClick={() => setVisibilidade(f.valor)}
+              className={cn(
+                "px-2.5 py-1 text-xs rounded-md border transition-colors",
+                visibilidade === f.valor
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
             >
-              {label}
+              {f.label}
             </button>
           ))}
         </div>
