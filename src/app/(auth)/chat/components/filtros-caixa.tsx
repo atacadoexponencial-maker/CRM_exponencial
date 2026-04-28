@@ -19,13 +19,14 @@ const ETIQUETAS_DISPONIVEIS = ["Novo cliente", "Recompra", "VIP"]
 
 interface FiltrosCaixaProps {
   conversas: Conversa[]
+  conversaAtivaId: string | null
+  onConversaClick: (id: string) => void
 }
 
-export function FiltrosCaixa({ conversas }: FiltrosCaixaProps) {
+export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick }: FiltrosCaixaProps) {
   const [status, setStatus] = useState<FiltroStatus>("todas")
   const [etiqueta, setEtiqueta] = useState<string | null>(null)
   const [busca, setBusca] = useState("")
-  const [conversaAtivaId, setConversaAtivaId] = useState<string | null>(null)
 
   const conversasFiltradas = conversas.filter((c) => {
     if (status !== "todas" && c.status !== status) return false
@@ -123,7 +124,7 @@ export function FiltrosCaixa({ conversas }: FiltrosCaixaProps) {
               key={conversa.id}
               conversa={conversa}
               ativa={conversaAtivaId === conversa.id}
-              onClick={() => setConversaAtivaId(conversa.id)}
+              onClick={() => onConversaClick(conversa.id)}
             />
           ))
         )}
