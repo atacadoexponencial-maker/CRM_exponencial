@@ -16,6 +16,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <Link href="/configuracoes/times" className="text-muted-foreground hover:text-foreground transition-colors">
               Times
             </Link>
+            <Link href="/configuracoes/etiquetas" className="text-muted-foreground hover:text-foreground transition-colors">
+              Etiquetas
+            </Link>
             <Link href="/configuracoes/whatsapp" className="text-muted-foreground hover:text-foreground transition-colors">
               WhatsApp
             </Link>
