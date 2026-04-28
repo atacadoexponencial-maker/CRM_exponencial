@@ -10,6 +10,7 @@ export interface Conversa {
   status: StatusConversa
   etiquetas: Array<{ nome: string; cor: string }>
   atribuidaA: string | null
+  dataPrimeiroContato: string
 }
 
 export const MOCK_CONVERSAS: Conversa[] = [
@@ -21,6 +22,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_espera",
     etiquetas: [{ nome: "Novo cliente", cor: "#3b82f6" }],
     atribuidaA: null,
+    dataPrimeiroContato: "15 abr. 2026",
   },
   {
     id: "2",
@@ -30,6 +32,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_atendimento",
     etiquetas: [{ nome: "Recompra", cor: "#10b981" }],
     atribuidaA: "Carlos",
+    dataPrimeiroContato: "03 jan. 2026",
   },
   {
     id: "3",
@@ -39,6 +42,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "resolvida",
     etiquetas: [],
     atribuidaA: "Carlos",
+    dataPrimeiroContato: "22 ago. 2025",
   },
   {
     id: "4",
@@ -48,6 +52,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_espera",
     etiquetas: [],
     atribuidaA: null,
+    dataPrimeiroContato: "27 abr. 2026",
   },
   {
     id: "5",
@@ -57,6 +62,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_atendimento",
     etiquetas: [{ nome: "VIP", cor: "#f59e0b" }, { nome: "Recompra", cor: "#10b981" }],
     atribuidaA: "Fernanda",
+    dataPrimeiroContato: "14 out. 2024",
   },
   {
     id: "6",
@@ -66,6 +72,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "resolvida",
     etiquetas: [{ nome: "Recompra", cor: "#10b981" }],
     atribuidaA: "Fernanda",
+    dataPrimeiroContato: "07 fev. 2025",
   },
   {
     id: "7",
@@ -75,6 +82,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_espera",
     etiquetas: [{ nome: "Novo cliente", cor: "#3b82f6" }],
     atribuidaA: null,
+    dataPrimeiroContato: "25 abr. 2026",
   },
   {
     id: "8",
@@ -84,6 +92,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_atendimento",
     etiquetas: [],
     atribuidaA: "Carlos",
+    dataPrimeiroContato: "11 mar. 2026",
   },
   {
     id: "9",
@@ -93,6 +102,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "resolvida",
     etiquetas: [{ nome: "VIP", cor: "#f59e0b" }],
     atribuidaA: "Fernanda",
+    dataPrimeiroContato: "30 jun. 2024",
   },
   {
     id: "10",
@@ -102,6 +112,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_atendimento",
     etiquetas: [{ nome: "Recompra", cor: "#10b981" }],
     atribuidaA: "Carlos",
+    dataPrimeiroContato: "18 nov. 2024",
   },
   {
     id: "11",
@@ -111,6 +122,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_espera",
     etiquetas: [],
     atribuidaA: null,
+    dataPrimeiroContato: "20 abr. 2026",
   },
   {
     id: "12",
@@ -120,6 +132,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_atendimento",
     etiquetas: [{ nome: "VIP", cor: "#f59e0b" }],
     atribuidaA: "Fernanda",
+    dataPrimeiroContato: "05 dez. 2024",
   },
   {
     id: "13",
@@ -129,6 +142,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_espera",
     etiquetas: [{ nome: "Novo cliente", cor: "#3b82f6" }],
     atribuidaA: null,
+    dataPrimeiroContato: "26 abr. 2026",
   },
   {
     id: "14",
@@ -138,6 +152,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "resolvida",
     etiquetas: [],
     atribuidaA: "Carlos",
+    dataPrimeiroContato: "08 jan. 2025",
   },
   {
     id: "15",
@@ -147,6 +162,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "resolvida",
     etiquetas: [{ nome: "Recompra", cor: "#10b981" }],
     atribuidaA: "Fernanda",
+    dataPrimeiroContato: "14 fev. 2025",
   },
   {
     id: "16",
@@ -156,6 +172,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_atendimento",
     etiquetas: [{ nome: "VIP", cor: "#f59e0b" }, { nome: "Novo cliente", cor: "#3b82f6" }],
     atribuidaA: "Carlos",
+    dataPrimeiroContato: "03 abr. 2026",
   },
   {
     id: "17",
@@ -165,6 +182,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_espera",
     etiquetas: [],
     atribuidaA: null,
+    dataPrimeiroContato: "24 abr. 2026",
   },
   {
     id: "18",
@@ -174,6 +192,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_atendimento",
     etiquetas: [{ nome: "Recompra", cor: "#10b981" }],
     atribuidaA: "Fernanda",
+    dataPrimeiroContato: "16 set. 2024",
   },
   {
     id: "19",
@@ -183,6 +202,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "resolvida",
     etiquetas: [{ nome: "VIP", cor: "#f59e0b" }, { nome: "Recompra", cor: "#10b981" }],
     atribuidaA: "Carlos",
+    dataPrimeiroContato: "22 mai. 2024",
   },
   {
     id: "20",
@@ -192,5 +212,6 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "resolvida",
     etiquetas: [{ nome: "Novo cliente", cor: "#3b82f6" }],
     atribuidaA: "Fernanda",
+    dataPrimeiroContato: "21 abr. 2026",
   },
 ]

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, KeyboardEvent } from "react"
 import {
-  Search, Paperclip, Mic, Zap, StickyNote, Send, X, MoreVertical, Phone, ChevronRight,
+  Search, Paperclip, Mic, Zap, StickyNote, Send, X, MoreVertical, Phone,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -12,6 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { BalaoMensagem } from "./balao-mensagem"
+import { PainelContato } from "./painel-contato"
+import { MOCK_CONVERSAS } from "../mock-conversas"
 import type { Conversa } from "../mock-conversas"
 import type { Mensagem } from "../mock-mensagens"
 
@@ -271,33 +273,13 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
         </div>
       </div>
 
-      {/* Painel lateral de contato (placeholder) */}
+      {/* Painel lateral de contato */}
       {painelContato && (
-        <aside className="w-72 shrink-0 border-l bg-background flex flex-col overflow-y-auto">
-          <div className="flex items-center justify-between px-4 py-3 border-b">
-            <span className="text-sm font-semibold">Informações do contato</span>
-            <button
-              onClick={() => setPainelContato(false)}
-              className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted transition-colors"
-            >
-              <ChevronRight className="size-4" />
-            </button>
-          </div>
-
-          <div className="p-4 flex flex-col gap-4">
-            <div className="flex flex-col items-center gap-2 py-4">
-              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center text-xl font-medium text-muted-foreground">
-                {nomeExibido[0].toUpperCase()}
-              </div>
-              <p className="font-semibold text-sm">{nomeExibido}</p>
-              <p className="text-xs text-muted-foreground">{conversa.contato.telefone}</p>
-            </div>
-
-            <p className="text-xs text-muted-foreground text-center">
-              Informações detalhadas do contato estarão disponíveis na issue 03.
-            </p>
-          </div>
-        </aside>
+        <PainelContato
+          conversa={conversa}
+          todasConversas={MOCK_CONVERSAS}
+          onFechar={() => setPainelContato(false)}
+        />
       )}
     </div>
   )
