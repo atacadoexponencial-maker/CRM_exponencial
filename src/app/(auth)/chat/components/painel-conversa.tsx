@@ -14,6 +14,7 @@ import {
 import { BalaoMensagem } from "./balao-mensagem"
 import { PainelContato } from "./painel-contato"
 import { MOCK_CONVERSAS } from "../mock-conversas"
+import { MOCK_MENSAGENS_RAPIDAS } from "../mock-mensagens-rapidas"
 import type { Conversa } from "../mock-conversas"
 import type { Mensagem } from "../mock-mensagens"
 
@@ -51,6 +52,8 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
   const [modoNota, setModoNota] = useState(false)
   const [painelContato, setPainelContato] = useState(false)
   const [texto, setTexto] = useState("")
+  const [seletorMRAberto, setSeletorMRAberto] = useState(false)
+  const [termoBuscaMR, setTermoBuscaMR] = useState("")
   const mensagensRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const nomeExibido = conversa.contato.nome ?? conversa.contato.telefone
@@ -63,6 +66,8 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
     setBuscaAberta(false)
     setModoNota(false)
     setTexto("")
+    setSeletorMRAberto(false)
+    setTermoBuscaMR("")
   }, [conversa.id])
 
   useEffect(() => {
@@ -194,6 +199,55 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
           )}
         </div>
 
+        {/* Seletor de mensagens rápidas */}
+        {seletorMRAberto && (() => {
+          const termo = termoBuscaMR.toLowerCase()
+          const filtradas = MOCK_MENSAGENS_RAPIDAS.filter(
+            (mr) =>
+              mr.titulo.toLowerCase().includes(termo) ||
+              mr.conteudo.toLowerCase().includes(termo)
+          )
+          return (
+            <div className="border-t bg-background shrink-0">
+              <div className="flex items-center gap-2 px-3 py-2 border-b">
+                <Search className="size-3.5 text-muted-foreground shrink-0" />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Buscar mensagem rápida..."
+                  value={termoBuscaMR}
+                  onChange={(e) => setTermoBuscaMR(e.target.value)}
+                  className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
+                />
+                <button onClick={() => { setSeletorMRAberto(false); setTermoBuscaMR("") }}>
+                  <X className="size-3.5 text-muted-foreground hover:text-foreground" />
+                </button>
+              </div>
+              <div className="max-h-48 overflow-y-auto">
+                {filtradas.length === 0 ? (
+                  <p className="px-3 py-3 text-xs text-muted-foreground">Nenhuma mensagem encontrada</p>
+                ) : (
+                  filtradas.map((mr) => (
+                    <button
+                      key={mr.id}
+                      onClick={() => {
+                        setTexto(mr.conteudo)
+                        setSeletorMRAberto(false)
+                        setTermoBuscaMR("")
+                        setTimeout(() => inputRef.current?.focus(), 0)
+                      }}
+                      className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors flex gap-3 items-start border-b last:border-0"
+                    >
+                      <span className="font-mono text-xs text-muted-foreground shrink-0 mt-0.5 w-24 truncate">{mr.titulo}</span>
+                      <span className="text-xs text-foreground truncate">{mr.conteudo}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          )
+        })()}
+
         {/* Barra de input */}
         <div
           className={cn(
@@ -217,9 +271,14 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
                 <Paperclip className="size-4" />
               </button>
               <button
-                title="Mensagens rápidas (indisponível no protótipo)"
-                disabled
-                className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground opacity-40 cursor-not-allowed"
+                title="Mensagens rápidas"
+                onClick={() => { setSeletorMRAberto((v) => !v); setTermoBuscaMR("") }}
+                className={cn(
+                  "h-7 w-7 flex items-center justify-center rounded-md transition-colors",
+                  seletorMRAberto
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted"
+                )}
               >
                 <Zap className="size-4" />
               </button>
