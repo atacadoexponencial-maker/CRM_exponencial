@@ -16,10 +16,20 @@ interface ChatLayoutProps {
 export function ChatLayout({ conversas, mensagens, papel, nomeUsuario }: ChatLayoutProps) {
   const [conversaAtivaId, setConversaAtivaId] = useState<string | null>(null)
   const [mensagensLocais, setMensagensLocais] = useState<Record<string, Mensagem[]>>(mensagens)
+  const [abertas, setAbertas] = useState<Set<string>>(new Set())
+
+  const conversasComLeitura = conversas.map((c) =>
+    abertas.has(c.id) ? { ...c, naoLidas: 0 } : c
+  )
 
   const conversaAtiva = conversaAtivaId
-    ? conversas.find((c) => c.id === conversaAtivaId) ?? null
+    ? conversasComLeitura.find((c) => c.id === conversaAtivaId) ?? null
     : null
+
+  function handleConversaClick(id: string) {
+    setConversaAtivaId(id)
+    setAbertas((prev) => new Set(prev).add(id))
+  }
 
   function handleMensagemEnviada(msg: Mensagem) {
     setMensagensLocais((prev) => ({
@@ -35,9 +45,9 @@ export function ChatLayout({ conversas, mensagens, papel, nomeUsuario }: ChatLay
           <h1 className="text-sm font-semibold">Caixa de Entrada</h1>
         </div>
         <FiltrosCaixa
-          conversas={conversas}
+          conversas={conversasComLeitura}
           conversaAtivaId={conversaAtivaId}
-          onConversaClick={setConversaAtivaId}
+          onConversaClick={handleConversaClick}
           papel={papel}
           nomeUsuario={nomeUsuario}
         />
