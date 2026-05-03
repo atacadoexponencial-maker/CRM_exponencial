@@ -51,6 +51,15 @@ function ConteudoMensagem({ mensagem, termoBusca }: { mensagem: Mensagem; termoB
         </div>
       )
     case "video":
+      if (mensagem.conteudo.startsWith("http") || mensagem.conteudo.startsWith("blob:")) {
+        return (
+          <video
+            src={mensagem.conteudo}
+            controls
+            className="w-48 rounded-lg"
+          />
+        )
+      }
       return (
         <div className="w-48 h-32 rounded-lg bg-muted flex flex-col items-center justify-center gap-1 border relative">
           <div className="h-8 w-8 rounded-full bg-background/80 flex items-center justify-center">
