@@ -1,27 +1,86 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { Loader2 } from "lucide-react"
+import { createClient } from "@/integrations/supabase/client"
 import { FiltrosCaixa } from "./filtros-caixa"
 import { PainelConversa } from "./painel-conversa"
 import { buscarMensagens } from "../actions"
-import type { Conversa } from "../mock-conversas"
+import type { Conversa, StatusConversa } from "../mock-conversas"
 import type { Mensagem } from "../mock-mensagens"
+
+function formatHorario(iso: string): string {
+  const date = new Date(iso)
+  const now = new Date()
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+  if (diffDays === 0) return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+  if (diffDays === 1) return "Ontem"
+  const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
+  if (diffDays < 7) return weekdays[date.getDay()]
+  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
+}
 
 interface ChatLayoutProps {
   conversas: Conversa[]
   papel: string
   nomeUsuario: string
+  workspaceId: string
 }
 
-export function ChatLayout({ conversas, papel, nomeUsuario }: ChatLayoutProps) {
+export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId }: ChatLayoutProps) {
+  const [conversasState, setConversasState] = useState<Conversa[]>(conversas)
   const [conversaAtivaId, setConversaAtivaId] = useState<string | null>(null)
   const [mensagensLocais, setMensagensLocais] = useState<Record<string, Mensagem[]>>({})
   const [erroConversaId, setErroConversaId] = useState<string | null>(null)
   const [abertas, setAbertas] = useState<Set<string>>(new Set())
   const [isPending, startTransition] = useTransition()
 
-  const conversasComLeitura = conversas.map((c) =>
+  useEffect(() => {
+    const supabase = createClient()
+
+    const channel = supabase
+      .channel("chat-conversas")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "conversations",
+          filter: `workspace_id=eq.${workspaceId}`,
+        },
+        (payload) => {
+          const row = payload.new as {
+            id: string
+            last_message_text: string
+            last_message_at: string
+            unread_count: number
+            status: string
+          }
+
+          setConversasState((prev) => {
+            const idx = prev.findIndex((c) => c.id === row.id)
+            if (idx === -1) return prev
+            const atualizada: Conversa = {
+              ...prev[idx],
+              ultimaMensagem: {
+                texto: row.last_message_text,
+                horario: formatHorario(row.last_message_at),
+              },
+              naoLidas: row.unread_count,
+              status: row.status as StatusConversa,
+            }
+            return [atualizada, ...prev.filter((c) => c.id !== row.id)]
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [workspaceId])
+
+  const conversasComLeitura = conversasState.map((c) =>
     abertas.has(c.id) ? { ...c, naoLidas: 0 } : c
   )
 

@@ -73,6 +73,7 @@ export default async function ChatPage() {
       conversas={conversas}
       papel={perfil.role}
       nomeUsuario={perfil.name}
+      workspaceId={perfil.workspace_id}
     />
   )
 }
