@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { BalaoMensagem } from "./balao-mensagem"
 import { PainelContato } from "./painel-contato"
+import { enviarMensagem } from "../actions"
 import { MOCK_CONVERSAS } from "../mock-conversas"
 import { MOCK_MENSAGENS_RAPIDAS } from "../mock-mensagens-rapidas"
 import type { Conversa } from "../mock-conversas"
@@ -54,6 +55,8 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
   const [texto, setTexto] = useState("")
   const [seletorMRAberto, setSeletorMRAberto] = useState(false)
   const [termoBuscaMR, setTermoBuscaMR] = useState("")
+  const [enviando, setEnviando] = useState(false)
+  const [mensagensFalhadas, setMensagensFalhadas] = useState<Set<string>>(new Set())
   const mensagensRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const nomeExibido = conversa.contato.nome ?? conversa.contato.telefone
@@ -76,11 +79,12 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
     }
   }, [mensagens])
 
-  function enviar() {
+  async function enviar() {
     const conteudo = texto.trim()
-    if (!conteudo) return
+    if (!conteudo || enviando) return
+    const tempId = `local-${Date.now()}`
     const nova: Mensagem = {
-      id: `local-${Date.now()}`,
+      id: tempId,
       conversaId: conversa.id,
       tipo: modoNota ? "nota_interna" : "texto",
       direcao: "enviada",
@@ -91,6 +95,18 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
     onMensagemEnviada(nova)
     setTexto("")
     inputRef.current?.focus()
+
+    if (modoNota) return
+
+    setEnviando(true)
+    try {
+      await enviarMensagem(conversa.id, conteudo)
+    } catch {
+      setMensagensFalhadas((prev) => new Set(prev).add(tempId))
+      setTexto(conteudo)
+    } finally {
+      setEnviando(false)
+    }
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -100,13 +116,17 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
     }
   }
 
+  const mensagensExibidas = mensagens.map((m) =>
+    mensagensFalhadas.has(m.id) ? { ...m, status: "falhou" as const } : m
+  )
+
   const mensagensFiltradas = termoBusca.trim()
-    ? mensagens.filter((m) =>
+    ? mensagensExibidas.filter((m) =>
         m.tipo === "texto" || m.tipo === "nota_interna"
           ? m.conteudo.toLowerCase().includes(termoBusca.toLowerCase())
           : false
       )
-    : mensagens
+    : mensagensExibidas
 
   return (
     <div className="flex flex-1 overflow-hidden relative">
@@ -188,12 +208,12 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
 
         {/* Área de mensagens */}
         <div ref={mensagensRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-0.5">
-          {mensagens.length === 0 ? (
+          {mensagensExibidas.length === 0 ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
               Nenhuma mensagem ainda
             </div>
           ) : (
-            (termoBusca.trim() ? mensagensFiltradas : mensagens).map((msg) => (
+            (termoBusca.trim() ? mensagensFiltradas : mensagensExibidas).map((msg) => (
               <BalaoMensagem key={msg.id} mensagem={msg} termoBusca={termoBusca} />
             ))
           )}
@@ -322,7 +342,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
               </button>
               <button
                 onClick={enviar}
-                disabled={!texto.trim()}
+                disabled={!texto.trim() || enviando}
                 className="h-7 w-7 flex items-center justify-center rounded-md bg-primary text-primary-foreground transition-opacity disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/90"
               >
                 <Send className="size-4" />
