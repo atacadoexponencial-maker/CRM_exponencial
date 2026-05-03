@@ -34,6 +34,16 @@ function IconeStatus({ status }: { status?: StatusMensagem }) {
 function ConteudoMensagem({ mensagem, termoBusca }: { mensagem: Mensagem; termoBusca: string }) {
   switch (mensagem.tipo) {
     case "imagem":
+      if (mensagem.conteudo.startsWith("http") || mensagem.conteudo.startsWith("blob:")) {
+        return (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={mensagem.conteudo}
+            alt="imagem"
+            className="w-48 rounded-lg object-cover"
+          />
+        )
+      }
       return (
         <div className="w-48 h-32 rounded-lg bg-muted flex flex-col items-center justify-center gap-1 border">
           <Film className="size-6 text-muted-foreground" />

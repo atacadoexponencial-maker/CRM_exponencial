@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { BalaoMensagem } from "./balao-mensagem"
 import { PainelContato } from "./painel-contato"
-import { enviarMensagem } from "../actions"
+import { enviarMensagem, enviarImagem } from "../actions"
 import { MOCK_CONVERSAS } from "../mock-conversas"
 import { MOCK_MENSAGENS_RAPIDAS } from "../mock-mensagens-rapidas"
 import type { Conversa } from "../mock-conversas"
@@ -56,9 +56,11 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
   const [seletorMRAberto, setSeletorMRAberto] = useState(false)
   const [termoBuscaMR, setTermoBuscaMR] = useState("")
   const [enviando, setEnviando] = useState(false)
+  const [enviandoImagem, setEnviandoImagem] = useState(false)
   const [mensagensFalhadas, setMensagensFalhadas] = useState<Set<string>>(new Set())
   const mensagensRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const nomeExibido = conversa.contato.nome ?? conversa.contato.telefone
 
   useEffect(() => {
@@ -106,6 +108,41 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
       setTexto(conteudo)
     } finally {
       setEnviando(false)
+    }
+  }
+
+  async function handleAnexarImagem(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0]
+    e.target.value = ""
+    if (!arquivo) return
+
+    if (arquivo.size > 5 * 1024 * 1024) {
+      alert("Arquivo muito grande. O tamanho máximo é 5 MB.")
+      return
+    }
+
+    const blobUrl = URL.createObjectURL(arquivo)
+    const tempId = `local-img-${Date.now()}`
+    const nova: Mensagem = {
+      id: tempId,
+      conversaId: conversa.id,
+      tipo: "imagem",
+      direcao: "enviada",
+      conteudo: blobUrl,
+      horario: horaAtual(),
+      status: "enviado",
+    }
+    onMensagemEnviada(nova)
+
+    setEnviandoImagem(true)
+    const formData = new FormData()
+    formData.append("arquivo", arquivo)
+    try {
+      await enviarImagem(conversa.id, formData)
+    } catch {
+      setMensagensFalhadas((prev) => new Set(prev).add(tempId))
+    } finally {
+      setEnviandoImagem(false)
     }
   }
 
@@ -282,11 +319,24 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
             </div>
           )}
           <div className="flex items-end gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={handleAnexarImagem}
+            />
             <div className="flex gap-1 shrink-0 pb-1">
               <button
-                title="Anexar (indisponível no protótipo)"
-                disabled
-                className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground opacity-40 cursor-not-allowed"
+                title="Anexar imagem"
+                disabled={enviandoImagem}
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "h-7 w-7 flex items-center justify-center rounded-md transition-colors",
+                  enviandoImagem
+                    ? "text-muted-foreground opacity-40 cursor-not-allowed"
+                    : "text-muted-foreground hover:bg-muted"
+                )}
               >
                 <Paperclip className="size-4" />
               </button>
