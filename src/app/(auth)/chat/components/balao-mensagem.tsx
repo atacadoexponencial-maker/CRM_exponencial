@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, CheckCheck, AlertTriangle, FileText, Play, Mic, Film } from "lucide-react"
+import { Check, CheckCheck, AlertTriangle, FileText, Play, Mic, Film, Download } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Mensagem, StatusMensagem } from "../mock-mensagens"
 
@@ -70,6 +70,26 @@ function ConteudoMensagem({ mensagem, termoBusca }: { mensagem: Mensagem; termoB
         </div>
       )
     case "documento":
+      if (mensagem.conteudo.startsWith("http") || mensagem.conteudo.startsWith("blob:")) {
+        const nomeArquivo = decodeURIComponent(
+          mensagem.conteudo.split("/").pop()?.replace(/^\d+-/, "") ?? "Documento"
+        )
+        return (
+          <a
+            href={mensagem.conteudo}
+            target="_blank"
+            rel="noopener noreferrer"
+            download={nomeArquivo}
+            className="flex items-center gap-2 w-52 hover:opacity-80"
+          >
+            <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
+              <FileText className="size-4 text-primary" />
+            </div>
+            <span className="text-xs truncate flex-1">{nomeArquivo}</span>
+            <Download className="size-3 shrink-0 text-muted-foreground" />
+          </a>
+        )
+      }
       return (
         <div className="flex items-center gap-2 w-52">
           <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center shrink-0">

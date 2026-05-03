@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { BalaoMensagem } from "./balao-mensagem"
 import { PainelContato } from "./painel-contato"
-import { enviarMensagem, enviarImagem } from "../actions"
+import { enviarMensagem, enviarImagem, enviarDocumento } from "../actions"
 import { MOCK_CONVERSAS } from "../mock-conversas"
 import { MOCK_MENSAGENS_RAPIDAS } from "../mock-mensagens-rapidas"
 import type { Conversa } from "../mock-conversas"
@@ -57,10 +57,12 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
   const [termoBuscaMR, setTermoBuscaMR] = useState("")
   const [enviando, setEnviando] = useState(false)
   const [enviandoImagem, setEnviandoImagem] = useState(false)
+  const [enviandoDocumento, setEnviandoDocumento] = useState(false)
   const [mensagensFalhadas, setMensagensFalhadas] = useState<Set<string>>(new Set())
   const mensagensRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const docInputRef = useRef<HTMLInputElement>(null)
   const nomeExibido = conversa.contato.nome ?? conversa.contato.telefone
 
   useEffect(() => {
@@ -143,6 +145,40 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
       setMensagensFalhadas((prev) => new Set(prev).add(tempId))
     } finally {
       setEnviandoImagem(false)
+    }
+  }
+
+  async function handleAnexarDocumento(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0]
+    e.target.value = ""
+    if (!arquivo) return
+
+    if (arquivo.size > 100 * 1024 * 1024) {
+      alert("Arquivo muito grande. O tamanho máximo é 100 MB.")
+      return
+    }
+
+    const tempId = `local-doc-${Date.now()}`
+    const nova: Mensagem = {
+      id: tempId,
+      conversaId: conversa.id,
+      tipo: "documento",
+      direcao: "enviada",
+      conteudo: arquivo.name,
+      horario: horaAtual(),
+      status: "enviado",
+    }
+    onMensagemEnviada(nova)
+
+    setEnviandoDocumento(true)
+    const formData = new FormData()
+    formData.append("arquivo", arquivo)
+    try {
+      await enviarDocumento(conversa.id, formData)
+    } catch {
+      setMensagensFalhadas((prev) => new Set(prev).add(tempId))
+    } finally {
+      setEnviandoDocumento(false)
     }
   }
 
@@ -326,20 +362,36 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
               hidden
               onChange={handleAnexarImagem}
             />
+            <input
+              ref={docInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.odt,.ods,.odp"
+              hidden
+              onChange={handleAnexarDocumento}
+            />
             <div className="flex gap-1 shrink-0 pb-1">
-              <button
-                title="Anexar imagem"
-                disabled={enviandoImagem}
-                onClick={() => fileInputRef.current?.click()}
-                className={cn(
-                  "h-7 w-7 flex items-center justify-center rounded-md transition-colors",
-                  enviandoImagem
-                    ? "text-muted-foreground opacity-40 cursor-not-allowed"
-                    : "text-muted-foreground hover:bg-muted"
-                )}
-              >
-                <Paperclip className="size-4" />
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  disabled={enviandoImagem || enviandoDocumento}
+                  className={cn(
+                    "h-7 w-7 flex items-center justify-center rounded-md transition-colors",
+                    enviandoImagem || enviandoDocumento
+                      ? "text-muted-foreground opacity-40 cursor-not-allowed"
+                      : "text-muted-foreground hover:bg-muted"
+                  )}
+                  title="Anexar arquivo"
+                >
+                  <Paperclip className="size-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" side="top">
+                  <DropdownMenuItem onSelect={() => fileInputRef.current?.click()}>
+                    Imagem
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => docInputRef.current?.click()}>
+                    Documento
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <button
                 title="Mensagens rápidas"
                 onClick={() => { setSeletorMRAberto((v) => !v); setTermoBuscaMR("") }}
