@@ -1,22 +1,25 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
+import { Loader2 } from "lucide-react"
 import { FiltrosCaixa } from "./filtros-caixa"
 import { PainelConversa } from "./painel-conversa"
+import { buscarMensagens } from "../actions"
 import type { Conversa } from "../mock-conversas"
 import type { Mensagem } from "../mock-mensagens"
 
 interface ChatLayoutProps {
   conversas: Conversa[]
-  mensagens: Record<string, Mensagem[]>
   papel: string
   nomeUsuario: string
 }
 
-export function ChatLayout({ conversas, mensagens, papel, nomeUsuario }: ChatLayoutProps) {
+export function ChatLayout({ conversas, papel, nomeUsuario }: ChatLayoutProps) {
   const [conversaAtivaId, setConversaAtivaId] = useState<string | null>(null)
-  const [mensagensLocais, setMensagensLocais] = useState<Record<string, Mensagem[]>>(mensagens)
+  const [mensagensLocais, setMensagensLocais] = useState<Record<string, Mensagem[]>>({})
+  const [erroConversaId, setErroConversaId] = useState<string | null>(null)
   const [abertas, setAbertas] = useState<Set<string>>(new Set())
+  const [isPending, startTransition] = useTransition()
 
   const conversasComLeitura = conversas.map((c) =>
     abertas.has(c.id) ? { ...c, naoLidas: 0 } : c
@@ -29,6 +32,21 @@ export function ChatLayout({ conversas, mensagens, papel, nomeUsuario }: ChatLay
   function handleConversaClick(id: string) {
     setConversaAtivaId(id)
     setAbertas((prev) => new Set(prev).add(id))
+    setErroConversaId(null)
+
+    if (mensagensLocais[id] !== undefined) return
+
+    startTransition(async () => {
+      try {
+        const msgs = await buscarMensagens(id)
+        setMensagensLocais((prev) => {
+          if (prev[id] !== undefined) return prev
+          return { ...prev, [id]: msgs }
+        })
+      } catch {
+        setErroConversaId(id)
+      }
+    })
   }
 
   function handleMensagemEnviada(msg: Mensagem) {
@@ -37,6 +55,8 @@ export function ChatLayout({ conversas, mensagens, papel, nomeUsuario }: ChatLay
       [msg.conversaId]: [...(prev[msg.conversaId] ?? []), msg],
     }))
   }
+
+  const carregando = isPending && conversaAtivaId !== null && mensagensLocais[conversaAtivaId] === undefined
 
   return (
     <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 57px)" }}>
@@ -54,7 +74,16 @@ export function ChatLayout({ conversas, mensagens, papel, nomeUsuario }: ChatLay
       </aside>
 
       <main className="flex-1 flex overflow-hidden">
-        {conversaAtiva ? (
+        {conversaAtiva && carregando ? (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm gap-2">
+            <Loader2 className="size-4 animate-spin" />
+            Carregando mensagens...
+          </div>
+        ) : conversaAtiva && erroConversaId === conversaAtiva.id ? (
+          <div className="flex-1 flex items-center justify-center text-sm text-destructive">
+            Erro ao carregar mensagens
+          </div>
+        ) : conversaAtiva ? (
           <PainelConversa
             key={conversaAtiva.id}
             conversa={conversaAtiva}

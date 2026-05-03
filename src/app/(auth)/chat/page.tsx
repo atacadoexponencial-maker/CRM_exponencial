@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/integrations/supabase/server"
-import { MOCK_MENSAGENS } from "./mock-mensagens"
 import { ChatLayout } from "./components/chat-layout"
 import type { Conversa, StatusConversa } from "./mock-conversas"
 
@@ -72,7 +71,6 @@ export default async function ChatPage() {
   return (
     <ChatLayout
       conversas={conversas}
-      mensagens={MOCK_MENSAGENS}
       papel={perfil.role}
       nomeUsuario={perfil.name}
     />
