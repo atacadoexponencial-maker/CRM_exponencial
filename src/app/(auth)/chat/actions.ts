@@ -472,6 +472,59 @@ export async function atribuirConversa(conversaId: string, atendenteId: string):
   return { nomeAtribuido: atendente.name ?? "" }
 }
 
+export async function transferirConversa(conversaId: string, atendenteId: string): Promise<{ nomeAtribuido: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Não autorizado")
+
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+
+  if (!perfil) throw new Error("Não autorizado")
+
+  if (perfil.role === "atendente") {
+    const { data: timesUsuario } = await supabase
+      .from("user_teams")
+      .select("team_id")
+      .eq("user_id", user.id)
+
+    const teamIds = (timesUsuario ?? []).map((r) => r.team_id)
+
+    if (teamIds.length === 0) throw new Error("Sem permissão para transferir conversa")
+
+    const { data: membroTime } = await supabase
+      .from("user_teams")
+      .select("user_id")
+      .in("team_id", teamIds)
+      .eq("user_id", atendenteId)
+      .limit(1)
+      .maybeSingle()
+
+    if (!membroTime) throw new Error("Sem permissão para transferir para este atendente")
+  }
+
+  const { data: atendente } = await supabase
+    .from("profiles")
+    .select("name")
+    .eq("id", atendenteId)
+    .single()
+
+  if (!atendente) throw new Error("Atendente não encontrado")
+
+  const { error } = await supabase
+    .from("conversations")
+    .update({ assigned_to: atendenteId })
+    .eq("id", conversaId)
+
+  if (error) throw new Error(error.message)
+
+  return { nomeAtribuido: atendente.name ?? "" }
+}
+
 export async function marcarComoLidas(conversaId: string): Promise<void> {
   const supabase = await createClient()
 

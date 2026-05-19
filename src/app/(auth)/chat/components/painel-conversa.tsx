@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { BalaoMensagem } from "./balao-mensagem"
 import { PainelContato } from "./painel-contato"
-import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio, atribuirConversa } from "../actions"
+import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio, atribuirConversa, transferirConversa } from "../actions"
 import { MOCK_CONVERSAS } from "../mock-conversas"
 import { MOCK_MENSAGENS_RAPIDAS } from "../mock-mensagens-rapidas"
 import type { Conversa } from "../mock-conversas"
@@ -50,10 +50,11 @@ interface PainelConversaProps {
   onMensagemEnviada: (msg: Mensagem) => void
   podeAtribuir: boolean
   atendentes: Array<{ id: string; nome: string }>
+  atendentesTransferir: Array<{ id: string; nome: string }>
   onConversaAtualizada: (id: string, updates: Partial<Conversa>) => void
 }
 
-export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtribuir, atendentes, onConversaAtualizada }: PainelConversaProps) {
+export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtribuir, atendentes, atendentesTransferir, onConversaAtualizada }: PainelConversaProps) {
   const [buscaAberta, setBuscaAberta] = useState(false)
   const [termoBusca, setTermoBusca] = useState("")
   const [modoNota, setModoNota] = useState(false)
@@ -395,6 +396,34 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
                                     })
                                   } catch (err) {
                                     alert(err instanceof Error ? err.message : "Erro ao atribuir conversa")
+                                  }
+                                }}
+                              >
+                                {a.nome}
+                              </DropdownMenuItem>
+                            ))
+                          )}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                    )
+                  }
+                  if (acao === "Transferir") {
+                    return (
+                      <DropdownMenuSub key="transferir">
+                        <DropdownMenuSubTrigger>Transferir</DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          {atendentesTransferir.length === 0 ? (
+                            <DropdownMenuItem disabled>Nenhum atendente</DropdownMenuItem>
+                          ) : (
+                            atendentesTransferir.map((a) => (
+                              <DropdownMenuItem
+                                key={a.id}
+                                onSelect={async () => {
+                                  try {
+                                    const { nomeAtribuido } = await transferirConversa(conversa.id, a.id)
+                                    onConversaAtualizada(conversa.id, { atribuidaA: nomeAtribuido })
+                                  } catch (err) {
+                                    alert(err instanceof Error ? err.message : "Erro ao transferir conversa")
                                   }
                                 }}
                               >

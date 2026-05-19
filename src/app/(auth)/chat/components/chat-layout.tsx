@@ -27,9 +27,10 @@ interface ChatLayoutProps {
   workspaceId: string
   userId: string
   atendentes: Array<{ id: string; nome: string }>
+  atendentesTransferir: Array<{ id: string; nome: string }>
 }
 
-export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId, atendentes }: ChatLayoutProps) {
+export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId, atendentes, atendentesTransferir }: ChatLayoutProps) {
   const [conversasState, setConversasState] = useState<Conversa[]>(conversas)
   const [conversaAtivaId, setConversaAtivaId] = useState<string | null>(null)
   const [mensagensLocais, setMensagensLocais] = useState<Record<string, Mensagem[]>>({})
@@ -181,6 +182,7 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId,
             onMensagemEnviada={handleMensagemEnviada}
             podeAtribuir={papel !== "atendente"}
             atendentes={atendentes}
+            atendentesTransferir={atendentesTransferir}
             onConversaAtualizada={handleConversaAtualizada}
           />
         ) : (
