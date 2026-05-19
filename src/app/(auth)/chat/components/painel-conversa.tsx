@@ -52,9 +52,10 @@ interface PainelConversaProps {
   atendentesTransferir: Array<{ id: string; nome: string }>
   onConversaAtualizada: (id: string, updates: Partial<Conversa>) => void
   nomeUsuario: string
+  onNavegar: (id: string) => void
 }
 
-export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtribuir, atendentes, atendentesTransferir, onConversaAtualizada, nomeUsuario }: PainelConversaProps) {
+export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtribuir, atendentes, atendentesTransferir, onConversaAtualizada, nomeUsuario, onNavegar }: PainelConversaProps) {
   const [buscaAberta, setBuscaAberta] = useState(false)
   const [termoBusca, setTermoBusca] = useState("")
   const [modoNota, setModoNota] = useState(false)
@@ -746,6 +747,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
           conversaId={conversa.id}
           onFechar={() => setPainelContato(false)}
           onConversaAtualizada={onConversaAtualizada}
+          onNavegar={onNavegar}
         />
       )}
     </div>

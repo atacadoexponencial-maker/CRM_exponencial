@@ -30,9 +30,10 @@ interface PainelContatoProps {
   conversaId: string
   onFechar: () => void
   onConversaAtualizada: (id: string, updates: Partial<Conversa>) => void
+  onNavegar: (id: string) => void
 }
 
-export function PainelContato({ conversa, conversaId, onFechar, onConversaAtualizada }: PainelContatoProps) {
+export function PainelContato({ conversa, conversaId, onFechar, onConversaAtualizada, onNavegar }: PainelContatoProps) {
   const [nomeLocal, setNomeLocal] = useState<string | null>(conversa.contato.nome)
   const [editando, setEditando] = useState(false)
   const [valorEdicao, setValorEdicao] = useState("")
@@ -166,7 +167,9 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
             </div>
           )}
 
-          <p className="text-xs text-muted-foreground">{conversa.contato.telefone}</p>
+          {nomeLocal !== null && (
+            <p className="text-xs text-muted-foreground">{conversa.contato.telefone}</p>
+          )}
         </div>
 
         {/* Data do primeiro contato */}
@@ -206,9 +209,8 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
               {conversasAnteriores.map((c) => (
                 <button
                   key={c.id}
-                  disabled
-                  title="Navegar para conversa (em breve)"
-                  className="flex flex-col gap-0.5 px-3 py-2 rounded-md bg-muted/50 text-xs text-left opacity-70 cursor-not-allowed"
+                  onClick={() => onNavegar(c.id)}
+                  className="flex flex-col gap-0.5 px-3 py-2 rounded-md bg-muted/50 text-xs text-left hover:bg-muted transition-colors"
                 >
                   <div className="flex items-center justify-between gap-2 w-full">
                     <span className={cn("font-medium", STATUS_CLASS[c.status])}>

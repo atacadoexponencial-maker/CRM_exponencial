@@ -185,6 +185,7 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId,
             atendentesTransferir={atendentesTransferir}
             onConversaAtualizada={handleConversaAtualizada}
             nomeUsuario={nomeUsuario}
+            onNavegar={handleConversaClick}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
