@@ -25,9 +25,11 @@ interface ChatLayoutProps {
   papel: string
   nomeUsuario: string
   workspaceId: string
+  userId: string
+  atendentes: Array<{ id: string; nome: string }>
 }
 
-export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId }: ChatLayoutProps) {
+export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId, atendentes }: ChatLayoutProps) {
   const [conversasState, setConversasState] = useState<Conversa[]>(conversas)
   const [conversaAtivaId, setConversaAtivaId] = useState<string | null>(null)
   const [mensagensLocais, setMensagensLocais] = useState<Record<string, Mensagem[]>>({})
@@ -138,6 +140,12 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId }: ChatL
     }))
   }
 
+  function handleConversaAtualizada(id: string, updates: Partial<Conversa>) {
+    setConversasState((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
+    )
+  }
+
   const carregando = isPending && conversaAtivaId !== null && mensagensLocais[conversaAtivaId] === undefined
 
   return (
@@ -171,6 +179,9 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId }: ChatL
             conversa={conversaAtiva}
             mensagens={mensagensLocais[conversaAtiva.id] ?? []}
             onMensagemEnviada={handleMensagemEnviada}
+            podeAtribuir={papel !== "atendente"}
+            atendentes={atendentes}
+            onConversaAtualizada={handleConversaAtualizada}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">

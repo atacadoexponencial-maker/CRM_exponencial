@@ -426,6 +426,52 @@ export async function enviarAudio(conversaId: string, formData: FormData): Promi
     .eq("id", conversaId)
 }
 
+export async function buscarAtendentes(workspaceId: string): Promise<Array<{ id: string; nome: string }>> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, name")
+    .eq("workspace_id", workspaceId)
+    .order("name", { ascending: true })
+
+  if (error) throw new Error(error.message)
+
+  return (data ?? []).map((p) => ({ id: p.id, nome: p.name ?? "" }))
+}
+
+export async function atribuirConversa(conversaId: string, atendenteId: string): Promise<{ nomeAtribuido: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Não autorizado")
+
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+
+  if (!perfil || perfil.role === "atendente") throw new Error("Sem permissão para atribuir conversas")
+
+  const { data: atendente } = await supabase
+    .from("profiles")
+    .select("name")
+    .eq("id", atendenteId)
+    .single()
+
+  if (!atendente) throw new Error("Atendente não encontrado")
+
+  const { error } = await supabase
+    .from("conversations")
+    .update({ assigned_to: atendenteId, status: "em_atendimento" })
+    .eq("id", conversaId)
+
+  if (error) throw new Error(error.message)
+
+  return { nomeAtribuido: atendente.name ?? "" }
+}
+
 export async function marcarComoLidas(conversaId: string): Promise<void> {
   const supabase = await createClient()
 

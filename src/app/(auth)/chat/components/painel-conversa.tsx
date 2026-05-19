@@ -10,10 +10,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu"
 import { BalaoMensagem } from "./balao-mensagem"
 import { PainelContato } from "./painel-contato"
-import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio } from "../actions"
+import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio, atribuirConversa } from "../actions"
 import { MOCK_CONVERSAS } from "../mock-conversas"
 import { MOCK_MENSAGENS_RAPIDAS } from "../mock-mensagens-rapidas"
 import type { Conversa } from "../mock-conversas"
@@ -45,9 +48,12 @@ interface PainelConversaProps {
   conversa: Conversa
   mensagens: Mensagem[]
   onMensagemEnviada: (msg: Mensagem) => void
+  podeAtribuir: boolean
+  atendentes: Array<{ id: string; nome: string }>
+  onConversaAtualizada: (id: string, updates: Partial<Conversa>) => void
 }
 
-export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: PainelConversaProps) {
+export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtribuir, atendentes, onConversaAtualizada }: PainelConversaProps) {
   const [buscaAberta, setBuscaAberta] = useState(false)
   const [termoBusca, setTermoBusca] = useState("")
   const [modoNota, setModoNota] = useState(false)
@@ -368,9 +374,40 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
                 <MoreVertical className="size-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {(ACOES_POR_STATUS[conversa.status] ?? []).map((acao) => (
-                  <DropdownMenuItem key={acao}>{acao}</DropdownMenuItem>
-                ))}
+                {(ACOES_POR_STATUS[conversa.status] ?? []).map((acao) => {
+                  if (acao === "Atribuir" && podeAtribuir) {
+                    return (
+                      <DropdownMenuSub key="atribuir">
+                        <DropdownMenuSubTrigger>Atribuir</DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          {atendentes.length === 0 ? (
+                            <DropdownMenuItem disabled>Nenhum atendente</DropdownMenuItem>
+                          ) : (
+                            atendentes.map((a) => (
+                              <DropdownMenuItem
+                                key={a.id}
+                                onSelect={async () => {
+                                  try {
+                                    const { nomeAtribuido } = await atribuirConversa(conversa.id, a.id)
+                                    onConversaAtualizada(conversa.id, {
+                                      atribuidaA: nomeAtribuido,
+                                      status: "em_atendimento",
+                                    })
+                                  } catch (err) {
+                                    alert(err instanceof Error ? err.message : "Erro ao atribuir conversa")
+                                  }
+                                }}
+                              >
+                                {a.nome}
+                              </DropdownMenuItem>
+                            ))
+                          )}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                    )
+                  }
+                  return <DropdownMenuItem key={acao}>{acao}</DropdownMenuItem>
+                })}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

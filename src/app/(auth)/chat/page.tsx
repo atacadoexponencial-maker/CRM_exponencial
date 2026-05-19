@@ -28,6 +28,14 @@ export default async function ChatPage() {
 
   if (!perfil) redirect("/login")
 
+  const { data: atendentesRows } = await supabase
+    .from("profiles")
+    .select("id, name")
+    .eq("workspace_id", perfil.workspace_id)
+    .order("name", { ascending: true })
+
+  const atendentes = (atendentesRows ?? []).map((p) => ({ id: p.id, nome: p.name ?? "" }))
+
   let query = supabase
     .from("conversations")
     .select("id, status, assigned_to, unread_count, last_message_text, last_message_at, created_at, contact:contacts(name, phone_number), assignee:profiles!assigned_to(name)")
@@ -74,6 +82,8 @@ export default async function ChatPage() {
       papel={perfil.role}
       nomeUsuario={perfil.name}
       workspaceId={perfil.workspace_id}
+      userId={user.id}
+      atendentes={atendentes}
     />
   )
 }
