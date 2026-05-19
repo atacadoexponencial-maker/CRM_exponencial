@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { criarMensagemRapida, type MensagemRapidaListada } from "./actions"
+import { criarMensagemRapida, editarMensagemRapida, type MensagemRapidaListada } from "./actions"
 
 interface MensagensRapidasClientProps {
   mensagensIniciais: MensagemRapidaListada[]
@@ -36,6 +36,8 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [editTitulo, setEditTitulo] = useState("")
   const [editConteudo, setEditConteudo] = useState("")
+  const [isPendingEditar, setIsPendingEditar] = useState(false)
+  const [erroEditar, setErroEditar] = useState<string | null>(null)
 
   const [dialogExcluirAberto, setDialogExcluirAberto] = useState(false)
   const [excluindoId, setExcluindoId] = useState<string | null>(null)
@@ -72,10 +74,17 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
     setDialogEditarAberto(true)
   }
 
-  function handleEditar() {
+  async function handleEditar() {
     const titulo = editTitulo.trim()
     const conteudo = editConteudo.trim()
     if (!titulo || !conteudo || !editandoId) return
+    setIsPendingEditar(true)
+    const result = await editarMensagemRapida(editandoId, titulo, conteudo)
+    setIsPendingEditar(false)
+    if (result.erro) {
+      setErroEditar(result.erro)
+      return
+    }
     setMensagens((prev) =>
       prev.map((m) => (m.id === editandoId ? { ...m, titulo, conteudo } : m))
     )
@@ -195,7 +204,7 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
       </Dialog>
 
       {/* Dialog — Editar mensagem */}
-      <Dialog open={dialogEditarAberto} onOpenChange={setDialogEditarAberto}>
+      <Dialog open={dialogEditarAberto} onOpenChange={(open) => { setDialogEditarAberto(open); if (!open) setErroEditar(null) }}>
         <DialogPopup>
           <DialogTitle className="mb-4">Editar mensagem rápida</DialogTitle>
           <div className="flex flex-col gap-4">
@@ -218,13 +227,14 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
                 className="resize-none text-sm rounded-md border border-input px-3 py-2 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground"
               />
             </div>
+            {erroEditar && <p className="text-sm text-destructive">{erroEditar}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
                 Cancelar
               </DialogClose>
               <Button
                 onClick={handleEditar}
-                disabled={!editTitulo.trim() || !editConteudo.trim()}
+                disabled={!editTitulo.trim() || !editConteudo.trim() || isPendingEditar}
               >
                 Salvar
               </Button>

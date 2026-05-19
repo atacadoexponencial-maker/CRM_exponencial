@@ -53,3 +53,28 @@ export async function criarMensagemRapida(
 
   return { mensagem: { id: data.id, titulo: data.title, conteudo: data.content } }
 }
+
+export async function editarMensagemRapida(
+  id: string,
+  titulo: string,
+  conteudo: string
+): Promise<{ erro?: string }> {
+  const supabase = await createClient()
+
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("workspace_id, role")
+    .single()
+
+  if (!perfil || perfil.role !== "admin") return { erro: "Sem permissão" }
+
+  const { error } = await supabase
+    .from("quick_replies")
+    .update({ title: titulo, content: conteudo })
+    .eq("id", id)
+    .eq("workspace_id", perfil.workspace_id)
+
+  if (error) return { erro: "Não foi possível editar a mensagem. Tente novamente." }
+
+  return {}
+}
