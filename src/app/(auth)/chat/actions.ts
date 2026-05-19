@@ -607,14 +607,22 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
     .neq("id", conversaId)
     .order("last_message_at", { ascending: false })
 
+  function formatarData(iso: string): string {
+    const date = new Date(iso)
+    const now = new Date()
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+    if (diffDays === 0) return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+    if (diffDays === 1) return "Ontem"
+    const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
+    if (diffDays < 7) return weekdays[date.getDay()]
+    return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
+  }
+
   const conversasAnteriores: ConversaAnterior[] = (anteriores ?? []).map((c) => ({
     id: c.id,
     status: c.status,
     ultimaMensagemTexto: c.last_message_text,
-    ultimaMensagemHorario: new Date(c.last_message_at).toLocaleTimeString("pt-BR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
+    ultimaMensagemHorario: formatarData(c.last_message_at),
   }))
 
   return { dataPrimeiroContato, etiquetas: [], conversasAnteriores }
