@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
+import { criarEtiqueta } from "./actions"
 import type { EtiquetaListada } from "./actions"
 
 const CORES_DISPONIVEIS = [
@@ -67,6 +68,8 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
   const [dialogCriarAberto, setDialogCriarAberto] = useState(false)
   const [novoNome, setNovoNome] = useState("")
   const [novaCor, setNovaCor] = useState("")
+  const [isPendingCriar, setIsPendingCriar] = useState(false)
+  const [erroCriar, setErroCriar] = useState<string | null>(null)
 
   const [dialogEditarAberto, setDialogEditarAberto] = useState(false)
   const [editandoId, setEditandoId] = useState<string | null>(null)
@@ -81,19 +84,22 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
   function abrirCriar() {
     setNovoNome("")
     setNovaCor("")
+    setErroCriar(null)
     setDialogCriarAberto(true)
   }
 
-  function handleCriar() {
+  async function handleCriar() {
     const nome = novoNome.trim()
     if (!nome || !novaCor) return
-    const nova: EtiquetaListada = {
-      id: Date.now().toString(),
-      nome,
-      cor: novaCor,
-      conversas: 0,
+    setIsPendingCriar(true)
+    setErroCriar(null)
+    const resultado = await criarEtiqueta(nome, novaCor)
+    setIsPendingCriar(false)
+    if (resultado.erro) {
+      setErroCriar(resultado.erro)
+      return
     }
-    setEtiquetas((prev) => [...prev, nova])
+    setEtiquetas((prev) => [...prev, resultado.etiqueta!])
     setDialogCriarAberto(false)
   }
 
@@ -190,7 +196,13 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
       )}
 
       {/* Dialog — Nova etiqueta */}
-      <Dialog open={dialogCriarAberto} onOpenChange={setDialogCriarAberto}>
+      <Dialog
+        open={dialogCriarAberto}
+        onOpenChange={(open) => {
+          if (!open) setErroCriar(null)
+          setDialogCriarAberto(open)
+        }}
+      >
         <DialogPopup>
           <DialogTitle className="mb-4">Nova etiqueta</DialogTitle>
           <div className="flex flex-col gap-4">
@@ -208,13 +220,16 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
               <Label>Cor</Label>
               <SeletorCor corSelecionada={novaCor} onChange={setNovaCor} />
             </div>
+            {erroCriar && (
+              <p className="text-sm text-destructive">{erroCriar}</p>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
                 Cancelar
               </DialogClose>
               <Button
                 onClick={handleCriar}
-                disabled={!novoNome.trim() || !novaCor}
+                disabled={!novoNome.trim() || !novaCor || isPendingCriar}
               >
                 Salvar
               </Button>

@@ -38,3 +38,33 @@ export async function listarEtiquetas(): Promise<EtiquetaListada[]> {
     conversas: (l.conversation_labels ?? []).length,
   }))
 }
+
+export async function criarEtiqueta(
+  nome: string,
+  cor: string
+): Promise<{ etiqueta?: EtiquetaListada; erro?: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+
+  const { data, error } = await supabase
+    .from("labels")
+    .insert({ name: nome, color: cor, workspace_id: perfil.workspace_id })
+    .select("id, name, color")
+    .single()
+
+  if (error || !data) return { erro: "Não foi possível criar a etiqueta. Tente novamente." }
+
+  return {
+    etiqueta: { id: data.id, nome: data.name, cor: data.color, conversas: 0 },
+  }
+}
