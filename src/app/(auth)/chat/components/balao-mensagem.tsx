@@ -110,6 +110,7 @@ function ConteudoMensagem({ mensagem, termoBusca }: { mensagem: Mensagem; termoB
             target="_blank"
             rel="noopener noreferrer"
             download={nomeArquivo}
+            title="Baixar documento"
             className="flex items-center gap-2 w-52 hover:opacity-80"
           >
             <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
