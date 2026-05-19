@@ -4,14 +4,23 @@
 // cliente autenticado de verdade no lugar do cliente baseado em cookies do SSR.
 
 import { createClient } from "@supabase/supabase-js"
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest"
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest"
 
 vi.mock("@/integrations/supabase/server", () => ({
   createClient: vi.fn(),
 }))
 
+vi.mock("@/integrations/supabase/service", () => ({
+  createServiceClient: vi.fn(),
+}))
+
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
+import { createServiceClient } from "@/integrations/supabase/service"
 import { marcarComoLidas } from "@/app/(auth)/chat/actions"
+import { NextRequest } from "next/server"
+import { POST } from "@/app/api/webhooks/whatsapp/route"
+
+const mockCreateServiceClient = vi.mocked(createServiceClient)
 
 const mockSsrCreateClient = vi.mocked(createSsrClient)
 
@@ -142,5 +151,84 @@ describe("Issue 27 — Marcar mensagens como lidas", () => {
       .single()
 
     expect(data?.unread_count).toBe(3)
+  })
+})
+
+function buildStatusPayload(phoneNumberId: string, wamid: string, status: string) {
+  return new NextRequest("http://localhost/api/webhooks/whatsapp", {
+    method: "POST",
+    body: JSON.stringify({
+      object: "whatsapp_business_account",
+      entry: [{
+        changes: [{
+          value: {
+            metadata: { phone_number_id: phoneNumberId },
+            statuses: [{ id: wamid, status, timestamp: "1746057600", recipient_id: "5511999999999" }],
+          },
+          field: "messages",
+        }],
+      }],
+    }),
+    headers: { "Content-Type": "application/json" },
+  })
+}
+
+describe("Issue 28 — Status de entrega", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("status atualiza de 'enviado' para 'entregue' ao receber webhook", async () => {
+    const updateMessages = vi.fn().mockReturnThis()
+    const eqMessages = vi.fn().mockResolvedValue({ error: null })
+
+    mockCreateServiceClient.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        update: updateMessages,
+        eq: eqMessages,
+      }),
+    } as unknown as ReturnType<typeof createServiceClient>)
+
+    const res = await POST(buildStatusPayload("phone-123", "wamid-abc", "delivered"))
+
+    expect(res.status).toBe(200)
+    expect(updateMessages).toHaveBeenCalledWith({ status: "entregue" })
+    expect(eqMessages).toHaveBeenCalledWith("wamid", "wamid-abc")
+  })
+
+  it("status atualiza de 'entregue' para 'lido' ao receber webhook", async () => {
+    const updateMessages = vi.fn().mockReturnThis()
+    const eqMessages = vi.fn().mockResolvedValue({ error: null })
+
+    mockCreateServiceClient.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        update: updateMessages,
+        eq: eqMessages,
+      }),
+    } as unknown as ReturnType<typeof createServiceClient>)
+
+    const res = await POST(buildStatusPayload("phone-123", "wamid-abc", "read"))
+
+    expect(res.status).toBe(200)
+    expect(updateMessages).toHaveBeenCalledWith({ status: "lido" })
+    expect(eqMessages).toHaveBeenCalledWith("wamid", "wamid-abc")
+  })
+
+  it("status muda para 'falhou' em caso de erro na entrega", async () => {
+    const updateMessages = vi.fn().mockReturnThis()
+    const eqMessages = vi.fn().mockResolvedValue({ error: null })
+
+    mockCreateServiceClient.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        update: updateMessages,
+        eq: eqMessages,
+      }),
+    } as unknown as ReturnType<typeof createServiceClient>)
+
+    const res = await POST(buildStatusPayload("phone-123", "wamid-abc", "failed"))
+
+    expect(res.status).toBe(200)
+    expect(updateMessages).toHaveBeenCalledWith({ status: "falhou" })
+    expect(eqMessages).toHaveBeenCalledWith("wamid", "wamid-abc")
   })
 })

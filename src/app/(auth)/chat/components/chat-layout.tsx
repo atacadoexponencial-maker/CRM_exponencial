@@ -73,6 +73,28 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId }: ChatL
           })
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `workspace_id=eq.${workspaceId}`,
+        },
+        (payload) => {
+          const row = payload.new as { id: string; status: string; conversation_id: string }
+          setMensagensLocais((prev) => {
+            const lista = prev[row.conversation_id]
+            if (!lista) return prev
+            return {
+              ...prev,
+              [row.conversation_id]: lista.map((m) =>
+                m.id === row.id ? { ...m, status: row.status as Mensagem["status"] } : m
+              ),
+            }
+          })
+        }
+      )
       .subscribe()
 
     return () => {

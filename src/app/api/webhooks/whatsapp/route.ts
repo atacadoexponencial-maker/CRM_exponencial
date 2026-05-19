@@ -21,14 +21,28 @@ export async function POST(request: NextRequest) {
   const body = await request.json()
 
   const change = body?.entry?.[0]?.changes?.[0]?.value
-  const messages = change?.messages
-
-  if (!messages?.length) return NextResponse.json({ status: "ok" })
-
   const phoneNumberId = change?.metadata?.phone_number_id
   if (!phoneNumberId) return NextResponse.json({ status: "ok" })
 
   const supabase = createServiceClient()
+
+  const statuses = change?.statuses
+  if (Array.isArray(statuses) && statuses.length > 0) {
+    const statusMap: Record<string, string> = {
+      delivered: "entregue",
+      read: "lido",
+      failed: "falhou",
+    }
+    for (const s of statuses) {
+      const novoStatus = statusMap[s.status]
+      if (!novoStatus || !s.id) continue
+      await supabase.from("messages").update({ status: novoStatus }).eq("wamid", s.id)
+    }
+    return NextResponse.json({ status: "ok" })
+  }
+
+  const messages = change?.messages
+  if (!messages?.length) return NextResponse.json({ status: "ok" })
 
   const { data: connection } = await supabase
     .from("whatsapp_connections")

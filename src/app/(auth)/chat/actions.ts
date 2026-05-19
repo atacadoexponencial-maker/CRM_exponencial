@@ -48,6 +48,9 @@ export async function enviarMensagem(conversaId: string, texto: string): Promise
 
   if (!metaRes.ok) throw new Error(`Meta API error: ${metaRes.status}`)
 
+  const metaData = await metaRes.json() as { messages?: Array<{ id: string }> }
+  const wamid = metaData.messages?.[0]?.id ?? null
+
   const agora = new Date().toISOString()
 
   const { error: errMsg } = await supabase.from("messages").insert({
@@ -57,6 +60,7 @@ export async function enviarMensagem(conversaId: string, texto: string): Promise
     type: "texto",
     content: texto,
     status: "enviado",
+    wamid,
     created_at: agora,
   })
 
