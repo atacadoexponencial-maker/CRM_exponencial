@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { criarEtiqueta } from "./actions"
+import { criarEtiqueta, editarEtiqueta } from "./actions"
 import type { EtiquetaListada } from "./actions"
 
 const CORES_DISPONIVEIS = [
@@ -75,6 +75,8 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [editNome, setEditNome] = useState("")
   const [editCor, setEditCor] = useState("")
+  const [isPendingEditar, setIsPendingEditar] = useState(false)
+  const [erroEditar, setErroEditar] = useState<string | null>(null)
 
   const [dialogExcluirAberto, setDialogExcluirAberto] = useState(false)
   const [excluindoId, setExcluindoId] = useState<string | null>(null)
@@ -107,12 +109,21 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
     setEditandoId(etiqueta.id)
     setEditNome(etiqueta.nome)
     setEditCor(etiqueta.cor)
+    setErroEditar(null)
     setDialogEditarAberto(true)
   }
 
-  function handleEditar() {
+  async function handleEditar() {
     const nome = editNome.trim()
     if (!nome || !editCor || !editandoId) return
+    setIsPendingEditar(true)
+    setErroEditar(null)
+    const resultado = await editarEtiqueta(editandoId, nome, editCor)
+    setIsPendingEditar(false)
+    if (resultado.erro) {
+      setErroEditar(resultado.erro)
+      return
+    }
     setEtiquetas((prev) =>
       prev.map((e) => (e.id === editandoId ? { ...e, nome, cor: editCor } : e))
     )
@@ -239,7 +250,13 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
       </Dialog>
 
       {/* Dialog — Editar etiqueta */}
-      <Dialog open={dialogEditarAberto} onOpenChange={setDialogEditarAberto}>
+      <Dialog
+        open={dialogEditarAberto}
+        onOpenChange={(open) => {
+          if (!open) setErroEditar(null)
+          setDialogEditarAberto(open)
+        }}
+      >
         <DialogPopup>
           <DialogTitle className="mb-4">Editar etiqueta</DialogTitle>
           <div className="flex flex-col gap-4">
@@ -256,13 +273,16 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
               <Label>Cor</Label>
               <SeletorCor corSelecionada={editCor} onChange={setEditCor} />
             </div>
+            {erroEditar && (
+              <p className="text-sm text-destructive">{erroEditar}</p>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
                 Cancelar
               </DialogClose>
               <Button
                 onClick={handleEditar}
-                disabled={!editNome.trim() || !editCor}
+                disabled={!editNome.trim() || !editCor || isPendingEditar}
               >
                 Salvar
               </Button>

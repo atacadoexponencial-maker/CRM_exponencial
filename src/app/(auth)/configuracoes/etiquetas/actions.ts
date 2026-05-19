@@ -68,3 +68,32 @@ export async function criarEtiqueta(
     etiqueta: { id: data.id, nome: data.name, cor: data.color, conversas: 0 },
   }
 }
+
+export async function editarEtiqueta(
+  id: string,
+  nome: string,
+  cor: string
+): Promise<{ erro?: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+
+  const { error } = await supabase
+    .from("labels")
+    .update({ name: nome, color: cor })
+    .eq("id", id)
+    .eq("workspace_id", perfil.workspace_id)
+
+  if (error) return { erro: "Não foi possível editar a etiqueta. Tente novamente." }
+
+  return {}
+}
