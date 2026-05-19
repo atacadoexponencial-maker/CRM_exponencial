@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, KeyboardEvent } from "react"
 import {
-  Search, Paperclip, Mic, Zap, StickyNote, Send, X, MoreVertical, Phone, Reply, ChevronUp, ChevronDown,
+  Search, Paperclip, Mic, Zap, StickyNote, Send, X, MoreVertical, Phone, Reply, ChevronUp, ChevronDown, Check,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { BalaoMensagem } from "./balao-mensagem"
 import { PainelContato } from "./painel-contato"
-import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio, atribuirConversa, transferirConversa, resolverConversa, reabrirConversa } from "../actions"
+import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio, atribuirConversa, transferirConversa, resolverConversa, reabrirConversa, aplicarEtiqueta, removerEtiqueta } from "../actions"
 import { MOCK_MENSAGENS_RAPIDAS } from "../mock-mensagens-rapidas"
 import type { Conversa } from "../mock-conversas"
 import type { Mensagem } from "../mock-mensagens"
@@ -53,9 +53,10 @@ interface PainelConversaProps {
   onConversaAtualizada: (id: string, updates: Partial<Conversa>) => void
   nomeUsuario: string
   onNavegar: (id: string) => void
+  etiquetasDisponiveis: Array<{ id: string; nome: string; cor: string }>
 }
 
-export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtribuir, atendentes, atendentesTransferir, onConversaAtualizada, nomeUsuario, onNavegar }: PainelConversaProps) {
+export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtribuir, atendentes, atendentesTransferir, onConversaAtualizada, nomeUsuario, onNavegar, etiquetasDisponiveis }: PainelConversaProps) {
   const [buscaAberta, setBuscaAberta] = useState(false)
   const [termoBusca, setTermoBusca] = useState("")
   const [modoNota, setModoNota] = useState(false)
@@ -73,6 +74,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
   const [mensagensFalhadas, setMensagensFalhadas] = useState<Set<string>>(new Set())
   const [replyPara, setReplyPara] = useState<Mensagem | null>(null)
   const [indiceAtual, setIndiceAtual] = useState(0)
+  const [pendingLabelId, setPendingLabelId] = useState<string | null>(null)
   const resultsRef = useRef<(HTMLDivElement | null)[]>([])
   const mensagensRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -376,6 +378,51 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
                 <MoreVertical className="size-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>Etiquetas</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    {etiquetasDisponiveis.length === 0 ? (
+                      <DropdownMenuItem disabled>Nenhuma etiqueta disponível</DropdownMenuItem>
+                    ) : (
+                      etiquetasDisponiveis.map((etiqueta) => {
+                        const aplicada = conversa.etiquetas.some((e) => e.id === etiqueta.id)
+                        return (
+                          <DropdownMenuItem
+                            key={etiqueta.id}
+                            disabled={pendingLabelId === etiqueta.id}
+                            onSelect={async () => {
+                              if (pendingLabelId) return
+                              setPendingLabelId(etiqueta.id)
+                              if (aplicada) {
+                                const resultado = await removerEtiqueta(conversa.id, etiqueta.id)
+                                if (!resultado.erro) {
+                                  onConversaAtualizada(conversa.id, {
+                                    etiquetas: conversa.etiquetas.filter((e) => e.id !== etiqueta.id),
+                                  })
+                                }
+                              } else {
+                                const resultado = await aplicarEtiqueta(conversa.id, etiqueta.id)
+                                if (!resultado.erro) {
+                                  onConversaAtualizada(conversa.id, {
+                                    etiquetas: [...conversa.etiquetas, etiqueta],
+                                  })
+                                }
+                              }
+                              setPendingLabelId(null)
+                            }}
+                          >
+                            <span
+                              className="h-2.5 w-2.5 rounded-full shrink-0 mr-2"
+                              style={{ backgroundColor: etiqueta.cor }}
+                            />
+                            {etiqueta.nome}
+                            {aplicada && <Check className="ml-auto size-3.5" />}
+                          </DropdownMenuItem>
+                        )
+                      })
+                    )}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 {(ACOES_POR_STATUS[conversa.status] ?? []).map((acao) => {
                   if (acao === "Atribuir" && podeAtribuir) {
                     return (

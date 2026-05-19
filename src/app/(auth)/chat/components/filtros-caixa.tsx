@@ -19,17 +19,16 @@ const FILTROS_VISIBILIDADE: { label: string; valor: FiltroVisibilidade }[] = [
   { label: "Todas", valor: "todas" },
 ]
 
-const ETIQUETAS_DISPONIVEIS = ["Novo cliente", "Recompra", "VIP"]
-
 interface FiltrosCaixaProps {
   conversas: Conversa[]
   conversaAtivaId: string | null
   onConversaClick: (id: string) => void
   papel: string
   nomeUsuario: string
+  etiquetasDisponiveis: Array<{ id: string; nome: string; cor: string }>
 }
 
-export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, papel, nomeUsuario }: FiltrosCaixaProps) {
+export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, papel, nomeUsuario, etiquetasDisponiveis }: FiltrosCaixaProps) {
   const [status, setStatus] = useState<FiltroStatus>("todas")
   const [visibilidade, setVisibilidade] = useState<FiltroVisibilidade>(
     papel === "atendente" ? "minhas" : "todas"
@@ -40,7 +39,7 @@ export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, pape
   const conversasFiltradas = conversas.filter((c) => {
     if (visibilidade === "minhas" && c.atribuidaA !== nomeUsuario) return false
     if (status !== "todas" && c.status !== status) return false
-    if (etiqueta && !c.etiquetas.some((e) => e.nome === etiqueta)) return false
+    if (etiqueta && !c.etiquetas.some((e) => e.id === etiqueta)) return false
     if (busca.trim()) {
       const termo = busca.toLowerCase()
       const nome = (c.contato.nome ?? c.contato.telefone).toLowerCase()
@@ -110,18 +109,18 @@ export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, pape
           >
             Todas etiquetas
           </button>
-          {ETIQUETAS_DISPONIVEIS.map((e) => (
+          {etiquetasDisponiveis.map((e) => (
             <button
-              key={e}
-              onClick={() => setEtiqueta(etiqueta === e ? null : e)}
+              key={e.id}
+              onClick={() => setEtiqueta(etiqueta === e.id ? null : e.id)}
               className={cn(
                 "px-2.5 py-1 text-xs rounded-md border transition-colors",
-                etiqueta === e
+                etiqueta === e.id
                   ? "bg-muted text-foreground border-border font-medium"
                   : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
               )}
             >
-              {e}
+              {e.nome}
             </button>
           ))}
         </div>

@@ -68,9 +68,23 @@ export default async function ChatPage() {
     }
   }
 
+  const [labelsRows] = await Promise.all([
+    supabase
+      .from("labels")
+      .select("id, name, color")
+      .eq("workspace_id", perfil.workspace_id)
+      .order("name"),
+  ])
+
+  const etiquetasDisponiveis = (labelsRows.data ?? []).map((l) => ({
+    id: l.id,
+    nome: l.name,
+    cor: l.color,
+  }))
+
   let query = supabase
     .from("conversations")
-    .select("id, status, assigned_to, unread_count, last_message_text, last_message_at, created_at, contact_id, contact:contacts(name, phone_number), assignee:profiles!assigned_to(name)")
+    .select("id, status, assigned_to, unread_count, last_message_text, last_message_at, created_at, contact_id, contact:contacts(name, phone_number), assignee:profiles!assigned_to(name), conversation_labels(label_id, labels(id, name, color))")
     .eq("workspace_id", perfil.workspace_id)
     .order("last_message_at", { ascending: false })
 
@@ -80,6 +94,8 @@ export default async function ChatPage() {
 
   const { data: rows } = await query
 
+  type LabelRow = { id: string; name: string; color: string } | null
+  type ConvLabelRow = { label_id: string; labels: LabelRow }
   type ConversationRow = {
     id: string
     status: string
@@ -90,6 +106,7 @@ export default async function ChatPage() {
     contact_id: string | null
     contact: { name: string | null; phone_number: string } | null
     assignee: { name: string } | null
+    conversation_labels: ConvLabelRow[]
   }
 
   const conversas: Conversa[] = ((rows ?? []) as unknown as ConversationRow[]).map((c) => ({
@@ -105,7 +122,9 @@ export default async function ChatPage() {
     },
     naoLidas: c.unread_count,
     status: c.status as StatusConversa,
-    etiquetas: [],
+    etiquetas: (c.conversation_labels ?? [])
+      .filter((cl) => cl.labels)
+      .map((cl) => ({ id: cl.labels!.id, nome: cl.labels!.name, cor: cl.labels!.color })),
     atribuidaA: c.assignee?.name ?? null,
     dataPrimeiroContato: new Date(c.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }),
   }))
@@ -119,6 +138,7 @@ export default async function ChatPage() {
       userId={user.id}
       atendentes={atendentes}
       atendentesTransferir={atendentesTransferir}
+      etiquetasDisponiveis={etiquetasDisponiveis}
     />
   )
 }

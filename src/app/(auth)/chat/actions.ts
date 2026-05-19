@@ -688,3 +688,72 @@ export async function buscarMensagens(conversaId: string): Promise<Mensagem[]> {
     return mensagem
   })
 }
+
+export type EtiquetaWorkspace = {
+  id: string
+  nome: string
+  cor: string
+}
+
+export async function listarEtiquetasWorkspace(): Promise<EtiquetaWorkspace[]> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (!perfil) return []
+
+  const { data } = await supabase
+    .from("labels")
+    .select("id, name, color")
+    .eq("workspace_id", perfil.workspace_id)
+    .order("name")
+
+  if (!data) return []
+
+  return data.map((l) => ({ id: l.id, nome: l.name, cor: l.color }))
+}
+
+export async function aplicarEtiqueta(
+  conversaId: string,
+  labelId: string
+): Promise<{ erro?: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  const { error } = await supabase
+    .from("conversation_labels")
+    .insert({ conversation_id: conversaId, label_id: labelId })
+
+  if (error) return { erro: "Não foi possível aplicar a etiqueta." }
+
+  return {}
+}
+
+export async function removerEtiqueta(
+  conversaId: string,
+  labelId: string
+): Promise<{ erro?: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  const { error } = await supabase
+    .from("conversation_labels")
+    .delete()
+    .eq("conversation_id", conversaId)
+    .eq("label_id", labelId)
+
+  if (error) return { erro: "Não foi possível remover a etiqueta." }
+
+  return {}
+}
