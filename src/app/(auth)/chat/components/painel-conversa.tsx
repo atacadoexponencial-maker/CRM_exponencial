@@ -17,7 +17,6 @@ import {
 import { BalaoMensagem } from "./balao-mensagem"
 import { PainelContato } from "./painel-contato"
 import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio, atribuirConversa, transferirConversa, resolverConversa, reabrirConversa } from "../actions"
-import { MOCK_CONVERSAS } from "../mock-conversas"
 import { MOCK_MENSAGENS_RAPIDAS } from "../mock-mensagens-rapidas"
 import type { Conversa } from "../mock-conversas"
 import type { Mensagem } from "../mock-mensagens"
@@ -744,7 +743,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
       {painelContato && (
         <PainelContato
           conversa={conversa}
-          todasConversas={MOCK_CONVERSAS}
+          conversaId={conversa.id}
           onFechar={() => setPainelContato(false)}
         />
       )}

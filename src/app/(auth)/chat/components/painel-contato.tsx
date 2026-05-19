@@ -1,14 +1,22 @@
 "use client"
 
-import { useState, useRef, KeyboardEvent } from "react"
-import { Pencil, Check, X, ChevronRight, Tag, MessageSquare } from "lucide-react"
+import { useState, useRef, useEffect, useTransition, KeyboardEvent } from "react"
+import { Pencil, Check, X, ChevronRight, MessageSquare } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { buscarInfoContato } from "../actions"
 import type { Conversa } from "../mock-conversas"
+import type { ConversaAnterior } from "../actions"
 
 const STATUS_LABEL: Record<string, string> = {
   em_espera: "Em espera",
   em_atendimento: "Em atendimento",
   resolvida: "Resolvida",
+}
+
+const STATUS_CLASS: Record<string, string> = {
+  em_espera: "text-amber-600",
+  em_atendimento: "text-green-600",
+  resolvida: "text-muted-foreground",
 }
 
 function avatarIniciais(nome: string): string {
@@ -19,21 +27,36 @@ function avatarIniciais(nome: string): string {
 
 interface PainelContatoProps {
   conversa: Conversa
-  todasConversas: Conversa[]
+  conversaId: string
   onFechar: () => void
 }
 
-export function PainelContato({ conversa, todasConversas, onFechar }: PainelContatoProps) {
+export function PainelContato({ conversa, conversaId, onFechar }: PainelContatoProps) {
   const [nomeLocal, setNomeLocal] = useState<string | null>(conversa.contato.nome)
   const [editando, setEditando] = useState(false)
   const [valorEdicao, setValorEdicao] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
+  const [dataPrimeiroContato, setDataPrimeiroContato] = useState<string | null>(null)
+  const [conversasAnteriores, setConversasAnteriores] = useState<ConversaAnterior[] | null>(null)
+  const [erroInfo, setErroInfo] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
   const nomeExibido = nomeLocal ?? conversa.contato.telefone
 
-  const conversasAnteriores = todasConversas.filter(
-    (c) => c.contato.telefone === conversa.contato.telefone && c.id !== conversa.id
-  )
+  useEffect(() => {
+    setDataPrimeiroContato(null)
+    setConversasAnteriores(null)
+    setErroInfo(false)
+    startTransition(async () => {
+      try {
+        const info = await buscarInfoContato(conversaId)
+        setDataPrimeiroContato(info.dataPrimeiroContato)
+        setConversasAnteriores(info.conversasAnteriores)
+      } catch {
+        setErroInfo(true)
+      }
+    })
+  }, [conversaId])
 
   function iniciarEdicao() {
     setValorEdicao(nomeLocal ?? "")
@@ -119,29 +142,16 @@ export function PainelContato({ conversa, todasConversas, onFechar }: PainelCont
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Primeiro contato
           </p>
-          <p className="text-sm">{conversa.dataPrimeiroContato}</p>
+          {isPending || dataPrimeiroContato === null ? (
+            erroInfo ? (
+              <p className="text-xs text-destructive">Erro ao carregar</p>
+            ) : (
+              <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+            )
+          ) : (
+            <p className="text-sm">{dataPrimeiroContato}</p>
+          )}
         </div>
-
-        {/* Etiquetas */}
-        {conversa.etiquetas.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-              <Tag className="size-3" />
-              Etiquetas
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {conversa.etiquetas.map((etiqueta) => (
-                <span
-                  key={etiqueta.nome}
-                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-                  style={{ backgroundColor: etiqueta.cor + "20", color: etiqueta.cor }}
-                >
-                  {etiqueta.nome}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Conversas anteriores */}
         <div className="flex flex-col gap-2">
@@ -149,7 +159,15 @@ export function PainelContato({ conversa, todasConversas, onFechar }: PainelCont
             <MessageSquare className="size-3" />
             Conversas anteriores
           </p>
-          {conversasAnteriores.length === 0 ? (
+          {isPending || conversasAnteriores === null ? (
+            erroInfo ? (
+              <p className="text-xs text-destructive">Erro ao carregar</p>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <div className="h-12 rounded-md bg-muted animate-pulse" />
+              </div>
+            )
+          ) : conversasAnteriores.length === 0 ? (
             <p className="text-xs text-muted-foreground">Nenhuma conversa anterior</p>
           ) : (
             <div className="flex flex-col gap-1">
@@ -157,21 +175,16 @@ export function PainelContato({ conversa, todasConversas, onFechar }: PainelCont
                 <button
                   key={c.id}
                   disabled
-                  title="Navegar para conversa (indisponível no protótipo)"
+                  title="Navegar para conversa (em breve)"
                   className="flex flex-col gap-0.5 px-3 py-2 rounded-md bg-muted/50 text-xs text-left opacity-70 cursor-not-allowed"
                 >
                   <div className="flex items-center justify-between gap-2 w-full">
-                    <span className={cn(
-                      "font-medium",
-                      c.status === "em_espera" && "text-amber-600",
-                      c.status === "em_atendimento" && "text-green-600",
-                      c.status === "resolvida" && "text-muted-foreground",
-                    )}>
+                    <span className={cn("font-medium", STATUS_CLASS[c.status])}>
                       {STATUS_LABEL[c.status]}
                     </span>
-                    <span className="text-muted-foreground shrink-0">{c.ultimaMensagem.horario}</span>
+                    <span className="text-muted-foreground shrink-0">{c.ultimaMensagemHorario}</span>
                   </div>
-                  <p className="text-muted-foreground truncate">{c.ultimaMensagem.texto}</p>
+                  <p className="text-muted-foreground truncate">{c.ultimaMensagemTexto}</p>
                 </button>
               ))}
             </div>

@@ -565,6 +565,61 @@ export async function reabrirConversa(conversaId: string): Promise<{ novoStatus:
   return { novoStatus }
 }
 
+export interface ConversaAnterior {
+  id: string
+  status: string
+  ultimaMensagemTexto: string
+  ultimaMensagemHorario: string
+}
+
+export interface InfoContato {
+  dataPrimeiroContato: string
+  etiquetas: []
+  conversasAnteriores: ConversaAnterior[]
+}
+
+export async function buscarInfoContato(conversaId: string): Promise<InfoContato> {
+  const supabase = await createClient()
+
+  const { data: conversa, error: errConversa } = await supabase
+    .from("conversations")
+    .select("contact_id, contact:contacts(created_at)")
+    .eq("id", conversaId)
+    .single()
+
+  if (errConversa || !conversa) throw new Error("Conversa não encontrada")
+
+  type ConversaRow = { contact_id: string; contact: { created_at: string } | null }
+  const { contact_id, contact } = conversa as unknown as ConversaRow
+
+  if (!contact) throw new Error("Contato não encontrado")
+
+  const dataPrimeiroContato = new Date(contact.created_at).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  })
+
+  const { data: anteriores } = await supabase
+    .from("conversations")
+    .select("id, status, last_message_text, last_message_at")
+    .eq("contact_id", contact_id)
+    .neq("id", conversaId)
+    .order("last_message_at", { ascending: false })
+
+  const conversasAnteriores: ConversaAnterior[] = (anteriores ?? []).map((c) => ({
+    id: c.id,
+    status: c.status,
+    ultimaMensagemTexto: c.last_message_text,
+    ultimaMensagemHorario: new Date(c.last_message_at).toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  }))
+
+  return { dataPrimeiroContato, etiquetas: [], conversasAnteriores }
+}
+
 export async function marcarComoLidas(conversaId: string): Promise<void> {
   const supabase = await createClient()
 
