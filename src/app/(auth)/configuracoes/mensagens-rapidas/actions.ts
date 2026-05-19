@@ -78,3 +78,24 @@ export async function editarMensagemRapida(
 
   return {}
 }
+
+export async function excluirMensagemRapida(id: string): Promise<{ erro?: string }> {
+  const supabase = await createClient()
+
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("workspace_id, role")
+    .single()
+
+  if (!perfil || perfil.role !== "admin") return { erro: "Sem permissão" }
+
+  const { error } = await supabase
+    .from("quick_replies")
+    .delete()
+    .eq("id", id)
+    .eq("workspace_id", perfil.workspace_id)
+
+  if (error) return { erro: "Não foi possível excluir a mensagem. Tente novamente." }
+
+  return {}
+}

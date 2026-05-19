@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { criarMensagemRapida, editarMensagemRapida, type MensagemRapidaListada } from "./actions"
+import { criarMensagemRapida, editarMensagemRapida, excluirMensagemRapida, type MensagemRapidaListada } from "./actions"
 
 interface MensagensRapidasClientProps {
   mensagensIniciais: MensagemRapidaListada[]
@@ -41,6 +41,8 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
 
   const [dialogExcluirAberto, setDialogExcluirAberto] = useState(false)
   const [excluindoId, setExcluindoId] = useState<string | null>(null)
+  const [isPendingExcluir, setIsPendingExcluir] = useState(false)
+  const [erroExcluir, setErroExcluir] = useState<string | null>(null)
 
   const mensagemExcluindo = mensagens.find((m) => m.id === excluindoId)
 
@@ -96,7 +98,15 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
     setDialogExcluirAberto(true)
   }
 
-  function handleExcluir() {
+  async function handleExcluir() {
+    if (!excluindoId) return
+    setIsPendingExcluir(true)
+    const result = await excluirMensagemRapida(excluindoId)
+    setIsPendingExcluir(false)
+    if (result.erro) {
+      setErroExcluir(result.erro)
+      return
+    }
     setMensagens((prev) => prev.filter((m) => m.id !== excluindoId))
     setDialogExcluirAberto(false)
   }
@@ -244,7 +254,7 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
       </Dialog>
 
       {/* Dialog — Excluir mensagem */}
-      <Dialog open={dialogExcluirAberto} onOpenChange={setDialogExcluirAberto}>
+      <Dialog open={dialogExcluirAberto} onOpenChange={(open) => { setDialogExcluirAberto(open); if (!open) setErroExcluir(null) }}>
         <DialogPopup>
           <DialogTitle className="mb-4">Excluir mensagem rápida</DialogTitle>
           <div className="flex flex-col gap-4">
@@ -252,11 +262,12 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
               Tem certeza que deseja excluir{" "}
               <strong>{mensagemExcluindo?.titulo}</strong>?
             </p>
+            {erroExcluir && <p className="text-sm text-destructive">{erroExcluir}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
                 Cancelar
               </DialogClose>
-              <Button variant="destructive" onClick={handleExcluir}>
+              <Button variant="destructive" onClick={handleExcluir} disabled={isPendingExcluir}>
                 Excluir
               </Button>
             </div>
