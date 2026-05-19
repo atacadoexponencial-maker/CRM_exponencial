@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { BalaoMensagem } from "./balao-mensagem"
 import { PainelContato } from "./painel-contato"
-import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo } from "../actions"
+import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio } from "../actions"
 import { MOCK_CONVERSAS } from "../mock-conversas"
 import { MOCK_MENSAGENS_RAPIDAS } from "../mock-mensagens-rapidas"
 import type { Conversa } from "../mock-conversas"
@@ -59,12 +59,18 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
   const [enviandoImagem, setEnviandoImagem] = useState(false)
   const [enviandoDocumento, setEnviandoDocumento] = useState(false)
   const [enviandoVideo, setEnviandoVideo] = useState(false)
+  const [gravando, setGravando] = useState(false)
+  const [duracaoGravacao, setDuracaoGravacao] = useState(0)
+  const [enviandoAudio, setEnviandoAudio] = useState(false)
   const [mensagensFalhadas, setMensagensFalhadas] = useState<Set<string>>(new Set())
   const mensagensRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const docInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const nomeExibido = conversa.contato.nome ?? conversa.contato.telefone
 
   useEffect(() => {
@@ -217,6 +223,69 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
     } finally {
       setEnviandoVideo(false)
     }
+  }
+
+  async function handleIniciarGravacao() {
+    if (gravando || enviandoAudio) return
+    let stream: MediaStream
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    } catch {
+      alert("Permissão de microfone negada.")
+      return
+    }
+    audioChunksRef.current = []
+    const mr = new MediaRecorder(stream)
+    mediaRecorderRef.current = mr
+    mr.addEventListener("dataavailable", (e) => {
+      if (e.data.size > 0) audioChunksRef.current.push(e.data)
+    })
+    mr.start()
+    setGravando(true)
+    setDuracaoGravacao(0)
+    timerRef.current = setInterval(() => setDuracaoGravacao((d) => d + 1), 1000)
+  }
+
+  function handlePararGravacao() {
+    const mr = mediaRecorderRef.current
+    if (!mr || mr.state === "inactive") return
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+    mr.addEventListener("stop", async () => {
+      const blob = new Blob(audioChunksRef.current, { type: mr.mimeType || "audio/webm" })
+      mr.stream.getTracks().forEach((t) => t.stop())
+      mediaRecorderRef.current = null
+
+      const blobUrl = URL.createObjectURL(blob)
+      const tempId = `local-aud-${Date.now()}`
+      const nova: Mensagem = {
+        id: tempId,
+        conversaId: conversa.id,
+        tipo: "audio",
+        direcao: "enviada",
+        conteudo: blobUrl,
+        horario: horaAtual(),
+        status: "enviado",
+      }
+      onMensagemEnviada(nova)
+
+      setEnviandoAudio(true)
+      const formData = new FormData()
+      const ext = blob.type.includes("ogg") ? "ogg" : blob.type.includes("mp4") ? "mp4" : "webm"
+      formData.append("arquivo", blob, `audio.${ext}`)
+      try {
+        await enviarAudio(conversa.id, formData)
+      } catch {
+        setMensagensFalhadas((prev) => new Set(prev).add(tempId))
+      } finally {
+        setEnviandoAudio(false)
+      }
+    }, { once: true })
+    mr.stop()
+    setGravando(false)
+    setDuracaoGravacao(0)
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -481,11 +550,28 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
               style={{ fieldSizing: "content" } as React.CSSProperties}
             />
 
-            <div className="flex gap-1 shrink-0 pb-1">
+            <div className="flex items-center gap-1 shrink-0 pb-1">
+              {gravando && (
+                <span className="text-xs tabular-nums text-destructive font-medium">
+                  {String(Math.floor(duracaoGravacao / 60)).padStart(2, "0")}:{String(duracaoGravacao % 60).padStart(2, "0")}
+                </span>
+              )}
               <button
-                title="Gravar áudio (indisponível no protótipo)"
-                disabled
-                className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground opacity-40 cursor-not-allowed"
+                title={gravando ? "Solte para enviar" : "Segurar para gravar"}
+                onMouseDown={handleIniciarGravacao}
+                onMouseUp={handlePararGravacao}
+                onMouseLeave={gravando ? handlePararGravacao : undefined}
+                onTouchStart={(e) => { e.preventDefault(); handleIniciarGravacao() }}
+                onTouchEnd={(e) => { e.preventDefault(); handlePararGravacao() }}
+                disabled={enviandoAudio}
+                className={cn(
+                  "h-7 w-7 flex items-center justify-center rounded-md transition-colors",
+                  gravando
+                    ? "bg-destructive text-destructive-foreground animate-pulse"
+                    : enviandoAudio
+                    ? "text-muted-foreground opacity-40 cursor-not-allowed"
+                    : "text-muted-foreground hover:bg-muted"
+                )}
               >
                 <Mic className="size-4" />
               </button>

@@ -69,6 +69,9 @@ function ConteudoMensagem({ mensagem, termoBusca }: { mensagem: Mensagem; termoB
         </div>
       )
     case "audio":
+      if (mensagem.conteudo.startsWith("blob:") || mensagem.conteudo.startsWith("http")) {
+        return <audio src={mensagem.conteudo} controls className="w-48" />
+      }
       return (
         <div className="flex items-center gap-2 w-48">
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
