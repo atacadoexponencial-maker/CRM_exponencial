@@ -1,7 +1,8 @@
 "use client"
 
-import { Check, CheckCheck, AlertTriangle, FileText, Play, Mic, Film, Download } from "lucide-react"
+import { Check, CheckCheck, AlertTriangle, FileText, Play, Mic, Film, Download, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Dialog, DialogTrigger, DialogPopup, DialogClose } from "@/components/ui/dialog"
 import type { Mensagem, StatusMensagem } from "../mock-mensagens"
 
 function textoComDestaque(texto: string, termo: string) {
@@ -36,12 +37,29 @@ function ConteudoMensagem({ mensagem, termoBusca }: { mensagem: Mensagem; termoB
     case "imagem":
       if (mensagem.conteudo.startsWith("http") || mensagem.conteudo.startsWith("blob:")) {
         return (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={mensagem.conteudo}
-            alt="imagem"
-            className="w-48 rounded-lg object-cover"
-          />
+          <Dialog>
+            <DialogTrigger className="cursor-pointer">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={mensagem.conteudo}
+                alt="imagem"
+                className="w-48 rounded-lg object-cover"
+              />
+            </DialogTrigger>
+            <DialogPopup className="bg-transparent border-none shadow-none p-0 max-w-none w-auto">
+              <div className="relative">
+                <DialogClose className="absolute -top-3 -right-3 z-10 h-7 w-7 flex items-center justify-center rounded-full bg-black/70 text-white hover:bg-black/90 transition-colors">
+                  <X className="size-4" />
+                </DialogClose>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={mensagem.conteudo}
+                  alt="imagem ampliada"
+                  className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+                />
+              </div>
+            </DialogPopup>
+          </Dialog>
         )
       }
       return (
