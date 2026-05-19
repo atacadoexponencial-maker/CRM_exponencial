@@ -525,6 +525,20 @@ export async function transferirConversa(conversaId: string, atendenteId: string
   return { nomeAtribuido: atendente.name ?? "" }
 }
 
+export async function resolverConversa(conversaId: string): Promise<void> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Não autorizado")
+
+  const { error } = await supabase
+    .from("conversations")
+    .update({ status: "resolvida" })
+    .eq("id", conversaId)
+
+  if (error) throw new Error(error.message)
+}
+
 export async function marcarComoLidas(conversaId: string): Promise<void> {
   const supabase = await createClient()
 
