@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Check, CheckCheck, AlertTriangle, FileText, Play, Pause, Mic, Film, Download, X } from "lucide-react"
+import { Check, CheckCheck, AlertTriangle, FileText, Play, Pause, Mic, Film, Download, X, Reply } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogTrigger, DialogPopup, DialogClose } from "@/components/ui/dialog"
 import type { Mensagem, StatusMensagem } from "../mock-mensagens"
@@ -220,11 +220,14 @@ function ConteudoMensagem({ mensagem, termoBusca }: { mensagem: Mensagem; termoB
 interface BalaoMensagemProps {
   mensagem: Mensagem
   termoBusca?: string
+  onResponder?: (mensagem: Mensagem) => void
 }
 
-export function BalaoMensagem({ mensagem, termoBusca = "" }: BalaoMensagemProps) {
+export function BalaoMensagem({ mensagem, termoBusca = "", onResponder }: BalaoMensagemProps) {
+  const [hover, setHover] = useState(false)
   const isEnviada = mensagem.direcao === "enviada"
   const isNota = mensagem.tipo === "nota_interna"
+  const podeResponder = mensagem.tipo === "texto" && !isNota
 
   if (isNota) {
     return (
@@ -239,7 +242,20 @@ export function BalaoMensagem({ mensagem, termoBusca = "" }: BalaoMensagemProps)
   }
 
   return (
-    <div className={cn("flex my-1", isEnviada ? "justify-end" : "justify-start")}>
+    <div
+      className={cn("flex my-1 group", isEnviada ? "justify-end" : "justify-start")}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      {podeResponder && !isEnviada && hover && (
+        <button
+          onClick={() => onResponder?.(mensagem)}
+          className="self-center mr-1 h-6 w-6 flex items-center justify-center rounded-full bg-muted hover:bg-muted-foreground/20 text-muted-foreground transition-colors"
+          title="Responder"
+        >
+          <Reply className="size-3.5" />
+        </button>
+      )}
       <div
         className={cn(
           "max-w-[70%] rounded-2xl px-3 py-2 text-sm",
@@ -270,6 +286,15 @@ export function BalaoMensagem({ mensagem, termoBusca = "" }: BalaoMensagemProps)
           {isEnviada && <IconeStatus status={mensagem.status} />}
         </div>
       </div>
+      {podeResponder && isEnviada && hover && (
+        <button
+          onClick={() => onResponder?.(mensagem)}
+          className="self-center ml-1 h-6 w-6 flex items-center justify-center rounded-full bg-muted hover:bg-muted-foreground/20 text-muted-foreground transition-colors"
+          title="Responder"
+        >
+          <Reply className="size-3.5" />
+        </button>
+      )}
     </div>
   )
 }

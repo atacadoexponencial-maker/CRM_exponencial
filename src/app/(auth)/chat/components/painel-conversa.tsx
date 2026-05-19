@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, KeyboardEvent } from "react"
 import {
-  Search, Paperclip, Mic, Zap, StickyNote, Send, X, MoreVertical, Phone,
+  Search, Paperclip, Mic, Zap, StickyNote, Send, X, MoreVertical, Phone, Reply,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -63,6 +63,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
   const [duracaoGravacao, setDuracaoGravacao] = useState(0)
   const [enviandoAudio, setEnviandoAudio] = useState(false)
   const [mensagensFalhadas, setMensagensFalhadas] = useState<Set<string>>(new Set())
+  const [replyPara, setReplyPara] = useState<Mensagem | null>(null)
   const mensagensRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -83,6 +84,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
     setTexto("")
     setSeletorMRAberto(false)
     setTermoBuscaMR("")
+    setReplyPara(null)
   }, [conversa.id])
 
   useEffect(() => {
@@ -103,9 +105,11 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
       conteudo,
       horario: horaAtual(),
       status: modoNota ? undefined : "enviado",
+      ...(replyPara && !modoNota ? { replyDe: { id: replyPara.id, texto: replyPara.conteudo } } : {}),
     }
     onMensagemEnviada(nova)
     setTexto("")
+    setReplyPara(null)
     inputRef.current?.focus()
 
     if (modoNota) return
@@ -393,7 +397,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
             </div>
           ) : (
             (termoBusca.trim() ? mensagensFiltradas : mensagensExibidas).map((msg) => (
-              <BalaoMensagem key={msg.id} mensagem={msg} termoBusca={termoBusca} />
+              <BalaoMensagem key={msg.id} mensagem={msg} termoBusca={termoBusca} onResponder={setReplyPara} />
             ))
           )}
         </div>
@@ -454,6 +458,18 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
             modoNota && "bg-amber-50/60 dark:bg-amber-950/20"
           )}
         >
+          {replyPara && (
+            <div className="flex items-center gap-2 mb-1.5 px-1 py-1 rounded-lg bg-muted/50 border-l-2 border-primary text-xs text-muted-foreground">
+              <Reply className="size-3 shrink-0 text-primary" />
+              <span className="truncate flex-1">{replyPara.conteudo}</span>
+              <button
+                onClick={() => { setReplyPara(null); inputRef.current?.focus() }}
+                className="shrink-0 hover:text-foreground transition-colors"
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+          )}
           {modoNota && (
             <div className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-1.5 flex items-center gap-1">
               <StickyNote className="size-3" />
