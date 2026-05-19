@@ -97,3 +97,28 @@ export async function editarEtiqueta(
 
   return {}
 }
+
+export async function excluirEtiqueta(id: string): Promise<{ erro?: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+
+  const { error } = await supabase
+    .from("labels")
+    .delete()
+    .eq("id", id)
+    .eq("workspace_id", perfil.workspace_id)
+
+  if (error) return { erro: "Não foi possível excluir a etiqueta. Tente novamente." }
+
+  return {}
+}

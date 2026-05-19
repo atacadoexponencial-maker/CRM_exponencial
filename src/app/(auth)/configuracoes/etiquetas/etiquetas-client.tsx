@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { criarEtiqueta, editarEtiqueta } from "./actions"
+import { criarEtiqueta, editarEtiqueta, excluirEtiqueta } from "./actions"
 import type { EtiquetaListada } from "./actions"
 
 const CORES_DISPONIVEIS = [
@@ -80,6 +80,8 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
 
   const [dialogExcluirAberto, setDialogExcluirAberto] = useState(false)
   const [excluindoId, setExcluindoId] = useState<string | null>(null)
+  const [isPendingExcluir, setIsPendingExcluir] = useState(false)
+  const [erroExcluir, setErroExcluir] = useState<string | null>(null)
 
   const etiquetaExcluindo = etiquetas.find((e) => e.id === excluindoId)
 
@@ -132,10 +134,20 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
 
   function abrirExcluir(id: string) {
     setExcluindoId(id)
+    setErroExcluir(null)
     setDialogExcluirAberto(true)
   }
 
-  function handleExcluir() {
+  async function handleExcluir() {
+    if (!excluindoId) return
+    setIsPendingExcluir(true)
+    setErroExcluir(null)
+    const resultado = await excluirEtiqueta(excluindoId)
+    setIsPendingExcluir(false)
+    if (resultado.erro) {
+      setErroExcluir(resultado.erro)
+      return
+    }
     setEtiquetas((prev) => prev.filter((e) => e.id !== excluindoId))
     setDialogExcluirAberto(false)
   }
@@ -292,7 +304,13 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
       </Dialog>
 
       {/* Dialog — Excluir etiqueta */}
-      <Dialog open={dialogExcluirAberto} onOpenChange={setDialogExcluirAberto}>
+      <Dialog
+        open={dialogExcluirAberto}
+        onOpenChange={(open) => {
+          if (!open) setErroExcluir(null)
+          setDialogExcluirAberto(open)
+        }}
+      >
         <DialogPopup>
           <DialogTitle className="mb-4">Excluir etiqueta</DialogTitle>
           <div className="flex flex-col gap-4">
@@ -301,11 +319,14 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
               <strong>{etiquetaExcluindo?.nome}</strong>? As conversas com essa
               etiqueta perderão a associação.
             </p>
+            {erroExcluir && (
+              <p className="text-sm text-destructive">{erroExcluir}</p>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
                 Cancelar
               </DialogClose>
-              <Button variant="destructive" onClick={handleExcluir}>
+              <Button variant="destructive" onClick={handleExcluir} disabled={isPendingExcluir}>
                 Excluir
               </Button>
             </div>
