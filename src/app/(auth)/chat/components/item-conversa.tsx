@@ -13,9 +13,10 @@ interface ItemConversaProps {
   conversa: Conversa
   ativa: boolean
   onClick: () => void
+  eMinhaConversa: boolean
 }
 
-export function ItemConversa({ conversa, ativa, onClick }: ItemConversaProps) {
+export function ItemConversa({ conversa, ativa, onClick, eMinhaConversa }: ItemConversaProps) {
   const nomeExibido = conversa.contato.nome ?? conversa.contato.telefone
   const temNaoLidas = conversa.naoLidas > 0
 
@@ -24,7 +25,8 @@ export function ItemConversa({ conversa, ativa, onClick }: ItemConversaProps) {
       onClick={onClick}
       className={cn(
         "w-full text-left px-4 py-3 flex items-start gap-3 border-b border-border transition-colors hover:bg-muted/50",
-        ativa && "bg-muted"
+        ativa && "bg-muted",
+        eMinhaConversa && "border-l-2 border-l-primary"
       )}
     >
       <div className="relative shrink-0">

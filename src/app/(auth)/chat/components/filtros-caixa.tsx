@@ -139,6 +139,7 @@ export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, pape
               conversa={conversa}
               ativa={conversaAtivaId === conversa.id}
               onClick={() => onConversaClick(conversa.id)}
+              eMinhaConversa={conversa.atribuidaA === nomeUsuario}
             />
           ))
         )}

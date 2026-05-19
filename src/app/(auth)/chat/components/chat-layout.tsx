@@ -184,6 +184,7 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId,
             atendentes={atendentes}
             atendentesTransferir={atendentesTransferir}
             onConversaAtualizada={handleConversaAtualizada}
+            nomeUsuario={nomeUsuario}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
