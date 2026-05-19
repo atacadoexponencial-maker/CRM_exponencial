@@ -1,9 +1,92 @@
 "use client"
 
-import { Check, CheckCheck, AlertTriangle, FileText, Play, Mic, Film, Download, X } from "lucide-react"
+import { useState, useRef } from "react"
+import { Check, CheckCheck, AlertTriangle, FileText, Play, Pause, Mic, Film, Download, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogTrigger, DialogPopup, DialogClose } from "@/components/ui/dialog"
 import type { Mensagem, StatusMensagem } from "../mock-mensagens"
+
+function formatarTempo(segundos: number): string {
+  const m = Math.floor(segundos / 60)
+  const s = Math.floor(segundos % 60)
+  return `${m}:${String(s).padStart(2, "0")}`
+}
+
+function PlayerAudio({ src }: { src: string }) {
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [tocando, setTocando] = useState(false)
+  const [tempoAtual, setTempoAtual] = useState(0)
+  const [duracao, setDuracao] = useState(0)
+
+  function handleToggle() {
+    const audio = audioRef.current
+    if (!audio) return
+    if (tocando) {
+      audio.pause()
+    } else {
+      audio.play()
+    }
+    setTocando(!tocando)
+  }
+
+  function handleTimeUpdate() {
+    setTempoAtual(audioRef.current?.currentTime ?? 0)
+  }
+
+  function handleLoadedMetadata() {
+    setDuracao(audioRef.current?.duration ?? 0)
+  }
+
+  function handleEnded() {
+    setTocando(false)
+    setTempoAtual(0)
+    if (audioRef.current) audioRef.current.currentTime = 0
+  }
+
+  function handleBarraClick(e: React.MouseEvent<HTMLDivElement>) {
+    const audio = audioRef.current
+    if (!audio || !duracao) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const pos = (e.clientX - rect.left) / rect.width
+    audio.currentTime = pos * duracao
+    setTempoAtual(audio.currentTime)
+  }
+
+  const progresso = duracao > 0 ? (tempoAtual / duracao) * 100 : 0
+
+  return (
+    <div className="flex items-center gap-2 w-52">
+      <audio
+        ref={audioRef}
+        src={src}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onEnded={handleEnded}
+      />
+      <button
+        onClick={handleToggle}
+        className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 hover:bg-primary/20 transition-colors"
+      >
+        {tocando
+          ? <Pause className="size-4 text-primary fill-primary" />
+          : <Play className="size-4 text-primary fill-primary" />
+        }
+      </button>
+      <div
+        className="flex-1 h-1.5 rounded-full bg-muted-foreground/30 cursor-pointer relative"
+        onClick={handleBarraClick}
+      >
+        <div
+          className="absolute left-0 top-0 h-full rounded-full bg-primary/60"
+          style={{ width: `${progresso}%` }}
+        />
+      </div>
+      <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
+        {formatarTempo(tocando || tempoAtual > 0 ? tempoAtual : duracao)}
+      </span>
+    </div>
+  )
+}
 
 function textoComDestaque(texto: string, termo: string) {
   if (!termo.trim()) return <>{texto}</>
@@ -88,7 +171,7 @@ function ConteudoMensagem({ mensagem, termoBusca }: { mensagem: Mensagem; termoB
       )
     case "audio":
       if (mensagem.conteudo.startsWith("blob:") || mensagem.conteudo.startsWith("http")) {
-        return <audio src={mensagem.conteudo} controls className="w-48" />
+        return <PlayerAudio src={mensagem.conteudo} />
       }
       return (
         <div className="flex items-center gap-2 w-48">
