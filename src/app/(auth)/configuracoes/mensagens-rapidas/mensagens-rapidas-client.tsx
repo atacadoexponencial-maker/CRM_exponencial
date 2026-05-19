@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import type { MensagemRapidaListada } from "./actions"
+import { criarMensagemRapida, type MensagemRapidaListada } from "./actions"
 
 interface MensagensRapidasClientProps {
   mensagensIniciais: MensagemRapidaListada[]
@@ -29,6 +29,8 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
   const [dialogCriarAberto, setDialogCriarAberto] = useState(false)
   const [novoTitulo, setNovoTitulo] = useState("")
   const [novoConteudo, setNovoConteudo] = useState("")
+  const [isPendingCriar, setIsPendingCriar] = useState(false)
+  const [erroCriar, setErroCriar] = useState<string | null>(null)
 
   const [dialogEditarAberto, setDialogEditarAberto] = useState(false)
   const [editandoId, setEditandoId] = useState<string | null>(null)
@@ -46,14 +48,20 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
     setDialogCriarAberto(true)
   }
 
-  function handleCriar() {
+  async function handleCriar() {
     const titulo = novoTitulo.trim()
     const conteudo = novoConteudo.trim()
     if (!titulo || !conteudo) return
-    setMensagens((prev) => [
-      ...prev,
-      { id: Date.now().toString(), titulo, conteudo },
-    ])
+    setIsPendingCriar(true)
+    const result = await criarMensagemRapida(titulo, conteudo)
+    setIsPendingCriar(false)
+    if (result.erro) {
+      setErroCriar(result.erro)
+      return
+    }
+    if (result.mensagem) {
+      setMensagens((prev) => [...prev, result.mensagem!])
+    }
     setDialogCriarAberto(false)
   }
 
@@ -145,7 +153,7 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
       )}
 
       {/* Dialog — Nova mensagem */}
-      <Dialog open={dialogCriarAberto} onOpenChange={setDialogCriarAberto}>
+      <Dialog open={dialogCriarAberto} onOpenChange={(open) => { setDialogCriarAberto(open); if (!open) setErroCriar(null) }}>
         <DialogPopup>
           <DialogTitle className="mb-4">Nova mensagem rápida</DialogTitle>
           <div className="flex flex-col gap-4">
@@ -170,13 +178,14 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
                 className="resize-none text-sm rounded-md border border-input px-3 py-2 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground"
               />
             </div>
+            {erroCriar && <p className="text-sm text-destructive">{erroCriar}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
                 Cancelar
               </DialogClose>
               <Button
                 onClick={handleCriar}
-                disabled={!novoTitulo.trim() || !novoConteudo.trim()}
+                disabled={!novoTitulo.trim() || !novoConteudo.trim() || isPendingCriar}
               >
                 Salvar
               </Button>
