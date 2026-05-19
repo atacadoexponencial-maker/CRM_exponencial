@@ -29,9 +29,10 @@ interface ChatLayoutProps {
   atendentes: Array<{ id: string; nome: string }>
   atendentesTransferir: Array<{ id: string; nome: string }>
   etiquetasDisponiveis: Array<{ id: string; nome: string; cor: string }>
+  mensagensRapidas: Array<{ id: string; titulo: string; conteudo: string }>
 }
 
-export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId, atendentes, atendentesTransferir, etiquetasDisponiveis }: ChatLayoutProps) {
+export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId, atendentes, atendentesTransferir, etiquetasDisponiveis, mensagensRapidas }: ChatLayoutProps) {
   const [conversasState, setConversasState] = useState<Conversa[]>(conversas)
   const [conversaAtivaId, setConversaAtivaId] = useState<string | null>(null)
   const [mensagensLocais, setMensagensLocais] = useState<Record<string, Mensagem[]>>({})
@@ -189,6 +190,7 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId,
             nomeUsuario={nomeUsuario}
             onNavegar={handleConversaClick}
             etiquetasDisponiveis={etiquetasDisponiveis}
+            mensagensRapidas={mensagensRapidas}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">

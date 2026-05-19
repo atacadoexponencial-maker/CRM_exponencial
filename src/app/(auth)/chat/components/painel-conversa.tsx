@@ -17,7 +17,6 @@ import {
 import { BalaoMensagem } from "./balao-mensagem"
 import { PainelContato } from "./painel-contato"
 import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio, atribuirConversa, transferirConversa, resolverConversa, reabrirConversa, aplicarEtiqueta, removerEtiqueta } from "../actions"
-import { MOCK_MENSAGENS_RAPIDAS } from "../mock-mensagens-rapidas"
 import type { Conversa } from "../mock-conversas"
 import type { Mensagem } from "../mock-mensagens"
 
@@ -54,9 +53,10 @@ interface PainelConversaProps {
   nomeUsuario: string
   onNavegar: (id: string) => void
   etiquetasDisponiveis: Array<{ id: string; nome: string; cor: string }>
+  mensagensRapidas: Array<{ id: string; titulo: string; conteudo: string }>
 }
 
-export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtribuir, atendentes, atendentesTransferir, onConversaAtualizada, nomeUsuario, onNavegar, etiquetasDisponiveis }: PainelConversaProps) {
+export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtribuir, atendentes, atendentesTransferir, onConversaAtualizada, nomeUsuario, onNavegar, etiquetasDisponiveis, mensagensRapidas }: PainelConversaProps) {
   const [buscaAberta, setBuscaAberta] = useState(false)
   const [termoBusca, setTermoBusca] = useState("")
   const [modoNota, setModoNota] = useState(false)
@@ -589,7 +589,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
         {/* Seletor de mensagens rápidas */}
         {seletorMRAberto && (() => {
           const termo = termoBuscaMR.toLowerCase()
-          const filtradas = MOCK_MENSAGENS_RAPIDAS.filter(
+          const filtradas = mensagensRapidas.filter(
             (mr) =>
               mr.titulo.toLowerCase().includes(termo) ||
               mr.conteudo.toLowerCase().includes(termo)

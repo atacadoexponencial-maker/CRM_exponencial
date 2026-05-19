@@ -68,18 +68,29 @@ export default async function ChatPage() {
     }
   }
 
-  const [labelsRows] = await Promise.all([
+  const [labelsRows, quickRepliesRows] = await Promise.all([
     supabase
       .from("labels")
       .select("id, name, color")
       .eq("workspace_id", perfil.workspace_id)
       .order("name"),
+    supabase
+      .from("quick_replies")
+      .select("id, title, content")
+      .eq("workspace_id", perfil.workspace_id)
+      .order("created_at", { ascending: true }),
   ])
 
   const etiquetasDisponiveis = (labelsRows.data ?? []).map((l) => ({
     id: l.id,
     nome: l.name,
     cor: l.color,
+  }))
+
+  const mensagensRapidas = (quickRepliesRows.data ?? []).map((r) => ({
+    id: r.id,
+    titulo: r.title,
+    conteudo: r.content,
   }))
 
   let query = supabase
@@ -139,6 +150,7 @@ export default async function ChatPage() {
       atendentes={atendentes}
       atendentesTransferir={atendentesTransferir}
       etiquetasDisponiveis={etiquetasDisponiveis}
+      mensagensRapidas={mensagensRapidas}
     />
   )
 }
