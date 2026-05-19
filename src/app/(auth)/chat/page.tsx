@@ -70,7 +70,7 @@ export default async function ChatPage() {
 
   let query = supabase
     .from("conversations")
-    .select("id, status, assigned_to, unread_count, last_message_text, last_message_at, created_at, contact:contacts(name, phone_number), assignee:profiles!assigned_to(name)")
+    .select("id, status, assigned_to, unread_count, last_message_text, last_message_at, created_at, contact_id, contact:contacts(name, phone_number), assignee:profiles!assigned_to(name)")
     .eq("workspace_id", perfil.workspace_id)
     .order("last_message_at", { ascending: false })
 
@@ -87,6 +87,7 @@ export default async function ChatPage() {
     last_message_text: string
     last_message_at: string
     created_at: string
+    contact_id: string | null
     contact: { name: string | null; phone_number: string } | null
     assignee: { name: string } | null
   }
@@ -96,6 +97,7 @@ export default async function ChatPage() {
     contato: {
       nome: c.contact?.name ?? null,
       telefone: c.contact?.phone_number ?? "",
+      contactId: c.contact_id ?? null,
     },
     ultimaMensagem: {
       texto: c.last_message_text,

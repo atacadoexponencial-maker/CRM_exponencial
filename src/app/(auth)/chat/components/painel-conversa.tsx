@@ -745,6 +745,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
           conversa={conversa}
           conversaId={conversa.id}
           onFechar={() => setPainelContato(false)}
+          onConversaAtualizada={onConversaAtualizada}
         />
       )}
     </div>

@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useRef, useEffect, useTransition, KeyboardEvent } from "react"
-import { Pencil, Check, X, ChevronRight, MessageSquare } from "lucide-react"
+import { Pencil, Check, X, ChevronRight, MessageSquare, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { buscarInfoContato } from "../actions"
+import { buscarInfoContato, atualizarNomeContato } from "../actions"
 import type { Conversa } from "../mock-conversas"
 import type { ConversaAnterior } from "../actions"
 
@@ -29,12 +29,15 @@ interface PainelContatoProps {
   conversa: Conversa
   conversaId: string
   onFechar: () => void
+  onConversaAtualizada: (id: string, updates: Partial<Conversa>) => void
 }
 
-export function PainelContato({ conversa, conversaId, onFechar }: PainelContatoProps) {
+export function PainelContato({ conversa, conversaId, onFechar, onConversaAtualizada }: PainelContatoProps) {
   const [nomeLocal, setNomeLocal] = useState<string | null>(conversa.contato.nome)
   const [editando, setEditando] = useState(false)
   const [valorEdicao, setValorEdicao] = useState("")
+  const [salvando, setSalvando] = useState(false)
+  const [erroSalvar, setErroSalvar] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const [dataPrimeiroContato, setDataPrimeiroContato] = useState<string | null>(null)
   const [conversasAnteriores, setConversasAnteriores] = useState<ConversaAnterior[] | null>(null)
@@ -60,18 +63,39 @@ export function PainelContato({ conversa, conversaId, onFechar }: PainelContatoP
 
   function iniciarEdicao() {
     setValorEdicao(nomeLocal ?? "")
+    setErroSalvar(false)
     setEditando(true)
     setTimeout(() => inputRef.current?.focus(), 0)
   }
 
-  function confirmarEdicao() {
+  async function confirmarEdicao() {
     const trimmed = valorEdicao.trim()
-    if (trimmed) setNomeLocal(trimmed)
-    setEditando(false)
+    if (!trimmed || salvando) return
+
+    const contactId = conversa.contato.contactId
+    if (!contactId) {
+      setNomeLocal(trimmed)
+      setEditando(false)
+      return
+    }
+
+    setSalvando(true)
+    setErroSalvar(false)
+    try {
+      await atualizarNomeContato(contactId, trimmed)
+      setNomeLocal(trimmed)
+      onConversaAtualizada(conversaId, { contato: { ...conversa.contato, nome: trimmed } })
+      setEditando(false)
+    } catch {
+      setErroSalvar(true)
+    } finally {
+      setSalvando(false)
+    }
   }
 
   function cancelarEdicao() {
     setEditando(false)
+    setErroSalvar(false)
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -99,28 +123,36 @@ export function PainelContato({ conversa, conversaId, onFechar }: PainelContatoP
           </div>
 
           {editando ? (
-            <div className="flex items-center gap-1">
-              <input
-                ref={inputRef}
-                type="text"
-                value={valorEdicao}
-                onChange={(e) => setValorEdicao(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Nome do contato"
-                className="text-sm border rounded-md px-2 py-0.5 w-36 text-center outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-              />
-              <button
-                onClick={confirmarEdicao}
-                className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted transition-colors text-green-600"
-              >
-                <Check className="size-3.5" />
-              </button>
-              <button
-                onClick={cancelarEdicao}
-                className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted transition-colors text-muted-foreground"
-              >
-                <X className="size-3.5" />
-              </button>
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex items-center gap-1">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={valorEdicao}
+                  onChange={(e) => setValorEdicao(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Nome do contato"
+                  disabled={salvando}
+                  className="text-sm border rounded-md px-2 py-0.5 w-36 text-center outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-60"
+                />
+                <button
+                  onClick={confirmarEdicao}
+                  disabled={!valorEdicao.trim() || salvando}
+                  className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted transition-colors text-green-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {salvando ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                </button>
+                <button
+                  onClick={cancelarEdicao}
+                  disabled={salvando}
+                  className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted transition-colors text-muted-foreground disabled:opacity-40"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+              {erroSalvar && (
+                <p className="text-xs text-destructive">Erro ao salvar</p>
+              )}
             </div>
           ) : (
             <div className="flex items-center gap-1">

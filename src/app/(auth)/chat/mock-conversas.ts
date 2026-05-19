@@ -4,7 +4,7 @@ export type FiltroStatus = "todas" | StatusConversa
 
 export interface Conversa {
   id: string
-  contato: { nome: string | null; telefone: string }
+  contato: { nome: string | null; telefone: string; contactId: string | null }
   ultimaMensagem: { texto: string; horario: string }
   naoLidas: number
   status: StatusConversa
@@ -16,7 +16,7 @@ export interface Conversa {
 export const MOCK_CONVERSAS: Conversa[] = [
   {
     id: "1",
-    contato: { nome: "Ana Paula Ferreira", telefone: "+55 11 99001-1234" },
+    contato: { nome: "Ana Paula Ferreira", telefone: "+55 11 99001-1234", contactId: null },
     ultimaMensagem: { texto: "Oi! Quero fazer um pedido de 50 caixas de sabão em pó.", horario: "09:42" },
     naoLidas: 3,
     status: "em_espera",
@@ -26,7 +26,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "2",
-    contato: { nome: "Mercado Bom Preço", telefone: "+55 11 98002-2345" },
+    contato: { nome: "Mercado Bom Preço", telefone: "+55 11 98002-2345", contactId: null },
     ultimaMensagem: { texto: "Quando chega o estoque de arroz parboilizado?", horario: "09:31" },
     naoLidas: 1,
     status: "em_atendimento",
@@ -36,7 +36,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "3",
-    contato: { nome: "João da Silva", telefone: "+55 21 97003-3456" },
+    contato: { nome: "João da Silva", telefone: "+55 21 97003-3456", contactId: null },
     ultimaMensagem: { texto: "Perfeito, obrigado pelo atendimento!", horario: "09:15" },
     naoLidas: 0,
     status: "resolvida",
@@ -46,7 +46,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "4",
-    contato: { nome: null, telefone: "+55 11 96004-4567" },
+    contato: { nome: null, telefone: "+55 11 96004-4567", contactId: null },
     ultimaMensagem: { texto: "Vocês entregam para o interior de São Paulo?", horario: "08:58" },
     naoLidas: 2,
     status: "em_espera",
@@ -56,7 +56,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "5",
-    contato: { nome: "Supermercado Central", telefone: "+55 31 95005-5678" },
+    contato: { nome: "Supermercado Central", telefone: "+55 31 95005-5678", contactId: null },
     ultimaMensagem: { texto: "Preciso do catálogo atualizado com os preços de atacado para esta semana.", horario: "08:47" },
     naoLidas: 0,
     status: "em_atendimento",
@@ -66,7 +66,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "6",
-    contato: { nome: "Distribuidora Norte", telefone: "+55 92 94006-6789" },
+    contato: { nome: "Distribuidora Norte", telefone: "+55 92 94006-6789", contactId: null },
     ultimaMensagem: { texto: "Tudo certo! Vou aguardar a nota fiscal.", horario: "08:30" },
     naoLidas: 0,
     status: "resolvida",
@@ -76,7 +76,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "7",
-    contato: { nome: "Padaria do Bairro", telefone: "+55 11 93007-7890" },
+    contato: { nome: "Padaria do Bairro", telefone: "+55 11 93007-7890", contactId: null },
     ultimaMensagem: { texto: "Tem açúcar cristal disponível? Quanto está o saco de 50kg?", horario: "08:12" },
     naoLidas: 4,
     status: "em_espera",
@@ -86,7 +86,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "8",
-    contato: { nome: "Roberto Alves", telefone: "+55 21 92008-8901" },
+    contato: { nome: "Roberto Alves", telefone: "+55 21 92008-8901", contactId: null },
     ultimaMensagem: { texto: "Boa tarde! Qual o prazo mínimo de entrega?", horario: "Ontem" },
     naoLidas: 0,
     status: "em_atendimento",
@@ -96,7 +96,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "9",
-    contato: { nome: "Atacadão Oeste", telefone: "+55 11 91009-9012" },
+    contato: { nome: "Atacadão Oeste", telefone: "+55 11 91009-9012", contactId: null },
     ultimaMensagem: { texto: "Fechado! Manda o boleto para o e-mail cadastrado.", horario: "Ontem" },
     naoLidas: 0,
     status: "resolvida",
@@ -106,7 +106,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "10",
-    contato: { nome: "Mercadinho da Esquina", telefone: "+55 31 90010-0123" },
+    contato: { nome: "Mercadinho da Esquina", telefone: "+55 31 90010-0123", contactId: null },
     ultimaMensagem: { texto: "Estou com dúvida sobre o pedido #2847, pode verificar?", horario: "Ontem" },
     naoLidas: 1,
     status: "em_atendimento",
@@ -116,7 +116,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "11",
-    contato: { nome: "Maria Conceição", telefone: "+55 85 89011-1234" },
+    contato: { nome: "Maria Conceição", telefone: "+55 85 89011-1234", contactId: null },
     ultimaMensagem: { texto: "Ok, aguardo o retorno.", horario: "Seg" },
     naoLidas: 0,
     status: "em_espera",
@@ -126,7 +126,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "12",
-    contato: { nome: "Empório São Jorge", telefone: "+55 41 88012-2345" },
+    contato: { nome: "Empório São Jorge", telefone: "+55 41 88012-2345", contactId: null },
     ultimaMensagem: { texto: "Pode mandar a proposta por aqui mesmo.", horario: "Seg" },
     naoLidas: 0,
     status: "em_atendimento",
@@ -136,7 +136,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "13",
-    contato: { nome: null, telefone: "+55 11 87013-3456" },
+    contato: { nome: null, telefone: "+55 11 87013-3456", contactId: null },
     ultimaMensagem: { texto: "Boa tarde, vi o anúncio de vocês e quero saber mais.", horario: "Seg" },
     naoLidas: 5,
     status: "em_espera",
@@ -146,7 +146,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "14",
-    contato: { nome: "Hortifruti da Vila", telefone: "+55 11 86014-4567" },
+    contato: { nome: "Hortifruti da Vila", telefone: "+55 11 86014-4567", contactId: null },
     ultimaMensagem: { texto: "Preciso de 200 caixas de tomate para esta semana, é possível?", horario: "Sex" },
     naoLidas: 0,
     status: "resolvida",
@@ -156,7 +156,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "15",
-    contato: { nome: "Supermercado Família", telefone: "+55 62 85015-5678" },
+    contato: { nome: "Supermercado Família", telefone: "+55 62 85015-5678", contactId: null },
     ultimaMensagem: { texto: "Combinado! Até amanhã então.", horario: "Sex" },
     naoLidas: 0,
     status: "resolvida",
@@ -166,7 +166,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "16",
-    contato: { nome: "Paulo Mendes", telefone: "+55 81 84016-6789" },
+    contato: { nome: "Paulo Mendes", telefone: "+55 81 84016-6789", contactId: null },
     ultimaMensagem: { texto: "Recebi o pedido, mas faltou 10 unidades do produto X.", horario: "Sex" },
     naoLidas: 2,
     status: "em_atendimento",
@@ -176,7 +176,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "17",
-    contato: { nome: "Armazém do Zé", telefone: "+55 71 83017-7890" },
+    contato: { nome: "Armazém do Zé", telefone: "+55 71 83017-7890", contactId: null },
     ultimaMensagem: { texto: "Qual a condição de pagamento para pedidos acima de R$ 10.000?", horario: "Qui" },
     naoLidas: 0,
     status: "em_espera",
@@ -186,7 +186,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "18",
-    contato: { nome: "Mini Mercado Sol", telefone: "+55 11 82018-8901" },
+    contato: { nome: "Mini Mercado Sol", telefone: "+55 11 82018-8901", contactId: null },
     ultimaMensagem: { texto: "Tudo bem, vou aguardar o contato do gerente.", horario: "Qui" },
     naoLidas: 0,
     status: "em_atendimento",
@@ -196,7 +196,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "19",
-    contato: { nome: "Comercial Irmãos Lima", telefone: "+55 91 81019-9012" },
+    contato: { nome: "Comercial Irmãos Lima", telefone: "+55 91 81019-9012", contactId: null },
     ultimaMensagem: { texto: "Perfeito, negócio fechado!", horario: "Qua" },
     naoLidas: 0,
     status: "resolvida",
@@ -206,7 +206,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
   },
   {
     id: "20",
-    contato: { nome: "Loja do Bairro", telefone: "+55 47 80020-0123" },
+    contato: { nome: "Loja do Bairro", telefone: "+55 47 80020-0123", contactId: null },
     ultimaMensagem: { texto: "Boa tarde! Quero fazer meu primeiro pedido com vocês.", horario: "Ter" },
     naoLidas: 0,
     status: "resolvida",

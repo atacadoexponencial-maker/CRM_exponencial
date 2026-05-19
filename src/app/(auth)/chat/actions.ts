@@ -620,6 +620,20 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
   return { dataPrimeiroContato, etiquetas: [], conversasAnteriores }
 }
 
+export async function atualizarNomeContato(contactId: string, nome: string): Promise<void> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Não autorizado")
+
+  const { error } = await supabase
+    .from("contacts")
+    .update({ name: nome })
+    .eq("id", contactId)
+
+  if (error) throw new Error(error.message)
+}
+
 export async function marcarComoLidas(conversaId: string): Promise<void> {
   const supabase = await createClient()
 
