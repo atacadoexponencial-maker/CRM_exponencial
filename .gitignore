@@ -43,6 +43,9 @@ yarn-error.log*
 # configurações do Claude Code
 .claude/
 
+# Playwright MCP (logs e screenshots temporários)
+.playwright-mcp/
+
 # vercel
 .vercel
 
