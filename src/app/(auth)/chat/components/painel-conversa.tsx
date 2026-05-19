@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, KeyboardEvent } from "react"
 import {
-  Search, Paperclip, Mic, Zap, StickyNote, Send, X, MoreVertical, Phone, Reply,
+  Search, Paperclip, Mic, Zap, StickyNote, Send, X, MoreVertical, Phone, Reply, ChevronUp, ChevronDown,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -64,6 +64,8 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
   const [enviandoAudio, setEnviandoAudio] = useState(false)
   const [mensagensFalhadas, setMensagensFalhadas] = useState<Set<string>>(new Set())
   const [replyPara, setReplyPara] = useState<Mensagem | null>(null)
+  const [indiceAtual, setIndiceAtual] = useState(0)
+  const resultsRef = useRef<(HTMLDivElement | null)[]>([])
   const mensagensRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -92,6 +94,14 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
       mensagensRef.current.scrollTop = mensagensRef.current.scrollHeight
     }
   }, [mensagens])
+
+  useEffect(() => {
+    setIndiceAtual(0)
+  }, [termoBusca])
+
+  useEffect(() => {
+    resultsRef.current[indiceAtual]?.scrollIntoView({ block: "center", behavior: "smooth" })
+  }, [indiceAtual])
 
   async function enviar() {
     const conteudo = texto.trim()
@@ -379,9 +389,29 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
               className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
             />
             {termoBusca && (
-              <span className="text-xs text-muted-foreground shrink-0">
-                {mensagensFiltradas.length} resultado{mensagensFiltradas.length !== 1 ? "s" : ""}
-              </span>
+              <>
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {mensagensFiltradas.length === 0
+                    ? "0 resultados"
+                    : `${indiceAtual + 1} de ${mensagensFiltradas.length}`}
+                </span>
+                <button
+                  onClick={() => setIndiceAtual((i) => (i - 1 + mensagensFiltradas.length) % mensagensFiltradas.length)}
+                  disabled={mensagensFiltradas.length <= 1}
+                  className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="Resultado anterior"
+                >
+                  <ChevronUp className="size-3.5" />
+                </button>
+                <button
+                  onClick={() => setIndiceAtual((i) => (i + 1) % mensagensFiltradas.length)}
+                  disabled={mensagensFiltradas.length <= 1}
+                  className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="Próximo resultado"
+                >
+                  <ChevronDown className="size-3.5" />
+                </button>
+              </>
             )}
             <button onClick={() => { setBuscaAberta(false); setTermoBusca("") }}>
               <X className="size-3.5 text-muted-foreground hover:text-foreground" />
@@ -396,9 +426,15 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada }: Paine
               Nenhuma mensagem ainda
             </div>
           ) : (
-            (termoBusca.trim() ? mensagensFiltradas : mensagensExibidas).map((msg) => (
-              <BalaoMensagem key={msg.id} mensagem={msg} termoBusca={termoBusca} onResponder={setReplyPara} />
-            ))
+            termoBusca.trim()
+              ? mensagensFiltradas.map((msg, i) => (
+                  <div key={msg.id} ref={(el) => { resultsRef.current[i] = el }}>
+                    <BalaoMensagem mensagem={msg} termoBusca={termoBusca} onResponder={setReplyPara} />
+                  </div>
+                ))
+              : mensagensExibidas.map((msg) => (
+                  <BalaoMensagem key={msg.id} mensagem={msg} termoBusca={termoBusca} onResponder={setReplyPara} />
+                ))
           )}
         </div>
 
