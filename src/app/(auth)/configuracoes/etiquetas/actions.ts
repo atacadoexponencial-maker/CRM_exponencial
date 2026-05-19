@@ -1,0 +1,40 @@
+"use server"
+
+import { createClient } from "@/integrations/supabase/server"
+
+export type EtiquetaListada = {
+  id: string
+  nome: string
+  cor: string
+  conversas: number
+}
+
+export async function listarEtiquetas(): Promise<EtiquetaListada[]> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") return []
+
+  const { data } = await supabase
+    .from("labels")
+    .select("id, name, color, conversation_labels(conversation_id)")
+    .eq("workspace_id", perfil.workspace_id)
+    .order("name")
+
+  if (!data) return []
+
+  return data.map((l) => ({
+    id: l.id,
+    nome: l.name,
+    cor: l.color,
+    conversas: (l.conversation_labels ?? []).length,
+  }))
+}
