@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react"
 import { createClient } from "@/integrations/supabase/client"
 import { FiltrosCaixa } from "./filtros-caixa"
 import { PainelConversa } from "./painel-conversa"
-import { buscarMensagens } from "../actions"
+import { buscarMensagens, marcarComoLidas } from "../actions"
 import type { Conversa, StatusConversa } from "../mock-conversas"
 import type { Mensagem } from "../mock-mensagens"
 
@@ -92,6 +92,7 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId }: ChatL
     setConversaAtivaId(id)
     setAbertas((prev) => new Set(prev).add(id))
     setErroConversaId(null)
+    marcarComoLidas(id).catch(() => {})
 
     if (mensagensLocais[id] !== undefined) return
 

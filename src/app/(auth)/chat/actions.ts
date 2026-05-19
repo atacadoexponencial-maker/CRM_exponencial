@@ -422,6 +422,18 @@ export async function enviarAudio(conversaId: string, formData: FormData): Promi
     .eq("id", conversaId)
 }
 
+export async function marcarComoLidas(conversaId: string): Promise<void> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Não autorizado")
+
+  await supabase
+    .from("conversations")
+    .update({ unread_count: 0 })
+    .eq("id", conversaId)
+}
+
 export async function buscarMensagens(conversaId: string): Promise<Mensagem[]> {
   const supabase = await createClient()
 
