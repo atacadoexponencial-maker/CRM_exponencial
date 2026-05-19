@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { BalaoMensagem } from "./balao-mensagem"
 import { PainelContato } from "./painel-contato"
-import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio, atribuirConversa, transferirConversa, resolverConversa } from "../actions"
+import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio, atribuirConversa, transferirConversa, resolverConversa, reabrirConversa } from "../actions"
 import { MOCK_CONVERSAS } from "../mock-conversas"
 import { MOCK_MENSAGENS_RAPIDAS } from "../mock-mensagens-rapidas"
 import type { Conversa } from "../mock-conversas"
@@ -449,6 +449,23 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
                         }}
                       >
                         Resolver
+                      </DropdownMenuItem>
+                    )
+                  }
+                  if (acao === "Reabrir") {
+                    return (
+                      <DropdownMenuItem
+                        key="reabrir"
+                        onSelect={async () => {
+                          try {
+                            const { novoStatus } = await reabrirConversa(conversa.id)
+                            onConversaAtualizada(conversa.id, { status: novoStatus })
+                          } catch (err) {
+                            alert(err instanceof Error ? err.message : "Erro ao reabrir conversa")
+                          }
+                        }}
+                      >
+                        Reabrir
                       </DropdownMenuItem>
                     )
                   }

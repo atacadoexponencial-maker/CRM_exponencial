@@ -539,6 +539,32 @@ export async function resolverConversa(conversaId: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
+export async function reabrirConversa(conversaId: string): Promise<{ novoStatus: "em_atendimento" | "em_espera" }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Não autorizado")
+
+  const { data: conversa } = await supabase
+    .from("conversations")
+    .select("assigned_to")
+    .eq("id", conversaId)
+    .single()
+
+  if (!conversa) throw new Error("Conversa não encontrada")
+
+  const novoStatus: "em_atendimento" | "em_espera" = conversa.assigned_to ? "em_atendimento" : "em_espera"
+
+  const { error } = await supabase
+    .from("conversations")
+    .update({ status: novoStatus })
+    .eq("id", conversaId)
+
+  if (error) throw new Error(error.message)
+
+  return { novoStatus }
+}
+
 export async function marcarComoLidas(conversaId: string): Promise<void> {
   const supabase = await createClient()
 
