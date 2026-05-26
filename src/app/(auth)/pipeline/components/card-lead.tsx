@@ -6,13 +6,21 @@ import type { CardLead } from "../mock-pipeline"
 
 interface CardLeadProps {
   card: CardLead
+  onPainelAbrir?: () => void
 }
 
-export function CardLeadItem({ card }: CardLeadProps) {
+export function CardLeadItem({ card, onPainelAbrir }: CardLeadProps) {
   const semAtendente = card.atendente === null
 
   return (
     <div
+      draggable={true}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("cardId", card.id)
+        e.dataTransfer.setData("deEtapa", card.etapa)
+        e.dataTransfer.effectAllowed = "move"
+      }}
+      onClick={onPainelAbrir}
       className={cn(
         "bg-card rounded-lg border border-border p-3 flex flex-col gap-2 cursor-pointer hover:border-muted-foreground/40 transition-colors",
         semAtendente && "border-l-2 border-l-amber-500"

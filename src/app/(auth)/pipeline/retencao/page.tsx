@@ -1,8 +1,8 @@
 import { createClient } from "@/integrations/supabase/server"
-import { FunilExpansao } from "./components/funil-expansao"
-import { listarCardsExpansao, listarAtendentes } from "./actions"
+import { FunilRetencao } from "../components/funil-retencao"
+import { listarCardsRetencao, listarAtendentes } from "../actions"
 
-export default async function PipelinePage() {
+export default async function RetencaoPage() {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -13,9 +13,9 @@ export default async function PipelinePage() {
     .single()
 
   const [cards, atendentes] = await Promise.all([
-    listarCardsExpansao(),
+    listarCardsRetencao(),
     listarAtendentes(),
   ])
 
-  return <FunilExpansao cards={cards} papel={profile?.role ?? "atendente"} atendentes={atendentes} />
+  return <FunilRetencao cards={cards} papel={profile?.role ?? "atendente"} atendentes={atendentes} />
 }
