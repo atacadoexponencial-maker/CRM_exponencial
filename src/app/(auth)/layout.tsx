@@ -7,6 +7,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <span className="font-semibold text-sm">CRM Exponencial</span>
           <nav className="flex items-center gap-6 text-sm">
+            <Link href="/pipeline" className="text-muted-foreground hover:text-foreground transition-colors">
+              Pipeline
+            </Link>
             <Link href="/chat" className="text-muted-foreground hover:text-foreground transition-colors">
               Chat
             </Link>
