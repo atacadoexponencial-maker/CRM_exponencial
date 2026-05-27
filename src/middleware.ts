@@ -13,7 +13,9 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value, options }) =>
+            request.cookies.set(name, value, options)
+          )
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
@@ -25,26 +27,15 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login') ||
-    request.nextUrl.pathname.startsWith('/cadastro')
-  const isProtectedRoute = request.nextUrl.pathname.startsWith('/(auth)') ||
-    (!isAuthRoute && request.nextUrl.pathname !== '/')
+  const isPublicRoute =
+    request.nextUrl.pathname.startsWith('/login') ||
+    request.nextUrl.pathname.startsWith('/cadastro') ||
+    request.nextUrl.pathname === '/'
 
-  if (!user && isProtectedRoute) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  if (user && !isAuthRoute) {
-    const { data: perfil } = await supabase
-      .from('profiles')
-      .select('status')
-      .eq('id', user.id)
-      .single()
-
-    if (perfil?.status === 'inactive') {
-      await supabase.auth.signOut()
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
+  if (!user && !isPublicRoute) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
   }
 
   return supabaseResponse
