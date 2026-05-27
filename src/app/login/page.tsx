@@ -7,7 +7,7 @@ import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { realizarLogin } from "./actions"
+import { createClient } from "@/integrations/supabase/client"
 
 const schema = z.object({
   email: z.string().min(1, "E-mail é obrigatório").email("E-mail inválido"),
@@ -26,14 +26,15 @@ export default function LoginPage() {
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
   async function onSubmit(data: FormData) {
-    try {
-      await realizarLogin(data.email, data.senha)
-    } catch {
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.senha,
+    })
+    if (error) {
       setError("root", { type: "manual", message: "E-mail ou senha incorretos" })
       return
     }
-
-    router.refresh()
     router.push("/configuracoes/usuarios")
   }
 
