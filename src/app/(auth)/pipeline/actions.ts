@@ -140,12 +140,12 @@ export async function buscarDadosPainel(cardId: string): Promise<{ historico: Hi
   const historico: HistoricoEtapa[] = (historicoResult.data ?? []).map((row) => ({
     etapa: row.para_etapa,
     data: new Date(row.created_at).toLocaleDateString("pt-BR"),
-    responsavel: (row.alterado_por as { name: string } | null)?.name,
+    responsavel: (row.alterado_por as unknown as { name: string } | null)?.name,
   }))
 
   const notas: NotaInterna[] = (notasResult.data ?? []).map((row) => ({
     id: row.id,
-    autor: (row.autor as { name: string } | null)?.name ?? "Desconhecido",
+    autor: (row.autor as unknown as { name: string } | null)?.name ?? "Desconhecido",
     texto: row.texto,
     data: new Date(row.created_at).toLocaleDateString("pt-BR"),
   }))
@@ -176,7 +176,7 @@ export async function listarCardsExpansao(): Promise<CardLead[]> {
     id: row.id,
     etapa: row.etapa as EtapaExpansao,
     tempoNaEtapa: calcularTempoNaEtapa(row.etapa_changed_at),
-    atendente: (row.atendente as { name: string } | null)?.name ?? null,
+    atendente: (row.atendente as unknown as { name: string } | null)?.name ?? null,
     contato: {
       nome: (row.contato as { name: string | null; phone_number: string }).name ?? "Sem nome",
       telefone: (row.contato as { name: string | null; phone_number: string }).phone_number,
@@ -210,7 +210,7 @@ export async function listarCardsRetencao(): Promise<CardCliente[]> {
     id: row.id,
     etapa: row.etapa as EtapaRetencao,
     tempoNaEtapa: calcularTempoNaEtapa(row.etapa_changed_at),
-    atendente: (row.atendente as { name: string } | null)?.name ?? null,
+    atendente: (row.atendente as unknown as { name: string } | null)?.name ?? null,
     contato: {
       nome: (row.contato as { name: string | null; phone_number: string }).name ?? "Sem nome",
       telefone: (row.contato as { name: string | null; phone_number: string }).phone_number,
