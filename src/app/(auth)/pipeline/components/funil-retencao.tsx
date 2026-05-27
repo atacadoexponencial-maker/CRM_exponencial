@@ -21,7 +21,7 @@ export function FunilRetencao({ cards, papel, atendentes }: FunilRetencaoProps) 
   const [busca, setBusca] = useState("")
   const [atendenteFiltro, setAtendenteFiltro] = useState<string | null>(null)
   const [filtroAberto, setFiltroAberto] = useState(false)
-  const [cardSelecionado, setCardSelecionado] = useState<CardLead | null>(null)
+  const [cardSelecionado, setCardSelecionado] = useState<CardCliente | null>(null)
 
   async function handleMoverCard(cardId: string, deEtapa: string, paraEtapa: string) {
     await moverCard(cardId, paraEtapa).catch(() => {})
@@ -147,7 +147,7 @@ export function FunilRetencao({ cards, papel, atendentes }: FunilRetencaoProps) 
                 cards={cardsColuna}
                 alertaVisual={etapa.alerta}
                 mensagemVazia="Nenhum cliente nesta etapa"
-                onCardClick={(card) => setCardSelecionado(card)}
+                onCardClick={(card) => setCardSelecionado(card as CardCliente)}
                 onCardDrop={handleMoverCard}
               />
             )

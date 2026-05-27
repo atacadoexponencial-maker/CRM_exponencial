@@ -178,10 +178,10 @@ export async function listarCardsExpansao(): Promise<CardLead[]> {
     tempoNaEtapa: calcularTempoNaEtapa(row.etapa_changed_at),
     atendente: (row.atendente as unknown as { name: string } | null)?.name ?? null,
     contato: {
-      nome: (row.contato as { name: string | null; phone_number: string }).name ?? "Sem nome",
-      telefone: (row.contato as { name: string | null; phone_number: string }).phone_number,
+      nome: (row.contato as unknown as { name: string | null; phone_number: string }).name ?? "Sem nome",
+      telefone: (row.contato as unknown as { name: string | null; phone_number: string }).phone_number,
     },
-    etiquetas: (row.pipeline_card_labels as Array<{ label: { id: string; name: string; color: string } }>).map(
+    etiquetas: (row.pipeline_card_labels as unknown as Array<{ label: { id: string; name: string; color: string } }>).map(
       ({ label }) => ({ id: label.id, nome: label.name, cor: label.color })
     ),
   }))
@@ -212,10 +212,10 @@ export async function listarCardsRetencao(): Promise<CardCliente[]> {
     tempoNaEtapa: calcularTempoNaEtapa(row.etapa_changed_at),
     atendente: (row.atendente as unknown as { name: string } | null)?.name ?? null,
     contato: {
-      nome: (row.contato as { name: string | null; phone_number: string }).name ?? "Sem nome",
-      telefone: (row.contato as { name: string | null; phone_number: string }).phone_number,
+      nome: (row.contato as unknown as { name: string | null; phone_number: string }).name ?? "Sem nome",
+      telefone: (row.contato as unknown as { name: string | null; phone_number: string }).phone_number,
     },
-    etiquetas: (row.pipeline_card_labels as Array<{ label: { id: string; name: string; color: string } }>).map(
+    etiquetas: (row.pipeline_card_labels as unknown as Array<{ label: { id: string; name: string; color: string } }>).map(
       ({ label }) => ({ id: label.id, nome: label.name, cor: label.color })
     ),
   }))

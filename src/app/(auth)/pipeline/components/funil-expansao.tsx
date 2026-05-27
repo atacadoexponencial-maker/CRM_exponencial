@@ -161,7 +161,7 @@ export function FunilExpansao({ cards, papel, atendentes }: FunilExpansaoProps) 
                 titulo={etapa.label}
                 etapaId={etapa.id}
                 cards={cardsColuna}
-                onCardClick={setCardSelecionado}
+                onCardClick={(card) => setCardSelecionado(card as CardLead)}
                 onCardDrop={handleMoverCard}
               />
             )

@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react"
 import { X, MessageSquare, ChevronDown, Phone, Clock, Tag, FileText, History } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { ETAPAS_EXPANSAO, ETAPAS_RETENCAO, type CardLead, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
+import { ETAPAS_EXPANSAO, ETAPAS_RETENCAO, type CardLead, type CardCliente, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
 import { buscarDadosPainel, moverCard } from "../actions"
 
 interface PainelCardProps {
-  card: CardLead | null
+  card: CardLead | CardCliente | null
   onFechar: () => void
   funil?: "expansao" | "retencao"
   onMover?: () => void

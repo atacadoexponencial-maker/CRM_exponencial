@@ -2,10 +2,10 @@
 
 import { MessageSquare } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { CardLead } from "../mock-pipeline"
+import type { CardLead, CardCliente } from "../mock-pipeline"
 
 interface CardLeadProps {
-  card: CardLead
+  card: CardLead | CardCliente
   onPainelAbrir?: () => void
 }
 

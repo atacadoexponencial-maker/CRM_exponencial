@@ -4,15 +4,17 @@ import { useState } from "react"
 import { AlertTriangle } from "lucide-react"
 import { CardLeadItem } from "./card-lead"
 import { cn } from "@/lib/utils"
-import type { CardLead } from "../mock-pipeline"
+import type { CardLead, CardCliente } from "../mock-pipeline"
+
+type CardQualquer = CardLead | CardCliente
 
 interface ColunaKanbanProps {
   titulo: string
   etapaId: string
-  cards: CardLead[]
+  cards: CardQualquer[]
   alertaVisual?: boolean
   mensagemVazia?: string
-  onCardClick?: (card: CardLead) => void
+  onCardClick?: (card: CardQualquer) => void
   onCardDrop?: (cardId: string, deEtapa: string, paraEtapa: string) => void
 }
 
