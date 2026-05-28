@@ -30,9 +30,10 @@ interface ChatLayoutProps {
   atendentesTransferir: Array<{ id: string; nome: string }>
   etiquetasDisponiveis: Array<{ id: string; nome: string; cor: string }>
   mensagensRapidas: Array<{ id: string; titulo: string; conteudo: string }>
+  conversaInicialId?: string | null
 }
 
-export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId, atendentes, atendentesTransferir, etiquetasDisponiveis, mensagensRapidas }: ChatLayoutProps) {
+export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId, atendentes, atendentesTransferir, etiquetasDisponiveis, mensagensRapidas, conversaInicialId }: ChatLayoutProps) {
   const [conversasState, setConversasState] = useState<Conversa[]>(conversas)
   const [conversaAtivaId, setConversaAtivaId] = useState<string | null>(null)
   const [mensagensLocais, setMensagensLocais] = useState<Record<string, Mensagem[]>>({})
@@ -106,6 +107,13 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId,
       supabase.removeChannel(channel)
     }
   }, [workspaceId])
+
+  useEffect(() => {
+    if (!conversaInicialId) return
+    const existe = conversas.find((c) => c.id === conversaInicialId)
+    if (existe) handleConversaClick(conversaInicialId)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversaInicialId])
 
   const conversasComLeitura = conversasState.map((c) =>
     abertas.has(c.id) ? { ...c, naoLidas: 0 } : c

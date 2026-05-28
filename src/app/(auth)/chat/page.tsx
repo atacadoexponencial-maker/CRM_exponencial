@@ -14,7 +14,8 @@ function formatHorario(iso: string): string {
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
 }
 
-export default async function ChatPage() {
+export default async function ChatPage({ searchParams }: { searchParams: Promise<{ conversa?: string }> }) {
+  const { conversa: conversaInicialId } = await searchParams
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -151,6 +152,7 @@ export default async function ChatPage() {
       atendentesTransferir={atendentesTransferir}
       etiquetasDisponiveis={etiquetasDisponiveis}
       mensagensRapidas={mensagensRapidas}
+      conversaInicialId={conversaInicialId ?? null}
     />
   )
 }

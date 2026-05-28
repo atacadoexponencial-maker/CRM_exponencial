@@ -162,6 +162,7 @@ export async function listarCardsExpansao(): Promise<CardLead[]> {
       id,
       etapa,
       etapa_changed_at,
+      contact_id,
       atendente:profiles!atendente_id (name),
       contato:contacts!contact_id (name, phone_number),
       pipeline_card_labels (
@@ -171,6 +172,20 @@ export async function listarCardsExpansao(): Promise<CardLead[]> {
     .eq("funil", "expansao")
 
   if (error) throw new Error("Erro ao carregar cards do pipeline")
+
+  const contactIds = (data ?? []).map((row) => row.contact_id).filter(Boolean) as string[]
+  const conversasPorContato: Record<string, string> = {}
+
+  if (contactIds.length > 0) {
+    const { data: conversas } = await supabase
+      .from("conversations")
+      .select("id, contact_id")
+      .in("contact_id", contactIds)
+
+    for (const c of conversas ?? []) {
+      if (c.contact_id) conversasPorContato[c.contact_id] = c.id
+    }
+  }
 
   return (data ?? []).map((row) => ({
     id: row.id,
@@ -184,6 +199,7 @@ export async function listarCardsExpansao(): Promise<CardLead[]> {
     etiquetas: (row.pipeline_card_labels as unknown as Array<{ label: { id: string; name: string; color: string } }>).map(
       ({ label }) => ({ id: label.id, nome: label.name, cor: label.color })
     ),
+    conversaId: row.contact_id ? (conversasPorContato[row.contact_id] ?? null) : null,
   }))
 }
 
@@ -196,6 +212,7 @@ export async function listarCardsRetencao(): Promise<CardCliente[]> {
       id,
       etapa,
       etapa_changed_at,
+      contact_id,
       atendente:profiles!atendente_id (name),
       contato:contacts!contact_id (name, phone_number),
       pipeline_card_labels (
@@ -205,6 +222,20 @@ export async function listarCardsRetencao(): Promise<CardCliente[]> {
     .eq("funil", "retencao")
 
   if (error) throw new Error("Erro ao carregar cards do funil de retenção")
+
+  const contactIds = (data ?? []).map((row) => row.contact_id).filter(Boolean) as string[]
+  const conversasPorContato: Record<string, string> = {}
+
+  if (contactIds.length > 0) {
+    const { data: conversas } = await supabase
+      .from("conversations")
+      .select("id, contact_id")
+      .in("contact_id", contactIds)
+
+    for (const c of conversas ?? []) {
+      if (c.contact_id) conversasPorContato[c.contact_id] = c.id
+    }
+  }
 
   return (data ?? []).map((row) => ({
     id: row.id,
@@ -218,5 +249,6 @@ export async function listarCardsRetencao(): Promise<CardCliente[]> {
     etiquetas: (row.pipeline_card_labels as unknown as Array<{ label: { id: string; name: string; color: string } }>).map(
       ({ label }) => ({ id: label.id, nome: label.name, cor: label.color })
     ),
+    conversaId: row.contact_id ? (conversasPorContato[row.contact_id] ?? null) : null,
   }))
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { X, MessageSquare, ChevronDown, Phone, Clock, Tag, FileText, History } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { ETAPAS_EXPANSAO, ETAPAS_RETENCAO, type CardLead, type CardCliente, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
 import { buscarDadosPainel, moverCard } from "../actions"
@@ -19,6 +20,7 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover }: Pain
   const [movendo, setMovendo] = useState(false)
   const [painelData, setPainelData] = useState<{ historico: HistoricoEtapa[]; notas: NotaInterna[] }>({ historico: [], notas: [] })
   const [carregando, setCarregando] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     if (!card) return
@@ -149,7 +151,16 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover }: Pain
 
           {/* Botão abrir conversa */}
           <div className="px-4 py-3 border-b border-border">
-            <button className="w-full h-8 flex items-center justify-center gap-2 text-sm rounded-lg border border-input hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+            <button
+              disabled={!card.conversaId}
+              onClick={() => { if (card.conversaId) router.push(`/chat?conversa=${card.conversaId}`) }}
+              className={cn(
+                "w-full h-8 flex items-center justify-center gap-2 text-sm rounded-lg border border-input transition-colors",
+                card.conversaId
+                  ? "hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                  : "opacity-50 cursor-not-allowed text-muted-foreground"
+              )}
+            >
               <MessageSquare className="size-3.5" />
               Abrir conversa
             </button>

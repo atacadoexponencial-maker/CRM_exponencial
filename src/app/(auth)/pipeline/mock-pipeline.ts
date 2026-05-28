@@ -14,6 +14,7 @@ export interface CardCliente {
   atendente: string | null
   tempoNaEtapa: string
   etiquetas: Array<{ id: string; nome: string; cor: string }>
+  conversaId: string | null
 }
 
 export const ETAPAS_RETENCAO: { id: EtapaRetencao; label: string; alerta: boolean }[] = [
@@ -34,6 +35,7 @@ export const MOCK_CARDS_RETENCAO: CardCliente[] = [
     atendente: "Fernanda",
     tempoNaEtapa: "2 dias",
     etiquetas: [{ id: "novo", nome: "Novo cliente", cor: "#3b82f6" }],
+    conversaId: null,
   },
   {
     id: "r2",
@@ -42,6 +44,7 @@ export const MOCK_CARDS_RETENCAO: CardCliente[] = [
     atendente: null,
     tempoNaEtapa: "1 dia",
     etiquetas: [],
+    conversaId: null,
   },
   {
     id: "r3",
@@ -50,6 +53,7 @@ export const MOCK_CARDS_RETENCAO: CardCliente[] = [
     atendente: "Carlos",
     tempoNaEtapa: "1 mês",
     etiquetas: [{ id: "vip", nome: "VIP", cor: "#f59e0b" }],
+    conversaId: null,
   },
   {
     id: "r4",
@@ -58,6 +62,7 @@ export const MOCK_CARDS_RETENCAO: CardCliente[] = [
     atendente: "Fernanda",
     tempoNaEtapa: "3 meses",
     etiquetas: [],
+    conversaId: null,
   },
   {
     id: "r5",
@@ -66,6 +71,7 @@ export const MOCK_CARDS_RETENCAO: CardCliente[] = [
     atendente: "Carlos",
     tempoNaEtapa: "5 dias",
     etiquetas: [{ id: "vip", nome: "VIP", cor: "#f59e0b" }],
+    conversaId: null,
   },
   {
     id: "r6",
@@ -74,6 +80,7 @@ export const MOCK_CARDS_RETENCAO: CardCliente[] = [
     atendente: null,
     tempoNaEtapa: "8 dias",
     etiquetas: [],
+    conversaId: null,
   },
   {
     id: "r7",
@@ -82,6 +89,7 @@ export const MOCK_CARDS_RETENCAO: CardCliente[] = [
     atendente: "Fernanda",
     tempoNaEtapa: "1 semana",
     etiquetas: [{ id: "vip", nome: "VIP", cor: "#f59e0b" }],
+    conversaId: null,
   },
   {
     id: "r8",
@@ -90,6 +98,7 @@ export const MOCK_CARDS_RETENCAO: CardCliente[] = [
     atendente: "Carlos",
     tempoNaEtapa: "3 semanas",
     etiquetas: [{ id: "atencao", nome: "Atenção", cor: "#ef4444" }],
+    conversaId: null,
   },
   {
     id: "r9",
@@ -98,6 +107,7 @@ export const MOCK_CARDS_RETENCAO: CardCliente[] = [
     atendente: null,
     tempoNaEtapa: "1 mês",
     etiquetas: [{ id: "atencao", nome: "Atenção", cor: "#ef4444" }],
+    conversaId: null,
   },
   {
     id: "r10",
@@ -106,6 +116,7 @@ export const MOCK_CARDS_RETENCAO: CardCliente[] = [
     atendente: "Fernanda",
     tempoNaEtapa: "2 meses",
     etiquetas: [],
+    conversaId: null,
   },
   {
     id: "r11",
@@ -114,6 +125,7 @@ export const MOCK_CARDS_RETENCAO: CardCliente[] = [
     atendente: "Carlos",
     tempoNaEtapa: "3 meses",
     etiquetas: [{ id: "perdido", nome: "Perdido", cor: "#6b7280" }],
+    conversaId: null,
   },
 ]
 
@@ -131,6 +143,7 @@ export interface CardLead {
   atendente: string | null
   tempoNaEtapa: string
   etiquetas: Array<{ id: string; nome: string; cor: string }>
+  conversaId: string | null
 }
 
 export const ETAPAS_EXPANSAO: { id: EtapaExpansao; label: string }[] = [
@@ -183,6 +196,7 @@ export const MOCK_CARDS_EXPANSAO: CardLead[] = [
     atendente: null,
     tempoNaEtapa: "1 dia",
     etiquetas: [{ id: "novo", nome: "Novo cliente", cor: "#3b82f6" }],
+    conversaId: null,
   },
   {
     id: "2",
@@ -191,6 +205,7 @@ export const MOCK_CARDS_EXPANSAO: CardLead[] = [
     atendente: null,
     tempoNaEtapa: "3 dias",
     etiquetas: [],
+    conversaId: null,
   },
   {
     id: "3",
@@ -199,6 +214,7 @@ export const MOCK_CARDS_EXPANSAO: CardLead[] = [
     atendente: "Carlos",
     tempoNaEtapa: "2 dias",
     etiquetas: [{ id: "indicacao", nome: "Indicação", cor: "#8b5cf6" }],
+    conversaId: null,
   },
   {
     id: "4",
@@ -207,6 +223,7 @@ export const MOCK_CARDS_EXPANSAO: CardLead[] = [
     atendente: "Carlos",
     tempoNaEtapa: "5 dias",
     etiquetas: [{ id: "novo", nome: "Novo cliente", cor: "#3b82f6" }],
+    conversaId: null,
   },
   {
     id: "5",
@@ -215,6 +232,7 @@ export const MOCK_CARDS_EXPANSAO: CardLead[] = [
     atendente: "Fernanda",
     tempoNaEtapa: "1 semana",
     etiquetas: [],
+    conversaId: null,
   },
   {
     id: "6",
@@ -223,6 +241,7 @@ export const MOCK_CARDS_EXPANSAO: CardLead[] = [
     atendente: "Fernanda",
     tempoNaEtapa: "3 dias",
     etiquetas: [{ id: "vip", nome: "VIP", cor: "#f59e0b" }],
+    conversaId: null,
   },
   {
     id: "7",
@@ -231,6 +250,7 @@ export const MOCK_CARDS_EXPANSAO: CardLead[] = [
     atendente: "Carlos",
     tempoNaEtapa: "6 dias",
     etiquetas: [],
+    conversaId: null,
   },
   {
     id: "8",
@@ -239,6 +259,7 @@ export const MOCK_CARDS_EXPANSAO: CardLead[] = [
     atendente: "Fernanda",
     tempoNaEtapa: "4 dias",
     etiquetas: [{ id: "vip", nome: "VIP", cor: "#f59e0b" }],
+    conversaId: null,
   },
   {
     id: "9",
@@ -247,6 +268,7 @@ export const MOCK_CARDS_EXPANSAO: CardLead[] = [
     atendente: "Carlos",
     tempoNaEtapa: "2 semanas",
     etiquetas: [{ id: "vip", nome: "VIP", cor: "#f59e0b" }, { id: "novo", nome: "Novo cliente", cor: "#3b82f6" }],
+    conversaId: null,
   },
   {
     id: "10",
@@ -255,5 +277,6 @@ export const MOCK_CARDS_EXPANSAO: CardLead[] = [
     atendente: "Fernanda",
     tempoNaEtapa: "1 dia",
     etiquetas: [],
+    conversaId: null,
   },
 ]

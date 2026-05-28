@@ -1,6 +1,7 @@
 "use client"
 
 import { MessageSquare } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import type { CardLead, CardCliente } from "../mock-pipeline"
 
@@ -11,6 +12,7 @@ interface CardLeadProps {
 
 export function CardLeadItem({ card, onPainelAbrir }: CardLeadProps) {
   const semAtendente = card.atendente === null
+  const router = useRouter()
 
   return (
     <div
@@ -30,8 +32,15 @@ export function CardLeadItem({ card, onPainelAbrir }: CardLeadProps) {
         <span className="text-sm font-medium leading-snug">{card.contato.nome}</span>
         <button
           aria-label="Abrir conversa"
-          className="shrink-0 text-muted-foreground hover:text-foreground transition-colors mt-0.5"
-          onClick={(e) => e.stopPropagation()}
+          disabled={!card.conversaId}
+          className={cn(
+            "shrink-0 text-muted-foreground transition-colors mt-0.5",
+            card.conversaId ? "hover:text-foreground cursor-pointer" : "opacity-50 cursor-not-allowed"
+          )}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (card.conversaId) router.push(`/chat?conversa=${card.conversaId}`)
+          }}
         >
           <MessageSquare className="size-3.5" />
         </button>
