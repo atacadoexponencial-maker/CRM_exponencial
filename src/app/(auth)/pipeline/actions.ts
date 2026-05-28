@@ -112,7 +112,7 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
 
   const { data: card, error: cardError } = await supabase
     .from("pipeline_cards")
-    .select("etapa")
+    .select("etapa, contact_id, workspace_id")
     .eq("id", cardId)
     .single()
 
@@ -133,6 +133,27 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
       para_etapa: novaEtapa,
       alterado_por: user.id,
     })
+
+  if (novaEtapa === "primeira_compra" && card.contact_id && card.workspace_id) {
+    const { data: existente } = await supabase
+      .from("pipeline_cards")
+      .select("id")
+      .eq("funil", "retencao")
+      .eq("contact_id", card.contact_id)
+      .eq("workspace_id", card.workspace_id)
+      .maybeSingle()
+
+    if (!existente) {
+      await supabase
+        .from("pipeline_cards")
+        .insert({
+          funil: "retencao",
+          etapa: "em_onboarding",
+          contact_id: card.contact_id,
+          workspace_id: card.workspace_id,
+        })
+    }
+  }
 }
 
 export async function buscarDadosPainel(cardId: string): Promise<{ historico: HistoricoEtapa[]; notas: NotaInterna[] }> {
