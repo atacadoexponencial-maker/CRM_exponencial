@@ -20,6 +20,7 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel,
   const [novaNota, setNovaNota] = useState("")
   const [etapaDropdownAberto, setEtapaDropdownAberto] = useState(false)
   const [atribuirDropdownAberto, setAtribuirDropdownAberto] = useState(false)
+  const [reatribuirDropdownAberto, setReatribuirDropdownAberto] = useState(false)
   const [movendo, setMovendo] = useState(false)
   const [atribuindo, setAtribuindo] = useState(false)
   const [painelData, setPainelData] = useState<{ historico: HistoricoEtapa[]; notas: NotaInterna[] }>({ historico: [], notas: [] })
@@ -127,6 +128,43 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel,
                             atribuirAtendente(card.id, a.id)
                               .then(() => { setAtribuirDropdownAberto(false); onMover?.() })
                               .catch(() => { setAtribuirDropdownAberto(false) })
+                              .finally(() => setAtribuindo(false))
+                          }}
+                          className="w-full text-left px-3 py-1.5 hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {a.nome}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!semAtendente && papel !== "atendente" && (
+              <div className="relative">
+                <button
+                  onClick={() => setReatribuirDropdownAberto((v) => !v)}
+                  className="w-full h-8 flex items-center justify-between px-3 text-sm rounded-lg border border-input hover:bg-muted transition-colors"
+                >
+                  <span className="text-muted-foreground">Reatribuir atendente...</span>
+                  <ChevronDown className="size-3.5 text-muted-foreground" />
+                </button>
+
+                {reatribuirDropdownAberto && (
+                  <div className="absolute left-0 right-0 top-9 z-10 bg-card border border-border rounded-lg shadow-md py-1 text-sm">
+                    {(atendentes ?? []).filter((a) => a.nome !== card.atendente).length === 0 ? (
+                      <p className="px-3 py-1.5 text-muted-foreground/60">Nenhum atendente disponível</p>
+                    ) : (
+                      (atendentes ?? []).filter((a) => a.nome !== card.atendente).map((a) => (
+                        <button
+                          key={a.id}
+                          disabled={atribuindo}
+                          onClick={() => {
+                            setAtribuindo(true)
+                            atribuirAtendente(card.id, a.id)
+                              .then(() => { setReatribuirDropdownAberto(false); onMover?.() })
+                              .catch(() => { setReatribuirDropdownAberto(false) })
                               .finally(() => setAtribuindo(false))
                           }}
                           className="w-full text-left px-3 py-1.5 hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
