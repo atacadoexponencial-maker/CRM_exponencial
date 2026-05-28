@@ -13,7 +13,7 @@ import { moverCard } from "../actions"
 interface FunilRetencaoProps {
   cards: CardCliente[]
   papel: string
-  atendentes: string[]
+  atendentes: { id: string; nome: string }[]
 }
 
 export function FunilRetencao({ cards, papel, atendentes }: FunilRetencaoProps) {
@@ -47,7 +47,7 @@ export function FunilRetencao({ cards, papel, atendentes }: FunilRetencaoProps) 
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PainelCard card={cardSelecionado} funil="retencao" onFechar={() => setCardSelecionado(null)} onMover={() => router.refresh()} />
+      <PainelCard card={cardSelecionado} funil="retencao" onFechar={() => setCardSelecionado(null)} onMover={() => router.refresh()} papel={papel} atendentes={atendentes} />
       {/* Cabeçalho */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
         <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
@@ -117,14 +117,14 @@ export function FunilRetencao({ cards, papel, atendentes }: FunilRetencaoProps) 
                 </button>
                 {atendentes.map((a) => (
                   <button
-                    key={a}
-                    onClick={() => { setAtendenteFiltro(a); setFiltroAberto(false) }}
+                    key={a.id}
+                    onClick={() => { setAtendenteFiltro(a.nome); setFiltroAberto(false) }}
                     className={cn(
                       "w-full text-left px-3 py-1.5 hover:bg-muted transition-colors",
-                      atendenteFiltro === a && "text-primary font-medium"
+                      atendenteFiltro === a.nome && "text-primary font-medium"
                     )}
                   >
-                    {a}
+                    {a.nome}
                   </button>
                 ))}
               </div>

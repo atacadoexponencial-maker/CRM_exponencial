@@ -5,19 +5,23 @@ import { X, MessageSquare, ChevronDown, Phone, Clock, Tag, FileText, History } f
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { ETAPAS_EXPANSAO, ETAPAS_RETENCAO, type CardLead, type CardCliente, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
-import { buscarDadosPainel, moverCard } from "../actions"
+import { buscarDadosPainel, moverCard, atribuirAtendente } from "../actions"
 
 interface PainelCardProps {
   card: CardLead | CardCliente | null
   onFechar: () => void
   funil?: "expansao" | "retencao"
   onMover?: () => void
+  papel?: string
+  atendentes?: { id: string; nome: string }[]
 }
 
-export function PainelCard({ card, onFechar, funil = "expansao", onMover }: PainelCardProps) {
+export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel, atendentes }: PainelCardProps) {
   const [novaNota, setNovaNota] = useState("")
   const [etapaDropdownAberto, setEtapaDropdownAberto] = useState(false)
+  const [atribuirDropdownAberto, setAtribuirDropdownAberto] = useState(false)
   const [movendo, setMovendo] = useState(false)
+  const [atribuindo, setAtribuindo] = useState(false)
   const [painelData, setPainelData] = useState<{ historico: HistoricoEtapa[]; notas: NotaInterna[] }>({ historico: [], notas: [] })
   const [carregando, setCarregando] = useState(false)
   const router = useRouter()
@@ -98,6 +102,43 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover }: Pain
                 {semAtendente ? "Sem atendente" : card.atendente}
               </span>
             </div>
+
+            {semAtendente && papel !== "atendente" && (
+              <div className="relative">
+                <button
+                  onClick={() => setAtribuirDropdownAberto((v) => !v)}
+                  className="w-full h-8 flex items-center justify-between px-3 text-sm rounded-lg border border-input hover:bg-muted transition-colors"
+                >
+                  <span className="text-muted-foreground">Atribuir atendente...</span>
+                  <ChevronDown className="size-3.5 text-muted-foreground" />
+                </button>
+
+                {atribuirDropdownAberto && (
+                  <div className="absolute left-0 right-0 top-9 z-10 bg-card border border-border rounded-lg shadow-md py-1 text-sm">
+                    {(atendentes ?? []).length === 0 ? (
+                      <p className="px-3 py-1.5 text-muted-foreground/60">Nenhum atendente disponível</p>
+                    ) : (
+                      (atendentes ?? []).map((a) => (
+                        <button
+                          key={a.id}
+                          disabled={atribuindo}
+                          onClick={() => {
+                            setAtribuindo(true)
+                            atribuirAtendente(card.id, a.id)
+                              .then(() => { setAtribuirDropdownAberto(false); onMover?.() })
+                              .catch(() => { setAtribuirDropdownAberto(false) })
+                              .finally(() => setAtribuindo(false))
+                          }}
+                          className="w-full text-left px-3 py-1.5 hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {a.nome}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {card.etiquetas.length > 0 && (
               <div className="flex items-center gap-1.5 flex-wrap">

@@ -15,7 +15,7 @@ import { moverCard } from "../actions"
 interface FunilExpansaoProps {
   cards: CardLead[]
   papel: string
-  atendentes: string[]
+  atendentes: { id: string; nome: string }[]
 }
 
 export function FunilExpansao({ cards, papel, atendentes }: FunilExpansaoProps) {
@@ -45,12 +45,13 @@ export function FunilExpansao({ cards, papel, atendentes }: FunilExpansaoProps) 
         if (card.atendente !== atendenteFiltro) return false
       }
     }
+
     return true
   })
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PainelCard card={cardSelecionado} onFechar={() => setCardSelecionado(null)} onMover={() => router.refresh()} />
+      <PainelCard card={cardSelecionado} onFechar={() => setCardSelecionado(null)} onMover={() => router.refresh()} papel={papel} atendentes={atendentes} />
       {modalAberto && (
         <ModalNovoLead
           onSucesso={() => { setModalAberto(false); router.refresh() }}
@@ -126,14 +127,14 @@ export function FunilExpansao({ cards, papel, atendentes }: FunilExpansaoProps) 
                 </button>
                 {atendentes.map((a) => (
                   <button
-                    key={a}
-                    onClick={() => { setAtendenteFiltro(a); setFiltroAberto(false) }}
+                    key={a.id}
+                    onClick={() => { setAtendenteFiltro(a.nome); setFiltroAberto(false) }}
                     className={cn(
                       "w-full text-left px-3 py-1.5 hover:bg-muted transition-colors",
-                      atendenteFiltro === a && "text-primary font-medium"
+                      atendenteFiltro === a.nome && "text-primary font-medium"
                     )}
                   >
-                    {a}
+                    {a.nome}
                   </button>
                 ))}
               </div>

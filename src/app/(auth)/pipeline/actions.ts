@@ -20,7 +20,7 @@ function calcularTempoNaEtapa(etapaChangedAt: string): string {
   return `${meses} meses`
 }
 
-export async function listarAtendentes(): Promise<string[]> {
+export async function listarAtendentes(): Promise<{ id: string; nome: string }[]> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -36,12 +36,35 @@ export async function listarAtendentes(): Promise<string[]> {
 
   const { data } = await supabase
     .from("profiles")
-    .select("name")
+    .select("id, name")
     .eq("workspace_id", profile.workspace_id)
     .eq("status", "active")
     .order("name")
 
-  return (data ?? []).map((p) => p.name as string)
+  return (data ?? []).map((p) => ({ id: p.id, nome: p.name as string }))
+}
+
+export async function atribuirAtendente(cardId: string, atendenteId: string): Promise<void> {
+  const supabase = await createClient()
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) throw new Error("Usuário não autenticado")
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+
+  if (profileError || !profile) throw new Error("Perfil não encontrado")
+  if (!["admin", "gerente"].includes(profile.role)) throw new Error("Sem permissão para atribuir atendente")
+
+  const { error } = await supabase
+    .from("pipeline_cards")
+    .update({ atendente_id: atendenteId })
+    .eq("id", cardId)
+
+  if (error) throw new Error("Erro ao atribuir atendente")
 }
 
 export async function criarNovoLead(telefone: string, nome: string | null): Promise<void> {
