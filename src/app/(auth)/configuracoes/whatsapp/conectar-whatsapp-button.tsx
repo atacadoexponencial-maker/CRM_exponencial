@@ -69,22 +69,21 @@ export function ConectarWhatsAppButton() {
     pendingData.current = {}
 
     window.FB.login(
-      async (response) => {
+      (response) => {
         const code = response.authResponse?.code
         const { phoneNumberId, wabaId } = pendingData.current
 
         if (!code || !phoneNumberId || !wabaId) return
 
         setConectando(true)
-        const resultado = await completarConexaoWhatsApp({ code, phoneNumberId, wabaId })
-        setConectando(false)
-
-        if (resultado.erro) {
-          setErro(resultado.erro)
-          return
-        }
-
-        router.refresh()
+        completarConexaoWhatsApp({ code, phoneNumberId, wabaId }).then((resultado) => {
+          setConectando(false)
+          if (resultado.erro) {
+            setErro(resultado.erro)
+            return
+          }
+          router.refresh()
+        })
       },
       {
         config_id: process.env.NEXT_PUBLIC_META_APP_ID,
