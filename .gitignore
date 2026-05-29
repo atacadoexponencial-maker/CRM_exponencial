@@ -46,6 +46,9 @@ yarn-error.log*
 # Playwright MCP (logs e screenshots temporários)
 .playwright-mcp/
 
+# Scripts utilitários locais
+/scripts/
+
 # vercel
 .vercel
 
