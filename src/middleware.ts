@@ -30,6 +30,7 @@ export async function middleware(request: NextRequest) {
   const isPublicRoute =
     request.nextUrl.pathname.startsWith('/login') ||
     request.nextUrl.pathname.startsWith('/cadastro') ||
+    request.nextUrl.pathname.startsWith('/politica-de-privacidade') ||
     request.nextUrl.pathname === '/'
 
   if (!user && !isPublicRoute) {
