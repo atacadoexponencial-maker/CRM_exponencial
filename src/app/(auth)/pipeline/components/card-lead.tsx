@@ -25,7 +25,9 @@ export function CardLeadItem({ card, onPainelAbrir }: CardLeadProps) {
       onClick={onPainelAbrir}
       className={cn(
         "bg-card rounded-lg border border-border p-3 flex flex-col gap-2 cursor-pointer hover:border-muted-foreground/40 transition-colors",
-        semAtendente && "border-l-2 border-l-amber-500"
+        (card.etapa === "em_risco" || card.etapa === "inativo") && "border-l-2 border-l-red-500 bg-red-500/5",
+        card.etapa === "perdido" && "border-l-2 border-l-muted-foreground/40 opacity-60",
+        semAtendente && card.etapa !== "em_risco" && card.etapa !== "inativo" && card.etapa !== "perdido" && "border-l-2 border-l-amber-500"
       )}
     >
       <div className="flex items-start justify-between gap-2">
