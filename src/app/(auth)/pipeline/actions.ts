@@ -222,6 +222,7 @@ export async function listarCardsExpansao(): Promise<CardLead[]> {
       id,
       etapa,
       etapa_changed_at,
+      created_at,
       contact_id,
       atendente:profiles!atendente_id (name),
       contato:contacts!contact_id (name, phone_number),
@@ -251,6 +252,8 @@ export async function listarCardsExpansao(): Promise<CardLead[]> {
     id: row.id,
     etapa: row.etapa as EtapaExpansao,
     tempoNaEtapa: calcularTempoNaEtapa(row.etapa_changed_at),
+    dataEntradaEtapa: new Date(row.etapa_changed_at).toLocaleDateString("pt-BR"),
+    tempoNoFunil: calcularTempoNaEtapa(row.created_at),
     atendente: (row.atendente as unknown as { name: string } | null)?.name ?? null,
     contato: {
       nome: (row.contato as unknown as { name: string | null; phone_number: string }).name ?? "Sem nome",
@@ -275,6 +278,7 @@ export async function listarCardsRetencao(): Promise<CardCliente[]> {
       id,
       etapa,
       etapa_changed_at,
+      created_at,
       contact_id,
       atendente:profiles!atendente_id (name),
       contato:contacts!contact_id (name, phone_number),
@@ -304,6 +308,8 @@ export async function listarCardsRetencao(): Promise<CardCliente[]> {
     id: row.id,
     etapa: row.etapa as EtapaRetencao,
     tempoNaEtapa: calcularTempoNaEtapa(row.etapa_changed_at),
+    dataEntradaEtapa: new Date(row.etapa_changed_at).toLocaleDateString("pt-BR"),
+    tempoNoFunil: calcularTempoNaEtapa(row.created_at),
     atendente: (row.atendente as unknown as { name: string } | null)?.name ?? null,
     contato: {
       nome: (row.contato as unknown as { name: string | null; phone_number: string }).name ?? "Sem nome",

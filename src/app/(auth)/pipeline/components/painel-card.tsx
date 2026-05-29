@@ -109,6 +109,16 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel,
               <span>{card.tempoNaEtapa}</span>
             </div>
 
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Entrada na etapa:</span>
+              <span>{card.dataEntradaEtapa}</span>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Tempo no funil:</span>
+              <span>{card.tempoNoFunil}</span>
+            </div>
+
             <div className="flex items-center gap-2">
               <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium text-muted-foreground shrink-0">
                 {semAtendente ? "?" : card.atendente![0].toUpperCase()}
