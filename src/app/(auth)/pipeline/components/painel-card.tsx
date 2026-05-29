@@ -62,7 +62,7 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel,
           setConfirmacaoRecompra(null)
           setMovendo(true)
           moverCard(card.id, etapaDestino)
-            .then(() => { onMover?.() })
+            .then(() => { onFechar(); onMover?.() })
             .catch(() => {})
             .finally(() => setMovendo(false))
         }}
@@ -246,7 +246,7 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel,
                         }
                         setMovendo(true)
                         moverCard(card.id, e.id)
-                          .then(() => { setEtapaDropdownAberto(false); onMover?.() })
+                          .then(() => { setEtapaDropdownAberto(false); onFechar(); onMover?.() })
                           .catch(() => {})
                           .finally(() => setMovendo(false))
                       }}
