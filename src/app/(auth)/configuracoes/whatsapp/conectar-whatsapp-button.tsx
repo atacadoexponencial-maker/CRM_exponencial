@@ -86,7 +86,7 @@ export function ConectarWhatsAppButton() {
         })
       },
       {
-        config_id: process.env.NEXT_PUBLIC_META_CONFIG_ID,
+        config_id: process.env.NEXT_PUBLIC_META_APP_ID,
         response_type: "code",
         override_default_response_type: true,
         extras: {
