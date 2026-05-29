@@ -179,6 +179,7 @@ export async function buscarDadosPainel(cardId: string): Promise<{ historico: Hi
     supabase
       .from("pipeline_card_history")
       .select(`
+        de_etapa,
         para_etapa,
         created_at,
         alterado_por:profiles!alterado_por (name)
@@ -198,8 +199,9 @@ export async function buscarDadosPainel(cardId: string): Promise<{ historico: Hi
   ])
 
   const historico: HistoricoEtapa[] = (historicoResult.data ?? []).map((row) => ({
+    deEtapa: row.de_etapa ?? "",
     etapa: row.para_etapa,
-    data: new Date(row.created_at).toLocaleDateString("pt-BR"),
+    data: new Date(row.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }),
     responsavel: (row.alterado_por as unknown as { name: string } | null)?.name,
   }))
 

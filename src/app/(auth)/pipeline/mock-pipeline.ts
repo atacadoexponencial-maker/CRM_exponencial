@@ -181,6 +181,7 @@ export const ETAPAS_EXPANSAO: { id: EtapaExpansao; label: string }[] = [
 ]
 
 export interface HistoricoEtapa {
+  deEtapa: string
   etapa: string
   data: string
   responsavel?: string
@@ -196,7 +197,7 @@ export interface NotaInterna {
 export const MOCK_PAINEL_DATA: Record<string, { historico: HistoricoEtapa[]; notas: NotaInterna[] }> = {
   "1": {
     historico: [
-      { etapa: "Lead", data: "22/05/2026" },
+      { deEtapa: "", etapa: "Lead", data: "22/05/2026 09:14" },
     ],
     notas: [
       { id: "n1", autor: "Carlos", texto: "Cliente indicado pelo Armazém do Zé. Tem interesse em biscoito e farinha.", data: "23/05/2026" },
@@ -204,8 +205,8 @@ export const MOCK_PAINEL_DATA: Record<string, { historico: HistoricoEtapa[]; not
   },
   "4": {
     historico: [
-      { etapa: "Lead", data: "18/05/2026" },
-      { etapa: "Em Qualificação", data: "21/05/2026" },
+      { deEtapa: "", etapa: "Lead", data: "18/05/2026 10:02" },
+      { deEtapa: "Lead", etapa: "Em Qualificação", data: "21/05/2026 14:35", responsavel: "Carlos" },
     ],
     notas: [
       { id: "n2", autor: "Carlos", texto: "Já tem CNPJ. Volume mensal estimado em R$ 3.000.", data: "21/05/2026" },

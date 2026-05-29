@@ -288,16 +288,26 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel,
             ) : painelData.historico.length === 0 ? (
               <p className="text-xs text-muted-foreground/60">Nenhum histórico disponível.</p>
             ) : (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {painelData.historico.map((h, i) => (
-                  <div key={i} className="flex items-center justify-between text-xs gap-2">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="text-foreground truncate">{h.etapa}</span>
-                      {h.responsavel && (
-                        <span className="text-muted-foreground/60 shrink-0">· {h.responsavel}</span>
-                      )}
+                  <div key={i} className="text-xs space-y-0.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1 min-w-0 font-medium text-foreground">
+                        {h.deEtapa ? (
+                          <>
+                            <span className="truncate">{h.deEtapa}</span>
+                            <span className="text-muted-foreground shrink-0">→</span>
+                            <span className="truncate">{h.etapa}</span>
+                          </>
+                        ) : (
+                          <span className="truncate">{h.etapa}</span>
+                        )}
+                      </div>
+                      <span className="text-muted-foreground shrink-0">{h.data}</span>
                     </div>
-                    <span className="text-muted-foreground shrink-0">{h.data}</span>
+                    {h.responsavel && (
+                      <span className="text-muted-foreground/60">{h.responsavel}</span>
+                    )}
                   </div>
                 ))}
               </div>
