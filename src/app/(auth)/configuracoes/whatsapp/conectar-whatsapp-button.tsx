@@ -73,7 +73,10 @@ export function ConectarWhatsAppButton() {
         const code = response.authResponse?.code
         const { phoneNumberId, wabaId } = pendingData.current
 
-        if (!code || !phoneNumberId || !wabaId) return
+        if (!code || !phoneNumberId || !wabaId) {
+          setErro(`Dados incompletos recebidos da Meta. code=${!!code} phoneNumberId=${!!phoneNumberId} wabaId=${!!wabaId}`)
+          return
+        }
 
         setConectando(true)
         completarConexaoWhatsApp({ code, phoneNumberId, wabaId }).then((resultado) => {
