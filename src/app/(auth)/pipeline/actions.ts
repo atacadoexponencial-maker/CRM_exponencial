@@ -134,6 +134,22 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
       alterado_por: user.id,
     })
 
+  if (novaEtapa === "recompra_realizada") {
+    await supabase
+      .from("pipeline_cards")
+      .update({ etapa: "aguardando_recompra", etapa_changed_at: new Date().toISOString() })
+      .eq("id", cardId)
+
+    await supabase
+      .from("pipeline_card_history")
+      .insert({
+        card_id: cardId,
+        de_etapa: "recompra_realizada",
+        para_etapa: "aguardando_recompra",
+        alterado_por: user.id,
+      })
+  }
+
   if (novaEtapa === "primeira_compra" && card.contact_id && card.workspace_id) {
     const { data: existente } = await supabase
       .from("pipeline_cards")
@@ -249,6 +265,9 @@ export async function listarCardsExpansao(): Promise<CardLead[]> {
 
 export async function listarCardsRetencao(): Promise<CardCliente[]> {
   const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
 
   const { data, error } = await supabase
     .from("pipeline_cards")

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { ETAPAS_EXPANSAO, ETAPAS_RETENCAO, type CardLead, type CardCliente, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
 import { buscarDadosPainel, moverCard, atribuirAtendente } from "../actions"
+import { ModalConfirmacaoRecompra } from "./modal-confirmacao-recompra"
 
 interface PainelCardProps {
   card: CardLead | CardCliente | null
@@ -23,6 +24,7 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel,
   const [reatribuirDropdownAberto, setReatribuirDropdownAberto] = useState(false)
   const [movendo, setMovendo] = useState(false)
   const [atribuindo, setAtribuindo] = useState(false)
+  const [confirmacaoRecompra, setConfirmacaoRecompra] = useState<string | null>(null)
   const [painelData, setPainelData] = useState<{ historico: HistoricoEtapa[]; notas: NotaInterna[] }>({ historico: [], notas: [] })
   const [carregando, setCarregando] = useState(false)
   const router = useRouter()
@@ -50,6 +52,21 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel,
       <div
         className="fixed inset-0 z-20"
         onClick={onFechar}
+      />
+
+      <ModalConfirmacaoRecompra
+        aberto={confirmacaoRecompra !== null}
+        onConfirmar={() => {
+          if (!confirmacaoRecompra) return
+          const etapaDestino = confirmacaoRecompra
+          setConfirmacaoRecompra(null)
+          setMovendo(true)
+          moverCard(card.id, etapaDestino)
+            .then(() => { onMover?.() })
+            .catch(() => {})
+            .finally(() => setMovendo(false))
+        }}
+        onCancelar={() => setConfirmacaoRecompra(null)}
       />
 
       {/* Painel */}
@@ -212,6 +229,11 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel,
                       key={e.id}
                       disabled={movendo}
                       onClick={() => {
+                        if (e.id === "recompra_realizada") {
+                          setEtapaDropdownAberto(false)
+                          setConfirmacaoRecompra(e.id)
+                          return
+                        }
                         setMovendo(true)
                         moverCard(card.id, e.id)
                           .then(() => { setEtapaDropdownAberto(false); onMover?.() })

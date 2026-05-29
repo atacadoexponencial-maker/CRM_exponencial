@@ -7,6 +7,7 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { ColunaKanban } from "./coluna-kanban"
 import { PainelCard } from "./painel-card"
+import { ModalConfirmacaoRecompra } from "./modal-confirmacao-recompra"
 import { ETAPAS_RETENCAO, type CardCliente, type CardLead } from "../mock-pipeline"
 import { moverCard } from "../actions"
 
@@ -22,8 +23,21 @@ export function FunilRetencao({ cards, papel, atendentes }: FunilRetencaoProps) 
   const [atendenteFiltro, setAtendenteFiltro] = useState<string | null>(null)
   const [filtroAberto, setFiltroAberto] = useState(false)
   const [cardSelecionado, setCardSelecionado] = useState<CardCliente | null>(null)
+  const [confirmacaoPendente, setConfirmacaoPendente] = useState<{ cardId: string; deEtapa: string; paraEtapa: string } | null>(null)
 
   async function handleMoverCard(cardId: string, deEtapa: string, paraEtapa: string) {
+    if (paraEtapa === "recompra_realizada") {
+      setConfirmacaoPendente({ cardId, deEtapa, paraEtapa })
+      return
+    }
+    await moverCard(cardId, paraEtapa).catch(() => {})
+    router.refresh()
+  }
+
+  async function handleConfirmarRecompra() {
+    if (!confirmacaoPendente) return
+    const { cardId, paraEtapa } = confirmacaoPendente
+    setConfirmacaoPendente(null)
     await moverCard(cardId, paraEtapa).catch(() => {})
     router.refresh()
   }
@@ -48,6 +62,11 @@ export function FunilRetencao({ cards, papel, atendentes }: FunilRetencaoProps) 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <PainelCard card={cardSelecionado} funil="retencao" onFechar={() => setCardSelecionado(null)} onMover={() => router.refresh()} papel={papel} atendentes={atendentes} />
+      <ModalConfirmacaoRecompra
+        aberto={confirmacaoPendente !== null}
+        onConfirmar={handleConfirmarRecompra}
+        onCancelar={() => setConfirmacaoPendente(null)}
+      />
       {/* Cabeçalho */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
         <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
