@@ -5,7 +5,7 @@ import { X, MessageSquare, ChevronDown, Phone, Clock, Tag, FileText, History } f
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { ETAPAS_EXPANSAO, ETAPAS_RETENCAO, type CardLead, type CardCliente, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
-import { buscarDadosPainel, moverCard, atribuirAtendente } from "../actions"
+import { buscarDadosPainel, moverCard, atribuirAtendente, adicionarNota } from "../actions"
 import { ModalConfirmacaoRecompra } from "./modal-confirmacao-recompra"
 
 interface PainelCardProps {
@@ -24,6 +24,7 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel,
   const [reatribuirDropdownAberto, setReatribuirDropdownAberto] = useState(false)
   const [movendo, setMovendo] = useState(false)
   const [atribuindo, setAtribuindo] = useState(false)
+  const [salvandoNota, setSalvandoNota] = useState(false)
   const [confirmacaoRecompra, setConfirmacaoRecompra] = useState<string | null>(null)
   const [painelData, setPainelData] = useState<{ historico: HistoricoEtapa[]; notas: NotaInterna[] }>({ historico: [], notas: [] })
   const [carregando, setCarregando] = useState(false)
@@ -349,10 +350,21 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel,
                 className="w-full text-sm rounded-lg border border-input bg-transparent px-3 py-2 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground resize-none"
               />
               <button
-                disabled={novaNota.trim() === ""}
+                disabled={novaNota.trim() === "" || salvandoNota}
+                onClick={() => {
+                  setSalvandoNota(true)
+                  adicionarNota(card.id, novaNota)
+                    .then(() => {
+                      setNovaNota("")
+                      return buscarDadosPainel(card.id)
+                    })
+                    .then((data) => setPainelData(data))
+                    .catch(() => {})
+                    .finally(() => setSalvandoNota(false))
+                }}
                 className="w-full h-8 text-sm rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
               >
-                Adicionar nota
+                {salvandoNota ? "Salvando..." : "Adicionar nota"}
               </button>
             </div>
           </div>

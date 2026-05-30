@@ -172,6 +172,32 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
   }
 }
 
+export async function adicionarNota(cardId: string, texto: string): Promise<void> {
+  const supabase = await createClient()
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) throw new Error("Usuário não autenticado")
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (profileError || !profile) throw new Error("Perfil não encontrado")
+
+  const { error } = await supabase
+    .from("pipeline_card_notes")
+    .insert({
+      card_id: cardId,
+      workspace_id: profile.workspace_id,
+      texto: texto.trim(),
+      autor_id: user.id,
+    })
+
+  if (error) throw new Error("Erro ao salvar nota")
+}
+
 export async function buscarDadosPainel(cardId: string): Promise<{ historico: HistoricoEtapa[]; notas: NotaInterna[] }> {
   const supabase = await createClient()
 
