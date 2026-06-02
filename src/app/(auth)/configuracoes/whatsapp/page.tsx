@@ -2,9 +2,8 @@ import { redirect } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { createClient } from "@/integrations/supabase/server"
 import { listarConexaoWhatsApp } from "./actions"
-import { ConectarWhatsAppButton } from "./conectar-whatsapp-button"
-import { ConectarTesteButton } from "./conectar-teste-button"
 import { AcoesWhatsApp } from "./acoes-whatsapp"
+import { WizardConexao } from "./wizard-conexao"
 
 export default async function WhatsAppPage() {
   const supabase = await createClient()
@@ -23,15 +22,7 @@ export default async function WhatsAppPage() {
 
   return (
     <div className="max-w-5xl mx-auto w-full px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">WhatsApp</h1>
-        {!conexao && (
-          <div className="flex gap-2">
-            <ConectarTesteButton />
-            <ConectarWhatsAppButton />
-          </div>
-        )}
-      </div>
+      <h1 className="text-xl font-semibold mb-6">WhatsApp</h1>
 
       {conexao ? (
         <div className="rounded-lg border p-6 max-w-md">
@@ -55,8 +46,8 @@ export default async function WhatsAppPage() {
           <AcoesWhatsApp conexaoId={conexao.id} status={conexao.status} />
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed p-12 max-w-md flex flex-col items-center gap-4 text-center">
-          <p className="text-muted-foreground">Nenhum número conectado</p>
+        <div className="flex justify-center py-8">
+          <WizardConexao />
         </div>
       )}
     </div>

@@ -35,7 +35,7 @@ export default function LoginPage() {
       setError("root", { type: "manual", message: "E-mail ou senha incorretos" })
       return
     }
-    router.push("/configuracoes/usuarios")
+    router.push("/configuracoes/whatsapp")
   }
 
   return (

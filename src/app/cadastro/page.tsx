@@ -59,7 +59,7 @@ export default function CadastroPage() {
     }
 
     router.refresh()
-    router.push("/configuracoes/usuarios")
+    router.push("/configuracoes/whatsapp")
   }
 
   return (
