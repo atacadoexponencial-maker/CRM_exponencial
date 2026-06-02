@@ -28,6 +28,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <Link href="/configuracoes/mensagens-rapidas" className="text-muted-foreground hover:text-foreground transition-colors">
               Mensagens Rápidas
             </Link>
+            <Link href="/configuracoes/templates" className="text-muted-foreground hover:text-foreground transition-colors">
+              Templates
+            </Link>
             <Link href="/configuracoes/whatsapp" className="text-muted-foreground hover:text-foreground transition-colors">
               WhatsApp
             </Link>
