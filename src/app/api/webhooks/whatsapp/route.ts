@@ -86,6 +86,8 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .single()
 
+    let conversaId: string
+
     if (openConversation) {
       const { error } = await supabase
         .from("conversations")
@@ -96,8 +98,9 @@ export async function POST(request: NextRequest) {
         })
         .eq("id", openConversation.id)
       if (error) return NextResponse.json({ error: "db error" }, { status: 500 })
+      conversaId = openConversation.id
     } else {
-      const { error } = await supabase.from("conversations").insert({
+      const { data: novaConversa, error } = await supabase.from("conversations").insert({
         workspace_id,
         contact_id: contact.id,
         status: "em_espera",
@@ -105,9 +108,20 @@ export async function POST(request: NextRequest) {
         unread_count: 1,
         last_message_text: messageText,
         last_message_at: messageAt,
-      })
-      if (error) return NextResponse.json({ error: "db error" }, { status: 500 })
+      }).select("id").single()
+      if (error || !novaConversa) return NextResponse.json({ error: "db error" }, { status: 500 })
+      conversaId = novaConversa.id
     }
+
+    await supabase.from("messages").insert({
+      conversation_id: conversaId,
+      workspace_id,
+      direction: "recebida",
+      type: "texto",
+      content: messageText,
+      wamid: message.id,
+      created_at: messageAt,
+    })
   }
 
   return NextResponse.json({ status: "ok" })
