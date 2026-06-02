@@ -377,7 +377,7 @@ export async function enviarAudio(conversaId: string, formData: FormData): Promi
   if (errConn || !conn) throw new Error("Conexão WhatsApp não encontrada")
 
   const serviceClient = createServiceClient()
-  const ext = arquivo.type.includes("ogg") ? "ogg" : arquivo.type.includes("mp4") ? "mp4" : "webm"
+  const ext = arquivo.type.includes("ogg") ? "ogg" : arquivo.type.includes("mp4") ? "mp4" : arquivo.type.includes("mpeg") ? "mp3" : "webm"
   const path = `${workspace_id}/${conversaId}/${Date.now()}.${ext}`
 
   const { error: errUpload } = await serviceClient.storage

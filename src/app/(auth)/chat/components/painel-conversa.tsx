@@ -20,6 +20,36 @@ import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio
 import type { Conversa } from "../mock-conversas"
 import type { Mensagem } from "../mock-mensagens"
 
+async function converterParaMp3(blob: Blob): Promise<Blob> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { Mp3Encoder } = (await import("@breezystack/lamejs")) as any
+
+  const arrayBuffer = await blob.arrayBuffer()
+  const audioCtx = new AudioContext()
+  const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
+  audioCtx.close()
+
+  const sampleRate = audioBuffer.sampleRate
+  const encoder = new Mp3Encoder(1, sampleRate, 64)
+
+  const BLOCK = 1152
+  const raw = audioBuffer.getChannelData(0)
+  const pcm = new Int16Array(raw.length)
+  for (let i = 0; i < raw.length; i++) {
+    pcm[i] = Math.max(-32768, Math.min(32767, Math.round(raw[i] * 32767)))
+  }
+
+  const parts: ArrayBuffer[] = []
+  for (let i = 0; i < pcm.length; i += BLOCK) {
+    const encoded: Int8Array = encoder.encodeBuffer(pcm.subarray(i, i + BLOCK))
+    if (encoded.length > 0) parts.push(new Uint8Array(encoded).buffer as ArrayBuffer)
+  }
+  const flushed: Int8Array = encoder.flush()
+  if (flushed.length > 0) parts.push(new Uint8Array(flushed).buffer as ArrayBuffer)
+
+  return new Blob(parts, { type: "audio/mpeg" })
+}
+
 const STATUS_LABEL: Record<string, string> = {
   em_espera: "Em espera",
   em_atendimento: "Em atendimento",
@@ -259,13 +289,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
       return
     }
     audioChunksRef.current = []
-    // Preferir formatos aceitos pela Meta API do WhatsApp
-    const mimeType = MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")
-      ? "audio/ogg;codecs=opus"
-      : MediaRecorder.isTypeSupported("audio/mp4")
-      ? "audio/mp4"
-      : ""
-    const mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
+    const mr = new MediaRecorder(stream)
     mediaRecorderRef.current = mr
     mr.addEventListener("dataavailable", (e) => {
       if (e.data.size > 0) audioChunksRef.current.push(e.data)
@@ -305,7 +329,17 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
       mr.stream.getTracks().forEach((t) => t.stop())
       mediaRecorderRef.current = null
 
-      const blobUrl = URL.createObjectURL(blob)
+      setEnviandoAudio(true)
+
+      let mp3Blob: Blob
+      try {
+        mp3Blob = await converterParaMp3(blob)
+      } catch {
+        // fallback: tenta enviar no formato original (pode falhar na API)
+        mp3Blob = blob
+      }
+
+      const blobUrl = URL.createObjectURL(mp3Blob)
       const tempId = `local-aud-${Date.now()}`
       const nova: Mensagem = {
         id: tempId,
@@ -318,11 +352,8 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
       }
       onMensagemEnviada(nova)
 
-      setEnviandoAudio(true)
       const formData = new FormData()
-      const type = blob.type || "audio/webm"
-      const ext = type.includes("ogg") ? "ogg" : type.includes("mp4") ? "mp4" : type.includes("mpeg") ? "mp3" : "webm"
-      formData.append("arquivo", blob, `audio.${ext}`)
+      formData.append("arquivo", mp3Blob, "audio.mp3")
       try {
         await enviarAudio(conversa.id, formData)
       } catch {
