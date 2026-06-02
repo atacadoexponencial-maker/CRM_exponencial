@@ -10,6 +10,14 @@ export type TipoContato = "lojista" | "revendedor" | "empreendedor"
 
 export type ICP = "ja_revende" | "primeira_vez"
 
+export type TipoEvento =
+  | "conversa_iniciada"
+  | "card_criado"
+  | "mudanca_etapa"
+  | "nota_interna"
+  | "compra_registrada"
+  | "dados_editados"
+
 export interface Contato {
   id: string
   nome: string
@@ -32,12 +40,21 @@ export interface CardPipelineMock {
   etapaLabel: string
 }
 
+export interface EventoTimeline {
+  id: string
+  data: string
+  tipo: TipoEvento
+  descricao: string
+  responsavel: string
+}
+
 export interface ContatoPerfil extends Contato {
   icp: ICP | null
   tags: string[]
   observacoes: string
   cards: CardPipelineMock[]
   compras: Compra[]
+  timeline: EventoTimeline[]
 }
 
 export const CLASSIFICACAO_LABEL: Record<ClassificacaoContato, string> = {
@@ -58,6 +75,15 @@ export const TIPO_LABEL: Record<TipoContato, string> = {
 export const ICP_LABEL: Record<ICP, string> = {
   ja_revende: "Já revende este nicho",
   primeira_vez: "Primeira vez no nicho",
+}
+
+export const TIPOS_EVENTO: Record<TipoEvento, string> = {
+  conversa_iniciada: "Conversa iniciada",
+  card_criado: "Card criado",
+  mudanca_etapa: "Mudança de etapa",
+  nota_interna: "Nota interna",
+  compra_registrada: "Compra registrada",
+  dados_editados: "Dados editados",
 }
 
 export const MOCK_CONTATOS: Contato[] = [
@@ -182,6 +208,16 @@ export const MOCK_PERFIS_CONTATO: Record<string, ContatoPerfil> = {
       { id: "cp2", data: "12/02/2026", valor: 3800 },
       { id: "cp3", data: "05/03/2026", valor: 5100 },
     ],
+    timeline: [
+      { id: "t1", data: "05/03/2026 10:30", tipo: "compra_registrada", descricao: "Compra registrada — R$ 5.100,00", responsavel: "Fernanda" },
+      { id: "t2", data: "20/02/2026 14:15", tipo: "mudanca_etapa", descricao: "Aguardando Recompra → Cliente Ativo", responsavel: "Fernanda" },
+      { id: "t3", data: "12/02/2026 09:00", tipo: "compra_registrada", descricao: "Compra registrada — R$ 3.800,00", responsavel: "Fernanda" },
+      { id: "t4", data: "28/01/2026 11:00", tipo: "nota_interna", descricao: "\"Cliente solicitou catálogo atualizado de produtos sazonais para fevereiro.\"", responsavel: "Fernanda" },
+      { id: "t5", data: "15/01/2026 16:30", tipo: "compra_registrada", descricao: "Compra registrada — R$ 4.200,00", responsavel: "Fernanda" },
+      { id: "t6", data: "10/12/2025 09:45", tipo: "mudanca_etapa", descricao: "Em Onboarding → Cliente Ativo", responsavel: "Fernanda" },
+      { id: "t7", data: "01/12/2025 08:00", tipo: "card_criado", descricao: "Card criado no Funil de Retenção — etapa: Em Onboarding", responsavel: "Sistema" },
+      { id: "t8", data: "15/11/2025 10:00", tipo: "conversa_iniciada", descricao: "Nova conversa iniciada via WhatsApp", responsavel: "Fernanda" },
+    ],
   },
   c2: {
     id: "c2",
@@ -197,6 +233,11 @@ export const MOCK_PERFIS_CONTATO: Record<string, ContatoPerfil> = {
     observacoes: "",
     cards: [{ funil: "expansao", etapaLabel: "Primeiro Contato" }],
     compras: [],
+    timeline: [
+      { id: "t1", data: "21/05/2026 14:00", tipo: "dados_editados", descricao: "Campos atualizados: tipo, nicho", responsavel: "Carlos" },
+      { id: "t2", data: "20/05/2026 09:00", tipo: "card_criado", descricao: "Card criado no Funil de Expansão — etapa: Primeiro Contato", responsavel: "Carlos" },
+      { id: "t3", data: "20/05/2026 08:45", tipo: "conversa_iniciada", descricao: "Nova conversa iniciada via WhatsApp", responsavel: "Carlos" },
+    ],
   },
   c9: {
     id: "c9",
@@ -212,5 +253,6 @@ export const MOCK_PERFIS_CONTATO: Record<string, ContatoPerfil> = {
     observacoes: "",
     cards: [],
     compras: [],
+    timeline: [],
   },
 }
