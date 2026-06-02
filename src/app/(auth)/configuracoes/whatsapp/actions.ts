@@ -155,6 +155,33 @@ export async function conectarNumeroTeste(): Promise<{ erro?: string }> {
   return {}
 }
 
+export async function removerConexaoWhatsApp(
+  id: string
+): Promise<{ erro?: string }> {
+  const ssrClient = await createSsrClient()
+  const { data: { user } } = await ssrClient.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  const { data: perfil } = await ssrClient
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+
+  const { error } = await ssrClient
+    .from("whatsapp_connections")
+    .delete()
+    .eq("id", id)
+    .eq("workspace_id", perfil.workspace_id)
+
+  if (error) return { erro: "Não foi possível remover o número. Tente novamente." }
+
+  revalidatePath("/configuracoes/whatsapp")
+  return {}
+}
+
 export async function desconectarWhatsApp(
   id: string
 ): Promise<{ erro?: string }> {

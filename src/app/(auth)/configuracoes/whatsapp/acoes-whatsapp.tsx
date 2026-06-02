@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog"
-import { desconectarWhatsApp, reconectarWhatsApp } from "./actions"
+import { desconectarWhatsApp, reconectarWhatsApp, removerConexaoWhatsApp } from "./actions"
 
 export function AcoesWhatsApp({
   conexaoId,
@@ -27,6 +27,10 @@ export function AcoesWhatsApp({
   const [dialogReconectarAberto, setDialogReconectarAberto] = useState(false)
   const [erroReconectar, setErroReconectar] = useState<string | null>(null)
   const [reconectando, setReconectando] = useState(false)
+
+  const [dialogRemoverAberto, setDialogRemoverAberto] = useState(false)
+  const [erroRemover, setErroRemover] = useState<string | null>(null)
+  const [removendo, setRemovendo] = useState(false)
 
   async function handleDesconectar() {
     setErroDesconectar(null)
@@ -54,6 +58,19 @@ export function AcoesWhatsApp({
     router.refresh()
   }
 
+  async function handleRemover() {
+    setErroRemover(null)
+    setRemovendo(true)
+    const resultado = await removerConexaoWhatsApp(conexaoId)
+    setRemovendo(false)
+    if (resultado.erro) {
+      setErroRemover(resultado.erro)
+      return
+    }
+    setDialogRemoverAberto(false)
+    router.refresh()
+  }
+
   return (
     <>
       <div className="flex gap-2">
@@ -70,6 +87,12 @@ export function AcoesWhatsApp({
           onClick={() => { setErroReconectar(null); setDialogReconectarAberto(true) }}
         >
           Reconectar
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => { setErroRemover(null); setDialogRemoverAberto(true) }}
+        >
+          Remover número
         </Button>
       </div>
 
@@ -121,6 +144,32 @@ export function AcoesWhatsApp({
               </DialogClose>
               <Button onClick={handleReconectar} disabled={reconectando}>
                 {reconectando ? "Reconectando..." : "Reconectar"}
+              </Button>
+            </div>
+          </div>
+        </DialogPopup>
+      </Dialog>
+      <Dialog open={dialogRemoverAberto} onOpenChange={setDialogRemoverAberto}>
+        <DialogPopup>
+          <DialogTitle className="mb-4">Remover número</DialogTitle>
+
+          <div className="flex flex-col gap-4">
+            {erroRemover && (
+              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {erroRemover}
+              </p>
+            )}
+
+            <p className="text-sm">
+              Tem certeza que deseja remover este número? O registro será excluído e você poderá conectar um novo número.
+            </p>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <DialogClose render={<Button type="button" variant="outline" />}>
+                Cancelar
+              </DialogClose>
+              <Button variant="destructive" onClick={handleRemover} disabled={removendo}>
+                {removendo ? "Removendo..." : "Remover"}
               </Button>
             </div>
           </div>
