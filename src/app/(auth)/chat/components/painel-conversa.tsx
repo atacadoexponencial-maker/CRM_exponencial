@@ -105,12 +105,11 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
   const [replyPara, setReplyPara] = useState<Mensagem | null>(null)
   const [indiceAtual, setIndiceAtual] = useState(0)
   const [pendingLabelId, setPendingLabelId] = useState<string | null>(null)
+  const [anexoAberto, setAnexoAberto] = useState(false)
   const resultsRef = useRef<(HTMLDivElement | null)[]>([])
   const mensagensRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const docInputRef = useRef<HTMLInputElement>(null)
-  const videoInputRef = useRef<HTMLInputElement>(null)
+  const anexoRef = useRef<HTMLDivElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -142,6 +141,17 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
   useEffect(() => {
     resultsRef.current[indiceAtual]?.scrollIntoView({ block: "center", behavior: "smooth" })
   }, [indiceAtual])
+
+  useEffect(() => {
+    if (!anexoAberto) return
+    function fechar(e: MouseEvent) {
+      if (anexoRef.current && !anexoRef.current.contains(e.target as Node)) {
+        setAnexoAberto(false)
+      }
+    }
+    document.addEventListener("mousedown", fechar)
+    return () => document.removeEventListener("mousedown", fechar)
+  }, [anexoAberto])
 
   async function enviar() {
     const conteudo = texto.trim()
@@ -716,53 +726,40 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
             </div>
           )}
           <div className="flex items-end gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              hidden
-              onChange={handleAnexarImagem}
-            />
-            <input
-              ref={docInputRef}
-              type="file"
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.odt,.ods,.odp"
-              hidden
-              onChange={handleAnexarDocumento}
-            />
-            <input
-              ref={videoInputRef}
-              type="file"
-              accept="video/mp4,video/3gpp"
-              hidden
-              onChange={handleAnexarVideo}
-            />
             <div className="flex gap-1 shrink-0 pb-1">
-              <DropdownMenu>
-                <DropdownMenuTrigger
+              <div ref={anexoRef} className="relative">
+                <button
+                  title="Anexar arquivo"
+                  onClick={() => setAnexoAberto((v) => !v)}
                   disabled={enviandoImagem || enviandoDocumento || enviandoVideo}
                   className={cn(
                     "h-7 w-7 flex items-center justify-center rounded-md transition-colors",
-                    enviandoImagem || enviandoDocumento || enviandoVideo
+                    anexoAberto
+                      ? "bg-primary/10 text-primary"
+                      : enviandoImagem || enviandoDocumento || enviandoVideo
                       ? "text-muted-foreground opacity-40 cursor-not-allowed"
                       : "text-muted-foreground hover:bg-muted"
                   )}
-                  title="Anexar arquivo"
                 >
                   <Paperclip className="size-4" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" side="top">
-                  <DropdownMenuItem onSelect={() => setTimeout(() => fileInputRef.current?.click(), 0)}>
-                    Imagem
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => setTimeout(() => docInputRef.current?.click(), 0)}>
-                    Documento
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => setTimeout(() => videoInputRef.current?.click(), 0)}>
-                    Vídeo
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                </button>
+                {anexoAberto && (
+                  <div className="absolute bottom-full left-0 mb-1 z-50 min-w-32 rounded-lg bg-popover shadow-md ring-1 ring-foreground/10 p-1 text-popover-foreground">
+                    <label className="flex w-full cursor-pointer items-center rounded-md px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground transition-colors">
+                      Imagem
+                      <input type="file" accept="image/*" className="sr-only" onChange={(e) => { setAnexoAberto(false); handleAnexarImagem(e) }} />
+                    </label>
+                    <label className="flex w-full cursor-pointer items-center rounded-md px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground transition-colors">
+                      Documento
+                      <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.odt,.ods,.odp" className="sr-only" onChange={(e) => { setAnexoAberto(false); handleAnexarDocumento(e) }} />
+                    </label>
+                    <label className="flex w-full cursor-pointer items-center rounded-md px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground transition-colors">
+                      Vídeo
+                      <input type="file" accept="video/mp4,video/3gpp" className="sr-only" onChange={(e) => { setAnexoAberto(false); handleAnexarVideo(e) }} />
+                    </label>
+                  </div>
+                )}
+              </div>
               <button
                 title="Mensagens rápidas"
                 onClick={() => { setSeletorMRAberto((v) => !v); setTermoBuscaMR("") }}
