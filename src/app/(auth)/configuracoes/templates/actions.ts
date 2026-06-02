@@ -56,7 +56,7 @@ export async function criarTemplate(params: {
   if (!conexao) return { erro: "Sem permissão ou WhatsApp não conectado" }
 
   const res = await fetch(
-    `https://graph.facebook.com/v21.0/${conexao.waba_id}/message_templates`,
+    `https://graph.facebook.com/v21.0/${conexao.waba_id}/message_templates?access_token=${conexao.access_token}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
