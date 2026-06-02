@@ -46,7 +46,10 @@ export async function enviarMensagem(conversaId: string, texto: string): Promise
     }
   )
 
-  if (!metaRes.ok) throw new Error(`Meta API error: ${metaRes.status}`)
+  if (!metaRes.ok) {
+    const errBody = await metaRes.text().catch(() => "")
+    throw new Error(`Meta API error: ${metaRes.status} - ${errBody}`)
+  }
 
   const metaData = await metaRes.json() as { messages?: Array<{ id: string }> }
   const wamid = metaData.messages?.[0]?.id ?? null
