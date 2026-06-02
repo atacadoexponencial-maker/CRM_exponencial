@@ -259,7 +259,13 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
       return
     }
     audioChunksRef.current = []
-    const mr = new MediaRecorder(stream)
+    // Preferir formatos aceitos pela Meta API do WhatsApp
+    const mimeType = MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")
+      ? "audio/ogg;codecs=opus"
+      : MediaRecorder.isTypeSupported("audio/mp4")
+      ? "audio/mp4"
+      : ""
+    const mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
     mediaRecorderRef.current = mr
     mr.addEventListener("dataavailable", (e) => {
       if (e.data.size > 0) audioChunksRef.current.push(e.data)
@@ -268,6 +274,23 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
     setGravando(true)
     setDuracaoGravacao(0)
     timerRef.current = setInterval(() => setDuracaoGravacao((d) => d + 1), 1000)
+  }
+
+  function handleCancelarGravacao() {
+    const mr = mediaRecorderRef.current
+    if (!mr) return
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+    mr.addEventListener("stop", () => {
+      mr.stream.getTracks().forEach((t) => t.stop())
+      mediaRecorderRef.current = null
+      audioChunksRef.current = []
+    }, { once: true })
+    if (mr.state !== "inactive") mr.stop()
+    setGravando(false)
+    setDuracaoGravacao(0)
   }
 
   function handlePararGravacao() {
@@ -297,7 +320,8 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
 
       setEnviandoAudio(true)
       const formData = new FormData()
-      const ext = blob.type.includes("ogg") ? "ogg" : blob.type.includes("mp4") ? "mp4" : "webm"
+      const type = blob.type || "audio/webm"
+      const ext = type.includes("ogg") ? "ogg" : type.includes("mp4") ? "mp4" : type.includes("mpeg") ? "mp3" : "webm"
       formData.append("arquivo", blob, `audio.${ext}`)
       try {
         await enviarAudio(conversa.id, formData)
@@ -697,13 +721,13 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
                   <Paperclip className="size-4" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" side="top">
-                  <DropdownMenuItem onSelect={() => fileInputRef.current?.click()}>
+                  <DropdownMenuItem onSelect={() => setTimeout(() => fileInputRef.current?.click(), 0)}>
                     Imagem
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => docInputRef.current?.click()}>
+                  <DropdownMenuItem onSelect={() => setTimeout(() => docInputRef.current?.click(), 0)}>
                     Documento
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => videoInputRef.current?.click()}>
+                  <DropdownMenuItem onSelect={() => setTimeout(() => videoInputRef.current?.click(), 0)}>
                     Vídeo
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -752,9 +776,19 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
 
             <div className="flex items-center gap-1 shrink-0 pb-1">
               {gravando && (
-                <span className="text-xs tabular-nums text-destructive font-medium">
-                  {String(Math.floor(duracaoGravacao / 60)).padStart(2, "0")}:{String(duracaoGravacao % 60).padStart(2, "0")}
-                </span>
+                <>
+                  <span className="inline-block h-2 w-2 rounded-full bg-destructive animate-pulse shrink-0" />
+                  <span className="text-xs tabular-nums text-destructive font-medium">
+                    {String(Math.floor(duracaoGravacao / 60)).padStart(2, "0")}:{String(duracaoGravacao % 60).padStart(2, "0")}
+                  </span>
+                  <button
+                    title="Cancelar gravação"
+                    onClick={handleCancelarGravacao}
+                    className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted transition-colors"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </>
               )}
               <button
                 title={gravando ? "Clique para enviar" : "Clique para gravar"}
@@ -763,7 +797,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
                 className={cn(
                   "h-7 w-7 flex items-center justify-center rounded-md transition-colors",
                   gravando
-                    ? "bg-destructive text-destructive-foreground animate-pulse"
+                    ? "bg-destructive text-destructive-foreground"
                     : enviandoAudio
                     ? "text-muted-foreground opacity-40 cursor-not-allowed"
                     : "text-muted-foreground hover:bg-muted"

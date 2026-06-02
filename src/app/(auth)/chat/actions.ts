@@ -135,7 +135,10 @@ export async function enviarImagem(conversaId: string, formData: FormData): Prom
     }
   )
 
-  if (!metaRes.ok) throw new Error(`Meta API error: ${metaRes.status}`)
+  if (!metaRes.ok) {
+    const errBody = await metaRes.text().catch(() => "")
+    throw new Error(`Meta API error: ${metaRes.status} - ${errBody}`)
+  }
 
   const agora = new Date().toISOString()
 
@@ -404,7 +407,10 @@ export async function enviarAudio(conversaId: string, formData: FormData): Promi
     }
   )
 
-  if (!metaRes.ok) throw new Error(`Meta API error: ${metaRes.status}`)
+  if (!metaRes.ok) {
+    const errBody = await metaRes.text().catch(() => "")
+    throw new Error(`Meta API error: ${metaRes.status} - ${errBody}`)
+  }
 
   const agora = new Date().toISOString()
 

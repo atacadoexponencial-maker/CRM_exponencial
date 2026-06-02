@@ -12,7 +12,7 @@ function formatarTempo(segundos: number): string {
   return `${m}:${String(s).padStart(2, "0")}`
 }
 
-function PlayerAudio({ src }: { src: string }) {
+function PlayerAudio({ src, isEnviada }: { src: string; isEnviada?: boolean }) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const [tocando, setTocando] = useState(false)
   const [tempoAtual, setTempoAtual] = useState(0)
@@ -54,6 +54,14 @@ function PlayerAudio({ src }: { src: string }) {
 
   const progresso = duracao > 0 ? (tempoAtual / duracao) * 100 : 0
 
+  const btnClass = isEnviada
+    ? "h-8 w-8 rounded-full bg-primary-foreground/20 flex items-center justify-center shrink-0 hover:bg-primary-foreground/30 transition-colors"
+    : "h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 hover:bg-primary/20 transition-colors"
+  const iconClass = isEnviada ? "size-4 text-primary-foreground fill-primary-foreground" : "size-4 text-primary fill-primary"
+  const trackClass = isEnviada ? "flex-1 h-1.5 rounded-full bg-primary-foreground/30 cursor-pointer relative" : "flex-1 h-1.5 rounded-full bg-muted-foreground/30 cursor-pointer relative"
+  const fillClass = isEnviada ? "absolute left-0 top-0 h-full rounded-full bg-primary-foreground/80" : "absolute left-0 top-0 h-full rounded-full bg-primary/60"
+  const timeClass = isEnviada ? "text-xs text-primary-foreground/70 shrink-0 tabular-nums" : "text-xs text-muted-foreground shrink-0 tabular-nums"
+
   return (
     <div className="flex items-center gap-2 w-52">
       <audio
@@ -63,25 +71,16 @@ function PlayerAudio({ src }: { src: string }) {
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleEnded}
       />
-      <button
-        onClick={handleToggle}
-        className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 hover:bg-primary/20 transition-colors"
-      >
+      <button onClick={handleToggle} className={btnClass}>
         {tocando
-          ? <Pause className="size-4 text-primary fill-primary" />
-          : <Play className="size-4 text-primary fill-primary" />
+          ? <Pause className={iconClass} />
+          : <Play className={iconClass} />
         }
       </button>
-      <div
-        className="flex-1 h-1.5 rounded-full bg-muted-foreground/30 cursor-pointer relative"
-        onClick={handleBarraClick}
-      >
-        <div
-          className="absolute left-0 top-0 h-full rounded-full bg-primary/60"
-          style={{ width: `${progresso}%` }}
-        />
+      <div className={trackClass} onClick={handleBarraClick}>
+        <div className={fillClass} style={{ width: `${progresso}%` }} />
       </div>
-      <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
+      <span className={timeClass}>
         {formatarTempo(tocando || tempoAtual > 0 ? tempoAtual : duracao)}
       </span>
     </div>
@@ -115,7 +114,7 @@ function IconeStatus({ status }: { status?: StatusMensagem }) {
   return <Check className="size-3 opacity-60" />
 }
 
-function ConteudoMensagem({ mensagem, termoBusca }: { mensagem: Mensagem; termoBusca: string }) {
+function ConteudoMensagem({ mensagem, termoBusca, isEnviada }: { mensagem: Mensagem; termoBusca: string; isEnviada: boolean }) {
   switch (mensagem.tipo) {
     case "imagem":
       if (mensagem.conteudo.startsWith("http") || mensagem.conteudo.startsWith("blob:")) {
@@ -171,7 +170,7 @@ function ConteudoMensagem({ mensagem, termoBusca }: { mensagem: Mensagem; termoB
       )
     case "audio":
       if (mensagem.conteudo.startsWith("blob:") || mensagem.conteudo.startsWith("http")) {
-        return <PlayerAudio src={mensagem.conteudo} />
+        return <PlayerAudio src={mensagem.conteudo} isEnviada={isEnviada} />
       }
       return (
         <div className="flex items-center gap-2 w-48">
@@ -277,7 +276,7 @@ export function BalaoMensagem({ mensagem, termoBusca = "", onResponder }: BalaoM
           </div>
         )}
 
-        <ConteudoMensagem mensagem={mensagem} termoBusca={termoBusca} />
+        <ConteudoMensagem mensagem={mensagem} termoBusca={termoBusca} isEnviada={isEnviada} />
 
         <div className="flex items-center justify-end gap-1 mt-1">
           <span className={cn("text-[10px]", isEnviada ? "text-primary-foreground/70" : "text-muted-foreground")}>
