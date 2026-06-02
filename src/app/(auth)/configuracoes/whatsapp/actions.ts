@@ -109,6 +109,52 @@ export async function completarConexaoWhatsApp(params: {
   return {}
 }
 
+// TEMPORÁRIO — remover após aprovação da Meta
+export async function conectarNumeroTeste(): Promise<{ erro?: string }> {
+  const ssrClient = await createSsrClient()
+  const { data: { user } } = await ssrClient.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  const { data: perfil } = await ssrClient
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+
+  const { data: existente } = await ssrClient
+    .from("whatsapp_connections")
+    .select("id")
+    .eq("workspace_id", perfil.workspace_id)
+    .maybeSingle()
+
+  if (existente) return { erro: "Já existe um número conectado" }
+
+  const accessToken = process.env.META_TEST_ACCESS_TOKEN
+  if (!accessToken) return { erro: "META_TEST_ACCESS_TOKEN não configurado" }
+
+  const phoneNumberId = "1178476645338680"
+  const wabaId = "3975680272732195"
+
+  const { error } = await ssrClient
+    .from("whatsapp_connections")
+    .insert({
+      workspace_id: perfil.workspace_id,
+      phone_number: "+1 555 631 2003",
+      display_name: "Número de Teste Meta",
+      status: "connected",
+      waba_id: wabaId,
+      phone_number_id: phoneNumberId,
+      access_token: accessToken,
+    })
+
+  if (error) return { erro: "Erro ao salvar: " + error.message }
+
+  revalidatePath("/configuracoes/whatsapp")
+  return {}
+}
+
 export async function desconectarWhatsApp(
   id: string
 ): Promise<{ erro?: string }> {

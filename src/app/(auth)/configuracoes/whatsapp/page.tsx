@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { createClient } from "@/integrations/supabase/server"
 import { listarConexaoWhatsApp } from "./actions"
 import { ConectarWhatsAppButton } from "./conectar-whatsapp-button"
+import { ConectarTesteButton } from "./conectar-teste-button"
 import { AcoesWhatsApp } from "./acoes-whatsapp"
 
 export default async function WhatsAppPage() {
@@ -24,7 +25,12 @@ export default async function WhatsAppPage() {
     <div className="max-w-5xl mx-auto w-full px-4 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">WhatsApp</h1>
-        {!conexao && <ConectarWhatsAppButton />}
+        {!conexao && (
+          <div className="flex gap-2">
+            <ConectarTesteButton />
+            <ConectarWhatsAppButton />
+          </div>
+        )}
       </div>
 
       {conexao ? (
