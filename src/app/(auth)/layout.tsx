@@ -13,6 +13,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <Link href="/chat" className="text-muted-foreground hover:text-foreground transition-colors">
               Chat
             </Link>
+            <Link href="/contatos" className="text-muted-foreground hover:text-foreground transition-colors">
+              Contatos
+            </Link>
             <Link href="/configuracoes/usuarios" className="text-muted-foreground hover:text-foreground transition-colors">
               Usuários
             </Link>
