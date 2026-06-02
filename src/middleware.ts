@@ -31,7 +31,10 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/login') ||
     request.nextUrl.pathname.startsWith('/cadastro') ||
     request.nextUrl.pathname.startsWith('/politica-de-privacidade') ||
+    request.nextUrl.pathname.startsWith('/termos-de-servico') ||
+    request.nextUrl.pathname.startsWith('/exclusao-de-dados') ||
     request.nextUrl.pathname.startsWith('/api/webhooks/') ||
+    request.nextUrl.pathname.startsWith('/api/exclusao-de-dados') ||
     request.nextUrl.pathname === '/'
 
   if (!user && !isPublicRoute) {
