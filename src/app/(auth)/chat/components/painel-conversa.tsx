@@ -757,12 +757,8 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
                 </span>
               )}
               <button
-                title={gravando ? "Solte para enviar" : "Segurar para gravar"}
-                onMouseDown={handleIniciarGravacao}
-                onMouseUp={handlePararGravacao}
-                onMouseLeave={gravando ? handlePararGravacao : undefined}
-                onTouchStart={(e) => { e.preventDefault(); handleIniciarGravacao() }}
-                onTouchEnd={(e) => { e.preventDefault(); handlePararGravacao() }}
+                title={gravando ? "Clique para enviar" : "Clique para gravar"}
+                onClick={gravando ? handlePararGravacao : handleIniciarGravacao}
                 disabled={enviandoAudio}
                 className={cn(
                   "h-7 w-7 flex items-center justify-center rounded-md transition-colors",
