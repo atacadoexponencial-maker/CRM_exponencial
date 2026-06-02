@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/integrations/supabase/server"
 import { ListaContatos } from "./components/lista-contatos"
-import { MOCK_CONTATOS } from "./mock-contatos"
+import { listarContatos } from "./actions"
 
 export default async function ContatosPage() {
   const supabase = await createClient()
@@ -15,9 +15,11 @@ export default async function ContatosPage() {
     .eq("id", user.id)
     .single()
 
+  const contatos = await listarContatos()
+
   return (
     <ListaContatos
-      contatos={MOCK_CONTATOS}
+      contatos={contatos}
       papel={perfil?.role ?? "atendente"}
     />
   )
