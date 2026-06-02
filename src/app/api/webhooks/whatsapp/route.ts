@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
       conversaId = novaConversa.id
     }
 
-    await supabase.from("messages").insert({
+    const { data: msgInserida } = await supabase.from("messages").insert({
       conversation_id: conversaId,
       workspace_id,
       direction: "recebida",
@@ -121,7 +121,34 @@ export async function POST(request: NextRequest) {
       content: messageText,
       wamid: message.id,
       created_at: messageAt,
-    })
+    }).select("id").single()
+
+    if (msgInserida) {
+      await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/realtime/v1/api/broadcast`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          "Authorization": `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({
+          messages: [{
+            topic: `workspace:${workspace_id}`,
+            event: "nova_mensagem",
+            payload: {
+              id: msgInserida.id,
+              conversation_id: conversaId,
+              workspace_id,
+              direction: "recebida",
+              type: "texto",
+              content: messageText,
+              created_at: messageAt,
+              status: null,
+            },
+          }],
+        }),
+      })
+    }
   }
 
   return NextResponse.json({ status: "ok" })

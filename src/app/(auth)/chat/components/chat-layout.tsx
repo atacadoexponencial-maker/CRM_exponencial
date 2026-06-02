@@ -45,7 +45,7 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId,
     const supabase = createClient()
 
     const channel = supabase
-      .channel("chat-conversas")
+      .channel(`workspace:${workspaceId}`)
       .on(
         "postgres_changes",
         {
@@ -80,14 +80,10 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId,
         }
       )
       .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-        },
+        "broadcast",
+        { event: "nova_mensagem" },
         (payload) => {
-          const row = payload.new as {
+          const row = payload.payload as {
             id: string
             conversation_id: string
             workspace_id: string
@@ -97,8 +93,6 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId,
             created_at: string
             status: string | null
           }
-          console.log("[realtime] INSERT message:", row.id, "workspace:", row.workspace_id, "expected:", workspaceId)
-          if (row.workspace_id !== workspaceId) return
           const novaMensagem: Mensagem = {
             id: row.id,
             conversaId: row.conversation_id,
@@ -110,7 +104,6 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId,
           }
           setMensagensLocais((prev) => {
             const lista = prev[row.conversation_id]
-            console.log("[realtime] lista para conversa:", row.conversation_id, lista === undefined ? "UNDEFINED (não carregada)" : `${lista.length} msgs`)
             if (lista === undefined) return prev
             if (lista.some((m) => m.id === row.id)) return prev
             return { ...prev, [row.conversation_id]: [...lista, novaMensagem] }
@@ -139,9 +132,7 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId,
           })
         }
       )
-      .subscribe((status) => {
-        console.log("[realtime] status:", status)
-      })
+      .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
