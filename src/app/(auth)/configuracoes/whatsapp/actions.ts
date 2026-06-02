@@ -134,8 +134,9 @@ export async function conectarNumeroTeste(): Promise<{ erro?: string }> {
   const accessToken = process.env.META_TEST_ACCESS_TOKEN
   if (!accessToken) return { erro: "META_TEST_ACCESS_TOKEN não configurado" }
 
-  const phoneNumberId = "1178476645338680"
-  const wabaId = "3975680272732195"
+  const phoneNumberId = process.env.META_TEST_PHONE_NUMBER_ID
+  const wabaId = process.env.META_TEST_WABA_ID
+  if (!phoneNumberId || !wabaId) return { erro: "META_TEST_PHONE_NUMBER_ID ou META_TEST_WABA_ID não configurados" }
 
   const { error } = await ssrClient
     .from("whatsapp_connections")
