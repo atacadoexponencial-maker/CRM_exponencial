@@ -242,3 +242,60 @@ describe("Issue 04 — Listar Contatos por Papel", () => {
     expect(ids).not.toContain(contactWId)
   })
 })
+
+// ---------------------------------------------------------------------------
+
+describe("Issue 05 — Buscar Contato", () => {
+  const ts = Date.now()
+  const adminEmail = `admin-busca-${ts}@contatos-test.com`
+
+  beforeAll(async () => {
+    const { workspaceId: ws } = await criarWorkspaceComAdmin("Empresa Busca", adminEmail)
+
+    await criarContato(ws, "+5511991110101", "Padaria do Centro")
+    await criarContato(ws, "+5585991110102", "Mercearia Boa Vista")
+    await criarContato(ws, "+5511991110103")
+  })
+
+  it("Busca por nome parcial retorna contatos correspondentes", async () => {
+    const client = await autenticarComo(adminEmail)
+    mockSsrCreateClient.mockResolvedValue(client as never)
+
+    const lista = await listarContatos()
+    const termo = "padaria"
+    const filtrados = lista.filter((c) =>
+      c.nome.toLowerCase().includes(termo) || c.telefone.toLowerCase().includes(termo)
+    )
+
+    expect(filtrados.length).toBeGreaterThan(0)
+    expect(filtrados.every((c) => c.nome.toLowerCase().includes(termo))).toBe(true)
+  })
+
+  it("Busca por número de WhatsApp retorna o contato correspondente", async () => {
+    const client = await autenticarComo(adminEmail)
+    mockSsrCreateClient.mockResolvedValue(client as never)
+
+    const lista = await listarContatos()
+    const termo = "+5585991110102"
+    const filtrados = lista.filter((c) =>
+      c.nome.toLowerCase().includes(termo) || c.telefone.toLowerCase().includes(termo)
+    )
+
+    expect(filtrados.length).toBe(1)
+    expect(filtrados[0].telefone).toBe("+5585991110102")
+  })
+
+  it("Busca sem resultado retorna lista vazia (não erro)", async () => {
+    const client = await autenticarComo(adminEmail)
+    mockSsrCreateClient.mockResolvedValue(client as never)
+
+    const lista = await listarContatos()
+    const termo = "xyztermoquenonexiste999"
+    const filtrados = lista.filter((c) =>
+      c.nome.toLowerCase().includes(termo) || c.telefone.toLowerCase().includes(termo)
+    )
+
+    expect(filtrados).toHaveLength(0)
+    expect(Array.isArray(filtrados)).toBe(true)
+  })
+})

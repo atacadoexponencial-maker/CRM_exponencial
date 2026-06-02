@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { Search, Plus, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -61,6 +62,7 @@ interface ListaContatosProps {
 }
 
 export function ListaContatos({ contatos, papel }: ListaContatosProps) {
+  const router = useRouter()
   const [busca, setBusca] = useState("")
   const [classificacao, setClassificacao] = useState<ClassificacaoContato | "todas">("todas")
   const [tipo, setTipo] = useState<TipoContato | "todos">("todos")
@@ -288,6 +290,7 @@ export function ListaContatos({ contatos, papel }: ListaContatosProps) {
               {contatosFiltrados.map((contato) => (
                 <tr
                   key={contato.id}
+                  onClick={() => router.push(`/contatos/${contato.id}`)}
                   className="border-b last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
                 >
                   <td className="px-4 py-3 font-medium">{contato.nome}</td>
