@@ -85,18 +85,19 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId,
           event: "INSERT",
           schema: "public",
           table: "messages",
-          filter: `workspace_id=eq.${workspaceId}`,
         },
         (payload) => {
           const row = payload.new as {
             id: string
             conversation_id: string
+            workspace_id: string
             type: string
             direction: string
             content: string
             created_at: string
             status: string | null
           }
+          if (row.workspace_id !== workspaceId) return
           const novaMensagem: Mensagem = {
             id: row.id,
             conversaId: row.conversation_id,
