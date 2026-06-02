@@ -8,12 +8,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Módulos previstos
 
-- **Módulo 0 — Fundação** *(em desenvolvimento)*: multi-tenant, papéis (Admin/Gerente/Atendente), times, números WhatsApp
-- **Módulo 1+** *(futuro)*: Chat WhatsApp (API Oficial Meta), Pipeline de vendas, Contatos, Dashboard
+- **Módulo 0 — Fundação** ✅ *concluído*: multi-tenant, papéis (Admin/Gerente/Atendente), times, números WhatsApp
+- **Módulo 1 — Chat** ✅ *concluído*: Chat WhatsApp (API Oficial Meta), caixa de entrada, envio de mídia, etiquetas, mensagens rápidas
+- **Módulo 2 — Pipeline** ✅ *concluído*: funil Expansão e Retenção
+- **Módulo 3 — Contatos** *(em desenvolvimento)*
+- **Módulo 4+ — Sequências, Dashboard, Grupos, Campanhas** *(futuro)*
 
 ### Status atual
 
-A maioria das páginas são **protótipos UI-only com mock data local** — o schema Supabase ainda não foi criado e o `types.ts` está vazio. Os clientes Supabase estão configurados, mas sem queries ou mutations reais.
+O app está em **produção no Vercel** em `https://crm-exponencial.vercel.app`. O schema Supabase está criado e todas as queries/mutations são reais. Os módulos 0, 1 e 2 estão completamente implementados com backend real.
+
+### Deploy e variáveis de ambiente
+
+O app está deployado no Vercel. **Todas as variáveis de ambiente já estão configuradas no Vercel** — não é necessário perguntar ou configurar novamente:
+
+- `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` — Supabase
+- `NEXT_PUBLIC_META_APP_ID` / `NEXT_PUBLIC_META_CONFIG_ID` / `META_APP_SECRET` — Meta WhatsApp API
+- `WHATSAPP_VERIFY_TOKEN` — validação do webhook Meta
+- `META_TEST_ACCESS_TOKEN` — token temporário do número de teste Meta (expira em 24h)
 
 ## Commands
 
@@ -41,12 +53,21 @@ Aplicação Next.js 15 (App Router), TypeScript, Supabase.
 `src/app/` define todas as rotas. Usuários não autenticados são redirecionados para `/login` pelo middleware. Rotas protegidas ficam em `src/app/(auth)/`.
 
 Rotas existentes:
-- `/login` — formulário de login (UI-only, sem lógica backend)
-- `/cadastro` — cadastro de empresa com validação Zod + Server Action para checar e-mail duplicado
-- `/(auth)/perfil` — perfil do usuário (UI-only)
-- `/(auth)/configuracoes/usuarios` — gestão de usuários (mock data)
-- `/(auth)/configuracoes/times` — gestão de times (mock data)
-- `/(auth)/configuracoes/whatsapp` — números WhatsApp (mock data)
+- `/login` — login com Supabase Auth
+- `/cadastro` — cadastro de empresa (cria workspace, admin e times padrão)
+- `/politica-de-privacidade` — página pública
+- `/termos-de-servico` — página pública
+- `/(auth)/chat` — caixa de entrada + conversa WhatsApp (tempo real)
+- `/(auth)/pipeline` — funil Expansão
+- `/(auth)/pipeline/retencao` — funil Retenção
+- `/(auth)/contatos` — listagem de contatos
+- `/(auth)/contatos/[id]` — perfil do contato
+- `/(auth)/perfil` — perfil do usuário logado
+- `/(auth)/configuracoes/usuarios` — gestão de usuários
+- `/(auth)/configuracoes/times` — gestão de times
+- `/(auth)/configuracoes/whatsapp` — conexão WhatsApp (Embedded Signup Meta)
+- `/(auth)/configuracoes/etiquetas` — gestão de etiquetas
+- `/(auth)/configuracoes/mensagens-rapidas` — gestão de mensagens rápidas
 
 ### Domain Model
 
