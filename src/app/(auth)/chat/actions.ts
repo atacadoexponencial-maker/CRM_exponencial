@@ -30,7 +30,7 @@ export async function enviarMensagem(conversaId: string, texto: string): Promise
   if (errConn || !conn) throw new Error("Conexão WhatsApp não encontrada")
 
   const metaRes = await fetch(
-    `https://graph.facebook.com/v19.0/${conn.phone_number_id}/messages`,
+    `https://graph.facebook.com/v21.0/${conn.phone_number_id}/messages`,
     {
       method: "POST",
       headers: {
@@ -119,7 +119,7 @@ export async function enviarImagem(conversaId: string, formData: FormData): Prom
     .getPublicUrl(path)
 
   const metaRes = await fetch(
-    `https://graph.facebook.com/v19.0/${conn.phone_number_id}/messages`,
+    `https://graph.facebook.com/v21.0/${conn.phone_number_id}/messages`,
     {
       method: "POST",
       headers: {
@@ -221,7 +221,7 @@ export async function enviarDocumento(conversaId: string, formData: FormData): P
     .getPublicUrl(path)
 
   const metaRes = await fetch(
-    `https://graph.facebook.com/v19.0/${conn.phone_number_id}/messages`,
+    `https://graph.facebook.com/v21.0/${conn.phone_number_id}/messages`,
     {
       method: "POST",
       headers: {
@@ -306,7 +306,7 @@ export async function enviarVideo(conversaId: string, formData: FormData): Promi
     .getPublicUrl(path)
 
   const metaRes = await fetch(
-    `https://graph.facebook.com/v19.0/${conn.phone_number_id}/messages`,
+    `https://graph.facebook.com/v21.0/${conn.phone_number_id}/messages`,
     {
       method: "POST",
       headers: {
@@ -391,7 +391,7 @@ export async function enviarAudio(conversaId: string, formData: FormData): Promi
     .getPublicUrl(path)
 
   const metaRes = await fetch(
-    `https://graph.facebook.com/v19.0/${conn.phone_number_id}/messages`,
+    `https://graph.facebook.com/v21.0/${conn.phone_number_id}/messages`,
     {
       method: "POST",
       headers: {
