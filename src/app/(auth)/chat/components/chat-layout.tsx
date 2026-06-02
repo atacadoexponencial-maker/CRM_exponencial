@@ -82,6 +82,41 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, userId,
       .on(
         "postgres_changes",
         {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `workspace_id=eq.${workspaceId}`,
+        },
+        (payload) => {
+          const row = payload.new as {
+            id: string
+            conversation_id: string
+            type: string
+            direction: string
+            content: string
+            created_at: string
+            status: string | null
+          }
+          const novaMensagem: Mensagem = {
+            id: row.id,
+            conversaId: row.conversation_id,
+            tipo: row.type as Mensagem["tipo"],
+            direcao: row.direction as Mensagem["direcao"],
+            conteudo: row.content,
+            horario: row.created_at,
+            status: row.status as Mensagem["status"] | undefined,
+          }
+          setMensagensLocais((prev) => {
+            const lista = prev[row.conversation_id]
+            if (lista === undefined) return prev
+            if (lista.some((m) => m.id === row.id)) return prev
+            return { ...prev, [row.conversation_id]: [...lista, novaMensagem] }
+          })
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
           event: "UPDATE",
           schema: "public",
           table: "messages",

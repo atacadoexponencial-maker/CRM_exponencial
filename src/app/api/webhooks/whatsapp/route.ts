@@ -44,18 +44,13 @@ export async function POST(request: NextRequest) {
   const messages = change?.messages
   if (!messages?.length) return NextResponse.json({ status: "ok" })
 
-  console.log("[webhook] incoming message, phone_number_id:", phoneNumberId)
-
   const { data: connection } = await supabase
     .from("whatsapp_connections")
     .select("workspace_id")
     .eq("phone_number_id", phoneNumberId)
     .single()
 
-  if (!connection) {
-    console.log("[webhook] no connection found for phone_number_id:", phoneNumberId)
-    return NextResponse.json({ status: "ok" })
-  }
+  if (!connection) return NextResponse.json({ status: "ok" })
 
   const { workspace_id } = connection
 
