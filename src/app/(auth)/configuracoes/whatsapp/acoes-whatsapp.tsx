@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog"
-import { desconectarWhatsApp, reconectarWhatsApp, removerConexaoWhatsApp } from "./actions"
+import { desconectarWhatsApp, reconectarWhatsApp, reinscreverWebhookWhatsApp, removerConexaoWhatsApp } from "./actions"
 
 export function AcoesWhatsApp({
   conexaoId,
@@ -19,6 +19,10 @@ export function AcoesWhatsApp({
   status: string
 }) {
   const router = useRouter()
+
+  const [corrigindo, setCorrigindo] = useState(false)
+  const [erroCorrigir, setErroCorrigir] = useState<string | null>(null)
+  const [corrigidoOk, setCorrigidoOk] = useState(false)
 
   const [dialogDesconectarAberto, setDialogDesconectarAberto] = useState(false)
   const [erroDesconectar, setErroDesconectar] = useState<string | null>(null)
@@ -31,6 +35,19 @@ export function AcoesWhatsApp({
   const [dialogRemoverAberto, setDialogRemoverAberto] = useState(false)
   const [erroRemover, setErroRemover] = useState<string | null>(null)
   const [removendo, setRemovendo] = useState(false)
+
+  async function handleCorrigirRecebimento() {
+    setErroCorrigir(null)
+    setCorrigidoOk(false)
+    setCorrigindo(true)
+    const resultado = await reinscreverWebhookWhatsApp()
+    setCorrigindo(false)
+    if (resultado.erro) {
+      setErroCorrigir(resultado.erro)
+      return
+    }
+    setCorrigidoOk(true)
+  }
 
   async function handleDesconectar() {
     setErroDesconectar(null)
@@ -73,7 +90,24 @@ export function AcoesWhatsApp({
 
   return (
     <>
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-3">
+        {erroCorrigir && (
+          <p className="text-xs text-destructive">{erroCorrigir}</p>
+        )}
+        {corrigidoOk && (
+          <p className="text-xs text-green-600">Recebimento de mensagens corrigido com sucesso.</p>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={corrigindo || status !== "connected"}
+          onClick={handleCorrigirRecebimento}
+        >
+          {corrigindo ? "Corrigindo..." : "Corrigir recebimento de mensagens"}
+        </Button>
+      </div>
+
+      <div className="flex gap-2 mt-3">
         <Button
           variant="outline"
           disabled={status !== "connected"}

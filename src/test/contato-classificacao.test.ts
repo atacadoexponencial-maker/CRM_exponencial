@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { calcularClassificacao } from "@/app/(auth)/contatos/actions"
+import { calcularClassificacao } from "@/app/(auth)/contatos/classificacao"
 
 describe("Issue 11 — Classificação automática derivada do pipeline", () => {
   it("Contato sem card retorna classificação 'sem_historico'", () => {

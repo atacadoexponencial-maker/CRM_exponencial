@@ -16,7 +16,7 @@ vi.mock("@/integrations/supabase/server", () => ({
 }))
 
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
-import { calcularClassificacao } from "@/app/(auth)/contatos/actions"
+import { calcularClassificacao } from "@/app/(auth)/contatos/classificacao"
 
 const mockSsrCreateClient = vi.mocked(createSsrClient)
 void mockSsrCreateClient

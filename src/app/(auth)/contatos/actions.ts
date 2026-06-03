@@ -2,6 +2,7 @@
 
 import { createClient } from "@/integrations/supabase/server"
 import type { Contato, ContatoPerfil, ClassificacaoContato, TipoContato, ICP } from "./mock-contatos"
+import { calcularClassificacao } from "./classificacao"
 
 const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, nicho, cidade, created_at, profiles!contacts_atendente_id_fkey(name)"
 
@@ -105,19 +106,6 @@ const ETAPA_EXPANSAO_LABEL: Record<string, string> = {
   primeira_compra: "Primeira Compra",
 }
 
-export function calcularClassificacao(
-  cards: Array<{ funil: string; etapa: string }>
-): ClassificacaoContato {
-  const retencao = cards.find((c) => c.funil === "retencao")
-  if (retencao) {
-    if (["em_onboarding", "cliente_ativo", "aguardando_recompra", "recompra_realizada"].includes(retencao.etapa)) return "ativo"
-    if (retencao.etapa === "em_risco") return "em_risco"
-    if (retencao.etapa === "inativo") return "inativo"
-    if (retencao.etapa === "perdido") return "perdido"
-  }
-  if (cards.some((c) => c.funil === "expansao")) return "lead"
-  return "sem_historico"
-}
 
 const PERFIL_SELECT = "id, name, phone_number, tipo, nicho, cidade, icp, created_at, atendente_id"
 

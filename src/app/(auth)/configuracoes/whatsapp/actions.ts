@@ -218,6 +218,44 @@ export async function removerConexaoWhatsApp(
   return {}
 }
 
+export async function reinscreverWebhookWhatsApp(): Promise<{ erro?: string }> {
+  const ssrClient = await createSsrClient()
+  const { data: { user } } = await ssrClient.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  const { data: perfil } = await ssrClient
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+
+  const { data: conexao } = await ssrClient
+    .from("whatsapp_connections")
+    .select("waba_id, access_token")
+    .eq("workspace_id", perfil.workspace_id)
+    .single()
+
+  if (!conexao) return { erro: "Nenhum número conectado" }
+
+  const res = await fetch(
+    `https://graph.facebook.com/v21.0/${conexao.waba_id}/subscribed_apps`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${conexao.access_token}` },
+    }
+  )
+
+  if (!res.ok) {
+    const err = await res.text()
+    console.error("[whatsapp] erro ao reinscrever webhook:", err)
+    return { erro: "Não foi possível corrigir o recebimento. Tente novamente." }
+  }
+
+  return {}
+}
+
 export async function desconectarWhatsApp(
   id: string
 ): Promise<{ erro?: string }> {
