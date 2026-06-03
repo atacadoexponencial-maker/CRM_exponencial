@@ -119,7 +119,7 @@ export function WizardConexao() {
         tentarFinalizar(10)
       },
       {
-        config_id: "2170306863754104",
+        config_id: "4323624887902256",
         response_type: "code",
         override_default_response_type: true,
         extras: {
