@@ -2,9 +2,15 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { MessageSquare, ArrowLeft, ShoppingBag } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { MessageSquare, ArrowLeft, ShoppingBag, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   type ContatoPerfil,
   CLASSIFICACAO_LABEL,
@@ -12,6 +18,7 @@ import {
   ICP_LABEL,
 } from "../../mock-contatos"
 import { TimelineContato } from "./timeline-contato"
+import { atualizarDadosContato } from "../../actions"
 
 const CLASSIFICACAO_BADGE: Record<string, string> = {
   lead: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
@@ -26,6 +33,16 @@ function formatarMoeda(valor: number) {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
 }
 
+const editSchema = z.object({
+  nome: z.string().min(1, "Nome é obrigatório"),
+  tipo: z.enum(["lojista", "revendedor", "empreendedor", ""]).optional(),
+  nicho: z.string().optional(),
+  cidade: z.string().optional(),
+  icp: z.enum(["ja_revende", "primeira_vez", ""]).optional(),
+})
+
+type EditFormData = z.infer<typeof editSchema>
+
 type Aba = "dados" | "timeline"
 
 interface PerfilContatoProps {
@@ -34,7 +51,19 @@ interface PerfilContatoProps {
 }
 
 export function PerfilContato({ contato, papel }: PerfilContatoProps) {
+  const router = useRouter()
   const [aba, setAba] = useState<Aba>("dados")
+  const [editando, setEditando] = useState(false)
+  const [erroEdicao, setErroEdicao] = useState<string | null>(null)
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<EditFormData>({
+    resolver: zodResolver(editSchema),
+  })
 
   if (!contato) {
     return (
@@ -46,6 +75,40 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
 
   const totalCompras = contato.compras.reduce((acc, c) => acc + c.valor, 0)
   const ticketMedio = contato.compras.length > 0 ? totalCompras / contato.compras.length : 0
+
+  function iniciarEdicao() {
+    reset({
+      nome: contato!.nome,
+      tipo: (contato!.tipo ?? "") as EditFormData["tipo"],
+      nicho: contato!.nicho ?? "",
+      cidade: contato!.cidade ?? "",
+      icp: (contato!.icp ?? "") as EditFormData["icp"],
+    })
+    setErroEdicao(null)
+    setEditando(true)
+  }
+
+  function cancelarEdicao() {
+    setEditando(false)
+    setErroEdicao(null)
+  }
+
+  async function onSubmitEdicao(data: EditFormData) {
+    setErroEdicao(null)
+    const resultado = await atualizarDadosContato(contato!.id, {
+      nome: data.nome,
+      tipo: data.tipo || null,
+      nicho: data.nicho || null,
+      cidade: data.cidade || null,
+      icp: data.icp || null,
+    })
+    if (resultado.erro) {
+      setErroEdicao(resultado.erro)
+      return
+    }
+    setEditando(false)
+    router.refresh()
+  }
 
   return (
     <div className="max-w-3xl mx-auto w-full px-4 py-8 space-y-6">
@@ -109,15 +172,91 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
         <div className="space-y-6">
           {/* Dados do contato */}
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados do contato</h2>
-            <div className="rounded-lg border divide-y text-sm">
-              <Row label="Nome" value={contato.nome} />
-              <Row label="WhatsApp" value={contato.telefone} />
-              <Row label="Tipo" value={contato.tipo ? TIPO_LABEL[contato.tipo] : "—"} />
-              <Row label="Nicho" value={contato.nicho ?? "—"} />
-              <Row label="Cidade" value={contato.cidade ?? "—"} />
-              <Row label="ICP" value={contato.icp ? ICP_LABEL[contato.icp] : "—"} />
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados do contato</h2>
+              {!editando && papel !== "atendente" && (
+                <Button size="sm" variant="outline" onClick={iniciarEdicao}>
+                  <Pencil className="size-3.5" />
+                  Editar
+                </Button>
+              )}
             </div>
+
+            {editando ? (
+              <form onSubmit={handleSubmit(onSubmitEdicao)} className="rounded-lg border p-4 space-y-4 text-sm">
+                {erroEdicao && (
+                  <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {erroEdicao}
+                  </p>
+                )}
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="edit-nome">Nome</Label>
+                  <Input
+                    id="edit-nome"
+                    type="text"
+                    aria-invalid={!!errors.nome}
+                    {...register("nome")}
+                  />
+                  {errors.nome && <p className="text-sm text-destructive">{errors.nome.message}</p>}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="edit-tipo">Tipo</Label>
+                  <select
+                    id="edit-tipo"
+                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    {...register("tipo")}
+                  >
+                    <option value="">Sem tipo</option>
+                    <option value="lojista">Lojista</option>
+                    <option value="revendedor">Revendedor</option>
+                    <option value="empreendedor">Empreendedor</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="edit-nicho">Nicho</Label>
+                  <Input id="edit-nicho" type="text" {...register("nicho")} />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="edit-cidade">Cidade</Label>
+                  <Input id="edit-cidade" type="text" {...register("cidade")} />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="edit-icp">ICP</Label>
+                  <select
+                    id="edit-icp"
+                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    {...register("icp")}
+                  >
+                    <option value="">Sem ICP</option>
+                    <option value="ja_revende">Já revende este nicho</option>
+                    <option value="primeira_vez">Primeira vez no nicho</option>
+                  </select>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button type="button" variant="outline" size="sm" onClick={cancelarEdicao}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" size="sm" disabled={isSubmitting}>
+                    {isSubmitting ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <div className="rounded-lg border divide-y text-sm">
+                <Row label="Nome" value={contato.nome} />
+                <Row label="WhatsApp" value={contato.telefone} />
+                <Row label="Tipo" value={contato.tipo ? TIPO_LABEL[contato.tipo] : "—"} />
+                <Row label="Nicho" value={contato.nicho ?? "—"} />
+                <Row label="Cidade" value={contato.cidade ?? "—"} />
+                <Row label="ICP" value={contato.icp ? ICP_LABEL[contato.icp] : "—"} />
+              </div>
+            )}
           </section>
 
           {/* Tags */}

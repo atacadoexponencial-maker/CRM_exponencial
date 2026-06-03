@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/integrations/supabase/server"
 import { PerfilContato } from "./components/perfil-contato"
-import { MOCK_PERFIS_CONTATO } from "../mock-contatos"
+import { buscarDadosContato } from "../actions"
 
 interface Props {
   params: Promise<{ id: string }>
@@ -20,7 +20,7 @@ export default async function PerfilContatoPage({ params }: Props) {
     .eq("id", user.id)
     .single()
 
-  const contato = MOCK_PERFIS_CONTATO[id] ?? null
+  const contato = await buscarDadosContato(id)
 
   return (
     <PerfilContato

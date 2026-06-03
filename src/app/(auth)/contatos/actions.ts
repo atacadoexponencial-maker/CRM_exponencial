@@ -1,7 +1,7 @@
 "use server"
 
 import { createClient } from "@/integrations/supabase/server"
-import type { Contato, ClassificacaoContato, TipoContato } from "./mock-contatos"
+import type { Contato, ContatoPerfil, ClassificacaoContato, TipoContato, ICP } from "./mock-contatos"
 
 const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, nicho, cidade, created_at, profiles!contacts_atendente_id_fkey(name)"
 
@@ -85,6 +85,78 @@ export async function criarContato(dados: {
   }
 
   return { id: data.id }
+}
+
+const PERFIL_SELECT = "id, name, phone_number, classificacao, tipo, nicho, cidade, icp, created_at, profiles!contacts_atendente_id_fkey(name)"
+
+export async function buscarDadosContato(id: string): Promise<ContatoPerfil | null> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await supabase
+    .from("contacts")
+    .select(PERFIL_SELECT)
+    .eq("id", id)
+    .single()
+
+  if (!data) return null
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const c = data as any
+  return {
+    id: c.id,
+    nome: c.name ?? c.phone_number,
+    telefone: c.phone_number,
+    classificacao: (c.classificacao ?? "sem_historico") as ClassificacaoContato,
+    tipo: (c.tipo ?? null) as TipoContato | null,
+    nicho: c.nicho ?? null,
+    cidade: c.cidade ?? null,
+    atendente: c.profiles?.name ?? null,
+    created_at: c.created_at,
+    icp: (c.icp ?? null) as ICP | null,
+    tags: [],
+    observacoes: "",
+    cards: [],
+    compras: [],
+    timeline: [],
+  }
+}
+
+export async function atualizarDadosContato(
+  id: string,
+  dados: { nome: string; tipo?: string | null; nicho?: string | null; cidade?: string | null; icp?: string | null }
+): Promise<{ erro?: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { erro: "Não autenticado" }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile) return { erro: "Perfil não encontrado" }
+  if (profile.role === "atendente") return { erro: "Sem permissão para editar contatos" }
+
+  const { error } = await supabase
+    .from("contacts")
+    .update({
+      name: dados.nome,
+      tipo: dados.tipo ?? null,
+      nicho: dados.nicho ?? null,
+      cidade: dados.cidade ?? null,
+      icp: dados.icp ?? null,
+    })
+    .eq("id", id)
+
+  if (error) return { erro: "Erro ao salvar. Tente novamente." }
+
+  return {}
 }
 
 export async function listarContatos(): Promise<Contato[]> {
