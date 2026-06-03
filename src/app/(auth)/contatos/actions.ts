@@ -20,6 +20,48 @@ function mapContato(c: any): Contato {
   }
 }
 
+export async function criarContato(dados: {
+  nome: string
+  telefone: string
+  tipo?: string | null
+  nicho?: string | null
+  cidade?: string | null
+}): Promise<{ erro?: string; id?: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { erro: "Não autenticado" }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile) return { erro: "Perfil não encontrado" }
+  if (profile.role === "atendente") return { erro: "Sem permissão para criar contatos" }
+
+  const { data, error } = await supabase
+    .from("contacts")
+    .insert({
+      workspace_id: profile.workspace_id,
+      phone_number: dados.telefone,
+      name: dados.nome,
+      tipo: dados.tipo ?? null,
+      nicho: dados.nicho ?? null,
+      cidade: dados.cidade ?? null,
+    })
+    .select("id")
+    .single()
+
+  if (error) {
+    if (error.code === "23505") return { erro: "Número já cadastrado neste workspace" }
+    return { erro: "Erro ao criar contato. Tente novamente." }
+  }
+
+  return { id: data.id }
+}
+
 export async function listarContatos(): Promise<Contato[]> {
   const supabase = await createClient()
 

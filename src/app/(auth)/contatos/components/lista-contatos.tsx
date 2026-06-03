@@ -2,9 +2,9 @@
 
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { Search, Plus, ChevronDown } from "lucide-react"
+import { Search, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { NovoContatoDialog } from "./novo-contato-dialog"
 import {
   type Contato,
   type ClassificacaoContato,
@@ -111,12 +111,7 @@ export function ListaContatos({ contatos, papel }: ListaContatosProps) {
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">Contatos</h1>
-        {papel !== "atendente" && (
-          <Button size="sm">
-            <Plus className="size-3.5" />
-            Novo contato
-          </Button>
-        )}
+        {papel !== "atendente" && <NovoContatoDialog />}
       </div>
 
       {/* Barra de ferramentas */}
