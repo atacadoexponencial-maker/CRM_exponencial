@@ -2,7 +2,7 @@ import Link from "next/link"
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen overflow-hidden flex flex-col">
       <header className="border-b">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <span className="font-semibold text-sm">CRM Exponencial</span>
@@ -40,7 +40,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </nav>
         </div>
       </header>
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col overflow-y-auto">
         {children}
       </main>
     </div>
