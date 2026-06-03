@@ -1,7 +1,23 @@
 "use server"
 
 import { createClient } from "@/integrations/supabase/server"
-import type { Contato } from "./mock-contatos"
+import type { Contato, ClassificacaoContato, TipoContato } from "./mock-contatos"
+
+const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, nicho, cidade, profiles!contacts_atendente_id_fkey(name)"
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapContato(c: any): Contato {
+  return {
+    id: c.id,
+    nome: c.name ?? c.phone_number,
+    telefone: c.phone_number,
+    classificacao: (c.classificacao ?? "sem_historico") as ClassificacaoContato,
+    tipo: (c.tipo ?? null) as TipoContato | null,
+    nicho: c.nicho ?? null,
+    cidade: c.cidade ?? null,
+    atendente: c.profiles?.name ?? null,
+  }
+}
 
 export async function listarContatos(): Promise<Contato[]> {
   const supabase = await createClient()
@@ -20,20 +36,11 @@ export async function listarContatos(): Promise<Contato[]> {
   if (profile.role === "admin" || profile.role === "gerente") {
     const { data } = await supabase
       .from("contacts")
-      .select("id, name, phone_number")
+      .select(CONTACT_SELECT)
       .eq("workspace_id", profile.workspace_id)
       .order("name")
 
-    return (data ?? []).map((c) => ({
-      id: c.id,
-      nome: c.name ?? c.phone_number,
-      telefone: c.phone_number,
-      classificacao: "sem_historico" as const,
-      tipo: null,
-      nicho: null,
-      cidade: null,
-      atendente: null,
-    }))
+    return (data ?? []).map(mapContato)
   }
 
   // Atendente: filtra por conversas e cards atribuídos
@@ -57,18 +64,9 @@ export async function listarContatos(): Promise<Contato[]> {
 
   const { data } = await supabase
     .from("contacts")
-    .select("id, name, phone_number")
+    .select(CONTACT_SELECT)
     .in("id", contactIds)
     .order("name")
 
-  return (data ?? []).map((c) => ({
-    id: c.id,
-    nome: c.name ?? c.phone_number,
-    telefone: c.phone_number,
-    classificacao: "sem_historico" as const,
-    tipo: null,
-    nicho: null,
-    cidade: null,
-    atendente: null,
-  }))
+  return (data ?? []).map(mapContato)
 }
