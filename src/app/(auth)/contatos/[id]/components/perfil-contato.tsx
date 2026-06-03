@@ -18,7 +18,7 @@ import {
   ICP_LABEL,
 } from "../../mock-contatos"
 import { TimelineContato } from "./timeline-contato"
-import { atualizarDadosContato, adicionarTagContato, removerTagContato } from "../../actions"
+import { atualizarDadosContato, adicionarTagContato, removerTagContato, atualizarObservacoesContato } from "../../actions"
 
 const CLASSIFICACAO_BADGE: Record<string, string> = {
   lead: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
@@ -58,6 +58,10 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
   const [novaTag, setNovaTag] = useState("")
   const [erroTag, setErroTag] = useState<string | null>(null)
   const [salvandoTag, setSalvandoTag] = useState(false)
+  const [editandoObs, setEditandoObs] = useState(false)
+  const [textoObs, setTextoObs] = useState("")
+  const [erroObs, setErroObs] = useState<string | null>(null)
+  const [salvandoObs, setSalvandoObs] = useState(false)
 
   const {
     register,
@@ -94,6 +98,30 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
   function cancelarEdicao() {
     setEditando(false)
     setErroEdicao(null)
+  }
+
+  function iniciarEdicaoObs() {
+    setTextoObs(contato!.observacoes)
+    setErroObs(null)
+    setEditandoObs(true)
+  }
+
+  function cancelarEdicaoObs() {
+    setEditandoObs(false)
+    setErroObs(null)
+  }
+
+  async function salvarObservacoes() {
+    setSalvandoObs(true)
+    setErroObs(null)
+    const resultado = await atualizarObservacoesContato(contato!.id, textoObs)
+    setSalvandoObs(false)
+    if (resultado.erro) {
+      setErroObs(resultado.erro)
+      return
+    }
+    setEditandoObs(false)
+    router.refresh()
   }
 
   async function handleAdicionarTag() {
@@ -350,11 +378,49 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
 
           {/* Observações */}
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Observações</h2>
-            {contato.observacoes ? (
-              <p className="text-sm text-foreground whitespace-pre-wrap">{contato.observacoes}</p>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Observações</h2>
+              {!editandoObs && (
+                <Button size="sm" variant="outline" onClick={iniciarEdicaoObs}>
+                  <Pencil className="size-3.5" />
+                  Editar
+                </Button>
+              )}
+            </div>
+
+            {editandoObs ? (
+              <div className="space-y-3">
+                {erroObs && (
+                  <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {erroObs}
+                  </p>
+                )}
+                <textarea
+                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-h-24 resize-y"
+                  value={textoObs}
+                  onChange={(e) => setTextoObs(e.target.value)}
+                  onBlur={salvarObservacoes}
+                  disabled={salvandoObs}
+                  placeholder="Adicione observações internas sobre este contato..."
+                  autoFocus
+                />
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={cancelarEdicaoObs} disabled={salvandoObs}>
+                    Cancelar
+                  </Button>
+                  <Button type="button" size="sm" onClick={salvarObservacoes} disabled={salvandoObs}>
+                    {salvandoObs ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
+              </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Sem observações</p>
+              <>
+                {contato.observacoes ? (
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{contato.observacoes}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Sem observações</p>
+                )}
+              </>
             )}
           </section>
 

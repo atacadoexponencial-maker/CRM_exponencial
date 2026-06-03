@@ -107,7 +107,7 @@ const ETAPA_EXPANSAO_LABEL: Record<string, string> = {
 }
 
 
-const PERFIL_SELECT = "id, name, phone_number, tipo, nicho, cidade, icp, created_at, atendente_id"
+const PERFIL_SELECT = "id, name, phone_number, tipo, nicho, cidade, icp, observacoes, created_at, atendente_id"
 
 export async function buscarDadosContato(id: string): Promise<ContatoPerfil | null> {
   const supabase = await createClient()
@@ -158,7 +158,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
     created_at: c.created_at,
     icp: (c.icp ?? null) as ICP | null,
     tags: (tagsData ?? []).map((t: { tag: string }) => t.tag),
-    observacoes: "",
+    observacoes: c.observacoes ?? "",
     cards,
     compras: [],
     timeline: [],
@@ -312,6 +312,43 @@ export async function removerTagContato(
     .eq("tag", tag)
 
   if (error) return { erro: "Erro ao remover tag. Tente novamente." }
+
+  return {}
+}
+
+export async function atualizarObservacoesContato(
+  contactId: string,
+  observacoes: string
+): Promise<{ erro?: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { erro: "Não autenticado" }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile) return { erro: "Perfil não encontrado" }
+
+  const { data: contato } = await supabase
+    .from("contacts")
+    .select("workspace_id")
+    .eq("id", contactId)
+    .single()
+
+  if (!contato || contato.workspace_id !== profile.workspace_id) {
+    return { erro: "Contato não encontrado" }
+  }
+
+  const { error } = await supabase
+    .from("contacts")
+    .update({ observacoes: observacoes || null })
+    .eq("id", contactId)
+
+  if (error) return { erro: "Erro ao salvar. Tente novamente." }
 
   return {}
 }
