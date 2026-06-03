@@ -112,6 +112,20 @@ export async function completarConexaoWhatsApp(params: {
     return { erro: "Número conectado à WABA mas não foi possível registrá-lo no WhatsApp. Tente novamente." }
   }
 
+  const subscribeRes = await fetch(
+    `https://graph.facebook.com/v21.0/${params.wabaId}/subscribed_apps`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  )
+
+  if (!subscribeRes.ok) {
+    const subscribeError = await subscribeRes.text()
+    console.error("[whatsapp] erro ao inscrever webhook na WABA:", subscribeError)
+    return { erro: "Número registrado mas não foi possível configurar o recebimento de mensagens. Tente novamente." }
+  }
+
   const { error } = await ssrClient
     .from("whatsapp_connections")
     .insert({
