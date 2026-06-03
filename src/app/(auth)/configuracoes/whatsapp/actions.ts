@@ -91,6 +91,27 @@ export async function completarConexaoWhatsApp(params: {
 
   if (!phoneNumber || !displayName) return { erro: "Não foi possível conectar o número. Tente novamente." }
 
+  const registerRes = await fetch(
+    `https://graph.facebook.com/v21.0/${params.phoneNumberId}/register`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        pin: "000000",
+      }),
+    }
+  )
+
+  if (!registerRes.ok) {
+    const registerError = await registerRes.text()
+    console.error("[whatsapp] erro ao registrar número:", registerError)
+    return { erro: "Número conectado à WABA mas não foi possível registrá-lo no WhatsApp. Tente novamente." }
+  }
+
   const { error } = await ssrClient
     .from("whatsapp_connections")
     .insert({
