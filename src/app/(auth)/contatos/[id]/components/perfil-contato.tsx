@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { MessageSquare, ArrowLeft, ShoppingBag, Pencil } from "lucide-react"
+import { MessageSquare, ArrowLeft, ShoppingBag, Pencil, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,7 +18,7 @@ import {
   ICP_LABEL,
 } from "../../mock-contatos"
 import { TimelineContato } from "./timeline-contato"
-import { atualizarDadosContato } from "../../actions"
+import { atualizarDadosContato, adicionarTagContato, removerTagContato } from "../../actions"
 
 const CLASSIFICACAO_BADGE: Record<string, string> = {
   lead: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
@@ -55,6 +55,9 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
   const [aba, setAba] = useState<Aba>("dados")
   const [editando, setEditando] = useState(false)
   const [erroEdicao, setErroEdicao] = useState<string | null>(null)
+  const [novaTag, setNovaTag] = useState("")
+  const [erroTag, setErroTag] = useState<string | null>(null)
+  const [salvandoTag, setSalvandoTag] = useState(false)
 
   const {
     register,
@@ -91,6 +94,29 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
   function cancelarEdicao() {
     setEditando(false)
     setErroEdicao(null)
+  }
+
+  async function handleAdicionarTag() {
+    const tag = novaTag.trim()
+    if (!tag) return
+    if (/\s/.test(tag)) {
+      setErroTag("Tag não pode conter espaços")
+      return
+    }
+    if (tag.length > 50) {
+      setErroTag("Tag muito longa (máx. 50 caracteres)")
+      return
+    }
+    setSalvandoTag(true)
+    setErroTag(null)
+    const resultado = await adicionarTagContato(contato!.id, tag)
+    setSalvandoTag(false)
+    if (resultado.erro) {
+      setErroTag(resultado.erro)
+      return
+    }
+    setNovaTag("")
+    router.refresh()
   }
 
   async function onSubmitEdicao(data: EditFormData) {
@@ -269,12 +295,56 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
                 {contato.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="px-2 py-0.5 text-xs rounded-md bg-secondary text-muted-foreground border border-border"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-md bg-secondary text-muted-foreground border border-border"
                   >
                     {tag}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const resultado = await removerTagContato(contato.id, tag)
+                        if (resultado.erro) setErroTag(resultado.erro)
+                        else router.refresh()
+                      }}
+                      className="hover:text-foreground transition-colors"
+                      aria-label={`Remover tag ${tag}`}
+                    >
+                      <X className="size-2.5" />
+                    </button>
                   </span>
                 ))}
               </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Input
+                type="text"
+                placeholder="Nova tag (sem espaços)"
+                value={novaTag}
+                onChange={(e) => {
+                  setNovaTag(e.target.value)
+                  setErroTag(null)
+                }}
+                onKeyDown={async (e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    await handleAdicionarTag()
+                  }
+                }}
+                maxLength={50}
+                className="h-8 text-sm max-w-48"
+                disabled={salvandoTag}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={!novaTag.trim() || salvandoTag}
+                onClick={handleAdicionarTag}
+              >
+                Adicionar
+              </Button>
+            </div>
+            {erroTag && (
+              <p className="text-sm text-destructive">{erroTag}</p>
             )}
           </section>
 

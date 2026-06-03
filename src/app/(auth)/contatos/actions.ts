@@ -127,7 +127,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const [{ data }, { data: cardsData }] = await Promise.all([
+  const [{ data }, { data: cardsData }, { data: tagsData }] = await Promise.all([
     supabase
       .from("contacts")
       .select(PERFIL_SELECT)
@@ -137,6 +137,11 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
       .from("pipeline_cards")
       .select("funil, etapa")
       .eq("contact_id", id),
+    supabase
+      .from("contact_tags")
+      .select("tag")
+      .eq("contact_id", id)
+      .order("created_at"),
   ])
 
   if (!data) return null
@@ -164,7 +169,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
     atendente: null,
     created_at: c.created_at,
     icp: (c.icp ?? null) as ICP | null,
-    tags: [],
+    tags: (tagsData ?? []).map((t: { tag: string }) => t.tag),
     observacoes: "",
     cards,
     compras: [],
@@ -256,4 +261,69 @@ export async function listarContatos(): Promise<Contato[]> {
     .order("name")
 
   return (data ?? []).map(mapContato)
+}
+
+export async function adicionarTagContato(
+  contactId: string,
+  tag: string
+): Promise<{ erro?: string }> {
+  const tagNorm = tag.trim().toLowerCase()
+  if (!tagNorm) return { erro: "Tag não pode ser vazia" }
+  if (tagNorm.length > 50) return { erro: "Tag muito longa (máx. 50 caracteres)" }
+  if (/\s/.test(tagNorm)) return { erro: "Tag não pode conter espaços" }
+
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { erro: "Não autenticado" }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile) return { erro: "Perfil não encontrado" }
+
+  // Verifica que o contato pertence ao workspace do usuário
+  const { data: contato } = await supabase
+    .from("contacts")
+    .select("workspace_id")
+    .eq("id", contactId)
+    .single()
+
+  if (!contato || contato.workspace_id !== profile.workspace_id) {
+    return { erro: "Contato não encontrado" }
+  }
+
+  const { error } = await supabase
+    .from("contact_tags")
+    .insert({ contact_id: contactId, workspace_id: profile.workspace_id, tag: tagNorm })
+
+  if (error) {
+    if (error.code === "23505") return {}
+    return { erro: "Erro ao adicionar tag. Tente novamente." }
+  }
+
+  return {}
+}
+
+export async function removerTagContato(
+  contactId: string,
+  tag: string
+): Promise<{ erro?: string }> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { erro: "Não autenticado" }
+
+  const { error } = await supabase
+    .from("contact_tags")
+    .delete()
+    .eq("contact_id", contactId)
+    .eq("tag", tag)
+
+  if (error) return { erro: "Erro ao remover tag. Tente novamente." }
+
+  return {}
 }
