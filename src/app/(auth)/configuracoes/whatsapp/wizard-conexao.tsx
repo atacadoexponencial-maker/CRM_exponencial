@@ -119,7 +119,7 @@ export function WizardConexao() {
         tentarFinalizar(10)
       },
       {
-        config_id: process.env.NEXT_PUBLIC_META_CONFIG_ID,
+        config_id: "2170306863754104",
         response_type: "code",
         override_default_response_type: true,
         extras: {
