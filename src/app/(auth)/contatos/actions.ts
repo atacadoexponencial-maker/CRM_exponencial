@@ -20,6 +20,31 @@ function mapContato(c: any): Contato {
   }
 }
 
+export async function verificarNumeroDuplicado(telefone: string): Promise<boolean> {
+  if (!telefone.trim()) return false
+
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile) return false
+
+  const { count } = await supabase
+    .from("contacts")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", profile.workspace_id)
+    .eq("phone_number", telefone)
+
+  return (count ?? 0) > 0
+}
+
 export async function criarContato(dados: {
   nome: string
   telefone: string

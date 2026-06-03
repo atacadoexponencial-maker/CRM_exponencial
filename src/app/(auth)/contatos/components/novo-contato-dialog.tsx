@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog"
-import { criarContato } from "../actions"
+import { criarContato, verificarNumeroDuplicado } from "../actions"
 
 const schema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
@@ -32,6 +32,7 @@ export function NovoContatoDialog() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [erroGeral, setErroGeral] = useState<string | null>(null)
+  const [erroTelefone, setErroTelefone] = useState<string | null>(null)
 
   const {
     register,
@@ -61,11 +62,24 @@ export function NovoContatoDialog() {
     router.refresh()
   }
 
+  async function handleTelefoneBlur(e: React.FocusEvent<HTMLInputElement>) {
+    const valor = e.target.value.trim()
+    if (!valor) return
+    const duplicado = await verificarNumeroDuplicado(valor)
+    if (duplicado) setErroTelefone("Número já cadastrado neste workspace")
+  }
+
+  function handleTelefoneChange(e: React.FocusEvent<HTMLInputElement>) {
+    if (erroTelefone) setErroTelefone(null)
+    register("telefone").onChange(e)
+  }
+
   function handleOpenChange(isOpen: boolean) {
     setOpen(isOpen)
     if (!isOpen) {
       reset()
       setErroGeral(null)
+      setErroTelefone(null)
     }
   }
 
@@ -103,10 +117,13 @@ export function NovoContatoDialog() {
               id="telefone"
               type="text"
               placeholder="+55 11 99999-0000"
-              aria-invalid={!!errors.telefone}
+              aria-invalid={!!errors.telefone || !!erroTelefone}
               {...register("telefone")}
+              onBlur={handleTelefoneBlur}
+              onChange={handleTelefoneChange}
             />
             {errors.telefone && <p className="text-sm text-destructive">{errors.telefone.message}</p>}
+            {!errors.telefone && erroTelefone && <p className="text-sm text-destructive">{erroTelefone}</p>}
           </div>
 
           <div className="flex flex-col gap-1.5">
