@@ -38,34 +38,53 @@ interface TimelineContatoProps {
 }
 
 export function TimelineContato({ eventos }: TimelineContatoProps) {
-  const [filtro, setFiltro] = useState<TipoEvento | "todos">("todos")
+  const [filtros, setFiltros] = useState<Set<TipoEvento>>(new Set())
 
   if (eventos.length === 0) {
     return <p className="text-sm text-muted-foreground">Nenhum evento registrado</p>
   }
 
-  const eventosFiltrados = filtro === "todos"
+  const eventosFiltrados = filtros.size === 0
     ? eventos
-    : eventos.filter((e) => e.tipo === filtro)
+    : eventos.filter((e) => filtros.has(e.tipo))
+
+  function toggleFiltro(valor: TipoEvento | "todos") {
+    if (valor === "todos") {
+      setFiltros(new Set())
+      return
+    }
+    setFiltros((prev) => {
+      const next = new Set(prev)
+      if (next.has(valor)) {
+        next.delete(valor)
+      } else {
+        next.add(valor)
+      }
+      return next
+    })
+  }
 
   return (
     <div className="space-y-4">
       {/* Filtros */}
       <div className="flex gap-1 flex-wrap">
-        {FILTROS.map((f) => (
-          <button
-            key={f.valor}
-            onClick={() => setFiltro(f.valor)}
-            className={cn(
-              "px-2.5 py-1 text-xs rounded-md border transition-colors",
-              filtro === f.valor
-                ? "bg-primary text-primary-foreground border-primary"
-                : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
+        {FILTROS.map((f) => {
+          const ativo = f.valor === "todos" ? filtros.size === 0 : filtros.has(f.valor as TipoEvento)
+          return (
+            <button
+              key={f.valor}
+              onClick={() => toggleFiltro(f.valor)}
+              className={cn(
+                "px-2.5 py-1 text-xs rounded-md border transition-colors",
+                ativo
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+            >
+              {f.label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Lista */}
