@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { MessageSquare, ArrowLeft, ShoppingBag, Pencil, X } from "lucide-react"
+import { MessageSquare, ArrowLeft, Pencil, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,6 +18,7 @@ import {
   ICP_LABEL,
 } from "../../mock-contatos"
 import { TimelineContato } from "./timeline-contato"
+import { RegistrarCompraDialog } from "./registrar-compra-dialog"
 import { atualizarDadosContato, adicionarTagContato, removerTagContato, atualizarObservacoesContato } from "../../actions"
 
 const CLASSIFICACAO_BADGE: Record<string, string> = {
@@ -448,10 +449,7 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Histórico de compras</h2>
               {papel !== "atendente" && (
-                <Button size="sm" variant="outline">
-                  <ShoppingBag className="size-3.5" />
-                  Registrar compra
-                </Button>
+                <RegistrarCompraDialog contactId={contato.id} />
               )}
             </div>
 

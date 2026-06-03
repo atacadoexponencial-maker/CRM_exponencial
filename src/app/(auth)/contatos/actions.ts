@@ -115,7 +115,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const [{ data }, { data: cardsData }, { data: tagsData }] = await Promise.all([
+  const [{ data }, { data: cardsData }, { data: tagsData }, { data: comprasData }] = await Promise.all([
     supabase
       .from("contacts")
       .select(PERFIL_SELECT)
@@ -130,6 +130,11 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
       .select("tag")
       .eq("contact_id", id)
       .order("created_at"),
+    supabase
+      .from("contact_purchases")
+      .select("id, data, valor")
+      .eq("contact_id", id)
+      .order("data", { ascending: false }),
   ])
 
   if (!data) return null
@@ -160,7 +165,11 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
     tags: (tagsData ?? []).map((t: { tag: string }) => t.tag),
     observacoes: c.observacoes ?? "",
     cards,
-    compras: [],
+    compras: (comprasData ?? []).map((p: { id: string; data: string; valor: number }) => ({
+      id: p.id,
+      data: new Date(p.data + "T00:00:00").toLocaleDateString("pt-BR"),
+      valor: Number(p.valor),
+    })),
     timeline: [],
   }
 }
@@ -349,6 +358,50 @@ export async function atualizarObservacoesContato(
     .eq("id", contactId)
 
   if (error) return { erro: "Erro ao salvar. Tente novamente." }
+
+  return {}
+}
+
+export async function registrarCompra(
+  contactId: string,
+  dados: { data: string; valor: number }
+): Promise<{ erro?: string }> {
+  if (!dados.valor || dados.valor <= 0) return { erro: "Valor deve ser maior que zero" }
+
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { erro: "Não autenticado" }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile) return { erro: "Perfil não encontrado" }
+  if (profile.role === "atendente") return { erro: "Sem permissão para registrar compras" }
+
+  const { data: contato } = await supabase
+    .from("contacts")
+    .select("workspace_id")
+    .eq("id", contactId)
+    .single()
+
+  if (!contato || contato.workspace_id !== profile.workspace_id) {
+    return { erro: "Contato não encontrado" }
+  }
+
+  const { error } = await supabase
+    .from("contact_purchases")
+    .insert({
+      contact_id: contactId,
+      workspace_id: profile.workspace_id,
+      data: dados.data,
+      valor: dados.valor,
+    })
+
+  if (error) return { erro: "Erro ao registrar compra. Tente novamente." }
 
   return {}
 }
