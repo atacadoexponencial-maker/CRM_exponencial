@@ -86,23 +86,33 @@ export function WizardConexao() {
     window.FB.login(
       (response) => {
         const code = response.authResponse?.code
-        const { phoneNumberId, wabaId } = pendingData.current
-
-        if (!code || !phoneNumberId || !wabaId) {
+        if (!code) {
           setStep("intro")
           setErro("Configuração cancelada ou dados incompletos. Tente novamente.")
           return
         }
 
-        setStep("finalizando")
-        completarConexaoWhatsApp({ code, phoneNumberId, wabaId }).then((resultado) => {
-          if (resultado.erro) {
+        // Aguarda até 3s pelo evento WA_EMBEDDED_SIGNUP FINISH
+        const tentarFinalizar = (tentativas: number) => {
+          const { phoneNumberId, wabaId } = pendingData.current
+          if (phoneNumberId && wabaId) {
+            setStep("finalizando")
+            completarConexaoWhatsApp({ code, phoneNumberId, wabaId }).then((resultado) => {
+              if (resultado.erro) {
+                setStep("intro")
+                setErro(resultado.erro)
+                return
+              }
+              router.push("/chat")
+            })
+          } else if (tentativas > 0) {
+            setTimeout(() => tentarFinalizar(tentativas - 1), 300)
+          } else {
             setStep("intro")
-            setErro(resultado.erro)
-            return
+            setErro("Não foi possível obter os dados do WhatsApp. Tente novamente.")
           }
-          router.push("/chat")
-        })
+        }
+        tentarFinalizar(10)
       },
       {
         config_id: process.env.NEXT_PUBLIC_META_CONFIG_ID,
