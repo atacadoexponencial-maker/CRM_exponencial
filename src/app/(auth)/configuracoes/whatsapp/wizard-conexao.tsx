@@ -58,9 +58,13 @@ export function WizardConexao() {
     document.head.appendChild(script)
 
     function handleMessage(event: MessageEvent) {
+      if (event.origin.includes("facebook.com") || event.origin.includes("meta.com")) {
+        console.log("[embedded-signup] mensagem recebida:", event.origin, event.data)
+      }
       if (!event.origin.includes("facebook.com") && !event.origin.includes("meta.com")) return
       try {
         const data = JSON.parse(event.data)
+        console.log("[embedded-signup] parsed:", data.type, data.event, data.data)
         if (data.type === "WA_EMBEDDED_SIGNUP" && data.event === "FINISH") {
           pendingData.current = {
             phoneNumberId: data.data.phone_number_id,
