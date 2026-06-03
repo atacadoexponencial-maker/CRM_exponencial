@@ -93,7 +93,9 @@ export function ListaContatos({ contatos, papel }: ListaContatosProps) {
       return true
     })
 
-    if (ordenacao === "nome") {
+    if (ordenacao === "recente") {
+      lista = [...lista].sort((a, b) => b.created_at.localeCompare(a.created_at))
+    } else if (ordenacao === "nome") {
       lista = [...lista].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
     } else if (ordenacao === "classificacao") {
       lista = [...lista].sort((a, b) => ORDEM_CLASSIFICACAO[a.classificacao] - ORDEM_CLASSIFICACAO[b.classificacao])

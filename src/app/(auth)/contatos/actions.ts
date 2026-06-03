@@ -3,7 +3,7 @@
 import { createClient } from "@/integrations/supabase/server"
 import type { Contato, ClassificacaoContato, TipoContato } from "./mock-contatos"
 
-const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, nicho, cidade, profiles!contacts_atendente_id_fkey(name)"
+const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, nicho, cidade, created_at, profiles!contacts_atendente_id_fkey(name)"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapContato(c: any): Contato {
@@ -16,6 +16,7 @@ function mapContato(c: any): Contato {
     nicho: c.nicho ?? null,
     cidade: c.cidade ?? null,
     atendente: c.profiles?.name ?? null,
+    created_at: c.created_at,
   }
 }
 

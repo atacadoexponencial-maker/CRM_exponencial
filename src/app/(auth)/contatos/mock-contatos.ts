@@ -27,6 +27,7 @@ export interface Contato {
   nicho: string | null
   cidade: string | null
   atendente: string | null
+  created_at: string
 }
 
 export interface Compra {
@@ -96,6 +97,7 @@ export const MOCK_CONTATOS: Contato[] = [
     nicho: "Alimentação",
     cidade: "São Paulo",
     atendente: "Fernanda",
+    created_at: "2025-11-15T10:00:00Z",
   },
   {
     id: "c2",
@@ -106,6 +108,7 @@ export const MOCK_CONTATOS: Contato[] = [
     nicho: "Alimentação",
     cidade: "Fortaleza",
     atendente: "Carlos",
+    created_at: "2026-05-20T08:45:00Z",
   },
   {
     id: "c3",
@@ -116,6 +119,7 @@ export const MOCK_CONTATOS: Contato[] = [
     nicho: "Floricultura",
     cidade: "Rio de Janeiro",
     atendente: "Ana",
+    created_at: "2026-02-10T09:00:00Z",
   },
   {
     id: "c4",
@@ -126,6 +130,7 @@ export const MOCK_CONTATOS: Contato[] = [
     nicho: "Moda",
     cidade: "Belo Horizonte",
     atendente: "Fernanda",
+    created_at: "2026-01-05T14:00:00Z",
   },
   {
     id: "c5",
@@ -136,6 +141,7 @@ export const MOCK_CONTATOS: Contato[] = [
     nicho: "Alimentação",
     cidade: "Salvador",
     atendente: "Carlos",
+    created_at: "2025-12-20T11:00:00Z",
   },
   {
     id: "c6",
@@ -146,6 +152,7 @@ export const MOCK_CONTATOS: Contato[] = [
     nicho: "Artesanato",
     cidade: "Recife",
     atendente: "Ana",
+    created_at: "2026-03-01T15:30:00Z",
   },
   {
     id: "c7",
@@ -156,6 +163,7 @@ export const MOCK_CONTATOS: Contato[] = [
     nicho: "Utilidades",
     cidade: "Manaus",
     atendente: "Fernanda",
+    created_at: "2026-04-12T08:00:00Z",
   },
   {
     id: "c8",
@@ -166,6 +174,7 @@ export const MOCK_CONTATOS: Contato[] = [
     nicho: "Pet",
     cidade: "Curitiba",
     atendente: "Carlos",
+    created_at: "2026-03-22T16:00:00Z",
   },
   {
     id: "c9",
@@ -176,6 +185,7 @@ export const MOCK_CONTATOS: Contato[] = [
     nicho: null,
     cidade: "Porto Alegre",
     atendente: null,
+    created_at: "2026-05-30T10:00:00Z",
   },
   {
     id: "c10",
@@ -186,6 +196,7 @@ export const MOCK_CONTATOS: Contato[] = [
     nicho: "Papelaria",
     cidade: "Goiânia",
     atendente: "Ana",
+    created_at: "2026-05-15T13:00:00Z",
   },
 ]
 
@@ -199,6 +210,7 @@ export const MOCK_PERFIS_CONTATO: Record<string, ContatoPerfil> = {
     nicho: "Alimentação",
     cidade: "São Paulo",
     atendente: "Fernanda",
+    created_at: "2025-11-15T10:00:00Z",
     icp: "ja_revende",
     tags: ["vip", "fidelizado", "whatsapp-ativo"],
     observacoes: "Cliente parceiro desde 2024. Prefere contato pela manhã. Tem interesse em ampliar o mix de produtos.",
@@ -228,6 +240,7 @@ export const MOCK_PERFIS_CONTATO: Record<string, ContatoPerfil> = {
     nicho: "Alimentação",
     cidade: "Fortaleza",
     atendente: "Carlos",
+    created_at: "2026-05-20T08:45:00Z",
     icp: "primeira_vez",
     tags: [],
     observacoes: "",
@@ -248,6 +261,7 @@ export const MOCK_PERFIS_CONTATO: Record<string, ContatoPerfil> = {
     nicho: null,
     cidade: "Porto Alegre",
     atendente: null,
+    created_at: "2026-05-30T10:00:00Z",
     icp: null,
     tags: [],
     observacoes: "",
