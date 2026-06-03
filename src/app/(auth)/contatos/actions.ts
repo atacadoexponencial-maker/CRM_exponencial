@@ -87,7 +87,39 @@ export async function criarContato(dados: {
   return { id: data.id }
 }
 
-const PERFIL_SELECT = "id, name, phone_number, classificacao, tipo, nicho, cidade, icp, created_at, profiles!contacts_atendente_id_fkey(name)"
+const ETAPA_RETENCAO_LABEL: Record<string, string> = {
+  em_onboarding: "Em Onboarding",
+  cliente_ativo: "Cliente Ativo",
+  aguardando_recompra: "Aguardando Recompra",
+  recompra_realizada: "Recompra Realizada",
+  em_risco: "Em Risco",
+  inativo: "Inativo",
+  perdido: "Perdido",
+}
+
+const ETAPA_EXPANSAO_LABEL: Record<string, string> = {
+  lead: "Lead",
+  em_qualificacao: "Em Qualificação",
+  catalogo_enviado: "Catálogo Enviado",
+  em_negociacao: "Em Negociação",
+  primeira_compra: "Primeira Compra",
+}
+
+export function calcularClassificacao(
+  cards: Array<{ funil: string; etapa: string }>
+): ClassificacaoContato {
+  const retencao = cards.find((c) => c.funil === "retencao")
+  if (retencao) {
+    if (["em_onboarding", "cliente_ativo", "aguardando_recompra", "recompra_realizada"].includes(retencao.etapa)) return "ativo"
+    if (retencao.etapa === "em_risco") return "em_risco"
+    if (retencao.etapa === "inativo") return "inativo"
+    if (retencao.etapa === "perdido") return "perdido"
+  }
+  if (cards.some((c) => c.funil === "expansao")) return "lead"
+  return "sem_historico"
+}
+
+const PERFIL_SELECT = "id, name, phone_number, tipo, nicho, cidade, icp, created_at, atendente_id"
 
 export async function buscarDadosContato(id: string): Promise<ContatoPerfil | null> {
   const supabase = await createClient()
@@ -95,31 +127,46 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = await supabase
-    .from("contacts")
-    .select(PERFIL_SELECT)
-    .eq("id", id)
-    .single()
+  const [{ data }, { data: cardsData }] = await Promise.all([
+    supabase
+      .from("contacts")
+      .select(PERFIL_SELECT)
+      .eq("id", id)
+      .single(),
+    supabase
+      .from("pipeline_cards")
+      .select("funil, etapa")
+      .eq("contact_id", id),
+  ])
 
   if (!data) return null
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const c = data as any
+  const rawCards = (cardsData ?? []) as Array<{ funil: string; etapa: string }>
+
+  const cards = rawCards.map((card) => ({
+    funil: card.funil as "expansao" | "retencao",
+    etapaLabel:
+      card.funil === "retencao"
+        ? (ETAPA_RETENCAO_LABEL[card.etapa] ?? card.etapa)
+        : (ETAPA_EXPANSAO_LABEL[card.etapa] ?? card.etapa),
+  }))
+
   return {
     id: c.id,
     nome: c.name ?? c.phone_number,
     telefone: c.phone_number,
-    classificacao: (c.classificacao ?? "sem_historico") as ClassificacaoContato,
+    classificacao: calcularClassificacao(rawCards),
     tipo: (c.tipo ?? null) as TipoContato | null,
     nicho: c.nicho ?? null,
     cidade: c.cidade ?? null,
-    atendente: c.profiles?.name ?? null,
+    atendente: null,
     created_at: c.created_at,
     icp: (c.icp ?? null) as ICP | null,
     tags: [],
     observacoes: "",
-    cards: [],
+    cards,
     compras: [],
     timeline: [],
   }
