@@ -109,13 +109,38 @@ const ETAPA_EXPANSAO_LABEL: Record<string, string> = {
 
 const PERFIL_SELECT = "id, name, phone_number, tipo, nicho, cidade, icp, observacoes, created_at, atendente_id"
 
+function formatarDataEvento(iso: string): string {
+  const d = new Date(iso)
+  const dia = String(d.getDate()).padStart(2, "0")
+  const mes = String(d.getMonth() + 1).padStart(2, "0")
+  const ano = d.getFullYear()
+  const hora = String(d.getHours()).padStart(2, "0")
+  const min = String(d.getMinutes()).padStart(2, "0")
+  return `${dia}/${mes}/${ano} ${hora}:${min}`
+}
+
+const ETAPA_LABEL_ALL: Record<string, string> = {
+  lead: "Lead",
+  em_qualificacao: "Em Qualificação",
+  catalogo_enviado: "Catálogo Enviado",
+  em_negociacao: "Em Negociação",
+  primeira_compra: "Primeira Compra",
+  em_onboarding: "Em Onboarding",
+  cliente_ativo: "Cliente Ativo",
+  aguardando_recompra: "Aguardando Recompra",
+  recompra_realizada: "Recompra Realizada",
+  em_risco: "Em Risco",
+  inativo: "Inativo",
+  perdido: "Perdido",
+}
+
 export async function buscarDadosContato(id: string): Promise<ContatoPerfil | null> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const [{ data }, { data: cardsData }, { data: tagsData }, { data: comprasData }, { data: conversaData }] = await Promise.all([
+  const [{ data }, { data: cardsData }, { data: tagsData }, { data: comprasData }, { data: conversacoesData }] = await Promise.all([
     supabase
       .from("contacts")
       .select(PERFIL_SELECT)
@@ -123,7 +148,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
       .single(),
     supabase
       .from("pipeline_cards")
-      .select("funil, etapa")
+      .select("id, funil, etapa, created_at, atendente_id, profiles!pipeline_cards_atendente_id_fkey(name)")
       .eq("contact_id", id),
     supabase
       .from("contact_tags")
@@ -132,23 +157,26 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
       .order("created_at"),
     supabase
       .from("contact_purchases")
-      .select("id, data, valor")
+      .select("id, data, valor, created_at")
       .eq("contact_id", id)
       .order("data", { ascending: false }),
     supabase
       .from("conversations")
-      .select("id")
+      .select("id, created_at, assigned_to, profiles!assigned_to(name)")
       .eq("contact_id", id)
-      .order("last_message_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .order("last_message_at", { ascending: false }),
   ])
 
   if (!data) return null
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const c = data as any
-  const rawCards = (cardsData ?? []) as Array<{ funil: string; etapa: string }>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawCards = (cardsData ?? []) as Array<any>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawConversas = (conversacoesData ?? []) as Array<any>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawCompras = (comprasData ?? []) as Array<any>
 
   const cards = rawCards.map((card) => ({
     funil: card.funil as "expansao" | "retencao",
@@ -156,6 +184,97 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
       card.funil === "retencao"
         ? (ETAPA_RETENCAO_LABEL[card.etapa] ?? card.etapa)
         : (ETAPA_EXPANSAO_LABEL[card.etapa] ?? card.etapa),
+  }))
+
+  // Segunda rodada: histórico e notas dos cards
+  const cardIds = rawCards.map((card) => card.id as string)
+  const [{ data: historyData }, { data: notesData }] = await Promise.all([
+    cardIds.length > 0
+      ? supabase
+          .from("pipeline_card_history")
+          .select("id, created_at, card_id, de_etapa, para_etapa, profiles!alterado_por(name)")
+          .in("card_id", cardIds)
+      : Promise.resolve({ data: [] }),
+    cardIds.length > 0
+      ? supabase
+          .from("pipeline_card_notes")
+          .select("id, created_at, texto, profiles!autor_id(name)")
+          .in("card_id", cardIds)
+      : Promise.resolve({ data: [] }),
+  ])
+
+  // Montar timeline
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type RawEvento = { id: string; created_at: string; tipo: string; descricao: string; responsavel: string }
+  const eventos: RawEvento[] = []
+
+  for (const conv of rawConversas) {
+    eventos.push({
+      id: conv.id,
+      created_at: conv.created_at,
+      tipo: "conversa_iniciada",
+      descricao: "Nova conversa iniciada via WhatsApp",
+      responsavel: conv.profiles?.name ?? "",
+    })
+  }
+
+  for (const card of rawCards) {
+    const funilLabel = card.funil === "retencao" ? "Retenção" : "Expansão"
+    const etapaLabel = ETAPA_LABEL_ALL[card.etapa] ?? card.etapa
+    eventos.push({
+      id: card.id,
+      created_at: card.created_at,
+      tipo: "card_criado",
+      descricao: `Card criado no Funil de ${funilLabel} — etapa: ${etapaLabel}`,
+      responsavel: card.profiles?.name ?? "",
+    })
+  }
+
+  for (const h of (historyData ?? [])) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hh = h as any
+    const de = hh.de_etapa ? (ETAPA_LABEL_ALL[hh.de_etapa] ?? hh.de_etapa) : null
+    const para = ETAPA_LABEL_ALL[hh.para_etapa] ?? hh.para_etapa
+    eventos.push({
+      id: hh.id,
+      created_at: hh.created_at,
+      tipo: "mudanca_etapa",
+      descricao: de ? `${de} → ${para}` : `Movido para ${para}`,
+      responsavel: hh.profiles?.name ?? "",
+    })
+  }
+
+  for (const n of (notesData ?? [])) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const nn = n as any
+    eventos.push({
+      id: nn.id,
+      created_at: nn.created_at,
+      tipo: "nota_interna",
+      descricao: `"${nn.texto}"`,
+      responsavel: nn.profiles?.name ?? "",
+    })
+  }
+
+  for (const p of rawCompras) {
+    const valor = Number(p.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+    eventos.push({
+      id: `purchase-${p.id}`,
+      created_at: p.created_at,
+      tipo: "compra_registrada",
+      descricao: `Compra registrada — ${valor}`,
+      responsavel: "",
+    })
+  }
+
+  eventos.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+  const timeline = eventos.map((e) => ({
+    id: e.id,
+    data: formatarDataEvento(e.created_at),
+    tipo: e.tipo as import("./mock-contatos").TipoEvento,
+    descricao: e.descricao,
+    responsavel: e.responsavel,
   }))
 
   return {
@@ -171,14 +290,14 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
     icp: (c.icp ?? null) as ICP | null,
     tags: (tagsData ?? []).map((t: { tag: string }) => t.tag),
     observacoes: c.observacoes ?? "",
-    conversaId: (conversaData as { id: string } | null)?.id ?? null,
+    conversaId: rawConversas[0]?.id ?? null,
     cards,
-    compras: (comprasData ?? []).map((p: { id: string; data: string; valor: number }) => ({
+    compras: rawCompras.map((p) => ({
       id: p.id,
       data: new Date(p.data + "T00:00:00").toLocaleDateString("pt-BR"),
       valor: Number(p.valor),
     })),
-    timeline: [],
+    timeline,
   }
 }
 
