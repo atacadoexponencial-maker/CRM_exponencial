@@ -188,10 +188,13 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
             {CLASSIFICACAO_LABEL[contato.classificacao]}
           </span>
         </div>
-        <Button size="sm" variant="outline">
+        <Link
+          href={contato.conversaId ? `/chat?conversa=${contato.conversaId}` : "/chat"}
+          className="inline-flex items-center gap-1.5 text-sm font-medium h-8 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+        >
           <MessageSquare className="size-3.5" />
           Abrir conversa
-        </Button>
+        </Link>
       </div>
 
       {/* Abas */}

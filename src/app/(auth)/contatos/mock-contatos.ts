@@ -53,6 +53,7 @@ export interface ContatoPerfil extends Contato {
   icp: ICP | null
   tags: string[]
   observacoes: string
+  conversaId: string | null
   cards: CardPipelineMock[]
   compras: Compra[]
   timeline: EventoTimeline[]
@@ -214,6 +215,7 @@ export const MOCK_PERFIS_CONTATO: Record<string, ContatoPerfil> = {
     icp: "ja_revende",
     tags: ["vip", "fidelizado", "whatsapp-ativo"],
     observacoes: "Cliente parceiro desde 2024. Prefere contato pela manhã. Tem interesse em ampliar o mix de produtos.",
+    conversaId: null,
     cards: [{ funil: "retencao", etapaLabel: "Cliente Ativo" }],
     compras: [
       { id: "cp1", data: "15/01/2026", valor: 4200 },
@@ -244,6 +246,7 @@ export const MOCK_PERFIS_CONTATO: Record<string, ContatoPerfil> = {
     icp: "primeira_vez",
     tags: [],
     observacoes: "",
+    conversaId: null,
     cards: [{ funil: "expansao", etapaLabel: "Primeiro Contato" }],
     compras: [],
     timeline: [
@@ -265,6 +268,7 @@ export const MOCK_PERFIS_CONTATO: Record<string, ContatoPerfil> = {
     icp: null,
     tags: [],
     observacoes: "",
+    conversaId: null,
     cards: [],
     compras: [],
     timeline: [],

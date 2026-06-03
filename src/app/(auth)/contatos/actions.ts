@@ -115,7 +115,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const [{ data }, { data: cardsData }, { data: tagsData }, { data: comprasData }] = await Promise.all([
+  const [{ data }, { data: cardsData }, { data: tagsData }, { data: comprasData }, { data: conversaData }] = await Promise.all([
     supabase
       .from("contacts")
       .select(PERFIL_SELECT)
@@ -135,6 +135,13 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
       .select("id, data, valor")
       .eq("contact_id", id)
       .order("data", { ascending: false }),
+    supabase
+      .from("conversations")
+      .select("id")
+      .eq("contact_id", id)
+      .order("last_message_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   if (!data) return null
@@ -164,6 +171,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
     icp: (c.icp ?? null) as ICP | null,
     tags: (tagsData ?? []).map((t: { tag: string }) => t.tag),
     observacoes: c.observacoes ?? "",
+    conversaId: (conversaData as { id: string } | null)?.id ?? null,
     cards,
     compras: (comprasData ?? []).map((p: { id: string; data: string; valor: number }) => ({
       id: p.id,
