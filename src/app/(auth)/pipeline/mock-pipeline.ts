@@ -1,4 +1,4 @@
-export type EtapaRetencao =
+﻿export type EtapaRetencao =
   | "em_onboarding"
   | "cliente_ativo"
   | "aguardando_recompra"
@@ -9,6 +9,7 @@ export type EtapaRetencao =
 
 export interface CardCliente {
   id: string
+  contactId?: string | null
   contato: { nome: string; telefone: string }
   etapa: EtapaRetencao
   atendente: string | null
@@ -54,10 +55,10 @@ export const MOCK_CARDS_RETENCAO: CardCliente[] = [
   },
   {
     id: "r3",
-    contato: { nome: "Empório da Família", telefone: "+55 71 83001-0003" },
+    contato: { nome: "EmpÃ³rio da FamÃ­lia", telefone: "+55 71 83001-0003" },
     etapa: "cliente_ativo",
     atendente: "Carlos",
-    tempoNaEtapa: "1 mês",
+    tempoNaEtapa: "1 mÃªs",
     dataEntradaEtapa: "29/04/2026",
     tempoNoFunil: "2 meses",
     etiquetas: [{ id: "vip", nome: "VIP", cor: "#f59e0b" }],
@@ -92,13 +93,13 @@ export const MOCK_CARDS_RETENCAO: CardCliente[] = [
     atendente: null,
     tempoNaEtapa: "8 dias",
     dataEntradaEtapa: "21/05/2026",
-    tempoNoFunil: "1 mês",
+    tempoNoFunil: "1 mÃªs",
     etiquetas: [],
     conversaId: null,
   },
   {
     id: "r7",
-    contato: { nome: "Armazém do Norte", telefone: "+55 62 85001-0007" },
+    contato: { nome: "ArmazÃ©m do Norte", telefone: "+55 62 85001-0007" },
     etapa: "recompra_realizada",
     atendente: "Fernanda",
     tempoNaEtapa: "1 semana",
@@ -109,24 +110,24 @@ export const MOCK_CARDS_RETENCAO: CardCliente[] = [
   },
   {
     id: "r8",
-    contato: { nome: "Loja São Paulo", telefone: "+55 11 92001-0008" },
+    contato: { nome: "Loja SÃ£o Paulo", telefone: "+55 11 92001-0008" },
     etapa: "em_risco",
     atendente: "Carlos",
     tempoNaEtapa: "3 semanas",
     dataEntradaEtapa: "08/05/2026",
     tempoNoFunil: "3 meses",
-    etiquetas: [{ id: "atencao", nome: "Atenção", cor: "#ef4444" }],
+    etiquetas: [{ id: "atencao", nome: "AtenÃ§Ã£o", cor: "#ef4444" }],
     conversaId: null,
   },
   {
     id: "r9",
-    contato: { nome: "Mercearia Boa Fé", telefone: "+55 21 89001-0009" },
+    contato: { nome: "Mercearia Boa FÃ©", telefone: "+55 21 89001-0009" },
     etapa: "em_risco",
     atendente: null,
-    tempoNaEtapa: "1 mês",
+    tempoNaEtapa: "1 mÃªs",
     dataEntradaEtapa: "29/04/2026",
     tempoNoFunil: "2 meses",
-    etiquetas: [{ id: "atencao", nome: "Atenção", cor: "#ef4444" }],
+    etiquetas: [{ id: "atencao", nome: "AtenÃ§Ã£o", cor: "#ef4444" }],
     conversaId: null,
   },
   {
@@ -162,6 +163,7 @@ export type EtapaExpansao =
 
 export interface CardLead {
   id: string
+  contactId?: string | null
   contato: { nome: string; telefone: string }
   etapa: EtapaExpansao
   atendente: string | null
@@ -174,9 +176,9 @@ export interface CardLead {
 
 export const ETAPAS_EXPANSAO: { id: EtapaExpansao; label: string }[] = [
   { id: "lead", label: "Lead" },
-  { id: "em_qualificacao", label: "Em Qualificação" },
-  { id: "catalogo_enviado", label: "Catálogo Enviado" },
-  { id: "em_negociacao", label: "Em Negociação" },
+  { id: "em_qualificacao", label: "Em QualificaÃ§Ã£o" },
+  { id: "catalogo_enviado", label: "CatÃ¡logo Enviado" },
+  { id: "em_negociacao", label: "Em NegociaÃ§Ã£o" },
   { id: "primeira_compra", label: "Primeira Compra" },
 ]
 
@@ -200,17 +202,17 @@ export const MOCK_PAINEL_DATA: Record<string, { historico: HistoricoEtapa[]; not
       { deEtapa: "", etapa: "Lead", data: "22/05/2026 09:14" },
     ],
     notas: [
-      { id: "n1", autor: "Carlos", texto: "Cliente indicado pelo Armazém do Zé. Tem interesse em biscoito e farinha.", data: "23/05/2026" },
+      { id: "n1", autor: "Carlos", texto: "Cliente indicado pelo ArmazÃ©m do ZÃ©. Tem interesse em biscoito e farinha.", data: "23/05/2026" },
     ],
   },
   "4": {
     historico: [
       { deEtapa: "", etapa: "Lead", data: "18/05/2026 10:02" },
-      { deEtapa: "Lead", etapa: "Em Qualificação", data: "21/05/2026 14:35", responsavel: "Carlos" },
+      { deEtapa: "Lead", etapa: "Em QualificaÃ§Ã£o", data: "21/05/2026 14:35", responsavel: "Carlos" },
     ],
     notas: [
-      { id: "n2", autor: "Carlos", texto: "Já tem CNPJ. Volume mensal estimado em R$ 3.000.", data: "21/05/2026" },
-      { id: "n3", autor: "Carlos", texto: "Ligar na quinta-feira após as 14h.", data: "22/05/2026" },
+      { id: "n2", autor: "Carlos", texto: "JÃ¡ tem CNPJ. Volume mensal estimado em R$ 3.000.", data: "21/05/2026" },
+      { id: "n3", autor: "Carlos", texto: "Ligar na quinta-feira apÃ³s as 14h.", data: "22/05/2026" },
     ],
   },
 }
@@ -229,7 +231,7 @@ export const MOCK_CARDS_EXPANSAO: CardLead[] = [
   },
   {
     id: "2",
-    contato: { nome: "Maria Conceição", telefone: "+55 85 89011-1234" },
+    contato: { nome: "Maria ConceiÃ§Ã£o", telefone: "+55 85 89011-1234" },
     etapa: "lead",
     atendente: null,
     tempoNaEtapa: "3 dias",
@@ -240,13 +242,13 @@ export const MOCK_CARDS_EXPANSAO: CardLead[] = [
   },
   {
     id: "3",
-    contato: { nome: "Armazém do Zé", telefone: "+55 71 83017-7890" },
+    contato: { nome: "ArmazÃ©m do ZÃ©", telefone: "+55 71 83017-7890" },
     etapa: "lead",
     atendente: "Carlos",
     tempoNaEtapa: "2 dias",
     dataEntradaEtapa: "27/05/2026",
     tempoNoFunil: "2 dias",
-    etiquetas: [{ id: "indicacao", nome: "Indicação", cor: "#8b5cf6" }],
+    etiquetas: [{ id: "indicacao", nome: "IndicaÃ§Ã£o", cor: "#8b5cf6" }],
     conversaId: null,
   },
   {
@@ -273,7 +275,7 @@ export const MOCK_CARDS_EXPANSAO: CardLead[] = [
   },
   {
     id: "6",
-    contato: { nome: "Empório São Jorge", telefone: "+55 41 88012-2345" },
+    contato: { nome: "EmpÃ³rio SÃ£o Jorge", telefone: "+55 41 88012-2345" },
     etapa: "catalogo_enviado",
     atendente: "Fernanda",
     tempoNaEtapa: "3 dias",
@@ -295,7 +297,7 @@ export const MOCK_CARDS_EXPANSAO: CardLead[] = [
   },
   {
     id: "8",
-    contato: { nome: "Supermercado Família", telefone: "+55 62 85015-5678" },
+    contato: { nome: "Supermercado FamÃ­lia", telefone: "+55 62 85015-5678" },
     etapa: "em_negociacao",
     atendente: "Fernanda",
     tempoNaEtapa: "4 dias",
@@ -311,7 +313,7 @@ export const MOCK_CARDS_EXPANSAO: CardLead[] = [
     atendente: "Carlos",
     tempoNaEtapa: "2 semanas",
     dataEntradaEtapa: "15/05/2026",
-    tempoNoFunil: "1 mês",
+    tempoNoFunil: "1 mÃªs",
     etiquetas: [{ id: "vip", nome: "VIP", cor: "#f59e0b" }, { id: "novo", nome: "Novo cliente", cor: "#3b82f6" }],
     conversaId: null,
   },

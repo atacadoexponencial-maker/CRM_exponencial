@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { MessageSquare, ArrowLeft, Pencil, X } from "lucide-react"
+import { MessageSquare, ArrowLeft, Pencil, X, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { IniciarSequenciaDialog } from "@/components/shared/iniciar-sequencia-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -58,6 +59,7 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
   const [erroEdicao, setErroEdicao] = useState<string | null>(null)
   const [novaTag, setNovaTag] = useState("")
   const [erroTag, setErroTag] = useState<string | null>(null)
+  const [sequenciaAberta, setSequenciaAberta] = useState(false)
   const [salvandoTag, setSalvandoTag] = useState(false)
   const [editandoObs, setEditandoObs] = useState(false)
   const [textoObs, setTextoObs] = useState("")
@@ -188,14 +190,33 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
             {CLASSIFICACAO_LABEL[contato.classificacao]}
           </span>
         </div>
-        <Link
-          href={contato.conversaId ? `/chat?conversa=${contato.conversaId}` : "/chat"}
-          className="inline-flex items-center gap-1.5 text-sm font-medium h-8 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
-        >
-          <MessageSquare className="size-3.5" />
-          Abrir conversa
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSequenciaAberta(true)}
+            className="inline-flex items-center gap-1.5 text-sm font-medium h-8 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            <Zap className="size-3.5" />
+            Iniciar sequência
+          </button>
+          <Link
+            href={contato.conversaId ? `/chat?conversa=${contato.conversaId}` : "/chat"}
+            className="inline-flex items-center gap-1.5 text-sm font-medium h-8 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            <MessageSquare className="size-3.5" />
+            Abrir conversa
+          </Link>
+        </div>
       </div>
+
+      {sequenciaAberta && (
+        <IniciarSequenciaDialog
+          contactId={contato.id}
+          contatoNome={contato.nome}
+          aberto
+          onFechar={() => setSequenciaAberta(false)}
+        />
+      )}
 
       {/* Abas */}
       <div className="flex items-center gap-1 bg-secondary rounded-lg p-1 self-start w-fit">

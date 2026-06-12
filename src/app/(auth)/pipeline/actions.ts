@@ -2,6 +2,7 @@
 
 import { createClient } from "@/integrations/supabase/server"
 import { processarAutomacoes } from "@/lib/automacoes"
+import { processarGatilhoSequencia } from "@/lib/sequencias"
 import { type CardLead, type EtapaExpansao, type CardCliente, type EtapaRetencao, type HistoricoEtapa, type NotaInterna } from "./mock-pipeline"
 
 function calcularTempoNaEtapa(etapaChangedAt: string): string {
@@ -114,6 +115,13 @@ export async function criarNovoLead(telefone: string, nome: string | null): Prom
     funil: "expansao",
     etapa: "lead",
   })
+
+  await processarGatilhoSequencia({
+    workspaceId: profile.workspace_id,
+    contactId: contato.id,
+    atendenteId: null,
+    gatilho: "card_lead",
+  })
 }
 
 export async function moverCard(cardId: string, novaEtapa: string): Promise<void> {
@@ -124,7 +132,7 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
 
   const { data: card, error: cardError } = await supabase
     .from("pipeline_cards")
-    .select("etapa, contact_id, workspace_id, funil")
+    .select("etapa, contact_id, workspace_id, funil, atendente_id")
     .eq("id", cardId)
     .single()
 
@@ -192,6 +200,13 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
           funil: "retencao",
           etapa: "em_onboarding",
         })
+
+        await processarGatilhoSequencia({
+          workspaceId: card.workspace_id,
+          contactId: card.contact_id,
+          atendenteId: card.atendente_id,
+          gatilho: "onboarding",
+        })
       }
     }
   }
@@ -204,6 +219,16 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
     funil: (card.funil ?? "expansao") as "expansao" | "retencao",
     etapa: novaEtapa,
   })
+
+  // Gatilhos automáticos de sequência do método
+  if (novaEtapa === "catalogo_enviado" || novaEtapa === "inativo") {
+    await processarGatilhoSequencia({
+      workspaceId: card.workspace_id,
+      contactId: card.contact_id,
+      atendenteId: card.atendente_id,
+      gatilho: novaEtapa === "catalogo_enviado" ? "catalogo_enviado" : "inativo",
+    })
+  }
 }
 
 export async function adicionarNota(cardId: string, texto: string): Promise<void> {
@@ -312,6 +337,7 @@ export async function listarCardsExpansao(): Promise<CardLead[]> {
 
   return (data ?? []).map((row) => ({
     id: row.id,
+    contactId: row.contact_id,
     etapa: row.etapa as EtapaExpansao,
     tempoNaEtapa: calcularTempoNaEtapa(row.etapa_changed_at),
     dataEntradaEtapa: new Date(row.etapa_changed_at).toLocaleDateString("pt-BR"),
@@ -368,6 +394,7 @@ export async function listarCardsRetencao(): Promise<CardCliente[]> {
 
   return (data ?? []).map((row) => ({
     id: row.id,
+    contactId: row.contact_id,
     etapa: row.etapa as EtapaRetencao,
     tempoNaEtapa: calcularTempoNaEtapa(row.etapa_changed_at),
     dataEntradaEtapa: new Date(row.etapa_changed_at).toLocaleDateString("pt-BR"),

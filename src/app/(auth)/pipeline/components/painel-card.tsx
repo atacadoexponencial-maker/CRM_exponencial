@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, MessageSquare, ChevronDown, Phone, Clock, Tag, FileText, History } from "lucide-react"
+import { X, MessageSquare, ChevronDown, Phone, Clock, Tag, FileText, History, Zap } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { ETAPAS_EXPANSAO, ETAPAS_RETENCAO, type CardLead, type CardCliente, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
 import { buscarDadosPainel, moverCard, atribuirAtendente, adicionarNota } from "../actions"
 import { ModalConfirmacaoRecompra } from "./modal-confirmacao-recompra"
+import { IniciarSequenciaDialog } from "@/components/shared/iniciar-sequencia-dialog"
 
 interface PainelCardProps {
   card: CardLead | CardCliente | null
@@ -26,6 +27,7 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel,
   const [atribuindo, setAtribuindo] = useState(false)
   const [salvandoNota, setSalvandoNota] = useState(false)
   const [confirmacaoRecompra, setConfirmacaoRecompra] = useState<string | null>(null)
+  const [sequenciaAberta, setSequenciaAberta] = useState(false)
   const [painelData, setPainelData] = useState<{ historico: HistoricoEtapa[]; notas: NotaInterna[] }>({ historico: [], notas: [] })
   // Montado com key={card.id} nos funis — cada card abre uma instância nova,
   // então o estado começa como "carregando" e não precisa de reset em effect.
@@ -262,8 +264,8 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel,
             </div>
           </div>
 
-          {/* Botão abrir conversa */}
-          <div className="px-4 py-3 border-b border-border">
+          {/* Botões de ação */}
+          <div className="px-4 py-3 border-b border-border flex flex-col gap-2">
             <button
               disabled={!card.conversaId}
               onClick={() => { if (card.conversaId) router.push(`/chat?conversa=${card.conversaId}`) }}
@@ -277,7 +279,29 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel,
               <MessageSquare className="size-3.5" />
               Abrir conversa
             </button>
+            <button
+              disabled={!card.contactId}
+              onClick={() => { if (card.contactId) setSequenciaAberta(true) }}
+              className={cn(
+                "w-full h-8 flex items-center justify-center gap-2 text-sm rounded-lg border border-input transition-colors",
+                card.contactId
+                  ? "hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                  : "opacity-50 cursor-not-allowed text-muted-foreground"
+              )}
+            >
+              <Zap className="size-3.5" />
+              Iniciar sequência
+            </button>
           </div>
+
+          {sequenciaAberta && card.contactId && (
+            <IniciarSequenciaDialog
+              contactId={card.contactId}
+              contatoNome={card.contato.nome}
+              aberto
+              onFechar={() => setSequenciaAberta(false)}
+            />
+          )}
 
           {/* Histórico de etapas */}
           <div className="px-4 py-4 border-b border-border">
