@@ -55,6 +55,9 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
             <Link href="/sequencias" className="text-muted-foreground hover:text-foreground transition-colors">
               Sequências
             </Link>
+            <Link href="/campanhas" className="text-muted-foreground hover:text-foreground transition-colors">
+              Campanhas
+            </Link>
             <Link href="/configuracoes/usuarios" className="text-muted-foreground hover:text-foreground transition-colors">
               Usuários
             </Link>

@@ -70,6 +70,11 @@ export async function POST(request: NextRequest) {
       const novoStatus = statusMap[s.status]
       if (!novoStatus || !s.id) continue
       await supabase.from("messages").update({ status: novoStatus }).eq("wamid", s.id)
+      // Campanhas usam os mesmos eventos para o relatório de entrega
+      await supabase
+        .from("campaign_recipients")
+        .update({ status: novoStatus === "falhou" ? "falhou" : novoStatus, atualizado_em: new Date().toISOString() })
+        .eq("wamid", s.id)
     }
     return NextResponse.json({ status: "ok" })
   }
