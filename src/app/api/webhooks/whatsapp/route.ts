@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServiceClient } from "@/integrations/supabase/service"
+import { processarAutomacoes } from "@/lib/automacoes"
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
@@ -111,6 +112,13 @@ export async function POST(request: NextRequest) {
       }).select("id").single()
       if (error || !novaConversa) return NextResponse.json({ error: "db error" }, { status: 500 })
       conversaId = novaConversa.id
+
+      await processarAutomacoes({
+        tipo: "conversa_criada",
+        workspaceId: workspace_id,
+        contactId: contact.id,
+        conversationId: conversaId,
+      })
     }
 
     const { data: msgInserida } = await supabase.from("messages").insert({

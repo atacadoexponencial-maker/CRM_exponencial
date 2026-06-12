@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/integrations/supabase/server"
+import { processarAutomacoes } from "@/lib/automacoes"
 import { type CardLead, type EtapaExpansao, type CardCliente, type EtapaRetencao, type HistoricoEtapa, type NotaInterna } from "./mock-pipeline"
 
 function calcularTempoNaEtapa(etapaChangedAt: string): string {
@@ -93,15 +94,26 @@ export async function criarNovoLead(telefone: string, nome: string | null): Prom
 
   if (contatoError || !contato) throw new Error("Erro ao criar ou localizar contato")
 
-  const { error: cardError } = await supabase
+  const { data: novoCard, error: cardError } = await supabase
     .from("pipeline_cards")
     .insert({
       workspace_id: profile.workspace_id,
       contact_id: contato.id,
       etapa: "lead",
     })
+    .select("id")
+    .single()
 
-  if (cardError) throw new Error("Erro ao criar card no pipeline")
+  if (cardError || !novoCard) throw new Error("Erro ao criar card no pipeline")
+
+  await processarAutomacoes({
+    tipo: "card_movido",
+    workspaceId: profile.workspace_id,
+    contactId: contato.id,
+    cardId: novoCard.id,
+    funil: "expansao",
+    etapa: "lead",
+  })
 }
 
 export async function moverCard(cardId: string, novaEtapa: string): Promise<void> {
@@ -112,7 +124,7 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
 
   const { data: card, error: cardError } = await supabase
     .from("pipeline_cards")
-    .select("etapa, contact_id, workspace_id")
+    .select("etapa, contact_id, workspace_id, funil")
     .eq("id", cardId)
     .single()
 
@@ -160,7 +172,7 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
       .maybeSingle()
 
     if (!existente) {
-      await supabase
+      const { data: cardRetencao } = await supabase
         .from("pipeline_cards")
         .insert({
           funil: "retencao",
@@ -168,8 +180,30 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
           contact_id: card.contact_id,
           workspace_id: card.workspace_id,
         })
+        .select("id")
+        .single()
+
+      if (cardRetencao) {
+        await processarAutomacoes({
+          tipo: "card_movido",
+          workspaceId: card.workspace_id,
+          contactId: card.contact_id,
+          cardId: cardRetencao.id,
+          funil: "retencao",
+          etapa: "em_onboarding",
+        })
+      }
     }
   }
+
+  await processarAutomacoes({
+    tipo: "card_movido",
+    workspaceId: card.workspace_id,
+    contactId: card.contact_id,
+    cardId,
+    funil: (card.funil ?? "expansao") as "expansao" | "retencao",
+    etapa: novaEtapa,
+  })
 }
 
 export async function adicionarNota(cardId: string, texto: string): Promise<void> {
