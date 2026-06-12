@@ -35,6 +35,8 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/exclusao-de-dados') ||
     request.nextUrl.pathname.startsWith('/api/webhooks/') ||
     request.nextUrl.pathname.startsWith('/api/exclusao-de-dados') ||
+    // Crons da Vercel não têm sessão — a rota valida o CRON_SECRET
+    request.nextUrl.pathname.startsWith('/api/cron/') ||
     request.nextUrl.pathname === '/'
 
   if (!user && !isPublicRoute) {
