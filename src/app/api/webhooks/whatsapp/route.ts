@@ -1,6 +1,20 @@
+import { createHmac, timingSafeEqual } from "node:crypto"
 import { NextRequest, NextResponse } from "next/server"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { processarAutomacoes } from "@/lib/automacoes"
+
+// Valida a assinatura X-Hub-Signature-256 que a Meta envia em todo webhook.
+// Sem META_APP_SECRET configurado (ex.: ambiente de teste) a validação é pulada.
+function assinaturaValida(rawBody: string, signature: string | null): boolean {
+  const appSecret = process.env.META_APP_SECRET
+  if (!appSecret) return true
+  if (!signature) return false
+
+  const esperada = "sha256=" + createHmac("sha256", appSecret).update(rawBody).digest("hex")
+  const a = Buffer.from(esperada)
+  const b = Buffer.from(signature)
+  return a.length === b.length && timingSafeEqual(a, b)
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
@@ -19,7 +33,25 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json()
+  const rawBody = await request.text()
+
+  if (!assinaturaValida(rawBody, request.headers.get("x-hub-signature-256"))) {
+    return NextResponse.json({ error: "invalid signature" }, { status: 401 })
+  }
+
+  type WebhookValue = {
+    metadata?: { phone_number_id?: string }
+    statuses?: Array<{ status: string; id?: string }>
+    messages?: Array<{ from: string; id: string; timestamp: string; text?: { body?: string } }>
+  }
+  type WebhookBody = { entry?: Array<{ changes?: Array<{ value?: WebhookValue }> }> }
+
+  let body: WebhookBody
+  try {
+    body = JSON.parse(rawBody)
+  } catch {
+    return NextResponse.json({ error: "invalid payload" }, { status: 400 })
+  }
 
   const change = body?.entry?.[0]?.changes?.[0]?.value
   const phoneNumberId = change?.metadata?.phone_number_id
