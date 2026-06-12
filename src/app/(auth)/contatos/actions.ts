@@ -204,8 +204,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
   ])
 
   // Montar timeline
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  type RawEvento = { id: string; created_at: string; tipo: string; descricao: string; responsavel: string }
+  type RawEvento ={ id: string; created_at: string; tipo: string; descricao: string; responsavel: string }
   const eventos: RawEvento[] = []
 
   for (const conv of rawConversas) {

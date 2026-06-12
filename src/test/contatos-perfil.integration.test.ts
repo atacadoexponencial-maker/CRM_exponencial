@@ -87,7 +87,6 @@ async function criarContato(workspaceId: string, phone: string) {
 // ---------------------------------------------------------------------------
 
 let wsAId: string
-let wsBId: string
 let adminAEmail: string
 let adminBEmail: string
 let contactAId: string
@@ -111,7 +110,6 @@ beforeAll(async () => {
   const { workspaceId: wsA } = await criarWorkspaceComAdmin("Empresa A Tags", adminAEmail)
   const { workspaceId: wsB } = await criarWorkspaceComAdmin("Empresa B Tags", adminBEmail)
   wsAId = wsA
-  wsBId = wsB
 
   contactAId = await criarContato(wsA, "+5511988801001")
   contactA2Id = await criarContato(wsA, "+5511988801002")

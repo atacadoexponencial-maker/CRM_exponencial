@@ -256,13 +256,6 @@ describe("Issue 14 — Adicionar usuário", () => {
 
     expect(resultado.erro).toBeUndefined()
 
-    const { data } = await serviceClient
-      .from("profiles")
-      .select("role, workspace_id")
-      .eq("workspace_id", workspaceId)
-    const criado = data?.find((p) =>
-      criados.userIds.some(() => true) // verifica que o profile existe no workspace
-    )
     // Verificar via listarUsuarios que aparece na lista
     const lista = await listarUsuarios()
     const encontrado = lista.find((u) => u.email === email)

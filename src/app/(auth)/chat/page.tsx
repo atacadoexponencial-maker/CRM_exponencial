@@ -147,7 +147,6 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
       papel={perfil.role}
       nomeUsuario={perfil.name}
       workspaceId={perfil.workspace_id}
-      userId={user.id}
       atendentes={atendentes}
       atendentesTransferir={atendentesTransferir}
       etiquetasDisponiveis={etiquetasDisponiveis}

@@ -11,6 +11,8 @@ export default defineConfig(({ mode }) => {
       globals: true,
       setupFiles: './src/test/setup.ts',
       env,
+      // e2e/ é do Playwright — não deve ser coletado pelo Vitest
+      exclude: ['**/node_modules/**', 'e2e/**'],
     },
     resolve: {
       alias: {

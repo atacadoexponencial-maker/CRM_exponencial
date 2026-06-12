@@ -115,28 +115,13 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const nomeExibido = conversa.contato.nome ?? conversa.contato.telefone
 
-  useEffect(() => {
-    if (mensagensRef.current) {
-      mensagensRef.current.scrollTop = mensagensRef.current.scrollHeight
-    }
-    setTermoBusca("")
-    setBuscaAberta(false)
-    setModoNota(false)
-    setTexto("")
-    setSeletorMRAberto(false)
-    setTermoBuscaMR("")
-    setReplyPara(null)
-  }, [conversa.id])
-
+  // O componente é montado com key={conversa.id} no ChatLayout, então o estado
+  // local já é zerado a cada troca de conversa — sem necessidade de resets em effect.
   useEffect(() => {
     if (mensagensRef.current) {
       mensagensRef.current.scrollTop = mensagensRef.current.scrollHeight
     }
   }, [mensagens])
-
-  useEffect(() => {
-    setIndiceAtual(0)
-  }, [termoBusca])
 
   useEffect(() => {
     resultsRef.current[indiceAtual]?.scrollIntoView({ block: "center", behavior: "smooth" })
@@ -432,7 +417,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
             </span>
 
             <button
-              onClick={() => { setBuscaAberta((v) => !v); setTermoBusca("") }}
+              onClick={() => { setBuscaAberta((v) => !v); setTermoBusca(""); setIndiceAtual(0) }}
               className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors"
             >
               <Search className="size-4" />
@@ -598,7 +583,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
               type="text"
               placeholder="Buscar na conversa..."
               value={termoBusca}
-              onChange={(e) => setTermoBusca(e.target.value)}
+              onChange={(e) => { setTermoBusca(e.target.value); setIndiceAtual(0) }}
               className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
             />
             {termoBusca && (
@@ -626,7 +611,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
                 </button>
               </>
             )}
-            <button onClick={() => { setBuscaAberta(false); setTermoBusca("") }}>
+            <button onClick={() => { setBuscaAberta(false); setTermoBusca(""); setIndiceAtual(0) }}>
               <X className="size-3.5 text-muted-foreground hover:text-foreground" />
             </button>
           </div>

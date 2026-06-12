@@ -156,8 +156,8 @@ describe("Issue 30 — Logout", () => {
     try {
       await realizarLogout()
       expect.fail("Deveria ter lançado redirect")
-    } catch (e: any) {
-      expect(e.digest).toMatch(/NEXT_REDIRECT.*\/login/)
+    } catch (e) {
+      expect((e as { digest?: string }).digest).toMatch(/NEXT_REDIRECT.*\/login/)
     }
   })
 

@@ -27,18 +27,19 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel,
   const [salvandoNota, setSalvandoNota] = useState(false)
   const [confirmacaoRecompra, setConfirmacaoRecompra] = useState<string | null>(null)
   const [painelData, setPainelData] = useState<{ historico: HistoricoEtapa[]; notas: NotaInterna[] }>({ historico: [], notas: [] })
-  const [carregando, setCarregando] = useState(false)
+  // Montado com key={card.id} nos funis — cada card abre uma instância nova,
+  // então o estado começa como "carregando" e não precisa de reset em effect.
+  const [carregando, setCarregando] = useState(true)
   const router = useRouter()
+  const cardId = card?.id
 
   useEffect(() => {
-    if (!card) return
-    setCarregando(true)
-    setPainelData({ historico: [], notas: [] })
-    buscarDadosPainel(card.id)
+    if (!cardId) return
+    buscarDadosPainel(cardId)
       .then((data) => setPainelData(data))
       .catch(() => {})
       .finally(() => setCarregando(false))
-  }, [card?.id])
+  }, [cardId])
 
   if (!card) return null
 

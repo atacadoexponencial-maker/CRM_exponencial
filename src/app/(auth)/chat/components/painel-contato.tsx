@@ -47,10 +47,9 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
 
   const nomeExibido = nomeLocal ?? conversa.contato.telefone
 
+  // Montado dentro do PainelConversa (keyed por conversa.id), então conversaId
+  // nunca muda durante a vida do componente — o estado inicial já está zerado.
   useEffect(() => {
-    setDataPrimeiroContato(null)
-    setConversasAnteriores(null)
-    setErroInfo(false)
     startTransition(async () => {
       try {
         const info = await buscarInfoContato(conversaId)

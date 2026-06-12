@@ -51,7 +51,7 @@ export function FunilExpansao({ cards, papel, atendentes }: FunilExpansaoProps) 
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PainelCard card={cardSelecionado} onFechar={() => setCardSelecionado(null)} onMover={() => router.refresh()} papel={papel} atendentes={atendentes} />
+      <PainelCard key={cardSelecionado?.id ?? "fechado"} card={cardSelecionado} onFechar={() => setCardSelecionado(null)} onMover={() => router.refresh()} papel={papel} atendentes={atendentes} />
       {modalAberto && (
         <ModalNovoLead
           onSucesso={() => { setModalAberto(false); router.refresh() }}

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { ColunaKanban } from "./coluna-kanban"
 import { PainelCard } from "./painel-card"
 import { ModalConfirmacaoRecompra } from "./modal-confirmacao-recompra"
-import { ETAPAS_RETENCAO, type CardCliente, type CardLead } from "../mock-pipeline"
+import { ETAPAS_RETENCAO, type CardCliente } from "../mock-pipeline"
 import { moverCard } from "../actions"
 
 interface FunilRetencaoProps {
@@ -61,7 +61,7 @@ export function FunilRetencao({ cards, papel, atendentes }: FunilRetencaoProps) 
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PainelCard card={cardSelecionado} funil="retencao" onFechar={() => setCardSelecionado(null)} onMover={() => router.refresh()} papel={papel} atendentes={atendentes} />
+      <PainelCard key={cardSelecionado?.id ?? "fechado"} card={cardSelecionado} funil="retencao" onFechar={() => setCardSelecionado(null)} onMover={() => router.refresh()} papel={papel} atendentes={atendentes} />
       <ModalConfirmacaoRecompra
         aberto={confirmacaoPendente !== null}
         onConfirmar={handleConfirmarRecompra}

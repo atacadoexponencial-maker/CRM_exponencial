@@ -115,7 +115,6 @@ describe("Issue 04 — Listar Contatos por Papel", () => {
   const atendente1Email = `atendente-1-${ts}@contatos-test.com`
   const atendente2Email = `atendente-2-${ts}@contatos-test.com`
 
-  let wsAId: string
   let atendente1Id: string
   let atendente2Id: string
   let contactXId: string
@@ -126,7 +125,6 @@ describe("Issue 04 — Listar Contatos por Papel", () => {
   beforeAll(async () => {
     const { workspaceId: wsA } = await criarWorkspaceComAdmin("Empresa A Contatos", adminAEmail)
     const { workspaceId: wsB } = await criarWorkspaceComAdmin("Empresa B Contatos", adminBEmail)
-    wsAId = wsA
 
     await criarUsuario(wsA, gerenteAEmail, "gerente", "Gerente A")
     atendente1Id = await criarUsuario(wsA, atendente1Email, "atendente", "Atendente 1")

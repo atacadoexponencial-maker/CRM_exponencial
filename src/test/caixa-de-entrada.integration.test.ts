@@ -39,42 +39,12 @@ describe("Issue 14 — Nova conversa de número desconhecido", () => {
   })
 
   it("mensagem recebida de número novo cria conversa com status 'Em espera'", async () => {
-    const insertConversation = vi.fn().mockResolvedValue({ error: null })
-
-    mockCreateServiceClient.mockReturnValue({
-      from: vi.fn().mockImplementation((table: string) => {
-        if (table === "whatsapp_connections") {
-          return {
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({ data: { workspace_id: "ws-1" }, error: null }),
-          }
-        }
-        if (table === "contacts") {
-          return {
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({ data: null, error: { code: "PGRST116" } }),
-            insert: vi.fn().mockReturnThis(),
-          }
-        }
-        if (table === "conversations") {
-          return {
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            in: vi.fn().mockReturnThis(),
-            order: vi.fn().mockReturnThis(),
-            limit: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({ data: null, error: { code: "PGRST116" } }),
-            insert: insertConversation,
-          }
-        }
-        return {}
-      }),
-    } as unknown as ReturnType<typeof createServiceClient>)
-
-    // mock contact insert separately
+    // O route faz .insert({...}).select("id").single() — o mock precisa devolver a chain
+    const insertConversation = vi.fn().mockImplementation(() => ({
+      select: () => ({ single: () => Promise.resolve({ data: { id: "conv-1" }, error: null }) }),
+    }))
     let contactInsertCalled = false
+
     mockCreateServiceClient.mockReturnValue({
       from: vi.fn().mockImplementation((table: string) => {
         if (table === "whatsapp_connections") {
@@ -94,6 +64,12 @@ describe("Issue 14 — Nova conversa de número desconhecido", () => {
             insert: insertConversation,
           }
         }
+        if (table === "messages") {
+          // data null pula o broadcast realtime (fetch) no route
+          return {
+            insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: null }) }) }),
+          }
+        }
         return {}
       }),
     } as unknown as ReturnType<typeof createServiceClient>)
@@ -101,6 +77,7 @@ describe("Issue 14 — Nova conversa de número desconhecido", () => {
     const req = makeRequest(buildWebhookPayload("phone-id-1", "+5511999990001", "Olá, tudo bem?"))
     await POST(req)
 
+    expect(contactInsertCalled).toBe(true)
     expect(insertConversation).toHaveBeenCalledWith(
       expect.objectContaining({ status: "em_espera", assigned_to: null })
     )
