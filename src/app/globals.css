@@ -90,6 +90,7 @@
   #ffffff = branco (texto, ícones, logo)
 */
 :root {
+  color-scheme: dark;                      /* controles nativos (<select>, scrollbars) no esquema escuro */
   --background: oklch(0.148 0 0);          /* #1e1e1e */
   --foreground: oklch(1 0 0);              /* #ffffff */
 
