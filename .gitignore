@@ -40,8 +40,6 @@ yarn-error.log*
 .env.local
 .env.*.local
 
-# pre-desenvolvimento (documentação local, não vai para o repositório)
-/pre-desenvolvimento/
 
 # configurações do Claude Code
 .claude/
