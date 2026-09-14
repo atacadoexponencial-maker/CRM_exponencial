@@ -1,8 +1,5 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Claude Code
-CLAUDE.md
-
 # dependencies
 /node_modules
 /.pnp
@@ -41,14 +38,19 @@ yarn-error.log*
 .env.*.local
 
 
-# configurações do Claude Code
-.claude/
+# configurações do Claude Code — só o fluxo de trabalho (skills e comandos) é versionado
+.claude/*
+!.claude/skills/
+!.claude/commands/
 
 # Playwright MCP (logs e screenshots temporários)
 .playwright-mcp/
 
 # Scripts utilitários locais
 /scripts/
+
+# Notas de pendências locais (não vão para o repositório)
+PENDENCIAS.local.md
 
 # vercel
 .vercel
