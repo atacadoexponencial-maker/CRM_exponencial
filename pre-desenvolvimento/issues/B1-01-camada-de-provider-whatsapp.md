@@ -314,6 +314,9 @@ Nenhuma nova.
 - [x] `npm run build` passa
 - [x] `npm run lint` passa
 - [x] Suíte segura passa (`npx vitest run` nos 7 arquivos que não escrevem no banco)
+- [x] Suíte completa executada: 120 de 140 passando. As 20 falhas são `Request rate
+      limit reached` do Supabase Auth, em 3 arquivos que não importam nada do que
+      esta issue tocou — ver seção 10.4 do documento de decisões
 - [x] Testes novos do `plano-testes-B1.md` passando
 - [x] Seção 8.2 do documento de decisões atualizada com o que mudou de rota
 - [ ] **Prova manual:** texto e imagem pelo Chat, com número Meta conectado

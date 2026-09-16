@@ -468,3 +468,45 @@ emitiu o token foi apagado.
 
 **Nada além dessa prova depende de número conectado.** Os outros 16 itens do
 checklist fecharam.
+
+### 10.4 Suíte completa executada — 16/09/2026
+
+Rodada **depois** dos dois commits, de propósito: assim o marco verde já estava
+guardado, e um tropeço de ambiente não contaminaria a leitura do trabalho.
+
+**Resultado: 140 testes, 120 passaram, 20 falharam em 3 arquivos.**
+
+**Nenhuma das falhas é atribuível à B1-01.** As 10 mensagens de erro são todas a
+mesma: `Request rate limit reached`, no `signInWithPassword` do Supabase Auth.
+Zero erros fora dessa categoria — contado, não estimado.
+
+A prova de que não é regressão é estrutural, não empírica: os três arquivos que
+falharam — `contatos-lista`, `times` e `usuarios` — não importam nada do que a
+issue tocou. Só os clientes Supabase, o vitest, `listarContatos` e as actions de
+times. Não existe caminho de código em comum.
+
+Vale registrar por que não re-executamos para comparar: o rate limit continuaria
+ativo e derrubaria a re-execução do mesmo jeito, inclusive contra a `master` sem
+a mudança. O teste empírico seria confundido; o argumento de importação não.
+
+Os 13 arquivos que passaram incluem **todos** os do caminho de WhatsApp:
+`mensagens.integration`, `caixa-de-entrada.integration`, `automacoes`,
+`sequencias` e os dois novos de provider.
+
+**Causa provável:** a suíte autentica dezenas de usuários em rajada contra um
+Supabase remoto. É propriedade de rodar tudo de uma vez, não da mudança. Quem for
+mexer nisso um dia: o caminho é espaçar as autenticações ou reusar sessão entre
+testes do mesmo arquivo.
+
+**Sujeira deixada na base**, medida contra a leitura do começo do dia:
+
+| Tabela | Antes | Depois |
+|---|---|---|
+| `workspaces` | 18 | **19** |
+| `contacts` | 30 | **33** |
+| `conversations` | 2 | 2 |
+| `messages` | 35 | 35 |
+
+Um workspace e três contatos sobraram. Confirma o que a seção 8.1 previu: a
+limpeza do `afterAll` não é perfeita, e é essa a origem dos 18 workspaces de lixo
+que já estavam lá. Enquanto não houver cliente real na base, o custo é esse.
