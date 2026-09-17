@@ -6,6 +6,8 @@
 
 import { createServiceClient } from "@/integrations/supabase/service"
 import { substituirVariaveis } from "@/lib/sequencias"
+import { resolverProvider } from "@/lib/whatsapp"
+import type { ProviderWhatsApp, ResultadoEnvio } from "@/lib/whatsapp"
 
 const TAMANHO_LOTE = 40
 
@@ -28,7 +30,7 @@ type RecipientRow = {
 }
 
 async function enviarParaDestinatario(
-  conn: { phone_number_id: string; access_token: string },
+  provider: ProviderWhatsApp,
   campanha: CampaignRow,
   destinatario: RecipientRow,
   nomeVendedor: string
@@ -38,55 +40,41 @@ async function enviarParaDestinatario(
     nomeVendedor,
   })
 
-  let payload: Record<string, unknown>
-  if (campanha.tipo_mensagem === "imagem" && campanha.arquivo_url) {
-    payload = { type: "image", image: { link: campanha.arquivo_url, caption: texto } }
-  } else if (campanha.tipo_mensagem === "documento" && campanha.arquivo_url) {
-    payload = {
-      type: "document",
-      document: {
-        link: campanha.arquivo_url,
-        caption: texto,
-        filename: campanha.arquivo_nome ?? "documento",
-      },
-    }
-  } else {
-    payload = { type: "text", text: { body: texto } }
-  }
-
+  // O try/catch continua aqui, e não dentro do provider: campanha trata falha
+  // de rede como destinatário falho e segue o lote. Os outros chamadores
+  // tratam diferente, por isso o provider não engole a exceção.
   try {
-    const res = await fetch(`https://graph.facebook.com/v21.0/${conn.phone_number_id}/messages`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${conn.access_token}`,
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: destinatario.telefone_snapshot,
-        ...payload,
-      }),
-    })
+    let resultado: ResultadoEnvio
 
-    if (!res.ok) return { ok: false, wamid: null }
+    if (campanha.tipo_mensagem === "imagem" && campanha.arquivo_url) {
+      resultado = await provider.enviarMidia(destinatario.telefone_snapshot, {
+        url: campanha.arquivo_url,
+        tipo: "imagem",
+        legenda: texto,
+      })
+    } else if (campanha.tipo_mensagem === "documento" && campanha.arquivo_url) {
+      resultado = await provider.enviarMidia(destinatario.telefone_snapshot, {
+        url: campanha.arquivo_url,
+        tipo: "documento",
+        legenda: texto,
+        nomeArquivo: campanha.arquivo_nome ?? "documento",
+      })
+    } else {
+      resultado = await provider.enviarTexto(destinatario.telefone_snapshot, texto)
+    }
 
-    const data = (await res.json()) as { messages?: Array<{ id: string }> }
-    return { ok: true, wamid: data.messages?.[0]?.id ?? null }
+    if (!resultado.ok) return { ok: false, wamid: null }
+
+    return { ok: true, wamid: resultado.mensagemId }
   } catch {
     return { ok: false, wamid: null }
   }
 }
 
 async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow): Promise<number> {
-  const { data: conn } = await supabase
-    .from("whatsapp_connections")
-    .select("phone_number_id, access_token")
-    .eq("workspace_id", campanha.workspace_id)
-    .eq("status", "connected")
-    .limit(1)
-    .maybeSingle()
+  const provider = await resolverProvider(supabase, campanha.workspace_id)
 
-  if (!conn) {
+  if (!provider) {
     // Sem conexão: marca todos os pendentes como falhos e encerra
     await supabase
       .from("campaign_recipients")
@@ -127,7 +115,7 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
     const nomeVendedor = destinatario.contact_id
       ? (vendedorPorContato[destinatario.contact_id] ?? "")
       : ""
-    const resultado = await enviarParaDestinatario(conn, campanha, destinatario, nomeVendedor)
+    const resultado = await enviarParaDestinatario(provider, campanha, destinatario, nomeVendedor)
     await supabase
       .from("campaign_recipients")
       .update({

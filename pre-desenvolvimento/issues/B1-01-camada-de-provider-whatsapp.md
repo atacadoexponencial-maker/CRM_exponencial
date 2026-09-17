@@ -212,3 +212,121 @@ Não faça nesta issue, mesmo que pareça natural:
 Rode `grep -rn "graph.facebook.com" src` e confira que só sobraram os pontos de
 administração da conta. Depois abra o app, mande uma mensagem de texto e uma imagem pelo
 Chat, e confirme que as duas chegam e aparecem na conversa.
+
+---
+
+# Planejamento (`/plan` — 16/09/2026)
+
+## Cenários
+
+### Happy Path
+
+1. Um dos sete pontos de negócio precisa mandar mensagem.
+2. Chama `resolverProvider(supabase, workspaceId)`.
+3. O seletor busca em `whatsapp_connections` a conexão `status = "connected"` do
+   workspace e devolve uma instância do provider Meta fechada sobre `phone_number_id` e
+   `access_token` daquela conexão.
+4. O chamador invoca `enviarTexto` ou `enviarMidia`.
+5. O provider monta exatamente a mesma requisição de hoje e devolve
+   `{ ok: true, mensagemId }`.
+6. O chamador grava o `wamid` e atualiza a conversa — **igual ao que já fazia**.
+
+### Edge Cases
+
+- **Workspace sem número conectado:** `resolverProvider` devolve `null`. Cada chamador
+  trata como já tratava a ausência de `conn`: `whatsapp-envio` devolve `false`, o chat
+  lança `"Conexão WhatsApp não encontrada"`, campanhas marca os pendentes como falhos.
+- **Resposta 200 sem `messages[0].id`:** `mensagemId` vira `null`. É o comportamento de
+  hoje (`?? null`) e o banco aceita `wamid` nulo.
+- **Legenda vazia vs. legenda ausente:** `campanhas.ts:42` manda `caption` mesmo quando
+  a string é vazia; `chat/actions.ts:135` não manda o campo. A regra é `legenda !==
+  undefined`, nunca truthiness. Vale igual para `filename`.
+- **Documento por campanha leva `caption`; documento pelo chat não.** Diferença real
+  entre os dois chamadores, não descuido.
+
+### Cenário de Erro
+
+- **Resposta não-2xx:** `{ ok: false, motivo }`, com `motivo` no formato
+  `Meta API error: {status} - {corpo}`. Unificação aceita na decisão 5.4 — hoje
+  documento e vídeo não incluem o corpo.
+- **Exceção de rede:** o provider **não** captura. A exceção sobe e cada chamador mantém
+  o tratamento atual — `campanhas.ts` já tem `try/catch` próprio que devolve
+  `{ ok: false, wamid: null }`, o chat propaga para a UI, `whatsapp-envio` não captura.
+
+## Banco de Dados
+
+Nenhuma alteração de schema. Apenas leitura, já existente:
+
+- Tabela `whatsapp_connections`
+  - `phone_number_id` (text) — identificador do número na Meta, vai na URL
+  - `access_token` (text) — credencial da conexão, vai no header `Authorization`
+  - `status` (text) — o seletor filtra por `"connected"`
+  - `workspace_id` (uuid) — isolamento multi-tenant
+
+> A coluna `provider` **não** entra nesta issue — é da issue do gateway.
+
+## Arquivos
+
+- **Criar:** `src/lib/whatsapp/tipos.ts` — contrato e tipos de resultado, sem runtime
+- **Criar:** `src/lib/whatsapp/provider-meta.ts` — único arquivo que conhece `wamid`,
+  `v21.0` e `messaging_product`
+- **Criar:** `src/lib/whatsapp/index.ts` — seletor `resolverProvider` e reexportações
+- **Criar:** `src/lib/whatsapp/README.md` — como plugar um terceiro provider
+- **Modificar:** `src/lib/whatsapp-envio.ts` — linha 46, `enviarTextoWhatsApp`
+- **Modificar:** `src/lib/campanhas.ts` — linha 58, `enviarParaDestinatario`
+- **Modificar:** `src/app/(auth)/chat/actions.ts` — linhas 33, 125, 227, 312 e 397
+- **Criar:** `src/test/whatsapp-provider.test.ts` — seletor, envio, marcar lida, suporta
+- **Criar:** `src/test/whatsapp-provider-corpo.test.ts` — corpo byte a byte
+
+> `src/lib/whatsapp/README.md` não estava na lista original do spec. É adição
+> deliberada, combinada com Luan, registrada na seção 7.1 do documento de decisões.
+
+## Código reutilizável encontrado
+
+- **Padrão de mock do Supabase:** `src/test/automacoes.test.ts:14` — builder `chain()`
+  que imita o encadeamento do supabase-js. Importar o padrão, não reescrever.
+- **Tipo do service client:** `type ServiceClient = ReturnType<typeof
+  createServiceClient>`, já usado em `whatsapp-envio.ts:7` e `campanhas.ts:13`. Nem
+  `createServiceClient` nem `createClient` passam o generic `Database`, então os dois
+  resolvem para o mesmo tipo — o cliente do chat, com RLS, é aceito sem cast.
+- **Leitura da conexão:** a query com `.eq("status","connected").limit(1).maybeSingle()`
+  aparece idêntica em quatro lugares. Passa a existir uma vez só, no seletor.
+
+## Dependências Externas
+
+Nenhuma nova.
+
+## Checklist
+
+- [x] `src/lib/whatsapp/tipos.ts` com `CanalWhatsApp`, `ResultadoEnvio`, `MidiaEnvio`,
+      `RecursoWhatsApp` e `ProviderWhatsApp`, nas assinaturas literais do contrato
+- [x] `src/lib/whatsapp/provider-meta.ts` com `enviarTexto`, `enviarMidia`,
+      `marcarComoLida` e `suporta`
+- [x] Corpo da requisição idêntico ao de hoje nos cinco tipos, com a regra
+      `valor !== undefined` para `caption` e `filename`
+- [x] `src/lib/whatsapp/index.ts` com `resolverProvider`, devolvendo `null` sem conexão
+- [x] `src/lib/whatsapp-envio.ts` usando o provider, mantendo o retorno `boolean`
+- [x] `src/lib/campanhas.ts` usando o provider dentro do `try/catch` que já existe
+- [x] Os cinco pontos de `chat/actions.ts` usando o provider, mantendo o `throw`
+- [x] Cabeçalho em português no topo de cada módulo novo, no padrão do repo
+- [x] `src/lib/whatsapp/README.md` explicando como adicionar um terceiro provider
+- [x] `grep -rn "graph.facebook.com" src` não devolve nada nos 3 arquivos de envio
+- [x] `npm run build` passa
+- [x] `npm run lint` passa
+- [x] Suíte segura passa (`npx vitest run` nos 7 arquivos que não escrevem no banco)
+- [x] Suíte completa executada: 120 de 140 passando. As 20 falhas são `Request rate
+      limit reached` do Supabase Auth, em 3 arquivos que não importam nada do que
+      esta issue tocou — ver seção 10.4 do documento de decisões
+- [x] Testes novos do `plano-testes-B1.md` passando
+- [x] Seção 8.2 do documento de decisões atualizada com o que mudou de rota
+- [ ] **Prova manual:** texto e imagem pelo Chat, com número Meta conectado
+      (bloqueada — ver seção 8.2 do documento de decisões)
+
+## Fora de escopo — confirmado no planejamento
+
+Encontrados durante a pesquisa e **deliberadamente não tocados**:
+
+- `config_id` fixo em `wizard-conexao.tsx:122`, apontando para app apagado
+- `conectar-whatsapp-button.tsx` e `conectar-teste-button.tsx`, sem importadores
+- Constantes `MOCK_*` não usadas em cinco arquivos
+- Ausência de revalidação do token da conexão (`status` fica "connected" para sempre)

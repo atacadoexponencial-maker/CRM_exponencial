@@ -3,6 +3,7 @@
 // na conversa aberta do contato (cria uma se não existir).
 
 import type { createServiceClient } from "@/integrations/supabase/service"
+import { resolverProvider } from "@/lib/whatsapp"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -30,37 +31,18 @@ export async function enviarTextoWhatsApp(
   contactId: string,
   texto: string
 ): Promise<boolean> {
-  const [{ data: conn }, { data: contato }] = await Promise.all([
-    supabase
-      .from("whatsapp_connections")
-      .select("phone_number_id, access_token")
-      .eq("workspace_id", workspaceId)
-      .eq("status", "connected")
-      .limit(1)
-      .maybeSingle(),
+  const [provider, { data: contato }] = await Promise.all([
+    resolverProvider(supabase, workspaceId),
     supabase.from("contacts").select("phone_number").eq("id", contactId).single(),
   ])
 
-  if (!conn || !contato) return false
+  if (!provider || !contato) return false
 
-  const metaRes = await fetch(`https://graph.facebook.com/v21.0/${conn.phone_number_id}/messages`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${conn.access_token}`,
-    },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to: contato.phone_number,
-      type: "text",
-      text: { body: texto },
-    }),
-  })
+  const resultado = await provider.enviarTexto(contato.phone_number, texto)
 
-  if (!metaRes.ok) return false
+  if (!resultado.ok) return false
 
-  const metaData = (await metaRes.json()) as { messages?: Array<{ id: string }> }
-  const wamid = metaData.messages?.[0]?.id ?? null
+  const wamid = resultado.mensagemId
   const agora = new Date().toISOString()
 
   let conversaId = await buscarConversaAberta(supabase, workspaceId, contactId)

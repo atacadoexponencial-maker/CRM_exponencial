@@ -2,6 +2,7 @@
 
 import { createClient } from "@/integrations/supabase/server"
 import { createServiceClient } from "@/integrations/supabase/service"
+import { resolverProvider } from "@/lib/whatsapp"
 import type { Mensagem, TipoMensagem, DirecaoMensagem, StatusMensagem } from "./mock-mensagens"
 
 export async function enviarMensagem(conversaId: string, texto: string): Promise<void> {
@@ -19,40 +20,15 @@ export async function enviarMensagem(conversaId: string, texto: string): Promise
   const { workspace_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
-  const { data: conn, error: errConn } = await supabase
-    .from("whatsapp_connections")
-    .select("phone_number_id, access_token")
-    .eq("workspace_id", workspace_id)
-    .eq("status", "connected")
-    .limit(1)
-    .single()
+  const provider = await resolverProvider(supabase, workspace_id)
 
-  if (errConn || !conn) throw new Error("Conexão WhatsApp não encontrada")
+  if (!provider) throw new Error("Conexão WhatsApp não encontrada")
 
-  const metaRes = await fetch(
-    `https://graph.facebook.com/v21.0/${conn.phone_number_id}/messages`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${conn.access_token}`,
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: contact.phone_number,
-        type: "text",
-        text: { body: texto },
-      }),
-    }
-  )
+  const resultado = await provider.enviarTexto(contact.phone_number, texto)
 
-  if (!metaRes.ok) {
-    const errBody = await metaRes.text().catch(() => "")
-    throw new Error(`Meta API error: ${metaRes.status} - ${errBody}`)
-  }
+  if (!resultado.ok) throw new Error(resultado.motivo)
 
-  const metaData = await metaRes.json() as { messages?: Array<{ id: string }> }
-  const wamid = metaData.messages?.[0]?.id ?? null
+  const wamid = resultado.mensagemId
 
   const agora = new Date().toISOString()
 
@@ -97,15 +73,9 @@ export async function enviarImagem(conversaId: string, formData: FormData): Prom
   const { workspace_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
-  const { data: conn, error: errConn } = await supabase
-    .from("whatsapp_connections")
-    .select("phone_number_id, access_token")
-    .eq("workspace_id", workspace_id)
-    .eq("status", "connected")
-    .limit(1)
-    .single()
+  const provider = await resolverProvider(supabase, workspace_id)
 
-  if (errConn || !conn) throw new Error("Conexão WhatsApp não encontrada")
+  if (!provider) throw new Error("Conexão WhatsApp não encontrada")
 
   const serviceClient = createServiceClient()
   const ext = arquivo.name.split(".").pop() ?? "jpg"
@@ -121,27 +91,12 @@ export async function enviarImagem(conversaId: string, formData: FormData): Prom
     .from("chat-attachments")
     .getPublicUrl(path)
 
-  const metaRes = await fetch(
-    `https://graph.facebook.com/v21.0/${conn.phone_number_id}/messages`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${conn.access_token}`,
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: contact.phone_number,
-        type: "image",
-        image: { link: publicUrl },
-      }),
-    }
-  )
+  const resultado = await provider.enviarMidia(contact.phone_number, {
+    url: publicUrl,
+    tipo: "imagem",
+  })
 
-  if (!metaRes.ok) {
-    const errBody = await metaRes.text().catch(() => "")
-    throw new Error(`Meta API error: ${metaRes.status} - ${errBody}`)
-  }
+  if (!resultado.ok) throw new Error(resultado.motivo)
 
   const agora = new Date().toISOString()
 
@@ -199,15 +154,9 @@ export async function enviarDocumento(conversaId: string, formData: FormData): P
   const { workspace_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
-  const { data: conn, error: errConn } = await supabase
-    .from("whatsapp_connections")
-    .select("phone_number_id, access_token")
-    .eq("workspace_id", workspace_id)
-    .eq("status", "connected")
-    .limit(1)
-    .single()
+  const provider = await resolverProvider(supabase, workspace_id)
 
-  if (errConn || !conn) throw new Error("Conexão WhatsApp não encontrada")
+  if (!provider) throw new Error("Conexão WhatsApp não encontrada")
 
   const serviceClient = createServiceClient()
   const nomeArquivoSanitizado = arquivo.name.replace(/[^a-zA-Z0-9._-]/g, "_")
@@ -223,24 +172,13 @@ export async function enviarDocumento(conversaId: string, formData: FormData): P
     .from("chat-attachments")
     .getPublicUrl(path)
 
-  const metaRes = await fetch(
-    `https://graph.facebook.com/v21.0/${conn.phone_number_id}/messages`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${conn.access_token}`,
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: contact.phone_number,
-        type: "document",
-        document: { link: publicUrl, filename: arquivo.name },
-      }),
-    }
-  )
+  const resultado = await provider.enviarMidia(contact.phone_number, {
+    url: publicUrl,
+    tipo: "documento",
+    nomeArquivo: arquivo.name,
+  })
 
-  if (!metaRes.ok) throw new Error(`Meta API error: ${metaRes.status}`)
+  if (!resultado.ok) throw new Error(resultado.motivo)
 
   const agora = new Date().toISOString()
 
@@ -284,15 +222,9 @@ export async function enviarVideo(conversaId: string, formData: FormData): Promi
   const { workspace_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
-  const { data: conn, error: errConn } = await supabase
-    .from("whatsapp_connections")
-    .select("phone_number_id, access_token")
-    .eq("workspace_id", workspace_id)
-    .eq("status", "connected")
-    .limit(1)
-    .single()
+  const provider = await resolverProvider(supabase, workspace_id)
 
-  if (errConn || !conn) throw new Error("Conexão WhatsApp não encontrada")
+  if (!provider) throw new Error("Conexão WhatsApp não encontrada")
 
   const serviceClient = createServiceClient()
   const ext = arquivo.name.split(".").pop() ?? "mp4"
@@ -308,24 +240,12 @@ export async function enviarVideo(conversaId: string, formData: FormData): Promi
     .from("chat-attachments")
     .getPublicUrl(path)
 
-  const metaRes = await fetch(
-    `https://graph.facebook.com/v21.0/${conn.phone_number_id}/messages`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${conn.access_token}`,
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: contact.phone_number,
-        type: "video",
-        video: { link: publicUrl },
-      }),
-    }
-  )
+  const resultado = await provider.enviarMidia(contact.phone_number, {
+    url: publicUrl,
+    tipo: "video",
+  })
 
-  if (!metaRes.ok) throw new Error(`Meta API error: ${metaRes.status}`)
+  if (!resultado.ok) throw new Error(resultado.motivo)
 
   const agora = new Date().toISOString()
 
@@ -369,15 +289,9 @@ export async function enviarAudio(conversaId: string, formData: FormData): Promi
   const { workspace_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
-  const { data: conn, error: errConn } = await supabase
-    .from("whatsapp_connections")
-    .select("phone_number_id, access_token")
-    .eq("workspace_id", workspace_id)
-    .eq("status", "connected")
-    .limit(1)
-    .single()
+  const provider = await resolverProvider(supabase, workspace_id)
 
-  if (errConn || !conn) throw new Error("Conexão WhatsApp não encontrada")
+  if (!provider) throw new Error("Conexão WhatsApp não encontrada")
 
   const serviceClient = createServiceClient()
   const ext = arquivo.type.includes("ogg") ? "ogg" : arquivo.type.includes("mp4") ? "mp4" : arquivo.type.includes("mpeg") ? "mp3" : "webm"
@@ -393,27 +307,12 @@ export async function enviarAudio(conversaId: string, formData: FormData): Promi
     .from("chat-attachments")
     .getPublicUrl(path)
 
-  const metaRes = await fetch(
-    `https://graph.facebook.com/v21.0/${conn.phone_number_id}/messages`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${conn.access_token}`,
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: contact.phone_number,
-        type: "audio",
-        audio: { link: publicUrl },
-      }),
-    }
-  )
+  const resultado = await provider.enviarMidia(contact.phone_number, {
+    url: publicUrl,
+    tipo: "audio",
+  })
 
-  if (!metaRes.ok) {
-    const errBody = await metaRes.text().catch(() => "")
-    throw new Error(`Meta API error: ${metaRes.status} - ${errBody}`)
-  }
+  if (!resultado.ok) throw new Error(resultado.motivo)
 
   const agora = new Date().toISOString()
 
