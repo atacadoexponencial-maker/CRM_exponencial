@@ -10,10 +10,13 @@
 
 import type { createServiceClient } from "@/integrations/supabase/service"
 
+import { clienteGatewayDoAmbiente } from "./gateway/cliente"
+import { criarProviderGateway } from "./provider-gateway"
 import { criarProviderMeta } from "./provider-meta"
-import type { ProviderWhatsApp } from "./tipos"
+import type { CanalWhatsApp, ProviderWhatsApp } from "./tipos"
 
 export type {
+  AlvoDeLeitura,
   CanalWhatsApp,
   MidiaEnvio,
   ProviderWhatsApp,
@@ -49,7 +52,7 @@ export async function resolverProvider(
 ): Promise<ProviderWhatsApp | null> {
   const { data: conexao } = await supabase
     .from("whatsapp_connections")
-    .select("phone_number_id, access_token")
+    .select("canal, phone_number_id, access_token, instance_id, instance_token")
     .eq("workspace_id", workspaceId)
     .eq("status", "connected")
     .limit(1)
@@ -57,5 +60,39 @@ export async function resolverProvider(
 
   if (!conexao) return null
 
+  return providerDaConexao(conexao as ConexaoParaProvider)
+}
+
+/** A conexão, na medida exata que a escolha do provider precisa. */
+export type ConexaoParaProvider = {
+  canal: CanalWhatsApp | null
+  phone_number_id: string | null
+  access_token: string | null
+  instance_id: string | null
+  instance_token: string | null
+}
+
+/**
+ * Escolhe a implementação a partir do canal da conexão.
+ *
+ * Conexão sem canal preenchido é da Meta: é o default da coluna, e as linhas
+ * anteriores à B1-02 nasceram assim.
+ *
+ * Devolve `null` quando a conexão está incompleta para o canal dela — sem
+ * credencial não há envio, e o chamador trata como já trata a ausência de
+ * conexão. A constraint do banco impede isso; a conferência aqui existe porque
+ * o tipo gerado do Supabase não sabe da constraint.
+ */
+export function providerDaConexao(conexao: ConexaoParaProvider): ProviderWhatsApp | null {
+  if (conexao.canal === "gateway") {
+    if (!conexao.instance_id || !conexao.instance_token) return null
+    return criarProviderGateway(
+      clienteGatewayDoAmbiente(),
+      conexao.instance_id,
+      conexao.instance_token
+    )
+  }
+
+  if (!conexao.phone_number_id || !conexao.access_token) return null
   return criarProviderMeta(conexao.phone_number_id, conexao.access_token)
 }

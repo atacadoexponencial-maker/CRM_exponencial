@@ -9,6 +9,9 @@ qual canal está em uso.
 |---|---|
 | `tipos.ts` | O contrato. Só tipo, sem runtime. |
 | `provider-meta.ts` | A implementação da API Oficial da Meta. |
+| `provider-gateway.ts` | A implementação do gateway próprio (canal direto, QR Code). |
+| `gateway/cliente.ts` | O transporte até o gateway: credenciais, tempo limite, tradução de erro. |
+| `gateway/tipos.ts` | Os tipos da fronteira com o gateway, espelhando o contrato dele. |
 | `index.ts` | O seletor, e o que o resto do CRM importa. |
 
 ## Como usar
@@ -53,9 +56,31 @@ os canais não fazem as mesmas coisas — o gateway, por exemplo, não tem templ
 porque template não existe fora da API Oficial. Seja honesto aqui: quem chama
 confia nessa resposta para decidir se oferece o recurso.
 
-**4. Ensine o seletor a escolher**, em `index.ts`. Hoje ele devolve Meta sempre.
-A escolha deve sair de um campo da conexão no banco — não de variável de
-ambiente e não do tipo de mensagem.
+**4. Ensine o seletor a escolher**, em `index.ts`, na função
+`providerDaConexao`. A escolha sai da coluna `canal` de `whatsapp_connections`
+— não de variável de ambiente e não do tipo de mensagem. Conexão sem canal
+preenchido é da Meta: é o default da coluna, e as linhas anteriores à `B1-02`
+nasceram assim.
+
+## O canal direto em duas linhas
+
+O gateway é um serviço nosso, em outro repositório, com contrato próprio
+(a cópia dele está em `pre-desenvolvimento/contrato-gateway-v1.md`). Duas coisas
+dele vazariam para o resto do CRM se `provider-gateway.ts` não as escondesse:
+
+- **Todo envio é enfileirado.** A resposta diz `queued: true`, que significa
+  *aceita*, não *enviada*. A confirmação real chega depois, pelo evento
+  `message.status`. O identificador devolvido grava em `messages.wamid`, no
+  mesmo lugar do `wamid` da Meta — sem migration e sem coluna nova.
+- **Ritmo e limites são do gateway, não do CRM.** Intervalo entre mensagens,
+  tetos por hora e por dia, janela de envio e freio de emergência vivem lá. O
+  CRM lê e configura (B4 e B5), nunca reimplementa.
+
+Uma diferença não teve como esconder: **marcar como lida**. A Meta confirma uma
+*mensagem* (`message_id`), o gateway confirma a *conversa* (`to`), e nenhum dos
+dois deriva o outro. Por isso `marcarComoLida` recebe `AlvoDeLeitura`, com os
+dois identificadores, e cada provider usa o que lhe serve. A alternativa era um
+provider adivinhar — e, no gateway, o recibo iria para o contato errado.
 
 ## Duas regras que parecem detalhe e não são
 
@@ -89,3 +114,7 @@ só um dos lados possui.
 A camada nasceu na issue `B1-01`. O caminho percorrido, as alternativas
 descartadas e os porquês estão em
 `pre-desenvolvimento/decisoes/B1-01-camada-de-provider.md`.
+
+O segundo provider e o seletor de dois caminhos vieram na `B1-02`, em
+17/09/2026, junto da coluna `canal` em `whatsapp_connections`. O transporte
+(`gateway/`) e a cópia do contrato vieram na `B0-01`.

@@ -39,6 +39,26 @@ export type MidiaEnvio = {
   nomeArquivo?: string
 }
 
+/**
+ * Quem é a leitura a confirmar.
+ *
+ * Os dois canais pedem identificadores diferentes para a mesma operação, e não
+ * há como um traduzir o do outro: a Meta confirma **uma mensagem**
+ * (`message_id`), o gateway confirma **a conversa** (`to`). Por isso o contrato
+ * carrega os dois — quem chama tem ambos em mãos, e nenhum provider fica
+ * adivinhando.
+ *
+ * Mudança de 17/09/2026, na B1-02. Antes o contrato pedia só `mensagemId`, o
+ * que funcionava para a Meta e daria recibo no contato errado no gateway. Não
+ * havia chamador ainda; o primeiro nasce na B7.
+ */
+export type AlvoDeLeitura = {
+  /** `wamid` da mensagem recebida. Usado pela API Oficial. */
+  mensagemId: string
+  /** Telefone do contato, em dígitos. Usado pelo canal direto. */
+  destino: string
+}
+
 /** Recursos que um canal pode ou não oferecer. */
 export type RecursoWhatsApp = "templates" | "midia" | "marcar_lida"
 
@@ -52,7 +72,7 @@ export type ProviderWhatsApp = {
 
   enviarTexto(destino: string, texto: string): Promise<ResultadoEnvio>
   enviarMidia(destino: string, midia: MidiaEnvio): Promise<ResultadoEnvio>
-  marcarComoLida(mensagemId: string): Promise<ResultadoEnvio>
+  marcarComoLida(alvo: AlvoDeLeitura): Promise<ResultadoEnvio>
 
   /** Recursos que este canal suporta. */
   suporta(recurso: RecursoWhatsApp): boolean

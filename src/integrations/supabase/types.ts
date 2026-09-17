@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      alert_config: {
+        Row: {
+          em_risco_dias: number
+          inativo_dias: number
+          lead_sem_resposta_dias: number
+          sem_recompra_dias: number
+          workspace_id: string
+        }
+        Insert: {
+          em_risco_dias?: number
+          inativo_dias?: number
+          lead_sem_resposta_dias?: number
+          sem_recompra_dias?: number
+          workspace_id: string
+        }
+        Update: {
+          em_risco_dias?: number
+          inativo_dias?: number
+          lead_sem_resposta_dias?: number
+          sem_recompra_dias?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alert_dismissals: {
+        Row: {
+          card_id: string
+          created_at: string
+          id: string
+          referencia: string
+          tipo: string
+          workspace_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          id?: string
+          referencia: string
+          tipo: string
+          workspace_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          id?: string
+          referencia?: string
+          tipo?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_dismissals_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alert_dismissals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automations: {
         Row: {
           acao_config: Json
@@ -51,6 +125,130 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "automations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_recipients: {
+        Row: {
+          atualizado_em: string | null
+          campaign_id: string
+          contact_id: string | null
+          created_at: string
+          id: string
+          nome_snapshot: string | null
+          status: string
+          telefone_snapshot: string
+          wamid: string | null
+          workspace_id: string
+        }
+        Insert: {
+          atualizado_em?: string | null
+          campaign_id: string
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          nome_snapshot?: string | null
+          status?: string
+          telefone_snapshot: string
+          wamid?: string | null
+          workspace_id: string
+        }
+        Update: {
+          atualizado_em?: string | null
+          campaign_id?: string
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          nome_snapshot?: string | null
+          status?: string
+          telefone_snapshot?: string
+          wamid?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_recipients_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_recipients_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          agendada_para: string | null
+          arquivo_nome: string | null
+          arquivo_url: string | null
+          conteudo: string | null
+          created_at: string
+          criado_por: string | null
+          enviada_em: string | null
+          id: string
+          nome: string
+          segmento: Json
+          status: string
+          tipo_mensagem: string
+          workspace_id: string
+        }
+        Insert: {
+          agendada_para?: string | null
+          arquivo_nome?: string | null
+          arquivo_url?: string | null
+          conteudo?: string | null
+          created_at?: string
+          criado_por?: string | null
+          enviada_em?: string | null
+          id?: string
+          nome: string
+          segmento?: Json
+          status?: string
+          tipo_mensagem?: string
+          workspace_id: string
+        }
+        Update: {
+          agendada_para?: string | null
+          arquivo_nome?: string | null
+          arquivo_url?: string | null
+          conteudo?: string | null
+          created_at?: string
+          criado_por?: string | null
+          enviada_em?: string | null
+          id?: string
+          nome?: string
+          segmento?: Json
+          status?: string
+          tipo_mensagem?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -653,6 +851,224 @@ export type Database = {
           },
         ]
       }
+      reminders: {
+        Row: {
+          atendente_id: string
+          contact_id: string
+          created_at: string
+          done_at: string | null
+          due_at: string
+          id: string
+          instrucao: string
+          origem: string
+          sequence_run_id: string | null
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          atendente_id: string
+          contact_id: string
+          created_at?: string
+          done_at?: string | null
+          due_at: string
+          id?: string
+          instrucao: string
+          origem: string
+          sequence_run_id?: string | null
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          atendente_id?: string
+          contact_id?: string
+          created_at?: string
+          done_at?: string | null
+          due_at?: string
+          id?: string
+          instrucao?: string
+          origem?: string
+          sequence_run_id?: string | null
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_atendente_id_fkey"
+            columns: ["atendente_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_sequence_run_id_fkey"
+            columns: ["sequence_run_id"]
+            isOneToOne: false
+            referencedRelation: "sequence_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sequence_runs: {
+        Row: {
+          atendente_id: string | null
+          contact_id: string
+          created_at: string
+          etapa_atual: number
+          finished_at: string | null
+          id: string
+          proxima_execucao: string | null
+          sequence_id: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          atendente_id?: string | null
+          contact_id: string
+          created_at?: string
+          etapa_atual?: number
+          finished_at?: string | null
+          id?: string
+          proxima_execucao?: string | null
+          sequence_id: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          atendente_id?: string | null
+          contact_id?: string
+          created_at?: string
+          etapa_atual?: number
+          finished_at?: string | null
+          id?: string
+          proxima_execucao?: string | null
+          sequence_id?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sequence_runs_atendente_id_fkey"
+            columns: ["atendente_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sequence_runs_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sequence_runs_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "sequences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sequence_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sequence_steps: {
+        Row: {
+          conteudo: string | null
+          created_at: string
+          id: string
+          instrucao: string | null
+          ordem: number
+          prazo_dias: number
+          sequence_id: string
+          tipo: string
+        }
+        Insert: {
+          conteudo?: string | null
+          created_at?: string
+          id?: string
+          instrucao?: string | null
+          ordem: number
+          prazo_dias?: number
+          sequence_id: string
+          tipo: string
+        }
+        Update: {
+          conteudo?: string | null
+          created_at?: string
+          id?: string
+          instrucao?: string | null
+          ordem?: number
+          prazo_dias?: number
+          sequence_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sequence_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sequences: {
+        Row: {
+          ativa: boolean
+          created_at: string
+          gatilho: string
+          id: string
+          nome: string
+          predefinida: boolean
+          workspace_id: string
+        }
+        Insert: {
+          ativa?: boolean
+          created_at?: string
+          gatilho?: string
+          id?: string
+          nome: string
+          predefinida?: boolean
+          workspace_id: string
+        }
+        Update: {
+          ativa?: boolean
+          created_at?: string
+          gatilho?: string
+          id?: string
+          nome?: string
+          predefinida?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sequences_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teams: {
         Row: {
           created_at: string
@@ -717,36 +1133,48 @@ export type Database = {
       }
       whatsapp_connections: {
         Row: {
-          access_token: string
+          access_token: string | null
+          canal: string
           created_at: string
-          display_name: string
+          display_name: string | null
           id: string
-          phone_number: string
-          phone_number_id: string
+          instance_id: string | null
+          instance_token: string | null
+          phone_number: string | null
+          phone_number_id: string | null
+          state_reason: string | null
           status: string
-          waba_id: string
+          waba_id: string | null
           workspace_id: string
         }
         Insert: {
-          access_token: string
+          access_token?: string | null
+          canal?: string
           created_at?: string
-          display_name: string
+          display_name?: string | null
           id?: string
-          phone_number: string
-          phone_number_id: string
+          instance_id?: string | null
+          instance_token?: string | null
+          phone_number?: string | null
+          phone_number_id?: string | null
+          state_reason?: string | null
           status?: string
-          waba_id: string
+          waba_id?: string | null
           workspace_id: string
         }
         Update: {
-          access_token?: string
+          access_token?: string | null
+          canal?: string
           created_at?: string
-          display_name?: string
+          display_name?: string | null
           id?: string
-          phone_number?: string
-          phone_number_id?: string
+          instance_id?: string | null
+          instance_token?: string | null
+          phone_number?: string | null
+          phone_number_id?: string | null
+          state_reason?: string | null
           status?: string
-          waba_id?: string
+          waba_id?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -801,12 +1229,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -830,11 +1258,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -855,11 +1283,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -880,11 +1308,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -897,11 +1325,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

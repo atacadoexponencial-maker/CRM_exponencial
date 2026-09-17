@@ -197,11 +197,11 @@ describe("gateway fora do ar", () => {
 
 describe("cliente a partir do ambiente", () => {
   it("falha nomeando a variável ausente", () => {
-    expect(() => clienteGatewayDoAmbiente({} as NodeJS.ProcessEnv)).toThrowError(
+    expect(() => clienteGatewayDoAmbiente({} as unknown as NodeJS.ProcessEnv)).toThrowError(
       /GATEWAY_BASE_URL, GATEWAY_SERVICE_KEY/
     )
     expect(() =>
-      clienteGatewayDoAmbiente({ GATEWAY_BASE_URL: BASE } as NodeJS.ProcessEnv)
+      clienteGatewayDoAmbiente({ GATEWAY_BASE_URL: BASE } as unknown as NodeJS.ProcessEnv)
     ).toThrowError(/GATEWAY_SERVICE_KEY/)
   })
 
@@ -209,7 +209,7 @@ describe("cliente a partir do ambiente", () => {
     const cliente = clienteGatewayDoAmbiente({
       GATEWAY_BASE_URL: BASE,
       GATEWAY_SERVICE_KEY: CHAVE,
-    } as NodeJS.ProcessEnv)
+    } as unknown as NodeJS.ProcessEnv)
 
     expect(typeof cliente.comServico).toBe("function")
     expect(typeof cliente.comInstancia).toBe("function")
