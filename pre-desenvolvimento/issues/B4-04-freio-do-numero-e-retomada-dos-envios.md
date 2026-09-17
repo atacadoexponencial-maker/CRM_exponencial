@@ -50,13 +50,19 @@ não uma mensagem genérica.
 
 ## Contrato do gateway
 
-**O estado do freio** vem do endpoint de saúde — **a definir em `B4-00`**. Os motivos
-possíveis existem hoje no gateway como `brake_reason`: `failure_rate`, `manual` e
-`banned`.
+**O estado do freio** vem de `GET /v1/instances/{id}/health`, no campo `brake`
+(`braked`, `reason`, `braked_at`) — seção 4.5 do `contrato-v1.md`. Motivos possíveis:
+`failure_rate`, `manual` e `banned`.
 
-**A retomada é endpoint novo, a definir em `B4-00`.** Hoje a liberação do freio existe
-apenas como script na VPS (`npm run freio`); não há caminho HTTP para ela no contrato v1.
-Não presuma caminho nem corpo.
+**A retomada é `POST /v1/instances/{id}/brake/release`**, sem corpo, credencial
+`X-Instance-Token` — especificado em 17/09/2026 na mesma seção. Duas recusas previstas,
+e as duas precisam de mensagem própria na tela:
+
+- `brake_not_releasable` (409) — freio por **banimento não é liberável**. O bloqueio é do
+  WhatsApp; liberar a fila só produziria falha em série.
+- `instance_not_braked` (409) — não havia freio ativo.
+
+A implementação no gateway é a issue `A6-09`, ainda aberta.
 
 O evento `instance.braked` do contrato (seção 3.4) traz `reason`, `queued_count` e
 `released` — é por ele que o CRM fica sabendo do freio sem consultar, e `released: true`

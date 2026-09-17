@@ -4,6 +4,11 @@
 **Módulo:** Pré-requisito de B4 e B5 — vive na **Parte A** (repo `whatsapp-gateway`)
 **Repositório:** `whatsapp-gateway` (e `contrato-v1.md`)
 
+> **Andamento (17/09/2026):** a especificação no contrato está **feita** — seção 4.5 do
+> `contrato-v1.md`, issue `00-03` do gateway, com os três endpoints e três `error.code`
+> novos. Falta implementar, nas issues `A8-06` (saúde), `A6-08` (ritmo) e `A6-09`
+> (retomada) do repo `whatsapp-gateway`. As issues de B4 e B5 já citam os caminhos reais.
+>
 > **Esta issue é da Marcelle, não do Luan.** Ela não produz uma linha de código no
 > `CRM_exponencial`. Está escrita aqui, junto das issues da Parte B, porque é o que
 > **bloqueia** B4 e B5 — sem ela, as duas não têm de onde ler nem para onde escrever.

@@ -64,9 +64,13 @@ mais simples que atenda basta.
 
 ## Contrato do gateway
 
-**Ingredientes do risco: endpoint a definir em `B4-00`.** A recomendação registrada lá é o
-gateway devolver os ingredientes e o CRM classificar — a classificação é regra de produto
-e muda sem tocar no gateway. Se `B4-00` decidir o contrário, esta issue só exibe.
+**Decidido em 17/09/2026: o risco é classificado aqui, no CRM.** O gateway devolve os
+ingredientes em `GET /v1/instances/{id}/health` (seção 4.5 do `contrato-v1.md`) — enviadas
+e recebidas por período, proporção de falhas, consumo dos tetos, aquecimento e tempo
+conectada — e o CRM aplica a régua de baixo, médio e alto, combinando com o que só ele tem
+(destinatários sem histórico, por exemplo).
+
+Motivo registrado no contrato: a régua é regra de produto e muda sem deploy do gateway.
 
 Os eventos que disparam os alertas **já existem** no contrato v1: `instance.state`
 (seção 3.3, com os estados `disconnected` e `banned` e o campo `reason`) e

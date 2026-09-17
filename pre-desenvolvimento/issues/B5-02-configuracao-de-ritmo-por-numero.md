@@ -59,9 +59,16 @@ como promessa.
 
 ## Contrato do gateway
 
-**Endpoint a definir em `B4-00`** — leitura e escrita do perfil de ritmo, devolvendo junto
-os limites do sistema. O contrato v1 não tem nada disso: o perfil mora na tabela
-`instances` do gateway e hoje só se altera por SQL ou script.
+**`GET` e `PATCH /v1/instances/{id}/rate-profile`, credencial `X-Instance-Token`** —
+especificados em 17/09/2026 na seção 4.5 do `contrato-v1.md`. A leitura devolve três
+blocos: `configured` (o que está gravado), `effective` (o que a fila usa agora, com
+aquecimento aplicado) e `system_limits` (os limites do sistema, para o formulário **não**
+duplicar esses números).
+
+Valor fora do limite é recusado com `rate_profile_out_of_range` (422), e a `message`
+informa o limite — é ela que o formulário mostra ao administrador.
+
+A implementação no gateway é a issue `A6-08`, ainda aberta.
 
 Da especificação em `B4-00`, o que esta issue consome: os valores configurados
 (intervalo, teto por hora, teto por dia, início e fim da janela), os limites do sistema, e

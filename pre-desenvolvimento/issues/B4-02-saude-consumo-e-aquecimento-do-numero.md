@@ -44,9 +44,12 @@ que o número está parado.
 
 ## Contrato do gateway
 
-**Endpoint a definir em `B4-00`** — o contrato v1 não tem endpoint de saúde. Não invente
-caminho nem nome de campo: quando `B4-00` fechar, o `contrato-v1.md` passa a ser a fonte,
-e o `/plan` desta issue lê de lá.
+**`GET /v1/instances/{id}/health`, credencial `X-Instance-Token`** — especificado em
+17/09/2026 na seção 4.5 do `contrato-v1.md` (issue `00-03` do gateway). O contrato é a
+fonte dos nomes de campo; leia de lá antes de escrever tipo.
+
+A implementação no gateway é a issue `A8-06`, ainda aberta — a especificação existe, o
+endpoint no ar ainda não.
 
 O que vem do endpoint, segundo `B4-00`: enviadas e recebidas por período, proporção de
 falhas, tempo conectada, consumo contra os tetos vigentes, dia de aquecimento com os
