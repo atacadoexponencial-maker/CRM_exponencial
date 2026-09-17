@@ -87,19 +87,19 @@ Nenhum comportamento de tela. É pré-requisito de infraestrutura para os blocos
 
 ## Critérios de aceite
 
-- [ ] `pre-desenvolvimento/contrato-gateway-v1.md` existe no CRM e é idêntico em conteúdo
+- [x] `pre-desenvolvimento/contrato-gateway-v1.md` existe no CRM e é idêntico em conteúdo
       ao contrato do gateway, com origem e data declaradas
-- [ ] As três variáveis estão no `.env.example`, com comentário
-- [ ] Nenhuma das três aparece em código de frontend nem em variável com prefixo
+- [x] As três variáveis estão no `.env.example`, com comentário
+- [x] Nenhuma das três aparece em código de frontend nem em variável com prefixo
       `NEXT_PUBLIC_` — busca no repo comprova
-- [ ] O cliente manda `X-Gateway-Service-Key` nas chamadas de serviço e `X-Instance-Token`
+- [x] O cliente manda `X-Gateway-Service-Key` nas chamadas de serviço e `X-Instance-Token`
       nas de instância, e nunca as duas juntas
-- [ ] Recusa do gateway chega ao chamador com o `code` do contrato preservado, não como
+- [x] Recusa do gateway chega ao chamador com o `code` do contrato preservado, não como
       texto solto
-- [ ] Tempo limite configurado: chamada que não responde falha em vez de pendurar a
+- [x] Tempo limite configurado: chamada que não responde falha em vez de pendurar a
       requisição do CRM
-- [ ] `npm run build`, `npm run lint` e `npm test` passam
-- [ ] Testes do cliente rodam sem rede e sem banco
+- [x] `npm run build`, `npm run lint` e `npm test` passam
+- [x] Testes do cliente rodam sem rede e sem banco
 
 ---
 
