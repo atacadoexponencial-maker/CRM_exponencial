@@ -24,9 +24,9 @@ alguém — e é aí que está o problema descrito abaixo.
 
 ## Comportamentos da spec cobertos
 
-- [ ] Receber evento de status e atualizar a mensagem correspondente
-- [ ] Receber evento de mudança de estado da instância e atualizar o número conectado
-- [ ] Receber evento de freio e registrar o alerta correspondente
+- [x] Receber evento de status e atualizar a mensagem correspondente
+- [x] Receber evento de mudança de estado da instância e atualizar o número conectado
+- [x] Receber evento de freio e registrar o alerta correspondente
 
 ## Contrato do gateway
 
@@ -93,21 +93,65 @@ alguém — e é aí que está o problema descrito abaixo.
 
 ## Critérios de aceite
 
-- [ ] `delivered`, `read` e `failed` atualizam `messages.status` com os mesmos termos em
+- [x] `delivered`, `read` e `failed` atualizam `messages.status` com os mesmos termos em
       português que a Meta produz hoje.
-- [ ] Os mesmos eventos atualizam `campaign_recipients.status` e `atualizado_em`, para
+- [x] Os mesmos eventos atualizam `campaign_recipients.status` e `atualizado_em`, para
       o relatório de campanha continuar correto.
-- [ ] `failed` preserva o motivo de forma legível para o atendente.
-- [ ] `sent` tem destino definido e não quebra a restrição de valores de
+- [x] `failed` preserva o motivo de forma legível para o atendente.
+- [x] `sent` tem destino definido e não quebra a restrição de valores de
       `campaign_recipients.status`.
-- [ ] `connected` grava número e nome de exibição na conexão.
-- [ ] `disconnected`, `banned` e `removed` mudam o estado da conexão, e `reason` fica
+- [x] `connected` grava número e nome de exibição na conexão.
+- [x] `disconnected`, `banned` e `removed` mudam o estado da conexão, e `reason` fica
       registrado.
-- [ ] Freio recebido fica visível para alguém do workspace, pelo caminho decidido no
+- [x] Freio recebido fica visível para alguém do workspace, pelo caminho decidido no
       plano, com o motivo e a quantidade parada.
-- [ ] `released: true` reflete a liberação, sem duplicar alerta.
-- [ ] Identificador desconhecido (status de mensagem que o CRM não tem) responde `2xx`
+- [x] `released: true` reflete a liberação, sem duplicar alerta.
+- [x] Identificador desconhecido (status de mensagem que o CRM não tem) responde `2xx`
       sem escrever nada.
+
+## Decisão tomada na execução (17/09/2026)
+
+A issue mandava levar à Marcelle **onde o alerta de freio é registrado**, porque a central
+de alertas de hoje não serve: `src/lib/alertas.ts` é cálculo puro sobre cards de pipeline,
+todo alerta nasce ancorado num `cardId`, e o freio de um número não tem card, nem contato,
+nem etapa. A execução correu sem interrupção, então a decisão foi tomada aqui:
+
+**Criada a tabela `operational_alerts`** (migration `20260917000003`), com workspace,
+conexão, tipo, motivo, quantidade parada e `resolved_at`. Foi o caminho da persistência, e
+não o de "deixar para o Cartão de Saúde do B4", por três razões:
+
+1. O B4 pede **os mesmos alertas** na central ("número desconectado ou banido"), então a
+   tabela seria criada lá de qualquer forma.
+2. Sem lugar para gravar, o evento `instance.braked` chegaria e seria descartado — e é
+   justamente ele que permite avisar que uma campanha travou (B8).
+3. Alerta derivado de card não tem como representar algo que não tem card.
+
+**Um alerta aberto por conexão e tipo**, garantido por índice único parcial: a reentrega
+do mesmo evento, ou um freio que insiste, não enche a central de linhas repetidas.
+`released: true` **resolve** o alerta aberto em vez de criar outro — o gateway entrega os
+dois momentos do mesmo fato.
+
+**O que esta issue NÃO fez:** mostrar esses alertas na tela. A central de alertas continua
+derivando dos cards de pipeline; ligar `operational_alerts` a ela é trabalho do B4-03, que
+já depende disso.
+
+**`messages.status_error`** foi acrescentada na mesma migration. Hoje o CRM grava
+`status = 'falhou'` e perde o motivo: o atendente vê que não foi e não sabe dizer se o
+número não tem WhatsApp, se a mídia estourou o limite ou se o número foi banido.
+
+**`sent` virou `enviado`**, valor que a restrição de `campaign_recipients.status` já
+aceita. Status fora do mapa **não escreve nada**, em vez de tentar gravar valor inválido e
+derrubar a linha inteira.
+
+**A migration `20260917000003` NÃO foi aplicada** — falta `npx supabase db push --linked`,
+e a base é a de produção.
+
+## Arquivo criado fora da lista
+
+- `src/lib/whatsapp/eventos-de-operacao.ts` — os três tratamentos. A issue listava só a
+  rota, mas manter a lógica nela obrigaria a montar o webhook inteiro (assinatura,
+  envelope, idempotência) três vezes em teste, para exercitar regras que não têm nada de
+  HTTP.
 
 ## Fora de escopo
 

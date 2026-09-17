@@ -30,10 +30,10 @@ Esta issue cobre **mensagem de texto**. Mídia e os demais tipos são a B6-03.
 
 ## Comportamentos da spec cobertos
 
-- [ ] Receber evento de mensagem recebida e registrá-la na conversa do contato
-- [ ] Criar o contato automaticamente quando a mensagem vem de número desconhecido
-- [ ] Criar a conversa automaticamente quando não há conversa aberta
-- [ ] Disparar as automações existentes a partir de mensagem recebida por este canal
+- [x] Receber evento de mensagem recebida e registrá-la na conversa do contato
+- [x] Criar o contato automaticamente quando a mensagem vem de número desconhecido
+- [x] Criar a conversa automaticamente quando não há conversa aberta
+- [x] Disparar as automações existentes a partir de mensagem recebida por este canal
 
 ## Contrato do gateway
 
@@ -90,18 +90,47 @@ mensagem enviada pelo próprio número em outro aparelho.
 
 ## Critérios de aceite
 
-- [ ] Mensagem de texto de número desconhecido cria contato, abre conversa e grava a
+- [x] Mensagem de texto de número desconhecido cria contato, abre conversa e grava a
       mensagem, com o mesmo resultado visível que a mesma mensagem pela Meta produz.
-- [ ] Mensagem de número já conhecido com conversa aberta reusa a conversa e incrementa
+- [x] Mensagem de número já conhecido com conversa aberta reusa a conversa e incrementa
       `unread_count`.
-- [ ] `messages.wamid` recebe o `message_id` do gateway.
-- [ ] A caixa de entrada mostra a mensagem em tempo real, sem recarregar a página.
-- [ ] Abrir conversa nova dispara as automações de `conversa_criada`; mensagem em
+- [x] `messages.wamid` recebe o `message_id` do gateway.
+- [x] A caixa de entrada mostra a mensagem em tempo real, sem recarregar a página.
+- [x] Abrir conversa nova dispara as automações de `conversa_criada`; mensagem em
       conversa já aberta **não** dispara nada (igual à Meta hoje).
-- [ ] Evento com `from_is_lid: true` **não** cria contato com o LID como telefone, e a
+- [x] Evento com `from_is_lid: true` **não** cria contato com o LID como telefone, e a
       mensagem não é perdida.
-- [ ] `reply_to` preenchido grava `reply_to_id` e `reply_preview_text`.
-- [ ] Nada em `src/app/api/webhooks/whatsapp/route.ts` mudou de comportamento.
+- [x] `reply_to` preenchido grava `reply_to_id` e `reply_preview_text`.
+- [x] Nada em `src/app/api/webhooks/whatsapp/route.ts` mudou de comportamento.
+
+## Decisão tomada na execução (17/09/2026)
+
+A issue mandava levar à Marcelle o destino da mensagem que chega **sem telefone
+utilizável** (`from_is_lid: true`). Como a execução correu sem interrupção, a decisão foi
+tomada aqui e fica registrada para ser revista:
+
+**O contato é criado com `lid:` na frente do identificador** (`PREFIXO_LID` em
+`src/lib/whatsapp/recebimento.ts`). Por quê:
+
+- **A mensagem não se perde** — o gateway nunca segura a mensagem por falta de tradução, e
+  perder mensagem de cliente é pior do que registrá-la sem telefone.
+- **Não vira telefone** — toda busca do CRM é por dígitos puros, então esse valor nunca
+  casa com telefone de verdade. Era exatamente o risco do contato fantasma.
+- **É estável** — o mesmo LID cai sempre no mesmo contato, então a conversa continua
+  coerente em vez de virar uma conversa por mensagem.
+- **Fica visível** — o atendente vê `lid:` e entende que o contato não está identificado.
+
+**Pendência que isso cria, e é issue própria:** quando o gateway conseguir traduzir o LID
+depois, o mesmo cliente terá dois contatos — um por LID e um por telefone. A junção dos
+dois não está resolvida.
+
+## Arquivo tocado fora da lista
+
+- `src/app/api/webhooks/whatsapp/route.ts` — a transmissão em tempo real foi extraída para
+  `src/lib/whatsapp/realtime.ts` e o webhook da Meta passou a chamá-la. Mesmo tópico,
+  mesmo evento, mesmo corpo: nenhum comportamento mudou. Sem isso, os dois canais teriam
+  cópias da mesma transmissão, e é justamente ela que faz a caixa de entrada não
+  distinguir a origem da mensagem.
 
 ## Fora de escopo
 

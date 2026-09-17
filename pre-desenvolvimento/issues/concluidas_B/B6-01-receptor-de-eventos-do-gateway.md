@@ -30,8 +30,8 @@ Vale construir antes da B2, com evento simulado: nada aqui depende de número co
 
 ## Comportamentos da spec cobertos
 
-- [ ] Recusar evento com assinatura inválida
-- [ ] Ignorar evento já processado anteriormente
+- [x] Recusar evento com assinatura inválida
+- [x] Ignorar evento já processado anteriormente
 
 ## Contrato do gateway
 
@@ -78,6 +78,12 @@ Envelope comum a todos os eventos (seção 2 do contrato):
   processados, com o `event_id` como chave única.
 - **Criar:** teste em `src/test/`, com banco mockado, conforme
   `pre-desenvolvimento/testes/plano-testes-B1.md`.
+- **Modificar (acrescentado em 17/09/2026, durante a execução):**
+  `src/app/api/webhooks/whatsapp/route.ts` — só para passar a chamar a função de
+  assinatura extraída (`src/lib/webhooks/assinatura.ts`). O comportamento do webhook da
+  Meta continua igual, incluindo o "sem `META_APP_SECRET`, aceita": essa permissão ficou
+  no chamador, e **não** na função compartilhada, justamente porque no gateway segredo
+  ausente é recusa.
 
 Variável de ambiente nova: o segredo da assinatura, que é o mesmo valor configurado no
 gateway (`GATEWAY_WEBHOOK_SECRET`). Só no backend.
@@ -90,20 +96,31 @@ gateway (`GATEWAY_WEBHOOK_SECRET`). Só no backend.
 
 ## Critérios de aceite
 
-- [ ] Evento com assinatura correta responde `2xx`.
-- [ ] Evento com assinatura errada, ausente, ou com o segredo não configurado responde
+- [x] Evento com assinatura correta responde `2xx`.
+- [x] Evento com assinatura errada, ausente, ou com o segredo não configurado responde
       `401` e não escreve nada no banco.
-- [ ] A comparação da assinatura é feita sobre o corpo bruto, antes do parse, em tempo
+- [x] A comparação da assinatura é feita sobre o corpo bruto, antes do parse, em tempo
       constante.
-- [ ] O mesmo `event_id` entregue duas vezes é processado uma vez, e a segunda entrega
+- [x] O mesmo `event_id` entregue duas vezes é processado uma vez, e a segunda entrega
       responde `2xx` (e não erro — erro faria o gateway reenviar para sempre).
-- [ ] `instance_id` desconhecido responde `2xx` sem escrever nada, no mesmo espírito do
+- [x] `instance_id` desconhecido responde `2xx` sem escrever nada, no mesmo espírito do
       webhook da Meta, que responde `ok` quando não encontra a conexão.
-- [ ] `type` desconhecido responde `2xx` sem quebrar.
-- [ ] O webhook da Meta continua byte a byte o que era: `git diff` não mostra
+- [x] `type` desconhecido responde `2xx` sem quebrar.
+- [x] O webhook da Meta continua byte a byte o que era: `git diff` não mostra
       `src/app/api/webhooks/whatsapp/route.ts` alterado, exceto pela extração da
       função de assinatura, se for por esse caminho.
-- [ ] O segredo não aparece em log nem em resposta.
+- [x] O segredo não aparece em log nem em resposta.
+
+## Execução (17/09/2026)
+
+**A migration `20260917000001_create_gateway_events.sql` NÃO foi aplicada.** Criar o
+`.sql` não aplica nada — falta `npx supabase db push --linked`, e como existe uma
+Supabase só (a de produção), a aplicação é decisão da Marcelle.
+
+`processed_at` separa "chegou" de "processado até o fim". Sem essa distinção, um processo
+que morresse no meio deixaria o `event_id` registrado, e a reentrega seguinte daria o
+evento por feito — perdendo a mensagem do cliente em silêncio. Com ela, reentrega de
+tentativa interrompida é processada de novo.
 
 ## Fora de escopo
 
