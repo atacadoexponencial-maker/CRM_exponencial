@@ -98,21 +98,61 @@ hoje**: definir os novos valores faz parte desta issue.
 
 ## Critérios de aceite
 
-- [ ] Foto, vídeo, áudio, gravação de voz e documento recebidos aparecem na conversa, e
+- [x] Foto, vídeo, áudio, gravação de voz e documento recebidos aparecem na conversa, e
       o arquivo continua abrindo **depois** de o endereço do gateway expirar (prova de
       que foi copiado para o Storage do CRM).
-- [ ] Nome original do documento é preservado.
-- [ ] Legenda de foto e vídeo é preservada, inclusive quando vazia.
-- [ ] Localização e cartão de contato aparecem de forma legível na conversa.
-- [ ] Reação aparece associada à mensagem alvo; reação com `emoji` vazio remove a
+- [x] Nome original do documento é preservado.
+- [x] Legenda de foto e vídeo é preservada, inclusive quando vazia.
+- [x] Localização e cartão de contato aparecem de forma legível na conversa.
+- [x] Reação aparece associada à mensagem alvo; reação com `emoji` vazio remove a
       reação em vez de registrar uma vazia.
-- [ ] `system: edited` atualiza o texto da mensagem alvo; `system: deleted` a marca como
+- [x] `system: edited` atualiza o texto da mensagem alvo; `system: deleted` a marca como
       apagada, sem apagar a linha do banco.
-- [ ] Alvo desconhecido (reação, edição ou exclusão de mensagem que o CRM não tem)
+- [x] Alvo desconhecido (reação, edição ou exclusão de mensagem que o CRM não tem)
       responde `2xx` e não quebra.
-- [ ] `type: unknown` registra a mensagem sem quebrar a conversa.
-- [ ] Falha ao baixar a mídia não perde a mensagem: o texto e a legenda são registrados,
+- [x] `type: unknown` registra a mensagem sem quebrar a conversa.
+- [x] Falha ao baixar a mídia não perde a mensagem: o texto e a legenda são registrados,
       e a falha fica registrada.
+
+## Decisões tomadas na execução (17/09/2026)
+
+A issue mandava avaliar no plano se localização, cartão de contato e reação precisavam de
+coluna nova. Avaliado e decidido:
+
+**Valores novos de `messages.type`** (a coluna é texto livre, sem `check`, então não
+exigiram migration): `figurinha`, `localizacao`, `contato`, `desconhecido`. `voice` e
+`audio` caem no mesmo `audio` — o WhatsApp separa gravação de voz de arquivo de áudio, o
+CRM tem um tipo só, e inventar a distinção agora mudaria a caixa de entrada sem ninguém
+pedir.
+
+**Cinco colunas novas em `messages`** (migration `20260917000002`), cada uma porque não
+cabia em `content`:
+
+| Coluna | Por quê |
+|---|---|
+| `media_filename` | `content` guarda a URL do Storage, e o nome do arquivo lá é gerado por nós — o original se perderia |
+| `media_mime_type` | para a conversa saber o que abrir |
+| `media_caption` | legenda de foto e vídeo. Nullable de propósito: "sem legenda" e "legenda vazia" são estados diferentes, e o contrato manda os dois |
+| `reaction_emoji` | reação pertence à mensagem alvo, não é mensagem nova. `null` é remoção |
+| `edited_at` / `deleted_at` | editar e apagar alteram mensagem existente. Apagada é **marcada**: quem apaga no WhatsApp não apaga o histórico do CRM |
+
+**Localização e cartão de contato viram texto legível** em `content`, porque nenhuma
+alteração de tela entra nesta issue: a localização sai como nome, endereço e link do
+Google Maps; o cartão, como nome e telefones. Aparecem na conversa sem nenhuma mudança de
+UI.
+
+**Nome de arquivo de fora não define caminho no nosso Storage.** O upload usa nome próprio
+(`{workspace}/recebidas/{timestamp}-{uuid}.{ext}`), e o original fica em
+`media_filename` — nome vindo de mensagem de terceiro não escolhe onde escrevemos.
+
+**A migration `20260917000002` NÃO foi aplicada.** Falta `npx supabase db push --linked`,
+e como existe uma Supabase só, a aplicação é decisão da Marcelle.
+
+## Arquivo criado fora da lista
+
+- `src/lib/whatsapp/midia-recebida.ts` — o download do gateway e o upload para o Storage.
+  Ficou fora de `recebimento.ts` porque é a única parte que fala com o mundo externo e com
+  o Storage, e é o que os testes precisam simular sem simular o resto.
 
 ## Fora de escopo
 

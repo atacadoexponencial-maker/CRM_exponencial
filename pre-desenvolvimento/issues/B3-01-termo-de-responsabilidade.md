@@ -19,11 +19,11 @@ O canal direto conecta o número por leitura de QR Code e opera **fora dos Termo
 
 ## Comportamentos da spec cobertos
 
-- [ ] Exibir o termo antes da primeira conexão pelo canal direto no workspace
-- [ ] Impedir a conexão enquanto o termo não é aceito
-- [ ] Registrar o aceite com autor, data e versão do termo
-- [ ] Consultar o aceite registrado do workspace
-- [ ] Exigir novo aceite quando o texto do termo muda
+- [x] Exibir o termo antes da primeira conexão pelo canal direto no workspace
+- [x] Impedir a conexão enquanto o termo não é aceito
+- [x] Registrar o aceite com autor, data e versão do termo
+- [x] Consultar o aceite registrado do workspace
+- [x] Exigir novo aceite quando o texto do termo muda
 
 ## Contrato do gateway
 
@@ -47,15 +47,15 @@ Nenhum endpoint do gateway é chamado aqui. O termo é anterior à criação da 
 
 ## Critérios de aceite
 
-- [ ] Workspace sem aceite: ao escolher o canal direto, o termo aparece antes de qualquer outra coisa
-- [ ] Sem marcar a confirmação, não é possível prosseguir
-- [ ] Chamar a criação de conexão pelo canal direto sem aceite é recusado **no backend**, mesmo com a tela contornada
-- [ ] O registro guarda quem aceitou, quando e a versão do texto
-- [ ] Workspace que já aceitou a versão vigente não vê o termo de novo
-- [ ] Subir a versão do texto faz o termo voltar a aparecer, e o aceite antigo continua guardado no histórico
-- [ ] A conexão pela API Oficial da Meta **não** é afetada pelo termo
-- [ ] Registrar aceite recusa quem não é Admin
-- [ ] `npm run build`, `npm run lint` e `npm test` passam
+- [x] Workspace sem aceite: ao escolher o canal direto, o termo aparece antes de qualquer outra coisa
+- [x] Sem marcar a confirmação, não é possível prosseguir
+- [x] Chamar a criação de conexão pelo canal direto sem aceite é recusado **no backend**, mesmo com a tela contornada
+- [x] O registro guarda quem aceitou, quando e a versão do texto
+- [x] Workspace que já aceitou a versão vigente não vê o termo de novo
+- [x] Subir a versão do texto faz o termo voltar a aparecer, e o aceite antigo continua guardado no histórico
+- [x] A conexão pela API Oficial da Meta **não** é afetada pelo termo
+- [x] Registrar aceite recusa quem não é Admin
+- [x] `npm run build`, `npm run lint` e `npm test` passam
 
 ## Fora de escopo
 

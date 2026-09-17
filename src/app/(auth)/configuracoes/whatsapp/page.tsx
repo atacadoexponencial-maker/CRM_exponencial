@@ -1,9 +1,29 @@
 import { redirect } from "next/navigation"
-import { Badge } from "@/components/ui/badge"
 import { createClient } from "@/integrations/supabase/server"
-import { listarConexaoWhatsApp } from "./actions"
+import {
+  listarConexaoWhatsApp,
+  listarConexoesWhatsApp,
+  termoDoCanalDiretoAceito,
+} from "./actions"
 import { AcoesWhatsApp } from "./acoes-whatsapp"
 import { WizardConexao } from "./wizard-conexao"
+import { ListaNumeros } from "./canal-direto/lista-numeros"
+import type { NumeroConectado } from "./canal-direto/cartao-numero"
+import type { EstadoConexao } from "./canal-direto/estado-badge"
+
+/**
+ * Estados que o contrato do gateway prevê. A coluna `status` é texto livre e
+ * guarda `connected` para as conexões da Meta; o que não for reconhecido é
+ * tratado como desconectado — nunca como conectado.
+ */
+const ESTADOS: EstadoConexao[] = [
+  "pairing",
+  "connecting",
+  "connected",
+  "disconnected",
+  "banned",
+  "removed",
+]
 
 export default async function WhatsAppPage() {
   const supabase = await createClient()
@@ -18,38 +38,48 @@ export default async function WhatsAppPage() {
 
   if (perfil?.role !== "admin") redirect("/perfil")
 
-  const conexao = await listarConexaoWhatsApp()
+  // B2-02: a lista vem do banco, com todos os números do workspace e o canal de
+  // cada um. `listarConexaoWhatsApp` continua sendo lida abaixo porque o fluxo
+  // da Meta depende dela.
+  const [conexao, conexoes, termoAceito] = await Promise.all([
+    listarConexaoWhatsApp(),
+    listarConexoesWhatsApp(),
+    termoDoCanalDiretoAceito(),
+  ])
+
+  const numeros: NumeroConectado[] = conexoes.map((c) => ({
+    id: c.id,
+    canal: c.canal,
+    phone_number: c.phoneNumber,
+    display_name: c.displayName,
+    state: ESTADOS.includes(c.status as EstadoConexao)
+      ? (c.status as EstadoConexao)
+      : "disconnected",
+    state_reason: (c.stateReason as NumeroConectado["state_reason"]) ?? null,
+  }))
 
   return (
     <div className="max-w-5xl mx-auto w-full px-4 py-8">
       <h1 className="text-xl font-semibold mb-6">WhatsApp</h1>
 
-      {conexao ? (
-        <div className="rounded-lg border p-6 max-w-md">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Número conectado</p>
-              <p className="text-lg font-semibold">{conexao.phoneNumber}</p>
-              <p className="text-sm text-muted-foreground mt-0.5">{conexao.displayName}</p>
-            </div>
-            {conexao.status === "connected" ? (
-              <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
-                Conectado
-              </Badge>
-            ) : (
-              <Badge className="bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700">
-                Desconectado
-              </Badge>
-            )}
-          </div>
+      <ListaNumeros numeros={numeros} termoAceito={termoAceito} />
 
-          <AcoesWhatsApp conexaoId={conexao.id} status={conexao.status} />
-        </div>
-      ) : (
-        <div className="flex justify-center py-8">
-          <WizardConexao />
-        </div>
-      )}
+      <div className="mt-10 border-t pt-8">
+        <h2 className="text-base font-semibold mb-1">API Oficial da Meta</h2>
+        <p className="text-sm text-muted-foreground mb-5">
+          Fluxo atual de conexão pela Meta, inalterado.
+        </p>
+
+        {conexao ? (
+          <div className="rounded-lg border p-6 max-w-md">
+            <AcoesWhatsApp conexaoId={conexao.id} status={conexao.status} />
+          </div>
+        ) : (
+          <div className="flex justify-center py-8">
+            <WizardConexao />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
