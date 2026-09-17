@@ -8,12 +8,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import {
+  avaliarDisparo,
   confirmarCampanha,
   contarDestinatarios,
   salvarRascunho,
   uploadArquivoCampanha,
 } from "../actions"
 import type {
+  AvaliacaoDoDisparo,
   CampanhaDetalhe,
   DadosCampanha,
   DestinatarioPreview,
@@ -90,6 +92,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
    * comportamento das campanhas criadas antes desta issue, e continua válido.
    * Com um número só conectado, ele já vem escolhido: não há decisão a tomar.
    */
+  const [avaliacao, setAvaliacao] = useState<AvaliacaoDoDisparo | null>(null)
   const [numeroOrigem, setNumeroOrigem] = useState<string>(
     campanha?.whatsappConnectionId ?? (numeros.length === 1 ? numeros[0].id : "")
   )
@@ -145,7 +148,25 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
     }
   }
 
-  const numeroEscolhido = numeros.find((n) => n.id === numeroOrigem) ?? null
+
+  /**
+   * B8-01: aviso de risco e duração estimada, calculados no servidor.
+   * Refazem quando o número escolhido ou a quantidade de destinatários muda —
+   * as duas entradas do cálculo.
+   */
+  useEffect(() => {
+    let ativo = true
+    if (etapa !== 3) return
+
+    void (async () => {
+      const resultado = await avaliarDisparo(numeroOrigem || null, total ?? 0)
+      if (ativo) setAvaliacao(resultado)
+    })()
+
+    return () => {
+      ativo = false
+    }
+  }, [etapa, numeroOrigem, total])
 
   function toggleLista(campo: "classificacoes" | "tipos" | "nichos" | "tags", valor: string) {
     setSegmento((prev) => {
@@ -519,13 +540,23 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
                     </option>
                   ))}
                 </select>
-                {numeroEscolhido?.ehCanalDireto && (
+                {/* B8-01: o aviso e a estimativa vêm prontos do servidor. */}
+                {avaliacao?.aviso && (
                   <p className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs dark:border-amber-900 dark:bg-amber-950/40">
                     <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
-                    <span>
-                      Este número usa o canal direto, que opera fora dos Termos de Serviço do
-                      WhatsApp. Disparo em massa é o uso com maior risco de bloqueio do número.
-                    </span>
+                    <span>{avaliacao.aviso}</span>
+                  </p>
+                )}
+                {avaliacao?.estimativa && (
+                  <p className="rounded-lg border bg-muted/40 p-3 text-xs">
+                    <strong className="font-medium">Duração estimada:</strong> {avaliacao.estimativa}
+                    {!avaliacao.ritmoConfirmado && (
+                      <span className="text-muted-foreground">
+                        {" "}
+                        Estimativa aproximada: o ritmo atual do número não pôde ser consultado, e o
+                        padrão do sistema foi usado.
+                      </span>
+                    )}
                   </p>
                 )}
               </>

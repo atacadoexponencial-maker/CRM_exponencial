@@ -5,6 +5,12 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import { processarCampanhasPendentes } from "@/lib/campanhas"
 import { nomeDoCanal } from "@/lib/whatsapp"
 import type { CanalWhatsApp } from "@/lib/whatsapp"
+import { clienteGatewayDoAmbiente } from "@/lib/whatsapp/gateway/cliente"
+import {
+  buscarRitmoDoNumero,
+  estimarDuracaoDoDisparo,
+  RITMO_PADRAO,
+} from "@/lib/whatsapp/gateway/fila-campanha"
 import { calcularClassificacao } from "../contatos/classificacao"
 
 export type Segmento = {
@@ -253,6 +259,82 @@ export async function buscarCampanha(id: string): Promise<CampanhaDetalhe | null
     arquivoNome: data.arquivo_nome,
     agendadaPara: data.agendada_para,
     whatsappConnectionId: data.whatsapp_connection_id ?? null,
+  }
+}
+
+/**
+ * O que o administrador precisa saber antes de confirmar (B8-01).
+ *
+ * `aviso` é nulo no canal oficial: lá não há risco de banimento por uso da
+ * ferramenta, e avisar sem motivo ensina a ignorar avisos.
+ */
+export type AvaliacaoDoDisparo = {
+  aviso: string | null
+  estimativa: string
+  /** Falso quando o ritmo real não pôde ser lido e o padrão foi assumido. */
+  ritmoConfirmado: boolean
+}
+
+/**
+ * Aviso de risco e duração estimada do disparo (B8-01).
+ *
+ * O cálculo é **aqui**, no servidor: o componente exibe. A estimativa não vem
+ * do gateway porque a previsão que ele calcula por mensagem ignora teto e
+ * fechamento da janela — somá-la daria um número otimista.
+ */
+export async function avaliarDisparo(
+  connectionId: string | null,
+  totalDestinatarios: number
+): Promise<AvaliacaoDoDisparo> {
+  const { supabase, perfil } = await perfilGestor()
+  if (!perfil) return { aviso: null, estimativa: "", ritmoConfirmado: false }
+
+  const { data: conexao } = connectionId
+    ? await supabase
+        .from("whatsapp_connections")
+        .select("canal, instance_id, instance_token")
+        .eq("id", connectionId)
+        .eq("workspace_id", perfil.workspace_id)
+        .maybeSingle()
+    : { data: null }
+
+  const canal = (conexao?.canal ?? "meta") as CanalWhatsApp
+
+  if (canal !== "gateway") {
+    // Pela API Oficial não há fila nossa nem ritmo a respeitar: o tempo do
+    // disparo é o da Meta, e prometer número aqui seria inventar.
+    return { aviso: null, estimativa: "", ritmoConfirmado: true }
+  }
+
+  let ritmo = RITMO_PADRAO
+  let ritmoConfirmado = false
+
+  if (conexao?.instance_id && conexao.instance_token) {
+    try {
+      const lido = await buscarRitmoDoNumero(
+        clienteGatewayDoAmbiente(),
+        conexao.instance_id,
+        conexao.instance_token
+      )
+      if (lido) {
+        ritmo = lido
+        ritmoConfirmado = true
+      }
+    } catch {
+      // Gateway indisponível ou não configurado: estimativa com o ritmo padrão,
+      // e a tela diz que é aproximada.
+    }
+  }
+
+  const estimativa = estimarDuracaoDoDisparo({ destinatarios: totalDestinatarios, ritmo })
+
+  return {
+    aviso:
+      "Este número usa o canal direto, que opera fora dos Termos de Serviço do WhatsApp. " +
+      "Disparo em massa é o uso com maior risco de bloqueio: o número pode ser banido sem aviso, " +
+      "e a responsabilidade por ele é sua. O envio respeita o ritmo configurado, e por isso leva tempo.",
+    estimativa: estimativa.texto,
+    ritmoConfirmado,
   }
 }
 

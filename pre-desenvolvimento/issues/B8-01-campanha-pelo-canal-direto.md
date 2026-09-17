@@ -26,9 +26,9 @@ que a campanha travou.
 
 ## Comportamentos da spec cobertos
 
-- [ ] Escolher um número do canal direto ao criar uma campanha
-- [ ] Ver o aviso de risco antes de confirmar a campanha
-- [ ] Ver a duração estimada do disparo conforme o ritmo configurado
+- [x] Escolher um número do canal direto ao criar uma campanha
+- [x] Ver o aviso de risco antes de confirmar a campanha
+- [x] Ver a duração estimada do disparo conforme o ritmo configurado
 
 ## Contrato do gateway
 
@@ -67,17 +67,44 @@ que a campanha travou.
 
 ## Critérios de aceite
 
-- [ ] Escolher um número do canal direto mostra, antes da confirmação, um aviso que
+- [x] Escolher um número do canal direto mostra, antes da confirmação, um aviso que
       explica o risco de banimento em linguagem de negócio.
-- [ ] Escolher um número da Meta **não** mostra o aviso de risco.
-- [ ] A estimativa de duração aparece antes de confirmar e muda quando o número escolhido
+- [x] Escolher um número da Meta **não** mostra o aviso de risco.
+- [x] A estimativa de duração aparece antes de confirmar e muda quando o número escolhido
       ou a quantidade de destinatários muda.
-- [ ] A estimativa considera intervalo entre envios, teto por hora, teto por dia e
+- [x] A estimativa considera intervalo entre envios, teto por hora, teto por dia e
       janela de horário — e não apenas o intervalo.
-- [ ] Uma campanha grande fora da janela de envio mostra estimativa coerente, contando o
+- [x] Uma campanha grande fora da janela de envio mostra estimativa coerente, contando o
       tempo parado.
-- [ ] O cálculo roda no backend; o componente só exibe.
-- [ ] `npm run build`, `npm run lint` e os testes passam.
+- [x] O cálculo roda no backend; o componente só exibe.
+- [x] `npm run build`, `npm run lint` e os testes passam.
+
+## Execução (17/09/2026)
+
+**Arquivo novo:** `src/lib/whatsapp/gateway/fila-campanha.ts` — leitura do ritmo vigente e
+a simulação do disparo. Nome escolhido para não colidir com `saude.ts` e `ritmo.ts`, que a
+B4/B5 está criando em paralelo.
+
+**O endpoint de ritmo existe:** `GET /instances/{id}/rate-profile` foi especificado na
+seção 4.5 do contrato e implementado no gateway (issues `00-03` e `A6-08`, 17/09/2026). A
+pendência que a issue mandava confirmar está resolvida — a estimativa usa o ritmo real.
+
+**Decisões da execução:**
+
+- **Usa `effective`, não `configured`.** Número em aquecimento tem teto muito menor do que
+  o configurado, e é o efetivo que a fila respeita. Mostrar o configurado prometeria
+  uma velocidade que o número não tem.
+- **Simulação por dia, não por mensagem.** Campanha de dezenas de milhares de
+  destinatários daria o mesmo resultado iterando mensagem a mensagem, e custaria caro numa
+  tela que recalcula a cada mudança de filtro.
+- **Gateway sem resposta não derruba a tela:** a estimativa sai com o ritmo padrão do
+  sistema (40s, 60/h, 500/dia, 08:00–20:00) e diz, na própria tela, que é aproximada.
+  Errar para o lado conservador é o certo: estimativa curta demais é a que faz o cliente
+  achar que travou.
+- **Canal oficial não recebe estimativa nem aviso.** Lá não há fila nossa nem ritmo a
+  respeitar, e avisar sem motivo ensina o administrador a ignorar avisos.
+- O aviso de risco do B7-03, que era texto fixo no componente, **deu lugar ao texto vindo
+  do servidor** — a issue pedia o cálculo e o texto no backend.
 
 ## Fora de escopo
 
