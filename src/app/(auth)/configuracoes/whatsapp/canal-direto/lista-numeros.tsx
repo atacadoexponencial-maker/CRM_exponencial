@@ -7,7 +7,8 @@
 // captura a intenção.
 
 import { useState, useTransition } from "react"
-import { Plus } from "lucide-react"
+import Link from "next/link"
+import { Activity, Gauge, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { criarConexaoCanalDireto } from "../actions"
 import { CartaoNumero, type NumeroConectado } from "./cartao-numero"
@@ -100,7 +101,32 @@ export function ListaNumeros({
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {numeros.map((numero) => (
-              <CartaoNumero key={numero.id} numero={numero} />
+              <CartaoNumero
+                key={numero.id}
+                numero={numero}
+                /* B4-02: só o canal direto tem saúde e ritmo — a Meta não expõe
+                   nenhum dos dois. */
+                acoes={
+                  numero.canal === "gateway" ? (
+                    <div className="flex flex-wrap gap-3 text-sm">
+                      <Link
+                        href={`/configuracoes/whatsapp/${numero.id}/saude`}
+                        className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <Activity className="size-3.5" aria-hidden />
+                        Saúde
+                      </Link>
+                      <Link
+                        href={`/configuracoes/whatsapp/${numero.id}/ritmo`}
+                        className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <Gauge className="size-3.5" aria-hidden />
+                        Ritmo
+                      </Link>
+                    </div>
+                  ) : undefined
+                }
+              />
             ))}
           </div>
         )

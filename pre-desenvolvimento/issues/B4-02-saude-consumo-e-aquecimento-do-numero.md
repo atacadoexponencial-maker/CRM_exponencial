@@ -36,9 +36,9 @@ que o número está parado.
 
 ## Comportamentos da spec cobertos
 
-- [ ] Consultar a saúde de um número conectado
-- [ ] Ver o consumo dos tetos por hora e por dia
-- [ ] Ver que o número está em período de aquecimento e quais tetos valem
+- [x] Consultar a saúde de um número conectado
+- [x] Ver o consumo dos tetos por hora e por dia
+- [x] Ver que o número está em período de aquecimento e quais tetos valem
 
 ---
 
@@ -95,15 +95,40 @@ Achados da pesquisa que valem para o `/plan`:
 
 ## Critérios de aceite
 
-- [ ] A tela de saúde mostra dados reais de um número conectado ao gateway
-- [ ] O medidor mostra o consumo contra os tetos **vigentes**, não contra os máximos do sistema
-- [ ] Número em aquecimento aparece como tal, com o dia e os tetos daquele dia
-- [ ] Gateway inalcançável ou fora do tempo limite: a tela diz que não conseguiu ler, e não mostra zero
-- [ ] Nenhuma credencial do gateway aparece em código de cliente, em `NEXT_PUBLIC_*` ou em resposta de action
-- [ ] Nenhum dos números exibidos é calculado no CRM
-- [ ] Papel: só Admin e Gerente
-- [ ] Testes com o gateway simulado, sem rede — no padrão de mock que o `plano-testes-B1.md` fixou
-- [ ] `npm run build`, `npm run lint` e `npm test` passam
+- [x] A tela de saúde mostra dados reais de um número conectado ao gateway
+- [x] O medidor mostra o consumo contra os tetos **vigentes**, não contra os máximos do sistema
+- [x] Número em aquecimento aparece como tal, com o dia e os tetos daquele dia
+- [x] Gateway inalcançável ou fora do tempo limite: a tela diz que não conseguiu ler, e não mostra zero
+- [x] Nenhuma credencial do gateway aparece em código de cliente, em `NEXT_PUBLIC_*` ou em resposta de action
+- [x] Nenhum dos números exibidos é calculado no CRM
+- [x] Papel: só Admin e Gerente
+- [x] Testes com o gateway simulado, sem rede — no padrão de mock que o `plano-testes-B1.md` fixou
+- [x] `npm run build`, `npm run lint` e `npm test` passam
+
+## Execução (17/09/2026)
+
+**O bloqueio caiu antes da execução.** A issue dizia "o endpoint no ar ainda não" — a
+`A8-06` foi implementada no gateway em 17/09/2026, e a seção 4.5 do contrato é a fonte dos
+nomes de campo usados aqui.
+
+Arquivos a mais, declarados:
+
+- **`src/lib/whatsapp/gateway/saude.ts`** — a leitura e a tradução do contrato para o
+  vocabulário da tela. Ficam aqui, e não na action, para serem testáveis com gateway
+  simulado; a action autoriza, busca a conexão e traduz o resultado.
+- **`[id]/saude/tipos.ts`** — passou a reexportar o tipo de `src/lib`. O tipo e quem o
+  preenche precisam morar juntos, senão um muda e o outro não; os cinco componentes da
+  B4-01 seguem importando daqui.
+- **`canal-direto/lista-numeros.tsx`** — links de Saúde e Ritmo no cartão de cada número
+  do canal direto. A B4-01 dizia "alcançada por URL direta, enquanto B2 não existir"; B2
+  existe desde hoje, e deixar a tela sem porta de entrada seria entregar algo inalcançável.
+
+**Achado que mudou o desenho: o contrato não expõe o último dia do aquecimento.** Ele é
+constante do gateway (`ULTIMO_DIA_DE_AQUECIMENTO`, 30). Escrevê-lo no CRM duplicaria regra
+da Parte A — exatamente o que a issue proíbe. A tela passou a mostrar o dia atual e a
+omitir o total ("dia 9" em vez de "dia 9 de 30"), e `aquecimento.ultimoDia` é
+`number | null`. Para fechar isso, o endpoint de saúde precisaria devolver o último dia:
+issue nova no gateway, não nesta.
 
 ## Fora de escopo
 

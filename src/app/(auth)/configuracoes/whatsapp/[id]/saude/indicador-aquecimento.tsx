@@ -25,19 +25,29 @@ export function IndicadorAquecimento({ aquecimento }: { aquecimento: SaudeDoNume
     )
   }
 
-  const diasRestantes = Math.max(0, aquecimento.ultimoDia - aquecimento.dia + 1)
+  // O último dia do aquecimento é constante do gateway e o contrato não a
+  // expõe (B4-02). Duplicá-la aqui seria reimplementar regra da Parte A: sem
+  // ela, a tela mostra o dia atual e omite o total.
+  const diasRestantes =
+    aquecimento.ultimoDia === null ? null : Math.max(0, aquecimento.ultimoDia - aquecimento.dia + 1)
 
   return (
     <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
       <Flame className="size-4 shrink-0 mt-0.5 text-amber-700 dark:text-amber-500" aria-hidden />
       <div>
         <p className="text-sm font-medium">
-          Em aquecimento · dia {aquecimento.dia} de {aquecimento.ultimoDia}
+          Em aquecimento · dia {aquecimento.dia}
+          {aquecimento.ultimoDia !== null && ` de ${aquecimento.ultimoDia}`}
         </p>
         <p className="text-sm text-muted-foreground mt-0.5">
           Enquanto aquece, valem {aquecimento.tetoHora} mensagens por hora e {aquecimento.tetoDia} por
-          dia — menos que o configurado, de propósito. Faltam{" "}
-          {diasRestantes === 1 ? "1 dia" : `${diasRestantes} dias`} para os tetos cheios.
+          dia — menos que o configurado, de propósito.
+          {diasRestantes !== null && (
+            <>
+              {" "}
+              Faltam {diasRestantes === 1 ? "1 dia" : `${diasRestantes} dias`} para os tetos cheios.
+            </>
+          )}
         </p>
       </div>
     </div>
