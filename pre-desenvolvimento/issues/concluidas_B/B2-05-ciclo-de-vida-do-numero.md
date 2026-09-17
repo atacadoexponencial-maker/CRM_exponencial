@@ -17,9 +17,9 @@ Um número conectado pelo canal direto precisa poder sair e voltar. As três sa�
 
 ## Comportamentos da spec cobertos
 
-- [ ] Desconectar um número mantendo a possibilidade de reconectar
-- [ ] Reconectar um número desconectado lendo um novo QR Code
-- [ ] Remover definitivamente um número conectado
+- [x] Desconectar um número mantendo a possibilidade de reconectar
+- [x] Reconectar um número desconectado lendo um novo QR Code
+- [x] Remover definitivamente um número conectado
 
 ## Contrato do gateway
 
@@ -53,15 +53,36 @@ Reaproveitar: `acoes-whatsapp.tsx` já resolve este problema para a Meta — cop
 
 ## Critérios de aceite
 
-- [ ] Desconectar deixa o número desconectado no CRM e no gateway, e a sessão continua existindo
-- [ ] Reconectar um número desconectado volta a conectá-lo; quando a sessão não serve mais, o fluxo de QR de B2-03 é oferecido
-- [ ] Remover pede confirmação explícita, avisa que é irreversível, e depois o número não aparece mais na lista
-- [ ] Um número removido não deixa resto que o CRM tente usar depois
-- [ ] As três ações são distinguíveis na tela, com o efeito de cada uma escrito em português
-- [ ] Gateway recusando ou fora do ar mostra mensagem legível e não deixa o CRM e o gateway em estados diferentes sem aviso
-- [ ] As três ações recusam quem não é Admin, no backend
-- [ ] `npm run build`, `npm run lint` e `npm test` passam
-- [ ] **Verificação manual:** com a instância de teste do gateway, conferir que remover faz o aparelho sair de "Aparelhos conectados" no WhatsApp. Usar uma instância **sem o chip principal** — pendência já registrada no repo do gateway.
+- [x] Desconectar deixa o número desconectado no CRM e no gateway, e a sessão continua existindo
+- [x] Reconectar um número desconectado volta a conectá-lo; quando a sessão não serve mais, o fluxo de QR de B2-03 é oferecido
+- [x] Remover pede confirmação explícita, avisa que é irreversível, e depois o número não aparece mais na lista
+- [x] Um número removido não deixa resto que o CRM tente usar depois
+- [x] As três ações são distinguíveis na tela, com o efeito de cada uma escrito em português
+- [x] Gateway recusando ou fora do ar mostra mensagem legível e não deixa o CRM e o gateway em estados diferentes sem aviso
+- [x] As três ações recusam quem não é Admin, no backend
+- [x] `npm run build`, `npm run lint` e `npm test` passam
+- [ ] **Verificação manual (pendente — exige o chip e o gateway no ar):** com a instância de teste do gateway, conferir que remover faz o aparelho sair de "Aparelhos conectados" no WhatsApp. Usar uma instância **sem o chip principal** — pendência já registrada no repo do gateway.
+
+## Execução (17/09/2026)
+
+Arquivo a mais, declarado: **`src/lib/whatsapp/gateway/ciclo-de-vida.ts`** — as três rotas,
+o texto do efeito de cada uma e a tradução das recusas. A issue mandava pôr as rotas em
+`cliente.ts`, que é transporte puro desde a B0-01.
+
+**Ordem: gateway primeiro, CRM depois.** Se o gateway recusar, nada muda no CRM — o
+contrário deixaria a tela dizendo "desconectado" com o número ainda enviando. A exceção é
+`instance_not_found`: a instância já não existe do lado de lá, insistir não muda nada, e o
+CRM acerta a própria cópia.
+
+**Remover apaga a linha**, em vez de marcá-la como removida: o critério de aceite pedia que
+não sobrasse resto que o CRM tentasse usar, e o `instance_token` de uma instância removida
+não serve para mais nada.
+
+**Banido não recebe botão de reconectar.** Ler o QR de novo não desfaz bloqueio do
+WhatsApp, e oferecer seria mentira.
+
+A verificação manual (remover faz o aparelho sair de "Aparelhos conectados") continua
+aberta: depende do chip e do gateway publicado.
 
 ## Fora de escopo
 

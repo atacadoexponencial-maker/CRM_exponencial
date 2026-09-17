@@ -8,6 +8,7 @@
 // pareamento por QR Code.
 
 import { Badge } from "@/components/ui/badge"
+import { TEXTO_DO_MOTIVO } from "@/lib/whatsapp/gateway/estado"
 
 export type EstadoConexao =
   | "pairing"
@@ -56,12 +57,12 @@ const ESTILO: Record<EstadoConexao, { texto: string; classe: string }> = {
   },
 }
 
-/** Texto legível do motivo. Banido tem aviso próprio, mais forte que este. */
-export const TEXTO_DO_MOTIVO: Record<MotivoDeTransicao, string> = {
-  session_closed_on_device: "A sessão foi encerrada no aparelho.",
-  banned_by_whatsapp: "O WhatsApp bloqueou este número.",
-  connection_lost: "A conexão com o aparelho caiu.",
-}
+/**
+ * Texto legível do motivo, reexportado do backend (B2-04): a tradução mora em
+ * `gateway/estado.ts`, porque o webhook (B6) também precisa dela e duas cópias
+ * divergiriam. Banido tem aviso próprio, mais forte que este.
+ */
+export { TEXTO_DO_MOTIVO }
 
 export function EstadoBadge({ estado }: { estado: EstadoConexao }) {
   const { texto, classe } = ESTILO[estado]

@@ -6,24 +6,25 @@
 // issue trocou a origem. A criação da conexão é uma Server Action — o botão só
 // captura a intenção.
 
-import { useState, useTransition } from "react"
+import { useCallback, useEffect, useState, useTransition } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { criarConexaoCanalDireto } from "../actions"
+import {
+  criarConexaoCanalDireto,
+  pedirQrCodeCanalDireto,
+  sincronizarEstadoCanalDireto,
+} from "../actions"
+import { AcoesCanalDireto } from "./acoes-canal-direto"
 import { CartaoNumero, type NumeroConectado } from "./cartao-numero"
 import { EscolhaCanal, type CanalEscolhido } from "./escolha-canal"
 import { PareamentoPorCodigo } from "./pareamento-por-codigo"
 import { TelaQrCode, type Pareamento } from "./tela-qr-code"
-import { TermoResponsabilidade } from "./termo-responsabilidade"
+import type { EstadoConexao, MotivoDeTransicao } from "./estado-badge"
+import { pareamentoEmAndamento } from "@/lib/whatsapp/gateway/estado"
 
-/**
- * O código de pareamento ainda é fixo: pedi-lo ao gateway é a B2-03. A tela já
- * está pronta para receber o real — só a origem do dado muda.
- */
-const PAREAMENTO_DE_EXEMPLO: Pareamento = {
-  qr: "2@Kx9mQ4vB7nZ1pL8sT3wY6hJ0dF5gR2aC4eN7uM9iO1kP3xV5bW8zQ6yH4jS2lD0f",
-  expires_at: new Date(Date.now() + 60_000).toISOString(),
-}
+/** Enquanto o pareamento não termina, a tela pergunta de novo a cada 3s. */
+const INTERVALO_DE_ACOMPANHAMENTO_MS = 3000
+import { TermoResponsabilidade } from "./termo-responsabilidade"
 
 export function ListaNumeros({
   numeros,
@@ -34,9 +35,13 @@ export function ListaNumeros({
   termoAceito: boolean
 }) {
   const [conectando, setConectando] = useState<CanalEscolhido | null>(null)
-  const [pareamento, setPareamento] = useState(PAREAMENTO_DE_EXEMPLO)
+  const [pareamento, setPareamento] = useState<Pareamento | null>(null)
+  const [erroPareamento, setErroPareamento] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [criando, criar] = useTransition()
+  const [renovando, renovar] = useTransition()
+  const [estado, setEstado] = useState<EstadoConexao>("pairing")
+  const [motivo, setMotivo] = useState<MotivoDeTransicao | undefined>()
   const [termoAberto, setTermoAberto] = useState(false)
   const [aceito, setAceito] = useState(termoAceito)
 
@@ -57,7 +62,38 @@ export function ListaNumeros({
         return
       }
       setConectando("gateway")
+      // B2-03: com a instância criada, o código já pode ser pedido.
+      await buscarQr()
     })
+  }
+
+  /**
+   * B2-04: acompanha o estado enquanto a tela de pareamento está aberta. Para
+   * sozinho quando o pareamento termina — conectado, banido ou desconectado.
+   */
+  const acompanhar = useCallback(async () => {
+    const resultado = await sincronizarEstadoCanalDireto()
+    if (resultado.erro || !resultado.estado) return
+    setEstado(resultado.estado.state as EstadoConexao)
+  }, [])
+
+  useEffect(() => {
+    if (conectando !== "gateway") return
+    if (!pareamentoEmAndamento(estado)) return
+
+    const relogio = setInterval(() => void acompanhar(), INTERVALO_DE_ACOMPANHAMENTO_MS)
+    return () => clearInterval(relogio)
+  }, [conectando, estado, acompanhar])
+
+  async function buscarQr() {
+    setErroPareamento(null)
+    const resultado = await pedirQrCodeCanalDireto()
+    if (resultado.erro) {
+      setErroPareamento(resultado.erro)
+      setPareamento(null)
+      return
+    }
+    setPareamento(resultado.qr ?? null)
   }
 
   return (
@@ -100,7 +136,24 @@ export function ListaNumeros({
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {numeros.map((numero) => (
-              <CartaoNumero key={numero.id} numero={numero} />
+              <CartaoNumero
+                key={numero.id}
+                numero={numero}
+                acoes={
+                  // B2-05: o ciclo de vida do canal direto. A conexão da Meta
+                  // tem as ações dela no fluxo próprio, mais abaixo na página.
+                  numero.canal === "gateway" ? (
+                    <AcoesCanalDireto
+                      conexaoId={numero.id}
+                      estado={numero.state}
+                      onReconectar={() => {
+                        setConectando("gateway")
+                        void buscarQr()
+                      }}
+                    />
+                  ) : undefined
+                }
+              />
             ))}
           </div>
         )
@@ -118,12 +171,11 @@ export function ListaNumeros({
             <>
               <TelaQrCode
                 pareamento={pareamento}
-                onRenovar={() =>
-                  setPareamento({
-                    qr: PAREAMENTO_DE_EXEMPLO.qr,
-                    expires_at: new Date(Date.now() + 60_000).toISOString(),
-                  })
-                }
+                estado={estado}
+                motivo={motivo}
+                erro={erroPareamento}
+                renovando={renovando}
+                onRenovar={() => renovar(buscarQr)}
               />
               <PareamentoPorCodigo />
             </>

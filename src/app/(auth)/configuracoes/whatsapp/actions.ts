@@ -11,6 +11,17 @@ import {
   type ConexaoListada,
 } from "@/lib/whatsapp/gateway/instancias"
 import { aceiteEstaVigente, VERSAO_DO_TERMO } from "@/lib/whatsapp/gateway/termo"
+import {
+  pedirCodigoDoGateway,
+  pedirQrDoGateway,
+  type QrParaExibir,
+} from "@/lib/whatsapp/gateway/pareamento"
+import { consultarEstado, motivoEmPortugues } from "@/lib/whatsapp/gateway/estado"
+import {
+  operarInstancia,
+  type OperacaoDeCicloDeVida,
+} from "@/lib/whatsapp/gateway/ciclo-de-vida"
+import { aplicarEstadoDaInstancia } from "@/lib/whatsapp/eventos-de-operacao"
 
 export type ConexaoWhatsApp = {
   id: string
@@ -195,6 +206,242 @@ export async function criarConexaoCanalDireto(): Promise<{ erro?: string; instan
 
   revalidatePath("/configuracoes/whatsapp")
   return { instanceId: resultado.instanceId }
+}
+
+/**
+ * Instância do canal direto do workspace, com o token (B2-03).
+ *
+ * Lê com o service client: a coluna `instance_token` está fora do alcance do
+ * cliente autenticado desde a B2-02, e é ela que autoriza o pareamento.
+ *
+ * Devolve só o que o backend precisa — este valor **nunca** é retornado a uma
+ * Server Action nem chega ao navegador.
+ */
+async function instanciaDoCanalDireto(
+  workspaceId: string
+): Promise<{ conexaoId: string; instanceId: string; instanceToken: string } | null> {
+  const { data } = await createServiceClient()
+    .from("whatsapp_connections")
+    .select("id, instance_id, instance_token")
+    .eq("workspace_id", workspaceId)
+    .eq("canal", "gateway")
+    .not("instance_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!data?.instance_id || !data?.instance_token) return null
+
+  return {
+    conexaoId: data.id as string,
+    instanceId: data.instance_id as string,
+    instanceToken: data.instance_token as string,
+  }
+}
+
+/** Admin do workspace, ou o motivo da recusa. Usado pelas actions de pareamento. */
+async function adminDoWorkspace(): Promise<{ workspaceId: string } | { erro: string }> {
+  const ssrClient = await createSsrClient()
+  const { data: { user } } = await ssrClient.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  const { data: perfil } = await ssrClient
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+
+  return { workspaceId: perfil.workspace_id as string }
+}
+
+/**
+ * Pede o código visual de pareamento (B2-03).
+ *
+ * Devolve a **imagem pronta**: o conteúdo bruto do código não precisa circular
+ * no navegador. Renovar é chamar esta action de novo — vencido sem leitura, o
+ * gateway já gerou outro.
+ */
+export async function pedirQrCodeCanalDireto(): Promise<{ erro?: string; qr?: QrParaExibir }> {
+  const autorizacao = await adminDoWorkspace()
+  if ("erro" in autorizacao) return { erro: autorizacao.erro }
+
+  const instancia = await instanciaDoCanalDireto(autorizacao.workspaceId)
+  if (!instancia) return { erro: "Nenhum número do canal direto para parear neste workspace." }
+
+  let cliente
+  try {
+    cliente = clienteGatewayDoAmbiente()
+  } catch {
+    return { erro: "O canal direto não está configurado neste ambiente." }
+  }
+
+  const resultado = await pedirQrDoGateway(cliente, instancia.instanceId, instancia.instanceToken)
+  return resultado.ok ? { qr: resultado.dados } : { erro: resultado.erro }
+}
+
+/**
+ * Pede o código digitado para um número (B2-03), caminho alternativo ao QR.
+ */
+export async function pedirCodigoDePareamento(
+  numero: string
+): Promise<{ erro?: string; codigo?: string; expiresAt?: string }> {
+  const autorizacao = await adminDoWorkspace()
+  if ("erro" in autorizacao) return { erro: autorizacao.erro }
+
+  const instancia = await instanciaDoCanalDireto(autorizacao.workspaceId)
+  if (!instancia) return { erro: "Nenhum número do canal direto para parear neste workspace." }
+
+  let cliente
+  try {
+    cliente = clienteGatewayDoAmbiente()
+  } catch {
+    return { erro: "O canal direto não está configurado neste ambiente." }
+  }
+
+  const resultado = await pedirCodigoDoGateway(
+    cliente,
+    instancia.instanceId,
+    instancia.instanceToken,
+    numero
+  )
+
+  return resultado.ok
+    ? { codigo: resultado.dados.pairing_code, expiresAt: resultado.dados.expires_at }
+    : { erro: resultado.erro }
+}
+
+/**
+ * Pergunta ao gateway em que estado a conexão está e grava o resultado (B2-04).
+ *
+ * A gravação usa o mesmo caminho do evento `instance.state` do webhook
+ * (`aplicarEstadoDaInstancia`): dois caminhos escrevendo o mesmo campo por
+ * lugares diferentes divergiriam no primeiro detalhe esquecido.
+ *
+ * Quem chama é a tela de pareamento, enquanto ela está aberta. Depois de
+ * conectado, quem avisa é o gateway.
+ */
+export async function sincronizarEstadoCanalDireto(): Promise<{
+  erro?: string
+  estado?: { state: string; phoneNumber: string | null; displayName: string | null; motivo: string | null }
+}> {
+  const autorizacao = await adminDoWorkspace()
+  if ("erro" in autorizacao) return { erro: autorizacao.erro }
+
+  const instancia = await instanciaDoCanalDireto(autorizacao.workspaceId)
+  if (!instancia) return { erro: "Nenhum número do canal direto neste workspace." }
+
+  let cliente
+  try {
+    cliente = clienteGatewayDoAmbiente()
+  } catch {
+    return { erro: "O canal direto não está configurado neste ambiente." }
+  }
+
+  const resultado = await consultarEstado(cliente, instancia.instanceId, instancia.instanceToken)
+  if (!resultado.ok) return { erro: resultado.erro }
+
+  const service = createServiceClient()
+  await aplicarEstadoDaInstancia({
+    supabase: service as never,
+    connectionId: instancia.conexaoId,
+    evento: resultado.estado,
+  })
+
+  revalidatePath("/configuracoes/whatsapp")
+
+  return {
+    estado: {
+      state: resultado.estado.state,
+      phoneNumber: resultado.estado.phone_number,
+      displayName: resultado.estado.display_name,
+      motivo: motivoEmPortugues(resultado.estado.reason),
+    },
+  }
+}
+
+/**
+ * Uma conexão do canal direto por id, com o token (B2-05).
+ *
+ * Diferente de `instanciaDoCanalDireto`, que pega a mais recente do workspace:
+ * aqui o admin escolheu um número específico, e o workspace é conferido para o
+ * id não virar caminho para operar conexão de outro cliente.
+ */
+async function conexaoDoCanalDiretoPorId(
+  workspaceId: string,
+  conexaoId: string
+): Promise<{ instanceId: string; instanceToken: string } | null> {
+  const { data } = await createServiceClient()
+    .from("whatsapp_connections")
+    .select("instance_id, instance_token")
+    .eq("id", conexaoId)
+    .eq("workspace_id", workspaceId)
+    .eq("canal", "gateway")
+    .maybeSingle()
+
+  if (!data?.instance_id || !data?.instance_token) return null
+
+  return { instanceId: data.instance_id as string, instanceToken: data.instance_token as string }
+}
+
+/**
+ * Desconectar, encerrar no aparelho ou remover um número do canal direto (B2-05).
+ *
+ * A ordem é: **gateway primeiro, CRM depois.** Se o gateway recusar, nada muda
+ * no CRM — o contrário deixaria a tela dizendo "desconectado" com o número
+ * ainda enviando.
+ *
+ * Remoção apaga a linha: número removido não pode deixar resto que o CRM tente
+ * usar depois, e o `instance_token` dele não serve para mais nada.
+ */
+export async function operarNumeroCanalDireto(
+  conexaoId: string,
+  operacao: OperacaoDeCicloDeVida
+): Promise<{ erro?: string; estado?: string }> {
+  const autorizacao = await adminDoWorkspace()
+  if ("erro" in autorizacao) return { erro: autorizacao.erro }
+
+  const conexao = await conexaoDoCanalDiretoPorId(autorizacao.workspaceId, conexaoId)
+  if (!conexao) return { erro: "Conexão não encontrada neste workspace." }
+
+  let cliente
+  try {
+    cliente = clienteGatewayDoAmbiente()
+  } catch {
+    return { erro: "O canal direto não está configurado neste ambiente." }
+  }
+
+  const resultado = await operarInstancia(
+    cliente,
+    conexao.instanceId,
+    conexao.instanceToken,
+    operacao
+  )
+
+  const service = createServiceClient()
+
+  // Instância que já não existe no gateway: a operação pedida está feita do
+  // lado de lá, e insistir não muda nada. O CRM acerta a própria cópia.
+  if (!resultado.ok && !resultado.jaNaoExiste) return { erro: resultado.erro }
+
+  if (operacao === "remover") {
+    await service.from("whatsapp_connections").delete().eq("id", conexaoId)
+  } else {
+    await service
+      .from("whatsapp_connections")
+      .update({
+        status: resultado.ok ? resultado.estado : "disconnected",
+        // A operação foi pedida por nós: não há motivo de transição, e isto
+        // limpa um "connection_lost" velho que estivesse na tela.
+        state_reason: null,
+      })
+      .eq("id", conexaoId)
+  }
+
+  revalidatePath("/configuracoes/whatsapp")
+
+  return resultado.ok ? { estado: resultado.estado } : { estado: "removed" }
 }
 
 export async function completarConexaoWhatsApp(params: {
