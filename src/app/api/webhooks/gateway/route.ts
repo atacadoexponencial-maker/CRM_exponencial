@@ -21,6 +21,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"
 import { receberMensagem, type EventoMensagemRecebida } from "@/lib/whatsapp/recebimento"
+import {
+  aplicarEstadoDaInstancia,
+  aplicarStatusDeMensagem,
+  registrarFreio,
+  type EventoDeEstado,
+  type EventoDeFreio,
+  type EventoDeStatus,
+} from "@/lib/whatsapp/eventos-de-operacao"
 
 const HEADER_ASSINATURA = "x-gateway-signature-256"
 
@@ -174,7 +182,38 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  // Os outros três tipos entram na B6-04.
+  if (envelope.type === "message.status") {
+    const dados = envelope.data as EventoDeStatus | undefined
+    if (!dados?.message_id || typeof dados.status !== "string") {
+      return NextResponse.json({ error: "invalid payload" }, { status: 400 })
+    }
+
+    await aplicarStatusDeMensagem({ supabase, evento: dados })
+  }
+
+  if (envelope.type === "instance.state") {
+    const dados = envelope.data as EventoDeEstado | undefined
+    if (!dados?.state) {
+      return NextResponse.json({ error: "invalid payload" }, { status: 400 })
+    }
+
+    await aplicarEstadoDaInstancia({ supabase, connectionId: conexao.id, evento: dados })
+  }
+
+  if (envelope.type === "instance.braked") {
+    const dados = envelope.data as EventoDeFreio | undefined
+    if (!dados?.reason) {
+      return NextResponse.json({ error: "invalid payload" }, { status: 400 })
+    }
+
+    await registrarFreio({
+      supabase,
+      workspaceId: conexao.workspace_id,
+      connectionId: conexao.id,
+      evento: dados,
+    })
+  }
+
   await marcarProcessado(supabase, envelope.event_id)
   return NextResponse.json({ status: "ok" })
 }
