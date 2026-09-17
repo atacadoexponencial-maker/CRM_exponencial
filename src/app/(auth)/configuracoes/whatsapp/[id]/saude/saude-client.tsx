@@ -12,6 +12,8 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogClose, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import { AvisoDeFreio } from "./aviso-de-freio"
 import { CartaoSaude } from "./cartao-saude"
 import { IndicadorAquecimento } from "./indicador-aquecimento"
@@ -32,16 +34,19 @@ export function SaudeClient({
 }) {
   const router = useRouter()
   const [erroRetomada, setErroRetomada] = useState<string | null>(null)
+  const [confirmando, setConfirmando] = useState(false)
   const [retomando, retomar] = useTransition()
 
-  function pedirRetomada() {
+  function confirmarRetomada() {
     setErroRetomada(null)
     retomar(async () => {
       const resultado = await retomarEnviosDoNumero(connectionId)
       if (resultado.erro) {
+        setConfirmando(false)
         setErroRetomada(resultado.erro)
         return
       }
+      setConfirmando(false)
       // A saúde é lida no servidor: recarregar é o que mostra o número liberado.
       router.refresh()
     })
@@ -52,10 +57,37 @@ export function SaudeClient({
       <AvisoDeFreio
         freio={saude.freio}
         podeRetomar={podeRetomar}
-        onRetomar={pedirRetomada}
+        onRetomar={() => setConfirmando(true)}
         retomando={retomando}
         erro={erroRetomada}
       />
+
+      {/* B4-04: retomar um número freado por falhas é assumir risco, e a
+          confirmação existe para o clique não ser reflexo. */}
+      <Dialog open={confirmando} onOpenChange={setConfirmando}>
+        <DialogPopup>
+          <DialogTitle>Retomar os envios deste número?</DialogTitle>
+          <p className="text-sm text-muted-foreground mt-3">
+            Os envios foram interrompidos porque muitos falharam seguidamente. Retomar volta a
+            enviar as {saude.freio.mensagensParadas.toLocaleString("pt-BR")} mensagens paradas —
+            se a causa das falhas continuar, o número fica mais perto de ser bloqueado pelo
+            WhatsApp.
+          </p>
+
+          <div className="mt-5 flex justify-end gap-2">
+            <DialogClose
+              render={
+                <Button variant="outline" disabled={retomando}>
+                  Cancelar
+                </Button>
+              }
+            />
+            <Button onClick={confirmarRetomada} disabled={retomando}>
+              {retomando ? "Retomando…" : "Retomar envios"}
+            </Button>
+          </div>
+        </DialogPopup>
+      </Dialog>
 
       <CartaoSaude saude={saude} />
 
