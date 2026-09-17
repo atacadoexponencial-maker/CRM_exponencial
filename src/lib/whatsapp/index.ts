@@ -8,6 +8,8 @@
 // ser feita aqui dentro, por um campo da conexão, e nenhum arquivo de negócio
 // muda. Ver `README.md` nesta pasta.
 
+import type { createServiceClient } from "@/integrations/supabase/service"
+
 import { criarProviderMeta } from "./provider-meta"
 import type { ProviderWhatsApp } from "./tipos"
 
@@ -23,25 +25,17 @@ export type {
  * Tipo do cliente Supabase aceito aqui.
  *
  * Tanto `createServiceClient` quanto o cliente SSR resolvem para o mesmo
- * `SupabaseClient<any, "public", any>`, porque nenhum dos dois passa o generic
- * `Database`. Por isso o seletor aceita os dois sem cast, e a RLS do chat é
- * preservada: cada chamador passa o cliente que já usava.
+ * `SupabaseClient<any, "public", "public", any, any>`, porque nenhum dos dois
+ * passa o generic `Database`. Por isso o seletor aceita os dois sem cast, e a
+ * RLS do chat é preservada: cada chamador passa o cliente que já usava.
+ *
+ * O tipo vem da fábrica, e não de uma descrição estrutural da cadeia
+ * `.from().select()...`, porque os builders do postgrest-js não são `Promise`
+ * — são thenables (`PostgrestBuilder`), e o `Result` deles não é o objeto
+ * selecionado. Descrever a cadeia à mão compila em isolamento e quebra na hora
+ * em que um cliente de verdade é passado. Ver decisão 5.3.
  */
-type ClienteSupabase = {
-  from: (tabela: string) => {
-    select: (colunas: string) => {
-      eq: (coluna: string, valor: string) => {
-        eq: (coluna: string, valor: string) => {
-          limit: (n: number) => {
-            maybeSingle: () => Promise<{
-              data: { phone_number_id: string; access_token: string } | null
-            }>
-          }
-        }
-      }
-    }
-  }
-}
+export type ClienteSupabase = ReturnType<typeof createServiceClient>
 
 /**
  * Resolve o provider a partir do número conectado do workspace.

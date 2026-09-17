@@ -8,6 +8,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 
 import { resolverProvider } from "@/lib/whatsapp"
+import type { ClienteSupabase } from "@/lib/whatsapp"
 import { criarProviderMeta } from "@/lib/whatsapp/provider-meta"
 
 const PHONE_NUMBER_ID = "1167696503100575"
@@ -19,6 +20,10 @@ type Conexao = { phone_number_id: string; access_token: string } | null
  * Stub mínimo do cliente Supabase: imita a cadeia
  * `.from().select().eq().eq().limit().maybeSingle()` e devolve o que for
  * configurado. Segue o espírito do builder de `automacoes.test.ts`.
+ *
+ * O cast existe porque `resolverProvider` declara o cliente pelo tipo real do
+ * supabase-js — um stub nunca satisfaz aquela superfície inteira, e descrever
+ * a cadeia à mão no tipo do parâmetro foi justamente o que quebrou o build.
  */
 function clienteComConexao(conexao: Conexao) {
   return {
@@ -33,7 +38,7 @@ function clienteComConexao(conexao: Conexao) {
         }),
       }),
     }),
-  }
+  } as unknown as ClienteSupabase
 }
 
 function respostaOk(corpo: unknown) {

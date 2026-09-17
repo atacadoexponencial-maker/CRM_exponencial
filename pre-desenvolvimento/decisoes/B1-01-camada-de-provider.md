@@ -510,3 +510,93 @@ testes do mesmo arquivo.
 Um workspace e três contatos sobraram. Confirma o que a seção 8.1 previu: a
 limpeza do `afterAll` não é perfeita, e é essa a origem dos 18 workspaces de lixo
 que já estavam lá. Enquanto não houver cliente real na base, o custo é esse.
+
+---
+
+## 11. Correção pós-deploy — 17/09/2026
+
+O primeiro deploy da branch na Vercel (`5428072`) **falhou**. O build de produção
+quebrou no type check, em seis arquivos, com a mesma mensagem repetida:
+
+```
+Type error: Argument of type 'SupabaseClient<any, "public", "public", any, any>'
+is not assignable to parameter of type 'ClienteSupabase'.
+  The types returned by 'from(...).select(...).eq(...).eq(...).limit(...).maybeSingle()'
+  are incompatible between these types.
+    Type 'PostgrestBuilder<any, GenericStringError | null, false>' is missing the
+    following properties from type 'Promise<{ phone_number_id: string;
+    access_token: string; } | null>': catch, finally, [Symbol.toStringTag]
+```
+
+### 11.1 A decisão 5.3 estava errada — revogada
+
+A seção 5.3 concluiu "NÃO É PROBLEMA" e a 10.1 disse que estava "provado na
+prática". As duas coisas estão erradas, e a segunda mais do que a primeira.
+
+O erro não era o que a 5.3 investigou. A 5.3 perguntou *"o cliente do chat com RLS
+e o service client são o mesmo tipo?"* — e a resposta continua sendo **sim**, os
+dois resolvem para `SupabaseClient<any, "public", "public", any, any>`. Essa parte
+estava certa.
+
+O que estava errado foi a **forma como o seletor declarava o parâmetro**. Em vez
+de usar o tipo do supabase-js, `index.ts` descrevia à mão a cadeia
+`.from().select().eq().eq().limit().maybeSingle()`, e nessa descrição errou dois
+pontos que só aparecem quando um cliente de verdade encosta no tipo:
+
+1. **`maybeSingle()` não devolve `Promise`.** Devolve `PostgrestBuilder`, que é um
+   *thenable* — tem `then`, não tem `catch`, `finally` nem `Symbol.toStringTag`.
+   Um `Promise` declarado à mão nunca aceita um thenable.
+2. **O `data` não é o objeto selecionado.** Sem o generic `Database`, o postgrest-js
+   não consegue resolver a string `"phone_number_id, access_token"` contra schema
+   nenhum, e o `Result` vira `GenericStringError | null`.
+
+Repare que o tipo estrutural **compila sozinho** e os testes **passam**, porque o
+stub do teste era escrito contra a mesma descrição errada. Os dois lados
+concordavam entre si e discordavam da realidade. O erro só aparece nos seis
+chamadores, que passam clientes de verdade.
+
+### 11.2 Por que o `npm run build` da seção 10.1 não pegou isso
+
+Esta é a parte que importa mais do que o bug.
+
+O `next build` imprime, **nesta ordem**:
+
+```
+✓ Compiled successfully in 3.5s
+  Running TypeScript ...
+Failed to type check.
+```
+
+O `✓ Compiled successfully` é do Turbopack e vem **antes** do type check. Ele não
+significa que o build passou — significa que o bundle foi gerado. Ler aquele `✓` e
+parar ali é exatamente o que produz um registro dizendo "`npm run build` passa"
+enquanto o build falha.
+
+**Regra daqui pra frente:** o critério de aceite não é ver um `✓` no meio da saída.
+É o **exit code** do comando. Quando for registrar que passou, rode
+`npm run build; echo "exit=$?"` e cole o `exit=0` — ou rode `npx tsc --noEmit`, que
+não tem saída intermediária para confundir.
+
+### 11.3 A correção
+
+`ClienteSupabase` agora vem da fábrica, e não de uma descrição à mão:
+
+```ts
+export type ClienteSupabase = ReturnType<typeof createServiceClient>
+```
+
+É o mesmo idioma que `whatsapp-envio.ts:8` já usava antes desta issue — quer dizer
+que a solução estava no repositório o tempo todo. Vantagem sobre importar
+`SupabaseClient` direto do supabase-js: não depende da aridade dos generics, que
+mudou entre versões (`<any, "public", any>` virou `<any, "public", "public", any, any>`).
+
+**Custo, declarado:** o stub de dez linhas do teste agora precisa de
+`as unknown as ClienteSupabase`. A seção 10.1 tratava "stub sem cast" como efeito
+colateral bom do tipo estrutural. Era, mas era o efeito colateral de um tipo que não
+descrevia o cliente real — e um stub que casa perfeitamente com o parâmetro é
+justamente o que impediu o teste de pegar o bug. O cast é mais honesto: diz que
+aquilo é um dublê, não um cliente.
+
+O type check, o lint e os dois arquivos de teste do provider passam. O resto da
+suíte continua como a seção 10.4 descreve — mesmos 3 arquivos, mesmo
+`Request rate limit reached`, nenhum ligado ao caminho de WhatsApp.
