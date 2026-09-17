@@ -86,13 +86,15 @@ export async function POST(request: NextRequest) {
 
   const { data: connection } = await supabase
     .from("whatsapp_connections")
-    .select("workspace_id")
+    // B7-01: o `id` entrou junto do workspace para a conversa nascer sabendo
+    // por qual número ela chegou. Nada mais mudou neste arquivo.
+    .select("id, workspace_id")
     .eq("phone_number_id", phoneNumberId)
     .single()
 
   if (!connection) return NextResponse.json({ status: "ok" })
 
-  const { workspace_id } = connection
+  const { id: connectionId, workspace_id } = connection
 
   for (const message of messages) {
     const phoneNumber: string = message.from
@@ -148,6 +150,8 @@ export async function POST(request: NextRequest) {
         unread_count: 1,
         last_message_text: messageText,
         last_message_at: messageAt,
+        // B7-01: a resposta a esta conversa sai por este mesmo número.
+        whatsapp_connection_id: connectionId,
       }).select("id").single()
       if (error || !novaConversa) return NextResponse.json({ error: "db error" }, { status: 500 })
       conversaId = novaConversa.id

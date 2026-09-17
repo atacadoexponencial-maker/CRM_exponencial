@@ -204,6 +204,7 @@ export async function registrarMensagemRecebida({
   recebidoEm,
   conteudo,
   midia = null,
+  connectionId = null,
 }: {
   supabase: ServiceClient
   workspaceId: string
@@ -214,6 +215,8 @@ export async function registrarMensagemRecebida({
   conteudo?: ConteudoTraduzido
   /** B6-03: arquivo já guardado no Storage do CRM, quando havia. */
   midia?: MidiaGuardada | null
+  /** B7-01: número por onde a mensagem chegou; a conversa nasce com ele. */
+  connectionId?: string | null
 }): Promise<ResultadoDoRecebimento> {
   const traduzido = conteudo ?? traduzirTexto(evento)
   const identificador = identificadorDoContato(evento)
@@ -225,6 +228,7 @@ export async function registrarMensagemRecebida({
     contactId,
     previa: traduzido.previa,
     recebidoEm,
+    connectionId,
   })
 
   // Automação dispara ao ABRIR conversa, e só. É o comportamento do webhook da
@@ -312,12 +316,15 @@ async function abrirOuReusarConversa({
   contactId,
   previa,
   recebidoEm,
+  connectionId,
 }: {
   supabase: ServiceClient
   workspaceId: string
   contactId: string
   previa: string
   recebidoEm: string
+  /** B7-01: número por onde a conversa chegou, para a resposta sair por ele. */
+  connectionId?: string | null
 }): Promise<{ conversationId: string; conversaCriada: boolean }> {
   const { data: aberta } = await supabase
     .from("conversations")
@@ -353,6 +360,7 @@ async function abrirOuReusarConversa({
       unread_count: 1,
       last_message_text: previa,
       last_message_at: recebidoEm,
+      whatsapp_connection_id: connectionId ?? null,
     })
     .select("id")
     .single()
@@ -446,6 +454,7 @@ export async function receberMensagem({
   evento,
   recebidoEm,
   instanceToken,
+  connectionId,
 }: {
   supabase: ServiceClient
   workspaceId: string
@@ -453,6 +462,8 @@ export async function receberMensagem({
   recebidoEm: string
   /** Credencial da instância dona, para baixar a mídia. Só backend. */
   instanceToken?: string | null
+  /** B7-01: conexão dona da instância; a conversa aberta agora nasce com ela. */
+  connectionId?: string | null
 }): Promise<ResultadoDoEvento> {
   if (evento.reaction) {
     const alvoEncontrado = await aplicarReacao({ supabase, reacao: evento.reaction })
@@ -491,6 +502,7 @@ export async function receberMensagem({
     recebidoEm,
     conteudo: traduzirConteudo(evento, midia),
     midia,
+    connectionId,
   })
 
   return { tratamento: "mensagem", ...registrada }
