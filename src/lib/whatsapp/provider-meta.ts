@@ -84,6 +84,8 @@ export function criarProviderMeta(
   return {
     canal: "meta",
 
+    // A API Oficial não tem fila nem prioridade: `opcoes` é aceito para o
+    // contrato ser um só, e ignorado aqui de propósito.
     async enviarTexto(destino, texto) {
       return postar({
         messaging_product: "whatsapp",

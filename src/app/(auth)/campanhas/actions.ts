@@ -3,6 +3,8 @@
 import { createClient } from "@/integrations/supabase/server"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { processarCampanhasPendentes } from "@/lib/campanhas"
+import { nomeDoCanal } from "@/lib/whatsapp"
+import type { CanalWhatsApp } from "@/lib/whatsapp"
 import { calcularClassificacao } from "../contatos/classificacao"
 
 export type Segmento = {
@@ -34,6 +36,23 @@ export type CampanhaDetalhe = {
   arquivoUrl: string | null
   arquivoNome: string | null
   agendadaPara: string | null
+  /** B7-03: número de origem escolhido. Nulo: cai no número do workspace. */
+  whatsappConnectionId: string | null
+}
+
+/**
+ * Um número que a campanha pode usar (B7-03).
+ *
+ * `canalNome` e `recursos` vêm calculados do backend: o editor exibe, não
+ * decide. É a mesma regra do B7-02.
+ */
+export type NumeroParaCampanha = {
+  id: string
+  numero: string | null
+  nomeExibicao: string | null
+  canalNome: string
+  /** Canal direto opera fora dos Termos do WhatsApp: o editor avisa (B8-01). */
+  ehCanalDireto: boolean
 }
 
 export type DestinatarioPreview = { id: string; nome: string; telefone: string }
@@ -45,6 +64,8 @@ export type DadosCampanha = {
   conteudo: string
   arquivoUrl: string | null
   arquivoNome: string | null
+  /** B7-03: número de origem. Nulo mantém o comportamento antigo. */
+  whatsappConnectionId?: string | null
 }
 
 async function perfilGestor() {
@@ -214,7 +235,7 @@ export async function buscarCampanha(id: string): Promise<CampanhaDetalhe | null
 
   const { data } = await supabase
     .from("campaigns")
-    .select("id, nome, status, segmento, tipo_mensagem, conteudo, arquivo_url, arquivo_nome, agendada_para")
+    .select("id, nome, status, segmento, tipo_mensagem, conteudo, arquivo_url, arquivo_nome, agendada_para, whatsapp_connection_id")
     .eq("id", id)
     .eq("workspace_id", perfil.workspace_id)
     .single()
@@ -231,7 +252,38 @@ export async function buscarCampanha(id: string): Promise<CampanhaDetalhe | null
     arquivoUrl: data.arquivo_url,
     arquivoNome: data.arquivo_nome,
     agendadaPara: data.agendada_para,
+    whatsappConnectionId: data.whatsapp_connection_id ?? null,
   }
+}
+
+/**
+ * Números que a campanha pode usar (B7-03).
+ *
+ * Só conexões conectadas: escolher um número desconectado marcaria a campanha
+ * inteira como falha no disparo. Nunca devolve credencial — só o que a tela
+ * mostra.
+ */
+export async function numerosParaCampanha(): Promise<NumeroParaCampanha[]> {
+  const { supabase, perfil } = await perfilGestor()
+  if (!perfil) return []
+
+  const { data } = await supabase
+    .from("whatsapp_connections")
+    .select("id, canal, phone_number, display_name")
+    .eq("workspace_id", perfil.workspace_id)
+    .eq("status", "connected")
+    .order("created_at", { ascending: true })
+
+  return (data ?? []).map((c) => {
+    const canal = (c.canal ?? "meta") as CanalWhatsApp
+    return {
+      id: c.id,
+      numero: c.phone_number,
+      nomeExibicao: c.display_name,
+      canalNome: nomeDoCanal(canal),
+      ehCanalDireto: canal === "gateway",
+    }
+  })
 }
 
 function validarDados(dados: DadosCampanha, paraEnvio: boolean): string | null {
@@ -260,6 +312,8 @@ export async function salvarRascunho(
     conteudo: dados.conteudo,
     arquivo_url: dados.arquivoUrl,
     arquivo_nome: dados.arquivoNome,
+    // B7-03: nulo é válido e significa "o número do workspace", como antes.
+    whatsapp_connection_id: dados.whatsappConnectionId ?? null,
   }
 
   if (id) {

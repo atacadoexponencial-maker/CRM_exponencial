@@ -6,8 +6,8 @@
 
 import { createServiceClient } from "@/integrations/supabase/service"
 import { substituirVariaveis } from "@/lib/sequencias"
-import { resolverProvider } from "@/lib/whatsapp"
-import type { ProviderWhatsApp, ResultadoEnvio } from "@/lib/whatsapp"
+import { providerDaConexao, resolverProvider } from "@/lib/whatsapp"
+import type { ConexaoParaProvider, ProviderWhatsApp, ResultadoEnvio } from "@/lib/whatsapp"
 
 const TAMANHO_LOTE = 40
 
@@ -20,7 +20,17 @@ type CampaignRow = {
   conteudo: string | null
   arquivo_url: string | null
   arquivo_nome: string | null
+  /** B7-03: número de origem escolhido. Nulo na campanha criada antes dele. */
+  whatsapp_connection_id?: string | null
 }
+
+/**
+ * B7-03: toda mensagem de campanha se declara disparo em massa.
+ *
+ * No canal direto isso é o que mantém o cliente que está esperando resposta na
+ * frente da fila. A API Oficial ignora.
+ */
+const COMO_CAMPANHA = { prioridade: "campanha" } as const
 
 type RecipientRow = {
   id: string
@@ -47,20 +57,24 @@ async function enviarParaDestinatario(
     let resultado: ResultadoEnvio
 
     if (campanha.tipo_mensagem === "imagem" && campanha.arquivo_url) {
-      resultado = await provider.enviarMidia(destinatario.telefone_snapshot, {
-        url: campanha.arquivo_url,
-        tipo: "imagem",
-        legenda: texto,
-      })
+      resultado = await provider.enviarMidia(
+        destinatario.telefone_snapshot,
+        { url: campanha.arquivo_url, tipo: "imagem", legenda: texto },
+        COMO_CAMPANHA
+      )
     } else if (campanha.tipo_mensagem === "documento" && campanha.arquivo_url) {
-      resultado = await provider.enviarMidia(destinatario.telefone_snapshot, {
-        url: campanha.arquivo_url,
-        tipo: "documento",
-        legenda: texto,
-        nomeArquivo: campanha.arquivo_nome ?? "documento",
-      })
+      resultado = await provider.enviarMidia(
+        destinatario.telefone_snapshot,
+        {
+          url: campanha.arquivo_url,
+          tipo: "documento",
+          legenda: texto,
+          nomeArquivo: campanha.arquivo_nome ?? "documento",
+        },
+        COMO_CAMPANHA
+      )
     } else {
-      resultado = await provider.enviarTexto(destinatario.telefone_snapshot, texto)
+      resultado = await provider.enviarTexto(destinatario.telefone_snapshot, texto, COMO_CAMPANHA)
     }
 
     if (!resultado.ok) return { ok: false, wamid: null }
@@ -71,8 +85,37 @@ async function enviarParaDestinatario(
   }
 }
 
+/**
+ * O provider do número escolhido na campanha (B7-03).
+ *
+ * Sem número escolhido — campanha criada antes desta issue — cai no número
+ * conectado do workspace, que é o comportamento de antes.
+ *
+ * Número escolhido que não está mais conectado devolve `null`, e quem chama já
+ * sabe o que fazer: marcar os pendentes como falhos. É melhor do que disparar
+ * mil mensagens por um número que o cliente não escolheu.
+ */
+async function providerDaCampanha(
+  supabase: ServiceClient,
+  campanha: CampaignRow
+): Promise<ProviderWhatsApp | null> {
+  if (!campanha.whatsapp_connection_id) {
+    return resolverProvider(supabase, campanha.workspace_id)
+  }
+
+  const { data: conexao } = await supabase
+    .from("whatsapp_connections")
+    .select("canal, phone_number_id, access_token, instance_id, instance_token, status")
+    .eq("id", campanha.whatsapp_connection_id)
+    .maybeSingle()
+
+  if (!conexao || conexao.status !== "connected") return null
+
+  return providerDaConexao(conexao as ConexaoParaProvider)
+}
+
 async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow): Promise<number> {
-  const provider = await resolverProvider(supabase, campanha.workspace_id)
+  const provider = await providerDaCampanha(supabase, campanha)
 
   if (!provider) {
     // Sem conexão: marca todos os pendentes como falhos e encerra
@@ -157,7 +200,7 @@ export async function processarCampanhasPendentes(): Promise<number> {
 
   const { data: enviando } = await supabase
     .from("campaigns")
-    .select("id, workspace_id, tipo_mensagem, conteudo, arquivo_url, arquivo_nome")
+    .select("id, workspace_id, tipo_mensagem, conteudo, arquivo_url, arquivo_nome, whatsapp_connection_id")
     .eq("status", "enviando")
     .limit(3)
 

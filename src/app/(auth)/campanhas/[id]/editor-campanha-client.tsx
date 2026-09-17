@@ -13,7 +13,13 @@ import {
   salvarRascunho,
   uploadArquivoCampanha,
 } from "../actions"
-import type { CampanhaDetalhe, DadosCampanha, DestinatarioPreview, Segmento } from "../actions"
+import type {
+  CampanhaDetalhe,
+  DadosCampanha,
+  DestinatarioPreview,
+  NumeroParaCampanha,
+  Segmento,
+} from "../actions"
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -39,6 +45,8 @@ const TIPOS = [
 interface EditorCampanhaClientProps {
   campanha: CampanhaDetalhe | null
   opcoes: { nichos: string[]; tags: string[]; atendentes: Array<{ id: string; nome: string }> }
+  /** B7-03: números conectados do workspace, com o canal de cada um. */
+  numeros: NumeroParaCampanha[]
 }
 
 function ChipToggle({
@@ -66,7 +74,7 @@ function ChipToggle({
   )
 }
 
-export function EditorCampanhaClient({ campanha, opcoes }: EditorCampanhaClientProps) {
+export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampanhaClientProps) {
   const router = useRouter()
   const [etapa, setEtapa] = useState(1)
   const [id, setId] = useState<string | null>(campanha?.id ?? null)
@@ -77,6 +85,14 @@ export function EditorCampanhaClient({ campanha, opcoes }: EditorCampanhaClientP
     campanha?.tipoMensagem ?? "texto"
   )
   const [conteudo, setConteudo] = useState(campanha?.conteudo ?? "")
+  /**
+   * B7-03: número de origem. Vazio significa "o número do workspace" — é o
+   * comportamento das campanhas criadas antes desta issue, e continua válido.
+   * Com um número só conectado, ele já vem escolhido: não há decisão a tomar.
+   */
+  const [numeroOrigem, setNumeroOrigem] = useState<string>(
+    campanha?.whatsappConnectionId ?? (numeros.length === 1 ? numeros[0].id : "")
+  )
   const [arquivoUrl, setArquivoUrl] = useState<string | null>(campanha?.arquivoUrl ?? null)
   const [arquivoNome, setArquivoNome] = useState<string | null>(campanha?.arquivoNome ?? null)
   const [enviandoArquivo, setEnviandoArquivo] = useState(false)
@@ -118,8 +134,18 @@ export function EditorCampanhaClient({ campanha, opcoes }: EditorCampanhaClientP
   }, [segmento])
 
   function dados(): DadosCampanha {
-    return { nome, segmento, tipoMensagem, conteudo, arquivoUrl, arquivoNome }
+    return {
+      nome,
+      segmento,
+      tipoMensagem,
+      conteudo,
+      arquivoUrl,
+      arquivoNome,
+      whatsappConnectionId: numeroOrigem || null,
+    }
   }
+
+  const numeroEscolhido = numeros.find((n) => n.id === numeroOrigem) ?? null
 
   function toggleLista(campo: "classificacoes" | "tipos" | "nichos" | "tags", valor: string) {
     setSegmento((prev) => {
@@ -468,6 +494,44 @@ export function EditorCampanhaClient({ campanha, opcoes }: EditorCampanhaClientP
       {/* ─── Etapa 3: Agendamento ─── */}
       {etapa === 3 && (
         <div className="flex flex-col gap-5">
+          {/* B7-03: por qual número a campanha dispara. */}
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="camp-numero">Enviar pelo número</Label>
+            {numeros.length === 0 ? (
+              <p className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
+                Nenhum número conectado. Conecte um número em Configurações &gt; WhatsApp antes de
+                disparar.
+              </p>
+            ) : (
+              <>
+                <select
+                  id="camp-numero"
+                  className={selectClass}
+                  value={numeroOrigem}
+                  onChange={(e) => setNumeroOrigem(e.target.value)}
+                >
+                  <option value="">Usar o número conectado do workspace</option>
+                  {numeros.map((n) => (
+                    <option key={n.id} value={n.id}>
+                      {[n.numero ?? "número não confirmado", n.nomeExibicao, n.canalNome]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </option>
+                  ))}
+                </select>
+                {numeroEscolhido?.ehCanalDireto && (
+                  <p className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs dark:border-amber-900 dark:bg-amber-950/40">
+                    <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
+                    <span>
+                      Este número usa o canal direto, que opera fora dos Termos de Serviço do
+                      WhatsApp. Disparo em massa é o uso com maior risco de bloqueio do número.
+                    </span>
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+
           <div className="flex flex-col gap-2">
             <Label>Quando enviar</Label>
             <div className="flex gap-2">

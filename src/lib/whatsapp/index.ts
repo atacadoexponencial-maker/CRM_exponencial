@@ -26,6 +26,7 @@ export type {
   AlvoDeLeitura,
   CanalWhatsApp,
   MidiaEnvio,
+  OpcoesDeEnvio,
   ProviderWhatsApp,
   RecursoWhatsApp,
   ResultadoEnvio,

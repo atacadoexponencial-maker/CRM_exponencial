@@ -22,10 +22,19 @@ import {
 import type { EnvioEnfileirado } from "./gateway/tipos"
 import type {
   MidiaEnvio,
+  OpcoesDeEnvio,
   ProviderWhatsApp,
   RecursoWhatsApp,
   ResultadoEnvio,
 } from "./tipos"
+
+/**
+ * Prioridade na fila do gateway (A6-06): conversa passa na frente de campanha.
+ * Ausente, `conversation` — o caso da esmagadora maioria dos envios.
+ */
+function prioridadeNoContrato(opcoes?: OpcoesDeEnvio): "conversation" | "campaign" {
+  return opcoes?.prioridade === "campanha" ? "campaign" : "conversation"
+}
 
 /** Tradução do vocabulário do CRM para o do contrato do gateway. */
 const TIPO_GATEWAY: Record<MidiaEnvio["tipo"], "image" | "video" | "audio" | "document"> = {
@@ -87,21 +96,19 @@ export function criarProviderGateway(
   return {
     canal: "gateway",
 
-    async enviarTexto(destino, texto) {
+    async enviarTexto(destino, texto, opcoes) {
       return pedir({
         caminho: `/instances/${instanceId}/messages`,
         corpo: {
           to: destino,
           type: "text",
           text: texto,
-          // Conversa tem prioridade sobre campanha na fila do gateway (A6-06).
-          // Campanha declara o contrário na issue dela (B8).
-          priority: "conversation",
+          priority: prioridadeNoContrato(opcoes),
         },
       })
     },
 
-    async enviarMidia(destino, midia) {
+    async enviarMidia(destino, midia, opcoes) {
       return pedir({
         caminho: `/instances/${instanceId}/messages`,
         corpo: {
@@ -113,7 +120,7 @@ export function criarProviderGateway(
           // regra do provider Meta: presença é `!== undefined`, não truthiness.
           ...(midia.legenda !== undefined ? { text: midia.legenda } : {}),
           ...(midia.nomeArquivo !== undefined ? { filename: midia.nomeArquivo } : {}),
-          priority: "conversation",
+          priority: prioridadeNoContrato(opcoes),
         },
       })
     },
