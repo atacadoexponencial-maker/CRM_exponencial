@@ -1,19 +1,20 @@
-import { createHmac, timingSafeEqual } from "node:crypto"
 import { NextRequest, NextResponse } from "next/server"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { processarAutomacoes } from "@/lib/automacoes"
+import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"
 
 // Valida a assinatura X-Hub-Signature-256 que a Meta envia em todo webhook.
 // Sem META_APP_SECRET configurado (ex.: ambiente de teste) a validação é pulada.
+//
+// O HMAC em si mora em @/lib/webhooks/assinatura (B6-01), compartilhado com o
+// webhook do gateway. Comportamento daqui inalterado, incluindo o "sem segredo,
+// aceita" — que no gateway NÃO vale, e é por isso que a permissão fica aqui, no
+// chamador, e não na função compartilhada.
 function assinaturaValida(rawBody: string, signature: string | null): boolean {
   const appSecret = process.env.META_APP_SECRET
   if (!appSecret) return true
-  if (!signature) return false
 
-  const esperada = "sha256=" + createHmac("sha256", appSecret).update(rawBody).digest("hex")
-  const a = Buffer.from(esperada)
-  const b = Buffer.from(signature)
-  return a.length === b.length && timingSafeEqual(a, b)
+  return assinaturaHmacValida({ corpoBruto: rawBody, assinatura: signature, segredo: appSecret })
 }
 
 export async function GET(request: NextRequest) {
