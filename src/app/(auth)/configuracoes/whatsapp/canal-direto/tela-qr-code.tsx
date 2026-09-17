@@ -1,19 +1,21 @@
 "use client"
 
-// Tela de leitura do QR Code (B2-01, protótipo).
+// Tela de leitura do QR Code (B2-03).
 //
-// Dados fixos, na forma do contrato: `{ qr, expires_at }`, onde `qr` é o
-// **conteúdo bruto** do código — quem desenha é o CRM. Este protótipo mostra o
-// conteúdo em texto, com a área do desenho reservada: o projeto não tem
-// biblioteca de QR Code, e escolher uma é da issue de implementação (B2-03).
+// A imagem chega pronta do servidor: o gateway entrega o conteúdo bruto do
+// código e o desenho acontece no backend (`gateway/pareamento.ts`). O conteúdo
+// bruto não circula no navegador.
+//
+// Renovar é pedir de novo — vencido sem leitura, o gateway já gerou outro
+// código, e é o CRM que vai buscar o atual.
 
 import { useEffect, useState } from "react"
 import { RefreshCw, Smartphone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { EstadoBadge, TEXTO_DO_MOTIVO, type EstadoConexao, type MotivoDeTransicao } from "./estado-badge"
 
-/** Pareamento no formato de `POST /instances/{id}/pair/qr`. */
-export type Pareamento = { qr: string; expires_at: string }
+/** O QR já desenhado pelo servidor. */
+export type Pareamento = { imagem: string; expiresAt: string }
 
 const PASSOS = [
   "Abra o WhatsApp no celular do número que vai conectar",
@@ -30,11 +32,16 @@ export function TelaQrCode({
   pareamento,
   estado = "pairing",
   motivo,
+  erro,
+  renovando = false,
   onRenovar,
 }: {
-  pareamento: Pareamento
+  pareamento: Pareamento | null
   estado?: EstadoConexao
   motivo?: MotivoDeTransicao
+  /** Recusa do gateway, já legível. */
+  erro?: string | null
+  renovando?: boolean
   onRenovar?: () => void
 }) {
   // O relógio marca o instante em que renderizamos, e a conta é derivada dele.
@@ -48,7 +55,7 @@ export function TelaQrCode({
     return () => clearInterval(relogio)
   }, [])
 
-  const restam = segundosRestantes(pareamento.expires_at, agora)
+  const restam = pareamento ? segundosRestantes(pareamento.expiresAt, agora) : 0
 
   const expirado = restam === 0
 
@@ -67,18 +74,29 @@ export function TelaQrCode({
       <div className="grid gap-6 sm:grid-cols-[minmax(0,240px)_1fr]">
         <div>
           <div
-            className={`aspect-square rounded-lg border-2 border-dashed grid place-items-center p-4 text-center ${
-              expirado ? "opacity-40" : ""
+            className={`aspect-square rounded-lg border grid place-items-center overflow-hidden bg-white ${
+              expirado ? "opacity-30" : ""
             }`}
           >
-            {/* O desenho do código entra na B2-03; aqui fica o conteúdo bruto. */}
-            <code className="text-[10px] leading-tight break-all text-muted-foreground">
-              {pareamento.qr}
-            </code>
+            {pareamento ? (
+              /* Imagem desenhada no servidor a partir do conteúdo do gateway. */
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={pareamento.imagem}
+                alt="Código QR para conectar o número no WhatsApp"
+                className="size-full object-contain"
+              />
+            ) : (
+              <p className="p-4 text-center text-sm text-muted-foreground">
+                {erro ? "Não foi possível gerar o código." : "Gerando o código…"}
+              </p>
+            )}
           </div>
 
           <p className="text-sm text-center mt-3" aria-live="polite">
-            {expirado ? (
+            {!pareamento ? (
+              <span className="text-muted-foreground">—</span>
+            ) : expirado ? (
               <span className="text-muted-foreground">Código expirado</span>
             ) : (
               <>
@@ -87,9 +105,14 @@ export function TelaQrCode({
             )}
           </p>
 
-          <Button variant="outline" className="w-full mt-3" onClick={onRenovar}>
-            <RefreshCw className="size-4" aria-hidden />
-            Gerar novo código
+          <Button
+            variant="outline"
+            className="w-full mt-3"
+            onClick={onRenovar}
+            disabled={renovando}
+          >
+            <RefreshCw className={`size-4 ${renovando ? "animate-spin" : ""}`} aria-hidden />
+            {renovando ? "Gerando…" : "Gerar novo código"}
           </Button>
         </div>
 
@@ -106,6 +129,12 @@ export function TelaQrCode({
               </li>
             ))}
           </ol>
+
+          {erro && (
+            <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950/40">
+              {erro}
+            </p>
+          )}
 
           {estado === "disconnected" && motivo && (
             <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950/40">

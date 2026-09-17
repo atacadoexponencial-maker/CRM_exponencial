@@ -1,28 +1,36 @@
 "use client"
 
-// Pareamento por código digitado (B2-01, protótipo): caminho alternativo ao QR,
-// para quem não consegue apontar a câmera — o código é digitado no próprio
-// aparelho que está conectando.
+// Pareamento por código digitado (B2-03): caminho alternativo ao QR, para quem
+// não consegue apontar a câmera — o código é digitado no próprio aparelho que
+// está conectando.
 //
-// Dados fixos, na forma de `POST /instances/{id}/pair/code`:
-// `{ pairing_code, expires_at }`.
+// O código vem do gateway pela Server Action; a validação do número acontece no
+// backend, que é quem também recusaria.
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-
-export type PareamentoPorCodigo = { pairing_code: string; expires_at: string }
-
-/** Dado fixo do protótipo. Na B2-03 vem do gateway. */
-const CODIGO_DE_EXEMPLO: PareamentoPorCodigo = {
-  pairing_code: "WZQ7-4KDM",
-  expires_at: new Date(Date.now() + 60_000).toISOString(),
-}
+import { pedirCodigoDePareamento } from "../actions"
 
 export function PareamentoPorCodigo() {
   const [numero, setNumero] = useState("")
-  const [codigo, setCodigo] = useState<PareamentoPorCodigo | null>(null)
+  const [codigo, setCodigo] = useState<string | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
+  const [pedindo, pedir] = useTransition()
+
+  function pedirCodigo() {
+    setErro(null)
+    setCodigo(null)
+    pedir(async () => {
+      const resultado = await pedirCodigoDePareamento(numero)
+      if (resultado.erro) {
+        setErro(resultado.erro)
+        return
+      }
+      setCodigo(resultado.codigo ?? null)
+    })
+  }
 
   return (
     <div className="rounded-lg border p-6">
@@ -43,14 +51,16 @@ export function PareamentoPorCodigo() {
             className="mt-1.5"
           />
         </div>
-        <Button
-          variant="outline"
-          disabled={numero.trim().length < 10}
-          onClick={() => setCodigo(CODIGO_DE_EXEMPLO)}
-        >
-          Gerar código
+        <Button variant="outline" disabled={numero.trim().length < 10 || pedindo} onClick={pedirCodigo}>
+          {pedindo ? "Gerando…" : "Gerar código"}
         </Button>
       </div>
+
+      {erro && (
+        <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950/40">
+          {erro}
+        </p>
+      )}
 
       {codigo && (
         <div className="mt-5 rounded-lg border bg-muted/40 p-4 text-center">
@@ -58,9 +68,7 @@ export function PareamentoPorCodigo() {
             No aparelho, toque em <strong className="text-foreground">Conectar com número</strong> e
             digite:
           </p>
-          <p className="text-2xl font-semibold tracking-[0.2em] tabular-nums">
-            {codigo.pairing_code}
-          </p>
+          <p className="text-2xl font-semibold tracking-[0.2em] tabular-nums">{codigo}</p>
         </div>
       )}
     </div>

@@ -11,6 +11,11 @@ import {
   type ConexaoListada,
 } from "@/lib/whatsapp/gateway/instancias"
 import { aceiteEstaVigente, VERSAO_DO_TERMO } from "@/lib/whatsapp/gateway/termo"
+import {
+  pedirCodigoDoGateway,
+  pedirQrDoGateway,
+  type QrParaExibir,
+} from "@/lib/whatsapp/gateway/pareamento"
 
 export type ConexaoWhatsApp = {
   id: string
@@ -195,6 +200,110 @@ export async function criarConexaoCanalDireto(): Promise<{ erro?: string; instan
 
   revalidatePath("/configuracoes/whatsapp")
   return { instanceId: resultado.instanceId }
+}
+
+/**
+ * Instância do canal direto do workspace, com o token (B2-03).
+ *
+ * Lê com o service client: a coluna `instance_token` está fora do alcance do
+ * cliente autenticado desde a B2-02, e é ela que autoriza o pareamento.
+ *
+ * Devolve só o que o backend precisa — este valor **nunca** é retornado a uma
+ * Server Action nem chega ao navegador.
+ */
+async function instanciaDoCanalDireto(
+  workspaceId: string
+): Promise<{ conexaoId: string; instanceId: string; instanceToken: string } | null> {
+  const { data } = await createServiceClient()
+    .from("whatsapp_connections")
+    .select("id, instance_id, instance_token")
+    .eq("workspace_id", workspaceId)
+    .eq("canal", "gateway")
+    .not("instance_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!data?.instance_id || !data?.instance_token) return null
+
+  return {
+    conexaoId: data.id as string,
+    instanceId: data.instance_id as string,
+    instanceToken: data.instance_token as string,
+  }
+}
+
+/** Admin do workspace, ou o motivo da recusa. Usado pelas actions de pareamento. */
+async function adminDoWorkspace(): Promise<{ workspaceId: string } | { erro: string }> {
+  const ssrClient = await createSsrClient()
+  const { data: { user } } = await ssrClient.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  const { data: perfil } = await ssrClient
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+
+  return { workspaceId: perfil.workspace_id as string }
+}
+
+/**
+ * Pede o código visual de pareamento (B2-03).
+ *
+ * Devolve a **imagem pronta**: o conteúdo bruto do código não precisa circular
+ * no navegador. Renovar é chamar esta action de novo — vencido sem leitura, o
+ * gateway já gerou outro.
+ */
+export async function pedirQrCodeCanalDireto(): Promise<{ erro?: string; qr?: QrParaExibir }> {
+  const autorizacao = await adminDoWorkspace()
+  if ("erro" in autorizacao) return { erro: autorizacao.erro }
+
+  const instancia = await instanciaDoCanalDireto(autorizacao.workspaceId)
+  if (!instancia) return { erro: "Nenhum número do canal direto para parear neste workspace." }
+
+  let cliente
+  try {
+    cliente = clienteGatewayDoAmbiente()
+  } catch {
+    return { erro: "O canal direto não está configurado neste ambiente." }
+  }
+
+  const resultado = await pedirQrDoGateway(cliente, instancia.instanceId, instancia.instanceToken)
+  return resultado.ok ? { qr: resultado.dados } : { erro: resultado.erro }
+}
+
+/**
+ * Pede o código digitado para um número (B2-03), caminho alternativo ao QR.
+ */
+export async function pedirCodigoDePareamento(
+  numero: string
+): Promise<{ erro?: string; codigo?: string; expiresAt?: string }> {
+  const autorizacao = await adminDoWorkspace()
+  if ("erro" in autorizacao) return { erro: autorizacao.erro }
+
+  const instancia = await instanciaDoCanalDireto(autorizacao.workspaceId)
+  if (!instancia) return { erro: "Nenhum número do canal direto para parear neste workspace." }
+
+  let cliente
+  try {
+    cliente = clienteGatewayDoAmbiente()
+  } catch {
+    return { erro: "O canal direto não está configurado neste ambiente." }
+  }
+
+  const resultado = await pedirCodigoDoGateway(
+    cliente,
+    instancia.instanceId,
+    instancia.instanceToken,
+    numero
+  )
+
+  return resultado.ok
+    ? { codigo: resultado.dados.pairing_code, expiresAt: resultado.dados.expires_at }
+    : { erro: resultado.erro }
 }
 
 export async function completarConexaoWhatsApp(params: {

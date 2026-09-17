@@ -18,10 +18,10 @@ Com a instância criada (B2-02), o número ainda não está conectado: falta o c
 
 ## Comportamentos da spec cobertos
 
-- [ ] Visualizar o QR Code para leitura
-- [ ] Ver o tempo restante de validade do QR Code
-- [ ] Obter um novo QR Code quando o atual expira
-- [ ] Optar por parear usando código digitado em vez de QR Code
+- [x] Visualizar o QR Code para leitura
+- [x] Ver o tempo restante de validade do QR Code
+- [x] Obter um novo QR Code quando o atual expira
+- [x] Optar por parear usando código digitado em vez de QR Code
 
 ## Contrato do gateway
 
@@ -55,15 +55,31 @@ Reaproveitar: o cliente HTTP, os tipos e a tradução de erro são os de B2-02; 
 
 ## Critérios de aceite
 
-- [ ] A tela mostra um QR válido, desenhado a partir do conteúdo devolvido pelo gateway
-- [ ] O contador mostra o tempo restante e chega a zero
-- [ ] Pedir um código novo depois de vencido devolve um código diferente e válido
-- [ ] O caminho por código digitado devolve o código de pareamento para o número informado
-- [ ] Número mal formado no caminho por código mostra mensagem legível, não erro cru
-- [ ] O `instance_token` não aparece em nenhuma resposta ao navegador nem no HTML da página
-- [ ] Instância inexistente ou credencial recusada mostra mensagem legível
-- [ ] Pedir QR ou código recusa quem não é Admin
-- [ ] `npm run build`, `npm run lint` e `npm test` passam
+- [x] A tela mostra um QR válido, desenhado a partir do conteúdo devolvido pelo gateway
+- [x] O contador mostra o tempo restante e chega a zero
+- [x] Pedir um código novo depois de vencido devolve um código diferente e válido
+- [x] O caminho por código digitado devolve o código de pareamento para o número informado
+- [x] Número mal formado no caminho por código mostra mensagem legível, não erro cru
+- [x] O `instance_token` não aparece em nenhuma resposta ao navegador nem no HTML da página
+- [x] Instância inexistente ou credencial recusada mostra mensagem legível
+- [x] Pedir QR ou código recusa quem não é Admin
+- [x] `npm run build`, `npm run lint` e `npm test` passam
+
+## Execução (17/09/2026)
+
+**Biblioteca de QR escolhida: `qrcode`** (a de referência em Node, usada pelo próprio
+ecossistema do Baileys), com o desenho **no servidor**. O navegador recebe a imagem pronta
+em data URL. Duas razões: o conteúdo bruto do código não precisa circular no cliente — ele
+é a credencial de pareamento por 60 segundos — e o navegador não carrega biblioteca nenhuma
+para isso. Nível de correção `M`, o mesmo do WhatsApp Web.
+
+Arquivo a mais, declarado: **`src/lib/whatsapp/gateway/pareamento.ts`**. A issue mandava
+pôr os dois pedidos em `cliente.ts`, mas ali é transporte puro — misturar desenho de QR e
+tradução de mensagem quebraria a separação que a B0-01 estabeleceu. O `cliente.ts` ficou
+intocado.
+
+O número é conferido no backend **antes** de ir à rede: o gateway recusaria com
+`invalid_payload`, e uma viagem para descobrir o que já se sabia não ajuda ninguém.
 
 ## Fora de escopo
 
