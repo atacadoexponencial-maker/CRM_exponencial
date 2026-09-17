@@ -17,6 +17,10 @@ import {
   type QrParaExibir,
 } from "@/lib/whatsapp/gateway/pareamento"
 import { consultarEstado, motivoEmPortugues } from "@/lib/whatsapp/gateway/estado"
+import {
+  operarInstancia,
+  type OperacaoDeCicloDeVida,
+} from "@/lib/whatsapp/gateway/ciclo-de-vida"
 import { aplicarEstadoDaInstancia } from "@/lib/whatsapp/eventos-de-operacao"
 
 export type ConexaoWhatsApp = {
@@ -355,6 +359,89 @@ export async function sincronizarEstadoCanalDireto(): Promise<{
       motivo: motivoEmPortugues(resultado.estado.reason),
     },
   }
+}
+
+/**
+ * Uma conexão do canal direto por id, com o token (B2-05).
+ *
+ * Diferente de `instanciaDoCanalDireto`, que pega a mais recente do workspace:
+ * aqui o admin escolheu um número específico, e o workspace é conferido para o
+ * id não virar caminho para operar conexão de outro cliente.
+ */
+async function conexaoDoCanalDiretoPorId(
+  workspaceId: string,
+  conexaoId: string
+): Promise<{ instanceId: string; instanceToken: string } | null> {
+  const { data } = await createServiceClient()
+    .from("whatsapp_connections")
+    .select("instance_id, instance_token")
+    .eq("id", conexaoId)
+    .eq("workspace_id", workspaceId)
+    .eq("canal", "gateway")
+    .maybeSingle()
+
+  if (!data?.instance_id || !data?.instance_token) return null
+
+  return { instanceId: data.instance_id as string, instanceToken: data.instance_token as string }
+}
+
+/**
+ * Desconectar, encerrar no aparelho ou remover um número do canal direto (B2-05).
+ *
+ * A ordem é: **gateway primeiro, CRM depois.** Se o gateway recusar, nada muda
+ * no CRM — o contrário deixaria a tela dizendo "desconectado" com o número
+ * ainda enviando.
+ *
+ * Remoção apaga a linha: número removido não pode deixar resto que o CRM tente
+ * usar depois, e o `instance_token` dele não serve para mais nada.
+ */
+export async function operarNumeroCanalDireto(
+  conexaoId: string,
+  operacao: OperacaoDeCicloDeVida
+): Promise<{ erro?: string; estado?: string }> {
+  const autorizacao = await adminDoWorkspace()
+  if ("erro" in autorizacao) return { erro: autorizacao.erro }
+
+  const conexao = await conexaoDoCanalDiretoPorId(autorizacao.workspaceId, conexaoId)
+  if (!conexao) return { erro: "Conexão não encontrada neste workspace." }
+
+  let cliente
+  try {
+    cliente = clienteGatewayDoAmbiente()
+  } catch {
+    return { erro: "O canal direto não está configurado neste ambiente." }
+  }
+
+  const resultado = await operarInstancia(
+    cliente,
+    conexao.instanceId,
+    conexao.instanceToken,
+    operacao
+  )
+
+  const service = createServiceClient()
+
+  // Instância que já não existe no gateway: a operação pedida está feita do
+  // lado de lá, e insistir não muda nada. O CRM acerta a própria cópia.
+  if (!resultado.ok && !resultado.jaNaoExiste) return { erro: resultado.erro }
+
+  if (operacao === "remover") {
+    await service.from("whatsapp_connections").delete().eq("id", conexaoId)
+  } else {
+    await service
+      .from("whatsapp_connections")
+      .update({
+        status: resultado.ok ? resultado.estado : "disconnected",
+        // A operação foi pedida por nós: não há motivo de transição, e isto
+        // limpa um "connection_lost" velho que estivesse na tela.
+        state_reason: null,
+      })
+      .eq("id", conexaoId)
+  }
+
+  revalidatePath("/configuracoes/whatsapp")
+
+  return resultado.ok ? { estado: resultado.estado } : { estado: "removed" }
 }
 
 export async function completarConexaoWhatsApp(params: {

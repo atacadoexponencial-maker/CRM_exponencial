@@ -14,6 +14,7 @@ import {
   pedirQrCodeCanalDireto,
   sincronizarEstadoCanalDireto,
 } from "../actions"
+import { AcoesCanalDireto } from "./acoes-canal-direto"
 import { CartaoNumero, type NumeroConectado } from "./cartao-numero"
 import { EscolhaCanal, type CanalEscolhido } from "./escolha-canal"
 import { PareamentoPorCodigo } from "./pareamento-por-codigo"
@@ -135,7 +136,24 @@ export function ListaNumeros({
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {numeros.map((numero) => (
-              <CartaoNumero key={numero.id} numero={numero} />
+              <CartaoNumero
+                key={numero.id}
+                numero={numero}
+                acoes={
+                  // B2-05: o ciclo de vida do canal direto. A conexão da Meta
+                  // tem as ações dela no fluxo próprio, mais abaixo na página.
+                  numero.canal === "gateway" ? (
+                    <AcoesCanalDireto
+                      conexaoId={numero.id}
+                      estado={numero.state}
+                      onReconectar={() => {
+                        setConectando("gateway")
+                        void buscarQr()
+                      }}
+                    />
+                  ) : undefined
+                }
+              />
             ))}
           </div>
         )
