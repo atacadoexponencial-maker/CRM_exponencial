@@ -1,66 +1,46 @@
 "use client"
 
-// Lista de números do workspace, cada um com o seu canal (B2-01, protótipo).
+// Lista de números do workspace, cada um com o seu canal (B2-02).
 //
-// **Dados fixos, menos o primeiro item.** O número da Meta vem da conexão real
-// que a página já lia; os do canal direto são exemplos escritos aqui, para a
-// forma ser aprovada antes de qualquer chamada ao gateway. Na B2-02 a lista
-// inteira passa a vir do banco.
+// Os dados vêm do banco: a B2-01 desenhou esta tela com exemplos fixos, e esta
+// issue trocou a origem. A criação da conexão é uma Server Action — o botão só
+// captura a intenção.
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { criarConexaoCanalDireto } from "../actions"
 import { CartaoNumero, type NumeroConectado } from "./cartao-numero"
 import { EscolhaCanal, type CanalEscolhido } from "./escolha-canal"
 import { PareamentoPorCodigo } from "./pareamento-por-codigo"
 import { TelaQrCode, type Pareamento } from "./tela-qr-code"
 
-/** Exemplos do protótipo: um por estado que muda a tela. */
-const EXEMPLOS: NumeroConectado[] = [
-  {
-    id: "exemplo-conectado",
-    canal: "gateway",
-    phone_number: "5511977776666",
-    display_name: "Atacado Exemplo — Expansão",
-    state: "connected",
-    state_reason: null,
-  },
-  {
-    id: "exemplo-aguardando",
-    canal: "gateway",
-    phone_number: null,
-    display_name: null,
-    state: "pairing",
-    state_reason: null,
-  },
-  {
-    id: "exemplo-desconectado",
-    canal: "gateway",
-    phone_number: "5511955554444",
-    display_name: "Atacado Exemplo — Retenção",
-    state: "disconnected",
-    state_reason: "session_closed_on_device",
-  },
-  {
-    id: "exemplo-banido",
-    canal: "gateway",
-    phone_number: "5511933332222",
-    display_name: "Atacado Exemplo — Campanhas",
-    state: "banned",
-    state_reason: "banned_by_whatsapp",
-  },
-]
-
+/**
+ * O código de pareamento ainda é fixo: pedi-lo ao gateway é a B2-03. A tela já
+ * está pronta para receber o real — só a origem do dado muda.
+ */
 const PAREAMENTO_DE_EXEMPLO: Pareamento = {
   qr: "2@Kx9mQ4vB7nZ1pL8sT3wY6hJ0dF5gR2aC4eN7uM9iO1kP3xV5bW8zQ6yH4jS2lD0f",
   expires_at: new Date(Date.now() + 60_000).toISOString(),
 }
 
-export function ListaNumeros({ daMeta }: { daMeta: NumeroConectado | null }) {
+export function ListaNumeros({ numeros }: { numeros: NumeroConectado[] }) {
   const [conectando, setConectando] = useState<CanalEscolhido | null>(null)
   const [pareamento, setPareamento] = useState(PAREAMENTO_DE_EXEMPLO)
+  const [erro, setErro] = useState<string | null>(null)
+  const [criando, criar] = useTransition()
 
-  const numeros = [...(daMeta ? [daMeta] : []), ...EXEMPLOS]
+  function conectarPeloCanalDireto() {
+    setErro(null)
+    criar(async () => {
+      const resultado = await criarConexaoCanalDireto()
+      if (resultado.erro) {
+        setErro(resultado.erro)
+        return
+      }
+      setConectando("gateway")
+    })
+  }
 
   return (
     <div className="space-y-6">
@@ -72,23 +52,39 @@ export function ListaNumeros({ daMeta }: { daMeta: NumeroConectado | null }) {
           </p>
         </div>
         {!conectando && (
-          <Button onClick={() => setConectando("gateway")}>
+          <Button onClick={() => setConectando("meta")} disabled={criando}>
             <Plus className="size-4" aria-hidden />
             Conectar número
           </Button>
         )}
       </div>
 
+      {erro && (
+        <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950/40">
+          {erro}
+        </p>
+      )}
+
       {conectando === null ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {numeros.map((numero) => (
-            <CartaoNumero key={numero.id} numero={numero} />
-          ))}
-        </div>
+        numeros.length === 0 ? (
+          <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+            Nenhum número conectado ainda.
+          </p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {numeros.map((numero) => (
+              <CartaoNumero key={numero.id} numero={numero} />
+            ))}
+          </div>
+        )
       ) : (
         <div className="space-y-6">
           <div className="rounded-lg border p-6">
-            <EscolhaCanal onEscolher={setConectando} />
+            <EscolhaCanal
+              onEscolher={(canal) =>
+                canal === "gateway" ? conectarPeloCanalDireto() : setConectando("meta")
+              }
+            />
           </div>
 
           {conectando === "gateway" && (

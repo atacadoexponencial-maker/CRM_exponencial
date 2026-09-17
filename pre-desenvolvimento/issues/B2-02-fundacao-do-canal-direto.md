@@ -22,8 +22,8 @@ O CRM guarda conexão de WhatsApp numa tabela desenhada para a Meta e só para u
 
 ## Comportamentos da spec cobertos
 
-- [ ] Escolher conectar um número pelo canal direto
-- [ ] Ver a lista de números conectados com o canal de cada um
+- [x] Escolher conectar um número pelo canal direto
+- [x] Ver a lista de números conectados com o canal de cada um
 
 ## Contrato do gateway
 
@@ -64,15 +64,36 @@ Reaproveitar: `resolverProvider` e a pasta `src/lib/whatsapp/` já existem, cria
 
 ## Critérios de aceite
 
-- [ ] Aplicar a migration não quebra as conexões Meta que já existem: elas continuam legíveis e com canal `meta`
-- [ ] Um workspace consegue ter mais de uma conexão, e a listagem devolve todas com o canal de cada uma
-- [ ] Escolher o canal direto cria a instância no gateway e grava `instance_id` e `instance_token`
-- [ ] O `instance_token` não aparece em nenhuma resposta ao navegador, e não é legível pelo cliente com RLS
-- [ ] Nenhuma credencial do gateway aparece em componente de cliente nem em `NEXT_PUBLIC_*`
-- [ ] Gateway fora do ar ou recusando: o admin vê a mensagem legível do erro, e nenhuma conexão pela metade fica no banco
-- [ ] Limite de instâncias do workspace estourado (`workspace_instance_limit_reached`) mostra mensagem própria
-- [ ] Ação de criar conexão recusa quem não é Admin, no backend
-- [ ] `npm run build`, `npm run lint` e `npm test` passam
+- [x] Aplicar a migration não quebra as conexões Meta que já existem: elas continuam legíveis e com canal `meta`
+- [x] Um workspace consegue ter mais de uma conexão, e a listagem devolve todas com o canal de cada uma
+- [x] Escolher o canal direto cria a instância no gateway e grava `instance_id` e `instance_token`
+- [x] O `instance_token` não aparece em nenhuma resposta ao navegador, e não é legível pelo cliente com RLS
+- [x] Nenhuma credencial do gateway aparece em componente de cliente nem em `NEXT_PUBLIC_*`
+- [x] Gateway fora do ar ou recusando: o admin vê a mensagem legível do erro, e nenhuma conexão pela metade fica no banco
+- [x] Limite de instâncias do workspace estourado (`workspace_instance_limit_reached`) mostra mensagem própria
+- [x] Ação de criar conexão recusa quem não é Admin, no backend
+- [x] `npm run build`, `npm run lint` e `npm test` passam
+
+## Execução (17/09/2026)
+
+Dois arquivos a mais, declarados:
+
+- **`src/lib/whatsapp/gateway/instancias.ts`** — a criação e a listagem ficam aqui, não
+  dentro da Server Action, para serem testáveis com gateway e banco falsos. A action
+  autoriza, monta as dependências e traduz o resultado.
+- **`supabase/migrations/20260917000001_..._credenciais_fora_do_cliente.sql`** — o critério
+  de aceite pedia que o `instance_token` não fosse legível pelo cliente, e **a RLS não
+  resolvia isso**: ela filtra linhas, não colunas. Um membro do workspace lia
+  `access_token` da Meta desde abril, e passaria a ler `instance_token`. A migration revoga
+  o privilégio das duas colunas para `authenticated` e `anon`. A B1-02 é dona da estrutura
+  da tabela; esta migration é de privilégio, não de estrutura.
+
+O teste ficou em `src/test/gateway-instancias.test.ts`, e não no nome que a issue previa
+(`whatsapp-gateway-cliente.test.ts`): o cliente HTTP já tem o seu, escrito na B0-01
+(`src/test/gateway-cliente.test.ts`). Testar duas vezes a mesma coisa não ajuda ninguém.
+
+Detalhe do Next que custou um build: **arquivo `"use server"` não pode reexportar tipo.**
+Quem precisa de `ConexaoListada` importa de `@/lib/whatsapp/gateway/instancias`.
 
 ## Fora de escopo
 
