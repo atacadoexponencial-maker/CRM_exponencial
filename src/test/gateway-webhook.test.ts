@@ -12,7 +12,8 @@ vi.mock("@/integrations/supabase/service", () => ({
 // (gateway-recebimento.test.ts). Aqui interessa a porta: assinatura,
 // idempotência e despacho.
 vi.mock("@/lib/whatsapp/recebimento", () => ({
-  registrarMensagemRecebida: vi.fn().mockResolvedValue({
+  receberMensagem: vi.fn().mockResolvedValue({
+    tratamento: "mensagem",
     contactId: "c",
     conversationId: "v",
     messageId: "m",
@@ -79,7 +80,9 @@ function supabaseFalso({
         return {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
-          maybeSingle: vi.fn().mockResolvedValue({ data: conexao }),
+          maybeSingle: vi
+            .fn()
+            .mockResolvedValue({ data: conexao && { ...conexao, instance_token: "tok" } }),
         }
       }
       if (tabela === "gateway_events") {

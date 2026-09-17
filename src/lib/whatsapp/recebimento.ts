@@ -6,11 +6,16 @@
 // o webhook da Meta produz hoje — mesmas tabelas, mesmos campos, mesmo evento
 // de tempo real — a partir de um evento de formato diferente.
 //
-// Só texto. Mídia e os demais tipos entram na B6-03.
+// A B6-02 trouxe o texto; a B6-03 acrescentou mídia, localização, cartão de
+// contato, figurinha, reação e os avisos de mensagem editada ou apagada.
+//
+// `receberMensagem` é a porta: reação e aviso de sistema ALTERAM uma mensagem
+// existente, e os demais tipos criam mensagem nova.
 
 import type { createServiceClient } from "@/integrations/supabase/service"
 import { processarAutomacoes } from "@/lib/automacoes"
 import { transmitirMensagem } from "./realtime"
+import { guardarMidiaRecebida, type MidiaDoEvento, type MidiaGuardada } from "./midia-recebida"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -23,6 +28,13 @@ export type EventoMensagemRecebida = {
   type: string
   text?: string | null
   reply_to?: { message_id: string; preview_text?: string | null } | null
+  /** B6-03: foto, vídeo, áudio, gravação de voz, documento e figurinha. */
+  media?: MidiaDoEvento | null
+  location?: { latitude: number; longitude: number; name?: string | null; address?: string | null } | null
+  contact?: { display_name?: string | null; phones?: string[] | null } | null
+  /** `emoji` vazio significa reação removida. */
+  reaction?: { emoji: string; target_message_id: string } | null
+  system?: { action: "edited" | "deleted"; target_message_id: string; new_text?: string | null } | null
 }
 
 /**
@@ -87,6 +99,100 @@ export function traduzirTexto(evento: EventoMensagemRecebida): ConteudoTraduzido
 }
 
 /**
+ * Vocabulário do gateway (o da Meta) para o do CRM, que é pt-BR (B6-03).
+ *
+ * `voice` e `audio` caem no mesmo tipo: o WhatsApp separa gravação de voz de
+ * arquivo de áudio, o CRM tem um tipo só, e inventar a distinção agora mudaria
+ * a caixa de entrada sem ninguém ter pedido.
+ *
+ * `figurinha`, `localizacao`, `contato` e `desconhecido` são valores novos —
+ * `messages.type` é texto livre, sem `check`, então não exigem migration.
+ */
+export const TIPO_NO_CRM: Record<string, string> = {
+  text: "texto",
+  image: "imagem",
+  video: "video",
+  audio: "audio",
+  voice: "audio",
+  document: "documento",
+  sticker: "figurinha",
+  location: "localizacao",
+  contact: "contato",
+  unknown: "desconhecido",
+}
+
+/** Tipos que carregam arquivo, e portanto precisam do download. */
+export const TIPOS_COM_ARQUIVO = ["image", "video", "audio", "voice", "document", "sticker"]
+
+const PREVIA_POR_TIPO: Record<string, string> = {
+  imagem: "📷 Foto",
+  video: "🎥 Vídeo",
+  audio: "🎤 Áudio",
+  documento: "📄 Documento",
+  figurinha: "🏷️ Figurinha",
+  localizacao: "📍 Localização",
+  contato: "👤 Contato",
+  desconhecido: "Mensagem não suportada por aqui",
+}
+
+/** Endereço legível da localização: o que o atendente consegue abrir e ler. */
+function textoDaLocalizacao(local: NonNullable<EventoMensagemRecebida["location"]>): string {
+  const mapa = `https://www.google.com/maps?q=${local.latitude},${local.longitude}`
+  const partes = [local.name, local.address].filter(Boolean)
+  return partes.length > 0 ? `📍 ${partes.join(" — ")}\n${mapa}` : `📍 ${mapa}`
+}
+
+function textoDoContato(contato: NonNullable<EventoMensagemRecebida["contact"]>): string {
+  const nome = contato.display_name?.trim() || "Contato sem nome"
+  const telefones = (contato.phones ?? []).filter(Boolean)
+  return telefones.length > 0 ? `👤 ${nome}\n${telefones.join("\n")}` : `👤 ${nome}`
+}
+
+/**
+ * Conteúdo, tipo e prévia para qualquer tipo do contrato (B6-03).
+ *
+ * `midia` é o resultado do download, já no Storage do CRM. `null` significa que
+ * o download falhou: a mensagem continua sendo registrada, com a legenda e um
+ * aviso no lugar do arquivo — perder a mensagem seria pior.
+ */
+export function traduzirConteudo(
+  evento: EventoMensagemRecebida,
+  midia: MidiaGuardada | null = null
+): ConteudoTraduzido {
+  const tipo = TIPO_NO_CRM[evento.type] ?? "desconhecido"
+
+  if (evento.type === "text") return traduzirTexto(evento)
+
+  if (evento.type === "location" && evento.location) {
+    const texto = textoDaLocalizacao(evento.location)
+    return { tipo, conteudo: texto, previa: PREVIA_POR_TIPO.localizacao }
+  }
+
+  if (evento.type === "contact" && evento.contact) {
+    const texto = textoDoContato(evento.contact)
+    return { tipo, conteudo: texto, previa: PREVIA_POR_TIPO.contato }
+  }
+
+  if (TIPOS_COM_ARQUIVO.includes(evento.type)) {
+    const legenda = evento.text ?? null
+    const previaBase =
+      evento.type === "document" && (midia?.filename || evento.media?.filename)
+        ? `📄 ${midia?.filename ?? evento.media?.filename}`
+        : PREVIA_POR_TIPO[tipo] ?? PREVIA_POR_TIPO.desconhecido
+
+    return {
+      tipo,
+      // Sem arquivo, o conteúdo não pode ficar vazio e mudo: a legenda salva o
+      // que a mensagem dizia, e o aviso explica a lacuna.
+      conteudo: midia?.url ?? (legenda ? legenda : "Arquivo não recebido"),
+      previa: legenda && legenda.length > 0 && (tipo === "imagem" || tipo === "video") ? legenda : previaBase,
+    }
+  }
+
+  return { tipo, conteudo: evento.text ?? "", previa: PREVIA_POR_TIPO[tipo] ?? PREVIA_POR_TIPO.desconhecido }
+}
+
+/**
  * Registra a mensagem recebida. Lança se o banco falhar em algo essencial — o
  * chamador responde não-2xx e o gateway reentrega o mesmo evento, que a
  * idempotência da B6-01 reconhece como tentativa interrompida.
@@ -97,6 +203,7 @@ export async function registrarMensagemRecebida({
   evento,
   recebidoEm,
   conteudo,
+  midia = null,
 }: {
   supabase: ServiceClient
   workspaceId: string
@@ -105,6 +212,8 @@ export async function registrarMensagemRecebida({
   recebidoEm: string
   /** Tradução já feita. Sem ela, trata como texto. */
   conteudo?: ConteudoTraduzido
+  /** B6-03: arquivo já guardado no Storage do CRM, quando havia. */
+  midia?: MidiaGuardada | null
 }): Promise<ResultadoDoRecebimento> {
   const traduzido = conteudo ?? traduzirTexto(evento)
   const identificador = identificadorDoContato(evento)
@@ -146,6 +255,11 @@ export async function registrarMensagemRecebida({
       // caso a prévia que o gateway mandou é tudo o que se tem, e vale guardar.
       reply_to_id: respondendo,
       reply_preview_text: evento.reply_to?.preview_text ?? null,
+      // B6-03. O nome original fica aqui porque `content` guarda a URL do
+      // Storage, e o nome do arquivo lá é gerado por nós.
+      media_mime_type: midia?.mimeType ?? null,
+      media_filename: midia?.filename ?? null,
+      media_caption: TIPOS_COM_ARQUIVO.includes(evento.type) ? evento.text ?? null : null,
     })
     .select("id")
     .single()
@@ -258,4 +372,126 @@ async function acharMensagemPorWamid(
 
   const { data } = await supabase.from("messages").select("id").eq("wamid", wamid).maybeSingle()
   return data?.id ?? null
+}
+
+/**
+ * Reação recebida (B6-03). Não cria mensagem: altera a que foi reagida.
+ *
+ * `emoji` vazio é remoção da reação, e volta a coluna para `null` — "sem
+ * reação" e "reagiu com nada" são estados diferentes.
+ *
+ * Alvo que o CRM não tem não é erro: a mensagem reagida pode ser anterior à
+ * conexão do número. Nesse caso não há o que atualizar, e pronto.
+ */
+export async function aplicarReacao({
+  supabase,
+  reacao,
+}: {
+  supabase: ServiceClient
+  reacao: NonNullable<EventoMensagemRecebida["reaction"]>
+}): Promise<boolean> {
+  const { data } = await supabase
+    .from("messages")
+    .update({ reaction_emoji: reacao.emoji === "" ? null : reacao.emoji })
+    .eq("wamid", reacao.target_message_id)
+    .select("id")
+    .maybeSingle()
+
+  return Boolean(data)
+}
+
+/**
+ * Aviso sobre mensagem anterior (B6-03): editada ou apagada.
+ *
+ * Apagada é **marcada**, nunca removida: quem apaga no WhatsApp não apaga o
+ * histórico do CRM, e o atendente precisa saber que havia algo ali.
+ */
+export async function aplicarAvisoDeSistema({
+  supabase,
+  aviso,
+  quando,
+}: {
+  supabase: ServiceClient
+  aviso: NonNullable<EventoMensagemRecebida["system"]>
+  quando: string
+}): Promise<boolean> {
+  const alteracao =
+    aviso.action === "deleted"
+      ? { deleted_at: quando }
+      : { content: aviso.new_text ?? "", edited_at: quando }
+
+  const { data } = await supabase
+    .from("messages")
+    .update(alteracao)
+    .eq("wamid", aviso.target_message_id)
+    .select("id")
+    .maybeSingle()
+
+  return Boolean(data)
+}
+
+export type ResultadoDoEvento =
+  | ({ tratamento: "mensagem" } & ResultadoDoRecebimento)
+  | { tratamento: "reacao" | "edicao" | "exclusao"; alvoEncontrado: boolean }
+
+/**
+ * Ponto único de entrada do evento `message.received`, de qualquer tipo.
+ *
+ * Três caminhos, e a ordem importa: reação e aviso de sistema **alteram** uma
+ * mensagem existente e não devem criar mensagem nova nem mexer na conversa.
+ */
+export async function receberMensagem({
+  supabase,
+  workspaceId,
+  evento,
+  recebidoEm,
+  instanceToken,
+}: {
+  supabase: ServiceClient
+  workspaceId: string
+  evento: EventoMensagemRecebida
+  recebidoEm: string
+  /** Credencial da instância dona, para baixar a mídia. Só backend. */
+  instanceToken?: string | null
+}): Promise<ResultadoDoEvento> {
+  if (evento.reaction) {
+    const alvoEncontrado = await aplicarReacao({ supabase, reacao: evento.reaction })
+    return { tratamento: "reacao", alvoEncontrado }
+  }
+
+  if (evento.system) {
+    const alvoEncontrado = await aplicarAvisoDeSistema({
+      supabase,
+      aviso: evento.system,
+      quando: recebidoEm,
+    })
+    return {
+      tratamento: evento.system.action === "deleted" ? "exclusao" : "edicao",
+      alvoEncontrado,
+    }
+  }
+
+  // O arquivo vem para dentro do CRM antes de a mensagem ser gravada, porque é
+  // a URL do Storage que vai em `content`. Falha no download devolve null, e a
+  // mensagem é registrada sem o arquivo.
+  const midia =
+    evento.media && TIPOS_COM_ARQUIVO.includes(evento.type)
+      ? await guardarMidiaRecebida({
+          supabase,
+          workspaceId,
+          midia: evento.media,
+          instanceToken,
+        })
+      : null
+
+  const registrada = await registrarMensagemRecebida({
+    supabase,
+    workspaceId,
+    evento,
+    recebidoEm,
+    conteudo: traduzirConteudo(evento, midia),
+    midia,
+  })
+
+  return { tratamento: "mensagem", ...registrada }
 }

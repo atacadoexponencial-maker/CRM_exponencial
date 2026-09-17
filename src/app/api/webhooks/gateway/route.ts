@@ -20,10 +20,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"
-import {
-  registrarMensagemRecebida,
-  type EventoMensagemRecebida,
-} from "@/lib/whatsapp/recebimento"
+import { receberMensagem, type EventoMensagemRecebida } from "@/lib/whatsapp/recebimento"
 
 const HEADER_ASSINATURA = "x-gateway-signature-256"
 
@@ -112,7 +109,7 @@ export async function POST(request: NextRequest) {
   // nada — mesmo espírito do webhook da Meta quando não acha a conexão.
   const { data: conexao } = await supabase
     .from("whatsapp_connections")
-    .select("id, workspace_id")
+    .select("id, workspace_id, instance_token")
     .eq("instance_id", envelope.instance_id)
     .maybeSingle()
 
@@ -165,12 +162,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "invalid payload" }, { status: 400 })
     }
 
-    await registrarMensagemRecebida({
+    await receberMensagem({
       supabase,
       workspaceId: conexao.workspace_id,
       evento: envelope.data,
       // Momento do fato. Sem ele, o da chegada — melhor do que mensagem sem data.
       recebidoEm: envelope.timestamp ?? new Date().toISOString(),
+      // A mídia é baixada do endereço da instância dona (B6-03). Credencial de
+      // backend: sai daqui direto para o gateway e nunca para o navegador.
+      instanceToken: conexao.instance_token,
     })
   }
 
