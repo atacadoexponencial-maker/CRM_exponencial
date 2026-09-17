@@ -24,11 +24,11 @@ As telas do fluxo de conexão pelo canal direto, sem backend nenhum. Tudo com da
 
 Nenhum. Esta é uma issue de protótipo: entrega a casca visual, e os comportamentos são implementados nas issues B2-02 a B2-05. Os **componentes** da spec entregues aqui são:
 
-- [ ] Escolha de Canal: seleção entre API Oficial e canal direto, com explicação de cada um
-- [ ] Tela de QR Code: código exibido para leitura, com instruções e contador de expiração
-- [ ] Alternativa por Código: campo para gerar código de pareamento por número
-- [ ] Indicador de Estado: aguardando leitura, conectando, conectado ou falhou
-- [ ] Cartão do Número Conectado: número, nome de exibição, canal e estado
+- [x] Escolha de Canal: seleção entre API Oficial e canal direto, com explicação de cada um
+- [x] Tela de QR Code: código exibido para leitura, com instruções e contador de expiração
+- [x] Alternativa por Código: campo para gerar código de pareamento por número
+- [x] Indicador de Estado: aguardando leitura, conectando, conectado ou falhou
+- [x] Cartão do Número Conectado: número, nome de exibição, canal e estado
 
 ## Contrato do gateway
 
@@ -61,15 +61,25 @@ Nada. É a primeira issue do módulo.
 
 ## Critérios de aceite
 
-- [ ] `/configuracoes/whatsapp` mostra a escolha de canal antes de iniciar uma conexão
-- [ ] A tela de QR Code aparece com código, instruções, contador e ação de renovar
-- [ ] O caminho por código digitado aparece como alternativa ao QR
-- [ ] Os quatro estados do pareamento são visualmente distintos
-- [ ] A lista mostra mais de um número, com o canal de cada um visível
-- [ ] Um número banido aparece com aviso destacado, diferente do estado desconectado
-- [ ] Uma falha de conexão aparece com o motivo legível
-- [ ] A página continua sendo só de Admin
-- [ ] `npm run build` e `npm run lint` passam
+- [x] `/configuracoes/whatsapp` mostra a escolha de canal antes de iniciar uma conexão
+- [x] A tela de QR Code aparece com código, instruções, contador e ação de renovar
+- [x] O caminho por código digitado aparece como alternativa ao QR
+- [x] Os quatro estados do pareamento são visualmente distintos
+- [x] A lista mostra mais de um número, com o canal de cada um visível
+- [x] Um número banido aparece com aviso destacado, diferente do estado desconectado
+- [x] Uma falha de conexão aparece com o motivo legível
+- [x] A página continua sendo só de Admin
+- [x] `npm run build` e `npm run lint` passam
+
+## Execução (17/09/2026)
+
+Arquivo a mais, declarado: `canal-direto/estado-badge.tsx`. Os seis estados e os três
+motivos de transição precisavam do mesmo vocabulário visual no cartão, na lista e na tela
+de QR — a alternativa era repetir o mapa de cores em três arquivos e vê-los divergir.
+
+O contador do QR guarda **o instante atual**, não os segundos restantes: o lint recusa
+`setState` síncrono dentro de efeito, e com razão — guardar os segundos seria a mesma
+informação em dois lugares, reescrita a cada troca de código.
 
 ## Fora de escopo
 
