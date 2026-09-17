@@ -162,7 +162,11 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
     await supabase
       .from("campaign_recipients")
       .update({
-        status: resultado.ok ? "enviado" : "falhou",
+        // B8-02: pelo canal direto a resposta significa *aceita*, não
+        // *enviada* — toda mensagem é enfileirada e respeita ritmo, tetos e
+        // janela. Quem confirma o envio é o evento `message.status` com `sent`.
+        // Pela API Oficial a resposta já é o envio.
+        status: resultado.ok ? (provider.canal === "gateway" ? "na_fila" : "enviado") : "falhou",
         wamid: resultado.wamid,
         atualizado_em: new Date().toISOString(),
       })

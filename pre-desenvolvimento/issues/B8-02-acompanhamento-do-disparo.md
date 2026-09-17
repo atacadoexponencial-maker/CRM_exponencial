@@ -23,8 +23,8 @@ quanto está parado na fila do gateway.
 
 ## Comportamentos da spec cobertos
 
-- [ ] Ver o progresso do disparo em andamento
-- [ ] Ver quantas mensagens ainda estão na fila
+- [x] Ver o progresso do disparo em andamento
+- [x] Ver quantas mensagens ainda estão na fila
 
 ## Contrato do gateway
 
@@ -69,16 +69,48 @@ quanto está parado na fila do gateway.
 
 ## Critérios de aceite
 
-- [ ] Uma campanha em andamento mostra quantas mensagens saíram, quantas falharam e
+- [x] Uma campanha em andamento mostra quantas mensagens saíram, quantas falharam e
       quantas faltam, sobre o total de destinatários.
-- [ ] Mostra quantas estão esperando a vez de sair pelo gateway.
-- [ ] Mensagem adiada por estar fora da janela de envio aparece como aguardando
+- [x] Mostra quantas estão esperando a vez de sair pelo gateway.
+- [x] Mensagem adiada por estar fora da janela de envio aparece como aguardando
       horário, e não como falha.
-- [ ] Os números batem com `campaign_recipients` ao fim do disparo.
-- [ ] A tela atualiza sozinha enquanto está aberta, sem recarregar.
-- [ ] Campanha pela Meta continua exibindo o que exibia, sem campo vazio ou estimativa
+- [x] Os números batem com `campaign_recipients` ao fim do disparo.
+- [x] A tela atualiza sozinha enquanto está aberta, sem recarregar.
+- [x] Campanha pela Meta continua exibindo o que exibia, sem campo vazio ou estimativa
       sem sentido.
-- [ ] A contagem é feita no backend.
+- [x] A contagem é feita no backend.
+
+## Execução (17/09/2026)
+
+**A decisão que a issue mandava tomar no plano:** `enviado` **não** cobria o caso.
+Pelo canal direto, a resposta do gateway significa *aceita*, e a confirmação real vem
+depois no evento `message.status` com `sent` — os dois momentos caíam em `enviado`, e o
+progresso não conseguia dizer quanto tinha saído de verdade. Entrou o estado
+**`na_fila`**, com migration da restrição de `campaign_recipients.status`.
+
+Fluxo: `pendente` → `na_fila` (gateway aceitou) → `enviado` (gateway confirmou) →
+`entregue` → `lido`. **Pela API Oficial nada muda**: lá a resposta já é o envio, e o
+destinatário continua indo direto para `enviado`. Quem decide é `provider.canal`, dentro
+de `campanhas.ts`.
+
+**Não foi preciso endpoint novo no gateway.** A pergunta "quantas estão na fila" é
+respondida pelo que o CRM já sabe — destinatários aceitos e ainda sem confirmação —, como
+a própria issue admitia. Consultar a fila mensagem a mensagem era o caminho que não serve.
+
+**Mensagem adiada aparece como espera, não como falha:** `deferred` é estado de fila, não
+evento de status, e o destinatário permanece em `na_fila`. O texto da tela diz que o envio
+"pausa fora do horário permitido".
+
+**Contagem no banco, não no cliente:** `count: "exact", head: true`, uma consulta por
+estado. Campanha de dezenas de milhares de destinatários não cabe em memória para ser
+somada na Server Action, e trazer as linhas para o navegador seria pior.
+
+**A atualização sozinha para quando o disparo acaba:** o relógio de 10s é limpo assim que
+não há mais nada a despachar. Tela aberta em campanha concluída não fica consultando o
+banco à toa.
+
+**Arquivo a mais, declarado:** `src/lib/campanhas.ts` já estava na lista como "consultar";
+passou a ser modificado, porque é lá que o estado inicial do destinatário é gravado.
 
 ## Fora de escopo
 

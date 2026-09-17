@@ -529,6 +529,8 @@ export type RelatorioCampanha = {
   lidos: number
   falhos: number
   pendentes: number
+  /** B8-02: aceitas pelo gateway, esperando a vez de sair. */
+  naFila: number
   destinatarios: Array<{
     nome: string
     telefone: string
@@ -567,17 +569,81 @@ export async function relatorioCampanha(id: string): Promise<RelatorioCampanha |
     enviadaEm: data.enviada_em,
     total: recipients.length,
     // "entregue" e "lido" também contam como enviados
+    // `na_fila` NÃO conta como enviado: é justamente o que ainda não saiu.
     enviados: recipients.filter((r) => ["enviado", "entregue", "lido"].includes(r.status)).length,
     entregues: recipients.filter((r) => ["entregue", "lido"].includes(r.status)).length,
     lidos: porStatus("lido"),
     falhos: porStatus("falhou"),
     pendentes: porStatus("pendente"),
+    naFila: porStatus("na_fila"),
     destinatarios: recipients.map((r) => ({
       nome: r.nome_snapshot ?? r.telefone_snapshot,
       telefone: r.telefone_snapshot,
       status: r.status,
       atualizadoEm: r.atualizado_em,
     })),
+  }
+}
+
+/** B8-02: progresso do disparo, contado no banco e não no cliente. */
+export type ProgressoDoDisparo = {
+  total: number
+  enviados: number
+  naFila: number
+  pendentes: number
+  falhos: number
+  /** Verdadeiro enquanto a campanha ainda tem o que despachar. */
+  emAndamento: boolean
+}
+
+/**
+ * Progresso de um disparo em andamento (B8-02).
+ *
+ * Usa `count` do Postgres, uma consulta por estado: campanha de dezenas de
+ * milhares de destinatários não cabe em memória para ser somada aqui, e somar
+ * no cliente exigiria trazer todas as linhas para o navegador.
+ */
+export async function progressoDoDisparo(campanhaId: string): Promise<ProgressoDoDisparo | null> {
+  const { supabase, perfil } = await perfilGestor()
+  if (!perfil) return null
+
+  const { data: campanha } = await supabase
+    .from("campaigns")
+    .select("id, status")
+    .eq("id", campanhaId)
+    .eq("workspace_id", perfil.workspace_id)
+    .maybeSingle()
+
+  if (!campanha) return null
+
+  async function contar(status?: string): Promise<number> {
+    let query = supabase
+      .from("campaign_recipients")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", campanhaId)
+    if (status) query = query.eq("status", status)
+    const { count } = await query
+    return count ?? 0
+  }
+
+  const [total, naFila, pendentes, falhos, enviado, entregue, lido] = await Promise.all([
+    contar(),
+    contar("na_fila"),
+    contar("pendente"),
+    contar("falhou"),
+    contar("enviado"),
+    contar("entregue"),
+    contar("lido"),
+  ])
+
+  return {
+    total,
+    enviados: enviado + entregue + lido,
+    naFila,
+    pendentes,
+    falhos,
+    // Enfileirada ainda é disparo em andamento: a mensagem não saiu.
+    emAndamento: campanha.status === "enviando" || pendentes > 0 || naFila > 0,
   }
 }
 
