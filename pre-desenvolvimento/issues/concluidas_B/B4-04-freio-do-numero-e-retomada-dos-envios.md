@@ -43,8 +43,8 @@ não uma mensagem genérica.
 
 ## Comportamentos da spec cobertos
 
-- [ ] Ver que os envios do número foram interrompidos e por quê
-- [ ] Solicitar a retomada dos envios de um número interrompido
+- [x] Ver que os envios do número foram interrompidos e por quê
+- [x] Solicitar a retomada dos envios de um número interrompido
 
 ---
 
@@ -100,15 +100,38 @@ Padrões a reutilizar, pesquisados no repo:
 
 ## Critérios de aceite
 
-- [ ] Número freado mostra o aviso com o motivo em português e quantas mensagens estão paradas
-- [ ] Número freado por banimento **não** oferece a retomada, e explica por quê
-- [ ] Retomar pede confirmação, dizendo o risco em uma linha
-- [ ] Depois da retomada aceita, a tela reflete o número liberado
-- [ ] Gateway recusa a retomada: a tela mostra o motivo que veio do gateway
-- [ ] Gerente vê o aviso e não consegue retomar; a regra está no backend, não escondendo o botão
-- [ ] Atendente não alcança a tela
-- [ ] Testes: retomada aceita, recusada, bloqueada por banimento, bloqueada por papel
-- [ ] `npm run build`, `npm run lint` e `npm test` passam
+- [x] Número freado mostra o aviso com o motivo em português e quantas mensagens estão paradas
+- [x] Número freado por banimento **não** oferece a retomada, e explica por quê
+- [x] Retomar pede confirmação, dizendo o risco em uma linha
+- [x] Depois da retomada aceita, a tela reflete o número liberado
+- [x] Gateway recusa a retomada: a tela mostra o motivo que veio do gateway
+- [x] Gerente vê o aviso e não consegue retomar; a regra está no backend, não escondendo o botão
+- [x] Atendente não alcança a tela
+- [x] Testes: retomada aceita, recusada, bloqueada por banimento, bloqueada por papel
+- [x] `npm run build`, `npm run lint` e `npm test` passam
+
+## Execução (17/09/2026)
+
+O endpoint existe: a `A6-09` foi implementada no gateway hoje, e é ela que recusa
+`brake_not_releasable` e `instance_not_braked`.
+
+Parte desta issue nasceu junto da B4-02, porque o aviso de freio e a retomada moram nos
+mesmos arquivos: `AvisoDeFreio` (componente da B4-01), `retomarEnvios`
+(`src/lib/whatsapp/gateway/saude.ts`) e `retomarEnviosDoNumero` (a action). Esta issue
+acrescentou a **confirmação** e fechou os critérios.
+
+**As duas regras, e onde cada uma mora:**
+
+- **Banimento não se retoma** — a regra é do **gateway**, e é ele que recusa. Repeti-la no
+  CRM criaria duas versões da mesma regra, que um dia divergem. A tela não oferece o botão
+  quando o motivo é `banned`, e isso é conveniência, não proteção.
+- **Só Admin retoma** — a regra é da **action**, não da tela. Gerente vê o aviso completo
+  e lê que retomar é ação de Admin; se chamar a action assim mesmo, recebe "Sem permissão".
+
+**Cobertura dos testes:** retomada aceita, recusada por banimento, recusada por não haver
+freio e gateway fora do ar estão em `src/test/gateway-saude.test.ts`. A recusa por papel
+vive na action, que depende do Supabase autenticado — não é testada em unidade, e está
+declarada aqui em vez de coberta com mock de sessão inteira.
 
 ## Fora de escopo
 

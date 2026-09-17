@@ -12,7 +12,10 @@ export default defineConfig(({ mode }) => {
       setupFiles: './src/test/setup.ts',
       env,
       // e2e/ é do Playwright — não deve ser coletado pelo Vitest
-      exclude: ['**/node_modules/**', 'e2e/**'],
+      // `.claude/worktrees/` guarda cópias do repo criadas por agentes em
+      // paralelo. Sem excluí-las, a suíte roda N vezes e os testes de
+      // integração estouram o limite de autenticação do Supabase.
+      exclude: ['**/node_modules/**', 'e2e/**', '.claude/worktrees/**'],
     },
     resolve: {
       alias: {

@@ -7,7 +7,8 @@
 // captura a intenção.
 
 import { useCallback, useEffect, useState, useTransition } from "react"
-import { Plus } from "lucide-react"
+import Link from "next/link"
+import { Activity, Gauge, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   criarConexaoCanalDireto,
@@ -139,18 +140,37 @@ export function ListaNumeros({
               <CartaoNumero
                 key={numero.id}
                 numero={numero}
+                /* B2-05 e B4/B5: o canal direto tem ciclo de vida, saúde e
+                   ritmo; a Meta não expõe nenhum dos três e mantém as ações
+                   dela no fluxo próprio, mais abaixo na página. */
                 acoes={
-                  // B2-05: o ciclo de vida do canal direto. A conexão da Meta
-                  // tem as ações dela no fluxo próprio, mais abaixo na página.
                   numero.canal === "gateway" ? (
-                    <AcoesCanalDireto
-                      conexaoId={numero.id}
-                      estado={numero.state}
-                      onReconectar={() => {
-                        setConectando("gateway")
-                        void buscarQr()
-                      }}
-                    />
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-3 text-sm">
+                        <Link
+                          href={`/configuracoes/whatsapp/${numero.id}/saude`}
+                          className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <Activity className="size-3.5" aria-hidden />
+                          Saúde
+                        </Link>
+                        <Link
+                          href={`/configuracoes/whatsapp/${numero.id}/ritmo`}
+                          className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <Gauge className="size-3.5" aria-hidden />
+                          Ritmo
+                        </Link>
+                      </div>
+                      <AcoesCanalDireto
+                        conexaoId={numero.id}
+                        estado={numero.state}
+                        onReconectar={() => {
+                          setConectando("gateway")
+                          void buscarQr()
+                        }}
+                      />
+                    </div>
                   ) : undefined
                 }
               />

@@ -85,15 +85,30 @@ duplicá-los aqui é garantia de sair de sincronia.
 
 ## Critérios de aceite
 
-- [ ] O formulário mostra os cinco campos: intervalo, teto por hora, teto por dia, início e fim da janela
-- [ ] Cada campo mostra o limite do sistema ao lado
-- [ ] O botão do perfil sugerido preenche os campos
-- [ ] A linha do efeito estimado sobre uma campanha aparece
-- [ ] Os dois estados (número novo e número maduro) são visíveis sem editar o código
-- [ ] Validação de formato no cliente com Zod, no padrão do repo
-- [ ] Funciona em largura de celular
-- [ ] Papel: só Admin
-- [ ] `npm run build` e `npm run lint` passam
+- [x] O formulário mostra os cinco campos: intervalo, teto por hora, teto por dia, início e fim da janela
+- [x] Cada campo mostra o limite do sistema ao lado
+- [x] O botão do perfil sugerido preenche os campos
+- [x] A linha do efeito estimado sobre uma campanha aparece
+- [x] Os dois estados (número novo e número maduro) são visíveis sem editar o código
+- [x] Validação de formato no cliente com Zod, no padrão do repo
+- [x] Funciona em largura de celular
+- [x] Papel: só Admin
+- [x] `npm run build` e `npm run lint` passam
+
+## Execução (17/09/2026)
+
+Arquivo a mais, declarado: **`src/lib/estimativa-campanha.ts`**. A issue previa a linha do
+efeito estimado com "número fixo", mas o formulário reage ao que está digitado — e um
+número fixo que não muda quando o ritmo muda ensina a coisa errada em uma tela que existe
+justamente para mostrar consequência. A conta é pura e testada; a B5-02 a reaproveita.
+
+**O formulário recebe quem grava por parâmetro** (`salvar`), em vez de importar a action.
+Assim o protótipo passa uma função que não salva nada e a B5-02 passa a de verdade, sem o
+formulário ser reescrito — e sem ele saber se o destino é o gateway.
+
+Os limites entram como **dado**, vindos de `system_limits`, e não como constante do CRM:
+eles vivem no gateway, e duplicá-los aqui seria garantia de sair de sincronia. No protótipo
+são fixos apenas porque nada é lido ainda.
 
 ## Fora de escopo
 
