@@ -125,7 +125,7 @@ describe("provider Meta — marcarComoLida", () => {
     fetchMock.mockResolvedValue(respostaOk({ success: true }))
 
     const provider = criarProviderMeta(PHONE_NUMBER_ID, ACCESS_TOKEN)
-    await provider.marcarComoLida("wamid.XYZ")
+    await provider.marcarComoLida({ mensagemId: "wamid.XYZ", destino: "5511999998888" })
 
     const [, opcoes] = fetchMock.mock.calls[0]
     expect(JSON.parse(opcoes.body)).toEqual({
@@ -139,7 +139,7 @@ describe("provider Meta — marcarComoLida", () => {
     fetchMock.mockResolvedValue(respostaErro(400, "erro"))
 
     const provider = criarProviderMeta(PHONE_NUMBER_ID, ACCESS_TOKEN)
-    const resultado = await provider.marcarComoLida("wamid.XYZ")
+    const resultado = await provider.marcarComoLida({ mensagemId: "wamid.XYZ", destino: "5511999998888" })
 
     expect(resultado.ok).toBe(false)
   })

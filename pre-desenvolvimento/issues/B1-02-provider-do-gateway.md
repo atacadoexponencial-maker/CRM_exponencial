@@ -36,13 +36,13 @@ implementar contra ele, não.
 Da spec do bloco B1. A B1-01 os entregou apenas para a Meta; esta issue os completa
 para os dois canais.
 
-- [ ] Resolver qual provider usar a partir do número de origem da mensagem
-- [ ] Enviar mensagem de texto por qualquer provider
-- [ ] Enviar mídia por qualquer provider
-- [ ] Marcar conversa como lida por qualquer provider
-- [ ] Verificar existência de número por qualquer provider
-- [ ] Informar quais recursos o provider em uso suporta
-- [ ] Devolver erro claro quando a operação não é suportada pelo provider em uso
+- [x] Resolver qual provider usar a partir do número de origem da mensagem
+- [x] Enviar mensagem de texto por qualquer provider
+- [x] Enviar mídia por qualquer provider
+- [x] Marcar conversa como lida por qualquer provider
+- [x] Verificar existência de número por qualquer provider
+- [x] Informar quais recursos o provider em uso suporta
+- [x] Devolver erro claro quando a operação não é suportada pelo provider em uso
 
 ## Contrato do gateway
 
@@ -114,18 +114,31 @@ código nem no navegador.
 
 ## Critérios de aceite
 
-- [ ] Uma conexão marcada como `gateway` faz `resolverProvider` devolver o provider do
+- [x] Uma conexão marcada como `gateway` faz `resolverProvider` devolver o provider do
       gateway; uma marcada como `meta`, o da Meta. Nenhum arquivo de negócio muda.
-- [ ] As sete chamadas de negócio da B1-01 continuam funcionando sem alteração, porque
+- [x] As sete chamadas de negócio da B1-01 continuam funcionando sem alteração, porque
       só conhecem o contrato.
-- [ ] `suporta("templates")` é `false` no gateway e `true` na Meta.
-- [ ] Recusa do gateway vira `{ ok: false, motivo }` com texto legível, e não exceção.
-- [ ] Falha de rede **não** é capturada pelo provider: a exceção sobe, como no provider
+- [x] `suporta("templates")` é `false` no gateway e `true` na Meta.
+- [x] Recusa do gateway vira `{ ok: false, motivo }` com texto legível, e não exceção.
+- [x] Falha de rede **não** é capturada pelo provider: a exceção sobe, como no provider
       Meta (decisão 5.5 da B1-01).
-- [ ] O `message_id` devolvido pelo gateway é gravado em `messages.wamid`.
-- [ ] Nenhuma credencial do gateway aparece em código de cliente nem em resposta de
+- [x] O `message_id` devolvido pelo gateway é gravado em `messages.wamid`.
+- [x] Nenhuma credencial do gateway aparece em código de cliente nem em resposta de
       Server Action.
-- [ ] `npm run build`, `npm run lint` e os testes passam.
+- [x] `npm run build`, `npm run lint` e os testes passam.
+
+## Desvio registrado na execução (17/09/2026)
+
+**`marcarComoLida` mudou de assinatura**, de `(mensagemId: string)` para
+`(alvo: AlvoDeLeitura)`, com `mensagemId` e `destino`. A issue dizia que o contrato
+`ProviderWhatsApp` não mudaria, e mudou — com motivo:
+
+a Meta confirma leitura de **uma mensagem** (`message_id`); o gateway confirma **a
+conversa** (`to`). Nenhum dos dois identificadores deriva o outro. Manter só `mensagemId`
+faria o gateway mandar o recibo de leitura para o contato errado, silenciosamente.
+
+Custo real: **zero**. A operação não tinha chamador nenhum no CRM — o primeiro nasce na
+B7, que é escrita depois desta. Os dois testes que a exercitavam foram ajustados.
 
 ## Fora de escopo
 

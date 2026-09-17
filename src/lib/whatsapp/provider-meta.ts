@@ -104,7 +104,7 @@ export function criarProviderMeta(
       })
     },
 
-    async marcarComoLida(mensagemId) {
+    async marcarComoLida({ mensagemId }) {
       // Nasce sem chamador: nenhum ponto do CRM marca mensagem como lida na
       // Meta hoje. Existe porque o contrato pede e a issue do gateway vai usar.
       return postar({
