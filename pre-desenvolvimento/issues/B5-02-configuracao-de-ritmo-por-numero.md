@@ -46,14 +46,14 @@ como promessa.
 
 ## Comportamentos da spec cobertos
 
-- [ ] Consultar o ritmo configurado de um número
-- [ ] Alterar o intervalo entre mensagens de um número
-- [ ] Alterar o teto por hora de um número
-- [ ] Alterar o teto por dia de um número
-- [ ] Definir a janela de horário de envio de um número
-- [ ] Aplicar o perfil sugerido a um número
-- [ ] Impedir configuração acima dos limites do sistema, explicando o limite
-- [ ] Ver o efeito estimado da configuração sobre o tempo de uma campanha
+- [x] Consultar o ritmo configurado de um número
+- [x] Alterar o intervalo entre mensagens de um número
+- [x] Alterar o teto por hora de um número
+- [x] Alterar o teto por dia de um número
+- [x] Definir a janela de horário de envio de um número
+- [x] Aplicar o perfil sugerido a um número
+- [x] Impedir configuração acima dos limites do sistema, explicando o limite
+- [x] Ver o efeito estimado da configuração sobre o tempo de uma campanha
 
 ---
 
@@ -112,19 +112,50 @@ Padrões a reutilizar, pesquisados no repo:
 
 ## Critérios de aceite
 
-- [ ] O formulário abre com os valores reais do número, lidos do gateway
-- [ ] Os limites mostrados ao lado dos campos vêm do gateway, e não estão escritos no código do CRM
-- [ ] Alterar intervalo, teto por hora, teto por dia e janela salva no gateway, e reabrir a tela mostra o valor novo
-- [ ] O perfil sugerido preenche o formulário conforme o tempo de vida do número
-- [ ] Valor acima do limite não salva e a mensagem diz o limite e o valor pedido
-- [ ] A validação de limite existe no backend, e não só no formulário
-- [ ] Gateway recusa: a `message` do erro do gateway chega ao administrador
-- [ ] A estimativa de duração considera intervalo, tetos e janela, e é apresentada como aproximação
-- [ ] A estimativa é função pura, com testes de casos
-- [ ] Nenhuma credencial do gateway em código de cliente nem em `NEXT_PUBLIC_*`
-- [ ] Só Admin altera; a regra está no backend
-- [ ] Testes com o gateway simulado, sem rede
-- [ ] `npm run build`, `npm run lint` e `npm test` passam
+- [x] O formulário abre com os valores reais do número, lidos do gateway
+- [x] Os limites mostrados ao lado dos campos vêm do gateway, e não estão escritos no código do CRM
+- [x] Alterar intervalo, teto por hora, teto por dia e janela salva no gateway, e reabrir a tela mostra o valor novo
+- [x] O perfil sugerido preenche o formulário conforme o tempo de vida do número
+- [x] Valor acima do limite não salva e a mensagem diz o limite e o valor pedido
+- [x] A validação de limite existe no backend, e não só no formulário
+- [x] Gateway recusa: a `message` do erro do gateway chega ao administrador
+- [x] A estimativa de duração considera intervalo, tetos e janela, e é apresentada como aproximação
+- [x] A estimativa é função pura, com testes de casos
+- [x] Nenhuma credencial do gateway em código de cliente nem em `NEXT_PUBLIC_*`
+- [x] Só Admin altera; a regra está no backend
+- [x] Testes com o gateway simulado, sem rede
+- [x] `npm run build`, `npm run lint` e `npm test` passam
+
+## Execução (17/09/2026)
+
+O endpoint existe: a `A6-08` foi implementada no gateway hoje.
+
+Arquivos a mais, declarados:
+
+- **`src/lib/whatsapp/gateway/ritmo.ts`** — leitura, conferência e escrita, testáveis com
+  gateway simulado. A action autoriza e monta as dependências.
+- **`src/lib/estimativa-campanha.ts`** — criado já na B5-01, porque a linha do efeito
+  estimado precisava reagir ao que estava digitado.
+
+**A gravação relê o ritmo antes de escrever.** Dois motivos: os limites são do gateway e
+não podem ser presumidos, e a janela precisa ser conferida inteira mesmo quando só uma
+ponta muda — cada metade isolada parece válida, e junto elas se invertem.
+
+**A recusa diz o limite e o valor pedido** ("O teto por hora vai de 1 a 60 mensagens, e
+você pediu 200"). Só "acima do permitido" obriga o administrador a adivinhar qual é o
+permitido. Quando o gateway recusa apesar da conferência local, a mensagem dele é a que
+chega: ele é a última palavra, e reescrevê-la arriscaria divergir.
+
+**A estimativa ignora o `estimated_send_at` do gateway**, como a issue mandou: aquela
+previsão não considera teto nem fechamento da janela, que é justamente a diferença entre
+"2 horas" e "3 dias". A conta daqui usa intervalo, tetos e janela, arredonda para cima e
+se apresenta como aproximação; acima de um dia ela fala em dias, porque "37 horas" engana
+— as mensagens não saem de madrugada.
+
+**Perfil sugerido:** número novo recebe intervalo maior e tetos baixos, com janela curta;
+maduro recebe os limites cheios. A idade vem da saúde; quando a saúde não pode ser lida, a
+sugestão é a do maduro — e o gateway continua apertando por cima dela, então errar para o
+lado largo aqui não afrouxa nada de verdade.
 
 ## Fora de escopo
 

@@ -1,7 +1,9 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, TriangleAlert } from "lucide-react"
 import { createClient } from "@/integrations/supabase/server"
+import { lerSaude } from "../saude/actions"
+import { lerRitmoDoNumero } from "./actions"
 import { RitmoClient } from "./ritmo-client"
 
 /**
@@ -29,6 +31,11 @@ export default async function RitmoDoNumeroPage({
 
   if (perfil?.role !== "admin") redirect("/perfil")
 
+  // O ritmo e a saúde vêm do mesmo gateway, em chamadas diferentes: o perfil
+  // sugerido depende da idade do número, que só a saúde conhece. Saúde que
+  // falha não impede configurar o ritmo — só deixa a sugestão mais conservadora.
+  const [resultado, saude] = await Promise.all([lerRitmoDoNumero(id), lerSaude(id)])
+
   return (
     <div className="max-w-5xl mx-auto w-full px-4 py-8">
       <Link
@@ -45,7 +52,25 @@ export default async function RitmoDoNumeroPage({
         permite ultrapassar os limites mostrados ao lado de cada campo.
       </p>
 
-      <RitmoClient />
+      {resultado.ok ? (
+        <RitmoClient
+          connectionId={id}
+          ritmo={resultado.ritmo}
+          diaDeVida={saude.ok ? saude.saude.aquecimento.dia : null}
+          emAquecimento={saude.ok ? saude.saude.aquecimento.ativo : false}
+        />
+      ) : (
+        <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950/40">
+          <TriangleAlert
+            className="size-4 shrink-0 mt-0.5 text-amber-700 dark:text-amber-500"
+            aria-hidden
+          />
+          <div>
+            <p className="text-sm font-medium">Não foi possível ler o ritmo deste número</p>
+            <p className="text-sm text-muted-foreground mt-0.5">{resultado.erro}</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
