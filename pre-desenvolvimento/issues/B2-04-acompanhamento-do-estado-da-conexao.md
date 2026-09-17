@@ -18,10 +18,10 @@ Depois de ler o código, o cliente fica olhando a tela esperando saber se deu ce
 
 ## Comportamentos da spec cobertos
 
-- [ ] Acompanhar a mudança de estado até a conexão ser concluída
-- [ ] Ver o número e o nome de exibição confirmados após conectar
-- [ ] Ver o motivo quando a conexão falha
-- [ ] Ver aviso destacado quando um número está banido
+- [x] Acompanhar a mudança de estado até a conexão ser concluída
+- [x] Ver o número e o nome de exibição confirmados após conectar
+- [x] Ver o motivo quando a conexão falha
+- [x] Ver aviso destacado quando um número está banido
 
 ## Contrato do gateway
 
@@ -62,14 +62,32 @@ Reaproveitar: as colunas de estado e motivo já nascem na migration de B2-02 —
 
 ## Critérios de aceite
 
-- [ ] Lendo o QR com o celular, a tela sai de "aguardando leitura" e chega a "conectado" sem o admin recarregar a página
-- [ ] Depois de conectado, o cartão mostra o telefone e o nome de exibição informados pelo gateway
-- [ ] Recarregar a página mantém o estado, porque ele está gravado no CRM
-- [ ] Conexão que falha mostra o motivo em português, não o código cru do contrato
-- [ ] Número banido aparece com aviso destacado, distinto de desconectado, e sem oferecer "ler QR de novo" como se resolvesse
-- [ ] Estado desconhecido ou não previsto não quebra a tela
-- [ ] A consulta de estado recusa quem não é Admin
-- [ ] `npm run build`, `npm run lint` e `npm test` passam
+- [x] Lendo o QR com o celular, a tela sai de "aguardando leitura" e chega a "conectado" sem o admin recarregar a página
+- [x] Depois de conectado, o cartão mostra o telefone e o nome de exibição informados pelo gateway
+- [x] Recarregar a página mantém o estado, porque ele está gravado no CRM
+- [x] Conexão que falha mostra o motivo em português, não o código cru do contrato
+- [x] Número banido aparece com aviso destacado, distinto de desconectado, e sem oferecer "ler QR de novo" como se resolvesse
+- [x] Estado desconhecido ou não previsto não quebra a tela
+- [x] A consulta de estado recusa quem não é Admin
+- [x] `npm run build`, `npm run lint` e `npm test` passam
+
+## Execução (17/09/2026)
+
+Arquivo a mais, declarado: **`src/lib/whatsapp/gateway/estado.ts`** — a consulta, a
+tradução dos motivos e a regra de "quando parar de acompanhar". A issue mandava pôr isso em
+`cliente.ts` e `tipos.ts`, mas `cliente.ts` é transporte puro (B0-01) e `tipos.ts` é só
+tipo, sem runtime; a tradução tem runtime e é usada pela tela **e** pelo webhook.
+
+**O lugar de gravar o estado já existia:** `aplicarEstadoDaInstancia`, escrita pelo bloco
+B6 no mesmo dia. Esta issue reusou em vez de criar o segundo caminho que ela própria
+alertava — e por isso `estado-badge.tsx` passou a reexportar `TEXTO_DO_MOTIVO` do backend,
+em vez de manter a cópia dele.
+
+**Acompanhamento por consulta repetida, a cada 3 segundos, só enquanto a tela de
+pareamento está aberta** — e não por realtime. Motivo: durante o pareamento a informação
+mora no gateway, e o realtime do Supabase só avisaria depois de o webhook gravar; a
+consulta direta chega antes e não depende de o gateway alcançar o CRM. Termina o
+pareamento, o acompanhamento para sozinho.
 
 ## Fora de escopo
 

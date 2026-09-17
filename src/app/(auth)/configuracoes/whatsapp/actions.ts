@@ -16,6 +16,8 @@ import {
   pedirQrDoGateway,
   type QrParaExibir,
 } from "@/lib/whatsapp/gateway/pareamento"
+import { consultarEstado, motivoEmPortugues } from "@/lib/whatsapp/gateway/estado"
+import { aplicarEstadoDaInstancia } from "@/lib/whatsapp/eventos-de-operacao"
 
 export type ConexaoWhatsApp = {
   id: string
@@ -304,6 +306,55 @@ export async function pedirCodigoDePareamento(
   return resultado.ok
     ? { codigo: resultado.dados.pairing_code, expiresAt: resultado.dados.expires_at }
     : { erro: resultado.erro }
+}
+
+/**
+ * Pergunta ao gateway em que estado a conexão está e grava o resultado (B2-04).
+ *
+ * A gravação usa o mesmo caminho do evento `instance.state` do webhook
+ * (`aplicarEstadoDaInstancia`): dois caminhos escrevendo o mesmo campo por
+ * lugares diferentes divergiriam no primeiro detalhe esquecido.
+ *
+ * Quem chama é a tela de pareamento, enquanto ela está aberta. Depois de
+ * conectado, quem avisa é o gateway.
+ */
+export async function sincronizarEstadoCanalDireto(): Promise<{
+  erro?: string
+  estado?: { state: string; phoneNumber: string | null; displayName: string | null; motivo: string | null }
+}> {
+  const autorizacao = await adminDoWorkspace()
+  if ("erro" in autorizacao) return { erro: autorizacao.erro }
+
+  const instancia = await instanciaDoCanalDireto(autorizacao.workspaceId)
+  if (!instancia) return { erro: "Nenhum número do canal direto neste workspace." }
+
+  let cliente
+  try {
+    cliente = clienteGatewayDoAmbiente()
+  } catch {
+    return { erro: "O canal direto não está configurado neste ambiente." }
+  }
+
+  const resultado = await consultarEstado(cliente, instancia.instanceId, instancia.instanceToken)
+  if (!resultado.ok) return { erro: resultado.erro }
+
+  const service = createServiceClient()
+  await aplicarEstadoDaInstancia({
+    supabase: service as never,
+    connectionId: instancia.conexaoId,
+    evento: resultado.estado,
+  })
+
+  revalidatePath("/configuracoes/whatsapp")
+
+  return {
+    estado: {
+      state: resultado.estado.state,
+      phoneNumber: resultado.estado.phone_number,
+      displayName: resultado.estado.display_name,
+      motivo: motivoEmPortugues(resultado.estado.reason),
+    },
+  }
 }
 
 export async function completarConexaoWhatsApp(params: {

@@ -6,14 +6,23 @@
 // issue trocou a origem. A criação da conexão é uma Server Action — o botão só
 // captura a intenção.
 
-import { useState, useTransition } from "react"
+import { useCallback, useEffect, useState, useTransition } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { criarConexaoCanalDireto, pedirQrCodeCanalDireto } from "../actions"
+import {
+  criarConexaoCanalDireto,
+  pedirQrCodeCanalDireto,
+  sincronizarEstadoCanalDireto,
+} from "../actions"
 import { CartaoNumero, type NumeroConectado } from "./cartao-numero"
 import { EscolhaCanal, type CanalEscolhido } from "./escolha-canal"
 import { PareamentoPorCodigo } from "./pareamento-por-codigo"
 import { TelaQrCode, type Pareamento } from "./tela-qr-code"
+import type { EstadoConexao, MotivoDeTransicao } from "./estado-badge"
+import { pareamentoEmAndamento } from "@/lib/whatsapp/gateway/estado"
+
+/** Enquanto o pareamento não termina, a tela pergunta de novo a cada 3s. */
+const INTERVALO_DE_ACOMPANHAMENTO_MS = 3000
 import { TermoResponsabilidade } from "./termo-responsabilidade"
 
 export function ListaNumeros({
@@ -30,6 +39,8 @@ export function ListaNumeros({
   const [erro, setErro] = useState<string | null>(null)
   const [criando, criar] = useTransition()
   const [renovando, renovar] = useTransition()
+  const [estado, setEstado] = useState<EstadoConexao>("pairing")
+  const [motivo, setMotivo] = useState<MotivoDeTransicao | undefined>()
   const [termoAberto, setTermoAberto] = useState(false)
   const [aceito, setAceito] = useState(termoAceito)
 
@@ -54,6 +65,24 @@ export function ListaNumeros({
       await buscarQr()
     })
   }
+
+  /**
+   * B2-04: acompanha o estado enquanto a tela de pareamento está aberta. Para
+   * sozinho quando o pareamento termina — conectado, banido ou desconectado.
+   */
+  const acompanhar = useCallback(async () => {
+    const resultado = await sincronizarEstadoCanalDireto()
+    if (resultado.erro || !resultado.estado) return
+    setEstado(resultado.estado.state as EstadoConexao)
+  }, [])
+
+  useEffect(() => {
+    if (conectando !== "gateway") return
+    if (!pareamentoEmAndamento(estado)) return
+
+    const relogio = setInterval(() => void acompanhar(), INTERVALO_DE_ACOMPANHAMENTO_MS)
+    return () => clearInterval(relogio)
+  }, [conectando, estado, acompanhar])
 
   async function buscarQr() {
     setErroPareamento(null)
@@ -124,6 +153,8 @@ export function ListaNumeros({
             <>
               <TelaQrCode
                 pareamento={pareamento}
+                estado={estado}
+                motivo={motivo}
                 erro={erroPareamento}
                 renovando={renovando}
                 onRenovar={() => renovar(buscarQr)}
