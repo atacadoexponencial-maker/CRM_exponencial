@@ -86,14 +86,34 @@ Nada. Protótipo com dados fixos não depende de `B4-00` nem de B2.
 
 ## Critérios de aceite
 
-- [ ] A tela abre e mostra os cinco componentes da spec
-- [ ] Os três estados (maduro, em aquecimento, freado) são visíveis, sem precisar editar o código para trocar
-- [ ] O medidor mostra proporção de consumo, não só o número absoluto
-- [ ] O aviso de freio se destaca dos outros elementos e diz o motivo
-- [ ] O sinal de risco diz **o que** o está elevando, não só a classificação
-- [ ] A tela funciona em largura de celular
-- [ ] Papel: só Admin e Gerente alcançam a tela
-- [ ] `npm run build` e `npm run lint` passam
+- [x] A tela abre e mostra os cinco componentes da spec
+- [x] Os três estados (maduro, em aquecimento, freado) são visíveis, sem precisar editar o código para trocar
+- [x] O medidor mostra proporção de consumo, não só o número absoluto
+- [x] O aviso de freio se destaca dos outros elementos e diz o motivo
+- [x] O sinal de risco diz **o que** o está elevando, não só a classificação
+- [x] A tela funciona em largura de celular
+- [x] Papel: só Admin e Gerente alcançam a tela
+- [x] `npm run build` e `npm run lint` passam
+
+## Execução (17/09/2026)
+
+Arquivo a mais, declarado: **`[id]/saude/tipos.ts`** — o vocabulário da tela num lugar só.
+Cinco componentes recebendo o mesmo objeto precisavam do mesmo tipo, e a alternativa era
+repetir a forma em cada arquivo. Os nomes são em português, do domínio do CRM: a B4-02
+traduz o contrato para eles.
+
+Dois detalhes que a issue não previa e que o desenho resolveu:
+
+- **O aviso de freio vem antes do cartão**, não depois. Enquanto ele estiver na tela, nada
+  sai por aquele número — é a informação mais forte da página, e ler o volume enviado antes
+  de saber que está tudo parado inverte a ordem de importância.
+- **O medidor muda de cor pela proporção** (verde até 60%, âmbar até 85%, vermelho acima).
+  Só o número absoluto não comunica: "45 de 60" exige a conta, e quem abre a tela com o
+  número em risco não deveria precisar fazê-la.
+
+O aquecimento mostra o **dia de vida** e o quanto falta em dias, não "dias restantes"
+apenas: o cliente pergunta "por que só 30 por dia?", e a resposta é o dia em que o número
+está.
 
 ## Fora de escopo
 
