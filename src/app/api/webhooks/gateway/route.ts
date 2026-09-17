@@ -20,6 +20,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"
+import {
+  registrarMensagemRecebida,
+  type EventoMensagemRecebida,
+} from "@/lib/whatsapp/recebimento"
 
 const HEADER_ASSINATURA = "x-gateway-signature-256"
 
@@ -52,6 +56,19 @@ function envelopeValido(corpo: unknown): corpo is Envelope {
     e.type.length > 0 &&
     typeof e.instance_id === "string" &&
     e.instance_id.length > 0
+  )
+}
+
+/** `data` de `message.received`: sem remetente e identificador não há mensagem. */
+function mensagemValida(data: unknown): data is EventoMensagemRecebida {
+  if (typeof data !== "object" || data === null) return false
+  const d = data as Record<string, unknown>
+  return (
+    typeof d.message_id === "string" &&
+    d.message_id.length > 0 &&
+    typeof d.from === "string" &&
+    d.from.length > 0 &&
+    typeof d.type === "string"
   )
 }
 
@@ -143,8 +160,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: "ignorado", motivo: "tipo_desconhecido" })
   }
 
-  // O tratamento de cada tipo entra nas issues B6-02, B6-03 e B6-04. Aqui o
-  // evento é reconhecido e dado por recebido.
+  if (envelope.type === "message.received") {
+    if (!mensagemValida(envelope.data)) {
+      return NextResponse.json({ error: "invalid payload" }, { status: 400 })
+    }
+
+    await registrarMensagemRecebida({
+      supabase,
+      workspaceId: conexao.workspace_id,
+      evento: envelope.data,
+      // Momento do fato. Sem ele, o da chegada — melhor do que mensagem sem data.
+      recebidoEm: envelope.timestamp ?? new Date().toISOString(),
+    })
+  }
+
+  // Os outros três tipos entram na B6-04.
   await marcarProcessado(supabase, envelope.event_id)
   return NextResponse.json({ status: "ok" })
 }

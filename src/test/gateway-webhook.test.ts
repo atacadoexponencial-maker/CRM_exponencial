@@ -8,6 +8,18 @@ vi.mock("@/integrations/supabase/service", () => ({
   createServiceClient: vi.fn(),
 }))
 
+// O conteúdo do evento é da B6-02 em diante e tem teste próprio
+// (gateway-recebimento.test.ts). Aqui interessa a porta: assinatura,
+// idempotência e despacho.
+vi.mock("@/lib/whatsapp/recebimento", () => ({
+  registrarMensagemRecebida: vi.fn().mockResolvedValue({
+    contactId: "c",
+    conversationId: "v",
+    messageId: "m",
+    conversaCriada: false,
+  }),
+}))
+
 import { createServiceClient } from "@/integrations/supabase/service"
 import { POST } from "@/app/api/webhooks/gateway/route"
 import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"

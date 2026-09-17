@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { processarAutomacoes } from "@/lib/automacoes"
 import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"
+import { transmitirMensagem } from "@/lib/whatsapp/realtime"
 
 // Valida a assinatura X-Hub-Signature-256 que a Meta envia em todo webhook.
 // Sem META_APP_SECRET configurado (ex.: ambiente de teste) a validação é pulada.
@@ -170,29 +171,18 @@ export async function POST(request: NextRequest) {
     }).select("id").single()
 
     if (msgInserida) {
-      await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/realtime/v1/api/broadcast`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": process.env.SUPABASE_SERVICE_ROLE_KEY!,
-          "Authorization": `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-        },
-        body: JSON.stringify({
-          messages: [{
-            topic: `workspace:${workspace_id}`,
-            event: "nova_mensagem",
-            payload: {
-              id: msgInserida.id,
-              conversation_id: conversaId,
-              workspace_id,
-              direction: "recebida",
-              type: "texto",
-              content: messageText,
-              created_at: messageAt,
-              status: null,
-            },
-          }],
-        }),
+      // Mesma transmissão de sempre, agora em @/lib/whatsapp/realtime (B6-02),
+      // compartilhada com o canal do gateway: mesmo tópico, mesmo evento, mesmo
+      // corpo. É o que faz a caixa de entrada não distinguir a origem.
+      await transmitirMensagem({
+        id: msgInserida.id,
+        conversation_id: conversaId,
+        workspace_id,
+        direction: "recebida",
+        type: "texto",
+        content: messageText,
+        created_at: messageAt,
+        status: null,
       })
     }
   }
