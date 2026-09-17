@@ -56,9 +56,9 @@ mais simples que atenda basta.
 
 ## Comportamentos da spec cobertos
 
-- [ ] Ver o sinal de risco atual do número e o que o está elevando
-- [ ] Receber alerta na central de alertas quando o risco de um número fica alto
-- [ ] Receber alerta na central de alertas quando um número é desconectado ou banido
+- [x] Ver o sinal de risco atual do número e o que o está elevando
+- [x] Receber alerta na central de alertas quando o risco de um número fica alto
+- [x] Receber alerta na central de alertas quando um número é desconectado ou banido
 
 ---
 
@@ -111,16 +111,71 @@ gateway para isso.
 
 ## Critérios de aceite
 
-- [ ] O sinal de risco aparece na tela de saúde, com a razão de estar naquele nível
-- [ ] O cálculo do risco é função pura, testada com casos de baixo, médio e alto
-- [ ] Número que fica com risco alto gera alerta na central de alertas
-- [ ] Número desconectado ou banido gera alerta na central de alertas
-- [ ] Os quatro tipos de alerta que já existiam continuam funcionando igual
-- [ ] Alerta de número aparece na central mesmo com o gateway fora do ar
-- [ ] O mesmo alerta não se repete a cada leitura da central
-- [ ] Nenhuma regra de classificação de risco em componente React
-- [ ] Decisão sobre derivar ou persistir registrada por escrito, com o porquê
-- [ ] `npm run build`, `npm run lint` e `npm test` passam
+- [x] O sinal de risco aparece na tela de saúde, com a razão de estar naquele nível
+- [x] O cálculo do risco é função pura, testada com casos de baixo, médio e alto
+- [x] Número que fica com risco alto gera alerta na central de alertas
+- [x] Número desconectado ou banido gera alerta na central de alertas
+- [x] Os quatro tipos de alerta que já existiam continuam funcionando igual
+- [x] Alerta de número aparece na central mesmo com o gateway fora do ar
+- [x] O mesmo alerta não se repete a cada leitura da central
+- [x] Nenhuma regra de classificação de risco em componente React
+- [x] Decisão sobre derivar ou persistir registrada por escrito, com o porquê
+- [x] `npm run build`, `npm run lint` e `npm test` passam
+
+## Execução (17/09/2026)
+
+### Decisão registrada: **persistir**, não derivar
+
+A recomendação da issue foi seguida, e a tabela já existia: `operational_alerts`, criada
+pela `B6-04` para o alerta de freio. Aqui ela ganhou os tipos que faltavam
+(`numero_desconectado`, `numero_banido`, `risco_alto`), então **não houve migration nova**.
+
+Derivar exigiria chamar o gateway a cada abertura de `/alertas` — a página passaria a
+depender de rede, e um número banido enquanto o gateway está fora do ar não apareceria.
+É justamente o caso em que o alerta importa mais.
+
+### Duas listas, não uma
+
+`listarAlertas` devolve `alertas` e `alertasDeNumero` separados, e a central mostra os de
+número acima. Alerta de card sempre tem contato, etapa e dias sem atividade; alerta de
+número não tem nenhum dos três. Enfiá-los no mesmo array obrigaria a tela a testar campo
+por campo antes de renderizar cada linha — e o `TipoAlerta` das dispensas passaria a
+aceitar valor que `alert_dismissals` não sabe guardar.
+
+### Quem percebe o risco alto, e a limitação declarada
+
+O risco é reavaliado **quando a saúde é lida** (`lerSaude`), e o alerta abre ou fecha ali.
+É o gatilho mais simples que atende. **Limitação:** enquanto ninguém abrir a tela de saúde
+daquele número, o risco alto não chega à central. Fechar isso exige verificação periódica,
+e o projeto ainda não tem cron com segredo configurado — issue própria, não desta.
+
+Desconexão e banimento não têm essa limitação: vêm de evento do gateway (B6-04), e chegam
+sozinhos.
+
+### Arquivos a mais, declarados
+
+- **`src/lib/whatsapp/alertas-de-numero.ts`** — abrir, resolver e listar. O `upsert` que a
+  B6-04 usa não serve aqui: o índice único de `operational_alerts` é **parcial**
+  (`where resolved_at is null`) e `ON CONFLICT` não infere índice parcial. Este arquivo faz
+  select-e-insert, ignorando `23505` na corrida. **Vale conferir a `registrarFreio` da
+  B6-04 pelo mesmo motivo** — ela pode estar falhando em silêncio.
+- **`src/lib/whatsapp/eventos-de-operacao.ts`** (arquivo da B6-04) — `aplicarEstadoDaInstancia`
+  ganhou `workspaceId` opcional e passou a refletir o estado na central. Sem isso,
+  desconexão e banimento nunca virariam alerta.
+- **`src/app/api/webhooks/gateway/route.ts`** (arquivo da B6-01) — passa o `workspace_id`
+  que ele já tinha em mãos.
+- **`src/app/(auth)/alertas/page.tsx`** — repassa a lista nova ao cliente.
+
+### A régua
+
+Limiares em `LIMIARES`, num objeto só, para serem discutíveis. O de falhas é **20%**, o
+mesmo com que o gateway aciona o freio (`decisoes-de-operacao.md`): número diferente
+alarmaria sem motivo ou avisaria depois do estrago. Falta de resposta com volume alto
+sobe de médio para alto quando o teto do dia também está estourando — é o padrão clássico
+de spam, e as duas coisas juntas são o que precede o banimento.
+
+Número quieto **não** é risco: proporção de respostas só é julgada a partir de 20 envios
+no dia.
 
 ## Fora de escopo
 

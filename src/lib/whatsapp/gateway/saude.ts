@@ -10,10 +10,13 @@
 // A única coisa que o CRM decide é a classificação do risco — e ela mora em
 // `src/lib/risco.ts`, por decisão registrada no contrato.
 
+import { classificarRisco } from "@/lib/risco"
 import { GatewayIndisponivel, GatewayRecusou, type ClienteGateway } from "./cliente"
 import type { FreioLiberado, SaudeDoNumero as SaudeNoContrato } from "./tipos"
 
-export type NivelDeRisco = "baixo" | "medio" | "alto"
+export type { NivelDeRisco } from "@/lib/risco"
+
+type NivelDeRisco = "baixo" | "medio" | "alto"
 export type MotivoDoFreio = "failure_rate" | "manual" | "banned"
 
 /**
@@ -91,9 +94,8 @@ const MENSAGEM_POR_CODIGO: Record<string, string> = {
  * Função separada da chamada HTTP de propósito: é ela que tem regra de
  * tradução, e é a que vale a pena testar caso a caso.
  *
- * `risco` sai daqui **sem classificação** — quem classifica é
- * `classificarRisco` (B4-03), a partir destes mesmos números. Aqui vai o valor
- * neutro para a tela nunca ficar sem objeto.
+ * O risco é classificado aqui, por `classificarRisco` (B4-03), a partir destes
+ * mesmos números: a régua é do CRM por decisão registrada no contrato.
  */
 export function saudeNaTela(
   contrato: SaudeNoContrato,
@@ -121,7 +123,21 @@ export function saudeNaTela(
       tetoDia: contrato.warmup.daily_cap,
     },
 
-    risco: { nivel: "baixo", razoes: [] },
+    risco: classificarRisco({
+      enviadasNaHora: contrato.sent.last_hour,
+      enviadasNoDia: contrato.sent.last_24h,
+      recebidasNoDia: contrato.received.last_24h,
+      tetoHora: contrato.caps.hourly,
+      tetoDia: contrato.caps.daily,
+      falhas: {
+        falharam: contrato.failures.failed,
+        enviadas: contrato.failures.sent,
+        proporcao: contrato.failures.ratio,
+      },
+      freado: contrato.brake.braked,
+      motivoDoFreio: contrato.brake.reason,
+      estado: contrato.state,
+    }),
 
     freio: {
       freado: contrato.brake.braked,

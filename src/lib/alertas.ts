@@ -50,6 +50,27 @@ export const TIPO_ALERTA_LABEL: Record<TipoAlerta, string> = {
   inativo: "Cliente inativo",
 }
 
+/**
+ * Alertas que nascem de um número conectado, não de um card (B4-03).
+ *
+ * Ficam fora de `TipoAlerta` de propósito: os quatro tipos acima são derivados
+ * de `pipeline_cards` e todo alerta deles tem card, contato e etapa. Alerta de
+ * número não tem nenhum dos três, e forçá-lo no mesmo tipo faria o cálculo
+ * puro e a tela mentirem sobre o que sempre existe.
+ */
+export type TipoAlertaDeNumero =
+  | "numero_freado"
+  | "numero_desconectado"
+  | "numero_banido"
+  | "risco_alto"
+
+export const TIPO_ALERTA_NUMERO_LABEL: Record<TipoAlertaDeNumero, string> = {
+  numero_freado: "Envios interrompidos",
+  numero_desconectado: "Número desconectado",
+  numero_banido: "Número banido",
+  risco_alto: "Risco alto de bloqueio",
+}
+
 const ETAPA_LABEL: Record<string, string> = {
   lead: "Lead",
   em_qualificacao: "Em Qualificação",

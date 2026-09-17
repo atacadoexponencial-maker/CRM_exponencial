@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { AlertTriangle, Check, MessageSquare, Settings2, X, Zap } from "lucide-react"
+import { Activity, AlertTriangle, Check, MessageSquare, Settings2, X, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,8 +14,25 @@ import {
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { IniciarSequenciaDialog } from "@/components/shared/iniciar-sequencia-dialog"
+import { TIPO_ALERTA_NUMERO_LABEL, type TipoAlertaDeNumero } from "@/lib/alertas"
+import type { AlertaDeNumero } from "@/lib/whatsapp/alertas-de-numero"
 import { dispensarAlerta, salvarConfigAlertas } from "./actions"
 import type { AlertaComConversa, ConfigAlertas, TipoAlerta } from "./actions"
+
+/**
+ * B4-03: alerta de número é mais grave que alerta de contato parado — um custa
+ * uma venda, o outro custa o canal inteiro. Por isso vermelho e no topo.
+ */
+const COR_ALERTA_DE_NUMERO: Record<TipoAlertaDeNumero, string> = {
+  numero_banido: "text-red-600 bg-red-500/10",
+  numero_freado: "text-red-600 bg-red-500/10",
+  numero_desconectado: "text-orange-600 bg-orange-500/10",
+  risco_alto: "text-amber-600 bg-amber-500/10",
+}
+
+function rotuloDoNumero(alerta: AlertaDeNumero): string {
+  return alerta.numero ?? alerta.nomeExibicao ?? "Número do canal direto"
+}
 
 const selectClass =
   "h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -37,10 +54,12 @@ const COR_TIPO: Record<TipoAlerta, string> = {
 
 export function AlertasClient({
   alertasIniciais,
+  alertasDeNumero = [],
   configInicial,
   papel,
 }: {
   alertasIniciais: AlertaComConversa[]
+  alertasDeNumero?: AlertaDeNumero[]
   configInicial: ConfigAlertas
   papel: string
 }) {
@@ -109,7 +128,54 @@ export function AlertasClient({
 
       {erro && <p className="text-sm text-destructive mb-4">{erro}</p>}
 
-      {filtrados.length === 0 ? (
+      {/* B4-03: alertas de número. Não têm card, contato nem etapa, e por isso
+          não entram na lista abaixo nem no filtro por tipo dela. */}
+      {alertasDeNumero.length > 0 && (
+        <div className="flex flex-col gap-2 mb-6">
+          {alertasDeNumero.map((alerta) => (
+            <div key={alerta.id} className="rounded-lg border p-3 flex items-start gap-3">
+              <span
+                className={cn(
+                  "mt-0.5 shrink-0 rounded-full p-1.5",
+                  COR_ALERTA_DE_NUMERO[alerta.tipo] ?? "text-red-600 bg-red-500/10"
+                )}
+              >
+                <Activity className="size-3.5" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-sm">{rotuloDoNumero(alerta)}</span>
+                  <span
+                    className={cn(
+                      "text-xs rounded-full px-2 py-0.5",
+                      COR_ALERTA_DE_NUMERO[alerta.tipo] ?? "text-red-600 bg-red-500/10"
+                    )}
+                  >
+                    {TIPO_ALERTA_NUMERO_LABEL[alerta.tipo] ?? "Alerta do número"}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {alerta.motivo ?? "Sem detalhe informado pelo gateway"}
+                  {alerta.mensagensParadas
+                    ? ` · ${alerta.mensagensParadas.toLocaleString("pt-BR")} mensagens paradas`
+                    : ""}
+                </p>
+              </div>
+              {alerta.connectionId && (
+                <Link
+                  href={`/configuracoes/whatsapp/${alerta.connectionId}/saude`}
+                  className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md border px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <Activity className="size-3" />
+                  Saúde
+                </Link>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {filtrados.length === 0 && alertasDeNumero.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-16 text-muted-foreground">
           <Check className="size-8 opacity-40" />
           <p className="text-sm">Nenhum alerta ativo</p>

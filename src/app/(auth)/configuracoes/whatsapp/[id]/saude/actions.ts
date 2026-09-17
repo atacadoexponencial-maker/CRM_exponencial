@@ -13,6 +13,7 @@
 import { revalidatePath } from "next/cache"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { createServiceClient } from "@/integrations/supabase/service"
+import { refletirRiscoNaCentral } from "@/lib/whatsapp/alertas-de-numero"
 import { clienteGatewayDoAmbiente } from "@/lib/whatsapp/gateway/cliente"
 import {
   lerSaudeDoNumero,
@@ -96,7 +97,23 @@ export async function lerSaude(connectionId: string): Promise<ResultadoDaSaude> 
     return { ok: false, erro: "O canal direto não está configurado neste ambiente." }
   }
 
-  return lerSaudeDoNumero({ cliente, conexao })
+  const resultado = await lerSaudeDoNumero({ cliente, conexao })
+
+  // B4-03: o risco alto precisa aparecer na central para quem não está com esta
+  // tela aberta. Abrir o alerta aqui é o gatilho mais simples que atende —
+  // limitação declarada em `alertas-de-numero.ts`: sem ninguém abrir a tela, o
+  // risco não vira alerta, e fechar isso exige verificação periódica.
+  if (resultado.ok) {
+    await refletirRiscoNaCentral({
+      supabase: createServiceClient(),
+      workspaceId: perfil.workspace_id as string,
+      connectionId,
+      nivel: resultado.saude.risco.nivel,
+      razaoPrincipal: resultado.saude.risco.razoes[0],
+    })
+  }
+
+  return resultado
 }
 
 /**

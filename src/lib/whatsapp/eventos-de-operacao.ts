@@ -7,6 +7,7 @@
 // inteiro três vezes.
 
 import type { createServiceClient } from "@/integrations/supabase/service"
+import { refletirEstadoNaCentral } from "./alertas-de-numero"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -95,10 +96,16 @@ export type EventoDeEstado = {
 export async function aplicarEstadoDaInstancia({
   supabase,
   connectionId,
+  workspaceId,
   evento,
 }: {
   supabase: ServiceClient
   connectionId: string
+  /**
+   * Workspace da conexão. Acrescentado em 17/09/2026 pela B4-03: sem ele não há
+   * como abrir o alerta de número desconectado ou banido na central.
+   */
+  workspaceId?: string
   evento: EventoDeEstado
 }): Promise<void> {
   const alteracao: Record<string, unknown> = {
@@ -114,6 +121,19 @@ export async function aplicarEstadoDaInstancia({
   if (evento.display_name) alteracao.display_name = evento.display_name
 
   await supabase.from("whatsapp_connections").update(alteracao).eq("id", connectionId)
+
+  // B4-03: desconexão e banimento viram alerta na central; reconexão os fecha.
+  // Fica depois da atualização da conexão de propósito — o alerta é
+  // consequência do estado gravado, e gravar é o que não pode falhar.
+  if (workspaceId) {
+    await refletirEstadoNaCentral({
+      supabase,
+      workspaceId,
+      connectionId,
+      estado: evento.state,
+      motivo: evento.reason ?? null,
+    })
+  }
 }
 
 export type EventoDeFreio = {

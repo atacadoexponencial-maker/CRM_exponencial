@@ -9,6 +9,11 @@ import {
   type ConfigAlertas,
   type TipoAlerta,
 } from "@/lib/alertas"
+import {
+  listarAlertasDeNumero,
+  type AlertaDeNumero,
+  type BancoDeAlertas,
+} from "@/lib/whatsapp/alertas-de-numero"
 
 export type { Alerta, ConfigAlertas, TipoAlerta } from "@/lib/alertas"
 
@@ -67,7 +72,19 @@ export async function salvarConfigAlertas(config: ConfigAlertas): Promise<{ erro
   return {}
 }
 
-export async function listarAlertas(): Promise<{ alertas: AlertaComConversa[]; config: ConfigAlertas } | null> {
+export async function listarAlertas(): Promise<{
+  alertas: AlertaComConversa[]
+  /**
+   * B4-03: alertas que nascem de um número conectado, não de um card.
+   *
+   * Lista separada de propósito. Os alertas de card sempre têm contato, etapa e
+   * dias sem atividade; os de número não têm nenhum dos três, e enfiá-los na
+   * mesma lista obrigaria a tela a testar campo por campo antes de renderizar.
+   * A central mostra as duas, uma acima da outra.
+   */
+  alertasDeNumero: AlertaDeNumero[]
+  config: ConfigAlertas
+} | null> {
   const { supabase, perfil } = await perfilAtual()
   if (!perfil) return null
 
@@ -127,11 +144,17 @@ export async function listarAlertas(): Promise<{ alertas: AlertaComConversa[]; c
 
   const alertas = calcularAlertas(cards, config, dismissalsData ?? [])
 
+  const alertasDeNumero = await listarAlertasDeNumero(
+    supabase as unknown as BancoDeAlertas,
+    perfil.workspace_id as string
+  )
+
   return {
     alertas: alertas.map((a) => ({
       ...a,
       conversaId: a.contactId ? (conversaPorContato[a.contactId] ?? null) : null,
     })),
+    alertasDeNumero,
     config,
   }
 }

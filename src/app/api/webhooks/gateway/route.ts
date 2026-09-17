@@ -197,7 +197,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "invalid payload" }, { status: 400 })
     }
 
-    await aplicarEstadoDaInstancia({ supabase, connectionId: conexao.id, evento: dados })
+    // B4-03: o workspace vai junto para desconexão e banimento virarem alerta
+    // na central de alertas.
+    await aplicarEstadoDaInstancia({
+      supabase,
+      connectionId: conexao.id,
+      workspaceId: conexao.workspace_id,
+      evento: dados,
+    })
   }
 
   if (envelope.type === "instance.braked") {
