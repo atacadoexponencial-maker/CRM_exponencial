@@ -18,9 +18,9 @@
 import type { createServiceClient } from "@/integrations/supabase/service"
 
 import { clienteGatewayDoAmbiente } from "./gateway/cliente"
-import { criarProviderGateway } from "./provider-gateway"
-import { criarProviderMeta } from "./provider-meta"
-import type { CanalWhatsApp, ProviderWhatsApp } from "./tipos"
+import { criarProviderGateway, RECURSOS_DO_GATEWAY } from "./provider-gateway"
+import { criarProviderMeta, RECURSOS_DA_META } from "./provider-meta"
+import type { CanalWhatsApp, ProviderWhatsApp, RecursoWhatsApp } from "./tipos"
 
 export type {
   AlvoDeLeitura,
@@ -166,4 +166,47 @@ export function providerDaConexao(conexao: ConexaoParaProvider): ProviderWhatsAp
 
   if (!conexao.phone_number_id || !conexao.access_token) return null
   return criarProviderMeta(conexao.phone_number_id, conexao.access_token)
+}
+
+/**
+ * O que um canal faz, sem precisar de credencial (B7-02).
+ *
+ * A interface pergunta isto para não oferecer o que o canal não tem. É a mesma
+ * resposta que `suporta()` dá no provider — os dois leem o mesmo mapa —, só
+ * acessível antes de haver conexão montada.
+ *
+ * Canal nulo é da Meta, pela mesma razão do resto do módulo: é o default da
+ * coluna.
+ */
+export function recursosDoCanal(canal: CanalWhatsApp | null): Record<RecursoWhatsApp, boolean> {
+  return canal === "gateway" ? { ...RECURSOS_DO_GATEWAY } : { ...RECURSOS_DA_META }
+}
+
+/** Nome do canal como o atendente o vê. */
+export function nomeDoCanal(canal: CanalWhatsApp | null): string {
+  return canal === "gateway" ? "Canal direto" : "API Oficial"
+}
+
+/**
+ * Por que o recurso não está disponível, em uma frase que o atendente entende.
+ *
+ * Existe para a interface não inventar o motivo — e para não haver
+ * `if (canal === "gateway")` em componente nenhum.
+ */
+export function motivoDoRecursoIndisponivel(
+  recurso: RecursoWhatsApp,
+  canal: CanalWhatsApp | null
+): string | null {
+  if (recursosDoCanal(canal)[recurso]) return null
+
+  const doCanal = nomeDoCanal(canal)
+
+  switch (recurso) {
+    case "templates":
+      return `Templates de mensagem existem apenas na API Oficial da Meta. Este número usa o ${doCanal}, e nele qualquer texto pode ser enviado sem template.`
+    case "midia":
+      return `O número em uso (${doCanal}) não envia mídia. Envie o conteúdo como texto ou use outro número.`
+    case "marcar_lida":
+      return `O número em uso (${doCanal}) não confirma leitura ao contato.`
+  }
 }

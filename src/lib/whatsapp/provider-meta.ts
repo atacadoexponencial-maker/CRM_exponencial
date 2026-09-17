@@ -30,8 +30,14 @@ const TIPO_META: Record<MidiaEnvio["tipo"], "image" | "video" | "audio" | "docum
   documento: "document",
 }
 
-/** Recursos da API Oficial. O gateway vai declarar os dele quando existir. */
-const RECURSOS_SUPORTADOS: Record<RecursoWhatsApp, boolean> = {
+/**
+ * Recursos da API Oficial.
+ *
+ * Exportado porque a interface (B7-02) precisa saber o que um canal faz **antes**
+ * de ter credencial em mão — montar um provider só para perguntar exigiria o
+ * `access_token` de uma conexão que talvez nem exista.
+ */
+export const RECURSOS_DA_META: Record<RecursoWhatsApp, boolean> = {
   templates: true,
   midia: true,
   marcar_lida: true,
@@ -115,7 +121,7 @@ export function criarProviderMeta(
     },
 
     suporta(recurso) {
-      return RECURSOS_SUPORTADOS[recurso] ?? false
+      return RECURSOS_DA_META[recurso] ?? false
     },
   }
 }

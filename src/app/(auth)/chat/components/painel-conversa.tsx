@@ -87,6 +87,14 @@ interface PainelConversaProps {
 }
 
 export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtribuir, atendentes, atendentesTransferir, onConversaAtualizada, nomeUsuario, onNavegar, etiquetasDisponiveis, mensagensRapidas }: PainelConversaProps) {
+  /**
+   * B7-02: por que a mídia não está disponível neste canal, se for o caso.
+   * `null` significa disponível. Vem pronto do servidor, via `conversa.canal`.
+   */
+  const semMidia = conversa.canal.recursos.midia
+    ? null
+    : `O número desta conversa (${conversa.canal.nome ?? "canal não identificado"}) não envia mídia.`
+
   const [buscaAberta, setBuscaAberta] = useState(false)
   const [termoBusca, setTermoBusca] = useState("")
   const [modoNota, setModoNota] = useState(false)
@@ -404,6 +412,22 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
                 · {conversa.atribuidaA === nomeUsuario ? "Você" : conversa.atribuidaA}
               </span>
             )}
+
+            {/* B7-02: por qual canal e por qual número esta conversa acontece.
+                Muda o que é possível fazer e muda o remetente que o cliente vê. */}
+            {conversa.canal.nome && (
+              <span
+                className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground shrink-0"
+                title={
+                  conversa.canal.numero
+                    ? `Esta conversa acontece pelo ${conversa.canal.nome}, no número ${conversa.canal.numero}`
+                    : `Esta conversa acontece pelo ${conversa.canal.nome}`
+                }
+              >
+                {conversa.canal.nome}
+                {conversa.canal.numero ? ` · ${conversa.canal.numero}` : ""}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -710,18 +734,25 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
               Nota interna — não enviada ao cliente
             </div>
           )}
+          {semMidia && (
+            <p className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+              {semMidia} Envie como texto ou responda por outro número.
+            </p>
+          )}
           <div className="flex items-end gap-2">
             <div className="flex gap-1 shrink-0 pb-1">
               <div ref={anexoRef} className="relative">
                 <button
-                  title="Anexar arquivo"
-                  onClick={() => setAnexoAberto((v) => !v)}
-                  disabled={enviandoImagem || enviandoDocumento || enviandoVideo}
+                  // B7-02: o motivo vem do backend, junto do canal. A tela não
+                  // decide o que o canal faz — e não há `if (canal === ...)` aqui.
+                  title={semMidia ?? "Anexar arquivo"}
+                  onClick={() => !semMidia && setAnexoAberto((v) => !v)}
+                  disabled={!!semMidia || enviandoImagem || enviandoDocumento || enviandoVideo}
                   className={cn(
                     "h-7 w-7 flex items-center justify-center rounded-md transition-colors",
                     anexoAberto
                       ? "bg-primary/10 text-primary"
-                      : enviandoImagem || enviandoDocumento || enviandoVideo
+                      : semMidia || enviandoImagem || enviandoDocumento || enviandoVideo
                       ? "text-muted-foreground opacity-40 cursor-not-allowed"
                       : "text-muted-foreground hover:bg-muted"
                   )}

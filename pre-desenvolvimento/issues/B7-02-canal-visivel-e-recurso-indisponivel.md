@@ -24,9 +24,9 @@ interface só precisa perguntar.
 
 ## Comportamentos da spec cobertos
 
-- [ ] Ver na conversa por qual canal e por qual número ela está acontecendo
-- [ ] Ver aviso quando um recurso pedido não existe no canal do número escolhido
-- [ ] Ocultar a gestão de templates para números do canal direto
+- [x] Ver na conversa por qual canal e por qual número ela está acontecendo
+- [x] Ver aviso quando um recurso pedido não existe no canal do número escolhido
+- [x] Ocultar a gestão de templates para números do canal direto
 
 ## Contrato do gateway
 
@@ -65,16 +65,46 @@ Nada é chamado diretamente aqui. O que vale:
 
 ## Critérios de aceite
 
-- [ ] O cabeçalho da conversa mostra o canal e o número que a atendem.
-- [ ] Num workspace com um número de cada canal, duas conversas abertas mostram canais
+- [x] O cabeçalho da conversa mostra o canal e o número que a atendem.
+- [x] Num workspace com um número de cada canal, duas conversas abertas mostram canais
       diferentes, corretamente.
-- [ ] Pedir um recurso que o canal não oferece mostra um aviso que diz **qual** recurso
+- [x] Pedir um recurso que o canal não oferece mostra um aviso que diz **qual** recurso
       e **por quê**, sem erro técnico na tela.
-- [ ] Workspace só com número do canal direto não vê a gestão de templates.
-- [ ] Workspace só com número da Meta vê a gestão de templates como hoje.
-- [ ] Nenhuma decisão de capacidade é tomada em componente React: a interface só exibe o
+- [x] Workspace só com número do canal direto não vê a gestão de templates.
+- [x] Workspace só com número da Meta vê a gestão de templates como hoje.
+- [x] Nenhuma decisão de capacidade é tomada em componente React: a interface só exibe o
       que o backend informou.
-- [ ] `npm run build`, `npm run lint` e os testes passam.
+- [x] `npm run build`, `npm run lint` e os testes passam.
+
+## Execução (17/09/2026)
+
+**Arquivos a mais, declarados:**
+
+- `src/lib/whatsapp/provider-meta.ts` e `provider-gateway.ts` — o mapa de recursos de cada
+  canal passou a ser **exportado** (`RECURSOS_DA_META`, `RECURSOS_DO_GATEWAY`). Nenhuma
+  lógica mudou: `suporta()` continua lendo o mesmo mapa.
+- `src/lib/whatsapp/index.ts` — `recursosDoCanal`, `nomeDoCanal` e
+  `motivoDoRecursoIndisponivel`.
+- `src/app/(auth)/chat/mock-conversas.ts` — o tipo `Conversa` ganhou `canal`, e os mocks
+  o campo novo.
+- `src/app/(auth)/chat/page.tsx` e `components/painel-conversa.tsx` — a página traz canal
+  e número do banco; o painel exibe.
+
+**Por que `recursosDoCanal` existe, e não `provider.suporta()` direto:** para perguntar ao
+provider seria preciso **montá-lo**, e montar exige credencial — `access_token` da Meta ou
+`instance_token` da instância. A interface precisa saber o que o canal faz antes disso, e
+às vezes sem conexão nenhuma no workspace. A função lê **o mesmo mapa** que o provider, e
+há teste comparando as duas respostas recurso por recurso: se um dia divergirem, o teste
+quebra.
+
+**Sobre "pedir um recurso que o canal não oferece":** hoje o único recurso que um canal
+recusa é `templates`, e o chat não tem função de template. Para o critério não ficar
+decorativo, o aviso foi ligado ao **anexo**: o botão lê `recursos.midia` e, se fosse
+`false`, desabilita e explica. Nenhum canal atual devolve `false` ali — a fiação está
+pronta e exercitada por teste, sem inventar recurso que não existe.
+
+**Nada de `if (canal === "gateway")` em componente.** O canal, o nome e os recursos chegam
+prontos do servidor; a única coisa que o componente faz é exibir.
 
 ## Fora de escopo
 

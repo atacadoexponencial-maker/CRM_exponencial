@@ -39,8 +39,11 @@ const TIPO_GATEWAY: Record<MidiaEnvio["tipo"], "image" | "video" | "audio" | "do
  * Recursos do canal direto. `templates` é `false` porque template de mensagem
  * só existe na API Oficial — não é limitação da nossa implementação, é ausência
  * do conceito fora dela.
+ *
+ * Exportado pelo mesmo motivo que o da Meta (B7-02): a interface pergunta o que
+ * o canal faz sem ter credencial de instância em mão.
  */
-const RECURSOS_SUPORTADOS: Record<RecursoWhatsApp, boolean> = {
+export const RECURSOS_DO_GATEWAY: Record<RecursoWhatsApp, boolean> = {
   templates: false,
   midia: true,
   marcar_lida: true,
@@ -126,7 +129,7 @@ export function criarProviderGateway(
     },
 
     suporta(recurso) {
-      return RECURSOS_SUPORTADOS[recurso] ?? false
+      return RECURSOS_DO_GATEWAY[recurso] ?? false
     },
   }
 }
