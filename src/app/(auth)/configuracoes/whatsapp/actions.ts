@@ -10,6 +10,7 @@ import {
   type BancoDeConexoes,
   type ConexaoListada,
 } from "@/lib/whatsapp/gateway/instancias"
+import { aceiteEstaVigente, VERSAO_DO_TERMO } from "@/lib/whatsapp/gateway/termo"
 
 export type ConexaoWhatsApp = {
   id: string
@@ -82,6 +83,67 @@ export async function listarConexoesWhatsApp(): Promise<ConexaoListada[]> {
 }
 
 /**
+ * O termo vigente já foi aceito neste workspace? (B3-01)
+ *
+ * Aceite de versão anterior não conta: o texto mudou, e o que o cliente leu não
+ * é o que está valendo.
+ */
+export async function termoDoCanalDiretoAceito(): Promise<boolean> {
+  const ssrClient = await createSsrClient()
+  const { data: { user } } = await ssrClient.auth.getUser()
+  if (!user) return false
+
+  const { data: perfil } = await ssrClient
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (!perfil) return false
+
+  const { data } = await ssrClient
+    .from("gateway_terms_acceptance")
+    .select("terms_version")
+    .eq("workspace_id", perfil.workspace_id)
+    .eq("terms_version", VERSAO_DO_TERMO)
+    .limit(1)
+    .maybeSingle()
+
+  return aceiteEstaVigente(data)
+}
+
+/**
+ * Registra o aceite do termo (B3-01): quem aceitou, quando e qual versão.
+ *
+ * Uma linha por aceite, nunca um update: o aceite antigo continua sendo prova
+ * do que valia naquela data.
+ */
+export async function aceitarTermoDoCanalDireto(): Promise<{ erro?: string }> {
+  const ssrClient = await createSsrClient()
+  const { data: { user } } = await ssrClient.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  const { data: perfil } = await ssrClient
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+
+  const { error } = await ssrClient.from("gateway_terms_acceptance").insert({
+    workspace_id: perfil.workspace_id as string,
+    accepted_by: user.id,
+    terms_version: VERSAO_DO_TERMO,
+  })
+
+  if (error) return { erro: "Não foi possível registrar o aceite. Tente novamente." }
+
+  revalidatePath("/configuracoes/whatsapp")
+  return {}
+}
+
+/**
  * Cria uma conexão pelo canal direto (B2-02): abre a instância no gateway e
  * grava o número como "em pareamento".
  *
@@ -105,6 +167,13 @@ export async function criarConexaoCanalDireto(): Promise<{ erro?: string; instan
   // Autorização no backend, como no resto do arquivo: a tela esconder o botão
   // não é proteção.
   if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+
+  // B3-01: sem aceite da versão vigente do termo, não conecta. A conferência
+  // vem ANTES de falar com o gateway: instância criada sem aceite seria uma
+  // conexão que não deveria existir, e o token dela é irrecuperável.
+  if (!(await termoDoCanalDiretoAceito())) {
+    return { erro: "Aceite o termo de responsabilidade antes de conectar pelo canal direto." }
+  }
 
   let cliente
   try {

@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/integrations/supabase/server"
-import { listarConexaoWhatsApp, listarConexoesWhatsApp } from "./actions"
+import {
+  listarConexaoWhatsApp,
+  listarConexoesWhatsApp,
+  termoDoCanalDiretoAceito,
+} from "./actions"
 import { AcoesWhatsApp } from "./acoes-whatsapp"
 import { WizardConexao } from "./wizard-conexao"
 import { ListaNumeros } from "./canal-direto/lista-numeros"
@@ -37,9 +41,10 @@ export default async function WhatsAppPage() {
   // B2-02: a lista vem do banco, com todos os números do workspace e o canal de
   // cada um. `listarConexaoWhatsApp` continua sendo lida abaixo porque o fluxo
   // da Meta depende dela.
-  const [conexao, conexoes] = await Promise.all([
+  const [conexao, conexoes, termoAceito] = await Promise.all([
     listarConexaoWhatsApp(),
     listarConexoesWhatsApp(),
+    termoDoCanalDiretoAceito(),
   ])
 
   const numeros: NumeroConectado[] = conexoes.map((c) => ({
@@ -57,7 +62,7 @@ export default async function WhatsAppPage() {
     <div className="max-w-5xl mx-auto w-full px-4 py-8">
       <h1 className="text-xl font-semibold mb-6">WhatsApp</h1>
 
-      <ListaNumeros numeros={numeros} />
+      <ListaNumeros numeros={numeros} termoAceito={termoAceito} />
 
       <div className="mt-10 border-t pt-8">
         <h2 className="text-base font-semibold mb-1">API Oficial da Meta</h2>

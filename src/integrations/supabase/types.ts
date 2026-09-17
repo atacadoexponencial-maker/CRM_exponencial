@@ -512,6 +512,38 @@ export type Database = {
         }
         Relationships: []
       }
+      gateway_terms_acceptance: {
+        Row: {
+          accepted_at: string
+          accepted_by: string
+          id: string
+          terms_version: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          accepted_by: string
+          id?: string
+          terms_version: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string
+          accepted_by?: string
+          id?: string
+          terms_version?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gateway_terms_acceptance_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       labels: {
         Row: {
           color: string

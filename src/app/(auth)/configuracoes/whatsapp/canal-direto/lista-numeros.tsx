@@ -14,6 +14,7 @@ import { CartaoNumero, type NumeroConectado } from "./cartao-numero"
 import { EscolhaCanal, type CanalEscolhido } from "./escolha-canal"
 import { PareamentoPorCodigo } from "./pareamento-por-codigo"
 import { TelaQrCode, type Pareamento } from "./tela-qr-code"
+import { TermoResponsabilidade } from "./termo-responsabilidade"
 
 /**
  * O código de pareamento ainda é fixo: pedi-lo ao gateway é a B2-03. A tela já
@@ -24,14 +25,31 @@ const PAREAMENTO_DE_EXEMPLO: Pareamento = {
   expires_at: new Date(Date.now() + 60_000).toISOString(),
 }
 
-export function ListaNumeros({ numeros }: { numeros: NumeroConectado[] }) {
+export function ListaNumeros({
+  numeros,
+  termoAceito,
+}: {
+  numeros: NumeroConectado[]
+  /** B3-01: aceite da versão vigente do termo, lido no servidor. */
+  termoAceito: boolean
+}) {
   const [conectando, setConectando] = useState<CanalEscolhido | null>(null)
   const [pareamento, setPareamento] = useState(PAREAMENTO_DE_EXEMPLO)
   const [erro, setErro] = useState<string | null>(null)
   const [criando, criar] = useTransition()
+  const [termoAberto, setTermoAberto] = useState(false)
+  const [aceito, setAceito] = useState(termoAceito)
 
   function conectarPeloCanalDireto() {
     setErro(null)
+
+    // B3-01: sem aceite, o termo vem primeiro. A action recusa de todo jeito —
+    // isto evita a viagem inútil e explica o motivo na hora.
+    if (!aceito) {
+      setTermoAberto(true)
+      return
+    }
+
     criar(async () => {
       const resultado = await criarConexaoCanalDireto()
       if (resultado.erro) {
@@ -44,6 +62,15 @@ export function ListaNumeros({ numeros }: { numeros: NumeroConectado[] }) {
 
   return (
     <div className="space-y-6">
+      <TermoResponsabilidade
+        aberto={termoAberto}
+        onAbertoChange={setTermoAberto}
+        onAceito={() => {
+          setAceito(true)
+          conectarPeloCanalDireto()
+        }}
+      />
+
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold">Números conectados</h2>

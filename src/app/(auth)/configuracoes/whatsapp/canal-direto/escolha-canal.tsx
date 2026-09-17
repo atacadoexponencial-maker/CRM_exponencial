@@ -103,8 +103,8 @@ export function EscolhaCanal({
           <ShieldAlert className="size-4 shrink-0 mt-0.5 text-amber-700 dark:text-amber-500" aria-hidden />
           <p>
             O canal direto opera fora dos Termos de Serviço do WhatsApp. O número pode ser
-            bloqueado, e a responsabilidade por ele é do cliente. Antes da primeira conexão você
-            vai precisar aceitar o termo de responsabilidade.
+            bloqueado, e a responsabilidade por ele é sua. Ao continuar, o termo de
+            responsabilidade é exibido para leitura e aceite — sem ele, o CRM não conecta.
           </p>
         </div>
       )}
