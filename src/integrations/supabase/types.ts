@@ -512,6 +512,44 @@ export type Database = {
         }
         Relationships: []
       }
+      gateway_events: {
+        Row: {
+          event_at: string | null
+          event_id: string
+          instance_id: string
+          processed_at: string | null
+          received_at: string
+          type: string
+          workspace_id: string
+        }
+        Insert: {
+          event_at?: string | null
+          event_id: string
+          instance_id: string
+          processed_at?: string | null
+          received_at?: string
+          type: string
+          workspace_id: string
+        }
+        Update: {
+          event_at?: string | null
+          event_id?: string
+          instance_id?: string
+          processed_at?: string | null
+          received_at?: string
+          type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gateway_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gateway_terms_acceptance: {
         Row: {
           accepted_at: string
@@ -581,11 +619,18 @@ export type Database = {
           content: string
           conversation_id: string
           created_at: string
+          deleted_at: string | null
           direction: string
+          edited_at: string | null
           id: string
+          media_caption: string | null
+          media_filename: string | null
+          media_mime_type: string | null
+          reaction_emoji: string | null
           reply_preview_text: string | null
           reply_to_id: string | null
           status: string | null
+          status_error: string | null
           type: string
           wamid: string | null
           workspace_id: string
@@ -594,11 +639,18 @@ export type Database = {
           content?: string
           conversation_id: string
           created_at?: string
+          deleted_at?: string | null
           direction: string
+          edited_at?: string | null
           id?: string
+          media_caption?: string | null
+          media_filename?: string | null
+          media_mime_type?: string | null
+          reaction_emoji?: string | null
           reply_preview_text?: string | null
           reply_to_id?: string | null
           status?: string | null
+          status_error?: string | null
           type?: string
           wamid?: string | null
           workspace_id: string
@@ -607,11 +659,18 @@ export type Database = {
           content?: string
           conversation_id?: string
           created_at?: string
+          deleted_at?: string | null
           direction?: string
+          edited_at?: string | null
           id?: string
+          media_caption?: string | null
+          media_filename?: string | null
+          media_mime_type?: string | null
+          reaction_emoji?: string | null
           reply_preview_text?: string | null
           reply_to_id?: string | null
           status?: string | null
+          status_error?: string | null
           type?: string
           wamid?: string | null
           workspace_id?: string
@@ -633,6 +692,54 @@ export type Database = {
           },
           {
             foreignKeyName: "messages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operational_alerts: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          id: string
+          motivo: string | null
+          queued_count: number | null
+          resolved_at: string | null
+          tipo: string
+          workspace_id: string
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          id?: string
+          motivo?: string | null
+          queued_count?: number | null
+          resolved_at?: string | null
+          tipo: string
+          workspace_id: string
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          id?: string
+          motivo?: string | null
+          queued_count?: number | null
+          resolved_at?: string | null
+          tipo?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operational_alerts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operational_alerts_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
