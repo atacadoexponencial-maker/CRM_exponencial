@@ -7,6 +7,7 @@
 // inteiro três vezes.
 
 import type { createServiceClient } from "@/integrations/supabase/service"
+import { motivoDaFalha } from "./motivo-da-falha"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -65,7 +66,16 @@ export async function aplicarStatusDeMensagem({
 
   await supabase
     .from("campaign_recipients")
-    .update({ status, atualizado_em: new Date().toISOString() })
+    .update({
+      status,
+      // B8-04: em falha, o relatório passa a dizer por quê. O `code` do
+      // contrato nunca vai para a tela — vira frase em português.
+      motivo:
+        status === "falhou"
+          ? motivoDaFalha({ codigo: evento.error?.code, mensagem: evento.error?.message })
+          : null,
+      atualizado_em: new Date().toISOString(),
+    })
     .eq("wamid", evento.message_id)
 
   return { status }

@@ -254,13 +254,15 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Contato</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Número</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+              {/* B8-04: "falhou" sozinho não diz o que fazer a seguir. */}
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Motivo</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Atualizado</th>
             </tr>
           </thead>
           <tbody>
             {filtrados.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                   Nenhum destinatário com este status
                 </td>
               </tr>
@@ -273,6 +275,9 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
                   <span className={cn("text-xs rounded-full px-2 py-0.5 font-medium", STATUS_CLASS[d.status])}>
                     {STATUS_LABEL[d.status] ?? d.status}
                   </span>
+                </td>
+                <td className="px-4 py-2.5 text-muted-foreground max-w-xs">
+                  {d.motivo ?? "—"}
                 </td>
                 <td className="px-4 py-2.5 text-muted-foreground">
                   {d.atualizadoEm

@@ -5,6 +5,7 @@ import { createClient } from "@/integrations/supabase/server"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { processarCampanhasPendentes } from "@/lib/campanhas"
 import { nomeDoCanal } from "@/lib/whatsapp"
+import { MOTIVO_CAMPANHA_INTERROMPIDA } from "@/lib/whatsapp/motivo-da-falha"
 import type { CanalWhatsApp } from "@/lib/whatsapp"
 import { clienteGatewayDoAmbiente } from "@/lib/whatsapp/gateway/cliente"
 import {
@@ -630,6 +631,8 @@ export type RelatorioCampanha = {
     telefone: string
     status: string
     atualizadoEm: string | null
+    /** B8-04: por que não chegou. Nulo quando não houve falha. */
+    motivo: string | null
   }>
 }
 
@@ -639,7 +642,7 @@ export async function relatorioCampanha(id: string): Promise<RelatorioCampanha |
 
   const { data } = await supabase
     .from("campaigns")
-    .select("id, nome, status, enviada_em, interrompida_motivo, campaign_recipients(nome_snapshot, telefone_snapshot, status, atualizado_em)")
+    .select("id, nome, status, enviada_em, interrompida_motivo, campaign_recipients(nome_snapshot, telefone_snapshot, status, atualizado_em, motivo)")
     .eq("id", id)
     .eq("workspace_id", perfil.workspace_id)
     .single()
@@ -651,6 +654,7 @@ export async function relatorioCampanha(id: string): Promise<RelatorioCampanha |
     telefone_snapshot: string
     status: string
     atualizado_em: string | null
+    motivo: string | null
   }
   const recipients = ((data.campaign_recipients ?? []) as Recipient[])
 
@@ -676,6 +680,13 @@ export async function relatorioCampanha(id: string): Promise<RelatorioCampanha |
       telefone: r.telefone_snapshot,
       status: r.status,
       atualizadoEm: r.atualizado_em,
+      // B8-04: destinatário que ficou para trás por causa da interrupção não é
+      // falha do número — o motivo diz isso, e o estado continua `pendente`.
+      motivo:
+        r.motivo ??
+        (r.status === "pendente" && data.status === "interrompida"
+          ? MOTIVO_CAMPANHA_INTERROMPIDA
+          : null),
     })),
   }
 }

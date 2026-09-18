@@ -7,6 +7,11 @@
 import { createServiceClient } from "@/integrations/supabase/service"
 import { substituirVariaveis } from "@/lib/sequencias"
 import { providerDaConexao, resolverProvider } from "@/lib/whatsapp"
+import {
+  MOTIVO_SEM_NUMERO,
+  MOTIVO_SEM_RESPOSTA,
+  motivoDaFalha,
+} from "@/lib/whatsapp/motivo-da-falha"
 import type { ConexaoParaProvider, ProviderWhatsApp, ResultadoEnvio } from "@/lib/whatsapp"
 
 /**
@@ -52,7 +57,7 @@ async function enviarParaDestinatario(
   campanha: CampaignRow,
   destinatario: RecipientRow,
   nomeVendedor: string
-): Promise<{ ok: boolean; wamid: string | null }> {
+): Promise<{ ok: boolean; wamid: string | null; motivo: string | null }> {
   const texto = substituirVariaveis(campanha.conteudo ?? "", {
     nomeContato: destinatario.nome_snapshot ?? "",
     nomeVendedor,
@@ -85,11 +90,18 @@ async function enviarParaDestinatario(
       resultado = await provider.enviarTexto(destinatario.telefone_snapshot, texto, COMO_CAMPANHA)
     }
 
-    if (!resultado.ok) return { ok: false, wamid: null }
+    // B8-04: o motivo da recusa para de ser descartado. Mil "falhou" iguais no
+    // relatório não dizem se o problema é o número do destinatário, o número de
+    // envio ou o arquivo — e cada um pede uma reação diferente.
+    if (!resultado.ok) {
+      return { ok: false, wamid: null, motivo: motivoDaFalha({ mensagem: resultado.motivo }) }
+    }
 
-    return { ok: true, wamid: resultado.mensagemId }
+    return { ok: true, wamid: resultado.mensagemId, motivo: null }
   } catch {
-    return { ok: false, wamid: null }
+    // Exceção aqui é rede ou canal fora do ar: a mensagem não chegou a ser
+    // aceita, e isso é diferente de ter sido recusada.
+    return { ok: false, wamid: null, motivo: MOTIVO_SEM_RESPOSTA }
   }
 }
 
@@ -129,7 +141,11 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
     // Sem conexão: marca todos os pendentes como falhos e encerra
     await supabase
       .from("campaign_recipients")
-      .update({ status: "falhou", atualizado_em: new Date().toISOString() })
+      .update({
+        status: "falhou",
+        motivo: MOTIVO_SEM_NUMERO,
+        atualizado_em: new Date().toISOString(),
+      })
       .eq("campaign_id", campanha.id)
       .eq("status", "pendente")
     await supabase
@@ -187,6 +203,7 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
         // Pela API Oficial a resposta já é o envio.
         status: resultado.ok ? (provider.canal === "gateway" ? "na_fila" : "enviado") : "falhou",
         wamid: resultado.wamid,
+        motivo: resultado.motivo,
         atualizado_em: new Date().toISOString(),
       })
       .eq("id", destinatario.id)
