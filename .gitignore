@@ -58,3 +58,6 @@ PENDENCIAS.local.md
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+.env*
