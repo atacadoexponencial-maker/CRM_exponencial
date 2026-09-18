@@ -24,9 +24,9 @@ existe "pausada" nem retomada.
 
 ## Comportamentos da spec cobertos
 
-- [ ] Interromper uma campanha em andamento
-- [ ] Retomar uma campanha interrompida
-- [ ] Ver a campanha ser interrompida automaticamente quando o número é freado
+- [x] Interromper uma campanha em andamento
+- [x] Retomar uma campanha interrompida
+- [x] Ver a campanha ser interrompida automaticamente quando o número é freado
 
 ## Contrato do gateway
 
@@ -72,17 +72,44 @@ existe "pausada" nem retomada.
 
 ## Critérios de aceite
 
-- [ ] Interromper uma campanha em andamento faz o CRM parar de entregar novas mensagens
+- [x] Interromper uma campanha em andamento faz o CRM parar de entregar novas mensagens
       ao canal, e o que já saiu permanece registrado.
-- [ ] A interface não promete que mensagens já aceitas pelo gateway serão canceladas.
-- [ ] Retomar continua de onde parou, e ninguém que já recebeu recebe de novo.
-- [ ] Freio no número interrompe automaticamente as campanhas em andamento dele, e o
+- [x] A interface não promete que mensagens já aceitas pelo gateway serão canceladas.
+- [x] Retomar continua de onde parou, e ninguém que já recebeu recebe de novo.
+- [x] Freio no número interrompe automaticamente as campanhas em andamento dele, e o
       motivo (`banned`, `failure_rate` ou `manual`) fica visível, com a quantidade
       parada.
-- [ ] Freio num número não interfere em campanha de outro número.
-- [ ] Campanha interrompida não volta a disparar sozinha no processamento periódico.
-- [ ] Interromper e retomar exigem Admin ou Gerente, verificado no backend.
-- [ ] `npm run build`, `npm run lint` e os testes passam.
+- [x] Freio num número não interfere em campanha de outro número.
+- [x] Campanha interrompida não volta a disparar sozinha no processamento periódico.
+- [x] Interromper e retomar exigem Admin ou Gerente, verificado no backend.
+- [x] `npm run build`, `npm run lint` e os testes passam.
+
+## Execução (17/09/2026)
+
+**A interface não promete o que não pode cumprir.** O gateway não tem endpoint para
+esvaziar a fila de uma campanha: o que já foi aceito por ele vai sair. A tela diz isso com
+todas as letras, citando quantas ainda estão na fila. "Interromper" significa **parar de
+entregar mensagens novas**.
+
+**Para isso ter efeito de verdade, a parada é conferida no meio do lote**, e não só entre
+lotes. Com ritmo de 40s, um lote de 40 destinatários leva quase meia hora — pedir para
+parar e ver a campanha continuar por meia hora seria o mesmo que não parar. Custa uma
+consulta por mensagem, o que é irrisório perto do intervalo entre envios.
+
+**Freio interrompe só as campanhas daquele número.** O filtro por `whatsapp_connection_id`
+é o que garante isso, e tem teste que verifica o filtro — não só o resultado.
+
+**A liberação do freio não retoma campanha sozinha.** Retomar é decisão de quem opera, e
+efeito colateral de evento do gateway não é lugar para tomá-la. Mas retomar com o número
+ainda freado é recusado, com o motivo na mensagem: o gateway recusaria cada envio, e a
+campanha viraria milhares de falhas.
+
+**Retomar não reenvia para ninguém:** o disparo continua pelos destinatários ainda
+`pendente`. `na_fila`, `enviado`, `entregue`, `lido` e `falhou` não voltam para a fila.
+
+**Arquivos a mais, declarados:** `src/lib/whatsapp/eventos-de-operacao.ts` (B6-04) — é lá
+que o evento `instance.braked` chega, e era o lugar previsto pela issue para a interrupção
+automática.
 
 ## Fora de escopo
 

@@ -9,6 +9,14 @@ import { substituirVariaveis } from "@/lib/sequencias"
 import { providerDaConexao, resolverProvider } from "@/lib/whatsapp"
 import type { ConexaoParaProvider, ProviderWhatsApp, ResultadoEnvio } from "@/lib/whatsapp"
 
+/**
+ * Quantos destinatários um lote entrega ao canal.
+ *
+ * B8-03: o gateway **não** tem como esvaziar a fila de uma campanha — o que já
+ * foi aceito por ele vai sair. Entregar tudo de uma vez faria "interromper" não
+ * interromper nada, então o lote é pequeno de propósito: no pior caso, o que
+ * escapa depois do pedido de parada são as mensagens deste lote.
+ */
 const TAMANHO_LOTE = 40
 
 type ServiceClient = ReturnType<typeof createServiceClient>
@@ -155,6 +163,17 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
 
   let enviados = 0
   for (const destinatario of lote) {
+    // B8-03: a parada é conferida no meio do lote, e não só entre lotes. Com
+    // ritmo de 40s, um lote de 40 leva quase meia hora: esperar o fim dele
+    // seria pedir para parar e ver a campanha continuar por meia hora.
+    const { data: atual } = await supabase
+      .from("campaigns")
+      .select("status")
+      .eq("id", campanha.id)
+      .maybeSingle()
+
+    if (atual?.status !== "enviando") return enviados
+
     const nomeVendedor = destinatario.contact_id
       ? (vendedorPorContato[destinatario.contact_id] ?? "")
       : ""

@@ -166,5 +166,19 @@ export async function registrarFreio({
     { onConflict: "connection_id,tipo", ignoreDuplicates: true }
   )
 
+  // B8-03: número freado para as campanhas dele na hora. Insistir com o número
+  // freado é o caminho mais rápido para o banimento — e o gateway recusaria
+  // cada envio com `instance_braked`, transformando a campanha em milhares de
+  // falhas. Campanha de outro número não é tocada.
+  await supabase
+    .from("campaigns")
+    .update({
+      status: "interrompida",
+      interrompida_motivo: evento.reason,
+      interrompida_em: new Date().toISOString(),
+    })
+    .eq("whatsapp_connection_id", connectionId)
+    .eq("status", "enviando")
+
   return { acao: "aberto" }
 }

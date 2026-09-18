@@ -3,11 +3,16 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, RotateCcw } from "lucide-react"
+import { ArrowLeft, OctagonPause, Play, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CardMetrica } from "../../../dashboard/components/graficos"
-import { criarReenvioParaFalhos, progressoDoDisparo } from "../../actions"
+import {
+  criarReenvioParaFalhos,
+  interromperCampanha,
+  progressoDoDisparo,
+  retomarCampanha,
+} from "../../actions"
 import type { ProgressoDoDisparo, RelatorioCampanha } from "../../actions"
 
 const selectClass =
@@ -42,6 +47,25 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
   const [criandoReenvio, setCriandoReenvio] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [progresso, setProgresso] = useState<ProgressoDoDisparo | null>(null)
+  const [mudandoEstado, setMudandoEstado] = useState(false)
+
+  async function handleInterromper() {
+    setErro(null)
+    setMudandoEstado(true)
+    const resultado = await interromperCampanha(relatorio.id)
+    setMudandoEstado(false)
+    if (resultado.erro) setErro(resultado.erro)
+    else router.refresh()
+  }
+
+  async function handleRetomar() {
+    setErro(null)
+    setMudandoEstado(true)
+    const resultado = await retomarCampanha(relatorio.id)
+    setMudandoEstado(false)
+    if (resultado.erro) setErro(resultado.erro)
+    else router.refresh()
+  }
 
   /**
    * B8-02: enquanto o disparo anda, a tela se atualiza sozinha.
@@ -104,6 +128,19 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
         <h1 className="text-xl font-semibold">{relatorio.nome}</h1>
+        {/* B8-03: parar e continuar um disparo de horas. */}
+        {relatorio.status === "enviando" && (
+          <Button size="sm" variant="outline" onClick={handleInterromper} disabled={mudandoEstado}>
+            <OctagonPause className="size-4 mr-1.5" />
+            Interromper disparo
+          </Button>
+        )}
+        {relatorio.status === "interrompida" && (
+          <Button size="sm" onClick={handleRetomar} disabled={mudandoEstado}>
+            <Play className="size-4 mr-1.5" />
+            Retomar de onde parou
+          </Button>
+        )}
         {relatorio.falhos > 0 && (
           <Button size="sm" variant="outline" onClick={handleReenvio} disabled={criandoReenvio}>
             <RotateCcw className="size-4 mr-1.5" />
@@ -121,6 +158,29 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
       </p>
 
       {erro && <p className="text-sm text-destructive mb-4">{erro}</p>}
+
+      {/* B8-03: por que parou, e o que isso significa de verdade. */}
+      {relatorio.status === "interrompida" && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-900 dark:bg-amber-950/40">
+          <p className="font-medium">Disparo interrompido</p>
+          <p className="mt-1 text-muted-foreground">
+            {relatorio.interrompidaMotivo === "banned"
+              ? "O WhatsApp bloqueou o número usado por esta campanha."
+              : relatorio.interrompidaMotivo === "failure_rate"
+                ? "O gateway interrompeu os envios deste número por excesso de falhas."
+                : relatorio.interrompidaMotivo === "manual"
+                  ? "Os envios deste número foram interrompidos manualmente."
+                  : (relatorio.interrompidaMotivo ?? "Interrompida.")}{" "}
+            O CRM parou de entregar mensagens novas.{" "}
+            {progresso && progresso.naFila > 0 && (
+              <>
+                As <strong className="text-foreground">{progresso.naFila}</strong> já aceitas pelo
+                número ainda podem sair: elas estão na fila dele, e o CRM não tem como retirá-las.
+              </>
+            )}
+          </p>
+        </div>
+      )}
 
       {/* B8-02: progresso do disparo em andamento. */}
       {progresso?.emAndamento && (

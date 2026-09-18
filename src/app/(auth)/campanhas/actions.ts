@@ -1,5 +1,6 @@
 "use server"
 
+import { revalidatePath } from "next/cache"
 import { createClient } from "@/integrations/supabase/server"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { processarCampanhasPendentes } from "@/lib/campanhas"
@@ -492,6 +493,97 @@ export async function cancelarCampanha(id: string): Promise<{ erro?: string }> {
   return {}
 }
 
+/**
+ * Interrompe um disparo em andamento (B8-03).
+ *
+ * **O que já foi aceito pelo canal vai sair.** O gateway não tem como esvaziar
+ * a fila de uma campanha, e prometer o contrário na tela seria mentira. O que
+ * esta ação faz é parar de entregar mensagens novas — o lote em curso é o
+ * limite do que ainda escapa.
+ */
+export async function interromperCampanha(id: string): Promise<{ erro?: string }> {
+  const { supabase, perfil } = await perfilGestor()
+  if (!perfil) return { erro: "Sem permissão" }
+
+  const { data, error } = await supabase
+    .from("campaigns")
+    .update({
+      status: "interrompida",
+      interrompida_motivo: "Interrompida manualmente",
+      interrompida_em: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("workspace_id", perfil.workspace_id)
+    .eq("status", "enviando")
+    .select("id")
+
+  if (error || !data?.length) return { erro: "Só é possível interromper campanhas em andamento" }
+
+  revalidatePath(`/campanhas/${id}/relatorio`)
+  revalidatePath("/campanhas")
+  return {}
+}
+
+/**
+ * Retoma de onde parou (B8-03).
+ *
+ * Ninguém que já recebeu recebe de novo: o disparo continua pelos destinatários
+ * ainda `pendente`, e os demais estados não voltam para a fila.
+ *
+ * Retomar com o número ainda freado não adianta — o gateway recusa cada envio.
+ * Por isso o aviso operacional aberto daquele número bloqueia a retomada, com a
+ * mensagem dizendo o motivo.
+ */
+export async function retomarCampanha(id: string): Promise<{ erro?: string }> {
+  const { supabase, perfil } = await perfilGestor()
+  if (!perfil) return { erro: "Sem permissão" }
+
+  const { data: campanha } = await supabase
+    .from("campaigns")
+    .select("id, status, whatsapp_connection_id")
+    .eq("id", id)
+    .eq("workspace_id", perfil.workspace_id)
+    .maybeSingle()
+
+  if (!campanha || campanha.status !== "interrompida") {
+    return { erro: "Só é possível retomar campanhas interrompidas" }
+  }
+
+  if (campanha.whatsapp_connection_id) {
+    const { data: freio } = await supabase
+      .from("operational_alerts")
+      .select("motivo")
+      .eq("connection_id", campanha.whatsapp_connection_id)
+      .eq("tipo", "numero_freado")
+      .is("resolved_at", null)
+      .maybeSingle()
+
+    if (freio) {
+      return {
+        erro:
+          "O número desta campanha está com os envios interrompidos pelo gateway " +
+          `(${freio.motivo}). Libere o número antes de retomar.`,
+      }
+    }
+  }
+
+  const { error } = await supabase
+    .from("campaigns")
+    .update({ status: "enviando", interrompida_motivo: null, interrompida_em: null })
+    .eq("id", id)
+    .eq("workspace_id", perfil.workspace_id)
+    .eq("status", "interrompida")
+
+  if (error) return { erro: "Não foi possível retomar a campanha" }
+
+  // Retomar é para voltar a sair agora, não no próximo cron.
+  await processarCampanhasPendentes().catch(() => {})
+
+  revalidatePath(`/campanhas/${id}/relatorio`)
+  revalidatePath("/campanhas")
+  return {}
+}
+
 export async function uploadArquivoCampanha(
   formData: FormData
 ): Promise<{ url?: string; nome?: string; erro?: string }> {
@@ -523,6 +615,8 @@ export type RelatorioCampanha = {
   nome: string
   status: string
   enviadaEm: string | null
+  /** B8-03: por que o disparo parou. Nulo quando nunca parou. */
+  interrompidaMotivo: string | null
   total: number
   enviados: number
   entregues: number
@@ -545,7 +639,7 @@ export async function relatorioCampanha(id: string): Promise<RelatorioCampanha |
 
   const { data } = await supabase
     .from("campaigns")
-    .select("id, nome, status, enviada_em, campaign_recipients(nome_snapshot, telefone_snapshot, status, atualizado_em)")
+    .select("id, nome, status, enviada_em, interrompida_motivo, campaign_recipients(nome_snapshot, telefone_snapshot, status, atualizado_em)")
     .eq("id", id)
     .eq("workspace_id", perfil.workspace_id)
     .single()
@@ -567,6 +661,7 @@ export async function relatorioCampanha(id: string): Promise<RelatorioCampanha |
     nome: data.nome,
     status: data.status,
     enviadaEm: data.enviada_em,
+    interrompidaMotivo: data.interrompida_motivo ?? null,
     total: recipients.length,
     // "entregue" e "lido" também contam como enviados
     // `na_fila` NÃO conta como enviado: é justamente o que ainda não saiu.
