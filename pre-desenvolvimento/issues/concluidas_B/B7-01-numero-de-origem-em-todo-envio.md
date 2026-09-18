@@ -32,11 +32,11 @@ negócio passa a saber qual canal atendeu.
 
 ## Comportamentos da spec cobertos
 
-- [ ] Enviar mensagem do Chat pelo número da conversa, qualquer que seja o canal
-- [ ] Enviar mídia do Chat por qualquer canal
-- [ ] Marcar conversa como lida por qualquer canal
-- [ ] Executar ação de automação de envio por qualquer canal
-- [ ] Executar passo de sequência por qualquer canal
+- [x] Enviar mensagem do Chat pelo número da conversa, qualquer que seja o canal
+- [x] Enviar mídia do Chat por qualquer canal
+- [x] Marcar conversa como lida por qualquer canal
+- [x] Executar ação de automação de envio por qualquer canal
+- [x] Executar passo de sequência por qualquer canal
 
 ## Contrato do gateway
 
@@ -82,15 +82,51 @@ importa aqui:
 
 ## Critérios de aceite
 
-- [ ] Com um número Meta e um número do gateway conectados no mesmo workspace,
+- [x] Com um número Meta e um número do gateway conectados no mesmo workspace,
       responder uma conversa usa o número por onde ela chegou, nas duas direções.
-- [ ] Texto, imagem, vídeo, áudio e documento do chat respeitam o número da conversa.
-- [ ] Abrir a conversa marca como lida no canal, e não só no banco.
-- [ ] Ação de automação de envio e passo de sequência saem pelo número correto.
-- [ ] Conversas antigas continuam funcionando, sem envio órfão.
-- [ ] Nenhum arquivo de negócio menciona `meta`, `gateway`, `wamid` ou endpoint de
+- [x] Texto, imagem, vídeo, áudio e documento do chat respeitam o número da conversa.
+- [x] Abrir a conversa marca como lida no canal, e não só no banco.
+- [x] Ação de automação de envio e passo de sequência saem pelo número correto.
+- [x] Conversas antigas continuam funcionando, sem envio órfão.
+- [x] Nenhum arquivo de negócio menciona `meta`, `gateway`, `wamid` ou endpoint de
       canal: a escolha continua dentro de `src/lib/whatsapp/`.
-- [ ] `npm run build`, `npm run lint` e os testes passam.
+- [x] `npm run build`, `npm run lint` e os testes passam.
+
+## Execução (17/09/2026)
+
+**Arquivos tocados a mais, todos declarados:**
+
+- `src/lib/whatsapp/recebimento.ts` e `src/app/api/webhooks/gateway/route.ts` (B6) — a
+  conversa aberta pelo canal direto precisa nascer com a conexão dona. O webhook já lia
+  a conexão pelo `instance_id`; passou a repassar o `id` dela.
+- `src/app/api/webhooks/whatsapp/route.ts` — **primeira alteração no webhook da Meta desde
+  a B1-01**, prevista pela própria issue. Duas linhas: o `select` passou a trazer o `id`
+  da conexão junto do `workspace_id`, e o insert de conversa grava esse `id`. Nenhuma outra
+  linha mudou, e os testes do webhook continuam passando.
+
+**Decisões de desenho:**
+
+- `resolverProvider(supabase, workspaceId)` **não mudou de assinatura** — B6 e B8 são
+  escritas contra ela. As duas resoluções novas (`resolverProviderDaConversa` e
+  `resolverProviderDoContato`) entraram ao lado, e usam a antiga como degrau de queda.
+- **Cair no número do workspace é deliberado**, e vale em três casos: conversa sem número
+  gravado, conversa cujo número está incompleto, e contato sem conversa aberta. Enviar
+  pelo número que existe é melhor do que não enviar — e é exatamente o comportamento de
+  antes desta issue.
+- `marcarComoLidas` **nunca lança** por causa do recibo. Abrir a conversa é a operação que
+  o atendente pediu; gateway fora do ar ou mensagem sem identificador não podem transformar
+  isso em erro na cara dele.
+- O recibo usa a **última mensagem recebida com identificador**. A Meta confirma uma
+  mensagem específica; o gateway confirmaria só com o destino, mas manter dois caminhos aqui
+  dobraria a superfície de teste por nenhum ganho visível.
+
+**Achado que a issue previa e se confirmou:** `automacoes.ts` e `sequencias.ts` **não
+precisaram mudar**. Os dois chamam `enviarTextoWhatsApp`, e a resolução por contato ficou
+dentro dele.
+
+**Nota:** `marcarComoLidas` nunca avisou canal nenhum até hoje — o contato via duas marcas
+de entregue para sempre. Esta issue é a primeira implementação real do recibo de leitura, e
+não uma correção: não havia o que corrigir.
 
 ## Fora de escopo
 

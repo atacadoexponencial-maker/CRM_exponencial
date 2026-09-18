@@ -179,6 +179,9 @@ export async function POST(request: NextRequest) {
       // A mídia é baixada do endereço da instância dona (B6-03). Credencial de
       // backend: sai daqui direto para o gateway e nunca para o navegador.
       instanceToken: conexao.instance_token,
+      // B7-01: a conversa aberta agora nasce com o número por onde a mensagem
+      // chegou, para a resposta sair pelo mesmo telefone.
+      connectionId: conexao.id,
     })
   }
 

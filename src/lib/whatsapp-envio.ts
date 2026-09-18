@@ -3,7 +3,7 @@
 // na conversa aberta do contato (cria uma se não existir).
 
 import type { createServiceClient } from "@/integrations/supabase/service"
-import { resolverProvider } from "@/lib/whatsapp"
+import { resolverProviderDoContato } from "@/lib/whatsapp"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -31,8 +31,11 @@ export async function enviarTextoWhatsApp(
   contactId: string,
   texto: string
 ): Promise<boolean> {
+  // B7-01: o número é o da conversa aberta do contato, e não "um do
+  // workspace". É por aqui que automações e sequências passam, e elas não têm
+  // conversa em mão — por isso a resolução é por contato.
   const [provider, { data: contato }] = await Promise.all([
-    resolverProvider(supabase, workspaceId),
+    resolverProviderDoContato(supabase, workspaceId, contactId),
     supabase.from("contacts").select("phone_number").eq("id", contactId).single(),
   ])
 
@@ -48,6 +51,16 @@ export async function enviarTextoWhatsApp(
   let conversaId = await buscarConversaAberta(supabase, workspaceId, contactId)
 
   if (!conversaId) {
+    // B7-01: a conversa nasce com o número por onde a mensagem saiu, para a
+    // resposta do cliente ser respondida pelo mesmo telefone.
+    const { data: conexao } = await supabase
+      .from("whatsapp_connections")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("status", "connected")
+      .limit(1)
+      .maybeSingle()
+
     const { data: nova } = await supabase
       .from("conversations")
       .insert({
@@ -58,6 +71,7 @@ export async function enviarTextoWhatsApp(
         unread_count: 0,
         last_message_text: texto,
         last_message_at: agora,
+        whatsapp_connection_id: conexao?.id ?? null,
       })
       .select("id")
       .single()

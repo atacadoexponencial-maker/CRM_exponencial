@@ -2,7 +2,7 @@
 
 import { createClient } from "@/integrations/supabase/server"
 import { createServiceClient } from "@/integrations/supabase/service"
-import { resolverProvider } from "@/lib/whatsapp"
+import { resolverProviderDaConversa } from "@/lib/whatsapp"
 import type { Mensagem, TipoMensagem, DirecaoMensagem, StatusMensagem } from "./mock-mensagens"
 
 export async function enviarMensagem(conversaId: string, texto: string): Promise<void> {
@@ -20,7 +20,7 @@ export async function enviarMensagem(conversaId: string, texto: string): Promise
   const { workspace_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
-  const provider = await resolverProvider(supabase, workspace_id)
+  const provider = await resolverProviderDaConversa(supabase, conversaId, workspace_id)
 
   if (!provider) throw new Error("Conexão WhatsApp não encontrada")
 
@@ -73,7 +73,7 @@ export async function enviarImagem(conversaId: string, formData: FormData): Prom
   const { workspace_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
-  const provider = await resolverProvider(supabase, workspace_id)
+  const provider = await resolverProviderDaConversa(supabase, conversaId, workspace_id)
 
   if (!provider) throw new Error("Conexão WhatsApp não encontrada")
 
@@ -154,7 +154,7 @@ export async function enviarDocumento(conversaId: string, formData: FormData): P
   const { workspace_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
-  const provider = await resolverProvider(supabase, workspace_id)
+  const provider = await resolverProviderDaConversa(supabase, conversaId, workspace_id)
 
   if (!provider) throw new Error("Conexão WhatsApp não encontrada")
 
@@ -222,7 +222,7 @@ export async function enviarVideo(conversaId: string, formData: FormData): Promi
   const { workspace_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
-  const provider = await resolverProvider(supabase, workspace_id)
+  const provider = await resolverProviderDaConversa(supabase, conversaId, workspace_id)
 
   if (!provider) throw new Error("Conexão WhatsApp não encontrada")
 
@@ -289,7 +289,7 @@ export async function enviarAudio(conversaId: string, formData: FormData): Promi
   const { workspace_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
-  const provider = await resolverProvider(supabase, workspace_id)
+  const provider = await resolverProviderDaConversa(supabase, conversaId, workspace_id)
 
   if (!provider) throw new Error("Conexão WhatsApp não encontrada")
 
@@ -560,6 +560,62 @@ export async function marcarComoLidas(conversaId: string): Promise<void> {
     .from("conversations")
     .update({ unread_count: 0 })
     .eq("id", conversaId)
+
+  // B7-01: até aqui, "marcar como lida" só zerava o contador do CRM — o
+  // contato continuava vendo duas marcas de entregue, porque nenhum canal era
+  // avisado. Os dois canais oferecem a operação; o recibo passa a sair de
+  // verdade.
+  await avisarLeituraNoCanal(supabase, conversaId)
+}
+
+/**
+ * Manda o recibo de leitura pelo canal da conversa.
+ *
+ * **Nunca lança.** Abrir a conversa é a operação que o atendente pediu, e ela
+ * não pode falhar porque o recibo não saiu — gateway fora do ar, número
+ * desconectado ou mensagem sem identificador são todos motivos legítimos para
+ * não haver recibo, e nenhum deles é erro do atendente.
+ */
+async function avisarLeituraNoCanal(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  conversaId: string
+): Promise<void> {
+  try {
+    const { data: conversa } = await supabase
+      .from("conversations")
+      .select("workspace_id, contact:contacts(phone_number)")
+      .eq("id", conversaId)
+      .maybeSingle()
+
+    type ConversaRow = { workspace_id: string; contact: { phone_number: string } | null }
+    const linha = conversa as unknown as ConversaRow | null
+    if (!linha?.contact) return
+
+    // A Meta confirma UMA mensagem, e é a última recebida que representa a
+    // conversa lida. Sem identificador não há o que confirmar na Meta; o
+    // gateway usaria só o destino, mas não vale manter dois caminhos aqui.
+    const { data: ultima } = await supabase
+      .from("messages")
+      .select("wamid")
+      .eq("conversation_id", conversaId)
+      .eq("direction", "recebida")
+      .not("wamid", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (!ultima?.wamid) return
+
+    const provider = await resolverProviderDaConversa(supabase, conversaId, linha.workspace_id)
+    if (!provider?.suporta("marcar_lida")) return
+
+    await provider.marcarComoLida({
+      mensagemId: ultima.wamid,
+      destino: linha.contact.phone_number,
+    })
+  } catch {
+    // Silêncio de propósito: ver o comentário da função.
+  }
 }
 
 export async function buscarMensagens(conversaId: string): Promise<Mensagem[]> {

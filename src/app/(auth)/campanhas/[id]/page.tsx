@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/integrations/supabase/server"
-import { buscarCampanha, opcoesSegmentacao } from "../actions"
+import { buscarCampanha, numerosParaCampanha, opcoesSegmentacao } from "../actions"
 import { EditorCampanhaClient } from "./editor-campanha-client"
 
 export default async function EditorCampanhaPage({ params }: { params: Promise<{ id: string }> }) {
@@ -25,11 +25,13 @@ export default async function EditorCampanhaPage({ params }: { params: Promise<{
     redirect(`/campanhas/${id}/relatorio`)
   }
 
-  const opcoes = await opcoesSegmentacao()
+  // B7-03: os números que a campanha pode usar vêm do servidor, com o canal de
+  // cada um. O editor não decide canal.
+  const [opcoes, numeros] = await Promise.all([opcoesSegmentacao(), numerosParaCampanha()])
 
   return (
     <div className="max-w-3xl mx-auto w-full px-4 py-8">
-      <EditorCampanhaClient campanha={campanha} opcoes={opcoes} />
+      <EditorCampanhaClient campanha={campanha} opcoes={opcoes} numeros={numeros} />
     </div>
   )
 }

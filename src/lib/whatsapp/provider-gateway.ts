@@ -22,10 +22,19 @@ import {
 import type { EnvioEnfileirado } from "./gateway/tipos"
 import type {
   MidiaEnvio,
+  OpcoesDeEnvio,
   ProviderWhatsApp,
   RecursoWhatsApp,
   ResultadoEnvio,
 } from "./tipos"
+
+/**
+ * Prioridade na fila do gateway (A6-06): conversa passa na frente de campanha.
+ * Ausente, `conversation` — o caso da esmagadora maioria dos envios.
+ */
+function prioridadeNoContrato(opcoes?: OpcoesDeEnvio): "conversation" | "campaign" {
+  return opcoes?.prioridade === "campanha" ? "campaign" : "conversation"
+}
 
 /** Tradução do vocabulário do CRM para o do contrato do gateway. */
 const TIPO_GATEWAY: Record<MidiaEnvio["tipo"], "image" | "video" | "audio" | "document"> = {
@@ -39,8 +48,11 @@ const TIPO_GATEWAY: Record<MidiaEnvio["tipo"], "image" | "video" | "audio" | "do
  * Recursos do canal direto. `templates` é `false` porque template de mensagem
  * só existe na API Oficial — não é limitação da nossa implementação, é ausência
  * do conceito fora dela.
+ *
+ * Exportado pelo mesmo motivo que o da Meta (B7-02): a interface pergunta o que
+ * o canal faz sem ter credencial de instância em mão.
  */
-const RECURSOS_SUPORTADOS: Record<RecursoWhatsApp, boolean> = {
+export const RECURSOS_DO_GATEWAY: Record<RecursoWhatsApp, boolean> = {
   templates: false,
   midia: true,
   marcar_lida: true,
@@ -84,21 +96,19 @@ export function criarProviderGateway(
   return {
     canal: "gateway",
 
-    async enviarTexto(destino, texto) {
+    async enviarTexto(destino, texto, opcoes) {
       return pedir({
         caminho: `/instances/${instanceId}/messages`,
         corpo: {
           to: destino,
           type: "text",
           text: texto,
-          // Conversa tem prioridade sobre campanha na fila do gateway (A6-06).
-          // Campanha declara o contrário na issue dela (B8).
-          priority: "conversation",
+          priority: prioridadeNoContrato(opcoes),
         },
       })
     },
 
-    async enviarMidia(destino, midia) {
+    async enviarMidia(destino, midia, opcoes) {
       return pedir({
         caminho: `/instances/${instanceId}/messages`,
         corpo: {
@@ -110,7 +120,7 @@ export function criarProviderGateway(
           // regra do provider Meta: presença é `!== undefined`, não truthiness.
           ...(midia.legenda !== undefined ? { text: midia.legenda } : {}),
           ...(midia.nomeArquivo !== undefined ? { filename: midia.nomeArquivo } : {}),
-          priority: "conversation",
+          priority: prioridadeNoContrato(opcoes),
         },
       })
     },
@@ -126,7 +136,7 @@ export function criarProviderGateway(
     },
 
     suporta(recurso) {
-      return RECURSOS_SUPORTADOS[recurso] ?? false
+      return RECURSOS_DO_GATEWAY[recurso] ?? false
     },
   }
 }

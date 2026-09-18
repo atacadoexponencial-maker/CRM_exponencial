@@ -1,28 +1,40 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, RotateCcw } from "lucide-react"
+import { ArrowLeft, OctagonPause, Play, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CardMetrica } from "../../../dashboard/components/graficos"
-import { criarReenvioParaFalhos } from "../../actions"
-import type { RelatorioCampanha } from "../../actions"
+import {
+  criarReenvioParaFalhos,
+  interromperCampanha,
+  progressoDoDisparo,
+  retomarCampanha,
+} from "../../actions"
+import type { ProgressoDoDisparo, RelatorioCampanha } from "../../actions"
 
 const selectClass =
   "h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
 
 const STATUS_LABEL: Record<string, string> = {
   pendente: "Pendente",
+  // B8-02: aceita pelo gateway, esperando a vez de sair. Fora da janela de
+  // envio a mensagem fica aqui — é espera, não falha.
+  na_fila: "Na fila",
   enviado: "Enviado",
   entregue: "Entregue",
   lido: "Lido",
   falhou: "Falhou",
 }
 
+/** De quanto em quanto tempo o progresso se atualiza sozinho, em ms. */
+const INTERVALO_DO_PROGRESSO = 10_000
+
 const STATUS_CLASS: Record<string, string> = {
   pendente: "bg-secondary text-muted-foreground",
+  na_fila: "bg-amber-500/10 text-amber-700",
   enviado: "bg-blue-500/10 text-blue-600",
   entregue: "bg-teal-500/10 text-teal-600",
   lido: "bg-green-500/10 text-green-600",
@@ -34,6 +46,56 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
   const [filtroStatus, setFiltroStatus] = useState("")
   const [criandoReenvio, setCriandoReenvio] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [progresso, setProgresso] = useState<ProgressoDoDisparo | null>(null)
+  const [mudandoEstado, setMudandoEstado] = useState(false)
+
+  async function handleInterromper() {
+    setErro(null)
+    setMudandoEstado(true)
+    const resultado = await interromperCampanha(relatorio.id)
+    setMudandoEstado(false)
+    if (resultado.erro) setErro(resultado.erro)
+    else router.refresh()
+  }
+
+  async function handleRetomar() {
+    setErro(null)
+    setMudandoEstado(true)
+    const resultado = await retomarCampanha(relatorio.id)
+    setMudandoEstado(false)
+    if (resultado.erro) setErro(resultado.erro)
+    else router.refresh()
+  }
+
+  /**
+   * B8-02: enquanto o disparo anda, a tela se atualiza sozinha.
+   *
+   * Pelo canal direto um disparo leva horas: obrigar a recarregar para saber se
+   * andou é o que faz o cliente achar que travou. Quando não há mais nada a
+   * despachar, o relógio para — tela aberta em campanha concluída não fica
+   * consultando o banco à toa.
+   */
+  useEffect(() => {
+    let ativo = true
+
+    async function atualizar() {
+      const atual = await progressoDoDisparo(relatorio.id)
+      if (!ativo) return
+      setProgresso(atual)
+      return atual
+    }
+
+    void atualizar()
+    const relogio = setInterval(async () => {
+      const atual = await atualizar()
+      if (atual && !atual.emAndamento) clearInterval(relogio)
+    }, INTERVALO_DO_PROGRESSO)
+
+    return () => {
+      ativo = false
+      clearInterval(relogio)
+    }
+  }, [relatorio.id])
 
   const filtrados = filtroStatus
     ? relatorio.destinatarios.filter((d) => d.status === filtroStatus)
@@ -66,6 +128,19 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
         <h1 className="text-xl font-semibold">{relatorio.nome}</h1>
+        {/* B8-03: parar e continuar um disparo de horas. */}
+        {relatorio.status === "enviando" && (
+          <Button size="sm" variant="outline" onClick={handleInterromper} disabled={mudandoEstado}>
+            <OctagonPause className="size-4 mr-1.5" />
+            Interromper disparo
+          </Button>
+        )}
+        {relatorio.status === "interrompida" && (
+          <Button size="sm" onClick={handleRetomar} disabled={mudandoEstado}>
+            <Play className="size-4 mr-1.5" />
+            Retomar de onde parou
+          </Button>
+        )}
         {relatorio.falhos > 0 && (
           <Button size="sm" variant="outline" onClick={handleReenvio} disabled={criandoReenvio}>
             <RotateCcw className="size-4 mr-1.5" />
@@ -83,6 +158,68 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
       </p>
 
       {erro && <p className="text-sm text-destructive mb-4">{erro}</p>}
+
+      {/* B8-03: por que parou, e o que isso significa de verdade. */}
+      {relatorio.status === "interrompida" && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-900 dark:bg-amber-950/40">
+          <p className="font-medium">Disparo interrompido</p>
+          <p className="mt-1 text-muted-foreground">
+            {relatorio.interrompidaMotivo === "banned"
+              ? "O WhatsApp bloqueou o número usado por esta campanha."
+              : relatorio.interrompidaMotivo === "failure_rate"
+                ? "O gateway interrompeu os envios deste número por excesso de falhas."
+                : relatorio.interrompidaMotivo === "manual"
+                  ? "Os envios deste número foram interrompidos manualmente."
+                  : (relatorio.interrompidaMotivo ?? "Interrompida.")}{" "}
+            O CRM parou de entregar mensagens novas.{" "}
+            {progresso && progresso.naFila > 0 && (
+              <>
+                As <strong className="text-foreground">{progresso.naFila}</strong> já aceitas pelo
+                número ainda podem sair: elas estão na fila dele, e o CRM não tem como retirá-las.
+              </>
+            )}
+          </p>
+        </div>
+      )}
+
+      {/* B8-02: progresso do disparo em andamento. */}
+      {progresso?.emAndamento && (
+        <div className="rounded-lg border p-4 mb-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
+            <h2 className="text-sm font-semibold">Disparo em andamento</h2>
+            <p className="text-xs text-muted-foreground">
+              {progresso.enviados} de {progresso.total} já saíram
+            </p>
+          </div>
+
+          <div
+            className="h-2 w-full overflow-hidden rounded-full bg-muted"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={progresso.total}
+            aria-valuenow={progresso.enviados}
+          >
+            <div
+              className="h-full bg-primary transition-[width]"
+              style={{
+                width: `${progresso.total > 0 ? (progresso.enviados / progresso.total) * 100 : 0}%`,
+              }}
+            />
+          </div>
+
+          <p className="mt-3 text-xs text-muted-foreground">
+            {progresso.naFila > 0 && (
+              <>
+                <strong className="text-foreground">{progresso.naFila}</strong> esperando a vez de
+                sair pelo número — o envio respeita o ritmo configurado e pausa fora do horário
+                permitido.{" "}
+              </>
+            )}
+            {progresso.pendentes > 0 && <>{progresso.pendentes} ainda não foram despachadas. </>}
+            {progresso.falhos > 0 && <>{progresso.falhos} falharam.</>}
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
         <CardMetrica titulo="Total enviado" valor={relatorio.enviados} />
@@ -117,13 +254,15 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Contato</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Número</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+              {/* B8-04: "falhou" sozinho não diz o que fazer a seguir. */}
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Motivo</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Atualizado</th>
             </tr>
           </thead>
           <tbody>
             {filtrados.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                   Nenhum destinatário com este status
                 </td>
               </tr>
@@ -136,6 +275,9 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
                   <span className={cn("text-xs rounded-full px-2 py-0.5 font-medium", STATUS_CLASS[d.status])}>
                     {STATUS_LABEL[d.status] ?? d.status}
                   </span>
+                </td>
+                <td className="px-4 py-2.5 text-muted-foreground max-w-xs">
+                  {d.motivo ?? "—"}
                 </td>
                 <td className="px-4 py-2.5 text-muted-foreground">
                   {d.atualizadoEm

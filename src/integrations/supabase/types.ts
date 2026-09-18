@@ -139,6 +139,7 @@ export type Database = {
           contact_id: string | null
           created_at: string
           id: string
+          motivo: string | null
           nome_snapshot: string | null
           status: string
           telefone_snapshot: string
@@ -151,6 +152,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           id?: string
+          motivo?: string | null
           nome_snapshot?: string | null
           status?: string
           telefone_snapshot: string
@@ -163,6 +165,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           id?: string
+          motivo?: string | null
           nome_snapshot?: string | null
           status?: string
           telefone_snapshot?: string
@@ -203,10 +206,13 @@ export type Database = {
           criado_por: string | null
           enviada_em: string | null
           id: string
+          interrompida_em: string | null
+          interrompida_motivo: string | null
           nome: string
           segmento: Json
           status: string
           tipo_mensagem: string
+          whatsapp_connection_id: string | null
           workspace_id: string
         }
         Insert: {
@@ -218,10 +224,13 @@ export type Database = {
           criado_por?: string | null
           enviada_em?: string | null
           id?: string
+          interrompida_em?: string | null
+          interrompida_motivo?: string | null
           nome: string
           segmento?: Json
           status?: string
           tipo_mensagem?: string
+          whatsapp_connection_id?: string | null
           workspace_id: string
         }
         Update: {
@@ -233,10 +242,13 @@ export type Database = {
           criado_por?: string | null
           enviada_em?: string | null
           id?: string
+          interrompida_em?: string | null
+          interrompida_motivo?: string | null
           nome?: string
           segmento?: Json
           status?: string
           tipo_mensagem?: string
+          whatsapp_connection_id?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -245,6 +257,13 @@ export type Database = {
             columns: ["criado_por"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
             referencedColumns: ["id"]
           },
           {
@@ -437,6 +456,7 @@ export type Database = {
           last_message_text: string
           status: string
           unread_count: number
+          whatsapp_connection_id: string | null
           workspace_id: string
         }
         Insert: {
@@ -448,6 +468,7 @@ export type Database = {
           last_message_text?: string
           status?: string
           unread_count?: number
+          whatsapp_connection_id?: string | null
           workspace_id: string
         }
         Update: {
@@ -459,6 +480,7 @@ export type Database = {
           last_message_text?: string
           status?: string
           unread_count?: number
+          whatsapp_connection_id?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -474,6 +496,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
             referencedColumns: ["id"]
           },
           {

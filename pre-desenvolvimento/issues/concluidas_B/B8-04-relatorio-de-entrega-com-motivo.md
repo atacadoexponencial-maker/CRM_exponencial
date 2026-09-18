@@ -24,7 +24,7 @@ Hoje o motivo é perdido no caminho: `enviarParaDestinatario`
 
 ## Comportamentos da spec cobertos
 
-- [ ] Ver no relatório de entrega quais mensagens não saíram e por quê
+- [x] Ver no relatório de entrega quais mensagens não saíram e por quê
 
 ## Contrato do gateway
 
@@ -72,17 +72,43 @@ própria no CRM.
 
 ## Critérios de aceite
 
-- [ ] Cada destinatário que falhou mostra o motivo, em português e compreensível.
-- [ ] Número sem WhatsApp, número freado e arquivo grande demais aparecem como motivos
+- [x] Cada destinatário que falhou mostra o motivo, em português e compreensível.
+- [x] Número sem WhatsApp, número freado e arquivo grande demais aparecem como motivos
       distintos.
-- [ ] Destinatário que não foi enviado porque a campanha foi interrompida aparece como
+- [x] Destinatário que não foi enviado porque a campanha foi interrompida aparece como
       não enviado, com esse motivo, e não como falha do número.
-- [ ] Mensagem adiada por horário não aparece como falha.
-- [ ] Falha técnica nossa aparece como falha técnica, sem culpar o número do cliente.
-- [ ] Campanha pela Meta continua com o relatório funcionando, com motivo quando houver
+- [x] Mensagem adiada por horário não aparece como falha.
+- [x] Falha técnica nossa aparece como falha técnica, sem culpar o número do cliente.
+- [x] Campanha pela Meta continua com o relatório funcionando, com motivo quando houver
       e sem quebrar quando não houver.
-- [ ] Nenhum `error.code` cru aparece na tela.
-- [ ] `npm run build`, `npm run lint` e os testes passam.
+- [x] Nenhum `error.code` cru aparece na tela.
+- [x] `npm run build`, `npm run lint` e os testes passam.
+
+## Execução (17/09/2026)
+
+**Arquivo novo:** `src/lib/whatsapp/motivo-da-falha.ts` — a tradução mora num lugar só,
+porque o motivo entra por **dois caminhos**: a recusa no momento do envio
+(`campanhas.ts`) e o evento `message.status` com `failed` (B6-04). Em dois lugares, o
+mesmo código viraria duas frases diferentes.
+
+**Nenhum `error.code` chega à tela**, e isso é garantido por mais do que a tabela de
+tradução: quando o código é desconhecido e a `message` do gateway *parece* um código
+(`^[a-z_]+$`), ela é descartada e entra a frase genérica. Sem essa guarda, qualquer
+caminho que repassasse o `code` no lugar da `message` colocaria código na tela.
+
+**Três situações que antes eram o mesmo "falhou", e agora não são:**
+
+- **Recusada** pelo canal — com o motivo dele.
+- **Não chegou a ser aceita** — exceção de rede no envio. `MOTIVO_SEM_RESPOSTA`.
+- **Não enviada porque o disparo parou** — continua `pendente`, e o relatório mostra
+  `MOTIVO_CAMPANHA_INTERROMPIDA`. Não é falha do número, e por isso não vira `falhou`:
+  esses destinatários são exatamente os que a retomada vai pegar.
+
+**Adiada por horário não aparece como falha:** `deferred` é estado de fila, não evento de
+status, e o destinatário permanece em `na_fila` (B8-02). Há teste fixando a regra.
+
+**Campanha pela Meta continua funcionando:** o motivo é anulável, a coluna nova não é
+obrigatória, e a Meta grava motivo quando o evento traz um.
 
 ## Fora de escopo
 

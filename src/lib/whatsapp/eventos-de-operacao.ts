@@ -8,6 +8,7 @@
 
 import type { createServiceClient } from "@/integrations/supabase/service"
 import { refletirEstadoNaCentral } from "./alertas-de-numero"
+import { motivoDaFalha } from "./motivo-da-falha"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -66,7 +67,16 @@ export async function aplicarStatusDeMensagem({
 
   await supabase
     .from("campaign_recipients")
-    .update({ status, atualizado_em: new Date().toISOString() })
+    .update({
+      status,
+      // B8-04: em falha, o relatório passa a dizer por quê. O `code` do
+      // contrato nunca vai para a tela — vira frase em português.
+      motivo:
+        status === "falhou"
+          ? motivoDaFalha({ codigo: evento.error?.code, mensagem: evento.error?.message })
+          : null,
+      atualizado_em: new Date().toISOString(),
+    })
     .eq("wamid", evento.message_id)
 
   return { status }
@@ -185,6 +195,20 @@ export async function registrarFreio({
     },
     { onConflict: "connection_id,tipo", ignoreDuplicates: true }
   )
+
+  // B8-03: número freado para as campanhas dele na hora. Insistir com o número
+  // freado é o caminho mais rápido para o banimento — e o gateway recusaria
+  // cada envio com `instance_braked`, transformando a campanha em milhares de
+  // falhas. Campanha de outro número não é tocada.
+  await supabase
+    .from("campaigns")
+    .update({
+      status: "interrompida",
+      interrompida_motivo: evento.reason,
+      interrompida_em: new Date().toISOString(),
+    })
+    .eq("whatsapp_connection_id", connectionId)
+    .eq("status", "enviando")
 
   return { acao: "aberto" }
 }

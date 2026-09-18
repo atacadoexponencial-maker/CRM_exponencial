@@ -1,8 +1,18 @@
 "use server"
 
+import { revalidatePath } from "next/cache"
 import { createClient } from "@/integrations/supabase/server"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { processarCampanhasPendentes } from "@/lib/campanhas"
+import { nomeDoCanal } from "@/lib/whatsapp"
+import { MOTIVO_CAMPANHA_INTERROMPIDA } from "@/lib/whatsapp/motivo-da-falha"
+import type { CanalWhatsApp } from "@/lib/whatsapp"
+import { clienteGatewayDoAmbiente } from "@/lib/whatsapp/gateway/cliente"
+import {
+  buscarRitmoDoNumero,
+  estimarDuracaoDoDisparo,
+  RITMO_PADRAO,
+} from "@/lib/whatsapp/gateway/fila-campanha"
 import { calcularClassificacao } from "../contatos/classificacao"
 
 export type Segmento = {
@@ -34,6 +44,23 @@ export type CampanhaDetalhe = {
   arquivoUrl: string | null
   arquivoNome: string | null
   agendadaPara: string | null
+  /** B7-03: número de origem escolhido. Nulo: cai no número do workspace. */
+  whatsappConnectionId: string | null
+}
+
+/**
+ * Um número que a campanha pode usar (B7-03).
+ *
+ * `canalNome` e `recursos` vêm calculados do backend: o editor exibe, não
+ * decide. É a mesma regra do B7-02.
+ */
+export type NumeroParaCampanha = {
+  id: string
+  numero: string | null
+  nomeExibicao: string | null
+  canalNome: string
+  /** Canal direto opera fora dos Termos do WhatsApp: o editor avisa (B8-01). */
+  ehCanalDireto: boolean
 }
 
 export type DestinatarioPreview = { id: string; nome: string; telefone: string }
@@ -45,6 +72,8 @@ export type DadosCampanha = {
   conteudo: string
   arquivoUrl: string | null
   arquivoNome: string | null
+  /** B7-03: número de origem. Nulo mantém o comportamento antigo. */
+  whatsappConnectionId?: string | null
 }
 
 async function perfilGestor() {
@@ -214,7 +243,7 @@ export async function buscarCampanha(id: string): Promise<CampanhaDetalhe | null
 
   const { data } = await supabase
     .from("campaigns")
-    .select("id, nome, status, segmento, tipo_mensagem, conteudo, arquivo_url, arquivo_nome, agendada_para")
+    .select("id, nome, status, segmento, tipo_mensagem, conteudo, arquivo_url, arquivo_nome, agendada_para, whatsapp_connection_id")
     .eq("id", id)
     .eq("workspace_id", perfil.workspace_id)
     .single()
@@ -231,7 +260,114 @@ export async function buscarCampanha(id: string): Promise<CampanhaDetalhe | null
     arquivoUrl: data.arquivo_url,
     arquivoNome: data.arquivo_nome,
     agendadaPara: data.agendada_para,
+    whatsappConnectionId: data.whatsapp_connection_id ?? null,
   }
+}
+
+/**
+ * O que o administrador precisa saber antes de confirmar (B8-01).
+ *
+ * `aviso` é nulo no canal oficial: lá não há risco de banimento por uso da
+ * ferramenta, e avisar sem motivo ensina a ignorar avisos.
+ */
+export type AvaliacaoDoDisparo = {
+  aviso: string | null
+  estimativa: string
+  /** Falso quando o ritmo real não pôde ser lido e o padrão foi assumido. */
+  ritmoConfirmado: boolean
+}
+
+/**
+ * Aviso de risco e duração estimada do disparo (B8-01).
+ *
+ * O cálculo é **aqui**, no servidor: o componente exibe. A estimativa não vem
+ * do gateway porque a previsão que ele calcula por mensagem ignora teto e
+ * fechamento da janela — somá-la daria um número otimista.
+ */
+export async function avaliarDisparo(
+  connectionId: string | null,
+  totalDestinatarios: number
+): Promise<AvaliacaoDoDisparo> {
+  const { supabase, perfil } = await perfilGestor()
+  if (!perfil) return { aviso: null, estimativa: "", ritmoConfirmado: false }
+
+  const { data: conexao } = connectionId
+    ? await supabase
+        .from("whatsapp_connections")
+        .select("canal, instance_id, instance_token")
+        .eq("id", connectionId)
+        .eq("workspace_id", perfil.workspace_id)
+        .maybeSingle()
+    : { data: null }
+
+  const canal = (conexao?.canal ?? "meta") as CanalWhatsApp
+
+  if (canal !== "gateway") {
+    // Pela API Oficial não há fila nossa nem ritmo a respeitar: o tempo do
+    // disparo é o da Meta, e prometer número aqui seria inventar.
+    return { aviso: null, estimativa: "", ritmoConfirmado: true }
+  }
+
+  let ritmo = RITMO_PADRAO
+  let ritmoConfirmado = false
+
+  if (conexao?.instance_id && conexao.instance_token) {
+    try {
+      const lido = await buscarRitmoDoNumero(
+        clienteGatewayDoAmbiente(),
+        conexao.instance_id,
+        conexao.instance_token
+      )
+      if (lido) {
+        ritmo = lido
+        ritmoConfirmado = true
+      }
+    } catch {
+      // Gateway indisponível ou não configurado: estimativa com o ritmo padrão,
+      // e a tela diz que é aproximada.
+    }
+  }
+
+  const estimativa = estimarDuracaoDoDisparo({ destinatarios: totalDestinatarios, ritmo })
+
+  return {
+    aviso:
+      "Este número usa o canal direto, que opera fora dos Termos de Serviço do WhatsApp. " +
+      "Disparo em massa é o uso com maior risco de bloqueio: o número pode ser banido sem aviso, " +
+      "e a responsabilidade por ele é sua. O envio respeita o ritmo configurado, e por isso leva tempo.",
+    estimativa: estimativa.texto,
+    ritmoConfirmado,
+  }
+}
+
+/**
+ * Números que a campanha pode usar (B7-03).
+ *
+ * Só conexões conectadas: escolher um número desconectado marcaria a campanha
+ * inteira como falha no disparo. Nunca devolve credencial — só o que a tela
+ * mostra.
+ */
+export async function numerosParaCampanha(): Promise<NumeroParaCampanha[]> {
+  const { supabase, perfil } = await perfilGestor()
+  if (!perfil) return []
+
+  const { data } = await supabase
+    .from("whatsapp_connections")
+    .select("id, canal, phone_number, display_name")
+    .eq("workspace_id", perfil.workspace_id)
+    .eq("status", "connected")
+    .order("created_at", { ascending: true })
+
+  return (data ?? []).map((c) => {
+    const canal = (c.canal ?? "meta") as CanalWhatsApp
+    return {
+      id: c.id,
+      numero: c.phone_number,
+      nomeExibicao: c.display_name,
+      canalNome: nomeDoCanal(canal),
+      ehCanalDireto: canal === "gateway",
+    }
+  })
 }
 
 function validarDados(dados: DadosCampanha, paraEnvio: boolean): string | null {
@@ -260,6 +396,8 @@ export async function salvarRascunho(
     conteudo: dados.conteudo,
     arquivo_url: dados.arquivoUrl,
     arquivo_nome: dados.arquivoNome,
+    // B7-03: nulo é válido e significa "o número do workspace", como antes.
+    whatsapp_connection_id: dados.whatsappConnectionId ?? null,
   }
 
   if (id) {
@@ -356,6 +494,97 @@ export async function cancelarCampanha(id: string): Promise<{ erro?: string }> {
   return {}
 }
 
+/**
+ * Interrompe um disparo em andamento (B8-03).
+ *
+ * **O que já foi aceito pelo canal vai sair.** O gateway não tem como esvaziar
+ * a fila de uma campanha, e prometer o contrário na tela seria mentira. O que
+ * esta ação faz é parar de entregar mensagens novas — o lote em curso é o
+ * limite do que ainda escapa.
+ */
+export async function interromperCampanha(id: string): Promise<{ erro?: string }> {
+  const { supabase, perfil } = await perfilGestor()
+  if (!perfil) return { erro: "Sem permissão" }
+
+  const { data, error } = await supabase
+    .from("campaigns")
+    .update({
+      status: "interrompida",
+      interrompida_motivo: "Interrompida manualmente",
+      interrompida_em: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("workspace_id", perfil.workspace_id)
+    .eq("status", "enviando")
+    .select("id")
+
+  if (error || !data?.length) return { erro: "Só é possível interromper campanhas em andamento" }
+
+  revalidatePath(`/campanhas/${id}/relatorio`)
+  revalidatePath("/campanhas")
+  return {}
+}
+
+/**
+ * Retoma de onde parou (B8-03).
+ *
+ * Ninguém que já recebeu recebe de novo: o disparo continua pelos destinatários
+ * ainda `pendente`, e os demais estados não voltam para a fila.
+ *
+ * Retomar com o número ainda freado não adianta — o gateway recusa cada envio.
+ * Por isso o aviso operacional aberto daquele número bloqueia a retomada, com a
+ * mensagem dizendo o motivo.
+ */
+export async function retomarCampanha(id: string): Promise<{ erro?: string }> {
+  const { supabase, perfil } = await perfilGestor()
+  if (!perfil) return { erro: "Sem permissão" }
+
+  const { data: campanha } = await supabase
+    .from("campaigns")
+    .select("id, status, whatsapp_connection_id")
+    .eq("id", id)
+    .eq("workspace_id", perfil.workspace_id)
+    .maybeSingle()
+
+  if (!campanha || campanha.status !== "interrompida") {
+    return { erro: "Só é possível retomar campanhas interrompidas" }
+  }
+
+  if (campanha.whatsapp_connection_id) {
+    const { data: freio } = await supabase
+      .from("operational_alerts")
+      .select("motivo")
+      .eq("connection_id", campanha.whatsapp_connection_id)
+      .eq("tipo", "numero_freado")
+      .is("resolved_at", null)
+      .maybeSingle()
+
+    if (freio) {
+      return {
+        erro:
+          "O número desta campanha está com os envios interrompidos pelo gateway " +
+          `(${freio.motivo}). Libere o número antes de retomar.`,
+      }
+    }
+  }
+
+  const { error } = await supabase
+    .from("campaigns")
+    .update({ status: "enviando", interrompida_motivo: null, interrompida_em: null })
+    .eq("id", id)
+    .eq("workspace_id", perfil.workspace_id)
+    .eq("status", "interrompida")
+
+  if (error) return { erro: "Não foi possível retomar a campanha" }
+
+  // Retomar é para voltar a sair agora, não no próximo cron.
+  await processarCampanhasPendentes().catch(() => {})
+
+  revalidatePath(`/campanhas/${id}/relatorio`)
+  revalidatePath("/campanhas")
+  return {}
+}
+
 export async function uploadArquivoCampanha(
   formData: FormData
 ): Promise<{ url?: string; nome?: string; erro?: string }> {
@@ -387,17 +616,23 @@ export type RelatorioCampanha = {
   nome: string
   status: string
   enviadaEm: string | null
+  /** B8-03: por que o disparo parou. Nulo quando nunca parou. */
+  interrompidaMotivo: string | null
   total: number
   enviados: number
   entregues: number
   lidos: number
   falhos: number
   pendentes: number
+  /** B8-02: aceitas pelo gateway, esperando a vez de sair. */
+  naFila: number
   destinatarios: Array<{
     nome: string
     telefone: string
     status: string
     atualizadoEm: string | null
+    /** B8-04: por que não chegou. Nulo quando não houve falha. */
+    motivo: string | null
   }>
 }
 
@@ -407,7 +642,7 @@ export async function relatorioCampanha(id: string): Promise<RelatorioCampanha |
 
   const { data } = await supabase
     .from("campaigns")
-    .select("id, nome, status, enviada_em, campaign_recipients(nome_snapshot, telefone_snapshot, status, atualizado_em)")
+    .select("id, nome, status, enviada_em, interrompida_motivo, campaign_recipients(nome_snapshot, telefone_snapshot, status, atualizado_em, motivo)")
     .eq("id", id)
     .eq("workspace_id", perfil.workspace_id)
     .single()
@@ -419,6 +654,7 @@ export async function relatorioCampanha(id: string): Promise<RelatorioCampanha |
     telefone_snapshot: string
     status: string
     atualizado_em: string | null
+    motivo: string | null
   }
   const recipients = ((data.campaign_recipients ?? []) as Recipient[])
 
@@ -429,19 +665,91 @@ export async function relatorioCampanha(id: string): Promise<RelatorioCampanha |
     nome: data.nome,
     status: data.status,
     enviadaEm: data.enviada_em,
+    interrompidaMotivo: data.interrompida_motivo ?? null,
     total: recipients.length,
     // "entregue" e "lido" também contam como enviados
+    // `na_fila` NÃO conta como enviado: é justamente o que ainda não saiu.
     enviados: recipients.filter((r) => ["enviado", "entregue", "lido"].includes(r.status)).length,
     entregues: recipients.filter((r) => ["entregue", "lido"].includes(r.status)).length,
     lidos: porStatus("lido"),
     falhos: porStatus("falhou"),
     pendentes: porStatus("pendente"),
+    naFila: porStatus("na_fila"),
     destinatarios: recipients.map((r) => ({
       nome: r.nome_snapshot ?? r.telefone_snapshot,
       telefone: r.telefone_snapshot,
       status: r.status,
       atualizadoEm: r.atualizado_em,
+      // B8-04: destinatário que ficou para trás por causa da interrupção não é
+      // falha do número — o motivo diz isso, e o estado continua `pendente`.
+      motivo:
+        r.motivo ??
+        (r.status === "pendente" && data.status === "interrompida"
+          ? MOTIVO_CAMPANHA_INTERROMPIDA
+          : null),
     })),
+  }
+}
+
+/** B8-02: progresso do disparo, contado no banco e não no cliente. */
+export type ProgressoDoDisparo = {
+  total: number
+  enviados: number
+  naFila: number
+  pendentes: number
+  falhos: number
+  /** Verdadeiro enquanto a campanha ainda tem o que despachar. */
+  emAndamento: boolean
+}
+
+/**
+ * Progresso de um disparo em andamento (B8-02).
+ *
+ * Usa `count` do Postgres, uma consulta por estado: campanha de dezenas de
+ * milhares de destinatários não cabe em memória para ser somada aqui, e somar
+ * no cliente exigiria trazer todas as linhas para o navegador.
+ */
+export async function progressoDoDisparo(campanhaId: string): Promise<ProgressoDoDisparo | null> {
+  const { supabase, perfil } = await perfilGestor()
+  if (!perfil) return null
+
+  const { data: campanha } = await supabase
+    .from("campaigns")
+    .select("id, status")
+    .eq("id", campanhaId)
+    .eq("workspace_id", perfil.workspace_id)
+    .maybeSingle()
+
+  if (!campanha) return null
+
+  async function contar(status?: string): Promise<number> {
+    let query = supabase
+      .from("campaign_recipients")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", campanhaId)
+    if (status) query = query.eq("status", status)
+    const { count } = await query
+    return count ?? 0
+  }
+
+  const [total, naFila, pendentes, falhos, enviado, entregue, lido] = await Promise.all([
+    contar(),
+    contar("na_fila"),
+    contar("pendente"),
+    contar("falhou"),
+    contar("enviado"),
+    contar("entregue"),
+    contar("lido"),
+  ])
+
+  return {
+    total,
+    enviados: enviado + entregue + lido,
+    naFila,
+    pendentes,
+    falhos,
+    // Enfileirada ainda é disparo em andamento: a mensagem não saiu.
+    emAndamento: campanha.status === "enviando" || pendentes > 0 || naFila > 0,
   }
 }
 

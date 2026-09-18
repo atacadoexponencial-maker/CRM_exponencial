@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/integrations/supabase/server"
+import { nomeDoCanal, recursosDoCanal } from "@/lib/whatsapp"
+import type { CanalWhatsApp } from "@/lib/whatsapp"
 import { ChatLayout } from "./components/chat-layout"
 import type { Conversa, StatusConversa } from "./mock-conversas"
 
@@ -96,7 +98,9 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
 
   let query = supabase
     .from("conversations")
-    .select("id, status, assigned_to, unread_count, last_message_text, last_message_at, created_at, contact_id, contact:contacts(name, phone_number), assignee:profiles!assigned_to(name), conversation_labels(label_id, labels(id, name, color))")
+    // B7-02: `conexao` traz o canal e o número que atendem a conversa. Nunca
+    // credencial: só o que a tela mostra.
+    .select("id, status, assigned_to, unread_count, last_message_text, last_message_at, created_at, contact_id, contact:contacts(name, phone_number), assignee:profiles!assigned_to(name), conversation_labels(label_id, labels(id, name, color)), conexao:whatsapp_connections(canal, phone_number)")
     .eq("workspace_id", perfil.workspace_id)
     .order("last_message_at", { ascending: false })
 
@@ -119,6 +123,7 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
     contact: { name: string | null; phone_number: string } | null
     assignee: { name: string } | null
     conversation_labels: ConvLabelRow[]
+    conexao: { canal: CanalWhatsApp | null; phone_number: string | null } | null
   }
 
   const conversas: Conversa[] = ((rows ?? []) as unknown as ConversationRow[]).map((c) => ({
@@ -139,6 +144,12 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
       .map((cl) => ({ id: cl.labels!.id, nome: cl.labels!.name, cor: cl.labels!.color })),
     atribuidaA: c.assignee?.name ?? null,
     dataPrimeiroContato: new Date(c.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }),
+    // B7-02: o que o canal faz é decidido aqui, no servidor. A tela exibe.
+    canal: {
+      nome: c.conexao ? nomeDoCanal(c.conexao.canal) : null,
+      numero: c.conexao?.phone_number ?? null,
+      recursos: recursosDoCanal(c.conexao?.canal ?? null),
+    },
   }))
 
   return (

@@ -2,6 +2,19 @@ export type StatusConversa = "em_espera" | "em_atendimento" | "resolvida"
 export type FiltroVisibilidade = "minhas" | "meu_time" | "todas"
 export type FiltroStatus = "todas" | StatusConversa
 
+/**
+ * Canal e número que atendem a conversa (B7-02).
+ *
+ * `recursos` vem calculado do backend: a interface não decide o que um canal
+ * faz, ela exibe o que recebeu. `nome` é nulo na conversa antiga que não tem
+ * número gravado — o envio cai no número do workspace, e a tela diz isso.
+ */
+export interface CanalDaConversa {
+  nome: string | null
+  numero: string | null
+  recursos: { templates: boolean; midia: boolean; marcar_lida: boolean }
+}
+
 export interface Conversa {
   id: string
   contato: { nome: string | null; telefone: string; contactId: string | null }
@@ -11,6 +24,14 @@ export interface Conversa {
   etiquetas: Array<{ id: string; nome: string; cor: string }>
   atribuidaA: string | null
   dataPrimeiroContato: string
+  canal: CanalDaConversa
+}
+
+/** Mocks nasceram antes do canal existir: tratados como número não identificado. */
+const CANAL_MOCK: CanalDaConversa = {
+  nome: null,
+  numero: null,
+  recursos: { templates: true, midia: true, marcar_lida: true },
 }
 
 export const MOCK_CONVERSAS: Conversa[] = [
@@ -22,6 +43,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_espera",
     etiquetas: [{ id: "mock-novo-cliente", nome: "Novo cliente", cor: "#3b82f6" }],
     atribuidaA: null,
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "15 abr. 2026",
   },
   {
@@ -32,6 +54,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_atendimento",
     etiquetas: [{ id: "mock-recompra", nome: "Recompra", cor: "#10b981" }],
     atribuidaA: "Carlos",
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "03 jan. 2026",
   },
   {
@@ -42,6 +65,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "resolvida",
     etiquetas: [],
     atribuidaA: "Carlos",
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "22 ago. 2025",
   },
   {
@@ -52,6 +76,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_espera",
     etiquetas: [],
     atribuidaA: null,
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "27 abr. 2026",
   },
   {
@@ -62,6 +87,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_atendimento",
     etiquetas: [{ id: "mock-vip", nome: "VIP", cor: "#f59e0b" }, { id: "mock-recompra", nome: "Recompra", cor: "#10b981" }],
     atribuidaA: "Fernanda",
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "14 out. 2024",
   },
   {
@@ -72,6 +98,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "resolvida",
     etiquetas: [{ id: "mock-recompra", nome: "Recompra", cor: "#10b981" }],
     atribuidaA: "Fernanda",
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "07 fev. 2025",
   },
   {
@@ -82,6 +109,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_espera",
     etiquetas: [{ id: "mock-novo-cliente", nome: "Novo cliente", cor: "#3b82f6" }],
     atribuidaA: null,
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "25 abr. 2026",
   },
   {
@@ -92,6 +120,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_atendimento",
     etiquetas: [],
     atribuidaA: "Carlos",
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "11 mar. 2026",
   },
   {
@@ -102,6 +131,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "resolvida",
     etiquetas: [{ id: "mock-vip", nome: "VIP", cor: "#f59e0b" }],
     atribuidaA: "Fernanda",
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "30 jun. 2024",
   },
   {
@@ -112,6 +142,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_atendimento",
     etiquetas: [{ id: "mock-recompra", nome: "Recompra", cor: "#10b981" }],
     atribuidaA: "Carlos",
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "18 nov. 2024",
   },
   {
@@ -122,6 +153,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_espera",
     etiquetas: [],
     atribuidaA: null,
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "20 abr. 2026",
   },
   {
@@ -132,6 +164,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_atendimento",
     etiquetas: [{ id: "mock-vip", nome: "VIP", cor: "#f59e0b" }],
     atribuidaA: "Fernanda",
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "05 dez. 2024",
   },
   {
@@ -142,6 +175,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_espera",
     etiquetas: [{ id: "mock-novo-cliente", nome: "Novo cliente", cor: "#3b82f6" }],
     atribuidaA: null,
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "26 abr. 2026",
   },
   {
@@ -152,6 +186,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "resolvida",
     etiquetas: [],
     atribuidaA: "Carlos",
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "08 jan. 2025",
   },
   {
@@ -162,6 +197,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "resolvida",
     etiquetas: [{ id: "mock-recompra", nome: "Recompra", cor: "#10b981" }],
     atribuidaA: "Fernanda",
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "14 fev. 2025",
   },
   {
@@ -172,6 +208,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_atendimento",
     etiquetas: [{ id: "mock-vip", nome: "VIP", cor: "#f59e0b" }, { id: "mock-novo-cliente", nome: "Novo cliente", cor: "#3b82f6" }],
     atribuidaA: "Carlos",
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "03 abr. 2026",
   },
   {
@@ -182,6 +219,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_espera",
     etiquetas: [],
     atribuidaA: null,
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "24 abr. 2026",
   },
   {
@@ -192,6 +230,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "em_atendimento",
     etiquetas: [{ id: "mock-recompra", nome: "Recompra", cor: "#10b981" }],
     atribuidaA: "Fernanda",
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "16 set. 2024",
   },
   {
@@ -202,6 +241,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "resolvida",
     etiquetas: [{ id: "mock-vip", nome: "VIP", cor: "#f59e0b" }, { id: "mock-recompra", nome: "Recompra", cor: "#10b981" }],
     atribuidaA: "Carlos",
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "22 mai. 2024",
   },
   {
@@ -212,6 +252,7 @@ export const MOCK_CONVERSAS: Conversa[] = [
     status: "resolvida",
     etiquetas: [{ id: "mock-novo-cliente", nome: "Novo cliente", cor: "#3b82f6" }],
     atribuidaA: "Fernanda",
+    canal: CANAL_MOCK,
     dataPrimeiroContato: "21 abr. 2026",
   },
 ]

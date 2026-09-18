@@ -6,9 +6,22 @@
 
 import { createServiceClient } from "@/integrations/supabase/service"
 import { substituirVariaveis } from "@/lib/sequencias"
-import { resolverProvider } from "@/lib/whatsapp"
-import type { ProviderWhatsApp, ResultadoEnvio } from "@/lib/whatsapp"
+import { providerDaConexao, resolverProvider } from "@/lib/whatsapp"
+import {
+  MOTIVO_SEM_NUMERO,
+  MOTIVO_SEM_RESPOSTA,
+  motivoDaFalha,
+} from "@/lib/whatsapp/motivo-da-falha"
+import type { ConexaoParaProvider, ProviderWhatsApp, ResultadoEnvio } from "@/lib/whatsapp"
 
+/**
+ * Quantos destinatários um lote entrega ao canal.
+ *
+ * B8-03: o gateway **não** tem como esvaziar a fila de uma campanha — o que já
+ * foi aceito por ele vai sair. Entregar tudo de uma vez faria "interromper" não
+ * interromper nada, então o lote é pequeno de propósito: no pior caso, o que
+ * escapa depois do pedido de parada são as mensagens deste lote.
+ */
 const TAMANHO_LOTE = 40
 
 type ServiceClient = ReturnType<typeof createServiceClient>
@@ -20,7 +33,17 @@ type CampaignRow = {
   conteudo: string | null
   arquivo_url: string | null
   arquivo_nome: string | null
+  /** B7-03: número de origem escolhido. Nulo na campanha criada antes dele. */
+  whatsapp_connection_id?: string | null
 }
+
+/**
+ * B7-03: toda mensagem de campanha se declara disparo em massa.
+ *
+ * No canal direto isso é o que mantém o cliente que está esperando resposta na
+ * frente da fila. A API Oficial ignora.
+ */
+const COMO_CAMPANHA = { prioridade: "campanha" } as const
 
 type RecipientRow = {
   id: string
@@ -34,7 +57,7 @@ async function enviarParaDestinatario(
   campanha: CampaignRow,
   destinatario: RecipientRow,
   nomeVendedor: string
-): Promise<{ ok: boolean; wamid: string | null }> {
+): Promise<{ ok: boolean; wamid: string | null; motivo: string | null }> {
   const texto = substituirVariaveis(campanha.conteudo ?? "", {
     nomeContato: destinatario.nome_snapshot ?? "",
     nomeVendedor,
@@ -47,38 +70,82 @@ async function enviarParaDestinatario(
     let resultado: ResultadoEnvio
 
     if (campanha.tipo_mensagem === "imagem" && campanha.arquivo_url) {
-      resultado = await provider.enviarMidia(destinatario.telefone_snapshot, {
-        url: campanha.arquivo_url,
-        tipo: "imagem",
-        legenda: texto,
-      })
+      resultado = await provider.enviarMidia(
+        destinatario.telefone_snapshot,
+        { url: campanha.arquivo_url, tipo: "imagem", legenda: texto },
+        COMO_CAMPANHA
+      )
     } else if (campanha.tipo_mensagem === "documento" && campanha.arquivo_url) {
-      resultado = await provider.enviarMidia(destinatario.telefone_snapshot, {
-        url: campanha.arquivo_url,
-        tipo: "documento",
-        legenda: texto,
-        nomeArquivo: campanha.arquivo_nome ?? "documento",
-      })
+      resultado = await provider.enviarMidia(
+        destinatario.telefone_snapshot,
+        {
+          url: campanha.arquivo_url,
+          tipo: "documento",
+          legenda: texto,
+          nomeArquivo: campanha.arquivo_nome ?? "documento",
+        },
+        COMO_CAMPANHA
+      )
     } else {
-      resultado = await provider.enviarTexto(destinatario.telefone_snapshot, texto)
+      resultado = await provider.enviarTexto(destinatario.telefone_snapshot, texto, COMO_CAMPANHA)
     }
 
-    if (!resultado.ok) return { ok: false, wamid: null }
+    // B8-04: o motivo da recusa para de ser descartado. Mil "falhou" iguais no
+    // relatório não dizem se o problema é o número do destinatário, o número de
+    // envio ou o arquivo — e cada um pede uma reação diferente.
+    if (!resultado.ok) {
+      return { ok: false, wamid: null, motivo: motivoDaFalha({ mensagem: resultado.motivo }) }
+    }
 
-    return { ok: true, wamid: resultado.mensagemId }
+    return { ok: true, wamid: resultado.mensagemId, motivo: null }
   } catch {
-    return { ok: false, wamid: null }
+    // Exceção aqui é rede ou canal fora do ar: a mensagem não chegou a ser
+    // aceita, e isso é diferente de ter sido recusada.
+    return { ok: false, wamid: null, motivo: MOTIVO_SEM_RESPOSTA }
   }
 }
 
+/**
+ * O provider do número escolhido na campanha (B7-03).
+ *
+ * Sem número escolhido — campanha criada antes desta issue — cai no número
+ * conectado do workspace, que é o comportamento de antes.
+ *
+ * Número escolhido que não está mais conectado devolve `null`, e quem chama já
+ * sabe o que fazer: marcar os pendentes como falhos. É melhor do que disparar
+ * mil mensagens por um número que o cliente não escolheu.
+ */
+async function providerDaCampanha(
+  supabase: ServiceClient,
+  campanha: CampaignRow
+): Promise<ProviderWhatsApp | null> {
+  if (!campanha.whatsapp_connection_id) {
+    return resolverProvider(supabase, campanha.workspace_id)
+  }
+
+  const { data: conexao } = await supabase
+    .from("whatsapp_connections")
+    .select("canal, phone_number_id, access_token, instance_id, instance_token, status")
+    .eq("id", campanha.whatsapp_connection_id)
+    .maybeSingle()
+
+  if (!conexao || conexao.status !== "connected") return null
+
+  return providerDaConexao(conexao as ConexaoParaProvider)
+}
+
 async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow): Promise<number> {
-  const provider = await resolverProvider(supabase, campanha.workspace_id)
+  const provider = await providerDaCampanha(supabase, campanha)
 
   if (!provider) {
     // Sem conexão: marca todos os pendentes como falhos e encerra
     await supabase
       .from("campaign_recipients")
-      .update({ status: "falhou", atualizado_em: new Date().toISOString() })
+      .update({
+        status: "falhou",
+        motivo: MOTIVO_SEM_NUMERO,
+        atualizado_em: new Date().toISOString(),
+      })
       .eq("campaign_id", campanha.id)
       .eq("status", "pendente")
     await supabase
@@ -112,6 +179,17 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
 
   let enviados = 0
   for (const destinatario of lote) {
+    // B8-03: a parada é conferida no meio do lote, e não só entre lotes. Com
+    // ritmo de 40s, um lote de 40 leva quase meia hora: esperar o fim dele
+    // seria pedir para parar e ver a campanha continuar por meia hora.
+    const { data: atual } = await supabase
+      .from("campaigns")
+      .select("status")
+      .eq("id", campanha.id)
+      .maybeSingle()
+
+    if (atual?.status !== "enviando") return enviados
+
     const nomeVendedor = destinatario.contact_id
       ? (vendedorPorContato[destinatario.contact_id] ?? "")
       : ""
@@ -119,8 +197,13 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
     await supabase
       .from("campaign_recipients")
       .update({
-        status: resultado.ok ? "enviado" : "falhou",
+        // B8-02: pelo canal direto a resposta significa *aceita*, não
+        // *enviada* — toda mensagem é enfileirada e respeita ritmo, tetos e
+        // janela. Quem confirma o envio é o evento `message.status` com `sent`.
+        // Pela API Oficial a resposta já é o envio.
+        status: resultado.ok ? (provider.canal === "gateway" ? "na_fila" : "enviado") : "falhou",
         wamid: resultado.wamid,
+        motivo: resultado.motivo,
         atualizado_em: new Date().toISOString(),
       })
       .eq("id", destinatario.id)
@@ -157,7 +240,7 @@ export async function processarCampanhasPendentes(): Promise<number> {
 
   const { data: enviando } = await supabase
     .from("campaigns")
-    .select("id, workspace_id, tipo_mensagem, conteudo, arquivo_url, arquivo_nome")
+    .select("id, workspace_id, tipo_mensagem, conteudo, arquivo_url, arquivo_nome, whatsapp_connection_id")
     .eq("status", "enviando")
     .limit(3)
 

@@ -67,11 +67,29 @@ export type RecursoWhatsApp = "templates" | "midia" | "marcar_lida"
  * assinaturas, possivelmente em outro repositório — mudar qualquer uma exige
  * avisar antes.
  */
+/**
+ * Para que serve este envio.
+ *
+ * O canal direto enfileira tudo e coloca conversa na frente de disparo em
+ * massa: cliente esperando resposta não espera atrás de mil mensagens de
+ * campanha. Quem sabe se é conversa ou campanha é o chamador, e só ele — por
+ * isso a intenção viaja no contrato em vez de ser adivinhada pelo provider.
+ *
+ * A API Oficial não tem fila nem prioridade, e ignora este campo. Ausente,
+ * assume `conversa`: é o caso da esmagadora maioria dos envios.
+ *
+ * Acrescentado em 17/09/2026, na B7-03. Campo opcional: nenhum chamador
+ * existente precisou mudar.
+ */
+export type OpcoesDeEnvio = {
+  prioridade?: "conversa" | "campanha"
+}
+
 export type ProviderWhatsApp = {
   canal: CanalWhatsApp
 
-  enviarTexto(destino: string, texto: string): Promise<ResultadoEnvio>
-  enviarMidia(destino: string, midia: MidiaEnvio): Promise<ResultadoEnvio>
+  enviarTexto(destino: string, texto: string, opcoes?: OpcoesDeEnvio): Promise<ResultadoEnvio>
+  enviarMidia(destino: string, midia: MidiaEnvio, opcoes?: OpcoesDeEnvio): Promise<ResultadoEnvio>
   marcarComoLida(alvo: AlvoDeLeitura): Promise<ResultadoEnvio>
 
   /** Recursos que este canal suporta. */
