@@ -40,9 +40,9 @@ export function AvisoDeFreio({
   const Icone = banido ? Ban : OctagonPause
 
   return (
-    <div className="rounded-lg border-2 border-red-300 bg-red-50 p-5 dark:border-red-900 dark:bg-red-950/40">
+    <div className="rounded-lg border-2 border-red-500/40 bg-red-500/10 p-5 text-red-100">
       <p className="flex items-center gap-2 font-medium">
-        <Icone className="size-4 shrink-0 text-red-700 dark:text-red-400" aria-hidden />
+        <Icone className="size-4 shrink-0 text-red-300" aria-hidden />
         Envios interrompidos
       </p>
 
@@ -61,7 +61,7 @@ export function AvisoDeFreio({
         )}
       </p>
 
-      {erro && <p className="text-sm mt-3 text-red-700 dark:text-red-400">{erro}</p>}
+      {erro && <p className="text-sm mt-3 text-red-300">{erro}</p>}
 
       <div className="mt-4">
         {banido ? (

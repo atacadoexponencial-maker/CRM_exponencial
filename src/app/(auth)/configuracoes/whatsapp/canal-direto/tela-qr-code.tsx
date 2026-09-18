@@ -131,13 +131,13 @@ export function TelaQrCode({
           </ol>
 
           {erro && (
-            <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950/40">
+            <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 p-3 text-sm ">
               {erro}
             </p>
           )}
 
           {estado === "disconnected" && motivo && (
-            <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950/40">
+            <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 p-3 text-sm ">
               Não foi possível conectar. {TEXTO_DO_MOTIVO[motivo]}
             </p>
           )}

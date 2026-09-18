@@ -542,7 +542,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
                 </select>
                 {/* B8-01: o aviso e a estimativa vêm prontos do servidor. */}
                 {avaliacao?.aviso && (
-                  <p className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs dark:border-amber-900 dark:bg-amber-950/40">
+                  <p className="flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 p-3 text-xs ">
                     <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
                     <span>{avaliacao.aviso}</span>
                   </p>

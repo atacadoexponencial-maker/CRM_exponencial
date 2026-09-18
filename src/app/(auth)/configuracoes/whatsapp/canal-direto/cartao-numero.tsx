@@ -49,8 +49,8 @@ export function CartaoNumero({
       </div>
 
       {numero.state === "banned" && (
-        <p className="mt-4 flex gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950/40">
-          <Ban className="size-4 shrink-0 mt-0.5 text-red-700 dark:text-red-400" aria-hidden />
+        <p className="mt-4 flex gap-2 rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 p-3 text-sm ">
+          <Ban className="size-4 shrink-0 mt-0.5 text-red-300" aria-hidden />
           <span>
             O WhatsApp bloqueou este número. Ler o código de novo não desfaz o bloqueio: é preciso
             conectar outro número.

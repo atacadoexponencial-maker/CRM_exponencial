@@ -47,7 +47,7 @@ export function TermoResponsabilidade({
     <Dialog open={aberto} onOpenChange={onAbertoChange}>
       <DialogPopup className="max-w-2xl">
         <DialogTitle className="flex items-center gap-2">
-          <ShieldAlert className="size-4 shrink-0 text-amber-600 dark:text-amber-500" aria-hidden />
+          <ShieldAlert className="size-4 shrink-0 text-amber-300" aria-hidden />
           {TERMO_DO_CANAL_DIRETO.titulo}
         </DialogTitle>
 
@@ -78,7 +78,7 @@ export function TermoResponsabilidade({
         </label>
 
         {erro && (
-          <p className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950/40">
+          <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 p-3 text-sm ">
             {erro}
           </p>
         )}

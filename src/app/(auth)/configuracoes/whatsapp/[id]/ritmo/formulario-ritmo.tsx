@@ -174,7 +174,7 @@ export function FormularioRitmo({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {ritmo.effective.warmup_applied && (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-900 dark:bg-amber-950/40">
+        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 p-4 text-sm ">
           Este número está em aquecimento. Enquanto estiver, valem{" "}
           <strong>{ritmo.effective.hourly_cap} por hora</strong> e{" "}
           <strong>{ritmo.effective.daily_cap} por dia</strong>, mesmo que você configure mais —
@@ -284,13 +284,13 @@ export function FormularioRitmo({
       <p className="rounded-lg border bg-muted/40 p-4 text-sm">{estimativa.texto}</p>
 
       {erroGeral && (
-        <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950/40">
+        <p className="rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 p-3 text-sm ">
           {erroGeral}
         </p>
       )}
 
       {salvo && !erroGeral && (
-        <p className="text-sm text-green-700 dark:text-green-500">Ritmo salvo.</p>
+        <p className="text-sm text-green-700">Ritmo salvo.</p>
       )}
 
       <div className="flex flex-wrap items-center gap-3">

@@ -11,9 +11,9 @@
 // o que o cliente confere.
 
 const FAIXA = [
-  { ate: 0.6, classe: "bg-green-600 dark:bg-green-500" },
+  { ate: 0.6, classe: "bg-emerald-500" },
   { ate: 0.85, classe: "bg-amber-500" },
-  { ate: Infinity, classe: "bg-red-600 dark:bg-red-500" },
+  { ate: Infinity, classe: "bg-red-500" },
 ]
 
 export function MedidorConsumo({

@@ -97,7 +97,7 @@ export function AcoesCanalDireto({
       </div>
 
       {erro && !pedindo && (
-        <p className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950/40">
+        <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 p-3 text-sm ">
           {erro}
         </p>
       )}
@@ -118,7 +118,7 @@ export function AcoesCanalDireto({
               <p className="mt-3 text-sm text-muted-foreground">{EFEITO[pedindo]}</p>
 
               {erro && (
-                <p className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950/40">
+                <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 p-3 text-sm ">
                   {erro}
                 </p>
               )}

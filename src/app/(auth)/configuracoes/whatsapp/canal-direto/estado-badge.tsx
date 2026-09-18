@@ -28,32 +28,32 @@ const ESTILO: Record<EstadoConexao, { texto: string; classe: string }> = {
   pairing: {
     texto: "Aguardando leitura",
     classe:
-      "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+      "bg-amber-500/15 text-amber-300 border-amber-500/30",
   },
   connecting: {
     texto: "Conectando",
     classe:
-      "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+      "bg-blue-500/15 text-blue-300 border-blue-500/30",
   },
   connected: {
     texto: "Conectado",
     classe:
-      "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+      "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
   },
   disconnected: {
     texto: "Desconectado",
     classe:
-      "bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700",
+      "bg-muted text-muted-foreground border-border",
   },
   banned: {
     texto: "Banido",
     classe:
-      "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+      "bg-red-500/15 text-red-300 border-red-500/30",
   },
   removed: {
     texto: "Removido",
     classe:
-      "bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700",
+      "bg-muted text-muted-foreground border-border",
   },
 }
 
@@ -71,7 +71,7 @@ export function EstadoBadge({ estado }: { estado: EstadoConexao }) {
 
 export function CanalBadge({ canal }: { canal: "meta" | "gateway" }) {
   return (
-    <Badge className="bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700">
+    <Badge className="bg-muted text-muted-foreground border-border">
       {canal === "meta" ? "API Oficial" : "Canal direto"}
     </Badge>
   )

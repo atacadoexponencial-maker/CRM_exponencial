@@ -161,7 +161,7 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
 
       {/* B8-03: por que parou, e o que isso significa de verdade. */}
       {relatorio.status === "interrompida" && (
-        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-900 dark:bg-amber-950/40">
+        <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 p-4 text-sm ">
           <p className="font-medium">Disparo interrompido</p>
           <p className="mt-1 text-muted-foreground">
             {relatorio.interrompidaMotivo === "banned"
