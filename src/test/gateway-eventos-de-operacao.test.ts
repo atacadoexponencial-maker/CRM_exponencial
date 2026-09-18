@@ -37,6 +37,9 @@ function supabaseFalso() {
     from: vi.fn((tabela: string) => ({
       update: (linha: unknown) => encadeavel(tabela, "update", linha),
       upsert: (linha: unknown, opcoes?: unknown) => encadeavel(tabela, "upsert", { linha, opcoes }),
+      insert: (linha: unknown) => encadeavel(tabela, "insert", linha),
+      // Leitura: nada existe, que é o caso de "primeiro alerta desta conexão".
+      select: () => encadeavel(tabela, "select", null),
     })),
   }
 
@@ -210,9 +213,10 @@ describe("freio", () => {
     })
 
     expect(resultado).toEqual({ acao: "aberto" })
-    const escrita = escritaDe(escritas, "operational_alerts")
-    expect(escrita?.operacao).toBe("upsert")
-    expect((escrita?.linha as { linha: Record<string, unknown> }).linha).toEqual({
+    const escrita = escritas.find(
+      (e) => e.tabela === "operational_alerts" && e.operacao === "insert"
+    )
+    expect(escrita?.linha).toEqual({
       workspace_id: WORKSPACE,
       connection_id: CONEXAO,
       tipo: TIPO_ALERTA_FREIO,
@@ -243,7 +247,10 @@ describe("freio", () => {
     ])
   })
 
-  it("o mesmo freio chegando duas vezes não duplica alerta", async () => {
+  it("procura alerta aberto antes de inserir, em vez de confiar no upsert", async () => {
+    // O índice único de `operational_alerts` é parcial (`where resolved_at is
+    // null`), e `ON CONFLICT` não infere índice parcial: o upsert era recusado
+    // pelo Postgres e o alerta nunca era gravado, em silêncio.
     const { supabase, escritas } = supabaseFalso()
 
     await registrarFreio({
@@ -253,10 +260,13 @@ describe("freio", () => {
       evento: { reason: "manual" },
     })
 
-    const escrita = escritaDe(escritas, "operational_alerts")
-    expect((escrita?.linha as { opcoes: Record<string, unknown> }).opcoes).toEqual({
-      onConflict: "connection_id,tipo",
-      ignoreDuplicates: true,
-    })
+    const daTabela = escritas.filter((e) => e.tabela === "operational_alerts")
+    expect(daTabela.map((e) => e.operacao)).toEqual(["select", "insert"])
+    expect(daTabela[0].filtros).toEqual([
+      ["connection_id", CONEXAO],
+      ["tipo", TIPO_ALERTA_FREIO],
+      ["resolved_at", null],
+    ])
+    expect(daTabela.some((e) => e.operacao === "upsert")).toBe(false)
   })
 })

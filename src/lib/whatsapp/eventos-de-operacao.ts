@@ -185,16 +185,37 @@ export async function registrarFreio({
     return { acao: "resolvido" }
   }
 
-  await supabase.from("operational_alerts").upsert(
-    {
+  // Select-e-insert, e não `upsert`: o índice único de `operational_alerts` é
+  // **parcial** (`where resolved_at is null`), e o `ON CONFLICT` do upsert não
+  // infere índice parcial — o Postgres recusa a instrução inteira, e o
+  // supabase-js devolve o erro em vez de lançar. Resultado: o alerta de freio
+  // nunca era gravado, em silêncio. Corrigido em 17/09/2026, no mesmo padrão
+  // de `abrirAlertaDeNumero`.
+  const { data: jaAberto } = await supabase
+    .from("operational_alerts")
+    .select("id")
+    .eq("connection_id", connectionId)
+    .eq("tipo", TIPO_ALERTA_FREIO)
+    .is("resolved_at", null)
+    .maybeSingle()
+
+  if (!jaAberto) {
+    const { error } = await supabase.from("operational_alerts").insert({
       workspace_id: workspaceId,
       connection_id: connectionId,
       tipo: TIPO_ALERTA_FREIO,
       motivo: evento.reason,
       queued_count: evento.queued_count ?? null,
-    },
-    { onConflict: "connection_id,tipo", ignoreDuplicates: true }
-  )
+    })
+
+    // 23505: outra entrega do mesmo evento abriu o alerta entre o select e o
+    // insert. O resultado desejado já aconteceu.
+    if (error && error.code !== "23505") {
+      // Não interrompe: parar as campanhas do número freado importa mais do
+      // que registrar o aviso.
+      console.error("[gateway] falha ao registrar o alerta de freio:", error.message)
+    }
+  }
 
   // B8-03: número freado para as campanhas dele na hora. Insistir com o número
   // freado é o caminho mais rápido para o banimento — e o gateway recusaria

@@ -41,7 +41,10 @@ function bancoFalso({ alertaAberto = null as { motivo: string } | null } = {}) {
     from(tabela: string) {
       return {
         update: (valores: Record<string, unknown>) => encadear(tabela, valores),
-        async upsert(valores: Record<string, unknown>) {
+        // O alerta é aberto com select-e-insert, e não com upsert: o índice
+        // único de `operational_alerts` é parcial e `ON CONFLICT` não infere
+        // índice parcial (corrigido em 17/09/2026).
+        async insert(valores: Record<string, unknown>) {
           upserts.push(valores)
           return { error: null }
         },
@@ -108,7 +111,7 @@ describe("freio do número interrompe as campanhas dele", () => {
   })
 
   it("o aviso do freio guarda quantas ficaram paradas, que é o número citado na tela", async () => {
-    const { banco, upserts } = bancoFalso()
+    const { banco, upserts: inseridos } = bancoFalso()
 
     await registrarFreio({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -118,7 +121,7 @@ describe("freio do número interrompe as campanhas dele", () => {
       evento: { reason: "manual", queued_count: 420 },
     })
 
-    expect(upserts[0]).toMatchObject({
+    expect(inseridos[0]).toMatchObject({
       tipo: TIPO_ALERTA_FREIO,
       motivo: "manual",
       queued_count: 420,
