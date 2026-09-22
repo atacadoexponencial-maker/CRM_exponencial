@@ -83,8 +83,10 @@ function supabaseFalso({
           eq: vi.fn().mockReturnThis(),
           in: vi.fn().mockReturnThis(),
           order: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockReturnThis(),
-          maybeSingle: vi.fn().mockResolvedValue({ data: { id: "conversa-1", unread_count: 0 } }),
+          // Lista, não linha única: a conversa é escolhida pelo número dono.
+          limit: vi.fn().mockResolvedValue({
+            data: [{ id: "conversa-1", unread_count: 0, whatsapp_connection_id: null }],
+          }),
           update: vi.fn((linha: unknown) => {
             escritas.push({ tabela, operacao: "update", linha })
             return { eq: vi.fn().mockResolvedValue({ error: null }) }

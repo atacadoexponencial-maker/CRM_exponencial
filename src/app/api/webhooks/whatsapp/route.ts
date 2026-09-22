@@ -3,6 +3,7 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import { processarAutomacoes } from "@/lib/automacoes"
 import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"
 import { transmitirMensagem } from "@/lib/whatsapp/realtime"
+import { escolherConversaDoNumero } from "@/lib/whatsapp/recebimento"
 
 // Valida a assinatura X-Hub-Signature-256 que a Meta envia em todo webhook.
 // Sem META_APP_SECRET configurado (ex.: ambiente de teste) a validação é pulada.
@@ -118,15 +119,20 @@ export async function POST(request: NextRequest) {
       contact = newContact
     }
 
-    const { data: openConversation } = await supabase
+    // A caixa é por NÚMERO DONO, e não só por contato: o mesmo cliente que
+    // escreve para dois números do workspace tem duas conversas. Sem isto, a
+    // segunda mensagem caía na caixa do primeiro número e a resposta saía pelo
+    // telefone errado. A escolha é a mesma do gateway, e mora lá.
+    const { data: abertas } = await supabase
       .from("conversations")
-      .select("id, unread_count")
+      .select("id, unread_count, whatsapp_connection_id")
       .eq("workspace_id", workspace_id)
       .eq("contact_id", contact.id)
       .in("status", ["em_espera", "em_atendimento"])
       .order("created_at", { ascending: false })
-      .limit(1)
-      .single()
+      .limit(50)
+
+    const openConversation = escolherConversaDoNumero(abertas ?? [], connectionId ?? null)
 
     let conversaId: string
 
@@ -137,6 +143,9 @@ export async function POST(request: NextRequest) {
           last_message_text: messageText,
           last_message_at: messageAt,
           unread_count: openConversation.unread_count + 1,
+          // Conversa sem dono registrado adota o número por onde a mensagem
+          // chegou, em vez de virar caixa duplicada.
+          whatsapp_connection_id: openConversation.whatsapp_connection_id ?? connectionId ?? null,
         })
         .eq("id", openConversation.id)
       if (error) return NextResponse.json({ error: "db error" }, { status: 500 })

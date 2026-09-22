@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ItemConversa } from "./item-conversa"
+import { formatarNumero } from "@/lib/whatsapp"
 import type { Conversa, FiltroStatus, FiltroVisibilidade } from "../mock-conversas"
 
 const FILTROS_STATUS: { label: string; valor: FiltroStatus }[] = [
@@ -34,12 +35,25 @@ export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, pape
     papel === "atendente" ? "minhas" : "todas"
   )
   const [etiqueta, setEtiqueta] = useState<string | null>(null)
+  const [numero, setNumero] = useState<string | null>(null)
   const [busca, setBusca] = useState("")
+
+  // Os números que aparecem na caixa, tirados das próprias conversas: o filtro
+  // só oferece o que existe ali. Com um número só não há o que separar, e a
+  // fileira nem aparece.
+  const numerosNaCaixa = Array.from(
+    new Map(
+      conversas
+        .filter((c) => c.canal.id)
+        .map((c) => [c.canal.id as string, { id: c.canal.id as string, rotulo: c.canal.numero ? formatarNumero(c.canal.numero) : c.canal.nome ?? "Número não identificado" }])
+    ).values()
+  ).sort((a, b) => a.rotulo.localeCompare(b.rotulo))
 
   const conversasFiltradas = conversas.filter((c) => {
     if (visibilidade === "minhas" && c.atribuidaA !== nomeUsuario) return false
     if (status !== "todas" && c.status !== status) return false
     if (etiqueta && !c.etiquetas.some((e) => e.id === etiqueta)) return false
+    if (numero && c.canal.id !== numero) return false
     if (busca.trim()) {
       const termo = busca.toLowerCase()
       const nome = (c.contato.nome ?? c.contato.telefone).toLowerCase()
@@ -96,6 +110,36 @@ export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, pape
             </button>
           ))}
         </div>
+
+        {numerosNaCaixa.length > 1 && (
+          <div className="flex gap-1 flex-wrap">
+            <button
+              onClick={() => setNumero(null)}
+              className={cn(
+                "px-2.5 py-1 text-xs rounded-md border transition-colors",
+                numero === null
+                  ? "bg-muted text-foreground border-border font-medium"
+                  : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+            >
+              Todos os números
+            </button>
+            {numerosNaCaixa.map((n) => (
+              <button
+                key={n.id}
+                onClick={() => setNumero(numero === n.id ? null : n.id)}
+                className={cn(
+                  "px-2.5 py-1 text-xs rounded-md border transition-colors",
+                  numero === n.id
+                    ? "bg-muted text-foreground border-border font-medium"
+                    : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+              >
+                {n.rotulo}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="flex gap-1 flex-wrap">
           <button

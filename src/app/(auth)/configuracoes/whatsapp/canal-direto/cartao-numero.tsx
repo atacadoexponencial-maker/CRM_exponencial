@@ -8,6 +8,7 @@
 // é do WhatsApp, e ler o QR de novo não desfaz.
 
 import { AlertTriangle, Ban } from "lucide-react"
+import { formatarNumero } from "@/lib/whatsapp"
 import { CanalBadge, EstadoBadge, TEXTO_DO_MOTIVO, type EstadoConexao, type MotivoDeTransicao } from "./estado-badge"
 
 export type NumeroConectado = {
@@ -17,13 +18,6 @@ export type NumeroConectado = {
   display_name: string | null
   state: EstadoConexao
   state_reason: MotivoDeTransicao | null
-}
-
-/** Dígitos crus viram +55 11 99999-8888. Número ainda não confirmado fica em branco. */
-export function formatarNumero(digitos: string | null): string {
-  if (!digitos) return "Número ainda não confirmado"
-  const m = /^(\d{2})(\d{2})(\d{4,5})(\d{4})$/.exec(digitos)
-  return m ? `+${m[1]} ${m[2]} ${m[3]}-${m[4]}` : digitos
 }
 
 export function CartaoNumero({

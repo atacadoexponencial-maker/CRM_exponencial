@@ -1,6 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
+import { formatarNumero } from "@/lib/whatsapp"
 import type { Conversa } from "../mock-conversas"
 
 function avatarIniciais(nome: string): string {
@@ -54,6 +55,16 @@ export function ItemConversa({ conversa, ativa, onClick, eMinhaConversa }: ItemC
             </span>
           )}
         </div>
+
+        {/* Por qual número seu esta conversa acontece. Desde que a caixa passou
+            a ser por número dono, o mesmo cliente aparece em mais de uma linha,
+            e sem isto as linhas ficam indistinguíveis. */}
+        {conversa.canal.nome && (
+          <p className="text-[11px] text-muted-foreground/80 truncate mt-0.5">
+            {conversa.canal.nome}
+            {conversa.canal.numero ? ` · ${formatarNumero(conversa.canal.numero)}` : ""}
+          </p>
+        )}
 
         {conversa.etiquetas.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1.5">

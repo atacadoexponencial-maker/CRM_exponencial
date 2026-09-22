@@ -189,7 +189,17 @@ export function traduzirConteudo(
     }
   }
 
-  return { tipo, conteudo: evento.text ?? "", previa: PREVIA_POR_TIPO[tipo] ?? PREVIA_POR_TIPO.desconhecido }
+  // Tipo que não conhecemos, mas com texto junto: o texto é o que o cliente
+  // escreveu, e é melhor prévia do que o aviso genérico. Acontece de verdade —
+  // o gateway manda tipo fora do mapa para texto com citação ou link, e a
+  // conversa ficava com "Mensagem não suportada por aqui" na lista enquanto a
+  // mensagem aparecia inteira lá dentro.
+  const texto = evento.text ?? ""
+  return {
+    tipo,
+    conteudo: texto,
+    previa: texto.length > 0 ? texto : PREVIA_POR_TIPO[tipo] ?? PREVIA_POR_TIPO.desconhecido,
+  }
 }
 
 /**
@@ -310,6 +320,46 @@ async function acharOuCriarContato(
   return criado.id
 }
 
+/** Conversa aberta, no mínimo que a escolha por número dono precisa enxergar. */
+export type ConversaAbertaDoContato = {
+  id: string
+  unread_count: number
+  whatsapp_connection_id: string | null
+}
+
+/**
+ * Qual conversa aberta do contato recebe a mensagem que chegou por `connectionId`.
+ *
+ * A caixa é por número dono: o mesmo cliente que escreve para dois números do
+ * workspace tem duas conversas, e cada resposta sai pelo telefone certo.
+ *
+ * A ordem das preferências:
+ *
+ *  1. Conversa do MESMO número. É o caso normal.
+ *  2. Conversa sem dono registrado, que então adota este número. Só existe em
+ *     workspace que teve a conexão removida — a migration da B7-01 preencheu o
+ *     resto. Adotar evita caixa duplicada para cliente antigo.
+ *  3. Nenhuma: o chamador abre conversa nova com este número.
+ *
+ * Sem `connectionId` (origem desconhecida) não há como separar, e vale o
+ * comportamento antigo: a conversa aberta mais recente.
+ *
+ * `abertas` vem ordenada da mais recente para a mais antiga.
+ */
+export function escolherConversaDoNumero(
+  abertas: ConversaAbertaDoContato[],
+  connectionId: string | null
+): ConversaAbertaDoContato | null {
+  if (abertas.length === 0) return null
+  if (!connectionId) return abertas[0]
+
+  return (
+    abertas.find((c) => c.whatsapp_connection_id === connectionId) ??
+    abertas.find((c) => c.whatsapp_connection_id === null) ??
+    null
+  )
+}
+
 async function abrirOuReusarConversa({
   supabase,
   workspaceId,
@@ -326,28 +376,35 @@ async function abrirOuReusarConversa({
   /** B7-01: número por onde a conversa chegou, para a resposta sair por ele. */
   connectionId?: string | null
 }): Promise<{ conversationId: string; conversaCriada: boolean }> {
-  const { data: aberta } = await supabase
+  const { data: abertas } = await supabase
     .from("conversations")
-    .select("id, unread_count")
+    .select("id, unread_count, whatsapp_connection_id")
     .eq("workspace_id", workspaceId)
     .eq("contact_id", contactId)
+    // A caixa é por NÚMERO DONO, não por contato. Sem este filtro, o mesmo
+    // cliente escrevendo para dois números do workspace caía na mesma conversa,
+    // e a resposta saía pelo telefone errado.
     .in("status", ["em_espera", "em_atendimento"])
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .limit(50)
 
-  if (aberta) {
+  const doMesmoNumero = escolherConversaDoNumero(abertas ?? [], connectionId ?? null)
+
+  if (doMesmoNumero) {
     const { error } = await supabase
       .from("conversations")
       .update({
         last_message_text: previa,
         last_message_at: recebidoEm,
-        unread_count: aberta.unread_count + 1,
+        unread_count: doMesmoNumero.unread_count + 1,
+        // Conversa sem dono registrado adota o número por onde a mensagem
+        // chegou, em vez de virar caixa duplicada.
+        whatsapp_connection_id: doMesmoNumero.whatsapp_connection_id ?? connectionId ?? null,
       })
-      .eq("id", aberta.id)
+      .eq("id", doMesmoNumero.id)
 
     if (error) throw new Error(`Não foi possível atualizar a conversa: ${error.message}`)
-    return { conversationId: aberta.id, conversaCriada: false }
+    return { conversationId: doMesmoNumero.id, conversaCriada: false }
   }
 
   const { data: nova, error } = await supabase

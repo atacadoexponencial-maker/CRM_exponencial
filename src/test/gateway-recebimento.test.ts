@@ -35,7 +35,7 @@ const TEXTO: EventoMensagemRecebida = {
 
 type Estado = {
   contato?: { id: string } | null
-  conversaAberta?: { id: string; unread_count: number } | null
+  conversaAberta?: { id: string; unread_count: number; whatsapp_connection_id?: string | null } | null
   mensagemCitada?: { id: string } | null
 }
 
@@ -74,8 +74,13 @@ function supabaseFalso({ contato = null, conversaAberta = null, mensagemCitada =
           eq: vi.fn().mockReturnThis(),
           in: vi.fn().mockReturnThis(),
           order: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockReturnThis(),
-          maybeSingle: vi.fn().mockResolvedValue({ data: conversaAberta }),
+          // A busca da conversa aberta devolve LISTA: a escolha é por número
+          // dono, e pode haver mais de uma caixa do mesmo contato.
+          limit: vi.fn().mockResolvedValue({
+            data: conversaAberta
+              ? [{ whatsapp_connection_id: null, ...conversaAberta }]
+              : [],
+          }),
           update: vi.fn((linha: unknown) => {
             registra("conversations", "update", linha)
             return { eq: vi.fn().mockResolvedValue({ error: null }) }
@@ -174,6 +179,8 @@ describe("contato e conversa", () => {
       last_message_text: TEXTO.text,
       last_message_at: RECEBIDO_EM,
       unread_count: 5,
+      // Conversa sem dono e evento sem conexão: segue sem dono.
+      whatsapp_connection_id: null,
     })
     expect(resultado.conversaCriada).toBe(false)
   })

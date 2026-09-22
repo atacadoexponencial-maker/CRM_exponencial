@@ -19,6 +19,7 @@ import { PainelContato } from "./painel-contato"
 import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio, atribuirConversa, transferirConversa, resolverConversa, reabrirConversa, aplicarEtiqueta, removerEtiqueta } from "../actions"
 import type { Conversa } from "../mock-conversas"
 import type { Mensagem } from "../mock-mensagens"
+import { formatarHoraDoDia } from "@/lib/datas"
 
 async function converterParaMp3(blob: Blob): Promise<Blob> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -69,7 +70,9 @@ const ACOES_POR_STATUS: Record<string, string[]> = {
 }
 
 function horaAtual(): string {
-  return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+  // Mesmo fuso do resto do chat: o balão otimista não pode marcar uma hora e a
+  // mensagem confirmada pelo servidor marcar outra.
+  return formatarHoraDoDia(new Date().toISOString())
 }
 
 interface PainelConversaProps {

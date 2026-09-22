@@ -1,20 +1,10 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/integrations/supabase/server"
+import { formatarDataCurta, formatarHorarioDaLista } from "@/lib/datas"
 import { nomeDoCanal, recursosDoCanal } from "@/lib/whatsapp"
 import type { CanalWhatsApp } from "@/lib/whatsapp"
 import { ChatLayout } from "./components/chat-layout"
 import type { Conversa, StatusConversa } from "./mock-conversas"
-
-function formatHorario(iso: string): string {
-  const date = new Date(iso)
-  const now = new Date()
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
-  if (diffDays === 0) return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-  if (diffDays === 1) return "Ontem"
-  const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
-  if (diffDays < 7) return weekdays[date.getDay()]
-  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
-}
 
 export default async function ChatPage({ searchParams }: { searchParams: Promise<{ conversa?: string }> }) {
   const { conversa: conversaInicialId } = await searchParams
@@ -100,7 +90,7 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
     .from("conversations")
     // B7-02: `conexao` traz o canal e o número que atendem a conversa. Nunca
     // credencial: só o que a tela mostra.
-    .select("id, status, assigned_to, unread_count, last_message_text, last_message_at, created_at, contact_id, contact:contacts(name, phone_number), assignee:profiles!assigned_to(name), conversation_labels(label_id, labels(id, name, color)), conexao:whatsapp_connections(canal, phone_number)")
+    .select("id, status, assigned_to, unread_count, last_message_text, last_message_at, created_at, contact_id, contact:contacts(name, phone_number), assignee:profiles!assigned_to(name), conversation_labels(label_id, labels(id, name, color)), conexao:whatsapp_connections(id, canal, phone_number)")
     .eq("workspace_id", perfil.workspace_id)
     .order("last_message_at", { ascending: false })
 
@@ -123,7 +113,7 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
     contact: { name: string | null; phone_number: string } | null
     assignee: { name: string } | null
     conversation_labels: ConvLabelRow[]
-    conexao: { canal: CanalWhatsApp | null; phone_number: string | null } | null
+    conexao: { id: string; canal: CanalWhatsApp | null; phone_number: string | null } | null
   }
 
   const conversas: Conversa[] = ((rows ?? []) as unknown as ConversationRow[]).map((c) => ({
@@ -135,7 +125,7 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
     },
     ultimaMensagem: {
       texto: c.last_message_text,
-      horario: formatHorario(c.last_message_at),
+      horario: formatarHorarioDaLista(c.last_message_at),
     },
     naoLidas: c.unread_count,
     status: c.status as StatusConversa,
@@ -143,9 +133,10 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
       .filter((cl) => cl.labels)
       .map((cl) => ({ id: cl.labels!.id, nome: cl.labels!.name, cor: cl.labels!.color })),
     atribuidaA: c.assignee?.name ?? null,
-    dataPrimeiroContato: new Date(c.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }),
+    dataPrimeiroContato: formatarDataCurta(c.created_at),
     // B7-02: o que o canal faz é decidido aqui, no servidor. A tela exibe.
     canal: {
+      id: c.conexao?.id ?? null,
       nome: c.conexao ? nomeDoCanal(c.conexao.canal) : null,
       numero: c.conexao?.phone_number ?? null,
       recursos: recursosDoCanal(c.conexao?.canal ?? null),

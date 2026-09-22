@@ -2,6 +2,7 @@
 
 import { createClient } from "@/integrations/supabase/server"
 import { createServiceClient } from "@/integrations/supabase/service"
+import { formatarDataCurta, formatarHoraDoDia, formatarHorarioDaLista } from "@/lib/datas"
 import { resolverProviderDaConversa } from "@/lib/whatsapp"
 import type { Mensagem, TipoMensagem, DirecaoMensagem, StatusMensagem } from "./mock-mensagens"
 
@@ -502,11 +503,7 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
 
   if (!contact) throw new Error("Contato não encontrado")
 
-  const dataPrimeiroContato = new Date(contact.created_at).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  })
+  const dataPrimeiroContato = formatarDataCurta(contact.created_at)
 
   const { data: anteriores } = await supabase
     .from("conversations")
@@ -515,22 +512,11 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
     .neq("id", conversaId)
     .order("last_message_at", { ascending: false })
 
-  function formatarData(iso: string): string {
-    const date = new Date(iso)
-    const now = new Date()
-    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
-    if (diffDays === 0) return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-    if (diffDays === 1) return "Ontem"
-    const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
-    if (diffDays < 7) return weekdays[date.getDay()]
-    return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
-  }
-
   const conversasAnteriores: ConversaAnterior[] = (anteriores ?? []).map((c) => ({
     id: c.id,
     status: c.status,
     ultimaMensagemTexto: c.last_message_text,
-    ultimaMensagemHorario: formatarData(c.last_message_at),
+    ultimaMensagemHorario: formatarHorarioDaLista(c.last_message_at),
   }))
 
   return { dataPrimeiroContato, etiquetas: [], conversasAnteriores }
@@ -630,10 +616,7 @@ export async function buscarMensagens(conversaId: string): Promise<Mensagem[]> {
   if (error) throw new Error(error.message)
 
   return (data ?? []).map((row) => {
-    const horario = new Date(row.created_at).toLocaleTimeString("pt-BR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+    const horario = formatarHoraDoDia(row.created_at)
 
     const mensagem: Mensagem = {
       id: row.id,

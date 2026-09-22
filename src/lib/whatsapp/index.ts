@@ -211,3 +211,17 @@ export function motivoDoRecursoIndisponivel(
       return `O número em uso (${doCanal}) não confirma leitura ao contato.`
   }
 }
+
+/**
+ * Dígitos crus viram +55 11 99999-8888. Número ainda não confirmado fica em branco.
+ *
+ * Mora aqui, e não no cartão da tela de números, porque a caixa de entrada
+ * passou a mostrar o número dono de cada conversa: duas funcionalidades
+ * distintas precisam do mesmo formato, e o chat não deve depender de um
+ * componente de configurações para tê-lo.
+ */
+export function formatarNumero(digitos: string | null): string {
+  if (!digitos) return "Número ainda não confirmado"
+  const m = /^(\d{2})(\d{2})(\d{4,5})(\d{4})$/.exec(digitos)
+  return m ? `+${m[1]} ${m[2]} ${m[3]}-${m[4]}` : digitos
+}

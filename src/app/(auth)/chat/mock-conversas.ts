@@ -10,6 +10,8 @@ export type FiltroStatus = "todas" | StatusConversa
  * número gravado — o envio cai no número do workspace, e a tela diz isso.
  */
 export interface CanalDaConversa {
+  /** Conexão dona da conversa. É por ela que o filtro por número agrupa. */
+  id: string | null
   nome: string | null
   numero: string | null
   recursos: { templates: boolean; midia: boolean; marcar_lida: boolean }
@@ -29,6 +31,7 @@ export interface Conversa {
 
 /** Mocks nasceram antes do canal existir: tratados como número não identificado. */
 const CANAL_MOCK: CanalDaConversa = {
+  id: null,
   nome: null,
   numero: null,
   recursos: { templates: true, midia: true, marcar_lida: true },

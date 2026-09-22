@@ -9,7 +9,7 @@
 
 import { Clock, MessageSquare, Plug } from "lucide-react"
 import { EstadoBadge } from "../../canal-direto/estado-badge"
-import { formatarNumero } from "../../canal-direto/cartao-numero"
+import { formatarNumero } from "@/lib/whatsapp"
 import type { SaudeDoNumero } from "./tipos"
 
 /** 82_800_000 ms → "23h00". Mostra minutos porque queda curta importa. */
