@@ -6,7 +6,7 @@ import { createClient } from "@/integrations/supabase/client"
 import { formatarHorarioDaLista } from "@/lib/datas"
 import { FiltrosCaixa } from "./filtros-caixa"
 import { PainelConversa } from "./painel-conversa"
-import { buscarMensagens, marcarComoLidas } from "../actions"
+import { buscarConversa, buscarMensagens, marcarComoLidas } from "../actions"
 import type { Conversa, StatusConversa } from "../mock-conversas"
 import type { Mensagem } from "../mock-mensagens"
 
@@ -66,6 +66,29 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, atenden
             }
             return [atualizada, ...prev.filter((c) => c.id !== row.id)]
           })
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "conversations",
+          filter: `workspace_id=eq.${workspaceId}`,
+        },
+        (payload) => {
+          // A primeira mensagem de um número cria a conversa, e a criação não
+          // passa pelo UPDATE acima. Os dados da lista vêm do servidor, que
+          // aplica as mesmas regras da carga da página.
+          const { id } = payload.new as { id: string }
+          buscarConversa(id)
+            .then((nova) => {
+              if (!nova) return
+              setConversasState((prev) =>
+                prev.some((c) => c.id === nova.id) ? prev : [nova, ...prev]
+              )
+            })
+            .catch(() => {})
         }
       )
       .on(

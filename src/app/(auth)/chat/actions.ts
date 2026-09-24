@@ -5,6 +5,8 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import { formatarDataCurta, formatarHoraDoDia, formatarHorarioDaLista } from "@/lib/datas"
 import { resolverProviderDaConversa } from "@/lib/whatsapp"
 import type { Mensagem, TipoMensagem, DirecaoMensagem, StatusMensagem } from "./mock-mensagens"
+import type { Conversa } from "./mock-conversas"
+import { listarConversas } from "./conversas"
 
 export async function enviarMensagem(conversaId: string, texto: string): Promise<void> {
   const supabase = await createClient()
@@ -602,6 +604,32 @@ async function avisarLeituraNoCanal(
   } catch {
     // Silêncio de propósito: ver o comentário da função.
   }
+}
+
+/**
+ * Conversa criada com a caixa de entrada aberta. Mesmas regras da carga da
+ * página: fora do workspace, ou de outro atendente, volta `null`.
+ */
+export async function buscarConversa(conversaId: string): Promise<Conversa | null> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+  if (!perfil) return null
+
+  const [conversa] = await listarConversas(supabase, {
+    workspaceId: perfil.workspace_id,
+    papel: perfil.role,
+    userId: user.id,
+    conversaId,
+  })
+  return conversa ?? null
 }
 
 export async function buscarMensagens(conversaId: string): Promise<Mensagem[]> {

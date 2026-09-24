@@ -8,7 +8,8 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react"
 import Link from "next/link"
-import { Activity, Gauge, Plus } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Activity, CheckCircle2, Gauge, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   criarConexaoCanalDireto,
@@ -45,9 +46,12 @@ export function ListaNumeros({
   const [motivo, setMotivo] = useState<MotivoDeTransicao | undefined>()
   const [termoAberto, setTermoAberto] = useState(false)
   const [aceito, setAceito] = useState(termoAceito)
+  const [recemConectado, setRecemConectado] = useState(false)
+  const router = useRouter()
 
   function conectarPeloCanalDireto() {
     setErro(null)
+    setRecemConectado(false)
 
     // B3-01: sem aceite, o termo vem primeiro. A action recusa de todo jeito —
     // isto evita a viagem inútil e explica o motivo na hora.
@@ -75,8 +79,22 @@ export function ListaNumeros({
   const acompanhar = useCallback(async () => {
     const resultado = await sincronizarEstadoCanalDireto()
     if (resultado.erro || !resultado.estado) return
-    setEstado(resultado.estado.state as EstadoConexao)
-  }, [])
+    const novo = resultado.estado.state as EstadoConexao
+
+    // Conectou: a tela do código sai, e a lista recarregada mostra o número.
+    // Só o selo mudando parecia tela travada. O estado volta ao inicial para o
+    // próximo pareamento ser acompanhado desde o começo.
+    if (novo === "connected") {
+      setConectando(null)
+      setPareamento(null)
+      setEstado("pairing")
+      setRecemConectado(true)
+      router.refresh()
+      return
+    }
+
+    setEstado(novo)
+  }, [router])
 
   useEffect(() => {
     if (conectando !== "gateway") return
@@ -122,6 +140,16 @@ export function ListaNumeros({
           </Button>
         )}
       </div>
+
+      {recemConectado && (
+        <p
+          role="status"
+          className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 p-3 text-sm"
+        >
+          <CheckCircle2 className="size-4 shrink-0" aria-hidden />
+          Número conectado. Ele já pode receber e enviar mensagens.
+        </p>
+      )}
 
       {erro && (
         <p className="rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 p-3 text-sm ">
