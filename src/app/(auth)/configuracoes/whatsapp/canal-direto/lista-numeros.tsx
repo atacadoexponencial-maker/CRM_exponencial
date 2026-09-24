@@ -6,7 +6,7 @@
 // issue trocou a origem. A criação da conexão é uma Server Action — o botão só
 // captura a intenção.
 
-import { useCallback, useEffect, useState, useTransition } from "react"
+import { useCallback, useEffect, useRef, useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Activity, CheckCircle2, Gauge, Plus } from "lucide-react"
@@ -41,6 +41,9 @@ export function ListaNumeros({
   const [erroPareamento, setErroPareamento] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [criando, criar] = useTransition()
+  // O servidor leva uns 2s para criar o número, e o botão desativado só vale
+  // depois do próximo render: a trava síncrona impede o segundo pedido.
+  const criacaoEmCurso = useRef(false)
   const [renovando, renovar] = useTransition()
   const [estado, setEstado] = useState<EstadoConexao>("pairing")
   const [motivo, setMotivo] = useState<MotivoDeTransicao | undefined>()
@@ -60,15 +63,22 @@ export function ListaNumeros({
       return
     }
 
+    if (criacaoEmCurso.current) return
+    criacaoEmCurso.current = true
+
     criar(async () => {
-      const resultado = await criarConexaoCanalDireto()
-      if (resultado.erro) {
-        setErro(resultado.erro)
-        return
+      try {
+        const resultado = await criarConexaoCanalDireto()
+        if (resultado.erro) {
+          setErro(resultado.erro)
+          return
+        }
+        setConectando("gateway")
+        // B2-03: com a instância criada, o código já pode ser pedido.
+        await buscarQr()
+      } finally {
+        criacaoEmCurso.current = false
       }
-      setConectando("gateway")
-      // B2-03: com a instância criada, o código já pode ser pedido.
-      await buscarQr()
     })
   }
 
@@ -209,6 +219,7 @@ export function ListaNumeros({
         <div className="space-y-6">
           <div className="rounded-lg border p-6">
             <EscolhaCanal
+              ocupado={criando}
               onEscolher={(canal) =>
                 canal === "gateway" ? conectarPeloCanalDireto() : setConectando("meta")
               }

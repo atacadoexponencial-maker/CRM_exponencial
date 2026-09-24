@@ -43,8 +43,11 @@ const CANAIS = [
 
 export function EscolhaCanal({
   onEscolher,
+  ocupado = false,
 }: {
   onEscolher?: (canal: CanalEscolhido) => void
+  /** Conexão sendo criada: um segundo clique criaria outro número. */
+  ocupado?: boolean
 }) {
   const [selecionado, setSelecionado] = useState<CanalEscolhido | null>(null)
 
@@ -110,8 +113,11 @@ export function EscolhaCanal({
       )}
 
       <div className="mt-5">
-        <Button disabled={!selecionado} onClick={() => selecionado && onEscolher?.(selecionado)}>
-          Continuar
+        <Button
+          disabled={!selecionado || ocupado}
+          onClick={() => selecionado && onEscolher?.(selecionado)}
+        >
+          {ocupado ? "Criando…" : "Continuar"}
         </Button>
       </div>
     </div>

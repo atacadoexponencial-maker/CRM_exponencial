@@ -70,6 +70,25 @@ describe("QR Code lido pelo celular", () => {
     expect(refresh).toHaveBeenCalledTimes(1)
   })
 
+  it("dois cliques em Continuar criam um número só, e o botão avisa que está criando", async () => {
+    let terminar: (valor: unknown) => void = () => {}
+    vi.mocked(criarConexaoCanalDireto).mockClear()
+    vi.mocked(criarConexaoCanalDireto).mockImplementation(
+      () => new Promise((resolver) => { terminar = resolver }) as never
+    )
+    render(<ListaNumeros numeros={[]} termoAceito />)
+    fireEvent.click(screen.getByRole("button", { name: /conectar número/i }))
+    fireEvent.click(screen.getByRole("button", { name: /canal direto \(qr code\)/i }))
+
+    const continuar = screen.getByRole("button", { name: /continuar/i })
+    fireEvent.click(continuar)
+    fireEvent.click(continuar)
+
+    expect(await screen.findByRole("button", { name: /criando/i })).toBeDisabled()
+    await act(async () => terminar({}))
+    expect(criarConexaoCanalDireto).toHaveBeenCalledTimes(1)
+  })
+
   it("enquanto o código não é lido, a tela continua aberta e sem aviso", async () => {
     sincronizar.mockResolvedValue({ estado: { state: "pairing" } } as never)
     await abrirTelaDoQr()
