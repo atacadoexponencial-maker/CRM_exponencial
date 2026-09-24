@@ -243,7 +243,8 @@ gateway volta sozinho:
   com o WhatsApp é fechada na hora e a sessão fica guardada. O gateway **não** volta
   sozinho: nem por reconexão automática, nem quando reinicia. Esta transição é a
   resposta da própria chamada e não gera evento; quem pediu já sabe, e o motivo é
-  nulo.
+  nulo. A pausa termina com `POST /instances/{id}/reconnect` (A10-02), que volta
+  com a sessão guardada, sem QR Code.
 
 ### 3.4 `instance.braked`
 
@@ -273,8 +274,17 @@ Base: `https://<gateway>/v1`. Todo corpo é JSON.
 | `GET` | `/instances/{id}` | instância | `{ instance_id, state, phone_number, display_name, created_at, last_connected_at }` |
 | `GET` | `/instances?workspace_id=` | serviço | `{ instances: [...] }` |
 | `POST` | `/instances/{id}/disconnect` | instância | `{ state: "disconnected" }` — fecha a conexão, sessão preservada, não volta sozinha (ver 3.3) |
+| `POST` | `/instances/{id}/reconnect` | instância | `{ state: "connecting" }` — volta com a sessão guardada, sem QR; ver abaixo |
 | `POST` | `/instances/{id}/logout` | instância | `{ state: "disconnected" }` — encerra no aparelho |
 | `DELETE` | `/instances/{id}` | instância | `{ state: "removed" }` — apaga sessão, mídias e fila |
+
+`reconnect` (A10-02) não tem corpo. Aceito em `disconnected`, pausada ou caída:
+responde `connecting` na hora, e o resultado chega por `instance.state` — `connected`
+com número e nome, ou `disconnected` com `session_closed_on_device` se o aparelho foi
+removido pelo celular durante a pausa. Em `connected` ou `connecting`, devolve o
+estado atual e não abre outra conexão. Recusa `banned` (`instance_banned`) e
+instância sem sessão guardada (`no_saved_session`). Depois dele, o número volta a
+ser tratado como qualquer conectado: se cair, o gateway tenta voltar sozinho.
 
 `POST /instances` recebe `{ workspace_id, webhook_url }`. O `instance_token` é
 devolvido **uma única vez**, na criação.
@@ -482,6 +492,7 @@ ser mostrado ao atendente.
 | `instance_not_found` | 404 | instância inexistente ou já removida |
 | `instance_not_connected` | 409 | envio pedido com a instância fora do ar |
 | `instance_banned` | 409 | instância marcada como banida |
+| `no_saved_session` | 409 | `reconnect` sem sessão guardada; é preciso parear de novo (A10-02) |
 | `instance_braked` | 409 | freio de emergência acionado (A6-07) |
 | `recipient_not_on_whatsapp` | 422 | destinatário não tem WhatsApp |
 | `media_too_large` | 413 | acima do teto do tipo; `message` informa o limite |
