@@ -132,6 +132,10 @@ export async function aplicarEstadoDaInstancia({
 
   await supabase.from("whatsapp_connections").update(alteracao).eq("id", connectionId)
 
+  if (evento.state === "connected" && evento.phone_number) {
+    await reunirConversasDoNumero({ supabase, connectionId, phoneNumber: evento.phone_number })
+  }
+
   // B4-03: desconexão e banimento viram alerta na central; reconexão os fecha.
   // Fica depois da atualização da conexão de propósito — o alerta é
   // consequência do estado gravado, e gravar é o que não pode falhar.
@@ -144,6 +148,44 @@ export async function aplicarEstadoDaInstancia({
       motivo: evento.reason ?? null,
     })
   }
+}
+
+/**
+ * Número removido e conectado de novo nasce como conexão nova. As conversas da
+ * conexão removida, com o mesmo telefone, passam para ela: sem isto, responder
+ * na conversa antiga ia pela instância apagada e falhava, e a próxima mensagem
+ * do cliente abria uma segunda caixa para ele.
+ */
+export async function reunirConversasDoNumero({
+  supabase,
+  connectionId,
+  phoneNumber,
+}: {
+  supabase: ServiceClient
+  connectionId: string
+  phoneNumber: string
+}): Promise<void> {
+  const { data: atual } = await supabase
+    .from("whatsapp_connections")
+    .select("workspace_id")
+    .eq("id", connectionId)
+    .maybeSingle()
+  if (!atual) return
+
+  const { data: removidas } = await supabase
+    .from("whatsapp_connections")
+    .select("id")
+    .eq("workspace_id", atual.workspace_id)
+    .eq("phone_number", phoneNumber)
+    .eq("status", "removed")
+
+  const ids = (removidas ?? []).map((c) => c.id).filter((id) => id !== connectionId)
+  if (ids.length === 0) return
+
+  await supabase
+    .from("conversations")
+    .update({ whatsapp_connection_id: connectionId })
+    .in("whatsapp_connection_id", ids)
 }
 
 export type EventoDeFreio = {

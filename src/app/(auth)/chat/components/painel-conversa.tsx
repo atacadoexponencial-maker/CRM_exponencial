@@ -113,6 +113,13 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
   const [duracaoGravacao, setDuracaoGravacao] = useState(0)
   const [enviandoAudio, setEnviandoAudio] = useState(false)
   const [mensagensFalhadas, setMensagensFalhadas] = useState<Set<string>>(new Set())
+  const [erroEnvio, setErroEnvio] = useState<string | null>(null)
+
+  /** O motivo vem do servidor, já em português; sem ele, fica só o ícone. */
+  function falhou(tempId: string, motivo?: string) {
+    setMensagensFalhadas((prev) => new Set(prev).add(tempId))
+    if (motivo) setErroEnvio(motivo)
+  }
   const [replyPara, setReplyPara] = useState<Mensagem | null>(null)
   const [indiceAtual, setIndiceAtual] = useState(0)
   const [pendingLabelId, setPendingLabelId] = useState<string | null>(null)
@@ -171,10 +178,15 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
     if (modoNota) return
 
     setEnviando(true)
+    setErroEnvio(null)
     try {
-      await enviarMensagem(conversa.id, conteudo)
+      const { erro } = await enviarMensagem(conversa.id, conteudo)
+      if (erro) {
+        falhou(tempId, erro)
+        setTexto(conteudo)
+      }
     } catch {
-      setMensagensFalhadas((prev) => new Set(prev).add(tempId))
+      falhou(tempId)
       setTexto(conteudo)
     } finally {
       setEnviando(false)
@@ -208,9 +220,10 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
     const formData = new FormData()
     formData.append("arquivo", arquivo)
     try {
-      await enviarImagem(conversa.id, formData)
+      const { erro } = await enviarImagem(conversa.id, formData)
+      if (erro) falhou(tempId, erro)
     } catch {
-      setMensagensFalhadas((prev) => new Set(prev).add(tempId))
+      falhou(tempId)
     } finally {
       setEnviandoImagem(false)
     }
@@ -242,9 +255,10 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
     const formData = new FormData()
     formData.append("arquivo", arquivo)
     try {
-      await enviarDocumento(conversa.id, formData)
+      const { erro } = await enviarDocumento(conversa.id, formData)
+      if (erro) falhou(tempId, erro)
     } catch {
-      setMensagensFalhadas((prev) => new Set(prev).add(tempId))
+      falhou(tempId)
     } finally {
       setEnviandoDocumento(false)
     }
@@ -277,9 +291,10 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
     const formData = new FormData()
     formData.append("arquivo", arquivo)
     try {
-      await enviarVideo(conversa.id, formData)
+      const { erro } = await enviarVideo(conversa.id, formData)
+      if (erro) falhou(tempId, erro)
     } catch {
-      setMensagensFalhadas((prev) => new Set(prev).add(tempId))
+      falhou(tempId)
     } finally {
       setEnviandoVideo(false)
     }
@@ -361,9 +376,10 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
       const formData = new FormData()
       formData.append("arquivo", mp3Blob, "audio.mp3")
       try {
-        await enviarAudio(conversa.id, formData)
+        const { erro } = await enviarAudio(conversa.id, formData)
+        if (erro) falhou(tempId, erro)
       } catch {
-        setMensagensFalhadas((prev) => new Set(prev).add(tempId))
+        falhou(tempId)
       } finally {
         setEnviandoAudio(false)
       }
@@ -719,6 +735,21 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
             modoNota && "bg-amber-50/60 dark:bg-amber-950/20"
           )}
         >
+          {erroEnvio && (
+            <div
+              role="alert"
+              className="flex items-start gap-2 mb-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 px-2.5 py-1.5 text-xs"
+            >
+              <span className="flex-1">{erroEnvio}</span>
+              <button
+                onClick={() => setErroEnvio(null)}
+                className="shrink-0 hover:text-foreground transition-colors"
+                aria-label="Fechar aviso"
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+          )}
           {replyPara && (
             <div className="flex items-center gap-2 mb-1.5 px-1 py-1 rounded-lg bg-muted/50 border-l-2 border-primary text-xs text-muted-foreground">
               <Reply className="size-3 shrink-0 text-primary" />

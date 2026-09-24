@@ -38,6 +38,10 @@ function bancoFalso() {
           updates.push(valores)
           return { eq: async () => ({ error: null }) }
         },
+        // Conectado procura conexões removidas do mesmo telefone; aqui não há.
+        select() {
+          return { eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }
+        },
       }
     },
   }

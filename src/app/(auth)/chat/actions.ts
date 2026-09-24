@@ -8,7 +8,7 @@ import type { Mensagem, TipoMensagem, DirecaoMensagem, StatusMensagem } from "./
 import type { Conversa } from "./mock-conversas"
 import { listarConversas } from "./conversas"
 
-export async function enviarMensagem(conversaId: string, texto: string): Promise<void> {
+async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promise<void> {
   const supabase = await createClient()
 
   const { data: conversa, error: errConversa } = await supabase
@@ -54,7 +54,7 @@ export async function enviarMensagem(conversaId: string, texto: string): Promise
     .eq("id", conversaId)
 }
 
-export async function enviarImagem(conversaId: string, formData: FormData): Promise<void> {
+async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Promise<void> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -135,7 +135,7 @@ const TIPOS_DOCUMENTO_VALIDOS = [
   "application/vnd.oasis.opendocument.presentation",
 ]
 
-export async function enviarDocumento(conversaId: string, formData: FormData): Promise<void> {
+async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData): Promise<void> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -203,7 +203,7 @@ export async function enviarDocumento(conversaId: string, formData: FormData): P
     .eq("id", conversaId)
 }
 
-export async function enviarVideo(conversaId: string, formData: FormData): Promise<void> {
+async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Promise<void> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -270,7 +270,7 @@ export async function enviarVideo(conversaId: string, formData: FormData): Promi
     .eq("id", conversaId)
 }
 
-export async function enviarAudio(conversaId: string, formData: FormData): Promise<void> {
+async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Promise<void> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -335,6 +335,65 @@ export async function enviarAudio(conversaId: string, formData: FormData): Promi
     .from("conversations")
     .update({ last_message_text: "🎤 Áudio", last_message_at: agora })
     .eq("id", conversaId)
+}
+
+/** Resultado dos envios: o motivo volta como valor, nunca como exceção. */
+export type ResultadoDoEnvio = { erro?: string }
+
+/**
+ * Envolve os envios do chat. Em produção o Next.js troca a mensagem de toda
+ * exceção de Server Action por um texto genérico, e o atendente via só o
+ * triângulo vermelho — sem saber que o número estava desconectado.
+ */
+async function comMotivo(conversaId: string, enviar: () => Promise<void>): Promise<ResultadoDoEnvio> {
+  try {
+    await enviar()
+    return {}
+  } catch (erro) {
+    const aviso = await avisoDaConexao(conversaId).catch(() => null)
+    const motivo = erro instanceof Error && erro.message ? erro.message : "Tente de novo em instantes."
+    return { erro: `Não enviada: ${aviso ?? motivo}` }
+  }
+}
+
+/** Quando o problema é o número da conversa, diz o que fazer. */
+async function avisoDaConexao(conversaId: string): Promise<string | null> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("conversations")
+    .select("conexao:whatsapp_connections(status)")
+    .eq("id", conversaId)
+    .maybeSingle()
+
+  const status = (data as { conexao?: { status: string } | null } | null)?.conexao?.status
+  if (status === "removed") {
+    return "o número desta conversa foi removido. Conecte-o de novo em Configurações → WhatsApp."
+  }
+  if (status === "banned") return "o número desta conversa foi banido pelo WhatsApp."
+  if (status && status !== "connected") {
+    return "o número desta conversa está desconectado. Reconecte em Configurações → WhatsApp."
+  }
+  return null
+}
+
+export async function enviarMensagem(conversaId: string, texto: string): Promise<ResultadoDoEnvio> {
+  return comMotivo(conversaId, () => enviarMensagemSemMotivo(conversaId, texto))
+}
+
+export async function enviarImagem(conversaId: string, formData: FormData): Promise<ResultadoDoEnvio> {
+  return comMotivo(conversaId, () => enviarImagemSemMotivo(conversaId, formData))
+}
+
+export async function enviarDocumento(conversaId: string, formData: FormData): Promise<ResultadoDoEnvio> {
+  return comMotivo(conversaId, () => enviarDocumentoSemMotivo(conversaId, formData))
+}
+
+export async function enviarVideo(conversaId: string, formData: FormData): Promise<ResultadoDoEnvio> {
+  return comMotivo(conversaId, () => enviarVideoSemMotivo(conversaId, formData))
+}
+
+export async function enviarAudio(conversaId: string, formData: FormData): Promise<ResultadoDoEnvio> {
+  return comMotivo(conversaId, () => enviarAudioSemMotivo(conversaId, formData))
 }
 
 export async function buscarAtendentes(workspaceId: string): Promise<Array<{ id: string; nome: string }>> {
