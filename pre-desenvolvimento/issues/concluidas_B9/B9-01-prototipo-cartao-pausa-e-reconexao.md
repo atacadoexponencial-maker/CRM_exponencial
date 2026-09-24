@@ -108,5 +108,5 @@ Nenhuma.
 - [x] Criar a rota `prototipo-pausa` com a checagem de admin
 - [x] Montar os seis cartões de exemplo, cada um com o rótulo do estado
 - [x] Mostrar os três textos de efeito revisados
-- [ ] Conferir a tela em largura de celular
-- [ ] Conferir que `/configuracoes/whatsapp` segue igual
+- [x] Conferir a tela em largura de celular
+- [x] Conferir que `/configuracoes/whatsapp` segue igual
