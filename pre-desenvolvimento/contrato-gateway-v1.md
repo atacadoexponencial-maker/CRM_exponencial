@@ -234,6 +234,17 @@ campanha.
 explica transições não solicitadas — `session_closed_on_device`, `banned_by_whatsapp`,
 `connection_lost`.
 
+**Dois `disconnected` diferentes** (A10-01). O estado é o mesmo; o que muda é se o
+gateway volta sozinho:
+
+- `disconnected` com `reason: "connection_lost"` — **caiu.** O gateway tenta
+  reconectar sozinho, com espera progressiva, e reabre a sessão quando reinicia.
+- `disconnected` pedido por `POST /instances/{id}/disconnect` — **pausa.** A conexão
+  com o WhatsApp é fechada na hora e a sessão fica guardada. O gateway **não** volta
+  sozinho: nem por reconexão automática, nem quando reinicia. Esta transição é a
+  resposta da própria chamada e não gera evento; quem pediu já sabe, e o motivo é
+  nulo.
+
 ### 3.4 `instance.braked`
 
 ```json
@@ -261,7 +272,7 @@ Base: `https://<gateway>/v1`. Todo corpo é JSON.
 | `POST` | `/instances` | serviço | `{ instance_id, instance_token, state }` |
 | `GET` | `/instances/{id}` | instância | `{ instance_id, state, phone_number, display_name, created_at, last_connected_at }` |
 | `GET` | `/instances?workspace_id=` | serviço | `{ instances: [...] }` |
-| `POST` | `/instances/{id}/disconnect` | instância | `{ state: "disconnected" }` — sessão preservada |
+| `POST` | `/instances/{id}/disconnect` | instância | `{ state: "disconnected" }` — fecha a conexão, sessão preservada, não volta sozinha (ver 3.3) |
 | `POST` | `/instances/{id}/logout` | instância | `{ state: "disconnected" }` — encerra no aparelho |
 | `DELETE` | `/instances/{id}` | instância | `{ state: "removed" }` — apaga sessão, mídias e fila |
 
