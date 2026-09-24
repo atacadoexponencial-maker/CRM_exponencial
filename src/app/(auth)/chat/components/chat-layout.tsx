@@ -144,9 +144,20 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, atenden
           })
         }
       )
-      .subscribe()
+
+    // O canal precisa entrar com a credencial do usuário. Sem ela, entra como
+    // anônimo, e o RLS esconde todo `postgres_changes` de conversas e
+    // mensagens — só o broadcast, que não passa por RLS, chegava. A sessão lida
+    // dos cookies não é repassada ao tempo real sozinha; renovações do token,
+    // sim, pelo próprio cliente.
+    let encerrado = false
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) await supabase.realtime.setAuth(session.access_token)
+      if (!encerrado) channel.subscribe()
+    })
 
     return () => {
+      encerrado = true
       supabase.removeChannel(channel)
     }
   }, [workspaceId])
