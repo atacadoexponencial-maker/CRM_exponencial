@@ -19,7 +19,7 @@ vi.mock("@/lib/whatsapp", async (original) => ({
 }))
 
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
-import { enviarMensagem } from "@/app/(auth)/chat/actions"
+import { buscarMensagens, enviarMensagem } from "@/app/(auth)/chat/actions"
 import { aplicarEstadoDaInstancia } from "@/lib/whatsapp/eventos-de-operacao"
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -102,7 +102,10 @@ async function conexaoDaConversa(conversaId: string) {
 }
 
 afterAll(async () => {
-  if (criados.conversaIds.length) await service.from("conversations").delete().in("id", criados.conversaIds)
+  if (criados.conversaIds.length) {
+    await service.from("messages").delete().in("conversation_id", criados.conversaIds)
+    await service.from("conversations").delete().in("id", criados.conversaIds)
+  }
   if (criados.contatoIds.length) await service.from("contacts").delete().in("id", criados.contatoIds)
   if (criados.conexaoIds.length) await service.from("whatsapp_connections").delete().in("id", criados.conexaoIds)
   if (criados.userIds.length) {
@@ -182,5 +185,16 @@ describe("envio que falha diz por quê", () => {
     const resultado = await enviarMensagem(conversaDeNumeroDesconectado, "Olá")
 
     expect(resultado.erro).toMatch(/^Não enviada: o número desta conversa está desconectado/)
+  })
+
+  it("a tentativa fica gravada na conversa, com o motivo, para quem abrir depois", async () => {
+    const { erro } = await enviarMensagem(conversaDeNumeroDesconectado, "Tentativa registrada")
+
+    const mensagens = await buscarMensagens(conversaDeNumeroDesconectado)
+    const tentativa = mensagens.find((m) => m.conteudo === "Tentativa registrada")
+
+    expect(tentativa?.status).toBe("falhou")
+    expect(tentativa?.direcao).toBe("enviada")
+    expect(tentativa?.motivoFalha).toBe(erro)
   })
 })

@@ -345,15 +345,48 @@ export type ResultadoDoEnvio = { erro?: string }
  * exceção de Server Action por um texto genérico, e o atendente via só o
  * triângulo vermelho — sem saber que o número estava desconectado.
  */
-async function comMotivo(conversaId: string, enviar: () => Promise<void>): Promise<ResultadoDoEnvio> {
+async function comMotivo(
+  conversaId: string,
+  enviar: () => Promise<void>,
+  aoFalhar?: (motivo: string) => Promise<void>
+): Promise<ResultadoDoEnvio> {
   try {
     await enviar()
     return {}
   } catch (erro) {
     const aviso = await avisoDaConexao(conversaId).catch(() => null)
-    const motivo = erro instanceof Error && erro.message ? erro.message : "Tente de novo em instantes."
-    return { erro: `Não enviada: ${aviso ?? motivo}` }
+    const motivo = `Não enviada: ${
+      aviso ?? (erro instanceof Error && erro.message ? erro.message : "tente de novo em instantes.")
+    }`
+    // Registrar a falha nunca troca o motivo que o atendente vai ler.
+    if (aoFalhar) await aoFalhar(motivo).catch(() => {})
+    return { erro: motivo }
   }
+}
+
+/**
+ * A tentativa que falhou fica na conversa, com o motivo. Antes ela existia só
+ * na tela de quem tentou: saindo e voltando, ou para outro atendente, era como
+ * se ninguém tivesse escrito.
+ */
+async function registrarFalhaDeTexto(conversaId: string, texto: string, motivo: string): Promise<void> {
+  const supabase = await createClient()
+  const { data: conversa } = await supabase
+    .from("conversations")
+    .select("workspace_id")
+    .eq("id", conversaId)
+    .single()
+  if (!conversa) return
+
+  await supabase.from("messages").insert({
+    conversation_id: conversaId,
+    workspace_id: conversa.workspace_id,
+    direction: "enviada",
+    type: "texto",
+    content: texto,
+    status: "falhou",
+    status_error: motivo,
+  })
 }
 
 /** Quando o problema é o número da conversa, diz o que fazer. */
@@ -377,7 +410,11 @@ async function avisoDaConexao(conversaId: string): Promise<string | null> {
 }
 
 export async function enviarMensagem(conversaId: string, texto: string): Promise<ResultadoDoEnvio> {
-  return comMotivo(conversaId, () => enviarMensagemSemMotivo(conversaId, texto))
+  return comMotivo(
+    conversaId,
+    () => enviarMensagemSemMotivo(conversaId, texto),
+    (motivo) => registrarFalhaDeTexto(conversaId, texto, motivo)
+  )
 }
 
 export async function enviarImagem(conversaId: string, formData: FormData): Promise<ResultadoDoEnvio> {
@@ -696,7 +733,7 @@ export async function buscarMensagens(conversaId: string): Promise<Mensagem[]> {
 
   const { data, error } = await supabase
     .from("messages")
-    .select("id, conversation_id, direction, type, content, status, reply_to_id, reply_preview_text, created_at")
+    .select("id, conversation_id, direction, type, content, status, status_error, reply_to_id, reply_preview_text, created_at")
     .eq("conversation_id", conversaId)
     .order("created_at", { ascending: true })
 
@@ -713,6 +750,7 @@ export async function buscarMensagens(conversaId: string): Promise<Mensagem[]> {
       conteudo: row.content,
       horario,
       status: (row.status ?? undefined) as StatusMensagem | undefined,
+      ...(row.status === "falhou" && row.status_error ? { motivoFalha: row.status_error } : {}),
     }
 
     if (row.reply_to_id && row.reply_preview_text) {

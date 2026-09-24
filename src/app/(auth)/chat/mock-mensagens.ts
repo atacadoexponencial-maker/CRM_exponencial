@@ -10,6 +10,8 @@ export interface Mensagem {
   conteudo: string
   horario: string
   status?: StatusMensagem
+  /** Por que o envio falhou, gravado junto da tentativa. */
+  motivoFalha?: string
   replyDe?: { id: string; texto: string }
 }
 

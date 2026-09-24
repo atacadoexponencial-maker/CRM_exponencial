@@ -50,6 +50,9 @@ export function ListaNumeros({
   const [termoAberto, setTermoAberto] = useState(false)
   const [aceito, setAceito] = useState(termoAceito)
   const [recemConectado, setRecemConectado] = useState(false)
+  // Reconexão de um número que já existe: a escolha de canal fica escondida,
+  // porque o "Continuar" dela criaria um número novo (24/09/2026).
+  const [reconectando, setReconectando] = useState(false)
   const router = useRouter()
 
   function conectarPeloCanalDireto() {
@@ -96,6 +99,7 @@ export function ListaNumeros({
     // próximo pareamento ser acompanhado desde o começo.
     if (novo === "connected") {
       setConectando(null)
+      setReconectando(false)
       setPareamento(null)
       setEstado("pairing")
       setRecemConectado(true)
@@ -204,6 +208,7 @@ export function ListaNumeros({
                         conexaoId={numero.id}
                         estado={numero.state}
                         onReconectar={() => {
+                          setReconectando(true)
                           setConectando("gateway")
                           void buscarQr()
                         }}
@@ -217,14 +222,16 @@ export function ListaNumeros({
         )
       ) : (
         <div className="space-y-6">
-          <div className="rounded-lg border p-6">
-            <EscolhaCanal
-              ocupado={criando}
-              onEscolher={(canal) =>
-                canal === "gateway" ? conectarPeloCanalDireto() : setConectando("meta")
-              }
-            />
-          </div>
+          {!reconectando && (
+            <div className="rounded-lg border p-6">
+              <EscolhaCanal
+                ocupado={criando}
+                onEscolher={(canal) =>
+                  canal === "gateway" ? conectarPeloCanalDireto() : setConectando("meta")
+                }
+              />
+            </div>
+          )}
 
           {conectando === "gateway" && (
             <>
@@ -246,7 +253,13 @@ export function ListaNumeros({
             </p>
           )}
 
-          <Button variant="outline" onClick={() => setConectando(null)}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setConectando(null)
+              setReconectando(false)
+            }}
+          >
             Voltar para a lista
           </Button>
         </div>

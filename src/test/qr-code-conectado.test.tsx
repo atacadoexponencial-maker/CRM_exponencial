@@ -89,6 +89,34 @@ describe("QR Code lido pelo celular", () => {
     expect(criarConexaoCanalDireto).toHaveBeenCalledTimes(1)
   })
 
+  it("reconectar mostra só o QR do número, sem a escolha de canal que criaria outro", async () => {
+    sincronizar.mockResolvedValue({ estado: { state: "pairing" } } as never)
+    vi.mocked(criarConexaoCanalDireto).mockClear()
+    render(
+      <ListaNumeros
+        termoAceito
+        numeros={[
+          {
+            id: "c1",
+            canal: "gateway",
+            phone_number: "5521993911946",
+            display_name: null,
+            state: "disconnected",
+            state_reason: null,
+          },
+        ]}
+      />
+    )
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /reconectar/i }))
+    })
+
+    expect(screen.getByText(/leia o código no aparelho/i)).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /continuar/i })).not.toBeInTheDocument()
+    expect(criarConexaoCanalDireto).not.toHaveBeenCalled()
+  })
+
   it("enquanto o código não é lido, a tela continua aberta e sem aviso", async () => {
     sincronizar.mockResolvedValue({ estado: { state: "pairing" } } as never)
     await abrirTelaDoQr()

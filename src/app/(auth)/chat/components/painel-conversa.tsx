@@ -112,12 +112,12 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
   const [gravando, setGravando] = useState(false)
   const [duracaoGravacao, setDuracaoGravacao] = useState(0)
   const [enviandoAudio, setEnviandoAudio] = useState(false)
-  const [mensagensFalhadas, setMensagensFalhadas] = useState<Set<string>>(new Set())
+  const [mensagensFalhadas, setMensagensFalhadas] = useState<Map<string, string | undefined>>(new Map())
   const [erroEnvio, setErroEnvio] = useState<string | null>(null)
 
   /** O motivo vem do servidor, já em português; sem ele, fica só o ícone. */
   function falhou(tempId: string, motivo?: string) {
-    setMensagensFalhadas((prev) => new Set(prev).add(tempId))
+    setMensagensFalhadas((prev) => new Map(prev).set(tempId, motivo))
     if (motivo) setErroEnvio(motivo)
   }
   const [replyPara, setReplyPara] = useState<Mensagem | null>(null)
@@ -397,7 +397,9 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
   }
 
   const mensagensExibidas = mensagens.map((m) =>
-    mensagensFalhadas.has(m.id) ? { ...m, status: "falhou" as const } : m
+    mensagensFalhadas.has(m.id)
+      ? { ...m, status: "falhou" as const, motivoFalha: mensagensFalhadas.get(m.id) }
+      : m
   )
 
   const mensagensFiltradas = termoBusca.trim()

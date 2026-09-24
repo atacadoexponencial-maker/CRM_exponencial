@@ -284,6 +284,9 @@ export function BalaoMensagem({ mensagem, termoBusca = "", onResponder }: BalaoM
           </span>
           {isEnviada && <IconeStatus status={mensagem.status} />}
         </div>
+        {mensagem.status === "falhou" && mensagem.motivoFalha && (
+          <p className="mt-1 text-[11px] text-red-200">{mensagem.motivoFalha}</p>
+        )}
       </div>
       {podeResponder && isEnviada && hover && (
         <button
