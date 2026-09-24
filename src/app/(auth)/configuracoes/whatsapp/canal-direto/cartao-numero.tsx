@@ -23,9 +23,15 @@ export type NumeroConectado = {
 export function CartaoNumero({
   numero,
   acoes,
+  desdeQuando,
+  aviso,
 }: {
   numero: NumeroConectado
   acoes?: React.ReactNode
+  /** B9-01: "Desconectado há N dias", já formatado por quem chama. */
+  desdeQuando?: string
+  /** B9-01: aviso do cartão; quando vem, ocupa o lugar do aviso de motivo. */
+  aviso?: React.ReactNode
 }) {
   return (
     <div className="rounded-lg border p-5">
@@ -35,6 +41,9 @@ export function CartaoNumero({
           <p className="text-sm text-muted-foreground mt-0.5 truncate">
             {numero.display_name ?? "Sem nome de exibição"}
           </p>
+          {desdeQuando && (
+            <p className="text-xs text-muted-foreground mt-1">{desdeQuando}</p>
+          )}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           <EstadoBadge estado={numero.state} />
@@ -52,7 +61,9 @@ export function CartaoNumero({
         </p>
       )}
 
-      {numero.state !== "banned" && numero.state_reason && (
+      {aviso && <div className="mt-4">{aviso}</div>}
+
+      {!aviso && numero.state !== "banned" && numero.state_reason && (
         <p className="mt-4 flex gap-2 rounded-lg border bg-muted/40 p-3 text-sm">
           <AlertTriangle className="size-4 shrink-0 mt-0.5 text-muted-foreground" aria-hidden />
           <span>{TEXTO_DO_MOTIVO[numero.state_reason]}</span>
