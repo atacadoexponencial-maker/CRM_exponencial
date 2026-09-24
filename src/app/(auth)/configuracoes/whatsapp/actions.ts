@@ -226,6 +226,7 @@ async function instanciaDoCanalDireto(
     .eq("workspace_id", workspaceId)
     .eq("canal", "gateway")
     .not("instance_id", "is", null)
+    .neq("status", "removed")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -425,18 +426,23 @@ export async function operarNumeroCanalDireto(
   // lado de lá, e insistir não muda nada. O CRM acerta a própria cópia.
   if (!resultado.ok && !resultado.jaNaoExiste) return { erro: resultado.erro }
 
-  if (operacao === "remover") {
-    await service.from("whatsapp_connections").delete().eq("id", conexaoId)
-  } else {
-    await service
-      .from("whatsapp_connections")
-      .update({
-        status: resultado.ok ? resultado.estado : "disconnected",
-        // A operação foi pedida por nós: não há motivo de transição, e isto
-        // limpa um "connection_lost" velho que estivesse na tela.
-        state_reason: null,
-      })
-      .eq("id", conexaoId)
+  // Removido é arquivado, não apagado: as conversas e campanhas antigas apontam
+  // para esta conexão, e o banco recusava o delete — em silêncio, com o número
+  // já fora do gateway e ainda "conectado" na tela. Instância que o gateway não
+  // conhece mais vira removida pelo mesmo caminho, seja qual for a operação.
+  const removida = operacao === "remover" || !resultado.ok
+  const { error } = await service
+    .from("whatsapp_connections")
+    .update({
+      status: removida ? "removed" : resultado.estado,
+      // A operação foi pedida por nós: não há motivo de transição, e isto
+      // limpa um "connection_lost" velho que estivesse na tela.
+      state_reason: null,
+    })
+    .eq("id", conexaoId)
+
+  if (error) {
+    return { erro: "O gateway fez a operação, mas o CRM não conseguiu registrá-la. Tente de novo." }
   }
 
   revalidatePath("/configuracoes/whatsapp")

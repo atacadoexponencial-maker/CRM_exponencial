@@ -48,7 +48,10 @@ function bancoFalso({
           return {
             eq() {
               return {
-                order: async () => ({ data: linhas, error: null }),
+                neq(coluna: string, valor: unknown) {
+                  const filtradas = linhas.filter((l) => l[coluna] !== valor)
+                  return { order: async () => ({ data: filtradas, error: null }) }
+                },
               }
             },
           }
@@ -169,6 +172,19 @@ describe("criar conexão pelo canal direto", () => {
 })
 
 describe("listar conexões do workspace", () => {
+  it("número removido fica arquivado, fora da lista", async () => {
+    const { banco } = bancoFalso({
+      linhas: [
+        { id: "c1", canal: "gateway", phone_number: "5519981262705", display_name: null, status: "removed", state_reason: null },
+        { id: "c2", canal: "gateway", phone_number: "5521993911946", display_name: null, status: "connected", state_reason: null },
+      ],
+    })
+
+    const conexoes = await listarConexoes(banco, WORKSPACE)
+
+    expect(conexoes.map((c) => c.id)).toEqual(["c2"])
+  })
+
   it("devolve todas, com o canal de cada uma", async () => {
     const { banco } = bancoFalso({
       linhas: [

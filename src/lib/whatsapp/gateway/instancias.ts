@@ -29,10 +29,15 @@ export type BancoDeConexoes = {
         coluna: string,
         valor: string
       ): {
-        order(coluna: string, opcoes: { ascending: boolean }): Promise<{
-          data: RegistroDeConexao[] | null
-          error: { message: string } | null
-        }>
+        neq(
+          coluna: string,
+          valor: string
+        ): {
+          order(coluna: string, opcoes: { ascending: boolean }): Promise<{
+            data: RegistroDeConexao[] | null
+            error: { message: string } | null
+          }>
+        }
       }
     }
     insert(linha: Record<string, unknown>): Promise<{ error: { message: string } | null }>
@@ -72,6 +77,8 @@ export async function listarConexoes(
     .from("whatsapp_connections")
     .select("id, canal, phone_number, display_name, status, state_reason")
     .eq("workspace_id", workspaceId)
+    // Removida fica arquivada para o histórico das conversas, fora da lista.
+    .neq("status", "removed")
     .order("created_at", { ascending: true })
 
   return (data ?? []).map((linha) => ({

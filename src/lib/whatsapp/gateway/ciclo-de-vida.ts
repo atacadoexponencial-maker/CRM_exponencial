@@ -75,7 +75,10 @@ export async function operarInstancia(
       return {
         ok: false,
         erro: MENSAGEM_POR_CODIGO[erro.code] ?? erro.message,
-        jaNaoExiste: erro.code === "instance_not_found",
+        // Nas rotas de instância o token vai sempre, então 401 quer dizer que a
+        // instância foi removida: o gateway responde assim de propósito, para
+        // não confirmar a quem adivinha quais ids existem (`auth/hooks.ts` lá).
+        jaNaoExiste: erro.code === "instance_not_found" || erro.code === "invalid_credentials",
       }
     }
 

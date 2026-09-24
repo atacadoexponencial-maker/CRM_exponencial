@@ -78,6 +78,16 @@ describe("recusa e indisponibilidade", () => {
     })
   })
 
+  it("instância removida no gateway (401 com token enviado) também é tratada como inexistente", async () => {
+    const gateway = gatewayFalso(
+      new GatewayRecusou("invalid_credentials", "Credencial ausente ou inválida.", 401)
+    )
+
+    const resultado = await operarInstancia(gateway.cliente, INSTANCIA, TOKEN, "desconectar")
+
+    expect(resultado).toMatchObject({ ok: false, jaNaoExiste: true })
+  })
+
   it("conexão de outro workspace é recusada e não é tratada como inexistente", async () => {
     const gateway = gatewayFalso(
       new GatewayRecusou("instance_forbidden", "Token de outra instância.", 403)
