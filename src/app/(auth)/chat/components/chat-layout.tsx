@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from "react"
 import { Loader2 } from "lucide-react"
 import { createClient } from "@/integrations/supabase/client"
-import { formatarHorarioDaLista } from "@/lib/datas"
+import { formatarHoraDoDia, formatarHorarioDaLista } from "@/lib/datas"
 import { FiltrosCaixa } from "./filtros-caixa"
 import { PainelConversa } from "./painel-conversa"
 import { buscarConversa, buscarMensagens, carregarMaisConversas, marcarComoLidas } from "../actions"
@@ -115,7 +115,8 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsu
             tipo: row.type as Mensagem["tipo"],
             direcao: row.direction as Mensagem["direcao"],
             conteudo: row.content,
-            horario: row.created_at,
+            // Mesma formatação das mensagens carregadas pela página.
+            horario: formatarHoraDoDia(row.created_at),
             status: row.status as Mensagem["status"] | undefined,
           }
           setMensagensLocais((prev) => {
