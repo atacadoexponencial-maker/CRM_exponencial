@@ -65,7 +65,7 @@ nasceram assim.
 ## O canal direto em duas linhas
 
 O gateway é um serviço nosso, em outro repositório, com contrato próprio
-(a cópia dele está em `pre-desenvolvimento/contrato-gateway-v1.md`). Duas coisas
+(a cópia dele está em `pre-desenvolvimento/referencia/contrato-gateway-v1.md`). Duas coisas
 dele vazariam para o resto do CRM se `provider-gateway.ts` não as escondesse:
 
 - **Todo envio é enfileirado.** A resposta diz `queued: true`, que significa

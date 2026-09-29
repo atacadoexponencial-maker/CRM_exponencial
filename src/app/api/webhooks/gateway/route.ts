@@ -3,7 +3,7 @@
 // Rota separada da da Meta de propósito: dois canais, duas portas. O webhook da
 // Meta está em produção e não pode ser posto em risco por um canal novo.
 //
-// Regras que vêm do contrato (pre-desenvolvimento/contrato-gateway-v1.md) e não
+// Regras que vêm do contrato (pre-desenvolvimento/referencia/contrato-gateway-v1.md) e não
 // são negociáveis:
 //
 //  - A assinatura é validada sobre o CORPO BRUTO, antes de qualquer parse, em

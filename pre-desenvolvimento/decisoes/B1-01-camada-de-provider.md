@@ -39,7 +39,7 @@ uma camada no meio, adicionar um segundo canal significaria espalhar
 futuro.
 
 A avaliação chama esta issue de **"pré-requisito inegociável"**
-(`pre-desenvolvimento/avaliacao-whatsapp-nao-oficial.md`, item 1 de 7).
+(`pre-desenvolvimento/referencia/avaliacao-whatsapp-nao-oficial.md`, item 1 de 7).
 
 **Vale mesmo que o segundo canal nunca exista:** hoje a lógica de envio está copiada
 sete vezes.

@@ -1,6 +1,6 @@
 // Tipos da fronteira com o gateway WhatsApp próprio.
 //
-// Espelham `pre-desenvolvimento/contrato-gateway-v1.md`, que é uma cópia — a
+// Espelham `pre-desenvolvimento/referencia/contrato-gateway-v1.md`, que é uma cópia — a
 // fonte de verdade vive no repositório do gateway. Mudança no contrato começa
 // lá; aqui só reflete.
 //

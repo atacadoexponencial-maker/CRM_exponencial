@@ -13,10 +13,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Módulo 2 — Pipeline** ✅ *concluído*: funil Expansão e Retenção
 - **Módulo 3 — Contatos** ✅ *concluído*
 - **Módulo 5 — Dashboard** ✅ *concluído*
-- **Automações** ✅ *concluído*: gatilho → ação estilo Kommo (`/configuracoes/automacoes`)
+- **Automações v1** ✅ *concluído*: gatilho → ação estilo Kommo (`/configuracoes/automacoes`). **v2** 🔧 *em andamento*: gatilho → condições → ações (`pre-desenvolvimento/spec-automacoes-v2.md`, issues B11)
 - **Módulo 4 — Sequências** ✅ *concluído*: sequências automáticas, agenda do vendedor, central de alertas
 - **Módulo 7 — Campanhas** ✅ *concluído*: disparos em massa segmentados com relatório de entrega
-- **Módulo 6 — Grupos** ❌ *bloqueado*: a API oficial da Meta não suporta grupos de WhatsApp (ver `pre-desenvolvimento/avaliacao-modulo-6-grupos.md`)
+- **Módulo 6 — Grupos** ❌ *bloqueado*: a API oficial da Meta não suporta grupos de WhatsApp (ver `pre-desenvolvimento/bloqueado/avaliacao-modulo-6-grupos.md`)
 
 ### Status atual
 
@@ -116,7 +116,7 @@ Rotas existentes:
 - `src/hooks/` — hooks customizados
 - `src/lib/` — utilitários e constantes compartilhadas
 - `src/integrations/supabase/` — clients Supabase e tipos auto-gerados
-- `pre-desenvolvimento/` — specs e documentação do produto
+- `pre-desenvolvimento/` — trabalho pendente e referência do produto (leia o `README.md` de lá); specs concluídas vão para `docs/specs-arquivadas/`
 
 ### UI
 
