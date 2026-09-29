@@ -6,7 +6,8 @@ import { formatarDataCurta, formatarHoraDoDia, formatarHorarioDaLista } from "@/
 import { resolverProviderDaConversa } from "@/lib/whatsapp"
 import type { Mensagem, TipoMensagem, DirecaoMensagem, StatusMensagem } from "./mock-mensagens"
 import type { Conversa } from "./mock-conversas"
-import { listarConversas } from "./conversas"
+import { listarConversas, TAMANHO_PAGINA_CONVERSAS } from "./conversas"
+import { sessaoAtual } from "@/lib/sessao"
 
 async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promise<void> {
   const supabase = await createClient()
@@ -707,17 +708,8 @@ async function avisarLeituraNoCanal(
  * página: fora do workspace, ou de outro atendente, volta `null`.
  */
 export async function buscarConversa(conversaId: string): Promise<Conversa | null> {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role, workspace_id")
-    .eq("id", user.id)
-    .single()
-  if (!perfil) return null
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return null
 
   const [conversa] = await listarConversas(supabase, {
     workspaceId: perfil.workspace_id,
@@ -726,6 +718,23 @@ export async function buscarConversa(conversaId: string): Promise<Conversa | nul
     conversaId,
   })
   return conversa ?? null
+}
+
+/**
+ * Página seguinte da caixa de entrada (B10-04): as conversas com atividade
+ * anterior a `antesDe`, nas mesmas regras de visibilidade da carga.
+ */
+export async function carregarMaisConversas(antesDe: string): Promise<Conversa[]> {
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return []
+
+  return listarConversas(supabase, {
+    workspaceId: perfil.workspace_id,
+    papel: perfil.role,
+    userId: user.id,
+    antesDe,
+    limite: TAMANHO_PAGINA_CONVERSAS,
+  })
 }
 
 export async function buscarMensagens(conversaId: string): Promise<Mensagem[]> {

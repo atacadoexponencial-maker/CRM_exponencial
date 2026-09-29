@@ -27,6 +27,8 @@ export interface Conversa {
   atribuidaA: string | null
   dataPrimeiroContato: string
   canal: CanalDaConversa
+  /** `last_message_at` em ISO: cursor da paginação da caixa (B10-04). */
+  atividadeEm?: string
 }
 
 /** Mocks nasceram antes do canal existir: tratados como número não identificado. */

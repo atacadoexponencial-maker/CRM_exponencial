@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Search } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { Loader2, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ItemConversa } from "./item-conversa"
 import { formatarNumero } from "@/lib/whatsapp"
@@ -27,9 +27,14 @@ interface FiltrosCaixaProps {
   papel: string
   nomeUsuario: string
   etiquetasDisponiveis: Array<{ id: string; nome: string; cor: string }>
+  /** Há página seguinte no servidor (B10-04). */
+  temMais?: boolean
+  carregandoMais?: boolean
+  /** Chamado quando o fim da lista entra na tela. */
+  onFimDaLista?: () => void
 }
 
-export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, papel, nomeUsuario, etiquetasDisponiveis }: FiltrosCaixaProps) {
+export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, papel, nomeUsuario, etiquetasDisponiveis, temMais = false, carregandoMais = false, onFimDaLista }: FiltrosCaixaProps) {
   const [status, setStatus] = useState<FiltroStatus>("todas")
   const [visibilidade, setVisibilidade] = useState<FiltroVisibilidade>(
     papel === "atendente" ? "minhas" : "todas"
@@ -37,6 +42,21 @@ export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, pape
   const [etiqueta, setEtiqueta] = useState<string | null>(null)
   const [numero, setNumero] = useState<string | null>(null)
   const [busca, setBusca] = useState("")
+  const sentinelaRef = useRef<HTMLDivElement | null>(null)
+  // O handler muda a cada render; o observador não precisa ser recriado por isso.
+  const onFimDaListaRef = useRef(onFimDaLista)
+  onFimDaListaRef.current = onFimDaLista
+
+  // Sentinela no fim da lista: visível → pede a página seguinte.
+  useEffect(() => {
+    const el = sentinelaRef.current
+    if (!el || !temMais) return
+    const obs = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) onFimDaListaRef.current?.()
+    })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [temMais])
 
   // Os números que aparecem na caixa, tirados das próprias conversas: o filtro
   // só oferece o que existe ali. Com um número só não há o que separar, e a
@@ -185,6 +205,12 @@ export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, pape
               eMinhaConversa={conversa.atribuidaA === nomeUsuario}
             />
           ))
+        )}
+        {temMais && (
+          <div ref={sentinelaRef} className="flex items-center justify-center gap-2 py-3 text-xs text-muted-foreground">
+            {carregandoMais && <Loader2 className="size-3.5 animate-spin" />}
+            {carregandoMais ? "Carregando mais…" : ""}
+          </div>
         )}
       </div>
     </div>

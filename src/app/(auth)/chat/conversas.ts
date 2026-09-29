@@ -12,6 +12,9 @@ import type { Conversa, StatusConversa } from "./mock-conversas"
 
 type Cliente = Awaited<ReturnType<typeof createClient>>
 
+/** Conversas por página na caixa de entrada (B10-04). */
+export const TAMANHO_PAGINA_CONVERSAS = 50
+
 export async function listarConversas(
   supabase: Cliente,
   {
@@ -19,12 +22,18 @@ export async function listarConversas(
     papel,
     userId,
     conversaId,
+    limite,
+    antesDe,
   }: {
     workspaceId: string
     papel: string
     userId: string
     /** Restringe a uma conversa só. */
     conversaId?: string
+    /** Quantas trazer. Sem limite quando ausente (uso interno). */
+    limite?: number
+    /** Só conversas com atividade anterior a este instante (ISO): página seguinte. */
+    antesDe?: string
   }
 ): Promise<Conversa[]> {
   let query = supabase
@@ -41,6 +50,14 @@ export async function listarConversas(
 
   if (conversaId) {
     query = query.eq("id", conversaId)
+  }
+
+  if (antesDe) {
+    query = query.lt("last_message_at", antesDe)
+  }
+
+  if (limite) {
+    query = query.limit(limite)
   }
 
   const { data: rows } = await query
@@ -79,6 +96,7 @@ export async function listarConversas(
       .map((cl) => ({ id: cl.labels!.id, nome: cl.labels!.name, cor: cl.labels!.color })),
     atribuidaA: c.assignee?.name ?? null,
     dataPrimeiroContato: formatarDataCurta(c.created_at),
+    atividadeEm: c.last_message_at,
     // B7-02: o que o canal faz é decidido aqui, no servidor. A tela exibe.
     canal: {
       id: c.conexao?.id ?? null,

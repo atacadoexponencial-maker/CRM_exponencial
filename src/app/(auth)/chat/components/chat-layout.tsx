@@ -6,12 +6,14 @@ import { createClient } from "@/integrations/supabase/client"
 import { formatarHorarioDaLista } from "@/lib/datas"
 import { FiltrosCaixa } from "./filtros-caixa"
 import { PainelConversa } from "./painel-conversa"
-import { buscarConversa, buscarMensagens, marcarComoLidas } from "../actions"
+import { buscarConversa, buscarMensagens, carregarMaisConversas, marcarComoLidas } from "../actions"
 import type { Conversa, StatusConversa } from "../mock-conversas"
 import type { Mensagem } from "../mock-mensagens"
 
 interface ChatLayoutProps {
   conversas: Conversa[]
+  /** A primeira página veio cheia: há mais para carregar ao rolar. */
+  temMaisConversas?: boolean
   papel: string
   nomeUsuario: string
   workspaceId: string
@@ -22,8 +24,10 @@ interface ChatLayoutProps {
   conversaInicialId?: string | null
 }
 
-export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, atendentes, atendentesTransferir, etiquetasDisponiveis, mensagensRapidas, conversaInicialId }: ChatLayoutProps) {
+export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsuario, workspaceId, atendentes, atendentesTransferir, etiquetasDisponiveis, mensagensRapidas, conversaInicialId }: ChatLayoutProps) {
   const [conversasState, setConversasState] = useState<Conversa[]>(conversas)
+  const [temMais, setTemMais] = useState(temMaisConversas)
+  const [carregandoMais, setCarregandoMais] = useState(false)
   const [conversaAtivaId, setConversaAtivaId] = useState<string | null>(null)
   const [mensagensLocais, setMensagensLocais] = useState<Record<string, Mensagem[]>>({})
   const [erroConversaId, setErroConversaId] = useState<string | null>(null)
@@ -198,6 +202,30 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, atenden
     })
   }
 
+  // B10-04: página seguinte da caixa. O cursor é a atividade mais antiga já
+  // carregada; ids repetidos (conversa que subiu ao vivo) são ignorados.
+  async function handleCarregarMais() {
+    if (carregandoMais || !temMais) return
+    const maisAntiga = conversasState.reduce<string | null>(
+      (min, c) => (c.atividadeEm && (min === null || c.atividadeEm < min) ? c.atividadeEm : min),
+      null
+    )
+    if (!maisAntiga) return
+    setCarregandoMais(true)
+    try {
+      const pagina = await carregarMaisConversas(maisAntiga)
+      setConversasState((prev) => {
+        const ids = new Set(prev.map((c) => c.id))
+        return [...prev, ...pagina.filter((c) => !ids.has(c.id))]
+      })
+      if (pagina.length < 50) setTemMais(false)
+    } catch {
+      // Mantém o que já tem; rolar de novo tenta outra vez.
+    } finally {
+      setCarregandoMais(false)
+    }
+  }
+
   function handleMensagemEnviada(msg: Mensagem) {
     setMensagensLocais((prev) => ({
       ...prev,
@@ -226,6 +254,9 @@ export function ChatLayout({ conversas, papel, nomeUsuario, workspaceId, atenden
           papel={papel}
           nomeUsuario={nomeUsuario}
           etiquetasDisponiveis={etiquetasDisponiveis}
+          temMais={temMais}
+          carregandoMais={carregandoMais}
+          onFimDaLista={handleCarregarMais}
         />
       </aside>
 
