@@ -104,4 +104,4 @@ Nenhuma.
 - [x] Sessão acabada cai para o QR do mesmo número
 - [x] Textos de efeito da B9-01 aplicados
 - [x] `npm run lint`, `npm run build` e testes passando
-- [ ] Teste com chip real no CRM publicado (a Marcelle)
+- [x] Teste com chip real no CRM publicado (a Marcelle)
