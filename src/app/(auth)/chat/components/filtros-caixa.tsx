@@ -45,7 +45,9 @@ export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, pape
   const sentinelaRef = useRef<HTMLDivElement | null>(null)
   // O handler muda a cada render; o observador não precisa ser recriado por isso.
   const onFimDaListaRef = useRef(onFimDaLista)
-  onFimDaListaRef.current = onFimDaLista
+  useEffect(() => {
+    onFimDaListaRef.current = onFimDaLista
+  }, [onFimDaLista])
 
   // Sentinela no fim da lista: visível → pede a página seguinte.
   useEffect(() => {
