@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { processarAutomacoes } from "@/lib/automacoes"
 import { processarGatilhoSequencia } from "@/lib/sequencias"
 import { type CardLead, type EtapaExpansao, type CardCliente, type EtapaRetencao, type HistoricoEtapa, type NotaInterna } from "./mock-pipeline"
@@ -22,19 +23,12 @@ function calcularTempoNaEtapa(etapaChangedAt: string): string {
   return `${meses} meses`
 }
 
+// B10-05: um funil com mais de 500 cards mostra só os movimentados por último.
+const LIMITE_CARDS = 500
+
 export async function listarAtendentes(): Promise<{ id: string; nome: string }[]> {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("workspace_id")
-    .eq("id", user.id)
-    .single()
-
-  if (!profile) return []
+  const { supabase, user, perfil: profile } = await sessaoAtual()
+  if (!user || !profile) return []
 
   const { data } = await supabase
     .from("profiles")
@@ -301,7 +295,7 @@ export async function buscarDadosPainel(cardId: string): Promise<{ historico: Hi
 }
 
 export async function listarCardsExpansao(): Promise<CardLead[]> {
-  const supabase = await createClient()
+  const { supabase } = await sessaoAtual()
 
   const { data, error } = await supabase
     .from("pipeline_cards")
@@ -318,6 +312,8 @@ export async function listarCardsExpansao(): Promise<CardLead[]> {
       )
     `)
     .eq("funil", "expansao")
+    .order("etapa_changed_at", { ascending: false })
+    .limit(LIMITE_CARDS)
 
   if (error) throw new Error("Erro ao carregar cards do pipeline")
 
@@ -355,9 +351,7 @@ export async function listarCardsExpansao(): Promise<CardLead[]> {
 }
 
 export async function listarCardsRetencao(): Promise<CardCliente[]> {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const { supabase, user } = await sessaoAtual()
   if (!user) return []
 
   const { data, error } = await supabase
@@ -375,6 +369,8 @@ export async function listarCardsRetencao(): Promise<CardCliente[]> {
       )
     `)
     .eq("funil", "retencao")
+    .order("etapa_changed_at", { ascending: false })
+    .limit(LIMITE_CARDS)
 
   if (error) throw new Error("Erro ao carregar cards do funil de retenção")
 

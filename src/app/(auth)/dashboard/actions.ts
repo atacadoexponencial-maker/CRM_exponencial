@@ -1,6 +1,6 @@
 "use server"
 
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import {
   calcularMetricas,
   calcularPerformanceVendedores,
@@ -16,18 +16,8 @@ import {
 export type { FiltroDashboard, MetricasDashboard, PerformanceVendedor, PeriodoKey } from "@/lib/metricas-dashboard"
 
 async function carregarDados(filtro: FiltroDashboard) {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role, workspace_id")
-    .eq("id", user.id)
-    .single()
-
-  if (!perfil) return null
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return null
 
   // Atendente vê apenas as próprias métricas (o RLS de pipeline_cards já
   // restringe, mas forçamos o filtro para purchases e consistência)
@@ -80,28 +70,20 @@ export async function buscarMetricasDashboard(filtro: FiltroDashboard): Promise<
 export async function buscarPerformanceVendedores(
   filtro: FiltroDashboard
 ): Promise<PerformanceVendedor[] | null> {
-  const supabase = await createClient()
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil || !["admin", "gerente"].includes(perfil.role)) return null
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role, workspace_id")
-    .eq("id", user.id)
-    .single()
-
-  if (!perfil || !["admin", "gerente"].includes(perfil.role)) return null
-
-  const dados = await carregarDados({ ...filtro, atendenteId: null })
+  // B10-05: dados e atendentes não dependem um do outro.
+  const [dados, { data: atendentesData }] = await Promise.all([
+    carregarDados({ ...filtro, atendenteId: null }),
+    supabase
+      .from("profiles")
+      .select("id, name")
+      .eq("workspace_id", perfil.workspace_id)
+      .eq("status", "active")
+      .order("name"),
+  ])
   if (!dados) return null
-
-  const { data: atendentesData } = await supabase
-    .from("profiles")
-    .select("id, name")
-    .eq("workspace_id", perfil.workspace_id)
-    .eq("status", "active")
-    .order("name")
 
   const atendentes = (atendentesData ?? []).map((a) => ({ id: a.id as string, nome: a.name as string }))
 

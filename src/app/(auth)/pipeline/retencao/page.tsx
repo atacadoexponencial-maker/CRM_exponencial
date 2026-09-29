@@ -1,16 +1,9 @@
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { FunilRetencao } from "../components/funil-retencao"
 import { listarCardsRetencao, listarAtendentes } from "../actions"
 
 export default async function RetencaoPage() {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user!.id)
-    .single()
+  const { perfil: profile } = await sessaoAtual()
 
   const [cards, atendentes] = await Promise.all([
     listarCardsRetencao(),

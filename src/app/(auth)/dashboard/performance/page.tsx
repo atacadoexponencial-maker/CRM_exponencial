@@ -1,19 +1,11 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { buscarPerformanceVendedores } from "../actions"
 import { PerformanceClient } from "./performance-client"
 
 export default async function PerformancePage() {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single()
 
   // Atendente não tem acesso a esta página
   if (!perfil || !["admin", "gerente"].includes(perfil.role)) redirect("/dashboard")

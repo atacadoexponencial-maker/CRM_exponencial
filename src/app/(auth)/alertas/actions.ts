@@ -79,18 +79,21 @@ export async function listarAlertas(): Promise<{
   const { supabase, perfil } = await perfilAtual()
   if (!perfil) return null
 
-  const config = await buscarConfigAlertas()
-
-  // RLS já restringe atendente aos próprios cards
-  const [{ data: cardsData }, { data: dismissalsData }] = await Promise.all([
+  // B10-05: config, cards, dispensas e alertas de número não dependem entre
+  // si; saem juntos. RLS já restringe atendente aos próprios cards.
+  const [config, { data: cardsData }, { data: dismissalsData }, alertasDeNumero] = await Promise.all([
+    buscarConfigAlertas(),
     supabase
       .from("pipeline_cards")
       .select("id, funil, etapa, etapa_changed_at, contact_id, atendente:profiles!atendente_id(name), contato:contacts!contact_id(name, phone_number)")
-      .eq("workspace_id", perfil.workspace_id),
+      .eq("workspace_id", perfil.workspace_id)
+      .order("etapa_changed_at", { ascending: false })
+      .limit(500),
     supabase
       .from("alert_dismissals")
       .select("card_id, tipo, referencia")
       .eq("workspace_id", perfil.workspace_id),
+    listarAlertasDeNumero(supabase as unknown as BancoDeAlertas, perfil.workspace_id as string),
   ])
 
   type Row = {
@@ -134,11 +137,6 @@ export async function listarAlertas(): Promise<{
   }))
 
   const alertas = calcularAlertas(cards, config, dismissalsData ?? [])
-
-  const alertasDeNumero = await listarAlertasDeNumero(
-    supabase as unknown as BancoDeAlertas,
-    perfil.workspace_id as string
-  )
 
   return {
     alertas: alertas.map((a) => ({
