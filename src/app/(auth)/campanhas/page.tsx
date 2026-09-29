@@ -1,19 +1,11 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { listarCampanhas } from "./actions"
 import { CampanhasClient } from "./campanhas-client"
 
 export default async function CampanhasPage() {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single()
 
   // Atendente não tem acesso a campanhas
   if (!perfil || !["admin", "gerente"].includes(perfil.role)) redirect("/perfil")

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { clienteGatewayDoAmbiente } from "@/lib/whatsapp/gateway/cliente"
 import {
@@ -35,17 +36,8 @@ export type ConexaoWhatsApp = {
 // `@/lib/whatsapp/gateway/instancias`.
 
 export async function listarConexaoWhatsApp(): Promise<ConexaoWhatsApp | null> {
-  const ssrClient = await createSsrClient()
-  const { data: { user } } = await ssrClient.auth.getUser()
-  if (!user) return null
-
-  const { data: perfil } = await ssrClient
-    .from("profiles")
-    .select("workspace_id")
-    .eq("id", user.id)
-    .single()
-
-  if (!perfil) return null
+  const { supabase: ssrClient, user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return null
 
   const { data } = await ssrClient
     .from("whatsapp_connections")
@@ -75,17 +67,8 @@ export async function listarConexaoWhatsApp(): Promise<ConexaoWhatsApp | null> {
  * cliente.
  */
 export async function listarConexoesWhatsApp(): Promise<ConexaoListada[]> {
-  const ssrClient = await createSsrClient()
-  const { data: { user } } = await ssrClient.auth.getUser()
-  if (!user) return []
-
-  const { data: perfil } = await ssrClient
-    .from("profiles")
-    .select("workspace_id")
-    .eq("id", user.id)
-    .single()
-
-  if (!perfil) return []
+  const { supabase: ssrClient, user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return []
 
   return listarConexoes(
     ssrClient as unknown as BancoDeConexoes,
@@ -100,17 +83,8 @@ export async function listarConexoesWhatsApp(): Promise<ConexaoListada[]> {
  * é o que está valendo.
  */
 export async function termoDoCanalDiretoAceito(): Promise<boolean> {
-  const ssrClient = await createSsrClient()
-  const { data: { user } } = await ssrClient.auth.getUser()
-  if (!user) return false
-
-  const { data: perfil } = await ssrClient
-    .from("profiles")
-    .select("workspace_id")
-    .eq("id", user.id)
-    .single()
-
-  if (!perfil) return false
+  const { supabase: ssrClient, user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return false
 
   const { data } = await ssrClient
     .from("gateway_terms_acceptance")

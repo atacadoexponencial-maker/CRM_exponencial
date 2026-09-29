@@ -1,20 +1,13 @@
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { FormPerfil } from "./form-perfil"
 import { FormAlterarSenha } from "./form-alterar-senha"
 import { realizarLogout } from "./actions"
 
 export default async function PerfilPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("name")
-    .eq("id", user.id)
-    .single()
 
   return (
     <div className="max-w-5xl mx-auto w-full px-4 py-8">

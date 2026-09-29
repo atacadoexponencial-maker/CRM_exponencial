@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { avancarAposLembrete, processarSequenciasPendentes } from "@/lib/sequencias"
 
 export type ItemAgenda = {
@@ -26,18 +27,9 @@ export type SequenciaEmAndamento = {
   proximaExecucao: string | null
 }
 
+// Usuário e perfil resolvidos uma vez por requisição (B10-03).
 async function perfilAtual() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { supabase, user: null, perfil: null }
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role, workspace_id")
-    .eq("id", user.id)
-    .single()
-
-  return { supabase, user, perfil }
+  return sessaoAtual()
 }
 
 type ReminderRow = {

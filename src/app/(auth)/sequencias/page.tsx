@@ -1,20 +1,12 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { garantirSequenciasPredefinidas } from "@/lib/sequencias"
 import { listarSequencias } from "./actions"
 import { SequenciasClient } from "./sequencias-client"
 
 export default async function SequenciasPage() {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role, workspace_id")
-    .eq("id", user.id)
-    .single()
 
   if (!perfil || !["admin", "gerente"].includes(perfil.role)) redirect("/perfil")
 

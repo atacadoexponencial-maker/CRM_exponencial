@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { processarCampanhasPendentes } from "@/lib/campanhas"
 import { nomeDoCanal } from "@/lib/whatsapp"
@@ -77,15 +78,8 @@ export type DadosCampanha = {
 }
 
 async function perfilGestor() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { supabase, user, perfil } = await sessaoAtual()
   if (!user) return { supabase, user: null, perfil: null }
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role, workspace_id")
-    .eq("id", user.id)
-    .single()
 
   if (!perfil || !["admin", "gerente"].includes(perfil.role)) {
     return { supabase, user, perfil: null }

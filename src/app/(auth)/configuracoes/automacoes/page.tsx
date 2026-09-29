@@ -1,19 +1,11 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { listarAutomacoes } from "./actions"
 import { AutomacoesClient } from "./automacoes-client"
 
 export default async function AutomacoesPage() {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const { supabase, user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role, workspace_id")
-    .eq("id", user.id)
-    .single()
 
   if (perfil?.role !== "admin") redirect("/perfil")
 

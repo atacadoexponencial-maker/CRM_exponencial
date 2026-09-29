@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { AdicionarUsuarioDialog } from "./adicionar-usuario-dialog"
 import { AcoesUsuario } from "./acoes-usuario"
 import { listarUsuarios } from "./actions"
@@ -18,16 +18,8 @@ const papelLabel: Record<string, string> = {
 }
 
 export default async function UsuariosPage() {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const { supabase, user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role, workspace_id")
-    .eq("id", user.id)
-    .single()
 
   if (perfil?.role !== "admin") redirect("/perfil")
 

@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 
 export type EtiquetaListada = {
   id: string
@@ -10,16 +11,8 @@ export type EtiquetaListada = {
 }
 
 export async function listarEtiquetas(): Promise<EtiquetaListada[]> {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const { supabase, user, perfil } = await sessaoAtual()
   if (!user) return []
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role, workspace_id")
-    .eq("id", user.id)
-    .single()
 
   if (perfil?.role !== "admin") return []
 

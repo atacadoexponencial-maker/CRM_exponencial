@@ -1,4 +1,4 @@
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { SidebarNav } from "@/components/shared/sidebar-nav"
 
 async function dadosDoUsuario(): Promise<{
@@ -8,19 +8,15 @@ async function dadosDoUsuario(): Promise<{
 }> {
   const fallback = { papel: "atendente" as const, nome: "", atrasados: 0 }
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { supabase, user, perfil } = await sessaoAtual()
     if (!user) return fallback
 
-    const [{ data: perfil }, { count }] = await Promise.all([
-      supabase.from("profiles").select("role, name").eq("id", user.id).single(),
-      supabase
+    const { count } = await supabase
         .from("reminders")
         .select("id", { count: "exact", head: true })
         .eq("atendente_id", user.id)
         .eq("status", "pendente")
-        .lt("due_at", new Date().toISOString()),
-    ])
+        .lt("due_at", new Date().toISOString())
 
     return {
       papel: (perfil?.role as "admin" | "gerente" | "atendente") ?? "atendente",

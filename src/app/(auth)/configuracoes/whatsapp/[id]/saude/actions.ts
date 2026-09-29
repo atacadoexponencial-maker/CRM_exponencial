@@ -11,7 +11,7 @@
 // cliente autenticado, e sai daqui apenas dentro do header da chamada HTTP.
 
 import { revalidatePath } from "next/cache"
-import { createClient as createSsrClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { refletirRiscoNaCentral } from "@/lib/whatsapp/alertas-de-numero"
 import { clienteGatewayDoAmbiente } from "@/lib/whatsapp/gateway/cliente"
@@ -24,17 +24,9 @@ import {
 
 export type ResultadoDaSaude = { ok: true; saude: SaudeDoNumero } | { ok: false; erro: string }
 
+// Usuário e perfil resolvidos uma vez por requisição (B10-03).
 async function perfilAtual() {
-  const supabase = await createSsrClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { user: null, perfil: null }
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role, workspace_id")
-    .eq("id", user.id)
-    .single()
-
+  const { user, perfil } = await sessaoAtual()
   return { user, perfil }
 }
 

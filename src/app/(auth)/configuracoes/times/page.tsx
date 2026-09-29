@@ -2,7 +2,7 @@ import { redirect } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { CriarTimeDialog } from "./criar-time-dialog"
 import { AcoesTime } from "./acoes-time"
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { listarTimes, listarUsuariosDoWorkspace } from "./actions"
 
 function Iniciais({ nome }: { nome: string }) {
@@ -18,16 +18,8 @@ function Iniciais({ nome }: { nome: string }) {
 }
 
 export default async function TimesPage() {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single()
 
   if (perfil?.role !== "admin") redirect("/perfil")
 

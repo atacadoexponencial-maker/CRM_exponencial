@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 
 export async function criarTime(nome: string): Promise<{ erro?: string }> {
   const nomeTrimado = nome.trim()
@@ -126,15 +127,8 @@ export async function excluirTime(timeId: string): Promise<{ erro?: string }> {
 }
 
 export async function listarUsuariosDoWorkspace(): Promise<{ id: string; name: string }[]> {
-  const ssrClient = await createSsrClient()
-  const { data: { user } } = await ssrClient.auth.getUser()
+  const { supabase: ssrClient, user, perfil } = await sessaoAtual()
   if (!user) return []
-
-  const { data: perfil } = await ssrClient
-    .from("profiles")
-    .select("workspace_id")
-    .eq("id", user.id)
-    .single()
 
   if (!perfil) return []
 
@@ -203,8 +197,7 @@ export type TimeListado = {
 }
 
 export async function listarTimes(): Promise<TimeListado[]> {
-  const ssrClient = await createSsrClient()
-  const { data: { user } } = await ssrClient.auth.getUser()
+  const { supabase: ssrClient, user } = await sessaoAtual()
   if (!user) return []
 
   const { data: times } = await ssrClient

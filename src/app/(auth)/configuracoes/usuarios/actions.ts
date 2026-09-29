@@ -2,6 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 
 export type UsuarioListado = {
   id: string
@@ -14,15 +15,8 @@ export type UsuarioListado = {
 }
 
 export async function listarUsuarios(): Promise<UsuarioListado[]> {
-  const ssrClient = await createSsrClient()
-  const { data: { user } } = await ssrClient.auth.getUser()
+  const { supabase: ssrClient, user, perfil } = await sessaoAtual()
   if (!user) return []
-
-  const { data: perfil } = await ssrClient
-    .from("profiles")
-    .select("role, workspace_id")
-    .eq("id", user.id)
-    .single()
 
   if (perfil?.role !== "admin") return []
 

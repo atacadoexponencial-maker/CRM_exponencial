@@ -1,19 +1,11 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { listarEtiquetas } from "./actions"
 import { EtiquetasClient } from "./etiquetas-client"
 
 export default async function EtiquetasPage() {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single()
 
   if (perfil?.role !== "admin") redirect("/perfil")
 

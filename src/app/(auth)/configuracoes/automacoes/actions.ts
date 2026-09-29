@@ -1,6 +1,6 @@
 "use server"
 
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 
 export type GatilhoTipo = "card_movido" | "conversa_criada"
 export type AcaoTipo = "enviar_mensagem" | "aplicar_etiqueta" | "atribuir_atendente" | "mover_card"
@@ -24,16 +24,8 @@ export type DadosAutomacao = {
 }
 
 async function perfilAdmin() {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const { supabase, user, perfil } = await sessaoAtual()
   if (!user) return { supabase, perfil: null }
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role, workspace_id")
-    .eq("id", user.id)
-    .single()
 
   if (perfil?.role !== "admin") return { supabase, perfil: null }
   return { supabase, perfil }
