@@ -1,5 +1,6 @@
 "use server"
 
+import { garantirSequenciasPredefinidas } from "@/lib/sequencias"
 import { createClient } from "@supabase/supabase-js"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 
@@ -71,6 +72,10 @@ export async function criarAdminETimesPadrao(
       { workspace_id: workspaceId, name: "Retenção", is_default: true },
     ])
   if (teamsError) throw new Error("Erro ao criar times padrão")
+
+  // B10-08: as 4 sequências do método nascem com a empresa, não a cada visita
+  // à biblioteca. Falha aqui é silenciosa (a função já é oportunista).
+  await garantirSequenciasPredefinidas(workspaceId)
 
   const ssrClient = await createSsrClient()
   const { error: signInError } = await ssrClient.auth.signInWithPassword({ email, password: senha })

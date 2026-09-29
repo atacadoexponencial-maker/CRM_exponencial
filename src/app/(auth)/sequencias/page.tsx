@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation"
 import { sessaoAtual } from "@/lib/sessao"
-import { garantirSequenciasPredefinidas } from "@/lib/sequencias"
 import { listarSequencias } from "./actions"
 import { SequenciasClient } from "./sequencias-client"
 
@@ -9,9 +8,6 @@ export default async function SequenciasPage() {
   if (!user) redirect("/login")
 
   if (!perfil || !["admin", "gerente"].includes(perfil.role)) redirect("/perfil")
-
-  // Garante que as 4 sequências do método existem para o workspace
-  await garantirSequenciasPredefinidas(perfil.workspace_id)
 
   const sequencias = await listarSequencias()
 
