@@ -51,6 +51,26 @@ async function converterParaMp3(blob: Blob): Promise<Blob> {
   return new Blob(parts, { type: "audio/mpeg" })
 }
 
+/**
+ * Teto de um anexo pelo chat. É o limite da requisição no Vercel (4,5 MB), não
+ * o do WhatsApp — que aceita mais. Acima disso o arquivo nem chega ao servidor,
+ * e o envio direto para o Storage ainda não existe. O aviso diz isso.
+ */
+const LIMITE_ANEXO_BYTES = 4 * 1024 * 1024
+
+function tamanhoLegivel(bytes: number): string {
+  const mb = bytes / (1024 * 1024)
+  return mb >= 1 ? `${mb.toFixed(1).replace(".", ",")} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`
+}
+
+function motivoArquivoGrande(arquivo: File): string {
+  return `Arquivo de ${tamanhoLegivel(arquivo.size)}: pelo CRM dá para enviar até 4 MB por vez, limite do servidor de hospedagem (o WhatsApp aceitaria mais). Reduza o arquivo ou envie pelo celular por enquanto.`
+}
+
+/** O servidor não respondeu à chamada: em geral é anexo acima do limite ou queda de conexão. */
+const MOTIVO_SEM_RESPOSTA =
+  "Não enviada: o servidor não respondeu. Se for um anexo, confira se tem até 4 MB; se não, tente de novo em instantes."
+
 const STATUS_LABEL: Record<string, string> = {
   em_espera: "Em espera",
   em_atendimento: "Em atendimento",
@@ -186,7 +206,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
         setTexto(conteudo)
       }
     } catch {
-      falhou(tempId)
+      falhou(tempId, MOTIVO_SEM_RESPOSTA)
       setTexto(conteudo)
     } finally {
       setEnviando(false)
@@ -198,8 +218,8 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
     e.target.value = ""
     if (!arquivo) return
 
-    if (arquivo.size > 5 * 1024 * 1024) {
-      alert("Arquivo muito grande. O tamanho máximo é 5 MB.")
+    if (arquivo.size > LIMITE_ANEXO_BYTES) {
+      setErroEnvio(motivoArquivoGrande(arquivo))
       return
     }
 
@@ -223,7 +243,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
       const { erro } = await enviarImagem(conversa.id, formData)
       if (erro) falhou(tempId, erro)
     } catch {
-      falhou(tempId)
+      falhou(tempId, MOTIVO_SEM_RESPOSTA)
     } finally {
       setEnviandoImagem(false)
     }
@@ -234,8 +254,8 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
     e.target.value = ""
     if (!arquivo) return
 
-    if (arquivo.size > 100 * 1024 * 1024) {
-      alert("Arquivo muito grande. O tamanho máximo é 100 MB.")
+    if (arquivo.size > LIMITE_ANEXO_BYTES) {
+      setErroEnvio(motivoArquivoGrande(arquivo))
       return
     }
 
@@ -258,7 +278,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
       const { erro } = await enviarDocumento(conversa.id, formData)
       if (erro) falhou(tempId, erro)
     } catch {
-      falhou(tempId)
+      falhou(tempId, MOTIVO_SEM_RESPOSTA)
     } finally {
       setEnviandoDocumento(false)
     }
@@ -269,8 +289,8 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
     e.target.value = ""
     if (!arquivo) return
 
-    if (arquivo.size > 16 * 1024 * 1024) {
-      alert("Arquivo muito grande. O tamanho máximo é 16 MB.")
+    if (arquivo.size > LIMITE_ANEXO_BYTES) {
+      setErroEnvio(motivoArquivoGrande(arquivo))
       return
     }
 
@@ -294,7 +314,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
       const { erro } = await enviarVideo(conversa.id, formData)
       if (erro) falhou(tempId, erro)
     } catch {
-      falhou(tempId)
+      falhou(tempId, MOTIVO_SEM_RESPOSTA)
     } finally {
       setEnviandoVideo(false)
     }
@@ -379,7 +399,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
         const { erro } = await enviarAudio(conversa.id, formData)
         if (erro) falhou(tempId, erro)
       } catch {
-        falhou(tempId)
+        falhou(tempId, MOTIVO_SEM_RESPOSTA)
       } finally {
         setEnviandoAudio(false)
       }

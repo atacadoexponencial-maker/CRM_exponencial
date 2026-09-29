@@ -7,6 +7,9 @@ import { resolverProviderDaConversa } from "@/lib/whatsapp"
 import type { Mensagem, TipoMensagem, DirecaoMensagem, StatusMensagem } from "./mock-mensagens"
 import type { Conversa } from "./mock-conversas"
 import { listarConversas, TAMANHO_PAGINA_CONVERSAS } from "./conversas"
+
+/** Mesmo teto do painel: limite da requisição no Vercel, não do WhatsApp. */
+const LIMITE_ANEXO_BYTES = 4 * 1024 * 1024
 import { sessaoAtual } from "@/lib/sessao"
 
 async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promise<void> {
@@ -63,7 +66,7 @@ async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Pr
 
   const arquivo = formData.get("arquivo") as File
   if (!arquivo || !arquivo.type.startsWith("image/")) throw new Error("Arquivo inválido")
-  if (arquivo.size > 5 * 1024 * 1024) throw new Error("Arquivo muito grande (máximo 5 MB)")
+  if (arquivo.size > LIMITE_ANEXO_BYTES) throw new Error("Arquivo muito grande (máximo 4 MB por envio)")
 
   const { data: conversa, error: errConversa } = await supabase
     .from("conversations")
@@ -111,6 +114,8 @@ async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Pr
     type: "imagem",
     content: publicUrl,
     status: "enviado",
+    // Sem o wamid, o status que o gateway manda depois não encontra a mensagem.
+    wamid: resultado.mensagemId,
     created_at: agora,
   })
 
@@ -144,7 +149,7 @@ async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData):
 
   const arquivo = formData.get("arquivo") as File
   if (!arquivo || !TIPOS_DOCUMENTO_VALIDOS.includes(arquivo.type)) throw new Error("Tipo de arquivo inválido")
-  if (arquivo.size > 100 * 1024 * 1024) throw new Error("Arquivo muito grande (máximo 100 MB)")
+  if (arquivo.size > LIMITE_ANEXO_BYTES) throw new Error("Arquivo muito grande (máximo 4 MB por envio)")
 
   const { data: conversa, error: errConversa } = await supabase
     .from("conversations")
@@ -193,6 +198,8 @@ async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData):
     type: "documento",
     content: publicUrl,
     status: "enviado",
+    // Sem o wamid, o status que o gateway manda depois não encontra a mensagem.
+    wamid: resultado.mensagemId,
     created_at: agora,
   })
 
@@ -212,7 +219,7 @@ async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Pro
 
   const arquivo = formData.get("arquivo") as File
   if (!arquivo || !["video/mp4", "video/3gpp"].includes(arquivo.type)) throw new Error("Tipo de arquivo inválido")
-  if (arquivo.size > 16 * 1024 * 1024) throw new Error("Arquivo muito grande (máximo 16 MB)")
+  if (arquivo.size > LIMITE_ANEXO_BYTES) throw new Error("Arquivo muito grande (máximo 4 MB por envio)")
 
   const { data: conversa, error: errConversa } = await supabase
     .from("conversations")
@@ -260,6 +267,8 @@ async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Pro
     type: "video",
     content: publicUrl,
     status: "enviado",
+    // Sem o wamid, o status que o gateway manda depois não encontra a mensagem.
+    wamid: resultado.mensagemId,
     created_at: agora,
   })
 
@@ -279,7 +288,7 @@ async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Pro
 
   const arquivo = formData.get("arquivo") as File
   if (!arquivo || !arquivo.type.startsWith("audio/")) throw new Error("Arquivo inválido")
-  if (arquivo.size > 16 * 1024 * 1024) throw new Error("Arquivo muito grande (máximo 16 MB)")
+  if (arquivo.size > LIMITE_ANEXO_BYTES) throw new Error("Arquivo muito grande (máximo 4 MB por envio)")
 
   const { data: conversa, error: errConversa } = await supabase
     .from("conversations")
@@ -327,6 +336,8 @@ async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Pro
     type: "audio",
     content: publicUrl,
     status: "enviado",
+    // Sem o wamid, o status que o gateway manda depois não encontra a mensagem.
+    wamid: resultado.mensagemId,
     created_at: agora,
   })
 
