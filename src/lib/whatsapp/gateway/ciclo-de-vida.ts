@@ -8,9 +8,8 @@
 //  - **encerrar no aparelho** derruba a sessão do celular: voltar exige QR novo;
 //  - **remover** apaga sessão, mídias e fila no gateway, e é irreversível.
 //
-// Pendência conhecida do gateway (A1-02): `disconnect` muda o estado sem fechar
-// o socket. Se um número continuar recebendo depois de desconectado, é isso — e
-// o conserto é do outro repositório.
+// Desconectar fecha o socket de verdade desde a A10-01, e a volta é a operação
+// `reconectarInstancia` (A10-02/B9-02): sem QR, com a sessão guardada.
 
 import { GatewayRecusou, type ClienteGateway } from "./cliente"
 import type { EstadoInstanciaGateway } from "./tipos"
@@ -28,11 +27,11 @@ const ROTA: Record<OperacaoDeCicloDeVida, Rota> = {
 /** Efeito de cada operação, em português, para a tela não ter que descrever. */
 export const EFEITO: Record<OperacaoDeCicloDeVida, string> = {
   desconectar:
-    "O número para de enviar e receber, mas a sessão continua guardada: para voltar, basta reconectar — sem ler o QR Code de novo.",
+    "O número para de enviar e receber na hora, e o celular deixa de mostrar o CRM como ativo. A sessão fica guardada: para voltar, basta reconectar — sem ler o QR Code de novo.",
   encerrar_no_aparelho:
     "A sessão é encerrada no celular e o CRM sai de “Aparelhos conectados”. Para voltar, será preciso ler um novo QR Code.",
   remover:
-    "A conexão é apagada no gateway, junto com a sessão, as mídias guardadas e as mensagens que ainda estavam na fila. Não tem volta.",
+    "O número sai do CRM e a conexão é apagada, junto com a sessão, as mídias guardadas e as mensagens que ainda estavam na fila. As conversas continuam no histórico. Não tem volta.",
 }
 
 const MENSAGEM_POR_CODIGO: Record<string, string> = {
@@ -87,6 +86,56 @@ export async function operarInstancia(
       erro: "O gateway não respondeu. Nada foi alterado; tente novamente em instantes.",
       jaNaoExiste: false,
     }
+  }
+}
+
+export type ResultadoDaReconexao =
+  | { ok: true; estado: EstadoInstanciaGateway }
+  | {
+      ok: false
+      erro: string
+      /** A sessão guardada acabou: o caminho é ler um QR novo para o mesmo número. */
+      precisaQr: boolean
+      jaNaoExiste: boolean
+    }
+
+const MENSAGEM_DA_RECONEXAO: Record<string, string> = {
+  ...MENSAGEM_POR_CODIGO,
+  no_saved_session:
+    "Não foi possível reconectar: a sessão foi encerrada no aparelho. Para voltar, leia um QR Code novo — o número continua o mesmo.",
+  instance_banned:
+    "O WhatsApp bloqueou este número. Ler o código de novo não desfaz o bloqueio: é preciso conectar outro número.",
+}
+
+const SEM_RESPOSTA = "O gateway não respondeu. Nada foi alterado; tente novamente em instantes."
+
+/**
+ * Reconecta com a sessão guardada (A10-02): `POST /instances/{id}/reconnect`.
+ *
+ * O gateway responde `connecting` na hora e o desfecho chega depois, pelo
+ * estado da instância. Como nas outras operações, nada é gravado aqui.
+ */
+export async function reconectarInstancia(
+  cliente: ClienteGateway,
+  instanceId: string,
+  instanceToken: string
+): Promise<ResultadoDaReconexao> {
+  try {
+    const resposta = await cliente.comInstancia<{ state: EstadoInstanciaGateway }>(instanceToken, {
+      caminho: `/instances/${instanceId}/reconnect`,
+      metodo: "POST",
+    })
+    return { ok: true, estado: resposta.state }
+  } catch (erro) {
+    if (erro instanceof GatewayRecusou) {
+      return {
+        ok: false,
+        erro: MENSAGEM_DA_RECONEXAO[erro.code] ?? erro.message,
+        precisaQr: erro.code === "no_saved_session",
+        jaNaoExiste: erro.code === "instance_not_found" || erro.code === "invalid_credentials",
+      }
+    }
+    return { ok: false, erro: SEM_RESPOSTA, precisaQr: false, jaNaoExiste: false }
   }
 }
 

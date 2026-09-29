@@ -6,10 +6,13 @@
 //
 // As três ações ficam visualmente distintas e cada uma diz o seu efeito antes
 // de confirmar — ninguém deve remover pensando que está pausando.
+//
+// B9-02: Reconectar deixou de abrir o QR Code. Ele pede a reconexão com a
+// sessão guardada; quem conduz (sondagem, avisos, queda para o QR) é a lista.
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Power, QrCode, Smartphone, Trash2 } from "lucide-react"
+import { Power, RefreshCw, Smartphone, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import { EFEITO, type OperacaoDeCicloDeVida } from "@/lib/whatsapp/gateway/ciclo-de-vida"
@@ -31,11 +34,14 @@ const CONFIRMACAO: Record<OperacaoDeCicloDeVida, string> = {
 export function AcoesCanalDireto({
   conexaoId,
   estado,
+  reconectando = false,
   onReconectar,
 }: {
   conexaoId: string
   estado: EstadoConexao
-  /** Reconexão que precisa de QR novo volta para o pareamento (B2-03). */
+  /** B9-02: reconexão em andamento; o botão não aceita segundo clique. */
+  reconectando?: boolean
+  /** B9-02: reconectar com a sessão guardada, sem QR. */
   onReconectar?: () => void
 }) {
   const router = useRouter()
@@ -58,10 +64,9 @@ export function AcoesCanalDireto({
     router.refresh()
   }
 
-  const conectado = estado === "connected"
-  const desconectado = estado === "disconnected"
+  const conectado = estado === "connected" && !reconectando
   // Banido não volta lendo QR de novo: oferecer reconexão seria mentira.
-  const podeReconectar = desconectado
+  const podeReconectar = estado === "disconnected" || reconectando
 
   return (
     <div>
@@ -84,13 +89,18 @@ export function AcoesCanalDireto({
         )}
 
         {podeReconectar && (
-          <Button variant="outline" size="sm" onClick={onReconectar}>
-            <QrCode className="size-3.5" aria-hidden />
-            Reconectar
+          <Button variant="outline" size="sm" onClick={onReconectar} disabled={reconectando}>
+            <RefreshCw className={`size-3.5 ${reconectando ? "animate-spin" : ""}`} aria-hidden />
+            {reconectando ? "Reconectando…" : "Reconectar"}
           </Button>
         )}
 
-        <Button variant="outline" size="sm" onClick={() => setPedindo("remover")}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setPedindo("remover")}
+          disabled={reconectando}
+        >
           <Trash2 className="size-3.5" aria-hidden />
           Remover
         </Button>

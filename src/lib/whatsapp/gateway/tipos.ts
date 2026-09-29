@@ -23,6 +23,7 @@ export const CODIGOS_DE_ERRO = [
   "rate_profile_out_of_range",
   "brake_not_releasable",
   "instance_not_braked",
+  "no_saved_session",
 ] as const
 
 export type CodigoDeErroGateway = (typeof CODIGOS_DE_ERRO)[number]

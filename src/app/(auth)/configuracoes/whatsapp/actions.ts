@@ -20,6 +20,7 @@ import {
 import { consultarEstado, motivoEmPortugues } from "@/lib/whatsapp/gateway/estado"
 import {
   operarInstancia,
+  reconectarInstancia,
   type OperacaoDeCicloDeVida,
 } from "@/lib/whatsapp/gateway/ciclo-de-vida"
 import { aplicarEstadoDaInstancia } from "@/lib/whatsapp/eventos-de-operacao"
@@ -238,11 +239,16 @@ async function adminDoWorkspace(): Promise<{ workspaceId: string } | { erro: str
  * no navegador. Renovar é chamar esta action de novo — vencido sem leitura, o
  * gateway já gerou outro.
  */
-export async function pedirQrCodeCanalDireto(): Promise<{ erro?: string; qr?: QrParaExibir }> {
+export async function pedirQrCodeCanalDireto(
+  /** B9-02: QR de um número específico (reconexão sem sessão). Sem id, o mais recente. */
+  conexaoId?: string
+): Promise<{ erro?: string; qr?: QrParaExibir }> {
   const autorizacao = await adminDoWorkspace()
   if ("erro" in autorizacao) return { erro: autorizacao.erro }
 
-  const instancia = await instanciaDoCanalDireto(autorizacao.workspaceId)
+  const instancia = conexaoId
+    ? await conexaoDoCanalDiretoPorId(autorizacao.workspaceId, conexaoId)
+    : await instanciaDoCanalDireto(autorizacao.workspaceId)
   if (!instancia) return { erro: "Nenhum número do canal direto para parear neste workspace." }
 
   let cliente
@@ -297,14 +303,19 @@ export async function pedirCodigoDePareamento(
  * Quem chama é a tela de pareamento, enquanto ela está aberta. Depois de
  * conectado, quem avisa é o gateway.
  */
-export async function sincronizarEstadoCanalDireto(): Promise<{
+export async function sincronizarEstadoCanalDireto(
+  /** B9-02: acompanhar um número específico. Sem id, o mais recente. */
+  conexaoId?: string
+): Promise<{
   erro?: string
   estado?: { state: string; phoneNumber: string | null; displayName: string | null; motivo: string | null }
 }> {
   const autorizacao = await adminDoWorkspace()
   if ("erro" in autorizacao) return { erro: autorizacao.erro }
 
-  const instancia = await instanciaDoCanalDireto(autorizacao.workspaceId)
+  const instancia = conexaoId
+    ? await conexaoDoCanalDiretoPorId(autorizacao.workspaceId, conexaoId).then((c) => (c ? { ...c, conexaoId } : null))
+    : await instanciaDoCanalDireto(autorizacao.workspaceId)
   if (!instancia) return { erro: "Nenhum número do canal direto neste workspace." }
 
   let cliente
@@ -422,6 +433,102 @@ export async function operarNumeroCanalDireto(
   revalidatePath("/configuracoes/whatsapp")
 
   return resultado.ok ? { estado: resultado.estado } : { estado: "removed" }
+}
+
+/**
+ * Reconectar um número desconectado com a sessão guardada (B9-02), sem QR.
+ *
+ * Gateway primeiro, CRM depois, como nas outras operações. O gateway responde
+ * `connecting`; o desfecho (`connected`, ou `disconnected` com o motivo) chega
+ * pelo webhook e pela sondagem `sincronizarEstadoDoNumero`.
+ */
+export async function reconectarNumeroCanalDireto(
+  conexaoId: string
+): Promise<{ erro?: string; precisaQr?: boolean; estado?: string }> {
+  const autorizacao = await adminDoWorkspace()
+  if ("erro" in autorizacao) return { erro: autorizacao.erro }
+
+  const conexao = await conexaoDoCanalDiretoPorId(autorizacao.workspaceId, conexaoId)
+  if (!conexao) return { erro: "Conexão não encontrada neste workspace." }
+
+  let cliente
+  try {
+    cliente = clienteGatewayDoAmbiente()
+  } catch {
+    return { erro: "O canal direto não está configurado neste ambiente." }
+  }
+
+  const resultado = await reconectarInstancia(cliente, conexao.instanceId, conexao.instanceToken)
+  if (!resultado.ok) return { erro: resultado.erro, precisaQr: resultado.precisaQr }
+
+  const { error } = await createServiceClient()
+    .from("whatsapp_connections")
+    .update({ status: resultado.estado, state_reason: null })
+    .eq("id", conexaoId)
+
+  if (error) {
+    return { erro: "O gateway aceitou a reconexão, mas o CRM não conseguiu registrá-la. Tente de novo." }
+  }
+
+  revalidatePath("/configuracoes/whatsapp")
+  return { estado: resultado.estado }
+}
+
+/**
+ * Sondagem de um número durante a reconexão (B9-02).
+ *
+ * `connected` é gravado aqui mesmo. `disconnected` **não** é gravado: o motivo
+ * (`session_closed_on_device`) chega só pelo webhook, e gravar a consulta, que
+ * vem sem motivo, apagaria o que o webhook escreveu. Enquanto o webhook não
+ * chega, a cópia do CRM ainda diz `connecting`, e a tela continua esperando.
+ */
+export async function sincronizarEstadoDoNumero(
+  conexaoId: string
+): Promise<{ erro?: string; estado?: string; motivo?: string | null; precisaQr?: boolean }> {
+  const autorizacao = await adminDoWorkspace()
+  if ("erro" in autorizacao) return { erro: autorizacao.erro }
+
+  const conexao = await conexaoDoCanalDiretoPorId(autorizacao.workspaceId, conexaoId)
+  if (!conexao) return { erro: "Conexão não encontrada neste workspace." }
+
+  let cliente
+  try {
+    cliente = clienteGatewayDoAmbiente()
+  } catch {
+    return { erro: "O canal direto não está configurado neste ambiente." }
+  }
+
+  const resultado = await consultarEstado(cliente, conexao.instanceId, conexao.instanceToken)
+  if (!resultado.ok) return { erro: resultado.erro }
+
+  const service = createServiceClient()
+
+  if (resultado.estado.state === "disconnected") {
+    const { data } = await service
+      .from("whatsapp_connections")
+      .select("status, state_reason")
+      .eq("id", conexaoId)
+      .maybeSingle()
+
+    if (data?.status === "connecting") return { estado: "connecting" }
+
+    const reason = (data?.state_reason as string | null) ?? null
+    return {
+      estado: "disconnected",
+      motivo: motivoEmPortugues(reason),
+      precisaQr: reason === "session_closed_on_device",
+    }
+  }
+
+  await aplicarEstadoDaInstancia({
+    supabase: service as never,
+    connectionId: conexaoId,
+    workspaceId: autorizacao.workspaceId,
+    evento: resultado.estado,
+  })
+
+  revalidatePath("/configuracoes/whatsapp")
+  return { estado: resultado.estado.state }
 }
 
 export async function completarConexaoWhatsApp(params: {

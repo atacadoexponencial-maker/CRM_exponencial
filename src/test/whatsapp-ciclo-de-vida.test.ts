@@ -6,6 +6,7 @@ import { GatewayIndisponivel, GatewayRecusou, type ClienteGateway } from "@/lib/
 import {
   EFEITO,
   operarInstancia,
+  reconectarInstancia,
   reconectaSemQr,
   type OperacaoDeCicloDeVida,
 } from "@/lib/whatsapp/gateway/ciclo-de-vida"
@@ -114,5 +115,46 @@ describe("recusa e indisponibilidade", () => {
     // O módulo não recebe cliente de banco nenhum — é a garantia estrutural de
     // que o CRM não fica marcando "desconectado" com o número ainda enviando.
     expect(operarInstancia.length).toBe(4)
+  })
+})
+
+describe("reconectar com a sessão guardada (B9-02)", () => {
+  it("bate no endpoint de reconnect e devolve o estado que o gateway respondeu", async () => {
+    const gateway = gatewayFalso({ state: "connecting" })
+
+    const resultado = await reconectarInstancia(gateway.cliente, INSTANCIA, TOKEN)
+
+    expect(gateway.chamadas[0]).toEqual({ token: TOKEN, caminho: `/instances/${INSTANCIA}/reconnect`, metodo: "POST" })
+    expect(resultado).toEqual({ ok: true, estado: "connecting" })
+  })
+
+  it("sem sessão guardada, explica e manda para o QR do mesmo número", async () => {
+    const gateway = gatewayFalso(new GatewayRecusou("no_saved_session", "no saved session", 409))
+
+    const resultado = await reconectarInstancia(gateway.cliente, INSTANCIA, TOKEN)
+
+    expect(resultado.ok).toBe(false)
+    if (resultado.ok) return
+    expect(resultado.precisaQr).toBe(true)
+    expect(resultado.erro).toMatch(/QR Code novo/)
+    expect(resultado.erro).toMatch(/o número continua o mesmo/)
+  })
+
+  it("número banido não vai para o QR: o bloqueio é do WhatsApp", async () => {
+    const gateway = gatewayFalso(new GatewayRecusou("instance_banned", "banned", 409))
+
+    const resultado = await reconectarInstancia(gateway.cliente, INSTANCIA, TOKEN)
+
+    expect(resultado).toMatchObject({ ok: false, precisaQr: false, jaNaoExiste: false })
+    if (!resultado.ok) expect(resultado.erro).toMatch(/bloqueou/)
+  })
+
+  it("gateway fora do ar: nada foi alterado, e não é caso de QR", async () => {
+    const gateway = gatewayFalso(new GatewayIndisponivel("timeout"))
+
+    const resultado = await reconectarInstancia(gateway.cliente, INSTANCIA, TOKEN)
+
+    expect(resultado).toMatchObject({ ok: false, precisaQr: false })
+    if (!resultado.ok) expect(resultado.erro).toMatch(/Nada foi alterado/)
   })
 })
