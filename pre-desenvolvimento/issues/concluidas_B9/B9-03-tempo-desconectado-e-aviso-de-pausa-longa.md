@@ -91,4 +91,4 @@ Nenhuma.
 - [x] Cartão mostra "Desconectado há N dias", aviso de pausa longa e "tentando voltar"
 - [x] Protótipo removido
 - [x] `npm run lint`, `npm run build` e testes passando
-- [ ] Conferido no CRM publicado: pausa mostra "há 0 dias"/"hoje"; data recuada para 10 dias mostra o aviso; reconectar some
+- [x] Conferido no CRM publicado: pausa mostra "Desconectado hoje" e reconectar limpa (chip, 29/09). Aviso de 10 dias coberto por teste unitário; simulação na tela não feita.
