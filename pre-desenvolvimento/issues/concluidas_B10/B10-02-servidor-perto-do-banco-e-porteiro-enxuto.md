@@ -67,4 +67,4 @@ Nenhuma.
 - [x] `src/middleware.ts` sem consulta de sessão em rota pública
 - [x] Matcher sem `api/`, fontes e estáticos
 - [x] `npm run build` passando; `curl` local em `/api/cron/sequencias` e `/login` sem chamada ao Auth
-- [ ] Após deploy, região das funções no painel do Vercel = pdx1
+- [x] Após deploy, região das funções no painel do Vercel = pdx1
