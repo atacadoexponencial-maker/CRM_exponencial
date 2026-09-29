@@ -2,7 +2,7 @@
 
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
-import { avancarAposLembrete, processarSequenciasPendentes } from "@/lib/sequencias"
+import { avancarAposLembrete } from "@/lib/sequencias"
 
 export type ItemAgenda = {
   id: string
@@ -77,9 +77,7 @@ async function buscarConversas(
 }
 
 export async function listarMinhaAgenda(): Promise<ItemAgenda[]> {
-  // Processa etapas vencidas de forma oportunista (complementa o cron diário)
-  await processarSequenciasPendentes().catch(() => {})
-
+  // B10-07: abrir a Agenda não processa sequências; isso é só do cron.
   const { supabase, user } = await perfilAtual()
   if (!user) return []
 
