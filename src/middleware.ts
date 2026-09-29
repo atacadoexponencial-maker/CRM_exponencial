@@ -1,7 +1,25 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Rotas que não exigem sessão. O porteiro nem consulta o Auth nelas.
+const PREFIXOS_PUBLICOS = [
+  '/login',
+  '/cadastro',
+  '/politica-de-privacidade',
+  '/termos-de-servico',
+  '/exclusao-de-dados',
+]
+
+function rotaPublica(pathname: string): boolean {
+  if (pathname === '/') return true
+  return PREFIXOS_PUBLICOS.some((p) => pathname.startsWith(p))
+}
+
 export async function middleware(request: NextRequest) {
+  if (rotaPublica(request.nextUrl.pathname)) {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -27,19 +45,7 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const isPublicRoute =
-    request.nextUrl.pathname.startsWith('/login') ||
-    request.nextUrl.pathname.startsWith('/cadastro') ||
-    request.nextUrl.pathname.startsWith('/politica-de-privacidade') ||
-    request.nextUrl.pathname.startsWith('/termos-de-servico') ||
-    request.nextUrl.pathname.startsWith('/exclusao-de-dados') ||
-    request.nextUrl.pathname.startsWith('/api/webhooks/') ||
-    request.nextUrl.pathname.startsWith('/api/exclusao-de-dados') ||
-    // Crons da Vercel não têm sessão — a rota valida o CRON_SECRET
-    request.nextUrl.pathname.startsWith('/api/cron/') ||
-    request.nextUrl.pathname === '/'
-
-  if (!user && !isPublicRoute) {
+  if (!user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
@@ -49,5 +55,9 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  // Fora do porteiro: rotas de API (webhooks e crons validam a si mesmas),
+  // arquivos do Next, fontes, favicon e qualquer arquivo estático por extensão.
+  matcher: [
+    '/((?!api/|_next/static|_next/image|fonts/|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|ttf|css|js|map|txt|xml|webmanifest)$).*)',
+  ],
 }
