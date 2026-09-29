@@ -1304,6 +1304,7 @@ export type Database = {
           access_token: string | null
           canal: string
           created_at: string
+          disconnected_at: string | null
           display_name: string | null
           id: string
           instance_id: string | null
@@ -1319,6 +1320,7 @@ export type Database = {
           access_token?: string | null
           canal?: string
           created_at?: string
+          disconnected_at?: string | null
           display_name?: string | null
           id?: string
           instance_id?: string | null
@@ -1334,6 +1336,7 @@ export type Database = {
           access_token?: string | null
           canal?: string
           created_at?: string
+          disconnected_at?: string | null
           display_name?: string | null
           id?: string
           instance_id?: string | null

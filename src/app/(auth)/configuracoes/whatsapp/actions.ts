@@ -423,6 +423,8 @@ export async function operarNumeroCanalDireto(
       // A operação foi pedida por nós: não há motivo de transição, e isto
       // limpa um "connection_lost" velho que estivesse na tela.
       state_reason: null,
+      // B9-03: só a pausa pedida marca desde quando; as outras não são pausa.
+      disconnected_at: operacao === "desconectar" && resultado.ok ? new Date().toISOString() : null,
     })
     .eq("id", conexaoId)
 

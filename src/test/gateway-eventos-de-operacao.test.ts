@@ -146,6 +146,7 @@ describe("estado da instância", () => {
       state_reason: null,
       phone_number: "5511777776666",
       display_name: "Atacado Exemplo",
+      disconnected_at: null,
     })
   })
 

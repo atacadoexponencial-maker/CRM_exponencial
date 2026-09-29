@@ -10,6 +10,7 @@
 import { AlertTriangle, Ban } from "lucide-react"
 import { formatarNumero } from "@/lib/whatsapp"
 import { CanalBadge, EstadoBadge, TEXTO_DO_MOTIVO, type EstadoConexao, type MotivoDeTransicao } from "./estado-badge"
+import type { SituacaoDaPausa } from "@/lib/whatsapp/gateway/pausa"
 
 export type NumeroConectado = {
   id: string
@@ -18,6 +19,8 @@ export type NumeroConectado = {
   display_name: string | null
   state: EstadoConexao
   state_reason: MotivoDeTransicao | null
+  /** B9-03: calculada no servidor; ausente na Meta e no protótipo. */
+  pausa?: SituacaoDaPausa
 }
 
 export function CartaoNumero({

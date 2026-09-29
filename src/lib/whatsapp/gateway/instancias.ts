@@ -19,6 +19,8 @@ export type ConexaoListada = {
   displayName: string | null
   status: string
   stateReason: string | null
+  /** B9-03: desde quando está desconectada a pedido; nula fora da pausa. */
+  disconnectedAt: string | null
 }
 
 /** O mínimo que estas funções precisam de um cliente Supabase. */
@@ -51,6 +53,7 @@ type RegistroDeConexao = {
   display_name: string | null
   status: string
   state_reason: string | null
+  disconnected_at?: string | null
 }
 
 export type ResultadoDaCriacao = { ok: true; instanceId: string } | { ok: false; erro: string }
@@ -75,7 +78,7 @@ export async function listarConexoes(
 ): Promise<ConexaoListada[]> {
   const { data } = await supabase
     .from("whatsapp_connections")
-    .select("id, canal, phone_number, display_name, status, state_reason")
+    .select("id, canal, phone_number, display_name, status, state_reason, disconnected_at")
     .eq("workspace_id", workspaceId)
     // Removida fica arquivada para o histórico das conversas, fora da lista.
     .neq("status", "removed")
@@ -89,6 +92,7 @@ export async function listarConexoes(
     displayName: linha.display_name,
     status: linha.status,
     stateReason: linha.state_reason,
+    disconnectedAt: linha.disconnected_at ?? null,
   }))
 }
 

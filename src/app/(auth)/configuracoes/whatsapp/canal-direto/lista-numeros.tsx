@@ -31,6 +31,7 @@ import { PareamentoPorCodigo } from "./pareamento-por-codigo"
 import { TelaQrCode, type Pareamento } from "./tela-qr-code"
 import type { EstadoConexao, MotivoDeTransicao } from "./estado-badge"
 import { pareamentoEmAndamento } from "@/lib/whatsapp/gateway/estado"
+import { TEXTO_DE_QUEDA, textoDePausaLonga } from "@/lib/whatsapp/gateway/pausa"
 import { TermoResponsabilidade } from "./termo-responsabilidade"
 
 /** Enquanto o pareamento não termina, a tela pergunta de novo a cada 3s. */
@@ -220,7 +221,7 @@ export function ListaNumeros({
   }
 
   function avisoDoNumero(numero: NumeroConectado): React.ReactNode {
-    if (!reconexao || reconexao.id !== numero.id) return undefined
+    if (!reconexao || reconexao.id !== numero.id) return avisoDePausa(numero)
     if (reconexao.fase === "voltou" && numero.state === "connected") {
       return (
         <AvisoDoNumero variante="voltou">
@@ -244,6 +245,17 @@ export function ListaNumeros({
           {reconexao.erro}
         </AvisoDoNumero>
       )
+    }
+    return avisoDePausa(numero)
+  }
+
+  /** B9-03: pausa longa e queda, decididas no servidor; a tela só desenha. */
+  function avisoDePausa(numero: NumeroConectado): React.ReactNode {
+    if (numero.pausa?.pausaLonga) {
+      return <AvisoDoNumero variante="pausa_longa">{textoDePausaLonga(numero.pausa.dias)}</AvisoDoNumero>
+    }
+    if (numero.pausa?.tipo === "queda") {
+      return <AvisoDoNumero variante="tentando_voltar">{TEXTO_DE_QUEDA}</AvisoDoNumero>
     }
     return undefined
   }
@@ -306,6 +318,7 @@ export function ListaNumeros({
                   // lista recarregar: é o que está acontecendo.
                   numero={emReconexao ? { ...numero, state: "connecting", state_reason: null } : numero}
                   aviso={avisoDoNumero(numero)}
+                  desdeQuando={emReconexao ? undefined : numero.pausa?.desdeQuando ?? undefined}
                   /* B2-05 e B4/B5: o canal direto tem ciclo de vida, saúde e
                      ritmo; a Meta não expõe nenhum dos três e mantém as ações
                      dela no fluxo próprio, mais abaixo na página. */

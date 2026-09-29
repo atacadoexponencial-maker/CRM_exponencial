@@ -10,6 +10,7 @@ import { WizardConexao } from "./wizard-conexao"
 import { ListaNumeros } from "./canal-direto/lista-numeros"
 import type { NumeroConectado } from "./canal-direto/cartao-numero"
 import type { EstadoConexao } from "./canal-direto/estado-badge"
+import { situacaoDaPausa } from "@/lib/whatsapp/gateway/pausa"
 
 /**
  * Estados que o contrato do gateway prevê. A coluna `status` é texto livre e
@@ -49,6 +50,8 @@ export default async function WhatsAppPage() {
       ? (c.status as EstadoConexao)
       : "disconnected",
     state_reason: (c.stateReason as NumeroConectado["state_reason"]) ?? null,
+    // B9-03: "Desconectado há N dias", pausa longa e queda, decididos aqui.
+    pausa: situacaoDaPausa({ status: c.status, stateReason: c.stateReason ?? null, disconnectedAt: c.disconnectedAt }),
   }))
 
   return (

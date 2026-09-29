@@ -218,6 +218,7 @@ describe("listar conexões do workspace", () => {
       displayName: null,
       status: "pairing",
       stateReason: null,
+      disconnectedAt: null,
     })
   })
 

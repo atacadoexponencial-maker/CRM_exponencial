@@ -130,6 +130,9 @@ export async function aplicarEstadoDaInstancia({
   if (evento.phone_number) alteracao.phone_number = evento.phone_number
   if (evento.display_name) alteracao.display_name = evento.display_name
 
+  // B9-03: voltou a conectar, a pausa acabou.
+  if (evento.state === "connected") alteracao.disconnected_at = null
+
   await supabase.from("whatsapp_connections").update(alteracao).eq("id", connectionId)
 
   if (evento.state === "connected" && evento.phone_number) {
