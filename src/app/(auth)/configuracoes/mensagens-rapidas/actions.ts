@@ -1,6 +1,6 @@
 "use server"
 
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { redirect } from "next/navigation"
 
 export type MensagemRapidaListada = {
@@ -10,12 +10,7 @@ export type MensagemRapidaListada = {
 }
 
 export async function listarMensagensRapidas(): Promise<MensagemRapidaListada[]> {
-  const supabase = await createClient()
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("workspace_id, role")
-    .single()
+  const { supabase, perfil } = await sessaoAtual()
 
   if (!perfil || perfil.role !== "admin") redirect("/perfil")
 
@@ -34,12 +29,7 @@ export async function criarMensagemRapida(
   titulo: string,
   conteudo: string
 ): Promise<{ mensagem?: MensagemRapidaListada; erro?: string }> {
-  const supabase = await createClient()
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("workspace_id, role")
-    .single()
+  const { supabase, perfil } = await sessaoAtual()
 
   if (!perfil || perfil.role !== "admin") return { erro: "Sem permissão" }
 
@@ -59,12 +49,7 @@ export async function editarMensagemRapida(
   titulo: string,
   conteudo: string
 ): Promise<{ erro?: string }> {
-  const supabase = await createClient()
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("workspace_id, role")
-    .single()
+  const { supabase, perfil } = await sessaoAtual()
 
   if (!perfil || perfil.role !== "admin") return { erro: "Sem permissão" }
 
@@ -80,12 +65,7 @@ export async function editarMensagemRapida(
 }
 
 export async function excluirMensagemRapida(id: string): Promise<{ erro?: string }> {
-  const supabase = await createClient()
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("workspace_id, role")
-    .single()
+  const { supabase, perfil } = await sessaoAtual()
 
   if (!perfil || perfil.role !== "admin") return { erro: "Sem permissão" }
 

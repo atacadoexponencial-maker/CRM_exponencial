@@ -76,7 +76,7 @@ function montarSecoes(atrasados: number): SecaoNav[] {
     {
       titulo: "Configurações",
       itens: [
-        { href: "/configuracoes/mensagens-rapidas", label: "Mensagens Rápidas", icone: MessageSquareText },
+        { href: "/configuracoes/mensagens-rapidas", label: "Mensagens Rápidas", icone: MessageSquareText, papeis: ["admin"] },
         { href: "/configuracoes/etiquetas", label: "Etiquetas", icone: Tags, papeis: ["admin"] },
         { href: "/configuracoes/templates", label: "Templates", icone: FileBadge, papeis: ["admin"] },
         { href: "/configuracoes/usuarios", label: "Usuários", icone: Users, papeis: ["admin"] },
