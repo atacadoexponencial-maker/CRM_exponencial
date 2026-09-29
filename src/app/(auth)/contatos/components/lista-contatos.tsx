@@ -1,16 +1,18 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Search, ChevronDown } from "lucide-react"
+import { Search, ChevronDown, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NovoContatoDialog } from "./novo-contato-dialog"
+import { listarContatos } from "../actions"
 import {
   type Contato,
   type ClassificacaoContato,
   type TipoContato,
   CLASSIFICACAO_LABEL,
   TIPO_LABEL,
+  TAMANHO_PAGINA_CONTATOS,
 } from "../mock-contatos"
 
 const CLASSIFICACOES: { label: string; valor: ClassificacaoContato | "todas" }[] = [
@@ -58,12 +60,55 @@ const ORDEM_CLASSIFICACAO: Record<ClassificacaoContato, number> = {
 
 interface ListaContatosProps {
   contatos: Contato[]
+  /** A primeira página veio cheia: há mais no servidor (B10-06). */
+  temMais?: boolean
   papel: string
 }
 
-export function ListaContatos({ contatos, papel }: ListaContatosProps) {
+export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInicial = false, papel }: ListaContatosProps) {
   const router = useRouter()
   const [busca, setBusca] = useState("")
+
+  // B10-06: páginas carregadas e, quando há busca, o resultado vindo do servidor.
+  const [paginas, setPaginas] = useState<Contato[]>(contatosIniciais)
+  const [temMais, setTemMais] = useState(temMaisInicial)
+  const [carregandoMais, setCarregandoMais] = useState(false)
+  // Resultado guardado junto com o termo: só vale enquanto o termo for o mesmo.
+  const [respostaBusca, setRespostaBusca] = useState<{ termo: string; lista: Contato[] } | null>(null)
+
+  const termoServidor = busca.trim().length >= 2 ? busca.trim() : ""
+  const resultadoBusca = termoServidor && respostaBusca?.termo === termoServidor ? respostaBusca.lista : null
+  const buscando = !!termoServidor && resultadoBusca === null
+
+  useEffect(() => {
+    if (!termoServidor) return
+    let cancelado = false
+    const t = setTimeout(() => {
+      listarContatos({ busca: termoServidor, limite: TAMANHO_PAGINA_CONTATOS })
+        .then((lista) => { if (!cancelado) setRespostaBusca({ termo: termoServidor, lista }) })
+        .catch(() => { /* mantém o que está na tela */ })
+    }, 300)
+    return () => { cancelado = true; clearTimeout(t) }
+  }, [termoServidor])
+
+  async function carregarMais() {
+    if (carregandoMais || !temMais) return
+    setCarregandoMais(true)
+    try {
+      const pagina = await listarContatos({ limite: TAMANHO_PAGINA_CONTATOS, offset: paginas.length })
+      setPaginas((prev) => {
+        const ids = new Set(prev.map((c) => c.id))
+        return [...prev, ...pagina.filter((c) => !ids.has(c.id))]
+      })
+      if (pagina.length < TAMANHO_PAGINA_CONTATOS) setTemMais(false)
+    } catch {
+      // Mantém o que já tem; o botão permite tentar de novo.
+    } finally {
+      setCarregandoMais(false)
+    }
+  }
+
+  const contatos = resultadoBusca ?? paginas
   const [classificacao, setClassificacao] = useState<ClassificacaoContato | "todas">("todas")
   const [tipo, setTipo] = useState<TipoContato | "todos">("todos")
   const [nicho, setNicho] = useState<string | null>(null)
@@ -312,6 +357,26 @@ export function ListaContatos({ contatos, papel }: ListaContatosProps) {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {buscando && (
+        <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="size-3.5 animate-spin" /> Buscando…
+        </p>
+      )}
+
+      {!resultadoBusca && temMais && (
+        <div className="flex justify-center mt-4">
+          <button
+            type="button"
+            onClick={carregarMais}
+            disabled={carregandoMais}
+            className="h-8 flex items-center gap-2 px-4 text-sm rounded-lg border border-input text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-60"
+          >
+            {carregandoMais && <Loader2 className="size-3.5 animate-spin" />}
+            {carregandoMais ? "Carregando…" : "Carregar mais"}
+          </button>
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import type { Contato, ContatoPerfil, ClassificacaoContato, TipoContato, ICP } from "./mock-contatos"
 import { calcularClassificacao } from "./classificacao"
 
@@ -334,26 +335,44 @@ export async function atualizarDadosContato(
   return {}
 }
 
-export async function listarContatos(): Promise<Contato[]> {
-  const supabase = await createClient()
+type OpcoesListagemContatos = {
+  /** Quantos trazer. Sem limite quando ausente (compatível com o uso antigo). */
+  limite?: number
+  /** Quantos pular: página seguinte. */
+  offset?: number
+  /** Trecho de nome ou telefone; procura em todos os contatos visíveis. */
+  busca?: string
+}
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
+/**
+ * Aplica busca, ordem e página. Paginado, a ordem é "mais recente primeiro",
+ * a mesma da tela; sem limite, mantém a ordem por nome de antes.
+ */
+function aplicarOpcoes<Q extends {
+  or: (f: string) => Q
+  order: (c: string, o?: { ascending: boolean }) => Q
+  range: (a: number, b: number) => Q
+}>(query: Q, { limite, offset = 0, busca }: OpcoesListagemContatos): Q {
+  let q = query
+  const termo = busca?.trim().replace(/[%,()]/g, "")
+  if (termo) q = q.or(`name.ilike.%${termo}%,phone_number.ilike.%${termo}%`)
+  if (limite) {
+    q = q.order("created_at", { ascending: false }).range(offset, offset + limite - 1)
+  } else {
+    q = q.order("name")
+  }
+  return q
+}
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, workspace_id")
-    .eq("id", user.id)
-    .single()
-
-  if (!profile) return []
+export async function listarContatos(opcoes: OpcoesListagemContatos = {}): Promise<Contato[]> {
+  const { supabase, user, perfil: profile } = await sessaoAtual()
+  if (!user || !profile) return []
 
   if (profile.role === "admin" || profile.role === "gerente") {
-    const { data } = await supabase
-      .from("contacts")
-      .select(CONTACT_SELECT)
-      .eq("workspace_id", profile.workspace_id)
-      .order("name")
+    const { data } = await aplicarOpcoes(
+      supabase.from("contacts").select(CONTACT_SELECT).eq("workspace_id", profile.workspace_id),
+      opcoes
+    )
 
     return (data ?? []).map(mapContato)
   }
@@ -377,11 +396,10 @@ export async function listarContatos(): Promise<Contato[]> {
 
   if (contactIds.length === 0) return []
 
-  const { data } = await supabase
-    .from("contacts")
-    .select(CONTACT_SELECT)
-    .in("id", contactIds)
-    .order("name")
+  const { data } = await aplicarOpcoes(
+    supabase.from("contacts").select(CONTACT_SELECT).in("id", contactIds),
+    opcoes
+  )
 
   return (data ?? []).map(mapContato)
 }

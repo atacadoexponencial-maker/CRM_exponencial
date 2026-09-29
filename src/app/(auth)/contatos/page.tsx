@@ -1,25 +1,20 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { ListaContatos } from "./components/lista-contatos"
 import { listarContatos } from "./actions"
+import { TAMANHO_PAGINA_CONTATOS } from "./mock-contatos"
 
 export default async function ContatosPage() {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
 
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single()
-
-  const contatos = await listarContatos()
+  // B10-06: primeira página; o restante vem por "Carregar mais".
+  const contatos = await listarContatos({ limite: TAMANHO_PAGINA_CONTATOS })
 
   return (
     <ListaContatos
       contatos={contatos}
+      temMais={contatos.length === TAMANHO_PAGINA_CONTATOS}
       papel={perfil?.role ?? "atendente"}
     />
   )

@@ -18,6 +18,10 @@ export type TipoEvento =
   | "compra_registrada"
   | "dados_editados"
 
+/** Contatos por página na listagem (B10-06). Fica aqui porque `actions.ts` é
+ * "use server" e só pode exportar funções. */
+export const TAMANHO_PAGINA_CONTATOS = 50
+
 export interface Contato {
   id: string
   nome: string
