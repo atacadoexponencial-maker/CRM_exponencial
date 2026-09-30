@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/montserrat";
+/* Canvas do editor de automações. Depois do Tailwind, como pede a documentação do React Flow */
+@import "@xyflow/react/dist/style.css";
 
 @font-face {
   font-family: 'Satoshi';
