@@ -7,7 +7,7 @@ no ar sai daqui. Quem abre a pasta deve saber, sem ler nada, o que falta fazer.
 
 | Spec | Issues | Estado |
 |---|---|---|
-| `spec-automacoes-v2.md` — automações com gatilho, condições e ações (fase 1) | `issues/B11-01` a `B11-09` | Escrita em 29/09/2026. Nenhuma issue começada. Implementador: Luan. Ordem sugerida: 01 → 02 → 03 → 04 → 05 → 07 → 06 → 08 → 09. |
+| `spec-automacoes-v2.md` — automações em fluxo de blocos: gatilho, condições com sim/não e ações (fase 1) | `issues/B11-01` a `B11-09` | Escrita em 29/09/2026 e trocada para fluxo de blocos em 30/09 (`decisoes/B11-automacoes-em-fluxo.md`). Feita no branch `b11-automacoes-v2`, com merge único no fim, depois de testada no preview. Implementador: Luan. Ordem sugerida: 01 → 02 → 03 → 04 → 05 → 07 → 06 → 08 → 09. |
 
 Quando a última issue de uma spec entrar no ar, mova a spec para
 `docs/specs-arquivadas/` e as issues para `issues/concluidas_<série>/`.
@@ -44,7 +44,7 @@ As issues da parte A (gateway) ficam no repositório `whatsapp-gateway`.
 | `referencia/avaliacao-whatsapp-nao-oficial.md` | Por que e como o canal direto foi escolhido. |
 | `referencia/pesquisa-inicial.md` | Pesquisa de produto do começo do projeto. |
 | `referencia/sessao-2026-06-02-whatsapp-api-e-meta-review.md` | Ata da sessão sobre API Oficial e revisão da Meta. |
-| `decisoes/` | Decisões de arquitetura registradas (hoje: B1-01, camada de provider). |
+| `decisoes/` | Decisões de arquitetura registradas (hoje: B1-01, camada de provider; B11, automações em fluxo). |
 | `testes/` | Planos de teste por módulo e série; o skill `testes` lê daqui. |
 
 ## Como as séries se chamam

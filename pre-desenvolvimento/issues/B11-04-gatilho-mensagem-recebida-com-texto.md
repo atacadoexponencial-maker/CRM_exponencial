@@ -1,7 +1,7 @@
 # B11-04: Gatilho "mensagem recebida do cliente" com condição de texto e tipo
 
 **Tipo:** Implementação
-**Página:** Motor; Editor de regra (só o necessário)
+**Página:** Motor; Editor de fluxo (só o necessário)
 **Repositório:** `crm-exponencial`
 **Spec:** `pre-desenvolvimento/spec-automacoes-v2.md`
 **Depende de:** B11-02
@@ -20,7 +20,8 @@ de texto e tipo; no "Motor", o ponto de disparo nos dois webhooks.
 
 ## Pronto quando
 
-No CRM publicado, uma regra "mensagem recebida contendo 'catálogo' → aplicar
+No preview do branch `b11-automacoes-v2` (o merge no `master` é um só, no fim da
+série), uma regra "mensagem recebida contendo 'catálogo' → aplicar
 etiqueta Interessado" (criada por script ou pelo editor provisório) aplica a
 etiqueta quando o cliente escreve "Quero o CATÁLOGO", e não aplica quando
 escreve "oi". O webhook responde ao WhatsApp antes de as ações terminarem

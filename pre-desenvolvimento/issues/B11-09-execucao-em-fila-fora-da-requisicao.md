@@ -18,7 +18,8 @@ Cobre, no "Motor", executar fora da requisição.
 
 ## Pronto quando
 
-No CRM publicado, com uma regra que envia mensagem, o tempo de resposta do
+No preview do branch `b11-automacoes-v2` (o merge no `master` é um só, no fim da
+série), com uma regra que envia mensagem, o tempo de resposta do
 webhook medido no gateway ou na Meta não muda com a regra ativa; a mensagem da
 regra chega em até 30 segundos e aparece no histórico. Derrubar de propósito a
 ação (etiqueta apagada) não afeta o recebimento da mensagem.

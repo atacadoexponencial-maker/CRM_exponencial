@@ -1,7 +1,7 @@
 # B11-07: Ação enviar mensagem com variáveis, mensagem rápida e mídia
 
 **Tipo:** Implementação
-**Página:** Editor de regra; Motor
+**Página:** Editor de fluxo; Motor
 **Repositório:** `crm-exponencial`
 **Spec:** `pre-desenvolvimento/spec-automacoes-v2.md`
 **Depende de:** B11-05
@@ -16,6 +16,7 @@ suporta; caso contrário a ação falha com motivo no histórico).
 
 ## Pronto quando
 
-No CRM publicado, uma regra envia "Oi {{primeiro_nome}}, aqui é {{nome_vendedor}}"
+No preview do branch `b11-automacoes-v2` (o merge no `master` é um só, no fim da
+série), uma regra envia "Oi {{primeiro_nome}}, aqui é {{nome_vendedor}}"
 com os nomes certos, outra envia a mensagem rápida escolhida, e outra envia
 um PDF; o histórico mostra as três como concluídas.
