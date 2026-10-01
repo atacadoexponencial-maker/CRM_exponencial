@@ -44,6 +44,7 @@ As issues da parte A (gateway) ficam no repositório `whatsapp-gateway`.
 | `referencia/avaliacao-whatsapp-nao-oficial.md` | Por que e como o canal direto foi escolhido. |
 | `referencia/pesquisa-inicial.md` | Pesquisa de produto do começo do projeto. |
 | `referencia/sessao-2026-06-02-whatsapp-api-e-meta-review.md` | Ata da sessão sobre API Oficial e revisão da Meta. |
+| `referencia/sessao-2026-09-30-b11-automacoes.md` | Ata da sessão da B11: onde retomar, decisões, preview na Vercel e próximos passos. |
 | `decisoes/` | Decisões de arquitetura registradas (hoje: B1-01, camada de provider; B11, automações em fluxo). |
 | `testes/` | Planos de teste por módulo e série; o skill `testes` lê daqui. |
 
