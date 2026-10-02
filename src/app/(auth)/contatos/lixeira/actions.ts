@@ -14,7 +14,7 @@ import { sessaoAtual, type PerfilDaSessao } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { transmitirContatoExcluido } from "@/lib/whatsapp/realtime"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
-import { tirarDaLixeira } from "@/lib/lixeira"
+import { apagarDaLixeira, PRAZO_LIXEIRA_DIAS, tirarDaLixeira } from "@/lib/lixeira"
 import type { FunilDoCard } from "../components/dialogo-excluir-contato"
 import type { ItemLixeira } from "./components/lista-lixeira"
 
@@ -204,7 +204,6 @@ export async function excluirContatoPorCard(cardId: string): Promise<{ ok: true 
 // políticas de leitura escondem esses cards e conversas de quem usa a sessão,
 // então a conta é feita com o cliente de serviço, depois de saber o papel.
 
-const PRAZO_DIAS = 30
 const DIA_MS = 86_400_000
 const SEM_PERMISSAO_LIXEIRA = "Você não pode alterar este contato."
 const NAO_ESTA_MAIS = "Este contato não está mais na lixeira."
@@ -261,7 +260,7 @@ async function contatoNaLixeiraVisivel(
 
 function diasRestantes(excluidoEm: string): number {
   const passados = Math.floor((Date.now() - new Date(excluidoEm).getTime()) / DIA_MS)
-  return Math.max(0, PRAZO_DIAS - passados)
+  return Math.max(0, PRAZO_LIXEIRA_DIAS - passados)
 }
 
 function quando(iso: string): string {
@@ -353,32 +352,6 @@ export async function restaurarContato(contactId: string): Promise<{ ok: true } 
   return { ok: true }
 }
 
-const PREFIXO_PUBLICO = "/storage/v1/object/public/chat-attachments/"
-
-/** Caminhos no bucket dos arquivos de mídia das conversas do contato. */
-async function arquivosDoContato(svc: Svc, workspaceId: string, contactId: string): Promise<string[]> {
-  const { data: conversas } = await svc.from("conversations").select("id").eq("contact_id", contactId)
-  const ids = (conversas ?? []).map((c) => c.id)
-  if (ids.length === 0) return []
-  const { data: mensagens } = await svc
-    .from("messages")
-    .select("content")
-    .in("conversation_id", ids)
-    .neq("type", "texto")
-  const caminhos: string[] = []
-  for (const m of mensagens ?? []) {
-    const conteudo = m.content ?? ""
-    const i = conteudo.indexOf(PREFIXO_PUBLICO)
-    if (i < 0) continue
-    const caminho = decodeURIComponent(conteudo.slice(i + PREFIXO_PUBLICO.length).split("?")[0])
-    // Só arquivos da própria empresa, e nunca os de campanha (não são do contato).
-    if (caminho.startsWith(`${workspaceId}/`) && !caminho.startsWith(`${workspaceId}/campanhas/`)) {
-      caminhos.push(caminho)
-    }
-  }
-  return caminhos
-}
-
 export async function apagarContatoDeVez(contactId: string): Promise<{ ok: true } | { erro: string }> {
   const { user, perfil } = await sessaoAtual()
   if (!user || !perfil) return { erro: SEM_PERMISSAO_LIXEIRA }
@@ -387,16 +360,11 @@ export async function apagarContatoDeVez(contactId: string): Promise<{ ok: true 
   if (contato === "nao_esta") return { erro: NAO_ESTA_MAIS }
   if (!contato) return { erro: SEM_PERMISSAO_LIXEIRA }
 
-  // Arquivos primeiro: depois de apagar as mensagens não há mais como achá-los.
-  // Falha aqui deixa arquivo órfão, nunca dado — segue para apagar os dados.
-  const caminhos = await arquivosDoContato(svc, perfil.workspace_id, contactId)
-  if (caminhos.length > 0) {
-    await svc.storage.from("chat-attachments").remove(caminhos).catch(() => {})
+  try {
+    if (!(await apagarDaLixeira(svc, perfil.workspace_id, contactId))) return { erro: NAO_ESTA_MAIS }
+  } catch {
+    return { erro: "Não foi possível apagar. Tente de novo." }
   }
-
-  const { data: apagou, error } = await svc.rpc("apagar_contato_de_vez", { p_contact_id: contactId })
-  if (error) return { erro: "Não foi possível apagar. Tente de novo." }
-  if (!apagou) return { erro: NAO_ESTA_MAIS }
 
   revalidarTudo()
   return { ok: true }
