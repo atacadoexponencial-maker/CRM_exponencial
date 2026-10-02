@@ -130,5 +130,5 @@ Regra de troca: `expansao→entrada`, `retencao→recompra`, nas formas `Expansa
 - [x] `CLAUDE.md` e planos de teste atualizados
 - [x] Busca por expansao/retencao em `src/` e `e2e/` sem resultado (fora a Política de Privacidade)
 - [x] `npx tsc --noEmit`, `npm run lint` e `npm run build` sem erro novo
-- [ ] Depois do push: deploy Ready → `db push` da Migration B → conferir cards e regra no banco
+- [x] Depois do push: deploy Ready (produção responde 308 em `/pipeline/retencao`) → `db push` da Migration B → 2 cards do Luan Teste em `entrada`/`recompra` nas mesmas etapas, regra só com os dois valores, padrão `entrada`, 0 automações com valor antigo (02/10)
 - [x] Conferência visual no navegador (série toda): `next start` + Playwright com workspace temporário (apagado) — abas Entrada/Recompra, colunas com acento, painel "Funil: Entrada", `/pipeline/retencao` → `/pipeline/recompra`, perfil "Funil de Entrada", dashboard "Recompra" (02/10)
