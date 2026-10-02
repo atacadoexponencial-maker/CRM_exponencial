@@ -8,6 +8,7 @@ no ar sai daqui. Quem abre a pasta deve saber, sem ler nada, o que falta fazer.
 | Spec | Issues | Estado |
 |---|---|---|
 | `spec-automacoes-v2.md` — automações com gatilho, condições e ações (fase 1) | `issues/B11-01` a `B11-09` | Escrita em 29/09/2026. Nenhuma issue começada. Implementador: Luan. Ordem sugerida: 01 → 02 → 03 → 04 → 05 → 07 → 06 → 08 → 09. |
+| `spec-renomear-funis.md` — Expansão/Retenção viram Entrada/Recompra em todo o sistema, inclusive o interno | `issues/B12-01` a `B12-05` | Escrita e aprovada em 02/10/2026. Ordem: 01 → 02 → 03 → 04 → 05. A 05 ajusta o branch da B11 do Luan, que está parado esperando. |
 
 Quando a última issue de uma spec entrar no ar, mova a spec para
 `docs/specs-arquivadas/` e as issues para `issues/concluidas_<série>/`.
@@ -51,5 +52,5 @@ As issues da parte A (gateway) ficam no repositório `whatsapp-gateway`.
 
 - `NN` (01, 02…): issues dos módulos 0 a 7, agrupadas por módulo em `concluidas_moduloX/`.
 - `B<n>-NN`: séries do CRM depois dos módulos (B1–B8 canal direto, B9 desconectar,
-  B10 navegação, B11 automações). A pasta de concluídas leva o prefixo da série.
+  B10 navegação, B11 automações, B12 renomear funis). A pasta de concluídas leva o prefixo da série.
 - `A<n>-NN`: séries do gateway, no outro repositório.
