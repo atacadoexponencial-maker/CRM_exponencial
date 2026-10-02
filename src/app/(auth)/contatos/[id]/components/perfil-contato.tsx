@@ -463,7 +463,7 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
                     className="flex items-center gap-2 text-sm hover:underline"
                   >
                     <span className="text-muted-foreground">
-                      Funil de {card.funil === "expansao" ? "Expansão" : "Retenção"}:
+                      Funil de {card.funil === "expansao" ? "Entrada" : "Recompra"}:
                     </span>
                     <span className="font-medium">{card.etapaLabel}</span>
                   </Link>

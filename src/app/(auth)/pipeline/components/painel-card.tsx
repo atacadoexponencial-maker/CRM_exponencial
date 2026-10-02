@@ -48,7 +48,7 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel,
   const semAtendente = card.atendente === null
   const etapas = funil === "retencao" ? ETAPAS_RETENCAO : ETAPAS_EXPANSAO
   const etapaLabel = etapas.find((e) => e.id === card.etapa)?.label ?? card.etapa
-  const funilLabel = funil === "retencao" ? "Retenção" : "Expansão"
+  const funilLabel = funil === "retencao" ? "Recompra" : "Entrada"
 
   return (
     <>

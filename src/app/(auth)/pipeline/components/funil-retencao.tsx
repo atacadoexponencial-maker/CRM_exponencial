@@ -74,10 +74,10 @@ export function FunilRetencao({ cards, papel, atendentes }: FunilRetencaoProps) 
             href="/pipeline"
             className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md"
           >
-            Expansão
+            Entrada
           </Link>
           <span className="px-3 py-1.5 text-sm font-medium rounded-md bg-background text-foreground shadow-sm">
-            Retenção
+            Recompra
           </span>
         </div>
 

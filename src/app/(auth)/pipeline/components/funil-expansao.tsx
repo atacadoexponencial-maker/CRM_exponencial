@@ -62,13 +62,13 @@ export function FunilExpansao({ cards, papel, atendentes }: FunilExpansaoProps) 
       <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
         <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
           <span className="px-3 py-1.5 text-sm font-medium rounded-md bg-background text-foreground shadow-sm">
-            Expansão
+            Entrada
           </span>
           <Link
             href="/pipeline/retencao"
             className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md"
           >
-            Retenção
+            Recompra
           </Link>
         </div>
 

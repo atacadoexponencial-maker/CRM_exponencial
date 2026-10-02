@@ -34,9 +34,9 @@ export function SecoesMetricas({ metricas }: { metricas: MetricasDashboard }) {
         </div>
       </section>
 
-      {/* Retenção */}
+      {/* Recompra */}
       <section>
-        <h2 className="text-sm font-semibold mb-3">Retenção</h2>
+        <h2 className="text-sm font-semibold mb-3">Recompra</h2>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-3">
           <CardMetrica titulo="Clientes ativos agora" valor={metricas.retencao.clientesAtivos} />
           <CardMetrica titulo="Taxa de recompra no período" valor={metricas.retencao.taxaRecompra} sufixo="%" />

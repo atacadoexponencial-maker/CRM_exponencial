@@ -372,7 +372,7 @@ export async function listarCardsRetencao(): Promise<CardCliente[]> {
     .order("etapa_changed_at", { ascending: false })
     .limit(LIMITE_CARDS)
 
-  if (error) throw new Error("Erro ao carregar cards do funil de retenção")
+  if (error) throw new Error("Erro ao carregar cards do funil de recompra")
 
   const contactIds = (data ?? []).map((row) => row.contact_id).filter(Boolean) as string[]
   const conversasPorContato: Record<string, string> = {}

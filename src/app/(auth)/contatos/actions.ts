@@ -219,7 +219,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
   }
 
   for (const card of rawCards) {
-    const funilLabel = card.funil === "retencao" ? "Retenção" : "Expansão"
+    const funilLabel = card.funil === "retencao" ? "Recompra" : "Entrada"
     const etapaLabel = ETAPA_LABEL_ALL[card.etapa] ?? card.etapa
     eventos.push({
       id: card.id,

@@ -66,7 +66,7 @@ function etapaLabel(funil: string | undefined, etapa: string | undefined): strin
 
 function resumoGatilho(a: AutomacaoListada): string {
   if (a.gatilhoTipo === "card_movido") {
-    const funil = a.gatilhoConfig.funil === "retencao" ? "Retenção" : "Expansão"
+    const funil = a.gatilhoConfig.funil === "retencao" ? "Recompra" : "Entrada"
     return `Quando o card entrar em "${etapaLabel(a.gatilhoConfig.funil, a.gatilhoConfig.etapa)}" (${funil})`
   }
   return "Quando uma nova conversa for recebida"
@@ -85,7 +85,7 @@ function resumoAcao(
     case "atribuir_atendente":
       return `atribuir a ${atendentes.find((p) => p.id === a.acaoConfig.atendente_id)?.nome ?? "—"}`
     case "mover_card": {
-      const funil = a.acaoConfig.funil === "retencao" ? "Retenção" : "Expansão"
+      const funil = a.acaoConfig.funil === "retencao" ? "Recompra" : "Entrada"
       return `mover card para "${etapaLabel(a.acaoConfig.funil, a.acaoConfig.etapa)}" (${funil})`
     }
   }
@@ -334,8 +334,8 @@ export function AutomacoesClient({ automacoesIniciais, etiquetas, atendentes }: 
                       setForm((f) => ({ ...f, gatilhoConfig: { funil: e.target.value, etapa: "" } }))
                     }
                   >
-                    <option value="expansao">Funil de Expansão</option>
-                    <option value="retencao">Funil de Retenção</option>
+                    <option value="expansao">Funil de Entrada</option>
+                    <option value="retencao">Funil de Recompra</option>
                   </select>
                   <select
                     aria-label="Etapa do gatilho"
@@ -424,8 +424,8 @@ export function AutomacoesClient({ automacoesIniciais, etiquetas, atendentes }: 
                       setForm((f) => ({ ...f, acaoConfig: { funil: e.target.value, etapa: "" } }))
                     }
                   >
-                    <option value="expansao">Funil de Expansão</option>
-                    <option value="retencao">Funil de Retenção</option>
+                    <option value="expansao">Funil de Entrada</option>
+                    <option value="retencao">Funil de Recompra</option>
                   </select>
                   <select
                     aria-label="Etapa de destino"
