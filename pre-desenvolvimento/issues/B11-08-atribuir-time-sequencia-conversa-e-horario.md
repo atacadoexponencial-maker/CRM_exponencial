@@ -19,5 +19,5 @@ e etapa) caso a B11-02 não as tenha coberto.
 
 No preview do branch `b11-automacoes-v2` (o merge no `master` é um só, no fim da
 série), a regra "mensagem recebida fora do horário comercial →
-enviar mensagem de ausência, atribuir ao time Expansão" responde à noite e
+enviar mensagem de ausência, atribuir ao time Entrada" responde à noite e
 não responde de dia, e o card do contato fica com um atendente do time.

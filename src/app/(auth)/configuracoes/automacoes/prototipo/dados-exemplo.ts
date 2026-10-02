@@ -30,8 +30,8 @@ export const OPCOES_EXEMPLO: OpcoesEditor = {
     { id: "qualificado", nome: "qualificado" },
   ],
   times: [
-    { id: "time-expansao", nome: "Expansão" },
-    { id: "time-retencao", nome: "Retenção" },
+    { id: "time-entrada", nome: "Entrada" },
+    { id: "time-recompra", nome: "Recompra" },
   ],
   sequencias: [
     { id: "seq-boas-vindas", nome: "Boas-vindas em 3 dias" },
@@ -129,7 +129,7 @@ export const REGRAS_EXEMPLO: RegraExemplo[] = [
   {
     id: "regra-qualificado",
     repeticao: { modo: "uma_vez_por_contato" },
-    nome: "Lead qualificado vai para a Expansão",
+    nome: "Lead qualificado vai para a Entrada",
     ativa: false,
     fluxo: {
       blocos: [
@@ -137,10 +137,10 @@ export const REGRAS_EXEMPLO: RegraExemplo[] = [
           id: "g1",
           tipo: "gatilho",
           gatilho: "card_movido",
-          parametros: { funil: "expansao", etapa: "em_qualificacao" },
+          parametros: { funil: "entrada", etapa: "em_qualificacao" },
           posicao: { x: 0, y: 0 },
         },
-        { id: "a1", tipo: "acao", acao: "atribuir_time", parametros: { time_id: "time-expansao" }, posicao: { x: 0, y: 160 } },
+        { id: "a1", tipo: "acao", acao: "atribuir_time", parametros: { time_id: "time-entrada" }, posicao: { x: 0, y: 160 } },
         { id: "a2", tipo: "acao", acao: "adicionar_tag", parametros: { tag: "qualificado" }, posicao: { x: 0, y: 310 } },
       ],
       ligacoes: [

@@ -23,7 +23,7 @@ import {
   Users,
 } from "lucide-react"
 import type { AcaoTipo, GatilhoTipo, VerificacaoTipo } from "@/lib/fluxo-automacao"
-import { ETAPAS_EXPANSAO, ETAPAS_RETENCAO } from "../../../pipeline/mock-pipeline"
+import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "../../../pipeline/mock-pipeline"
 import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "../../../contatos/mock-contatos"
 
 export type Opcao = { id: string; nome: string }
@@ -66,12 +66,12 @@ export type CampoTela =
   | { chave: string; rotulo: string; tipo: "arquivo" }
 
 export const FUNIS: Opcao[] = [
-  { id: "expansao", nome: "Funil de Expansão" },
-  { id: "retencao", nome: "Funil de Retenção" },
+  { id: "entrada", nome: "Funil de Entrada" },
+  { id: "recompra", nome: "Funil de Recompra" },
 ]
 
 export function etapasDoFunil(funil: string | undefined): Opcao[] {
-  const etapas = funil === "retencao" ? ETAPAS_RETENCAO : ETAPAS_EXPANSAO
+  const etapas = funil === "recompra" ? ETAPAS_RECOMPRA : ETAPAS_ENTRADA
   return etapas.map((e) => ({ id: e.id, nome: e.label }))
 }
 

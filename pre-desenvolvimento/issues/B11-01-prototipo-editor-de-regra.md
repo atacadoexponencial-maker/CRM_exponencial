@@ -159,7 +159,7 @@ Nenhum. O protótipo não lê nem grava. A tabela nova é da B11-02.
 
 **Reutilizar:**
 - A checagem de papel de `src/app/(auth)/configuracoes/automacoes/page.tsx:7-10`
-- `ETAPAS_EXPANSAO` e `ETAPAS_RETENCAO` de `src/app/(auth)/pipeline/mock-pipeline.ts`
+- `ETAPAS_ENTRADA` e `ETAPAS_RECOMPRA` de `src/app/(auth)/pipeline/mock-pipeline.ts`
 - `CLASSIFICACAO_LABEL` e `TIPO_LABEL` de `src/app/(auth)/contatos/mock-contatos.ts`
 - `Button`, `Input`, `Label`, `Dialog`, `DropdownMenu` e `Badge` de `src/components/ui/`
 - O interruptor e a tabela de `automacoes-client.tsx`, e a constante local
@@ -232,7 +232,7 @@ temporária foi apagada antes do commit.
 - `src/app/(auth)/pipeline/mock-pipeline.ts` está com a codificação quebrada
   desde o commit `507232c` (12/06/2026). "Em Qualificação", "Catálogo Enviado" e
   "Em Negociação" aparecem como "Em QualificaÃ§Ã£o" etc. O arquivo alimenta o
-  funil de Expansão, o painel do card, a tela atual de automações e este
+  funil de Entrada, o painel do card, a tela atual de automações e este
   protótipo.
 - Os 11 itens de menu do app usam `onSelect` no `DropdownMenuItem`, mas o menu
   do Base UI só dispara `onClick`. O código novo usa `onClick`. Os antigos
