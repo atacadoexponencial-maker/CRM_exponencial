@@ -21,7 +21,7 @@ import {
 import { TimelineContato } from "./timeline-contato"
 import { RegistrarCompraDialog } from "./registrar-compra-dialog"
 import { DialogoExcluirContato } from "../../components/dialogo-excluir-contato"
-import { resumoExclusaoContato, excluirContato, type ResumoExclusao } from "../../lixeira/actions"
+import { resumoExclusaoContato, excluirContato, restaurarContato, type ResumoExclusao } from "../../lixeira/actions"
 import { atualizarDadosContato, adicionarTagContato, removerTagContato, atualizarObservacoesContato } from "../../actions"
 
 const CLASSIFICACAO_BADGE: Record<string, string> = {
@@ -52,9 +52,12 @@ type Aba = "dados" | "timeline"
 interface PerfilContatoProps {
   contato: ContatoPerfil | null
   papel: string
+  contactId?: string
+  /** B13-04: o contato não veio porque está na lixeira. */
+  naLixeira?: { excluidoPor: string; excluidoEm: string; diasRestantes: number } | null
 }
 
-export function PerfilContato({ contato, papel }: PerfilContatoProps) {
+export function PerfilContato({ contato, papel, contactId, naLixeira }: PerfilContatoProps) {
   const router = useRouter()
   const [aba, setAba] = useState<Aba>("dados")
   const [editando, setEditando] = useState(false)
@@ -71,6 +74,8 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
   const [textoObs, setTextoObs] = useState("")
   const [erroObs, setErroObs] = useState<string | null>(null)
   const [salvandoObs, setSalvandoObs] = useState(false)
+  const [restaurando, setRestaurando] = useState(false)
+  const [erroRestaurar, setErroRestaurar] = useState<string | null>(null)
 
   const {
     register,
@@ -80,6 +85,50 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
   } = useForm<EditFormData>({
     resolver: zodResolver(editSchema),
   })
+
+  if (!contato && naLixeira && contactId) {
+    const prazo = naLixeira.diasRestantes <= 0
+      ? "Será apagado de vez hoje."
+      : `Será apagado de vez em ${naLixeira.diasRestantes} ${naLixeira.diasRestantes === 1 ? "dia" : "dias"}.`
+    return (
+      <div className="max-w-3xl mx-auto w-full px-4 py-16">
+        <div className="rounded-lg border border-border bg-card px-4 py-4">
+          <p className="mb-1 font-semibold">Este contato está na lixeira</p>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Excluído por {naLixeira.excluidoPor} em {naLixeira.excluidoEm}. {prazo}
+          </p>
+          {erroRestaurar && (
+            <p className="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{erroRestaurar}</p>
+          )}
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              disabled={restaurando}
+              onClick={() => {
+                setRestaurando(true)
+                setErroRestaurar(null)
+                restaurarContato(contactId)
+                  .then((r) => {
+                    if ("erro" in r) setErroRestaurar(r.erro)
+                    else router.refresh()
+                  })
+                  .catch(() => setErroRestaurar("Não foi possível restaurar. Tente de novo."))
+                  .finally(() => setRestaurando(false))
+              }}
+            >
+              {restaurando ? "Restaurando..." : "Restaurar"}
+            </Button>
+            <Link
+              href="/contatos/lixeira"
+              className="inline-flex h-7 items-center rounded-md border border-input px-2.5 text-[0.8rem] hover:bg-muted"
+            >
+              Ir para a lixeira
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (!contato) {
     return (

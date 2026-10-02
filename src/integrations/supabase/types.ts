@@ -1394,6 +1394,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apagar_contato_de_vez: {
+        Args: { p_contact_id: string }
+        Returns: boolean
+      }
       contato_na_lixeira: { Args: { p_contact_id: string }; Returns: boolean }
       conversa_na_lixeira: {
         Args: { p_conversation_id: string }

@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Search, ChevronDown, Loader2, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NovoContatoDialog } from "./novo-contato-dialog"
@@ -65,9 +66,11 @@ interface ListaContatosProps {
   /** A primeira página veio cheia: há mais no servidor (B10-06). */
   temMais?: boolean
   papel: string
+  /** B13-04: quantos contatos o usuário vê na lixeira. */
+  totalLixeira?: number
 }
 
-export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInicial = false, papel }: ListaContatosProps) {
+export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInicial = false, papel, totalLixeira = 0 }: ListaContatosProps) {
   const router = useRouter()
   const [busca, setBusca] = useState("")
 
@@ -195,7 +198,16 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">Contatos</h1>
-        {papel !== "atendente" && <NovoContatoDialog />}
+        <div className="flex items-center gap-3">
+          <Link
+            href="/contatos/lixeira"
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <Trash2 className="size-3.5" aria-hidden />
+            Lixeira ({totalLixeira + excluidos.size})
+          </Link>
+          {papel !== "atendente" && <NovoContatoDialog />}
+        </div>
       </div>
 
       {/* Barra de ferramentas */}
