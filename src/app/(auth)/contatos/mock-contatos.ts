@@ -41,7 +41,7 @@ export interface Compra {
 }
 
 export interface CardPipelineMock {
-  funil: "expansao" | "retencao"
+  funil: "entrada" | "recompra"
   etapaLabel: string
 }
 
@@ -220,7 +220,7 @@ export const MOCK_PERFIS_CONTATO: Record<string, ContatoPerfil> = {
     tags: ["vip", "fidelizado", "whatsapp-ativo"],
     observacoes: "Cliente parceiro desde 2024. Prefere contato pela manhã. Tem interesse em ampliar o mix de produtos.",
     conversaId: null,
-    cards: [{ funil: "retencao", etapaLabel: "Cliente Ativo" }],
+    cards: [{ funil: "recompra", etapaLabel: "Cliente Ativo" }],
     compras: [
       { id: "cp1", data: "15/01/2026", valor: 4200 },
       { id: "cp2", data: "12/02/2026", valor: 3800 },
@@ -251,7 +251,7 @@ export const MOCK_PERFIS_CONTATO: Record<string, ContatoPerfil> = {
     tags: [],
     observacoes: "",
     conversaId: null,
-    cards: [{ funil: "expansao", etapaLabel: "Primeiro Contato" }],
+    cards: [{ funil: "entrada", etapaLabel: "Primeiro Contato" }],
     compras: [],
     timeline: [
       { id: "t1", data: "21/05/2026 14:00", tipo: "dados_editados", descricao: "Campos atualizados: tipo, nicho", responsavel: "Carlos" },

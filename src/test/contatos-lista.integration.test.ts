@@ -175,7 +175,7 @@ describe("Issue 04 — Listar Contatos por Papel", () => {
         workspace_id: wsA,
         contact_id: contactYId,
         etapa: "lead",
-        funil: "expansao",
+        funil: "entrada",
         atendente_id: atendente2Id,
       })
       .select()

@@ -69,8 +69,8 @@ Arquivo: `src/test/sequencia-prazos.test.ts`
 Arquivo: `src/test/alertas-logica.test.ts`
 
 ```
-✅ Lead no Funil de Expansão sem atividade por 3 dias gera alerta "Lead sem resposta"
-✅ Lead no Funil de Expansão com atividade há 2 dias NÃO gera alerta
+✅ Lead no Funil de Entrada sem atividade por 3 dias gera alerta "Lead sem resposta"
+✅ Lead no Funil de Entrada com atividade há 2 dias NÃO gera alerta
 ✅ Card em "Aguardando Recompra" por mais de 30 dias gera alerta "Cliente sem recompra"
 ✅ Card em "Em Risco" por mais de 7 dias gera alerta "Cliente em risco"
 ✅ Card em "Inativo" por mais de 15 dias gera alerta "Cliente inativo"
@@ -127,10 +127,10 @@ Arquivo: `src/test/sequencias-ativacao.integration.test.ts`
 
 **Gatilhos automáticos (integração com Pipeline)**
 ```
-✅ Criar card na etapa "Lead" no Funil de Expansão dispara a sequência "Qualificação" automaticamente (se ativa)
+✅ Criar card na etapa "Lead" no Funil de Entrada dispara a sequência "Qualificação" automaticamente (se ativa)
 ✅ Mover card para "Catálogo Enviado" dispara a sequência "Pós-catálogo" automaticamente (se ativa)
-✅ Criar card na etapa "Em Onboarding" no Funil de Retenção dispara a sequência "Onboarding" automaticamente (se ativa)
-✅ Mover card para "Inativo" no Funil de Retenção dispara a sequência "Reativação" automaticamente (se ativa)
+✅ Criar card na etapa "Em Onboarding" no Funil de Recompra dispara a sequência "Onboarding" automaticamente (se ativa)
+✅ Mover card para "Inativo" no Funil de Recompra dispara a sequência "Reativação" automaticamente (se ativa)
 ✅ Gatilho automático com sequência desativada NÃO inicia execução
 ✅ Gatilho automático com sequência já em andamento para o contato NÃO cria execução duplicada (idempotência)
 ```
@@ -235,7 +235,7 @@ Simulam um usuário real no navegador. Executar com `npx playwright test`.
 ```
 1. Loga como Admin
 2. Confirma que a sequência "Pós-catálogo" está Ativa em Configurações → Sequências
-3. Loga como Atendente com um card no Funil de Expansão
+3. Loga como Atendente com um card no Funil de Entrada
 4. Move o card para a etapa "Catálogo Enviado"
 5. Acessa a Agenda
 6. Verifica que um lembrete da sequência "Pós-catálogo" aparece para o contato do card

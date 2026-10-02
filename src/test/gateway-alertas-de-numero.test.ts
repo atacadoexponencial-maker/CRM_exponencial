@@ -265,7 +265,7 @@ describe("resolver e listar", () => {
                           queued_count: 1840,
                           created_at: "2026-09-17T11:04:00.000Z",
                           connection_id: CONEXAO,
-                          conexao: { phone_number: "5511977776666", display_name: "Expansão" },
+                          conexao: { phone_number: "5511977776666", display_name: "Entrada" },
                         },
                       ],
                     }),
@@ -289,7 +289,7 @@ describe("resolver e listar", () => {
         criadoEm: "2026-09-17T11:04:00.000Z",
         connectionId: CONEXAO,
         numero: "5511977776666",
-        nomeExibicao: "Expansão",
+        nomeExibicao: "Entrada",
       },
     ])
   })

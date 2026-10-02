@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Project Is
 
-**CRM Exponencial** é um CRM para atacadistas voltado ao método de vendas exponencial. O sistema é projetado para empresas que vendem via WhatsApp, com times separados de **Expansão** (prospecção) e **Retenção** (recompra). É uma aplicação **multi-tenant**: cada empresa (workspace) tem seus próprios usuários, times e números de WhatsApp isolados por RLS.
+**CRM Exponencial** é um CRM para atacadistas voltado ao método de vendas exponencial. O sistema é projetado para empresas que vendem via WhatsApp, com times separados de **Entrada** (prospecção de clientes novos) e **Recompra** (cliente que já comprou). É uma aplicação **multi-tenant**: cada empresa (workspace) tem seus próprios usuários, times e números de WhatsApp isolados por RLS.
 
 ### Módulos previstos
 
 - **Módulo 0 — Fundação** ✅ *concluído*: multi-tenant, papéis (Admin/Gerente/Atendente), times, números WhatsApp
 - **Módulo 1 — Chat** ✅ *concluído*: Chat WhatsApp (API Oficial Meta), caixa de entrada, envio de mídia, etiquetas, mensagens rápidas
-- **Módulo 2 — Pipeline** ✅ *concluído*: funil Expansão e Retenção
+- **Módulo 2 — Pipeline** ✅ *concluído*: funis Entrada e Recompra
 - **Módulo 3 — Contatos** ✅ *concluído*
 - **Módulo 5 — Dashboard** ✅ *concluído*
 - **Automações v1** ✅ *concluído*: gatilho → ação estilo Kommo (`/configuracoes/automacoes`). **v2** 🔧 *em andamento*: gatilho → condições → ações (`pre-desenvolvimento/spec-automacoes-v2.md`, issues B11)
@@ -64,8 +64,8 @@ Rotas existentes:
 - `/(auth)/dashboard` — dashboard de métricas (todos os papéis; atendente vê só as próprias)
 - `/(auth)/dashboard/performance` — performance por vendedor (Admin/Gerente)
 - `/(auth)/chat` — caixa de entrada + conversa WhatsApp (tempo real)
-- `/(auth)/pipeline` — funil Expansão
-- `/(auth)/pipeline/retencao` — funil Retenção
+- `/(auth)/pipeline` — funil Entrada
+- `/(auth)/pipeline/recompra` — funil Recompra (`/pipeline/retencao` redireciona para cá)
 - `/(auth)/agenda` — agenda do vendedor (lembretes de sequência + follow-ups)
 - `/(auth)/agenda/equipe` — agenda da equipe (Admin/Gerente)
 - `/(auth)/alertas` — central de alertas com limiares configuráveis
@@ -91,7 +91,7 @@ Rotas existentes:
 |----------|-----------|
 | `workspaces` | Empresa cadastrada (isolamento multi-tenant) |
 | `users` | Usuários com papel: Admin, Gerente ou Atendente |
-| `teams` | Times da empresa: Expansão e Retenção (padrão) + customizados |
+| `teams` | Times da empresa: Entrada e Recompra (padrão) + customizados |
 | `user_teams` | Associação N:N entre usuários e times |
 | `whatsapp_connections` | Números WhatsApp conectados |
 

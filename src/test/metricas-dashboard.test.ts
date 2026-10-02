@@ -19,7 +19,7 @@ function card(parcial: Partial<CardRow> & { id: string }): CardRow {
   return {
     contact_id: `contato-${parcial.id}`,
     etapa: "lead",
-    funil: "expansao",
+    funil: "entrada",
     atendente_id: null,
     created_at: "2026-06-10T10:00:00Z",
     ...parcial,
@@ -68,12 +68,12 @@ describe("calcularMetricas", () => {
     expect(m.conversao.funil[3].quantidade).toBe(1) // atingiu Em Negociação via histórico
   })
 
-  it("calcula métricas de retenção e taxa de recompra", () => {
+  it("calcula métricas de recompra e taxa de recompra", () => {
     const cards = [
-      card({ id: "r1", funil: "retencao", etapa: "cliente_ativo" }),
-      card({ id: "r2", funil: "retencao", etapa: "aguardando_recompra" }),
-      card({ id: "r3", funil: "retencao", etapa: "em_risco" }),
-      card({ id: "r4", funil: "retencao", etapa: "perdido" }),
+      card({ id: "r1", funil: "recompra", etapa: "cliente_ativo" }),
+      card({ id: "r2", funil: "recompra", etapa: "aguardando_recompra" }),
+      card({ id: "r3", funil: "recompra", etapa: "em_risco" }),
+      card({ id: "r4", funil: "recompra", etapa: "perdido" }),
     ]
     const history: HistoryRow[] = [
       { card_id: "r2", para_etapa: "recompra_realizada", created_at: "2026-06-10T09:00:00" },
@@ -82,10 +82,10 @@ describe("calcularMetricas", () => {
 
     const m = calcularMetricas(cards, history, [], range)
 
-    expect(m.retencao.clientesAtivos).toBe(2)
-    expect(m.retencao.emRisco).toBe(1)
-    expect(m.retencao.perdidos).toBe(1)
-    expect(m.retencao.taxaRecompra).toBe(50) // 1 recompra / 2 ativos
+    expect(m.recompra.clientesAtivos).toBe(2)
+    expect(m.recompra.emRisco).toBe(1)
+    expect(m.recompra.perdidos).toBe(1)
+    expect(m.recompra.taxaRecompra).toBe(50) // 1 recompra / 2 ativos
   })
 
   it("calcula receita: total, tickets médios e % de novos clientes", () => {
@@ -111,7 +111,7 @@ describe("calcularMetricas", () => {
     const m = calcularMetricas([], [], [], range)
 
     expect(m.conversao.taxaGeral).toBeNull()
-    expect(m.retencao.taxaRecompra).toBeNull()
+    expect(m.recompra.taxaRecompra).toBeNull()
     expect(m.receita.ticketMedioGeral).toBeNull()
     expect(m.receita.percentualNovos).toBeNull()
   })
@@ -126,7 +126,7 @@ describe("calcularPerformanceVendedores", () => {
     const cards = [
       card({ id: "1", atendente_id: "u1", etapa: "primeira_compra", created_at: "2026-06-05T10:00:00" }),
       card({ id: "2", atendente_id: "u1", etapa: "lead", created_at: "2026-06-06T10:00:00" }),
-      card({ id: "r1", atendente_id: "u1", funil: "retencao", etapa: "cliente_ativo" }),
+      card({ id: "r1", atendente_id: "u1", funil: "recompra", etapa: "cliente_ativo" }),
       card({ id: "3", atendente_id: "u2", etapa: "lead", created_at: "2026-06-07T10:00:00" }),
     ]
     const purchases: PurchaseRow[] = [

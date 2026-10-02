@@ -116,7 +116,7 @@ export function calcularAlertas(
   }
 
   for (const card of cards) {
-    if (card.funil === "expansao") {
+    if (card.funil === "entrada") {
       // Lead sem resposta: lead ativo sem atividade na conversa há N dias
       if (card.etapa === "primeira_compra") continue
       const referencia = card.ultimaAtividade ?? card.etapa_changed_at
@@ -127,7 +127,7 @@ export function calcularAlertas(
       continue
     }
 
-    // Funil de retenção: alertas por tempo parado na etapa
+    // Funil de recompra: alertas por tempo parado na etapa
     const dias = diasDesde(card.etapa_changed_at, agora)
     if (card.etapa === "aguardando_recompra" && dias > config.semRecompraDias) {
       adicionar(card, "sem_recompra", card.etapa_changed_at, dias)

@@ -1,4 +1,4 @@
-export type EtapaRetencao =
+export type EtapaRecompra =
   | "em_onboarding"
   | "cliente_ativo"
   | "aguardando_recompra"
@@ -11,7 +11,7 @@ export interface CardCliente {
   id: string
   contactId?: string | null
   contato: { nome: string; telefone: string }
-  etapa: EtapaRetencao
+  etapa: EtapaRecompra
   atendente: string | null
   tempoNaEtapa: string
   dataEntradaEtapa: string
@@ -20,7 +20,7 @@ export interface CardCliente {
   conversaId: string | null
 }
 
-export const ETAPAS_RETENCAO: { id: EtapaRetencao; label: string; alerta: boolean }[] = [
+export const ETAPAS_RECOMPRA: { id: EtapaRecompra; label: string; alerta: boolean }[] = [
   { id: "em_onboarding", label: "Em Onboarding", alerta: false },
   { id: "cliente_ativo", label: "Cliente Ativo", alerta: false },
   { id: "aguardando_recompra", label: "Aguardando Recompra", alerta: false },
@@ -30,7 +30,7 @@ export const ETAPAS_RETENCAO: { id: EtapaRetencao; label: string; alerta: boolea
   { id: "perdido", label: "Perdido", alerta: true },
 ]
 
-export const MOCK_CARDS_RETENCAO: CardCliente[] = [
+export const MOCK_CARDS_RECOMPRA: CardCliente[] = [
   {
     id: "r1",
     contato: { nome: "Padaria do Centro", telefone: "+55 11 99001-0001" },
@@ -154,7 +154,7 @@ export const MOCK_CARDS_RETENCAO: CardCliente[] = [
   },
 ]
 
-export type EtapaExpansao =
+export type EtapaEntrada =
   | "lead"
   | "em_qualificacao"
   | "catalogo_enviado"
@@ -165,7 +165,7 @@ export interface CardLead {
   id: string
   contactId?: string | null
   contato: { nome: string; telefone: string }
-  etapa: EtapaExpansao
+  etapa: EtapaEntrada
   atendente: string | null
   tempoNaEtapa: string
   dataEntradaEtapa: string
@@ -174,7 +174,7 @@ export interface CardLead {
   conversaId: string | null
 }
 
-export const ETAPAS_EXPANSAO: { id: EtapaExpansao; label: string }[] = [
+export const ETAPAS_ENTRADA: { id: EtapaEntrada; label: string }[] = [
   { id: "lead", label: "Lead" },
   { id: "em_qualificacao", label: "Em Qualificação" },
   { id: "catalogo_enviado", label: "Catálogo Enviado" },
@@ -217,7 +217,7 @@ export const MOCK_PAINEL_DATA: Record<string, { historico: HistoricoEtapa[]; not
   },
 }
 
-export const MOCK_CARDS_EXPANSAO: CardLead[] = [
+export const MOCK_CARDS_ENTRADA: CardLead[] = [
   {
     id: "1",
     contato: { nome: "Padaria do Bairro", telefone: "+55 11 99001-1234" },

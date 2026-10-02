@@ -147,7 +147,7 @@ Os testes E2E usam o stub da API do WhatsApp para simular respostas de sucesso.
 1. Loga como Admin
 2. Acessa a lista de Grupos
 3. Clica em "Novo grupo"
-4. Preenche nome "VIP Moda Feminina", seleciona time "Expansão"
+4. Preenche nome "VIP Moda Feminina", seleciona time "Entrada"
 5. Adiciona dois contatos cadastrados como membros iniciais
 6. Cria o grupo — verifica que aparece na lista com o nome e time corretos
 7. Clica no grupo e acessa o Detalhe

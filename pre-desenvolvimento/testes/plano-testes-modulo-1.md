@@ -258,10 +258,10 @@ Simulam um usuário real no navegador. Executar com `npx playwright test`.
 ### Fluxo 2 — RBAC da caixa de entrada (issue 06)
 
 ```
-1. Cria Empresa A com Admin A, Gerente A e dois Atendentes (Time Expansão e Time Retenção)
-2. Cria conversa atribuída ao Atendente do Time Expansão
-3. Loga como Atendente do Time Retenção → não vê a conversa
-4. Loga como Atendente do Time Expansão → vê a conversa
+1. Cria Empresa A com Admin A, Gerente A e dois Atendentes (Time Entrada e Time Recompra)
+2. Cria conversa atribuída ao Atendente do Time Entrada
+3. Loga como Atendente do Time Recompra → não vê a conversa
+4. Loga como Atendente do Time Entrada → vê a conversa
 5. Loga como Gerente A → vê todas as conversas da Empresa A
 6. Loga como Admin A → vê todas as conversas da Empresa A
 7. Cria Empresa B com Admin B → Admin B não vê conversas da Empresa A
@@ -272,11 +272,11 @@ Simulam um usuário real no navegador. Executar com `npx playwright test`.
 ### Fluxo 3 — Transferência de conversa (issue 30)
 
 ```
-1. Loga como Admin e atribui conversa ao Atendente A (Time Expansão)
+1. Loga como Admin e atribui conversa ao Atendente A (Time Entrada)
 2. Loga como Atendente A
-3. Tenta transferir para Atendente B do Time Retenção → opção não disponível
-4. Transfere para Atendente C do mesmo Time Expansão → sucesso
-5. Loga como Gerente e transfere a mesma conversa para Atendente B (Time Retenção) → sucesso
+3. Tenta transferir para Atendente B do Time Recompra → opção não disponível
+4. Transfere para Atendente C do mesmo Time Entrada → sucesso
+5. Loga como Gerente e transfere a mesma conversa para Atendente B (Time Recompra) → sucesso
 ```
 
 ---

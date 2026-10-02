@@ -2,31 +2,42 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Search, Plus, ChevronDown } from "lucide-react"
+import { Search, ChevronDown } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { ColunaKanban } from "./coluna-kanban"
 import { PainelCard } from "./painel-card"
-import { ModalNovoLead } from "./modal-novo-lead"
-import { ETAPAS_EXPANSAO, type CardLead } from "../mock-pipeline"
+import { ModalConfirmacaoRecompra } from "./modal-confirmacao-recompra"
+import { ETAPAS_RECOMPRA, type CardCliente } from "../mock-pipeline"
 import { moverCard } from "../actions"
 
-interface FunilExpansaoProps {
-  cards: CardLead[]
+interface FunilRecompraProps {
+  cards: CardCliente[]
   papel: string
   atendentes: { id: string; nome: string }[]
 }
 
-export function FunilExpansao({ cards, papel, atendentes }: FunilExpansaoProps) {
+export function FunilRecompra({ cards, papel, atendentes }: FunilRecompraProps) {
   const router = useRouter()
   const [busca, setBusca] = useState("")
   const [atendenteFiltro, setAtendenteFiltro] = useState<string | null>(null)
   const [filtroAberto, setFiltroAberto] = useState(false)
-  const [cardSelecionado, setCardSelecionado] = useState<CardLead | null>(null)
-  const [modalAberto, setModalAberto] = useState(false)
+  const [cardSelecionado, setCardSelecionado] = useState<CardCliente | null>(null)
+  const [confirmacaoPendente, setConfirmacaoPendente] = useState<{ cardId: string; deEtapa: string; paraEtapa: string } | null>(null)
 
   async function handleMoverCard(cardId: string, deEtapa: string, paraEtapa: string) {
+    if (paraEtapa === "recompra_realizada") {
+      setConfirmacaoPendente({ cardId, deEtapa, paraEtapa })
+      return
+    }
+    await moverCard(cardId, paraEtapa).catch(() => {})
+    router.refresh()
+  }
+
+  async function handleConfirmarRecompra() {
+    if (!confirmacaoPendente) return
+    const { cardId, paraEtapa } = confirmacaoPendente
+    setConfirmacaoPendente(null)
     await moverCard(cardId, paraEtapa).catch(() => {})
     router.refresh()
   }
@@ -45,31 +56,29 @@ export function FunilExpansao({ cards, papel, atendentes }: FunilExpansaoProps) 
         if (card.atendente !== atendenteFiltro) return false
       }
     }
-
     return true
   })
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PainelCard key={cardSelecionado?.id ?? "fechado"} card={cardSelecionado} onFechar={() => setCardSelecionado(null)} onMover={() => router.refresh()} papel={papel} atendentes={atendentes} />
-      {modalAberto && (
-        <ModalNovoLead
-          onSucesso={() => { setModalAberto(false); router.refresh() }}
-          onFechar={() => setModalAberto(false)}
-        />
-      )}
+      <PainelCard key={cardSelecionado?.id ?? "fechado"} card={cardSelecionado} funil="recompra" onFechar={() => setCardSelecionado(null)} onMover={() => router.refresh()} papel={papel} atendentes={atendentes} />
+      <ModalConfirmacaoRecompra
+        aberto={confirmacaoPendente !== null}
+        onConfirmar={handleConfirmarRecompra}
+        onCancelar={() => setConfirmacaoPendente(null)}
+      />
       {/* Cabeçalho */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
         <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
-          <span className="px-3 py-1.5 text-sm font-medium rounded-md bg-background text-foreground shadow-sm">
-            Entrada
-          </span>
           <Link
-            href="/pipeline/retencao"
+            href="/pipeline"
             className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md"
           >
-            Recompra
+            Entrada
           </Link>
+          <span className="px-3 py-1.5 text-sm font-medium rounded-md bg-background text-foreground shadow-sm">
+            Recompra
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -78,7 +87,7 @@ export function FunilExpansao({ cards, papel, atendentes }: FunilExpansaoProps) 
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
             <input
               type="text"
-              placeholder="Buscar lead..."
+              placeholder="Buscar cliente..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               className="h-8 w-52 pl-8 pr-3 text-sm rounded-lg border border-input bg-transparent outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground"
@@ -141,20 +150,13 @@ export function FunilExpansao({ cards, papel, atendentes }: FunilExpansaoProps) 
             )}
           </div>
           )}
-
-          {papel !== "atendente" && (
-            <Button size="sm" onClick={() => setModalAberto(true)}>
-              <Plus className="size-3.5" />
-              Novo lead
-            </Button>
-          )}
         </div>
       </div>
 
       {/* Kanban */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
         <div className="flex gap-3 p-4 h-full items-start">
-          {ETAPAS_EXPANSAO.map((etapa) => {
+          {ETAPAS_RECOMPRA.map((etapa) => {
             const cardsColuna = cardsFiltrados.filter((c) => c.etapa === etapa.id)
             return (
               <ColunaKanban
@@ -162,7 +164,9 @@ export function FunilExpansao({ cards, papel, atendentes }: FunilExpansaoProps) 
                 titulo={etapa.label}
                 etapaId={etapa.id}
                 cards={cardsColuna}
-                onCardClick={(card) => setCardSelecionado(card as CardLead)}
+                alertaVisual={etapa.alerta}
+                mensagemVazia="Nenhum cliente nesta etapa"
+                onCardClick={(card) => setCardSelecionado(card as CardCliente)}
                 onCardDrop={handleMoverCard}
               />
             )

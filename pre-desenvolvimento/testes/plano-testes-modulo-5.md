@@ -102,8 +102,8 @@ Arquivo: `src/test/dashboard-metricas.integration.test.ts`
 
 **Seção "Entrada de Leads"**
 ```
-✅ Total de novos leads reflete exatamente os cards criados no Funil de Expansão no período
-✅ Leads ativos no funil agora = cards no Funil de Expansão em etapas != "Primeira Compra"
+✅ Total de novos leads reflete exatamente os cards criados no Funil de Entrada no período
+✅ Leads ativos no funil agora = cards no Funil de Entrada em etapas != "Primeira Compra"
 ✅ Gráfico de barras por semana reflete a distribuição correta de criação de cards
 ```
 
@@ -114,13 +114,13 @@ Arquivo: `src/test/dashboard-metricas.integration.test.ts`
 ✅ Contatos que entraram antes do período mas converterem no período são contados no numerador
 ```
 
-**Seção "Retenção"**
+**Seção "Recompra"**
 ```
 ✅ Clientes ativos = cards em Em Onboarding + Cliente Ativo + Aguardando Recompra + Recompra Realizada
 ✅ Clientes em risco = cards na etapa "Em Risco"
 ✅ Clientes inativos = cards na etapa "Inativo"
 ✅ Clientes perdidos = cards na etapa "Perdido"
-✅ Distribuição do gráfico soma 100% do total de clientes que já chegaram ao Funil de Retenção
+✅ Distribuição do gráfico soma 100% do total de clientes que já chegaram ao Funil de Recompra
 ```
 
 **Seção "Receita"**
@@ -139,7 +139,7 @@ Arquivo: `src/test/dashboard-vendedores.integration.test.ts`
 ✅ Métricas de cada atendente refletem apenas os cards e compras atribuídos a ele
 ✅ Atendente sem nenhuma atividade no período aparece na tabela com zeros (não é omitido)
 ✅ Ordenação por coluna altera a ordem da tabela corretamente
-✅ Expansão de detalhe de um atendente exibe os mesmos cards do Dashboard Geral filtrado para aquele atendente
+✅ Entrada de detalhe de um atendente exibe os mesmos cards do Dashboard Geral filtrado para aquele atendente
 ✅ Atendente não tem acesso à página de Performance por Vendedor
 ```
 
@@ -157,7 +157,7 @@ Arquivo: `e2e/modulo-5.spec.ts`
 1. Cria workspace com Admin e dois Atendentes, com dados de leads e clientes já inseridos
 2. Loga como Admin e acessa o Dashboard
 3. Anota o valor de "Total de novos leads" no período "Últimos 30 dias"
-4. Abre outra aba, loga como Atendente e cria um novo card no Funil de Expansão
+4. Abre outra aba, loga como Atendente e cria um novo card no Funil de Entrada
 5. Volta ao Dashboard como Admin e atualiza a página
 6. Verifica que o contador de novos leads aumentou em 1
 7. O Atendente move o card para "Primeira Compra"
@@ -225,7 +225,7 @@ Os testes de integração devem criar um conjunto fixo de cards e compras com da
 | Issues prototype (UI mock do dashboard) | Nenhum — apenas UI mock |
 | Issue cálculo de métricas de entrada de leads | Unit: filtro de período; Integration: contagem de leads por período |
 | Issue cálculo de conversão do funil | Unit: taxa de conversão; Integration: funil com dados reais |
-| Issue cálculo de retenção | Unit: taxa de recompra; Integration: contagem por etapa do Funil de Retenção |
+| Issue cálculo de recompra | Unit: taxa de recompra; Integration: contagem por etapa do Funil de Recompra |
 | Issue cálculo de receita | Unit: ticket médio + % novos/recorrentes; Integration: compras por período |
 | Issue filtro por atendente | Integration: RBAC (CRÍTICO) |
 | Issue performance por vendedor | Integration: tabela por atendente |

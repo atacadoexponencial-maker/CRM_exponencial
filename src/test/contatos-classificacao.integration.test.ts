@@ -134,10 +134,10 @@ describe("Issue 11 — Classificação Automática (Integração com Pipeline)",
     expect(calcularClassificacao(cards ?? [])).toBe("sem_historico")
   })
 
-  it("Contato com card em Expansão exibe classificação 'lead'", async () => {
+  it("Contato com card em Entrada exibe classificação 'lead'", async () => {
     const client = await autenticarComo(adminEmail)
     const contactId = await criarContato(wsId, "+5511999011002")
-    await criarCard(wsId, contactId, "expansao", "lead")
+    await criarCard(wsId, contactId, "entrada", "lead")
 
     const { data: cards } = await client
       .from("pipeline_cards")
@@ -148,11 +148,11 @@ describe("Issue 11 — Classificação Automática (Integração com Pipeline)",
     expect(calcularClassificacao(cards ?? [])).toBe("lead")
   })
 
-  it("Contato com card de Expansão e Retenção: classificação derivada da Retenção", async () => {
+  it("Contato com card de Entrada e Recompra: classificação derivada da Recompra", async () => {
     const client = await autenticarComo(adminEmail)
     const contactId = await criarContato(wsId, "+5511999011003")
-    await criarCard(wsId, contactId, "expansao", "primeira_compra")
-    await criarCard(wsId, contactId, "retencao", "em_onboarding")
+    await criarCard(wsId, contactId, "entrada", "primeira_compra")
+    await criarCard(wsId, contactId, "recompra", "em_onboarding")
 
     const { data: cards } = await client
       .from("pipeline_cards")
@@ -162,10 +162,10 @@ describe("Issue 11 — Classificação Automática (Integração com Pipeline)",
     expect(calcularClassificacao(cards ?? [])).toBe("ativo")
   })
 
-  it("Card de Retenção na etapa 'em_risco' resulta em classificação 'em_risco'", async () => {
+  it("Card de Recompra na etapa 'em_risco' resulta em classificação 'em_risco'", async () => {
     const client = await autenticarComo(adminEmail)
     const contactId = await criarContato(wsId, "+5511999011004")
-    const cardId = await criarCard(wsId, contactId, "retencao", "cliente_ativo")
+    const cardId = await criarCard(wsId, contactId, "recompra", "cliente_ativo")
 
     await serviceClient
       .from("pipeline_cards")
@@ -180,10 +180,10 @@ describe("Issue 11 — Classificação Automática (Integração com Pipeline)",
     expect(calcularClassificacao(cards ?? [])).toBe("em_risco")
   })
 
-  it("Card de Retenção na etapa 'perdido' resulta em classificação 'perdido'", async () => {
+  it("Card de Recompra na etapa 'perdido' resulta em classificação 'perdido'", async () => {
     const client = await autenticarComo(adminEmail)
     const contactId = await criarContato(wsId, "+5511999011005")
-    const cardId = await criarCard(wsId, contactId, "retencao", "aguardando_recompra")
+    const cardId = await criarCard(wsId, contactId, "recompra", "aguardando_recompra")
 
     await serviceClient
       .from("pipeline_cards")

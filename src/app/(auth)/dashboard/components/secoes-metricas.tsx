@@ -38,15 +38,15 @@ export function SecoesMetricas({ metricas }: { metricas: MetricasDashboard }) {
       <section>
         <h2 className="text-sm font-semibold mb-3">Recompra</h2>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-3">
-          <CardMetrica titulo="Clientes ativos agora" valor={metricas.retencao.clientesAtivos} />
-          <CardMetrica titulo="Taxa de recompra no período" valor={metricas.retencao.taxaRecompra} sufixo="%" />
-          <CardMetrica titulo="Em risco" valor={metricas.retencao.emRisco} />
-          <CardMetrica titulo="Inativos" valor={metricas.retencao.inativos} />
-          <CardMetrica titulo="Perdidos" valor={metricas.retencao.perdidos} />
+          <CardMetrica titulo="Clientes ativos agora" valor={metricas.recompra.clientesAtivos} />
+          <CardMetrica titulo="Taxa de recompra no período" valor={metricas.recompra.taxaRecompra} sufixo="%" />
+          <CardMetrica titulo="Em risco" valor={metricas.recompra.emRisco} />
+          <CardMetrica titulo="Inativos" valor={metricas.recompra.inativos} />
+          <CardMetrica titulo="Perdidos" valor={metricas.recompra.perdidos} />
         </div>
         <div className="rounded-lg border p-4">
           <span className="text-xs text-muted-foreground block mb-3">Distribuição da base de clientes</span>
-          <GraficoDonut dados={metricas.retencao.distribuicao} />
+          <GraficoDonut dados={metricas.recompra.distribuicao} />
         </div>
       </section>
 

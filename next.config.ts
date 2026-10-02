@@ -10,6 +10,12 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "4mb",
     },
   },
+  // B12-04: o funil de Retenção virou Recompra; favoritos e links antigos seguem funcionando.
+  async redirects() {
+    return [
+      { source: "/pipeline/retencao", destination: "/pipeline/recompra", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -79,7 +79,7 @@ describe("processarAutomacoes", () => {
               {
                 id: "auto-1",
                 gatilho_tipo: "card_movido",
-                gatilho_config: { funil: "expansao", etapa: "em_negociacao" },
+                gatilho_config: { funil: "entrada", etapa: "em_negociacao" },
                 acao_tipo: "aplicar_etiqueta",
                 acao_config: { label_id: "label-1" },
               },
@@ -98,7 +98,7 @@ describe("processarAutomacoes", () => {
       workspaceId: "ws-1",
       contactId: "contact-1",
       cardId: "card-1",
-      funil: "expansao",
+      funil: "entrada",
       etapa: "lead",
     })
     expect(upsert).not.toHaveBeenCalled()
@@ -109,7 +109,7 @@ describe("processarAutomacoes", () => {
       workspaceId: "ws-1",
       contactId: "contact-1",
       cardId: "card-1",
-      funil: "expansao",
+      funil: "entrada",
       etapa: "em_negociacao",
     })
     expect(upsert).toHaveBeenCalledWith(
@@ -156,7 +156,7 @@ describe("processarAutomacoes", () => {
       workspaceId: "ws-1",
       contactId: "contact-1",
       cardId: "card-1",
-      funil: "expansao",
+      funil: "entrada",
       etapa: "lead",
     })
 

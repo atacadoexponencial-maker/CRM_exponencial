@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { ETAPAS_EXPANSAO, ETAPAS_RETENCAO } from "../../pipeline/mock-pipeline"
+import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "../../pipeline/mock-pipeline"
 import {
   criarAutomacao,
   editarAutomacao,
@@ -54,19 +54,19 @@ interface AutomacoesClientProps {
 }
 
 function etapasDoFunil(funil: string | undefined) {
-  return funil === "retencao" ? ETAPAS_RETENCAO : ETAPAS_EXPANSAO
+  return funil === "recompra" ? ETAPAS_RECOMPRA : ETAPAS_ENTRADA
 }
 
 function etapaLabel(funil: string | undefined, etapa: string | undefined): string {
   if (!etapa) return ""
-  const todas = [...ETAPAS_EXPANSAO, ...ETAPAS_RETENCAO] as Array<{ id: string; label: string }>
+  const todas = [...ETAPAS_ENTRADA, ...ETAPAS_RECOMPRA] as Array<{ id: string; label: string }>
   void funil
   return todas.find((e) => e.id === etapa)?.label ?? etapa
 }
 
 function resumoGatilho(a: AutomacaoListada): string {
   if (a.gatilhoTipo === "card_movido") {
-    const funil = a.gatilhoConfig.funil === "retencao" ? "Recompra" : "Entrada"
+    const funil = a.gatilhoConfig.funil === "recompra" ? "Recompra" : "Entrada"
     return `Quando o card entrar em "${etapaLabel(a.gatilhoConfig.funil, a.gatilhoConfig.etapa)}" (${funil})`
   }
   return "Quando uma nova conversa for recebida"
@@ -85,7 +85,7 @@ function resumoAcao(
     case "atribuir_atendente":
       return `atribuir a ${atendentes.find((p) => p.id === a.acaoConfig.atendente_id)?.nome ?? "—"}`
     case "mover_card": {
-      const funil = a.acaoConfig.funil === "retencao" ? "Recompra" : "Entrada"
+      const funil = a.acaoConfig.funil === "recompra" ? "Recompra" : "Entrada"
       return `mover card para "${etapaLabel(a.acaoConfig.funil, a.acaoConfig.etapa)}" (${funil})`
     }
   }
@@ -94,7 +94,7 @@ function resumoAcao(
 const FORM_VAZIO: DadosAutomacao = {
   nome: "",
   gatilhoTipo: "card_movido",
-  gatilhoConfig: { funil: "expansao", etapa: "" },
+  gatilhoConfig: { funil: "entrada", etapa: "" },
   acaoTipo: "enviar_mensagem",
   acaoConfig: {},
 }
@@ -185,7 +185,7 @@ export function AutomacoesClient({ automacoesIniciais, etiquetas, atendentes }: 
     setForm((f) => ({
       ...f,
       gatilhoTipo: tipo,
-      gatilhoConfig: tipo === "card_movido" ? { funil: "expansao", etapa: "" } : {},
+      gatilhoConfig: tipo === "card_movido" ? { funil: "entrada", etapa: "" } : {},
     }))
   }
 
@@ -193,7 +193,7 @@ export function AutomacoesClient({ automacoesIniciais, etiquetas, atendentes }: 
     setForm((f) => ({
       ...f,
       acaoTipo: tipo,
-      acaoConfig: tipo === "mover_card" ? { funil: "expansao", etapa: "" } : {},
+      acaoConfig: tipo === "mover_card" ? { funil: "entrada", etapa: "" } : {},
     }))
   }
 
@@ -329,13 +329,13 @@ export function AutomacoesClient({ automacoesIniciais, etiquetas, atendentes }: 
                   <select
                     aria-label="Funil do gatilho"
                     className={selectClass}
-                    value={form.gatilhoConfig.funil ?? "expansao"}
+                    value={form.gatilhoConfig.funil ?? "entrada"}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, gatilhoConfig: { funil: e.target.value, etapa: "" } }))
                     }
                   >
-                    <option value="expansao">Funil de Entrada</option>
-                    <option value="retencao">Funil de Recompra</option>
+                    <option value="entrada">Funil de Entrada</option>
+                    <option value="recompra">Funil de Recompra</option>
                   </select>
                   <select
                     aria-label="Etapa do gatilho"
@@ -419,13 +419,13 @@ export function AutomacoesClient({ automacoesIniciais, etiquetas, atendentes }: 
                   <select
                     aria-label="Funil de destino"
                     className={selectClass}
-                    value={form.acaoConfig.funil ?? "expansao"}
+                    value={form.acaoConfig.funil ?? "entrada"}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, acaoConfig: { funil: e.target.value, etapa: "" } }))
                     }
                   >
-                    <option value="expansao">Funil de Entrada</option>
-                    <option value="retencao">Funil de Recompra</option>
+                    <option value="entrada">Funil de Entrada</option>
+                    <option value="recompra">Funil de Recompra</option>
                   </select>
                   <select
                     aria-label="Etapa de destino"
