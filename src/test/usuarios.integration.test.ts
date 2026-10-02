@@ -320,8 +320,8 @@ describe("Issue 14 — Adicionar usuário", () => {
 describe("Issues 17 e 18 — Gerenciar times do usuário", () => {
   let adminEmail: string
   let atendenteId: string
-  let timeExpansaoId: string
-  let timeRetencaoId: string
+  let timeEntradaId: string
+  let timeRecompraId: string
 
   beforeAll(async () => {
     const ts = Date.now() + 3
@@ -333,13 +333,13 @@ describe("Issues 17 e 18 — Gerenciar times do usuário", () => {
     const { data: times } = await serviceClient
       .from("teams")
       .insert([
-        { workspace_id: workspaceId, name: "Expansão", is_default: true },
-        { workspace_id: workspaceId, name: "Retenção", is_default: true },
+        { workspace_id: workspaceId, name: "Entrada", is_default: true },
+        { workspace_id: workspaceId, name: "Recompra", is_default: true },
       ])
       .select()
-    timeExpansaoId = times![0].id
-    timeRetencaoId = times![1].id
-    criados.teamIds.push(timeExpansaoId, timeRetencaoId)
+    timeEntradaId = times![0].id
+    timeRecompraId = times![1].id
+    criados.teamIds.push(timeEntradaId, timeRecompraId)
   })
 
   beforeEach(async () => {
@@ -350,8 +350,8 @@ describe("Issues 17 e 18 — Gerenciar times do usuário", () => {
     mockSsrCreateClient.mockResolvedValue(client as never)
   })
 
-  it("admin adiciona usuário ao time Expansão", async () => {
-    const resultado = await gerenciarTimes(atendenteId, [timeExpansaoId])
+  it("admin adiciona usuário ao time Entrada", async () => {
+    const resultado = await gerenciarTimes(atendenteId, [timeEntradaId])
 
     expect(resultado.erro).toBeUndefined()
 
@@ -359,12 +359,12 @@ describe("Issues 17 e 18 — Gerenciar times do usuário", () => {
       .from("user_teams")
       .select("team_id")
       .eq("user_id", atendenteId)
-    expect(data?.map((r) => r.team_id)).toContain(timeExpansaoId)
+    expect(data?.map((r) => r.team_id)).toContain(timeEntradaId)
   })
 
-  it("admin remove usuário do time Expansão", async () => {
+  it("admin remove usuário do time Entrada", async () => {
     // Adicionar primeiro
-    await serviceClient.from("user_teams").insert({ user_id: atendenteId, team_id: timeExpansaoId })
+    await serviceClient.from("user_teams").insert({ user_id: atendenteId, team_id: timeEntradaId })
 
     const resultado = await gerenciarTimes(atendenteId, [])
 
@@ -378,7 +378,7 @@ describe("Issues 17 e 18 — Gerenciar times do usuário", () => {
   })
 
   it("usuário pode pertencer a múltiplos times simultaneamente", async () => {
-    const resultado = await gerenciarTimes(atendenteId, [timeExpansaoId, timeRetencaoId])
+    const resultado = await gerenciarTimes(atendenteId, [timeEntradaId, timeRecompraId])
 
     expect(resultado.erro).toBeUndefined()
 
@@ -387,8 +387,8 @@ describe("Issues 17 e 18 — Gerenciar times do usuário", () => {
       .select("team_id")
       .eq("user_id", atendenteId)
     const teamIds = data?.map((r) => r.team_id) ?? []
-    expect(teamIds).toContain(timeExpansaoId)
-    expect(teamIds).toContain(timeRetencaoId)
+    expect(teamIds).toContain(timeEntradaId)
+    expect(teamIds).toContain(timeRecompraId)
   })
 })
 

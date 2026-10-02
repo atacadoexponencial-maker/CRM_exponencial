@@ -4,7 +4,7 @@ import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import { processarAutomacoes } from "@/lib/automacoes"
 import { processarGatilhoSequencia } from "@/lib/sequencias"
-import { type CardLead, type EtapaExpansao, type CardCliente, type EtapaRetencao, type HistoricoEtapa, type NotaInterna } from "./mock-pipeline"
+import { type CardLead, type EtapaEntrada, type CardCliente, type EtapaRecompra, type HistoricoEtapa, type NotaInterna } from "./mock-pipeline"
 
 function calcularTempoNaEtapa(etapaChangedAt: string): string {
   const agora = new Date()
@@ -106,7 +106,7 @@ export async function criarNovoLead(telefone: string, nome: string | null): Prom
     workspaceId: profile.workspace_id,
     contactId: contato.id,
     cardId: novoCard.id,
-    funil: "expansao",
+    funil: "entrada",
     etapa: "lead",
   })
 
@@ -168,16 +168,16 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
     const { data: existente } = await supabase
       .from("pipeline_cards")
       .select("id")
-      .eq("funil", "retencao")
+      .eq("funil", "recompra")
       .eq("contact_id", card.contact_id)
       .eq("workspace_id", card.workspace_id)
       .maybeSingle()
 
     if (!existente) {
-      const { data: cardRetencao } = await supabase
+      const { data: cardRecompra } = await supabase
         .from("pipeline_cards")
         .insert({
-          funil: "retencao",
+          funil: "recompra",
           etapa: "em_onboarding",
           contact_id: card.contact_id,
           workspace_id: card.workspace_id,
@@ -185,13 +185,13 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
         .select("id")
         .single()
 
-      if (cardRetencao) {
+      if (cardRecompra) {
         await processarAutomacoes({
           tipo: "card_movido",
           workspaceId: card.workspace_id,
           contactId: card.contact_id,
-          cardId: cardRetencao.id,
-          funil: "retencao",
+          cardId: cardRecompra.id,
+          funil: "recompra",
           etapa: "em_onboarding",
         })
 
@@ -210,7 +210,7 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
     workspaceId: card.workspace_id,
     contactId: card.contact_id,
     cardId,
-    funil: (card.funil ?? "expansao") as "expansao" | "retencao",
+    funil: (card.funil ?? "entrada") as "entrada" | "recompra",
     etapa: novaEtapa,
   })
 
@@ -294,7 +294,7 @@ export async function buscarDadosPainel(cardId: string): Promise<{ historico: Hi
   return { historico, notas }
 }
 
-export async function listarCardsExpansao(): Promise<CardLead[]> {
+export async function listarCardsEntrada(): Promise<CardLead[]> {
   const { supabase } = await sessaoAtual()
 
   const { data, error } = await supabase
@@ -311,7 +311,7 @@ export async function listarCardsExpansao(): Promise<CardLead[]> {
         label:labels!label_id (id, name, color)
       )
     `)
-    .eq("funil", "expansao")
+    .eq("funil", "entrada")
     .order("etapa_changed_at", { ascending: false })
     .limit(LIMITE_CARDS)
 
@@ -334,7 +334,7 @@ export async function listarCardsExpansao(): Promise<CardLead[]> {
   return (data ?? []).map((row) => ({
     id: row.id,
     contactId: row.contact_id,
-    etapa: row.etapa as EtapaExpansao,
+    etapa: row.etapa as EtapaEntrada,
     tempoNaEtapa: calcularTempoNaEtapa(row.etapa_changed_at),
     dataEntradaEtapa: new Date(row.etapa_changed_at).toLocaleDateString("pt-BR"),
     tempoNoFunil: calcularTempoNaEtapa(row.created_at),
@@ -350,7 +350,7 @@ export async function listarCardsExpansao(): Promise<CardLead[]> {
   }))
 }
 
-export async function listarCardsRetencao(): Promise<CardCliente[]> {
+export async function listarCardsRecompra(): Promise<CardCliente[]> {
   const { supabase, user } = await sessaoAtual()
   if (!user) return []
 
@@ -368,11 +368,11 @@ export async function listarCardsRetencao(): Promise<CardCliente[]> {
         label:labels!label_id (id, name, color)
       )
     `)
-    .eq("funil", "retencao")
+    .eq("funil", "recompra")
     .order("etapa_changed_at", { ascending: false })
     .limit(LIMITE_CARDS)
 
-  if (error) throw new Error("Erro ao carregar cards do funil de retenção")
+  if (error) throw new Error("Erro ao carregar cards do funil de recompra")
 
   const contactIds = (data ?? []).map((row) => row.contact_id).filter(Boolean) as string[]
   const conversasPorContato: Record<string, string> = {}
@@ -391,7 +391,7 @@ export async function listarCardsRetencao(): Promise<CardCliente[]> {
   return (data ?? []).map((row) => ({
     id: row.id,
     contactId: row.contact_id,
-    etapa: row.etapa as EtapaRetencao,
+    etapa: row.etapa as EtapaRecompra,
     tempoNaEtapa: calcularTempoNaEtapa(row.etapa_changed_at),
     dataEntradaEtapa: new Date(row.etapa_changed_at).toLocaleDateString("pt-BR"),
     tempoNoFunil: calcularTempoNaEtapa(row.created_at),

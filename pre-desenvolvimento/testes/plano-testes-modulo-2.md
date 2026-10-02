@@ -7,7 +7,7 @@
 
 ## Contexto
 
-O Módulo 2 implementa os dois funis de vendas do método atacado exponencial: Expansão (novos clientes) e Retenção (clientes ativos). Os testes mais críticos envolvem o isolamento multi-tenant dos cards, as regras de visibilidade por papel (Atendente só vê o que é seu), e a transição automática de Expansão → Retenção ao chegar na etapa "Primeira Compra".
+O Módulo 2 implementa os dois funis de vendas do método atacado exponencial: Entrada (novos clientes) e Recompra (clientes ativos). Os testes mais críticos envolvem o isolamento multi-tenant dos cards, as regras de visibilidade por papel (Atendente só vê o que é seu), e a transição automática de Entrada → Recompra ao chegar na etapa "Primeira Compra".
 
 **Prioridade máxima:** RBAC da visibilidade de cards, transição automática entre funis e isolamento multi-tenant.
 
@@ -45,16 +45,16 @@ Estes testes batem no Supabase real (projeto de teste ou local via `supabase sta
 
 ---
 
-### Funil de Expansão — Visibilidade por Papel (CRÍTICO — RBAC)
+### Funil de Entrada — Visibilidade por Papel (CRÍTICO — RBAC)
 
-Arquivo: `src/test/pipeline-expansao.integration.test.ts`
+Arquivo: `src/test/pipeline-entrada.integration.test.ts`
 
 **Listar cards por papel**
 ```
-✅ Atendente vê apenas os cards atribuídos a ele no funil de Expansão
+✅ Atendente vê apenas os cards atribuídos a ele no funil de Entrada
 ✅ Atendente NÃO vê cards atribuídos a outro atendente
-✅ Gerente vê todos os cards do funil de Expansão do workspace
-✅ Admin vê todos os cards do funil de Expansão do workspace
+✅ Gerente vê todos os cards do funil de Entrada do workspace
+✅ Admin vê todos os cards do funil de Entrada do workspace
 ✅ Admin da Empresa A NÃO vê cards da Empresa B (isolamento multi-tenant)
 ```
 
@@ -63,9 +63,9 @@ Arquivo: `src/test/pipeline-expansao.integration.test.ts`
 ✅ Admin cria card na etapa "Lead" com contato válido
 ✅ Gerente cria card na etapa "Lead" com contato válido
 ✅ Card criado pertence ao workspace correto
-✅ Card criado aparece na coluna "Lead" do funil de Expansão
+✅ Card criado aparece na coluna "Lead" do funil de Entrada
 ❌ Atendente não consegue criar novo card
-❌ Não é possível criar card com o mesmo contato já existente no funil de Expansão (duplicata)
+❌ Não é possível criar card com o mesmo contato já existente no funil de Entrada (duplicata)
 ```
 
 **Mover card entre etapas**
@@ -76,12 +76,12 @@ Arquivo: `src/test/pipeline-expansao.integration.test.ts`
 ✅ Card some da coluna anterior após a movimentação
 ```
 
-**Transição automática Expansão → Retenção**
+**Transição automática Entrada → Recompra**
 ```
-✅ Mover card para "Primeira Compra" cria automaticamente um card em "Em Onboarding" no Funil de Retenção
-✅ O card criado no Funil de Retenção está vinculado ao mesmo contato
-✅ O card em "Primeira Compra" no Funil de Expansão permanece visível (não é removido)
-✅ Não cria duplicata se o contato já tiver um card ativo no Funil de Retenção
+✅ Mover card para "Primeira Compra" cria automaticamente um card em "Em Onboarding" no Funil de Recompra
+✅ O card criado no Funil de Recompra está vinculado ao mesmo contato
+✅ O card em "Primeira Compra" no Funil de Entrada permanece visível (não é removido)
+✅ Não cria duplicata se o contato já tiver um card ativo no Funil de Recompra
 ```
 
 **Atribuição de card**
@@ -96,16 +96,16 @@ Arquivo: `src/test/pipeline-expansao.integration.test.ts`
 
 ---
 
-### Funil de Retenção — Visibilidade por Papel (CRÍTICO — RBAC)
+### Funil de Recompra — Visibilidade por Papel (CRÍTICO — RBAC)
 
-Arquivo: `src/test/pipeline-retencao.integration.test.ts`
+Arquivo: `src/test/pipeline-recompra.integration.test.ts`
 
 **Listar cards por papel**
 ```
-✅ Atendente vê apenas os cards atribuídos a ele no funil de Retenção
+✅ Atendente vê apenas os cards atribuídos a ele no funil de Recompra
 ✅ Atendente NÃO vê cards atribuídos a outro atendente
-✅ Gerente vê todos os cards do funil de Retenção do workspace
-✅ Admin vê todos os cards do funil de Retenção do workspace
+✅ Gerente vê todos os cards do funil de Recompra do workspace
+✅ Admin vê todos os cards do funil de Recompra do workspace
 ✅ Admin da Empresa A NÃO vê cards da Empresa B (isolamento multi-tenant)
 ```
 
@@ -156,23 +156,23 @@ Simulam um usuário real no navegador. Executar com `npx playwright test`.
 
 ---
 
-### Fluxo 1 — Jornada completa de um lead no Funil de Expansão
+### Fluxo 1 — Jornada completa de um lead no Funil de Entrada
 
 ```
 1. Loga como Admin
-2. Acessa o Funil de Expansão
+2. Acessa o Funil de Entrada
 3. Clica em "Novo lead" e informa um número de WhatsApp existente
 4. Verifica que o card aparece na coluna "Lead"
-5. Atribui o card ao Atendente A (Time Expansão)
+5. Atribui o card ao Atendente A (Time Entrada)
 6. Loga como Atendente A
 7. Verifica que o card aparece no funil (apenas o do Atendente A)
 8. Arrasta o card de "Lead" para "Em Qualificação"
 9. Verifica que o card some de "Lead" e aparece em "Em Qualificação"
 10. Clica no card e verifica que o histórico registra a movimentação
 11. Arrasta o card até "Primeira Compra"
-12. Verifica que o card permanece em "Primeira Compra" no Funil de Expansão
-13. Navega para o Funil de Retenção
-14. Verifica que o card aparece em "Em Onboarding" no Funil de Retenção
+12. Verifica que o card permanece em "Primeira Compra" no Funil de Entrada
+13. Navega para o Funil de Recompra
+14. Verifica que o card aparece em "Em Onboarding" no Funil de Recompra
 ```
 
 ---
@@ -180,7 +180,7 @@ Simulam um usuário real no navegador. Executar com `npx playwright test`.
 ### Fluxo 2 — RBAC de visibilidade de cards
 
 ```
-1. Cria Empresa A com Admin A, Atendente 1 (Time Expansão) e Atendente 2 (Time Expansão)
+1. Cria Empresa A com Admin A, Atendente 1 (Time Entrada) e Atendente 2 (Time Entrada)
 2. Loga como Admin A e cria dois cards: um atribuído ao Atendente 1, outro ao Atendente 2
 3. Loga como Atendente 1 → vê apenas o card atribuído a ele
 4. Loga como Atendente 2 → vê apenas o card atribuído a ele
@@ -194,7 +194,7 @@ Simulam um usuário real no navegador. Executar com `npx playwright test`.
 
 ```
 1. Loga como Admin
-2. Cria um card no Funil de Expansão na etapa "Lead"
+2. Cria um card no Funil de Entrada na etapa "Lead"
 3. Move o card para "Em Qualificação" via dropdown do painel
 4. Abre o painel do card
 5. Verifica que o histórico mostra as duas etapas: "Lead" e "Em Qualificação"
@@ -206,11 +206,11 @@ Simulam um usuário real no navegador. Executar com `npx playwright test`.
 
 ---
 
-### Fluxo 4 — Ciclo de recompra no Funil de Retenção
+### Fluxo 4 — Ciclo de recompra no Funil de Recompra
 
 ```
 1. Loga como Gerente
-2. Acessa o Funil de Retenção
+2. Acessa o Funil de Recompra
 3. Localiza um card em "Cliente Ativo" e arrasta para "Aguardando Recompra"
 4. Move o card de "Aguardando Recompra" para "Recompra Realizada"
 5. Confirma a ação no modal de confirmação
@@ -224,7 +224,7 @@ Simulam um usuário real no navegador. Executar com `npx playwright test`.
 
 ```
 1. Loga como Atendente
-2. Acessa o Funil de Expansão
+2. Acessa o Funil de Entrada
 3. Localiza um card atribuído a ele
 4. Clica no ícone de conversa do card
 5. Verifica que é redirecionado para o Chat e a conversa do contato está aberta
@@ -256,10 +256,10 @@ Criar os testes junto com cada issue, nunca depois.
 | Após implementar | Testes a criar |
 |---|---|
 | Issues prototype (kanban UI mock) | Nenhum — apenas UI mock |
-| Issue listar cards por papel | Integration: RBAC Expansão + RBAC Retenção (CRÍTICO) |
+| Issue listar cards por papel | Integration: RBAC Entrada + RBAC Recompra (CRÍTICO) |
 | Issue criar novo card | Integration: criar card + validação de duplicata |
 | Issue mover card entre etapas | Integration: movimentação + histórico |
-| Issue transição automática Expansão → Retenção | Integration: criação do card em Retenção |
+| Issue transição automática Entrada → Recompra | Integration: criação do card em Recompra |
 | Issue atribuição de card | Integration: atribuição e reatribuição por papel |
 | Issue notas internas | Integration: notas + isolamento multi-tenant |
 | Issue ciclo de recompra | Integration: recompra realizada → aguardando recompra |

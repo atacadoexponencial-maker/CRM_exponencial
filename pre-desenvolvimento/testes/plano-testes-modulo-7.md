@@ -49,7 +49,7 @@ Arquivo: `src/test/campanha-variaveis.test.ts`
 Arquivo: `src/test/campanha-segmentacao.test.ts`
 
 ```
-✅ Filtro por classificação "Ativo" retorna apenas contatos com card ativo no Funil de Retenção
+✅ Filtro por classificação "Ativo" retorna apenas contatos com card ativo no Funil de Recompra
 ✅ Filtro por tipo "Lojista" retorna apenas contatos do tipo Lojista
 ✅ Filtro por nicho retorna apenas contatos com aquele nicho
 ✅ Múltiplos filtros retornam a interseção (AND, não OR)

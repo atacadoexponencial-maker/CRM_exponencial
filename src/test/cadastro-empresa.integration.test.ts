@@ -191,15 +191,15 @@ describe("Issue 11 — Criar Admin e times padrão ao cadastrar empresa", () => 
     )
   })
 
-  it("times 'Expansão' e 'Retenção' são criados automaticamente", async () => {
+  it("times 'Entrada' e 'Recompra' são criados automaticamente", async () => {
     const captured: unknown[] = []
     buildAdminClientMock(captured)
 
     await criarAdminETimesPadrao(WORKSPACE_ID, "João Silva", "joao@empresa.com", "senha123!")
 
     const names = (captured as Array<{ name: string }>).map((t) => t.name)
-    expect(names).toContain("Expansão")
-    expect(names).toContain("Retenção")
+    expect(names).toContain("Entrada")
+    expect(names).toContain("Recompra")
   })
 
   it("times padrão têm flag is_default = true", async () => {

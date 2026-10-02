@@ -105,6 +105,23 @@ async function autenticarComo(email: string) {
   return client
 }
 
+// Fora dos describe: roda depois de todos, inclusive o da busca.
+afterAll(async () => {
+  if (criados.cardIds.length > 0)
+    await serviceClient.from("pipeline_cards").delete().in("id", criados.cardIds)
+  if (criados.conversationIds.length > 0)
+    await serviceClient.from("conversations").delete().in("id", criados.conversationIds)
+  if (criados.contactIds.length > 0)
+    await serviceClient.from("contacts").delete().in("id", criados.contactIds)
+  if (criados.userIds.length > 0) {
+    await serviceClient.from("profiles").delete().in("id", criados.userIds)
+    for (const id of criados.userIds)
+      await serviceClient.auth.admin.deleteUser(id)
+  }
+  if (criados.workspaceIds.length > 0)
+    await serviceClient.from("workspaces").delete().in("id", criados.workspaceIds)
+})
+
 // ---------------------------------------------------------------------------
 
 describe("Issue 04 — Listar Contatos por Papel", () => {
@@ -158,28 +175,12 @@ describe("Issue 04 — Listar Contatos por Papel", () => {
         workspace_id: wsA,
         contact_id: contactYId,
         etapa: "lead",
-        funil: "expansao",
+        funil: "entrada",
         atendente_id: atendente2Id,
       })
       .select()
       .single()
     if (card) criados.cardIds.push(card.id)
-  })
-
-  afterAll(async () => {
-    if (criados.cardIds.length > 0)
-      await serviceClient.from("pipeline_cards").delete().in("id", criados.cardIds)
-    if (criados.conversationIds.length > 0)
-      await serviceClient.from("conversations").delete().in("id", criados.conversationIds)
-    if (criados.contactIds.length > 0)
-      await serviceClient.from("contacts").delete().in("id", criados.contactIds)
-    if (criados.userIds.length > 0) {
-      await serviceClient.from("profiles").delete().in("id", criados.userIds)
-      for (const id of criados.userIds)
-        await serviceClient.auth.admin.deleteUser(id)
-    }
-    if (criados.workspaceIds.length > 0)
-      await serviceClient.from("workspaces").delete().in("id", criados.workspaceIds)
   })
 
   it("Admin visualiza todos os contatos do workspace", async () => {

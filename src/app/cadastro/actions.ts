@@ -68,8 +68,8 @@ export async function criarAdminETimesPadrao(
   const { error: teamsError } = await adminClient
     .from("teams")
     .insert([
-      { workspace_id: workspaceId, name: "Expansão", is_default: true },
-      { workspace_id: workspaceId, name: "Retenção", is_default: true },
+      { workspace_id: workspaceId, name: "Entrada", is_default: true },
+      { workspace_id: workspaceId, name: "Recompra", is_default: true },
     ])
   if (teamsError) throw new Error("Erro ao criar times padrão")
 

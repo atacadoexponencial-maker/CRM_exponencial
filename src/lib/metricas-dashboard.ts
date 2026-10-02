@@ -20,7 +20,7 @@ export type MetricasDashboard = {
     taxaGeral: number | null // % de cards criados no período que chegaram a Primeira Compra
     funil: Array<{ etapa: string; label: string; quantidade: number; percentualDaAnterior: number | null }>
   }
-  retencao: {
+  recompra: {
     clientesAtivos: number
     taxaRecompra: number | null
     emRisco: number
@@ -72,7 +72,7 @@ const ETAPAS_FUNIL: Array<{ id: string; label: string }> = [
   { id: "primeira_compra", label: "Primeira Compra" },
 ]
 
-const ETAPAS_RETENCAO_ATIVAS = ["em_onboarding", "cliente_ativo", "aguardando_recompra", "recompra_realizada"]
+const ETAPAS_RECOMPRA_ATIVAS = ["em_onboarding", "cliente_ativo", "aguardando_recompra", "recompra_realizada"]
 
 export function rangeDoPeriodo(filtro: FiltroDashboard, agora = new Date()): RangePeriodo {
   const fim = new Date(agora)
@@ -122,8 +122,8 @@ export function calcularMetricas(
     return d >= inicio && d <= fim
   }
 
-  const expansao = cards.filter((c) => c.funil === "expansao")
-  const retencao = cards.filter((c) => c.funil === "retencao")
+  const entrada = cards.filter((c) => c.funil === "entrada")
+  const recompra = cards.filter((c) => c.funil === "recompra")
   const historyPorCard = new Map<string, HistoryRow[]>()
   for (const h of history) {
     const lista = historyPorCard.get(h.card_id) ?? []
@@ -132,8 +132,8 @@ export function calcularMetricas(
   }
 
   // ── Entrada de Leads ──────────────────────────────────────────────
-  const novosLeadsCards = expansao.filter((c) => noPeriodo(c.created_at))
-  const leadsAtivos = expansao.filter((c) => c.etapa !== "primeira_compra").length
+  const novosLeadsCards = entrada.filter((c) => noPeriodo(c.created_at))
+  const leadsAtivos = entrada.filter((c) => c.etapa !== "primeira_compra").length
 
   // Buckets semanais do período
   const leadsPorSemana: Array<{ label: string; valor: number }> = []
@@ -179,16 +179,16 @@ export function calcularMetricas(
   const taxaGeral =
     baseConversao.length > 0 ? Math.round((convertidos / baseConversao.length) * 100) : null
 
-  // ── Retenção ──────────────────────────────────────────────────────
-  const clientesAtivos = retencao.filter((c) => ETAPAS_RETENCAO_ATIVAS.includes(c.etapa)).length
-  const emRisco = retencao.filter((c) => c.etapa === "em_risco").length
-  const inativos = retencao.filter((c) => c.etapa === "inativo").length
-  const perdidos = retencao.filter((c) => c.etapa === "perdido").length
+  // ── Recompra ──────────────────────────────────────────────────────
+  const clientesAtivos = recompra.filter((c) => ETAPAS_RECOMPRA_ATIVAS.includes(c.etapa)).length
+  const emRisco = recompra.filter((c) => c.etapa === "em_risco").length
+  const inativos = recompra.filter((c) => c.etapa === "inativo").length
+  const perdidos = recompra.filter((c) => c.etapa === "perdido").length
 
-  // Recompras no período = movimentações para "recompra_realizada" em cards de retenção
-  const idsRetencao = new Set(retencao.map((c) => c.id))
+  // Recompras no período = movimentações para "recompra_realizada" em cards de recompra
+  const idsRecompra = new Set(recompra.map((c) => c.id))
   const recomprasNoPeriodo = history.filter(
-    (h) => idsRetencao.has(h.card_id) && h.para_etapa === "recompra_realizada" && noPeriodo(h.created_at)
+    (h) => idsRecompra.has(h.card_id) && h.para_etapa === "recompra_realizada" && noPeriodo(h.created_at)
   ).length
   // Aproximação: usa a base de clientes ativos atual como denominador
   const taxaRecompra =
@@ -234,7 +234,7 @@ export function calcularMetricas(
   return {
     entrada: { novosLeads: novosLeadsCards.length, leadsAtivos, leadsPorSemana },
     conversao: { taxaGeral, funil: funilComPercentual },
-    retencao: { clientesAtivos, taxaRecompra, emRisco, inativos, perdidos, distribuicao },
+    recompra: { clientesAtivos, taxaRecompra, emRisco, inativos, perdidos, distribuicao },
     receita: {
       totalCompras,
       quantidadeCompras: comprasNoPeriodo.length,
@@ -261,21 +261,21 @@ export function calcularPerformanceVendedores(
 
   return atendentes.map((a) => {
     const cardsDoAtendente = cards.filter((c) => c.atendente_id === a.id)
-    const expansao = cardsDoAtendente.filter((c) => c.funil === "expansao")
-    const retencao = cardsDoAtendente.filter((c) => c.funil === "retencao")
-    const idsRetencao = new Set(retencao.map((c) => c.id))
+    const entrada = cardsDoAtendente.filter((c) => c.funil === "entrada")
+    const recompra = cardsDoAtendente.filter((c) => c.funil === "recompra")
+    const idsRecompra = new Set(recompra.map((c) => c.id))
 
-    const leadsCriados = expansao.filter((c) => noPeriodo(c.created_at)).length
-    const convertidos = expansao.filter(
+    const leadsCriados = entrada.filter((c) => noPeriodo(c.created_at)).length
+    const convertidos = entrada.filter(
       (c) =>
         noPeriodo(c.created_at) &&
         (c.etapa === "primeira_compra" ||
           history.some((h) => h.card_id === c.id && h.para_etapa === "primeira_compra"))
     ).length
-    const clientesAtivos = retencao.filter((c) => ETAPAS_RETENCAO_ATIVAS.includes(c.etapa)).length
-    const emRisco = retencao.filter((c) => c.etapa === "em_risco").length
+    const clientesAtivos = recompra.filter((c) => ETAPAS_RECOMPRA_ATIVAS.includes(c.etapa)).length
+    const emRisco = recompra.filter((c) => c.etapa === "em_risco").length
     const recompras = history.filter(
-      (h) => idsRetencao.has(h.card_id) && h.para_etapa === "recompra_realizada" && noPeriodo(h.created_at)
+      (h) => idsRecompra.has(h.card_id) && h.para_etapa === "recompra_realizada" && noPeriodo(h.created_at)
     ).length
 
     const contatos = new Set(cardsDoAtendente.map((c) => c.contact_id).filter(Boolean))

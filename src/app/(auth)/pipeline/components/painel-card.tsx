@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { X, MessageSquare, ChevronDown, Phone, Clock, Tag, FileText, History, Zap } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { ETAPAS_EXPANSAO, ETAPAS_RETENCAO, type CardLead, type CardCliente, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
+import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA, type CardLead, type CardCliente, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
 import { buscarDadosPainel, moverCard, atribuirAtendente, adicionarNota } from "../actions"
 import { ModalConfirmacaoRecompra } from "./modal-confirmacao-recompra"
 import { IniciarSequenciaDialog } from "@/components/shared/iniciar-sequencia-dialog"
@@ -12,13 +12,13 @@ import { IniciarSequenciaDialog } from "@/components/shared/iniciar-sequencia-di
 interface PainelCardProps {
   card: CardLead | CardCliente | null
   onFechar: () => void
-  funil?: "expansao" | "retencao"
+  funil?: "entrada" | "recompra"
   onMover?: () => void
   papel?: string
   atendentes?: { id: string; nome: string }[]
 }
 
-export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel, atendentes }: PainelCardProps) {
+export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, atendentes }: PainelCardProps) {
   const [novaNota, setNovaNota] = useState("")
   const [etapaDropdownAberto, setEtapaDropdownAberto] = useState(false)
   const [atribuirDropdownAberto, setAtribuirDropdownAberto] = useState(false)
@@ -46,9 +46,9 @@ export function PainelCard({ card, onFechar, funil = "expansao", onMover, papel,
   if (!card) return null
 
   const semAtendente = card.atendente === null
-  const etapas = funil === "retencao" ? ETAPAS_RETENCAO : ETAPAS_EXPANSAO
+  const etapas = funil === "recompra" ? ETAPAS_RECOMPRA : ETAPAS_ENTRADA
   const etapaLabel = etapas.find((e) => e.id === card.etapa)?.label ?? card.etapa
-  const funilLabel = funil === "retencao" ? "Retenção" : "Expansão"
+  const funilLabel = funil === "recompra" ? "Recompra" : "Entrada"
 
   return (
     <>

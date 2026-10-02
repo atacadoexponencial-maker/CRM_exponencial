@@ -18,9 +18,9 @@ const textareaClass =
 
 const GATILHOS: Array<{ id: string; label: string }> = [
   { id: "manual", label: "Manual (inicia quando o vendedor pedir)" },
-  { id: "card_lead", label: "Automático — card criado em Lead (Expansão)" },
+  { id: "card_lead", label: "Automático — card criado em Lead (Entrada)" },
   { id: "catalogo_enviado", label: "Automático — card movido para Catálogo Enviado" },
-  { id: "onboarding", label: "Automático — card criado em Onboarding (Retenção)" },
+  { id: "onboarding", label: "Automático — card criado em Onboarding (Recompra)" },
   { id: "inativo", label: "Automático — card movido para Inativo" },
 ]
 

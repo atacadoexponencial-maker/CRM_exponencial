@@ -62,7 +62,7 @@ Arquivo: `src/test/cadastro-empresa.integration.test.ts`
 **Issue 11 — Criar Admin e times padrão**
 ```
 ✅ Primeiro usuário criado tem papel 'admin'
-✅ Times 'Expansão' e 'Retenção' são criados automaticamente
+✅ Times 'Entrada' e 'Recompra' são criados automaticamente
 ✅ Times padrão têm flag is_default = true
 ✅ Times padrão pertencem à empresa correta (não vazam para outra empresa)
 ```
@@ -97,8 +97,8 @@ Arquivo: `src/test/usuarios.integration.test.ts`
 
 **Issues 17 e 18 — Gerenciar times do usuário**
 ```
-✅ Admin adiciona usuário ao time Expansão
-✅ Admin remove usuário do time Expansão
+✅ Admin adiciona usuário ao time Entrada
+✅ Admin remove usuário do time Entrada
 ✅ Usuário pode pertencer a múltiplos times simultaneamente
 ```
 
@@ -125,7 +125,7 @@ Arquivo: `src/test/times.integration.test.ts`
 ```
 ✅ Admin da Empresa A vê apenas times da Empresa A
 ✅ Admin da Empresa A NÃO vê times da Empresa B
-✅ Lista inclui times padrão (Expansão, Retenção) e personalizados
+✅ Lista inclui times padrão (Entrada, Recompra) e personalizados
 ```
 
 **Issue 22 — Criar time personalizado**
@@ -138,23 +138,23 @@ Arquivo: `src/test/times.integration.test.ts`
 **Issue 23 — Editar nome de time personalizado**
 ```
 ✅ Admin edita nome de time personalizado
-❌ Admin não consegue editar nome do time 'Expansão'
-❌ Admin não consegue editar nome do time 'Retenção'
+❌ Admin não consegue editar nome do time 'Entrada'
+❌ Admin não consegue editar nome do time 'Recompra'
 ```
 
 **Issue 24 — Excluir time personalizado**
 ```
 ✅ Admin exclui time personalizado
 ✅ Usuários do time excluído não são excluídos (apenas desassociados)
-❌ Admin não consegue excluir o time 'Expansão'
-❌ Admin não consegue excluir o time 'Retenção'
+❌ Admin não consegue excluir o time 'Entrada'
+❌ Admin não consegue excluir o time 'Recompra'
 ```
 
 **Issue 25 — Gerenciar membros do time**
 ```
 ✅ Admin adiciona usuário a um time pela tela de times
 ✅ Admin remove usuário de um time pela tela de times
-✅ Mesmo usuário pode estar em Expansão e Retenção ao mesmo tempo
+✅ Mesmo usuário pode estar em Entrada e Recompra ao mesmo tempo
 ```
 
 ---
@@ -194,7 +194,7 @@ Simulam um usuário real no navegador. Executar com `npx playwright test`.
 2. Preenche todos os campos corretamente
 3. Clica em "Criar conta"
 4. Verifica redirecionamento para o dashboard
-5. Verifica que os times Expansão e Retenção existem
+5. Verifica que os times Entrada e Recompra existem
 6. Verifica que o usuário logado tem papel Admin
 ```
 

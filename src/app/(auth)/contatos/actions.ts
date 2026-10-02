@@ -89,7 +89,7 @@ export async function criarContato(dados: {
   return { id: data.id }
 }
 
-const ETAPA_RETENCAO_LABEL: Record<string, string> = {
+const ETAPA_RECOMPRA_LABEL: Record<string, string> = {
   em_onboarding: "Em Onboarding",
   cliente_ativo: "Cliente Ativo",
   aguardando_recompra: "Aguardando Recompra",
@@ -99,7 +99,7 @@ const ETAPA_RETENCAO_LABEL: Record<string, string> = {
   perdido: "Perdido",
 }
 
-const ETAPA_EXPANSAO_LABEL: Record<string, string> = {
+const ETAPA_ENTRADA_LABEL: Record<string, string> = {
   lead: "Lead",
   em_qualificacao: "Em Qualificação",
   catalogo_enviado: "Catálogo Enviado",
@@ -180,11 +180,11 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
   const rawCompras = (comprasData ?? []) as Array<any>
 
   const cards = rawCards.map((card) => ({
-    funil: card.funil as "expansao" | "retencao",
+    funil: card.funil as "entrada" | "recompra",
     etapaLabel:
-      card.funil === "retencao"
-        ? (ETAPA_RETENCAO_LABEL[card.etapa] ?? card.etapa)
-        : (ETAPA_EXPANSAO_LABEL[card.etapa] ?? card.etapa),
+      card.funil === "recompra"
+        ? (ETAPA_RECOMPRA_LABEL[card.etapa] ?? card.etapa)
+        : (ETAPA_ENTRADA_LABEL[card.etapa] ?? card.etapa),
   }))
 
   // Segunda rodada: histórico e notas dos cards
@@ -219,7 +219,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
   }
 
   for (const card of rawCards) {
-    const funilLabel = card.funil === "retencao" ? "Retenção" : "Expansão"
+    const funilLabel = card.funil === "recompra" ? "Recompra" : "Entrada"
     const etapaLabel = ETAPA_LABEL_ALL[card.etapa] ?? card.etapa
     eventos.push({
       id: card.id,

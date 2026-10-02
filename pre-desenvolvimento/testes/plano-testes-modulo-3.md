@@ -56,15 +56,15 @@ Arquivo: `src/test/contato-classificacao.test.ts`
 
 ```
 ✅ Contato sem card retorna classificação "Sem histórico"
-✅ Contato com card em Expansão (etapa != "Primeira Compra") retorna "Lead"
-✅ Contato com card em Retenção na etapa "Em Onboarding" retorna "Ativo"
-✅ Contato com card em Retenção na etapa "Cliente Ativo" retorna "Ativo"
-✅ Contato com card em Retenção na etapa "Aguardando Recompra" retorna "Ativo"
-✅ Contato com card em Retenção na etapa "Recompra Realizada" retorna "Ativo"
-✅ Contato com card em Retenção na etapa "Em Risco" retorna "Em Risco"
-✅ Contato com card em Retenção na etapa "Inativo" retorna "Inativo"
-✅ Contato com card em Retenção na etapa "Perdido" retorna "Perdido"
-✅ Quando há card em Expansão e em Retenção simultaneamente, a classificação do Funil de Retenção tem precedência
+✅ Contato com card em Entrada (etapa != "Primeira Compra") retorna "Lead"
+✅ Contato com card em Recompra na etapa "Em Onboarding" retorna "Ativo"
+✅ Contato com card em Recompra na etapa "Cliente Ativo" retorna "Ativo"
+✅ Contato com card em Recompra na etapa "Aguardando Recompra" retorna "Ativo"
+✅ Contato com card em Recompra na etapa "Recompra Realizada" retorna "Ativo"
+✅ Contato com card em Recompra na etapa "Em Risco" retorna "Em Risco"
+✅ Contato com card em Recompra na etapa "Inativo" retorna "Inativo"
+✅ Contato com card em Recompra na etapa "Perdido" retorna "Perdido"
+✅ Quando há card em Entrada e em Recompra simultaneamente, a classificação do Funil de Recompra tem precedência
 ```
 
 ---
@@ -157,10 +157,10 @@ Arquivo: `src/test/contatos-classificacao.integration.test.ts`
 
 ```
 ✅ Contato sem card retorna classificação "Sem histórico"
-✅ Contato com card em Expansão exibe classificação "Lead"
-✅ Contato cujo card de Expansão chegou a "Primeira Compra" e gerou card em Retenção exibe classificação derivada da etapa de Retenção
-✅ Mover o card de Retenção para "Em Risco" atualiza a classificação do contato para "Em Risco"
-✅ Mover o card de Retenção para "Perdido" atualiza a classificação do contato para "Perdido"
+✅ Contato com card em Entrada exibe classificação "Lead"
+✅ Contato cujo card de Entrada chegou a "Primeira Compra" e gerou card em Recompra exibe classificação derivada da etapa de Recompra
+✅ Mover o card de Recompra para "Em Risco" atualiza a classificação do contato para "Em Risco"
+✅ Mover o card de Recompra para "Perdido" atualiza a classificação do contato para "Perdido"
 ```
 
 ---
@@ -229,11 +229,11 @@ Simulam um usuário real no navegador. Executar com `npx playwright test`.
 1. Loga como Admin
 2. Acessa a lista de Contatos e localiza um contato sem card de pipeline
 3. Verifica que a classificação exibida é "Sem histórico"
-4. Navega para o Pipeline de Expansão e cria um card para esse contato na etapa "Lead"
+4. Navega para o Pipeline de Entrada e cria um card para esse contato na etapa "Lead"
 5. Volta para a lista de Contatos e verifica que a classificação agora é "Lead"
-6. Move o card para "Primeira Compra" no pipeline (o sistema cria automaticamente um card em "Em Onboarding" no Funil de Retenção)
+6. Move o card para "Primeira Compra" no pipeline (o sistema cria automaticamente um card em "Em Onboarding" no Funil de Recompra)
 7. Volta para a lista de Contatos e verifica que a classificação agora é "Ativo"
-8. Move o card de Retenção para "Em Risco"
+8. Move o card de Recompra para "Em Risco"
 9. Volta para a lista e verifica que a classificação é "Em Risco"
 ```
 
@@ -263,7 +263,7 @@ Simulam um usuário real no navegador. Executar com `npx playwright test`.
 2. Acessa a lista de Contatos (workspace com múltiplos contatos de tipos e classificações variadas)
 3. Busca por nome parcial e verifica que apenas contatos correspondentes aparecem
 4. Limpa a busca e aplica filtro por classificação "Ativo"
-5. Verifica que apenas contatos com card ativo no Funil de Retenção aparecem
+5. Verifica que apenas contatos com card ativo no Funil de Recompra aparecem
 6. Adiciona filtro por tipo "Lojista" e verifica que a lista é restringida corretamente
 7. Remove todos os filtros e verifica que a lista volta ao estado original
 8. Tenta criar um contato com número de WhatsApp já cadastrado no workspace

@@ -6,53 +6,53 @@ describe("Issue 11 — Classificação automática derivada do pipeline", () => 
     expect(calcularClassificacao([])).toBe("sem_historico")
   })
 
-  it("Contato com card em Expansão (etapa != 'primeira_compra') retorna 'lead'", () => {
-    expect(calcularClassificacao([{ funil: "expansao", etapa: "lead" }])).toBe("lead")
-    expect(calcularClassificacao([{ funil: "expansao", etapa: "em_qualificacao" }])).toBe("lead")
-    expect(calcularClassificacao([{ funil: "expansao", etapa: "em_negociacao" }])).toBe("lead")
-    expect(calcularClassificacao([{ funil: "expansao", etapa: "primeira_compra" }])).toBe("lead")
+  it("Contato com card em Entrada (etapa != 'primeira_compra') retorna 'lead'", () => {
+    expect(calcularClassificacao([{ funil: "entrada", etapa: "lead" }])).toBe("lead")
+    expect(calcularClassificacao([{ funil: "entrada", etapa: "em_qualificacao" }])).toBe("lead")
+    expect(calcularClassificacao([{ funil: "entrada", etapa: "em_negociacao" }])).toBe("lead")
+    expect(calcularClassificacao([{ funil: "entrada", etapa: "primeira_compra" }])).toBe("lead")
   })
 
-  it("Contato com card em Retenção na etapa 'em_onboarding' retorna 'ativo'", () => {
-    expect(calcularClassificacao([{ funil: "retencao", etapa: "em_onboarding" }])).toBe("ativo")
+  it("Contato com card em Recompra na etapa 'em_onboarding' retorna 'ativo'", () => {
+    expect(calcularClassificacao([{ funil: "recompra", etapa: "em_onboarding" }])).toBe("ativo")
   })
 
-  it("Contato com card em Retenção na etapa 'cliente_ativo' retorna 'ativo'", () => {
-    expect(calcularClassificacao([{ funil: "retencao", etapa: "cliente_ativo" }])).toBe("ativo")
+  it("Contato com card em Recompra na etapa 'cliente_ativo' retorna 'ativo'", () => {
+    expect(calcularClassificacao([{ funil: "recompra", etapa: "cliente_ativo" }])).toBe("ativo")
   })
 
-  it("Contato com card em Retenção na etapa 'aguardando_recompra' retorna 'ativo'", () => {
-    expect(calcularClassificacao([{ funil: "retencao", etapa: "aguardando_recompra" }])).toBe("ativo")
+  it("Contato com card em Recompra na etapa 'aguardando_recompra' retorna 'ativo'", () => {
+    expect(calcularClassificacao([{ funil: "recompra", etapa: "aguardando_recompra" }])).toBe("ativo")
   })
 
-  it("Contato com card em Retenção na etapa 'recompra_realizada' retorna 'ativo'", () => {
-    expect(calcularClassificacao([{ funil: "retencao", etapa: "recompra_realizada" }])).toBe("ativo")
+  it("Contato com card em Recompra na etapa 'recompra_realizada' retorna 'ativo'", () => {
+    expect(calcularClassificacao([{ funil: "recompra", etapa: "recompra_realizada" }])).toBe("ativo")
   })
 
-  it("Contato com card em Retenção na etapa 'em_risco' retorna 'em_risco'", () => {
-    expect(calcularClassificacao([{ funil: "retencao", etapa: "em_risco" }])).toBe("em_risco")
+  it("Contato com card em Recompra na etapa 'em_risco' retorna 'em_risco'", () => {
+    expect(calcularClassificacao([{ funil: "recompra", etapa: "em_risco" }])).toBe("em_risco")
   })
 
-  it("Contato com card em Retenção na etapa 'inativo' retorna 'inativo'", () => {
-    expect(calcularClassificacao([{ funil: "retencao", etapa: "inativo" }])).toBe("inativo")
+  it("Contato com card em Recompra na etapa 'inativo' retorna 'inativo'", () => {
+    expect(calcularClassificacao([{ funil: "recompra", etapa: "inativo" }])).toBe("inativo")
   })
 
-  it("Contato com card em Retenção na etapa 'perdido' retorna 'perdido'", () => {
-    expect(calcularClassificacao([{ funil: "retencao", etapa: "perdido" }])).toBe("perdido")
+  it("Contato com card em Recompra na etapa 'perdido' retorna 'perdido'", () => {
+    expect(calcularClassificacao([{ funil: "recompra", etapa: "perdido" }])).toBe("perdido")
   })
 
-  it("Quando há card em Expansão e Retenção simultaneamente, Retenção tem precedência", () => {
+  it("Quando há card em Entrada e Recompra simultaneamente, Recompra tem precedência", () => {
     const cards = [
-      { funil: "expansao", etapa: "em_qualificacao" },
-      { funil: "retencao", etapa: "cliente_ativo" },
+      { funil: "entrada", etapa: "em_qualificacao" },
+      { funil: "recompra", etapa: "cliente_ativo" },
     ]
     expect(calcularClassificacao(cards)).toBe("ativo")
   })
 
-  it("Retenção 'em_risco' tem precedência sobre card de Expansão", () => {
+  it("Recompra 'em_risco' tem precedência sobre card de Entrada", () => {
     const cards = [
-      { funil: "expansao", etapa: "lead" },
-      { funil: "retencao", etapa: "em_risco" },
+      { funil: "entrada", etapa: "lead" },
+      { funil: "recompra", etapa: "em_risco" },
     ]
     expect(calcularClassificacao(cards)).toBe("em_risco")
   })

@@ -47,7 +47,7 @@ describe("calcularAlertas", () => {
 
   function card(parcial: Partial<CardParaAlerta> & { id: string }): CardParaAlerta {
     return {
-      funil: "expansao",
+      funil: "entrada",
       etapa: "lead",
       etapa_changed_at: "2026-06-10T10:00:00",
       contact_id: `contato-${parcial.id}`,
@@ -74,11 +74,11 @@ describe("calcularAlertas", () => {
     expect(calcularAlertas(cards, CONFIG_ALERTAS_PADRAO, [], agora)).toHaveLength(0)
   })
 
-  it("gera alertas de retenção por tempo parado na etapa", () => {
+  it("gera alertas de recompra por tempo parado na etapa", () => {
     const cards = [
-      card({ id: "r1", funil: "retencao", etapa: "aguardando_recompra", etapa_changed_at: "2026-05-01T10:00:00" }), // 42 dias
-      card({ id: "r2", funil: "retencao", etapa: "em_risco", etapa_changed_at: "2026-06-01T10:00:00" }), // 11 dias
-      card({ id: "r3", funil: "retencao", etapa: "inativo", etapa_changed_at: "2026-06-05T10:00:00" }), // 7 dias < 15
+      card({ id: "r1", funil: "recompra", etapa: "aguardando_recompra", etapa_changed_at: "2026-05-01T10:00:00" }), // 42 dias
+      card({ id: "r2", funil: "recompra", etapa: "em_risco", etapa_changed_at: "2026-06-01T10:00:00" }), // 11 dias
+      card({ id: "r3", funil: "recompra", etapa: "inativo", etapa_changed_at: "2026-06-05T10:00:00" }), // 7 dias < 15
     ]
     const alertas = calcularAlertas(cards, CONFIG_ALERTAS_PADRAO, [], agora)
     const tipos = alertas.map((a) => a.tipo)
@@ -88,14 +88,14 @@ describe("calcularAlertas", () => {
   })
 
   it("respeita limiares configurados", () => {
-    const cards = [card({ id: "r1", funil: "retencao", etapa: "inativo", etapa_changed_at: "2026-06-05T10:00:00" })]
+    const cards = [card({ id: "r1", funil: "recompra", etapa: "inativo", etapa_changed_at: "2026-06-05T10:00:00" })]
     const config = { ...CONFIG_ALERTAS_PADRAO, inativoDias: 5 }
     expect(calcularAlertas(cards, config, [], agora)).toHaveLength(1)
   })
 
   it("não regera alerta dispensado com a mesma referência", () => {
     const cards = [
-      card({ id: "r1", funil: "retencao", etapa: "em_risco", etapa_changed_at: "2026-06-01T10:00:00" }),
+      card({ id: "r1", funil: "recompra", etapa: "em_risco", etapa_changed_at: "2026-06-01T10:00:00" }),
     ]
     const dismissals = [{ card_id: "r1", tipo: "em_risco", referencia: "2026-06-01T10:00:00" }]
     expect(calcularAlertas(cards, CONFIG_ALERTAS_PADRAO, dismissals, agora)).toHaveLength(0)
@@ -103,7 +103,7 @@ describe("calcularAlertas", () => {
 
   it("regera alerta quando a referência muda (card voltou a atingir o limiar)", () => {
     const cards = [
-      card({ id: "r1", funil: "retencao", etapa: "em_risco", etapa_changed_at: "2026-06-03T10:00:00" }),
+      card({ id: "r1", funil: "recompra", etapa: "em_risco", etapa_changed_at: "2026-06-03T10:00:00" }),
     ]
     const dismissals = [{ card_id: "r1", tipo: "em_risco", referencia: "2026-05-01T10:00:00" }]
     expect(calcularAlertas(cards, CONFIG_ALERTAS_PADRAO, dismissals, agora)).toHaveLength(1)

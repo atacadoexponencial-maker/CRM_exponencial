@@ -459,11 +459,11 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
                 {contato.cards.map((card, i) => (
                   <Link
                     key={i}
-                    href={card.funil === "expansao" ? "/pipeline" : "/pipeline/retencao"}
+                    href={card.funil === "entrada" ? "/pipeline" : "/pipeline/recompra"}
                     className="flex items-center gap-2 text-sm hover:underline"
                   >
                     <span className="text-muted-foreground">
-                      Funil de {card.funil === "expansao" ? "Expansão" : "Retenção"}:
+                      Funil de {card.funil === "entrada" ? "Entrada" : "Recompra"}:
                     </span>
                     <span className="font-medium">{card.etapaLabel}</span>
                   </Link>

@@ -41,7 +41,7 @@ export interface Compra {
 }
 
 export interface CardPipelineMock {
-  funil: "expansao" | "retencao"
+  funil: "entrada" | "recompra"
   etapaLabel: string
 }
 
@@ -220,7 +220,7 @@ export const MOCK_PERFIS_CONTATO: Record<string, ContatoPerfil> = {
     tags: ["vip", "fidelizado", "whatsapp-ativo"],
     observacoes: "Cliente parceiro desde 2024. Prefere contato pela manhã. Tem interesse em ampliar o mix de produtos.",
     conversaId: null,
-    cards: [{ funil: "retencao", etapaLabel: "Cliente Ativo" }],
+    cards: [{ funil: "recompra", etapaLabel: "Cliente Ativo" }],
     compras: [
       { id: "cp1", data: "15/01/2026", valor: 4200 },
       { id: "cp2", data: "12/02/2026", valor: 3800 },
@@ -233,7 +233,7 @@ export const MOCK_PERFIS_CONTATO: Record<string, ContatoPerfil> = {
       { id: "t4", data: "28/01/2026 11:00", tipo: "nota_interna", descricao: "\"Cliente solicitou catálogo atualizado de produtos sazonais para fevereiro.\"", responsavel: "Fernanda" },
       { id: "t5", data: "15/01/2026 16:30", tipo: "compra_registrada", descricao: "Compra registrada — R$ 4.200,00", responsavel: "Fernanda" },
       { id: "t6", data: "10/12/2025 09:45", tipo: "mudanca_etapa", descricao: "Em Onboarding → Cliente Ativo", responsavel: "Fernanda" },
-      { id: "t7", data: "01/12/2025 08:00", tipo: "card_criado", descricao: "Card criado no Funil de Retenção — etapa: Em Onboarding", responsavel: "Sistema" },
+      { id: "t7", data: "01/12/2025 08:00", tipo: "card_criado", descricao: "Card criado no Funil de Recompra — etapa: Em Onboarding", responsavel: "Sistema" },
       { id: "t8", data: "15/11/2025 10:00", tipo: "conversa_iniciada", descricao: "Nova conversa iniciada via WhatsApp", responsavel: "Fernanda" },
     ],
   },
@@ -251,11 +251,11 @@ export const MOCK_PERFIS_CONTATO: Record<string, ContatoPerfil> = {
     tags: [],
     observacoes: "",
     conversaId: null,
-    cards: [{ funil: "expansao", etapaLabel: "Primeiro Contato" }],
+    cards: [{ funil: "entrada", etapaLabel: "Primeiro Contato" }],
     compras: [],
     timeline: [
       { id: "t1", data: "21/05/2026 14:00", tipo: "dados_editados", descricao: "Campos atualizados: tipo, nicho", responsavel: "Carlos" },
-      { id: "t2", data: "20/05/2026 09:00", tipo: "card_criado", descricao: "Card criado no Funil de Expansão — etapa: Primeiro Contato", responsavel: "Carlos" },
+      { id: "t2", data: "20/05/2026 09:00", tipo: "card_criado", descricao: "Card criado no Funil de Entrada — etapa: Primeiro Contato", responsavel: "Carlos" },
       { id: "t3", data: "20/05/2026 08:45", tipo: "conversa_iniciada", descricao: "Nova conversa iniciada via WhatsApp", responsavel: "Carlos" },
     ],
   },
