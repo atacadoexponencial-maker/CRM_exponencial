@@ -99,6 +99,6 @@ Nenhuma.
       restauram; contato ativo não muda — 5/5 com teste temporário (webhook com assinatura HMAC real), 02/10
 - [x] `npx tsc --noEmit`, `npm run lint`, `npm run build`, testes existentes do webhook,
       recebimento, pipeline e contatos — 211/215; as 4 falhas são as antigas do webhook (3 de status em `mensagens.integration` e 1 de assinatura em `caixa-de-entrada.integration`), iguais sem esta mudança
-- [ ] Push da série (B13-01 a 05) e deploy no ar
+- [x] Push da série (B13-01 a 05) e deploy no ar (`645db56`, deploy Vercel com sucesso, 02/10)
 - [ ] Teste com o chip real, **com autorização da Marcelle** (memória: perguntar antes de
       agir no número dela)
