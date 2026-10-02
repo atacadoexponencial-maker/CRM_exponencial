@@ -8,6 +8,7 @@ no ar sai daqui. Quem abre a pasta deve saber, sem ler nada, o que falta fazer.
 | Spec | Issues | Estado |
 |---|---|---|
 | `spec-automacoes-v2.md` — automações com gatilho, condições e ações (fase 1) | `issues/B11-01` a `B11-09` | Escrita em 29/09/2026. Nenhuma issue começada. Implementador: Luan. Ordem sugerida: 01 → 02 → 03 → 04 → 05 → 07 → 06 → 08 → 09. |
+| `spec-lixeira-contatos.md` — excluir lead e contato, com lixeira de 30 dias e restaurar | `issues/B13-01` a `B13-06` | Escrita e aprovada em 02/10/2026. Ordem: 01 (protótipo) → 02 → 03 → 04 → 05 → 06. A 06 depende do `CRON_SECRET` no Vercel. |
 
 Quando a última issue de uma spec entrar no ar, mova a spec para
 `docs/specs-arquivadas/` e as issues para `issues/concluidas_<série>/`.
@@ -54,5 +55,5 @@ As issues da parte A (gateway) ficam no repositório `whatsapp-gateway`.
 
 - `NN` (01, 02…): issues dos módulos 0 a 7, agrupadas por módulo em `concluidas_moduloX/`.
 - `B<n>-NN`: séries do CRM depois dos módulos (B1–B8 canal direto, B9 desconectar,
-  B10 navegação, B11 automações, B12 renomear funis). A pasta de concluídas leva o prefixo da série.
+  B10 navegação, B11 automações, B12 renomear funis, B13 lixeira). A pasta de concluídas leva o prefixo da série.
 - `A<n>-NN`: séries do gateway, no outro repositório.
