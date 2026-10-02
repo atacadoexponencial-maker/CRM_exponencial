@@ -24,6 +24,7 @@ todas as telas na hora, fica 30 dias guardado para poder voltar e depois some de
 | Prazo da lixeira | **30 dias**, depois apaga de vez sozinho |
 | Quem vê a lixeira e restaura/apaga de vez | **Todos** — cada um vê o que já veria fora da lixeira |
 | Contato na lixeira manda mensagem | **Sai da lixeira sozinho**, com o histórico, e a conversa aparece no chat |
+| Criar lead ou contato com o telefone de um contato na lixeira | **Restaura o antigo** e o lead novo entra ligado a ele (decidido no `/plan` da B13-02, 02/10) |
 
 ### Premissas (a confirmar na aprovação)
 
@@ -67,7 +68,9 @@ todas as telas na hora, fica 30 dias guardado para poder voltar e depois some de
 - Cancelar: fecha o diálogo, nada muda.
 - Contato com card nos dois funis: o diálogo avisa "o card no Funil de Recompra também
   vai para a lixeira" (ou o inverso).
-- Outro usuário com o mesmo funil aberto: o card some do quadro dele também.
+- Outro usuário com o mesmo funil aberto: o card some no próximo carregamento do quadro
+  (o pipeline não tem tempo real hoje — mover card também só aparece para os outros ao
+  recarregar; ajustado no `/plan` da B13-02).
 - Falha ao excluir: mensagem de erro no diálogo, nada muda.
 
 ### Contatos — lista (`/contatos`)
@@ -112,8 +115,9 @@ e quanto tempo falta para sumirem.
 - Restaurar: o contato volta para Contatos, os cards voltam para os mesmos funis e
   etapas, as conversas e mensagens voltam ao chat e os lembretes pendentes voltam à
   agenda; o item sai da lixeira.
-- Restaurar quando já existe outro contato ativo com o mesmo telefone (criado depois da
-  exclusão): não restaura e explica "Já existe um contato com este telefone".
+- (Corrigido no `/plan` da B13-02: o banco não permite dois contatos com o mesmo telefone
+  na empresa, então não existe "outro contato ativo com o mesmo telefone". Criar lead ou
+  contato com o telefone de quem está na lixeira restaura o contato — ver Chat.)
 - Apagar de vez: pede confirmação ("Esta ação não pode ser desfeita"); confirmar remove
   tudo para sempre e tira o item da lista.
 - Contagem regressiva: "apaga em 1 dia", "apaga hoje".
@@ -128,6 +132,8 @@ e quanto tempo falta para sumirem.
 - **Mensagem recebida de contato na lixeira** (pela API Oficial ou pelo canal direto): o
   contato sai da lixeira sozinho, com cards, conversas e histórico, e a conversa aparece
   na caixa de entrada com a mensagem nova, como qualquer mensagem recebida.
+- **Criar lead (pipeline) ou contato (Contatos) com o telefone de um contato na lixeira**:
+  o contato sai da lixeira com o histórico; o lead novo entra no funil ligado a ele.
 
 ### Agenda, Alertas, Sequências, Campanhas, Automações, Dashboard
 
