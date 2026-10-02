@@ -23,10 +23,10 @@ test.describe.serial("Fluxo 1 — Cadastro completo (issues 07–12)", () => {
     await page.waitForURL("**/configuracoes/usuarios", { timeout: 20000 })
     await expect(page).toHaveURL(/\/configuracoes\/usuarios/)
 
-    // Passo 5: verifica que os times Expansão e Retenção existem
+    // Passo 5: verifica que os times Entrada e Recompra existem
     await page.goto("/configuracoes/times")
-    await expect(page.getByText("Expansão")).toBeVisible()
-    await expect(page.getByText("Retenção")).toBeVisible()
+    await expect(page.getByText("Entrada")).toBeVisible()
+    await expect(page.getByText("Recompra")).toBeVisible()
 
     // Passo 6: verifica que o Admin acessa a rota protegida sem ser redirecionado
     await page.goto("/configuracoes/usuarios")

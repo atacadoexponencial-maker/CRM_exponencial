@@ -99,8 +99,8 @@ afterAll(async () => {
 describe("Issue 21 — Listar times da empresa", () => {
   let adminAEmail: string
   let adminBEmail: string
-  let timeExpansaoAId: string
-  let timeRetencaoAId: string
+  let timeEntradaAId: string
+  let timeRecompraAId: string
   let timePersonalizadoAId: string
 
   beforeAll(async () => {
@@ -112,13 +112,13 @@ describe("Issue 21 — Listar times da empresa", () => {
     const { workspaceId: wsB } = await criarWorkspaceComAdmin("Empresa Times B", adminBEmail)
 
     // Times da Empresa A
-    timeExpansaoAId = await criarTime(wsA, "Expansão", true)
-    timeRetencaoAId = await criarTime(wsA, "Retenção", true)
+    timeEntradaAId = await criarTime(wsA, "Entrada", true)
+    timeRecompraAId = await criarTime(wsA, "Recompra", true)
     timePersonalizadoAId = await criarTime(wsA, "Prospecção", false)
 
     // Times da Empresa B (para garantir isolamento)
-    await criarTime(wsB, "Expansão", true)
-    await criarTime(wsB, "Retenção", true)
+    await criarTime(wsB, "Entrada", true)
+    await criarTime(wsB, "Recompra", true)
   })
 
   beforeEach(async () => {
@@ -130,8 +130,8 @@ describe("Issue 21 — Listar times da empresa", () => {
     const lista = await listarTimes()
     const ids = lista.map((t) => t.id)
 
-    expect(ids).toContain(timeExpansaoAId)
-    expect(ids).toContain(timeRetencaoAId)
+    expect(ids).toContain(timeEntradaAId)
+    expect(ids).toContain(timeRecompraAId)
     expect(ids).toContain(timePersonalizadoAId)
   })
 
@@ -143,7 +143,7 @@ describe("Issue 21 — Listar times da empresa", () => {
     const { data: timesB } = await serviceClient
       .from("teams")
       .select("id")
-      .in("id", criados.teamIds.filter((id) => ![timeExpansaoAId, timeRetencaoAId, timePersonalizadoAId].includes(id)))
+      .in("id", criados.teamIds.filter((id) => ![timeEntradaAId, timeRecompraAId, timePersonalizadoAId].includes(id)))
 
     for (const timeB of timesB ?? []) {
       expect(ids).not.toContain(timeB.id)
@@ -154,23 +154,23 @@ describe("Issue 21 — Listar times da empresa", () => {
 
     const lista = await listarTimes()
 
-    const expansao = lista.find((t) => t.id === timeExpansaoAId)
-    const retencao = lista.find((t) => t.id === timeRetencaoAId)
+    const entrada = lista.find((t) => t.id === timeEntradaAId)
+    const recompra = lista.find((t) => t.id === timeRecompraAId)
     const personalizado = lista.find((t) => t.id === timePersonalizadoAId)
 
-    expect(expansao).toBeDefined()
-    expect(expansao!.isDefault).toBe(true)
-    expect(expansao!.name).toBe("Expansão")
+    expect(entrada).toBeDefined()
+    expect(entrada!.isDefault).toBe(true)
+    expect(entrada!.name).toBe("Entrada")
 
-    expect(retencao).toBeDefined()
-    expect(retencao!.isDefault).toBe(true)
+    expect(recompra).toBeDefined()
+    expect(recompra!.isDefault).toBe(true)
 
     expect(personalizado).toBeDefined()
     expect(personalizado!.isDefault).toBe(false)
     expect(personalizado!.name).toBe("Prospecção")
 
     // Cada time retorna array de membros
-    expect(Array.isArray(expansao!.membros)).toBe(true)
+    expect(Array.isArray(entrada!.membros)).toBe(true)
   })
 })
 
@@ -242,8 +242,8 @@ describe("Issue 22 — Criar time personalizado", () => {
 describe("Issue 23 — Editar nome de time personalizado", () => {
   let adminEmail: string
   let timePersonalizadoId: string
-  let timeExpansaoId: string
-  let timeRetencaoId: string
+  let timeEntradaId: string
+  let timeRecompraId: string
 
   beforeAll(async () => {
     const ts = Date.now()
@@ -251,8 +251,8 @@ describe("Issue 23 — Editar nome de time personalizado", () => {
     const { workspaceId } = await criarWorkspaceComAdmin("Empresa Editar Time", adminEmail)
 
     timePersonalizadoId = await criarTime(workspaceId, "Time Para Editar", false)
-    timeExpansaoId = await criarTime(workspaceId, "Expansão", true)
-    timeRetencaoId = await criarTime(workspaceId, "Retenção", true)
+    timeEntradaId = await criarTime(workspaceId, "Entrada", true)
+    timeRecompraId = await criarTime(workspaceId, "Recompra", true)
   })
 
   beforeEach(async () => {
@@ -273,13 +273,13 @@ describe("Issue 23 — Editar nome de time personalizado", () => {
     expect(time?.name).toBe("Nome Editado")
   })
 
-  it("admin não consegue editar nome do time 'Expansão'", async () => {
-    const resultado = await editarNomeTime(timeExpansaoId, "Novo Nome Expansão")
+  it("admin não consegue editar nome do time 'Entrada'", async () => {
+    const resultado = await editarNomeTime(timeEntradaId, "Novo Nome Entrada")
     expect(resultado.erro).toBeDefined()
   })
 
-  it("admin não consegue editar nome do time 'Retenção'", async () => {
-    const resultado = await editarNomeTime(timeRetencaoId, "Novo Nome Retenção")
+  it("admin não consegue editar nome do time 'Recompra'", async () => {
+    const resultado = await editarNomeTime(timeRecompraId, "Novo Nome Recompra")
     expect(resultado.erro).toBeDefined()
   })
 })
@@ -290,8 +290,8 @@ describe("Issue 24 — Excluir time personalizado", () => {
   let adminEmail: string
   let workspaceId: string
   let membroId: string
-  let timeExpansaoId: string
-  let timeRetencaoId: string
+  let timeEntradaId: string
+  let timeRecompraId: string
 
   beforeAll(async () => {
     const ts = Date.now()
@@ -315,8 +315,8 @@ describe("Issue 24 — Excluir time personalizado", () => {
     })
     criados.userIds.push(membroId)
 
-    timeExpansaoId = await criarTime(workspaceId, "Expansão", true)
-    timeRetencaoId = await criarTime(workspaceId, "Retenção", true)
+    timeEntradaId = await criarTime(workspaceId, "Entrada", true)
+    timeRecompraId = await criarTime(workspaceId, "Recompra", true)
   })
 
   beforeEach(async () => {
@@ -368,13 +368,13 @@ describe("Issue 24 — Excluir time personalizado", () => {
     if (idx !== -1) criados.teamIds.splice(idx, 1)
   })
 
-  it("admin não consegue excluir o time 'Expansão'", async () => {
-    const resultado = await excluirTime(timeExpansaoId)
+  it("admin não consegue excluir o time 'Entrada'", async () => {
+    const resultado = await excluirTime(timeEntradaId)
     expect(resultado.erro).toBeDefined()
   })
 
-  it("admin não consegue excluir o time 'Retenção'", async () => {
-    const resultado = await excluirTime(timeRetencaoId)
+  it("admin não consegue excluir o time 'Recompra'", async () => {
+    const resultado = await excluirTime(timeRecompraId)
     expect(resultado.erro).toBeDefined()
   })
 })
@@ -386,8 +386,8 @@ describe("Issue 25 — Gerenciar membros do time", () => {
   let workspaceId: string
   let usuarioId: string
   let timeId: string
-  let timeExpansaoId: string
-  let timeRetencaoId: string
+  let timeEntradaId: string
+  let timeRecompraId: string
 
   beforeAll(async () => {
     const ts = Date.now()
@@ -411,8 +411,8 @@ describe("Issue 25 — Gerenciar membros do time", () => {
     criados.userIds.push(usuarioId)
 
     timeId = await criarTime(workspaceId, "Time Gerenciar Membros", false)
-    timeExpansaoId = await criarTime(workspaceId, "Expansão", true)
-    timeRetencaoId = await criarTime(workspaceId, "Retenção", true)
+    timeEntradaId = await criarTime(workspaceId, "Entrada", true)
+    timeRecompraId = await criarTime(workspaceId, "Recompra", true)
   })
 
   beforeEach(async () => {
@@ -451,19 +451,19 @@ describe("Issue 25 — Gerenciar membros do time", () => {
     expect(assoc).toBeNull()
   })
 
-  it("mesmo usuário pode estar em Expansão e Retenção ao mesmo tempo", async () => {
-    const r1 = await gerenciarMembrosTime(timeExpansaoId, [usuarioId])
+  it("mesmo usuário pode estar em Entrada e Recompra ao mesmo tempo", async () => {
+    const r1 = await gerenciarMembrosTime(timeEntradaId, [usuarioId])
     expect(r1.erro).toBeUndefined()
 
-    const r2 = await gerenciarMembrosTime(timeRetencaoId, [usuarioId])
+    const r2 = await gerenciarMembrosTime(timeRecompraId, [usuarioId])
     expect(r2.erro).toBeUndefined()
 
-    const { data: assocExpansao } = await serviceClient
-      .from("user_teams").select("user_id").eq("team_id", timeExpansaoId).eq("user_id", usuarioId).maybeSingle()
-    const { data: assocRetencao } = await serviceClient
-      .from("user_teams").select("user_id").eq("team_id", timeRetencaoId).eq("user_id", usuarioId).maybeSingle()
+    const { data: assocEntrada } = await serviceClient
+      .from("user_teams").select("user_id").eq("team_id", timeEntradaId).eq("user_id", usuarioId).maybeSingle()
+    const { data: assocRecompra } = await serviceClient
+      .from("user_teams").select("user_id").eq("team_id", timeRecompraId).eq("user_id", usuarioId).maybeSingle()
 
-    expect(assocExpansao).not.toBeNull()
-    expect(assocRetencao).not.toBeNull()
+    expect(assocEntrada).not.toBeNull()
+    expect(assocRecompra).not.toBeNull()
   })
 })
