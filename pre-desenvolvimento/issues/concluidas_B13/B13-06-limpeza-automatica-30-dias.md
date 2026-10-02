@@ -83,5 +83,5 @@ Vercel o envia sozinho, então continuam rodando.
 - [x] Verificação no banco real (teste temporário): contato com 31 dias some (com card,
       conversa e arquivo), um com 29 fica, outro restaurado fica; rota sem credencial = 401 — 2/2 (e a verificação da B13-04 de novo, 3/3), 02/10
 - [x] `npx tsc --noEmit`, `npm run lint`, `npm run build`
-- [ ] Push (feito, `2eb0b6f`); Marcelle configura `CRON_SECRET` no Vercel e faz redeploy
+- [x] Push (`2eb0b6f`). O `CRON_SECRET` **já existia** no Vercel (Production e Preview, criado ~jun/2026); a memória estava desatualizada. `vercel crons run /api/cron/lixeira` em produção → 200 (02/10, 18h39 de Brasília)
 - [x] Conferir em produção: `/api/cron/lixeira` sem credencial responde 401 (02/10, deploy `2eb0b6f`)
