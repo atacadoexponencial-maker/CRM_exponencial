@@ -4,6 +4,8 @@ import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import { processarAutomacoes } from "@/lib/automacoes"
 import { processarGatilhoSequencia } from "@/lib/sequencias"
+import { createServiceClient } from "@/integrations/supabase/service"
+import { tirarDaLixeira } from "@/lib/lixeira"
 import { type CardLead, type EtapaEntrada, type CardCliente, type EtapaRecompra, type HistoricoEtapa, type NotaInterna } from "./mock-pipeline"
 
 function calcularTempoNaEtapa(etapaChangedAt: string): string {
@@ -88,6 +90,14 @@ export async function criarNovoLead(telefone: string, nome: string | null): Prom
     .single()
 
   if (contatoError || !contato) throw new Error("Erro ao criar ou localizar contato")
+
+  // B13-05: telefone de contato na lixeira traz o contato de volta, com o
+  // histórico. Antes do card: card de contato na lixeira nasceria invisível.
+  try {
+    await tirarDaLixeira(createServiceClient(), profile.workspace_id, contato.id)
+  } catch {
+    throw new Error("Erro ao criar ou localizar contato")
+  }
 
   const { data: novoCard, error: cardError } = await supabase
     .from("pipeline_cards")

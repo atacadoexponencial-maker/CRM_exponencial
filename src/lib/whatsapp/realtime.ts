@@ -45,3 +45,8 @@ export async function transmitirMensagem(mensagem: MensagemTransmitida): Promise
 export async function transmitirContatoExcluido(workspaceId: string, contactId: string): Promise<void> {
   await transmitir(workspaceId, "contato_excluido", { contact_id: contactId })
 }
+
+/** B13-05: o contato saiu da lixeira; a caixa de entrada aberta volta a mostrá-lo. */
+export async function transmitirContatoRestaurado(workspaceId: string, contactId: string): Promise<void> {
+  await transmitir(workspaceId, "contato_restaurado", { contact_id: contactId })
+}

@@ -107,6 +107,19 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsu
       )
       .on(
         "broadcast",
+        { event: "contato_restaurado" },
+        (payload) => {
+          const { contact_id } = payload.payload as { contact_id: string }
+          setContatosExcluidos((prev) => {
+            if (!prev.has(contact_id)) return prev
+            const proximo = new Set(prev)
+            proximo.delete(contact_id)
+            return proximo
+          })
+        }
+      )
+      .on(
+        "broadcast",
         { event: "nova_mensagem" },
         (payload) => {
           const row = payload.payload as {

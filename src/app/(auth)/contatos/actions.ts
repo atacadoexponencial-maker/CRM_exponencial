@@ -4,6 +4,8 @@ import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import type { Contato, ContatoPerfil, ClassificacaoContato, TipoContato, ICP } from "./mock-contatos"
 import { calcularClassificacao } from "./classificacao"
+import { createServiceClient } from "@/integrations/supabase/service"
+import { tirarDaLixeira } from "@/lib/lixeira"
 
 const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, nicho, cidade, created_at, profiles!contacts_atendente_id_fkey(name)"
 
@@ -43,6 +45,8 @@ export async function verificarNumeroDuplicado(telefone: string): Promise<boolea
     .select("id", { count: "exact", head: true })
     .eq("workspace_id", profile.workspace_id)
     .eq("phone_number", telefone)
+    // B13-05: telefone de contato na lixeira não é "já cadastrado" — criar o restaura.
+    .is("excluido_em", null)
 
   return (count ?? 0) > 0
 }
@@ -67,6 +71,24 @@ export async function criarContato(dados: {
 
   if (!profile) return { erro: "Perfil não encontrado" }
   if (profile.role === "atendente") return { erro: "Sem permissão para criar contatos" }
+
+  // B13-05: telefone de contato na lixeira restaura o contato antigo, com o
+  // histórico (os dados antigos ficam), em vez de criar outro.
+  const { data: naLixeira } = await supabase
+    .from("contacts")
+    .select("id")
+    .eq("workspace_id", profile.workspace_id)
+    .eq("phone_number", dados.telefone)
+    .not("excluido_em", "is", null)
+    .maybeSingle()
+  if (naLixeira) {
+    try {
+      await tirarDaLixeira(createServiceClient(), profile.workspace_id, naLixeira.id)
+    } catch {
+      return { erro: "Erro ao criar contato. Tente novamente." }
+    }
+    return { id: naLixeira.id }
+  }
 
   const { data, error } = await supabase
     .from("contacts")

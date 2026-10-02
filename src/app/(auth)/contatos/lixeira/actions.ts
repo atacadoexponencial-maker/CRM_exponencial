@@ -14,6 +14,7 @@ import { sessaoAtual, type PerfilDaSessao } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { transmitirContatoExcluido } from "@/lib/whatsapp/realtime"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
+import { tirarDaLixeira } from "@/lib/lixeira"
 import type { FunilDoCard } from "../components/dialogo-excluir-contato"
 import type { ItemLixeira } from "./components/lista-lixeira"
 
@@ -342,14 +343,11 @@ export async function restaurarContato(contactId: string): Promise<{ ok: true } 
   if (contato === "nao_esta") return { erro: NAO_ESTA_MAIS }
   if (!contato) return { erro: SEM_PERMISSAO_LIXEIRA }
 
-  // Cards, conversas, mensagens e lembretes voltam sozinhos: as políticas de
-  // leitura só os escondiam porque o contato estava na lixeira.
-  const { error } = await svc
-    .from("contacts")
-    .update({ excluido_em: null, excluido_por: null })
-    .eq("id", contactId)
-    .not("excluido_em", "is", null)
-  if (error) return { erro: "Não foi possível restaurar. Tente de novo." }
+  try {
+    if (!(await tirarDaLixeira(svc, perfil.workspace_id, contactId))) return { erro: NAO_ESTA_MAIS }
+  } catch {
+    return { erro: "Não foi possível restaurar. Tente de novo." }
+  }
 
   revalidarTudo()
   return { ok: true }
