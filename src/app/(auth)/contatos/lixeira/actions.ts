@@ -113,6 +113,16 @@ async function mandarParaLixeira(workspaceId: string, userId: string, contactId:
     .is("excluido_em", null)
   if (error) return false
 
+  // B13-03: sequências em andamento são encerradas e não recomeçam ao restaurar
+  // (premissa aprovada). Se falhar, o cron as cancela sem enviar nada.
+  const agora = new Date().toISOString()
+  await svc
+    .from("sequence_runs")
+    .update({ status: "cancelada", proxima_execucao: null, finished_at: agora })
+    .eq("workspace_id", workspaceId)
+    .eq("contact_id", contactId)
+    .eq("status", "em_andamento")
+
   try {
     await transmitirContatoExcluido(workspaceId, contactId)
   } catch {

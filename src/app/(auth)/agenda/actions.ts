@@ -221,8 +221,10 @@ export async function criarFollowUp(params: {
     .from("contacts")
     .select("workspace_id")
     .eq("id", params.contactId)
+    .is("excluido_em", null)
     .single()
 
+  // B13-03: contato na lixeira não recebe follow-up.
   if (!contato || contato.workspace_id !== perfil.workspace_id) return { erro: "Contato não encontrado" }
 
   const dueAt = new Date(`${params.data}T${params.hora || "09:00"}:00`)
@@ -248,6 +250,7 @@ export async function buscarContatosParaFollowUp(termo: string): Promise<Array<{
     .from("contacts")
     .select("id, name, phone_number")
     .eq("workspace_id", perfil.workspace_id)
+    .is("excluido_em", null)
     .order("name")
     .limit(10)
 

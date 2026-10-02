@@ -98,10 +98,17 @@ async function buscarDestinatariosSegmento(
   if (segmento.reenvioDe) {
     const { data } = await supabase
       .from("campaign_recipients")
-      .select("contact_id, nome_snapshot, telefone_snapshot")
+      .select("contact_id, nome_snapshot, telefone_snapshot, contato:contacts(excluido_em)")
       .eq("campaign_id", segmento.reenvioDe)
       .eq("status", "falhou")
-    return (data ?? []).map((r) => ({
+    // B13-03: quem foi para a lixeira não entra no reenvio.
+    const ativos = ((data ?? []) as unknown as Array<{
+      contact_id: string | null
+      nome_snapshot: string | null
+      telefone_snapshot: string
+      contato: { excluido_em: string | null } | null
+    }>).filter((r) => !r.contato?.excluido_em)
+    return ativos.map((r) => ({
       id: r.contact_id ?? r.telefone_snapshot,
       nome: r.nome_snapshot ?? r.telefone_snapshot,
       telefone: r.telefone_snapshot,
@@ -112,6 +119,7 @@ async function buscarDestinatariosSegmento(
     .from("contacts")
     .select("id, name, phone_number, tipo, nicho, cidade, atendente_id")
     .eq("workspace_id", workspaceId)
+    .is("excluido_em", null)
 
   if (segmento.tipos?.length) query = query.in("tipo", segmento.tipos)
   if (segmento.nichos?.length) query = query.in("nicho", segmento.nichos)
@@ -179,8 +187,12 @@ export async function opcoesSegmentacao(): Promise<{
   if (!perfil) return { nichos: [], tags: [], atendentes: [] }
 
   const [{ data: contatos }, { data: tags }, { data: atendentes }] = await Promise.all([
-    supabase.from("contacts").select("nicho").eq("workspace_id", perfil.workspace_id).not("nicho", "is", null),
-    supabase.from("contact_tags").select("tag").eq("workspace_id", perfil.workspace_id),
+    supabase.from("contacts").select("nicho").eq("workspace_id", perfil.workspace_id).is("excluido_em", null).not("nicho", "is", null),
+    supabase
+      .from("contact_tags")
+      .select("tag, contato:contacts!inner(excluido_em)")
+      .eq("workspace_id", perfil.workspace_id)
+      .is("contato.excluido_em", null),
     supabase
       .from("profiles")
       .select("id, name")

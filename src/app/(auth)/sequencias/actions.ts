@@ -282,7 +282,8 @@ export async function iniciarSequenciaManual(
 
   // Confere que o contato e a sequência pertencem ao workspace do usuário
   const [{ data: contato }, { data: sequencia }] = await Promise.all([
-    supabase.from("contacts").select("workspace_id").eq("id", contactId).single(),
+    // B13-03: contato na lixeira não inicia sequência.
+    supabase.from("contacts").select("workspace_id").eq("id", contactId).is("excluido_em", null).single(),
     supabase.from("sequences").select("workspace_id, ativa").eq("id", sequenceId).single(),
   ])
 

@@ -36,6 +36,8 @@ describe("processarAutomacoes", () => {
     const upsert = vi.fn().mockResolvedValue({ error: null })
 
     mockCreateServiceClient.mockReturnValue({
+      // B13-03: o contato não está na lixeira.
+      rpc: vi.fn().mockResolvedValue({ data: false }),
       from: vi.fn().mockImplementation((table: string) => {
         if (table === "automations") {
           return chain({
@@ -72,6 +74,8 @@ describe("processarAutomacoes", () => {
     const upsert = vi.fn().mockResolvedValue({ error: null })
 
     mockCreateServiceClient.mockReturnValue({
+      // B13-03: o contato não está na lixeira.
+      rpc: vi.fn().mockResolvedValue({ data: false }),
       from: vi.fn().mockImplementation((table: string) => {
         if (table === "automations") {
           return chain({
@@ -123,6 +127,8 @@ describe("processarAutomacoes", () => {
     const updateCard = vi.fn(() => chain({ error: null }))
 
     mockCreateServiceClient.mockReturnValue({
+      // B13-03: o contato não está na lixeira.
+      rpc: vi.fn().mockResolvedValue({ data: false }),
       from: vi.fn().mockImplementation((table: string) => {
         if (table === "automations") {
           return chain({
