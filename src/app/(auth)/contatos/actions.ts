@@ -146,6 +146,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
       .from("contacts")
       .select(PERFIL_SELECT)
       .eq("id", id)
+      .is("excluido_em", null)
       .single(),
     supabase
       .from("pipeline_cards")
@@ -370,7 +371,7 @@ export async function listarContatos(opcoes: OpcoesListagemContatos = {}): Promi
 
   if (profile.role === "admin" || profile.role === "gerente") {
     const { data } = await aplicarOpcoes(
-      supabase.from("contacts").select(CONTACT_SELECT).eq("workspace_id", profile.workspace_id),
+      supabase.from("contacts").select(CONTACT_SELECT).eq("workspace_id", profile.workspace_id).is("excluido_em", null),
       opcoes
     )
 
@@ -397,7 +398,7 @@ export async function listarContatos(opcoes: OpcoesListagemContatos = {}): Promi
   if (contactIds.length === 0) return []
 
   const { data } = await aplicarOpcoes(
-    supabase.from("contacts").select(CONTACT_SELECT).in("id", contactIds),
+    supabase.from("contacts").select(CONTACT_SELECT).in("id", contactIds).is("excluido_em", null),
     opcoes
   )
 

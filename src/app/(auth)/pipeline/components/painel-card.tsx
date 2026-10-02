@@ -1,13 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, MessageSquare, ChevronDown, Phone, Clock, Tag, FileText, History, Zap } from "lucide-react"
+import { X, MessageSquare, ChevronDown, Phone, Clock, Tag, FileText, History, Zap, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA, type CardLead, type CardCliente, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
 import { buscarDadosPainel, moverCard, atribuirAtendente, adicionarNota } from "../actions"
 import { ModalConfirmacaoRecompra } from "./modal-confirmacao-recompra"
 import { IniciarSequenciaDialog } from "@/components/shared/iniciar-sequencia-dialog"
+import { Button } from "@/components/ui/button"
+import { DialogoExcluirContato } from "../../contatos/components/dialogo-excluir-contato"
+import { resumoExclusaoPorCard, excluirContatoPorCard, type ResumoExclusao } from "../../contatos/lixeira/actions"
 
 interface PainelCardProps {
   card: CardLead | CardCliente | null
@@ -28,6 +31,10 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
   const [salvandoNota, setSalvandoNota] = useState(false)
   const [confirmacaoRecompra, setConfirmacaoRecompra] = useState<string | null>(null)
   const [sequenciaAberta, setSequenciaAberta] = useState(false)
+  const [resumoExclusao, setResumoExclusao] = useState<ResumoExclusao | null>(null)
+  const [preparandoExclusao, setPreparandoExclusao] = useState(false)
+  const [excluindo, setExcluindo] = useState(false)
+  const [erroExclusao, setErroExclusao] = useState<string | null>(null)
   const [painelData, setPainelData] = useState<{ historico: HistoricoEtapa[]; notas: NotaInterna[] }>({ historico: [], notas: [] })
   // Montado com key={card.id} nos funis — cada card abre uma instância nova,
   // então o estado começa como "carregando" e não precisa de reset em effect.
@@ -293,6 +300,59 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
               Iniciar sequência
             </button>
           </div>
+
+          <div className="px-4 py-3 border-b border-border">
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={preparandoExclusao}
+              onClick={() => {
+                setErroExclusao(null)
+                setPreparandoExclusao(true)
+                resumoExclusaoPorCard(card.id)
+                  .then((r) => {
+                    if ("erro" in r) setErroExclusao(r.erro)
+                    else setResumoExclusao(r.resumo)
+                  })
+                  .catch(() => setErroExclusao("Não foi possível excluir. Tente de novo."))
+                  .finally(() => setPreparandoExclusao(false))
+              }}
+            >
+              <Trash2 className="size-3.5" aria-hidden />
+              {preparandoExclusao ? "Carregando..." : "Excluir"}
+            </Button>
+            {erroExclusao && !resumoExclusao && (
+              <p className="mt-2 text-xs text-destructive">{erroExclusao}</p>
+            )}
+          </div>
+
+          {resumoExclusao && (
+            <DialogoExcluirContato
+              aberto
+              onAbertoChange={(aberto) => { if (!aberto) { setResumoExclusao(null); setErroExclusao(null) } }}
+              nome={resumoExclusao.nome}
+              telefone={resumoExclusao.telefone}
+              funis={resumoExclusao.funis}
+              funilDeOrigem={funil}
+              conversas={resumoExclusao.conversas}
+              mensagens={resumoExclusao.mensagens}
+              erro={erroExclusao}
+              excluindo={excluindo}
+              onConfirmar={() => {
+                setExcluindo(true)
+                setErroExclusao(null)
+                excluirContatoPorCard(card.id)
+                  .then((r) => {
+                    if ("erro" in r) { setErroExclusao(r.erro); return }
+                    setResumoExclusao(null)
+                    onFechar()
+                    onMover?.()
+                  })
+                  .catch(() => setErroExclusao("Não foi possível excluir. Tente de novo."))
+                  .finally(() => setExcluindo(false))
+              }}
+            />
+          )}
 
           {sequenciaAberta && card.contactId && (
             <IniciarSequenciaDialog

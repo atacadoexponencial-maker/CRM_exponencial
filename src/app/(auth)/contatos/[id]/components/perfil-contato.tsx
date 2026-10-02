@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { MessageSquare, ArrowLeft, Pencil, X, Zap } from "lucide-react"
+import { MessageSquare, ArrowLeft, Pencil, X, Zap, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { IniciarSequenciaDialog } from "@/components/shared/iniciar-sequencia-dialog"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,8 @@ import {
 } from "../../mock-contatos"
 import { TimelineContato } from "./timeline-contato"
 import { RegistrarCompraDialog } from "./registrar-compra-dialog"
+import { DialogoExcluirContato } from "../../components/dialogo-excluir-contato"
+import { resumoExclusaoContato, excluirContato, type ResumoExclusao } from "../../lixeira/actions"
 import { atualizarDadosContato, adicionarTagContato, removerTagContato, atualizarObservacoesContato } from "../../actions"
 
 const CLASSIFICACAO_BADGE: Record<string, string> = {
@@ -60,6 +62,10 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
   const [novaTag, setNovaTag] = useState("")
   const [erroTag, setErroTag] = useState<string | null>(null)
   const [sequenciaAberta, setSequenciaAberta] = useState(false)
+  const [resumoExclusao, setResumoExclusao] = useState<ResumoExclusao | null>(null)
+  const [preparandoExclusao, setPreparandoExclusao] = useState(false)
+  const [excluindo, setExcluindo] = useState(false)
+  const [erroExclusao, setErroExclusao] = useState<string | null>(null)
   const [salvandoTag, setSalvandoTag] = useState(false)
   const [editandoObs, setEditandoObs] = useState(false)
   const [textoObs, setTextoObs] = useState("")
@@ -206,8 +212,55 @@ export function PerfilContato({ contato, papel }: PerfilContatoProps) {
             <MessageSquare className="size-3.5" />
             Abrir conversa
           </Link>
+          <Button
+            variant="destructive"
+            disabled={preparandoExclusao}
+            onClick={() => {
+              setErroExclusao(null)
+              setPreparandoExclusao(true)
+              resumoExclusaoContato(contato.id)
+                .then((r) => {
+                  if ("erro" in r) setErroExclusao(r.erro)
+                  else setResumoExclusao(r.resumo)
+                })
+                .catch(() => setErroExclusao("Não foi possível excluir. Tente de novo."))
+                .finally(() => setPreparandoExclusao(false))
+            }}
+          >
+            <Trash2 className="size-3.5" aria-hidden />
+            {preparandoExclusao ? "Carregando..." : "Excluir contato"}
+          </Button>
         </div>
       </div>
+
+      {erroExclusao && !resumoExclusao && (
+        <p className="text-sm text-destructive">{erroExclusao}</p>
+      )}
+
+      {resumoExclusao && (
+        <DialogoExcluirContato
+          aberto
+          onAbertoChange={(aberto) => { if (!aberto) { setResumoExclusao(null); setErroExclusao(null) } }}
+          nome={resumoExclusao.nome}
+          telefone={resumoExclusao.telefone}
+          funis={resumoExclusao.funis}
+          conversas={resumoExclusao.conversas}
+          mensagens={resumoExclusao.mensagens}
+          erro={erroExclusao}
+          excluindo={excluindo}
+          onConfirmar={() => {
+            setExcluindo(true)
+            setErroExclusao(null)
+            excluirContato(contato.id)
+              .then((r) => {
+                if ("erro" in r) { setErroExclusao(r.erro); return }
+                router.push("/contatos")
+              })
+              .catch(() => setErroExclusao("Não foi possível excluir. Tente de novo."))
+              .finally(() => setExcluindo(false))
+          }}
+        />
+      )}
 
       {sequenciaAberta && (
         <IniciarSequenciaDialog

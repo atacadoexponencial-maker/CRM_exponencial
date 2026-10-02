@@ -118,15 +118,15 @@ de `src/lib/whatsapp/realtime.ts`; a regra de visibilidade do atendente de `list
 
 ## Checklist
 
-- [ ] Migration criada, aplicada (`db push`) e `types.ts` regenerado
-- [ ] Server actions de resumo e exclusão com checagem de permissão no servidor
-- [ ] `transmitirContatoExcluido` em `realtime.ts`
-- [ ] Botão + diálogo no painel do card, na lista e no perfil
-- [ ] Lista, busca e perfil de contatos ignoram a lixeira
-- [ ] Chat tira as conversas do contato excluído e fecha a aberta com aviso
-- [ ] Verificação no banco real com usuários temporários: admin exclui qualquer um;
+- [x] Migration criada, aplicada (`db push`) e `types.ts` regenerado
+- [x] Server actions de resumo e exclusão com checagem de permissão no servidor
+- [x] `transmitirContatoExcluido` em `realtime.ts`
+- [x] Botão + diálogo no painel do card, na lista e no perfil
+- [x] Lista, busca e perfil de contatos ignoram a lixeira
+- [x] Chat tira as conversas do contato excluído e fecha a aberta com aviso
+- [x] Verificação no banco real com usuários temporários: admin exclui qualquer um;
       atendente exclui o seu e é recusado no de outro; card/conversa/mensagem somem pela
       sessão; `contacts` continua com a linha (nada apagado)
-- [ ] `npx tsc --noEmit`, `npm run lint`, `npm run build` e testes existentes de
-      pipeline/contatos/chat passando
-- [ ] Conferência visual (build local + Playwright)
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm run build` e testes existentes de
+      pipeline/contatos/chat passando — 34/37; as 3 falhas são as antigas do status no webhook (`mensagens.integration`), que falham igual sem esta mudança
+- [x] Conferência visual (build local + Playwright, empresas temporárias apagadas): diálogo do card com o aviso do outro funil, card some dos dois funis; perfil → diálogo com 1 conversa/1 mensagem → volta a /contatos; chat em outra aba tira a conversa e mostra "Este contato foi excluído"; lista tira o contato na hora e depois de recarregar

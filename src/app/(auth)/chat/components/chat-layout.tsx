@@ -32,6 +32,8 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsu
   const [mensagensLocais, setMensagensLocais] = useState<Record<string, Mensagem[]>>({})
   const [erroConversaId, setErroConversaId] = useState<string | null>(null)
   const [abertas, setAbertas] = useState<Set<string>>(new Set())
+  // B13-02: contatos que foram para a lixeira enquanto a caixa estava aberta.
+  const [contatosExcluidos, setContatosExcluidos] = useState<Set<string>>(new Set())
   const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
@@ -93,6 +95,14 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsu
               )
             })
             .catch(() => {})
+        }
+      )
+      .on(
+        "broadcast",
+        { event: "contato_excluido" },
+        (payload) => {
+          const { contact_id } = payload.payload as { contact_id: string }
+          setContatosExcluidos((prev) => new Set(prev).add(contact_id))
         }
       )
       .on(
@@ -174,9 +184,14 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsu
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversaInicialId])
 
-  const conversasComLeitura = conversasState.map((c) =>
-    abertas.has(c.id) ? { ...c, naoLidas: 0 } : c
-  )
+  const excluida = (c: Conversa) => c.contato.contactId !== null && contatosExcluidos.has(c.contato.contactId)
+
+  const conversasComLeitura = conversasState
+    .filter((c) => !excluida(c))
+    .map((c) => (abertas.has(c.id) ? { ...c, naoLidas: 0 } : c))
+
+  const ativaFoiExcluida = conversaAtivaId !== null &&
+    conversasState.some((c) => c.id === conversaAtivaId && excluida(c))
 
   const conversaAtiva = conversaAtivaId
     ? conversasComLeitura.find((c) => c.id === conversaAtivaId) ?? null
@@ -262,7 +277,11 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsu
       </aside>
 
       <main className="flex-1 flex overflow-hidden">
-        {conversaAtiva && carregando ? (
+        {ativaFoiExcluida ? (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+            Este contato foi excluído
+          </div>
+        ) : conversaAtiva && carregando ? (
           <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm gap-2">
             <Loader2 className="size-4 animate-spin" />
             Carregando mensagens...
