@@ -81,4 +81,4 @@ Nenhuma.
 - [x] Nenhuma gravação, nenhum item novo no menu
 - [x] `npx tsc --noEmit`, `npm run lint` e `npm run build` sem erro novo
 - [x] Conferência visual (build local + Playwright, workspace temporário apagado) — página, vazia, diálogo nas variações e "Apagar de vez" (02/10)
-- [ ] Publicado e aprovado pela Marcelle
+- [x] Publicado (`222a72c`) e aprovado pela Marcelle em 02/10/2026
