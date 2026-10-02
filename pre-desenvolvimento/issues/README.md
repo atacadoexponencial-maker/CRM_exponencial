@@ -1,6 +1,6 @@
 # issues
 
-- **Arquivos soltos nesta pasta = issues abertas.** Hoje: séries B11 (automações v2) e B12 (renomear funis).
+- **Arquivos soltos nesta pasta = issues abertas.** Hoje: série B11 (automações v2).
 - `concluidas_<série>/` = entregues e no ar. Não se mexe mais nelas.
 - `bloqueadas_modulo6/` = escritas, mas sem como fazer (API da Meta não tem grupos).
 
@@ -14,4 +14,4 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B9 | `docs/specs-arquivadas/spec-desconectar-reconectar.md` | `concluidas_B9/` |
 | B10 | `docs/specs-arquivadas/spec-navegacao-fluida.md` | `concluidas_B10/` |
 | B11 | `../spec-automacoes-v2.md` (em andamento) | `concluidas_B11/` (quando houver) |
-| B12 | `../spec-renomear-funis.md` (em andamento) | `concluidas_B12/` (quando houver) |
+| B12 | `docs/specs-arquivadas/spec-renomear-funis.md` | `concluidas_B12/` |

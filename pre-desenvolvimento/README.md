@@ -8,7 +8,6 @@ no ar sai daqui. Quem abre a pasta deve saber, sem ler nada, o que falta fazer.
 | Spec | Issues | Estado |
 |---|---|---|
 | `spec-automacoes-v2.md` — automações com gatilho, condições e ações (fase 1) | `issues/B11-01` a `B11-09` | Escrita em 29/09/2026. Nenhuma issue começada. Implementador: Luan. Ordem sugerida: 01 → 02 → 03 → 04 → 05 → 07 → 06 → 08 → 09. |
-| `spec-renomear-funis.md` — Expansão/Retenção viram Entrada/Recompra em todo o sistema, inclusive o interno | `issues/B12-01` a `B12-05` | Escrita e aprovada em 02/10/2026. Ordem: 01 → 02 → 03 → 04 → 05. A 05 ajusta o branch da B11 do Luan, que está parado esperando. |
 
 Quando a última issue de uma spec entrar no ar, mova a spec para
 `docs/specs-arquivadas/` e as issues para `issues/concluidas_<série>/`.
@@ -33,6 +32,9 @@ Quando a última issue de uma spec entrar no ar, mova a spec para
 - **Navegação fluida** (B10): spec
   `docs/specs-arquivadas/spec-navegacao-fluida.md`, issues em
   `issues/concluidas_B10/`.
+- **Funis Entrada e Recompra** (B12, 02/10/2026): spec
+  `docs/specs-arquivadas/spec-renomear-funis.md`, issues em
+  `issues/concluidas_B12/`.
 
 As issues da parte A (gateway) ficam no repositório `whatsapp-gateway`.
 
