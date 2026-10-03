@@ -121,5 +121,5 @@ Recompra", "Cliente Ativo", "Recompra Realizada", "Em Risco" ou "Inativo" como e
 - [x] `grep` por `em_onboarding|aguardando_recompra|cliente_ativo|recompra_realizada|Em Onboarding|Aguardando Recompra|Cliente Ativo|Recompra Realizada` em `src/` e `e2e/` não acha nada; `em_risco`/`inativo`/`perdido` só como classificação, tipo de alerta, gatilho ou etapa da Entrada
 - [x] `npm run build` e `npm run lint` passam
 - [x] Conferência visual: `next start` + Playwright com workspace temporário — 7 colunas, Ganho cria em Onboarding, arrastar para Ativos sem confirmação, alerta em Ativos RI (03/10: sem nome antigo no quadro; histórico Reposição→Ativos, sem volta; textos dos limiares; perfil "Ativos RI" + classificação em risco; workspaces apagados)
-- [ ] Commit + push; deploy Ready
-- [ ] Migration B criada e aplicada; 0 cards, histórico e automações da Recompra com valor antigo; regra final
+- [x] Commit + push (`bade824`); deploy Ready (03/10)
+- [x] Migration B criada e aplicada; 0 cards, histórico e automações da Recompra com valor antigo; regra final (03/10: card da Recompra em `onboarding`; regra recusa `em_onboarding`)
