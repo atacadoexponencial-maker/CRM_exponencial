@@ -126,6 +126,6 @@ Negociação" ou "Primeira Compra".
 - [x] Testes existentes atualizados e passando (`npm run test`; as falhas da suíte completa foram rate limit — passam isolados — e `qr-code-conectado.test.tsx`, que já falhava antes desta issue)
 - [x] `grep` por `em_qualificacao`, `em_negociacao`, `primeira_compra`, "Em Qualificação", "Em Negociação", "Primeira Compra" em `src/` e `e2e/` não acha nada
 - [x] `npm run build` e `npm run lint` passam
-- [ ] Commit + push; deploy Ready
-- [ ] Migration B criada e aplicada; conferir no banco: 0 cards, 0 histórico e 0 automações com valor antigo; regra só com os valores novos
+- [x] Commit + push (`81374e7`); deploy Ready (03/10)
+- [x] Migration B criada e aplicada; conferir no banco: 0 cards, 0 histórico e 0 automações com valor antigo; regra só com os valores novos (03/10: histórico lead 5, sondagem 6, catalogo_enviado 5, ganho 4, negociacao 2; regra recusa `em_qualificacao`; `etapa_changed_at` dos 2 cards intacto)
 - [x] Conferência visual: `next start` + Playwright com workspace temporário (apagado no fim) — colunas novas, painel, Ganho cria card na Recompra (03/10, antes do push; banco já aceitava os valores novos pela Migration A)
