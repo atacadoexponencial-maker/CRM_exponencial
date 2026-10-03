@@ -111,14 +111,14 @@ describe("calcularMetricas", () => {
 
   it("calcula métricas de recompra e taxa de recompra", () => {
     const cards = [
-      card({ id: "r1", funil: "recompra", etapa: "cliente_ativo" }),
-      card({ id: "r2", funil: "recompra", etapa: "aguardando_recompra" }),
-      card({ id: "r3", funil: "recompra", etapa: "em_risco" }),
-      card({ id: "r4", funil: "recompra", etapa: "perdido" }),
+      card({ id: "r1", funil: "recompra", etapa: "ativos" }),
+      card({ id: "r2", funil: "recompra", etapa: "reposicao" }),
+      card({ id: "r3", funil: "recompra", etapa: "ativos_ri" }),
+      card({ id: "r4", funil: "recompra", etapa: "perdidos" }),
     ]
     const history: HistoryRow[] = [
-      { card_id: "r2", para_etapa: "recompra_realizada", created_at: "2026-06-10T09:00:00" },
-      { card_id: "r2", para_etapa: "recompra_realizada", created_at: "2026-04-01T09:00:00" }, // fora do período
+      { card_id: "r2", para_etapa: "ativos", created_at: "2026-06-10T09:00:00" },
+      { card_id: "r2", para_etapa: "ativos", created_at: "2026-04-01T09:00:00" }, // fora do período
     ]
 
     const m = calcularMetricas(cards, history, [], range)
@@ -127,6 +127,17 @@ describe("calcularMetricas", () => {
     expect(m.recompra.emRisco).toBe(1)
     expect(m.recompra.perdidos).toBe(1)
     expect(m.recompra.taxaRecompra).toBe(50) // 1 recompra / 2 ativos
+  })
+
+  it("B15-01 — Inativos e Inativos RP contam como inativos; Onboarding conta como ativo", () => {
+    const cards = [
+      card({ id: "r1", funil: "recompra", etapa: "inativos" }),
+      card({ id: "r2", funil: "recompra", etapa: "inativos_rp" }),
+      card({ id: "r3", funil: "recompra", etapa: "onboarding" }),
+    ]
+    const m = calcularMetricas(cards, [], [], range)
+    expect(m.recompra.inativos).toBe(2)
+    expect(m.recompra.clientesAtivos).toBe(1)
   })
 
   it("calcula receita: total, tickets médios e % de novos clientes", () => {
@@ -167,7 +178,7 @@ describe("calcularPerformanceVendedores", () => {
     const cards = [
       card({ id: "1", atendente_id: "u1", etapa: "ganho", created_at: "2026-06-05T10:00:00" }),
       card({ id: "2", atendente_id: "u1", etapa: "lead", created_at: "2026-06-06T10:00:00" }),
-      card({ id: "r1", atendente_id: "u1", funil: "recompra", etapa: "cliente_ativo" }),
+      card({ id: "r1", atendente_id: "u1", funil: "recompra", etapa: "ativos" }),
       card({ id: "3", atendente_id: "u2", etapa: "lead", created_at: "2026-06-07T10:00:00" }),
     ]
     const purchases: PurchaseRow[] = [

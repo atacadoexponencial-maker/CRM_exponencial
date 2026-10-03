@@ -12,6 +12,9 @@ interface CardLeadProps {
 
 export function CardLeadItem({ card, onPainelAbrir }: CardLeadProps) {
   const semAtendente = card.atendente === null
+  const emRisco = card.etapa === "ativos_ri" || card.etapa === "inativos" || card.etapa === "inativos_rp"
+  // "perdido" é do Funil de Entrada; "perdidos", da Recompra.
+  const perdido = card.etapa === "perdido" || card.etapa === "perdidos"
   const router = useRouter()
 
   return (
@@ -25,9 +28,9 @@ export function CardLeadItem({ card, onPainelAbrir }: CardLeadProps) {
       onClick={onPainelAbrir}
       className={cn(
         "bg-card rounded-lg border border-border p-3 flex flex-col gap-2 cursor-pointer hover:border-muted-foreground/40 transition-colors",
-        (card.etapa === "em_risco" || card.etapa === "inativo") && "border-l-2 border-l-red-500 bg-red-500/5",
-        card.etapa === "perdido" && "border-l-2 border-l-muted-foreground/40 opacity-60",
-        semAtendente && card.etapa !== "em_risco" && card.etapa !== "inativo" && card.etapa !== "perdido" && "border-l-2 border-l-amber-500"
+        emRisco && "border-l-2 border-l-red-500 bg-red-500/5",
+        perdido && "border-l-2 border-l-muted-foreground/40 opacity-60",
+        semAtendente && !emRisco && !perdido && "border-l-2 border-l-amber-500"
       )}
     >
       <div className="flex items-start justify-between gap-2">

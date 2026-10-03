@@ -159,22 +159,6 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
       alterado_por: user.id,
     })
 
-  if (novaEtapa === "recompra_realizada") {
-    await supabase
-      .from("pipeline_cards")
-      .update({ etapa: "aguardando_recompra", etapa_changed_at: new Date().toISOString() })
-      .eq("id", cardId)
-
-    await supabase
-      .from("pipeline_card_history")
-      .insert({
-        card_id: cardId,
-        de_etapa: "recompra_realizada",
-        para_etapa: "aguardando_recompra",
-        alterado_por: user.id,
-      })
-  }
-
   if (novaEtapa === "ganho" && card.contact_id && card.workspace_id) {
     const { data: existente } = await supabase
       .from("pipeline_cards")
@@ -189,7 +173,7 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
         .from("pipeline_cards")
         .insert({
           funil: "recompra",
-          etapa: "em_onboarding",
+          etapa: "onboarding",
           contact_id: card.contact_id,
           workspace_id: card.workspace_id,
         })
@@ -203,7 +187,7 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
           contactId: card.contact_id,
           cardId: cardRecompra.id,
           funil: "recompra",
-          etapa: "em_onboarding",
+          etapa: "onboarding",
         })
 
         await processarGatilhoSequencia({
@@ -226,7 +210,7 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
   })
 
   // Gatilhos automáticos de sequência do método
-  if (novaEtapa === "catalogo_enviado" || novaEtapa === "inativo") {
+  if (novaEtapa === "catalogo_enviado" || novaEtapa === "inativos") {
     await processarGatilhoSequencia({
       workspaceId: card.workspace_id,
       contactId: card.contact_id,

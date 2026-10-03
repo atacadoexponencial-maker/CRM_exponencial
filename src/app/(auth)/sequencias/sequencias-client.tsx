@@ -27,7 +27,7 @@ const GATILHO_LABEL: Record<string, string> = {
   card_lead: "Card criado em Lead",
   catalogo_enviado: "Movido para Catálogo Enviado",
   onboarding: "Card criado em Onboarding",
-  inativo: "Movido para Inativo",
+  inativo: "Movido para Inativos",
 }
 
 export function SequenciasClient({

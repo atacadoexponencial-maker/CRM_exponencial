@@ -56,7 +56,7 @@ Arquivo: `src/test/contato-classificacao.test.ts`
 
 ```
 ✅ Contato sem card retorna classificação "Sem histórico"
-✅ Contato com card em Entrada (etapa != "Primeira Compra") retorna "Lead"
+✅ Contato com card em Entrada (etapa != "Ganho") retorna "Lead"
 ✅ Contato com card em Recompra na etapa "Em Onboarding" retorna "Ativo"
 ✅ Contato com card em Recompra na etapa "Cliente Ativo" retorna "Ativo"
 ✅ Contato com card em Recompra na etapa "Aguardando Recompra" retorna "Ativo"
@@ -158,7 +158,7 @@ Arquivo: `src/test/contatos-classificacao.integration.test.ts`
 ```
 ✅ Contato sem card retorna classificação "Sem histórico"
 ✅ Contato com card em Entrada exibe classificação "Lead"
-✅ Contato cujo card de Entrada chegou a "Primeira Compra" e gerou card em Recompra exibe classificação derivada da etapa de Recompra
+✅ Contato cujo card de Entrada chegou a "Ganho" e gerou card em Recompra exibe classificação derivada da etapa de Recompra
 ✅ Mover o card de Recompra para "Em Risco" atualiza a classificação do contato para "Em Risco"
 ✅ Mover o card de Recompra para "Perdido" atualiza a classificação do contato para "Perdido"
 ```
@@ -231,7 +231,7 @@ Simulam um usuário real no navegador. Executar com `npx playwright test`.
 3. Verifica que a classificação exibida é "Sem histórico"
 4. Navega para o Pipeline de Entrada e cria um card para esse contato na etapa "Lead"
 5. Volta para a lista de Contatos e verifica que a classificação agora é "Lead"
-6. Move o card para "Primeira Compra" no pipeline (o sistema cria automaticamente um card em "Em Onboarding" no Funil de Recompra)
+6. Move o card para "Ganho" no pipeline (o sistema cria automaticamente um card em "Em Onboarding" no Funil de Recompra)
 7. Volta para a lista de Contatos e verifica que a classificação agora é "Ativo"
 8. Move o card de Recompra para "Em Risco"
 9. Volta para a lista e verifica que a classificação é "Em Risco"

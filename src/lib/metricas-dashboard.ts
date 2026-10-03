@@ -76,7 +76,7 @@ const ETAPAS_FUNIL: Array<{ id: string; label: string }> = [
 // Nutrição e Perdido não são degraus da conversão: o card nelas conta pelas etapas do histórico.
 const ETAPA_GANHO_IDX = ETAPAS_FUNIL.length - 1
 
-const ETAPAS_RECOMPRA_ATIVAS = ["em_onboarding", "cliente_ativo", "aguardando_recompra", "recompra_realizada"]
+const ETAPAS_RECOMPRA_ATIVAS = ["onboarding", "reposicao", "ativos"]
 
 export function rangeDoPeriodo(filtro: FiltroDashboard, agora = new Date()): RangePeriodo {
   const fim = new Date(agora)
@@ -187,14 +187,14 @@ export function calcularMetricas(
 
   // ── Recompra ──────────────────────────────────────────────────────
   const clientesAtivos = recompra.filter((c) => ETAPAS_RECOMPRA_ATIVAS.includes(c.etapa)).length
-  const emRisco = recompra.filter((c) => c.etapa === "em_risco").length
-  const inativos = recompra.filter((c) => c.etapa === "inativo").length
-  const perdidos = recompra.filter((c) => c.etapa === "perdido").length
+  const emRisco = recompra.filter((c) => c.etapa === "ativos_ri").length
+  const inativos = recompra.filter((c) => c.etapa === "inativos" || c.etapa === "inativos_rp").length
+  const perdidos = recompra.filter((c) => c.etapa === "perdidos").length
 
-  // Recompras no período = movimentações para "recompra_realizada" em cards de recompra
+  // Recompras no período = movimentações para "ativos" em cards de recompra (substitui a antiga etapa de recompra realizada)
   const idsRecompra = new Set(recompra.map((c) => c.id))
   const recomprasNoPeriodo = history.filter(
-    (h) => idsRecompra.has(h.card_id) && h.para_etapa === "recompra_realizada" && noPeriodo(h.created_at)
+    (h) => idsRecompra.has(h.card_id) && h.para_etapa === "ativos" && noPeriodo(h.created_at)
   ).length
   // Aproximação: usa a base de clientes ativos atual como denominador
   const taxaRecompra =
@@ -280,9 +280,9 @@ export function calcularPerformanceVendedores(
           history.some((h) => h.card_id === c.id && h.para_etapa === "ganho"))
     ).length
     const clientesAtivos = recompra.filter((c) => ETAPAS_RECOMPRA_ATIVAS.includes(c.etapa)).length
-    const emRisco = recompra.filter((c) => c.etapa === "em_risco").length
+    const emRisco = recompra.filter((c) => c.etapa === "ativos_ri").length
     const recompras = history.filter(
-      (h) => idsRecompra.has(h.card_id) && h.para_etapa === "recompra_realizada" && noPeriodo(h.created_at)
+      (h) => idsRecompra.has(h.card_id) && h.para_etapa === "ativos" && noPeriodo(h.created_at)
     ).length
 
     const contatos = new Set(cardsDoAtendente.map((c) => c.contact_id).filter(Boolean))

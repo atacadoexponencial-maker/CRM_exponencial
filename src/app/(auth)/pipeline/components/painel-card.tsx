@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA, type CardLead, type CardCliente, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
 import { buscarDadosPainel, moverCard, atribuirAtendente, adicionarNota } from "../actions"
-import { ModalConfirmacaoRecompra } from "./modal-confirmacao-recompra"
 import { IniciarSequenciaDialog } from "@/components/shared/iniciar-sequencia-dialog"
 import { Button } from "@/components/ui/button"
 import { DialogoExcluirContato } from "../../contatos/components/dialogo-excluir-contato"
@@ -29,7 +28,6 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
   const [movendo, setMovendo] = useState(false)
   const [atribuindo, setAtribuindo] = useState(false)
   const [salvandoNota, setSalvandoNota] = useState(false)
-  const [confirmacaoRecompra, setConfirmacaoRecompra] = useState<string | null>(null)
   const [sequenciaAberta, setSequenciaAberta] = useState(false)
   const [resumoExclusao, setResumoExclusao] = useState<ResumoExclusao | null>(null)
   const [preparandoExclusao, setPreparandoExclusao] = useState(false)
@@ -63,21 +61,6 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
       <div
         className="fixed inset-0 z-20"
         onClick={onFechar}
-      />
-
-      <ModalConfirmacaoRecompra
-        aberto={confirmacaoRecompra !== null}
-        onConfirmar={() => {
-          if (!confirmacaoRecompra) return
-          const etapaDestino = confirmacaoRecompra
-          setConfirmacaoRecompra(null)
-          setMovendo(true)
-          moverCard(card.id, etapaDestino)
-            .then(() => { onFechar(); onMover?.() })
-            .catch(() => {})
-            .finally(() => setMovendo(false))
-        }}
-        onCancelar={() => setConfirmacaoRecompra(null)}
       />
 
       {/* Painel */}
@@ -250,11 +233,6 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
                       key={e.id}
                       disabled={movendo}
                       onClick={() => {
-                        if (e.id === "recompra_realizada") {
-                          setEtapaDropdownAberto(false)
-                          setConfirmacaoRecompra(e.id)
-                          return
-                        }
                         setMovendo(true)
                         moverCard(card.id, e.id)
                           .then(() => { setEtapaDropdownAberto(false); onFechar(); onMover?.() })

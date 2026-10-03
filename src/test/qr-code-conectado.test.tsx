@@ -14,6 +14,8 @@ vi.mock("@/app/(auth)/configuracoes/whatsapp/actions", () => ({
   criarConexaoCanalDireto: vi.fn(),
   pedirQrCodeCanalDireto: vi.fn(),
   sincronizarEstadoCanalDireto: vi.fn(),
+  reconectarNumeroCanalDireto: vi.fn(),
+  sincronizarEstadoDoNumero: vi.fn(),
   // Usadas por componentes vizinhos da lista; não entram neste fluxo.
   pedirCodigoDePareamento: vi.fn(),
   aceitarTermoDoCanalDireto: vi.fn(),
@@ -23,6 +25,7 @@ vi.mock("@/app/(auth)/configuracoes/whatsapp/actions", () => ({
 import {
   criarConexaoCanalDireto,
   pedirQrCodeCanalDireto,
+  reconectarNumeroCanalDireto,
   sincronizarEstadoCanalDireto,
 } from "@/app/(auth)/configuracoes/whatsapp/actions"
 import { ListaNumeros } from "@/app/(auth)/configuracoes/whatsapp/canal-direto/lista-numeros"
@@ -92,6 +95,11 @@ describe("QR Code lido pelo celular", () => {
   it("reconectar mostra só o QR do número, sem a escolha de canal que criaria outro", async () => {
     sincronizar.mockResolvedValue({ estado: { state: "pairing" } } as never)
     vi.mocked(criarConexaoCanalDireto).mockClear()
+    // B9-02: o Reconectar tenta voltar sem QR; com a sessão encerrada no aparelho, oferece o QR.
+    vi.mocked(reconectarNumeroCanalDireto).mockResolvedValue({
+      erro: "A sessão foi encerrada no aparelho.",
+      precisaQr: true,
+    } as never)
     render(
       <ListaNumeros
         termoAceito
@@ -110,6 +118,9 @@ describe("QR Code lido pelo celular", () => {
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /reconectar/i }))
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /ler qr code novo/i }))
     })
 
     expect(screen.getByText(/leia o código no aparelho/i)).toBeInTheDocument()

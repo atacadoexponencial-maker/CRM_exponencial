@@ -103,13 +103,13 @@ Arquivo: `src/test/dashboard-metricas.integration.test.ts`
 **Seção "Entrada de Leads"**
 ```
 ✅ Total de novos leads reflete exatamente os cards criados no Funil de Entrada no período
-✅ Leads ativos no funil agora = cards no Funil de Entrada em etapas != "Primeira Compra"
+✅ Leads ativos no funil agora = cards no Funil de Entrada fora de "Ganho" e de "Perdido"
 ✅ Gráfico de barras por semana reflete a distribuição correta de criação de cards
 ```
 
 **Seção "Conversão"**
 ```
-✅ Taxa de conversão geral = contatos em "Primeira Compra" ÷ total de leads criados no período
+✅ Taxa de conversão geral = contatos em "Ganho" ÷ total de leads criados no período
 ✅ Funil de conversão por etapa exibe os percentuais corretos para cada transição
 ✅ Contatos que entraram antes do período mas converterem no período são contados no numerador
 ```
@@ -160,7 +160,7 @@ Arquivo: `e2e/modulo-5.spec.ts`
 4. Abre outra aba, loga como Atendente e cria um novo card no Funil de Entrada
 5. Volta ao Dashboard como Admin e atualiza a página
 6. Verifica que o contador de novos leads aumentou em 1
-7. O Atendente move o card para "Primeira Compra"
+7. O Atendente move o card para "Ganho"
 8. Admin atualiza o Dashboard e verifica que a taxa de conversão foi atualizada
 ```
 

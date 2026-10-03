@@ -9,7 +9,7 @@ no ar sai daqui. Quem abre a pasta deve saber, sem ler nada, o que falta fazer.
 |---|---|---|
 | `spec-automacoes-v2.md` — automações em fluxo de blocos: gatilho, condições com sim/não e ações (fase 1) | `issues/B11-01` a `B11-09` | Escrita em 29/09/2026 e trocada para fluxo de blocos em 30/09 (`decisoes/B11-automacoes-em-fluxo.md`). Feita no branch `b11-automacoes-v2`, com merge único no fim, depois de testada no preview. Implementador: Luan. Ordem sugerida: 01 → 02 → 03 → 04 → 05 → 07 → 06 → 08 → 09. |
 | `spec-lixeira-contatos.md` — excluir lead e contato, com lixeira de 30 dias e restaurar | `issues/B13-01` a `B13-06` | Escrita e aprovada em 02/10/2026. Ordem: 01 (protótipo) → 02 → 03 → 04 → 05 → 06. A 06 depende do `CRON_SECRET` no Vercel. |
-| `spec-etapas-funil-entrada.md` — etapas novas do Funil de Entrada (Sondagem, Follow do Catálogo, Nutrição, Ganho, Perdido) | `issues/B14-01` a `B14-03` | Escrita e aprovada em 03/10/2026. Ordem: 01 → 02 → 03 (a 03 é no branch da B11). |
+| `spec-etapas-funil-recompra.md` — nomes novos das etapas do Funil de Recompra (só nomenclatura, regras iguais) | `issues/B15-01` a `B15-03` | Escrita e aprovada em 03/10/2026. Ordem: 01 → 02 → 03 (a 03 é no branch da B11). |
 
 Quando a última issue de uma spec entrar no ar, mova a spec para
 `docs/specs-arquivadas/` e as issues para `issues/concluidas_<série>/`.
@@ -37,6 +37,9 @@ Quando a última issue de uma spec entrar no ar, mova a spec para
 - **Funis Entrada e Recompra** (B12, 02/10/2026): spec
   `docs/specs-arquivadas/spec-renomear-funis.md`, issues em
   `issues/concluidas_B12/`.
+- **Etapas novas do Funil de Entrada** (B14, 03/10/2026): spec
+  `docs/specs-arquivadas/spec-etapas-funil-entrada.md`, issues em
+  `issues/concluidas_B14/`.
 
 As issues da parte A (gateway) ficam no repositório `whatsapp-gateway`.
 
@@ -57,5 +60,5 @@ As issues da parte A (gateway) ficam no repositório `whatsapp-gateway`.
 
 - `NN` (01, 02…): issues dos módulos 0 a 7, agrupadas por módulo em `concluidas_moduloX/`.
 - `B<n>-NN`: séries do CRM depois dos módulos (B1–B8 canal direto, B9 desconectar,
-  B10 navegação, B11 automações, B12 renomear funis, B13 lixeira, B14 etapas do Funil de Entrada). A pasta de concluídas leva o prefixo da série.
+  B10 navegação, B11 automações, B12 renomear funis, B13 lixeira, B14 etapas do Funil de Entrada, B15 etapas do Funil de Recompra). A pasta de concluídas leva o prefixo da série.
 - `A<n>-NN`: séries do gateway, no outro repositório.

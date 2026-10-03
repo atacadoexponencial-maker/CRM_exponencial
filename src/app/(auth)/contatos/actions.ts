@@ -112,13 +112,13 @@ export async function criarContato(dados: {
 }
 
 const ETAPA_RECOMPRA_LABEL: Record<string, string> = {
-  em_onboarding: "Em Onboarding",
-  cliente_ativo: "Cliente Ativo",
-  aguardando_recompra: "Aguardando Recompra",
-  recompra_realizada: "Recompra Realizada",
-  em_risco: "Em Risco",
-  inativo: "Inativo",
-  perdido: "Perdido",
+  onboarding: "Onboarding",
+  reposicao: "Reposição",
+  ativos: "Ativos",
+  ativos_ri: "Ativos RI",
+  inativos: "Inativos",
+  inativos_rp: "Inativos RP",
+  perdidos: "Perdidos",
 }
 
 const ETAPA_ENTRADA_LABEL: Record<string, string> = {
@@ -153,12 +153,13 @@ const ETAPA_LABEL_ALL: Record<string, string> = {
   negociacao: "Negociação",
   nutricao: "Nutrição",
   ganho: "Ganho",
-  em_onboarding: "Em Onboarding",
-  cliente_ativo: "Cliente Ativo",
-  aguardando_recompra: "Aguardando Recompra",
-  recompra_realizada: "Recompra Realizada",
-  em_risco: "Em Risco",
-  inativo: "Inativo",
+  onboarding: "Onboarding",
+  reposicao: "Reposição",
+  ativos: "Ativos",
+  ativos_ri: "Ativos RI",
+  inativos: "Inativos",
+  inativos_rp: "Inativos RP",
+  perdidos: "Perdidos",
   perdido: "Perdido",
 }
 

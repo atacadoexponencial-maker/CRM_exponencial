@@ -152,7 +152,7 @@ describe("Issue 11 — Classificação Automática (Integração com Pipeline)",
     const client = await autenticarComo(adminEmail)
     const contactId = await criarContato(wsId, "+5511999011003")
     await criarCard(wsId, contactId, "entrada", "ganho")
-    await criarCard(wsId, contactId, "recompra", "em_onboarding")
+    await criarCard(wsId, contactId, "recompra", "onboarding")
 
     const { data: cards } = await client
       .from("pipeline_cards")
@@ -165,11 +165,11 @@ describe("Issue 11 — Classificação Automática (Integração com Pipeline)",
   it("Card de Recompra na etapa 'em_risco' resulta em classificação 'em_risco'", async () => {
     const client = await autenticarComo(adminEmail)
     const contactId = await criarContato(wsId, "+5511999011004")
-    const cardId = await criarCard(wsId, contactId, "recompra", "cliente_ativo")
+    const cardId = await criarCard(wsId, contactId, "recompra", "ativos")
 
     await serviceClient
       .from("pipeline_cards")
-      .update({ etapa: "em_risco" })
+      .update({ etapa: "ativos_ri" })
       .eq("id", cardId)
 
     const { data: cards } = await client
@@ -183,11 +183,11 @@ describe("Issue 11 — Classificação Automática (Integração com Pipeline)",
   it("Card de Recompra na etapa 'perdido' resulta em classificação 'perdido'", async () => {
     const client = await autenticarComo(adminEmail)
     const contactId = await criarContato(wsId, "+5511999011005")
-    const cardId = await criarCard(wsId, contactId, "recompra", "aguardando_recompra")
+    const cardId = await criarCard(wsId, contactId, "recompra", "reposicao")
 
     await serviceClient
       .from("pipeline_cards")
-      .update({ etapa: "perdido" })
+      .update({ etapa: "perdidos" })
       .eq("id", cardId)
 
     const { data: cards } = await client
