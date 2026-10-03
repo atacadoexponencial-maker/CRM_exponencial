@@ -239,7 +239,7 @@ Simulam um usuário real no navegador. Executar com `npx playwright test`.
 4. Move o card para a etapa "Catálogo Enviado"
 5. Acessa a Agenda
 6. Verifica que um lembrete da sequência "Pós-catálogo" aparece para o contato do card
-7. Move o mesmo card de volta para "Em Qualificação" e depois novamente para "Catálogo Enviado"
+7. Move o mesmo card de volta para "Sondagem" e depois novamente para "Catálogo Enviado"
 8. Verifica que NÃO foi criada uma segunda sequência (idempotência)
 ```
 

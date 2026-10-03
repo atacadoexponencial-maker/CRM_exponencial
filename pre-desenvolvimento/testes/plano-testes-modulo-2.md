@@ -7,7 +7,7 @@
 
 ## Contexto
 
-O Módulo 2 implementa os dois funis de vendas do método atacado exponencial: Entrada (novos clientes) e Recompra (clientes ativos). Os testes mais críticos envolvem o isolamento multi-tenant dos cards, as regras de visibilidade por papel (Atendente só vê o que é seu), e a transição automática de Entrada → Recompra ao chegar na etapa "Primeira Compra".
+O Módulo 2 implementa os dois funis de vendas do método atacado exponencial: Entrada (novos clientes) e Recompra (clientes ativos). Os testes mais críticos envolvem o isolamento multi-tenant dos cards, as regras de visibilidade por papel (Atendente só vê o que é seu), e a transição automática de Entrada → Recompra ao chegar na etapa "Ganho".
 
 **Prioridade máxima:** RBAC da visibilidade de cards, transição automática entre funis e isolamento multi-tenant.
 
@@ -78,9 +78,9 @@ Arquivo: `src/test/pipeline-entrada.integration.test.ts`
 
 **Transição automática Entrada → Recompra**
 ```
-✅ Mover card para "Primeira Compra" cria automaticamente um card em "Em Onboarding" no Funil de Recompra
+✅ Mover card para "Ganho" cria automaticamente um card em "Em Onboarding" no Funil de Recompra
 ✅ O card criado no Funil de Recompra está vinculado ao mesmo contato
-✅ O card em "Primeira Compra" no Funil de Entrada permanece visível (não é removido)
+✅ O card em "Ganho" no Funil de Entrada permanece visível (não é removido)
 ✅ Não cria duplicata se o contato já tiver um card ativo no Funil de Recompra
 ```
 
@@ -166,11 +166,11 @@ Simulam um usuário real no navegador. Executar com `npx playwright test`.
 5. Atribui o card ao Atendente A (Time Entrada)
 6. Loga como Atendente A
 7. Verifica que o card aparece no funil (apenas o do Atendente A)
-8. Arrasta o card de "Lead" para "Em Qualificação"
-9. Verifica que o card some de "Lead" e aparece em "Em Qualificação"
+8. Arrasta o card de "Lead" para "Sondagem"
+9. Verifica que o card some de "Lead" e aparece em "Sondagem"
 10. Clica no card e verifica que o histórico registra a movimentação
-11. Arrasta o card até "Primeira Compra"
-12. Verifica que o card permanece em "Primeira Compra" no Funil de Entrada
+11. Arrasta o card até "Ganho"
+12. Verifica que o card permanece em "Ganho" no Funil de Entrada
 13. Navega para o Funil de Recompra
 14. Verifica que o card aparece em "Em Onboarding" no Funil de Recompra
 ```
@@ -195,13 +195,13 @@ Simulam um usuário real no navegador. Executar com `npx playwright test`.
 ```
 1. Loga como Admin
 2. Cria um card no Funil de Entrada na etapa "Lead"
-3. Move o card para "Em Qualificação" via dropdown do painel
+3. Move o card para "Sondagem" via dropdown do painel
 4. Abre o painel do card
-5. Verifica que o histórico mostra as duas etapas: "Lead" e "Em Qualificação"
+5. Verifica que o histórico mostra as duas etapas: "Lead" e "Sondagem"
 6. Adiciona nota interna: "Cliente qualificado — confirmar nicho antes de enviar catálogo"
 7. Verifica que a nota aparece no painel com o nome do autor e a data
 8. Clica em "Abrir conversa" e verifica que é redirecionado para o Chat do contato
-9. Volta ao pipeline e verifica que o card ainda está em "Em Qualificação"
+9. Volta ao pipeline e verifica que o card ainda está em "Sondagem"
 ```
 
 ---
