@@ -12,7 +12,8 @@ function calcularTempoNaEtapa(etapaChangedAt: string): string {
   const agora = new Date()
   const mudou = new Date(etapaChangedAt)
   const diffMs = agora.getTime() - mudou.getTime()
-  const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  // O relógio do banco pode estar milissegundos à frente do servidor; card recém-criado é "Hoje", nunca "-1 dias".
+  const diffDias = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)))
 
   if (diffDias === 0) return "Hoje"
   if (diffDias === 1) return "1 dia"
