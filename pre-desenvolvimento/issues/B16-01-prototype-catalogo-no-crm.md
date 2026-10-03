@@ -82,4 +82,4 @@ pede ajustes no visual antes da implementação.
 - [x] Atendente sem acesso
 - [x] `npm run build` e `npm run lint` passam
 - [x] Conferência visual: `next start` + Playwright, capturas das três telas (03/10: 20 verificações; Atendente redirecionado para /perfil; workspaces temporários apagados)
-- [ ] Commit + push; deploy Ready; link do protótipo para a Marcelle
+- [x] Commit + push (`d6e45c4`); deploy Ready; link do protótipo para a Marcelle (03/10) — falta a aprovação dela
