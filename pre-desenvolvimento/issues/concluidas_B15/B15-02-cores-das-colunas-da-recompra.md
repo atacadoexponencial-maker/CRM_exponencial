@@ -55,4 +55,4 @@ vermelho da B14-02).
 - [x] `funil-recompra.tsx` passa a cor
 - [x] `npm run build` e `npm run lint` passam
 - [x] Conferência visual: `next start` + Playwright — captura do Funil de Recompra com as 7 cores e do Funil de Entrada sem mudança (03/10: 5 cores + 2 neutras, sem ícone na Recompra; Perdido da Entrada vermelho com ícone; workspace apagado)
-- [ ] Commit + push; deploy Ready
+- [x] Commit + push (`2e972e2`); deploy Ready (03/10)
