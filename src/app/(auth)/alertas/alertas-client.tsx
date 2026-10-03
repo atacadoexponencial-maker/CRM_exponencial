@@ -251,9 +251,9 @@ export function AlertasClient({
             {(
               [
                 ["leadSemRespostaDias", "Lead sem resposta (dias)"],
-                ["semRecompraDias", "Cliente sem recompra (dias)"],
-                ["emRiscoDias", "Cliente em risco (dias)"],
-                ["inativoDias", "Cliente inativo (dias)"],
+                ["semRecompraDias", "Cliente sem recompra — dias parado em Reposição"],
+                ["emRiscoDias", "Cliente em risco — dias parado em Ativos RI"],
+                ["inativoDias", "Cliente inativo — dias parado em Inativos"],
               ] as Array<[keyof ConfigAlertas, string]>
             ).map(([campo, label]) => (
               <div key={campo} className="flex items-center justify-between gap-3">

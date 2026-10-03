@@ -1,11 +1,11 @@
 export type EtapaRecompra =
-  | "em_onboarding"
-  | "cliente_ativo"
-  | "aguardando_recompra"
-  | "recompra_realizada"
-  | "em_risco"
-  | "inativo"
-  | "perdido"
+  | "onboarding"
+  | "reposicao"
+  | "ativos"
+  | "ativos_ri"
+  | "inativos"
+  | "inativos_rp"
+  | "perdidos"
 
 export interface CardCliente {
   id: string
@@ -21,20 +21,20 @@ export interface CardCliente {
 }
 
 export const ETAPAS_RECOMPRA: { id: EtapaRecompra; label: string; alerta: boolean }[] = [
-  { id: "em_onboarding", label: "Em Onboarding", alerta: false },
-  { id: "cliente_ativo", label: "Cliente Ativo", alerta: false },
-  { id: "aguardando_recompra", label: "Aguardando Recompra", alerta: false },
-  { id: "recompra_realizada", label: "Recompra Realizada", alerta: false },
-  { id: "em_risco", label: "Em Risco", alerta: true },
-  { id: "inativo", label: "Inativo", alerta: true },
-  { id: "perdido", label: "Perdido", alerta: true },
+  { id: "onboarding", label: "Onboarding", alerta: false },
+  { id: "reposicao", label: "Reposição", alerta: false },
+  { id: "ativos", label: "Ativos", alerta: false },
+  { id: "ativos_ri", label: "Ativos RI", alerta: true },
+  { id: "inativos", label: "Inativos", alerta: true },
+  { id: "inativos_rp", label: "Inativos RP", alerta: true },
+  { id: "perdidos", label: "Perdidos", alerta: true },
 ]
 
 export const MOCK_CARDS_RECOMPRA: CardCliente[] = [
   {
     id: "r1",
     contato: { nome: "Padaria do Centro", telefone: "+55 11 99001-0001" },
-    etapa: "em_onboarding",
+    etapa: "onboarding",
     atendente: "Fernanda",
     tempoNaEtapa: "2 dias",
     dataEntradaEtapa: "27/05/2026",
@@ -45,7 +45,7 @@ export const MOCK_CARDS_RECOMPRA: CardCliente[] = [
   {
     id: "r2",
     contato: { nome: "Mercearia Boa Vista", telefone: "+55 85 89001-0002" },
-    etapa: "em_onboarding",
+    etapa: "onboarding",
     atendente: null,
     tempoNaEtapa: "1 dia",
     dataEntradaEtapa: "28/05/2026",
@@ -56,7 +56,7 @@ export const MOCK_CARDS_RECOMPRA: CardCliente[] = [
   {
     id: "r3",
     contato: { nome: "Empório da Família", telefone: "+55 71 83001-0003" },
-    etapa: "cliente_ativo",
+    etapa: "ativos",
     atendente: "Carlos",
     tempoNaEtapa: "1 mês",
     dataEntradaEtapa: "29/04/2026",
@@ -67,7 +67,7 @@ export const MOCK_CARDS_RECOMPRA: CardCliente[] = [
   {
     id: "r4",
     contato: { nome: "Distribuidora Sul", telefone: "+55 41 80001-0004" },
-    etapa: "cliente_ativo",
+    etapa: "ativos",
     atendente: "Fernanda",
     tempoNaEtapa: "3 meses",
     dataEntradaEtapa: "29/02/2026",
@@ -78,7 +78,7 @@ export const MOCK_CARDS_RECOMPRA: CardCliente[] = [
   {
     id: "r5",
     contato: { nome: "Supermercado Estrela", telefone: "+55 31 90001-0005" },
-    etapa: "aguardando_recompra",
+    etapa: "reposicao",
     atendente: "Carlos",
     tempoNaEtapa: "5 dias",
     dataEntradaEtapa: "24/05/2026",
@@ -89,7 +89,7 @@ export const MOCK_CARDS_RECOMPRA: CardCliente[] = [
   {
     id: "r6",
     contato: { nome: "Hortifruti Verde", telefone: "+55 92 94001-0006" },
-    etapa: "aguardando_recompra",
+    etapa: "reposicao",
     atendente: null,
     tempoNaEtapa: "8 dias",
     dataEntradaEtapa: "21/05/2026",
@@ -100,7 +100,7 @@ export const MOCK_CARDS_RECOMPRA: CardCliente[] = [
   {
     id: "r7",
     contato: { nome: "Armazém do Norte", telefone: "+55 62 85001-0007" },
-    etapa: "recompra_realizada",
+    etapa: "ativos",
     atendente: "Fernanda",
     tempoNaEtapa: "1 semana",
     dataEntradaEtapa: "22/05/2026",
@@ -111,7 +111,7 @@ export const MOCK_CARDS_RECOMPRA: CardCliente[] = [
   {
     id: "r8",
     contato: { nome: "Loja São Paulo", telefone: "+55 11 92001-0008" },
-    etapa: "em_risco",
+    etapa: "ativos_ri",
     atendente: "Carlos",
     tempoNaEtapa: "3 semanas",
     dataEntradaEtapa: "08/05/2026",
@@ -122,7 +122,7 @@ export const MOCK_CARDS_RECOMPRA: CardCliente[] = [
   {
     id: "r9",
     contato: { nome: "Mercearia Boa Fé", telefone: "+55 21 89001-0009" },
-    etapa: "em_risco",
+    etapa: "ativos_ri",
     atendente: null,
     tempoNaEtapa: "1 mês",
     dataEntradaEtapa: "29/04/2026",
@@ -133,7 +133,7 @@ export const MOCK_CARDS_RECOMPRA: CardCliente[] = [
   {
     id: "r10",
     contato: { nome: "Distribuidora Leste", telefone: "+55 47 80001-0010" },
-    etapa: "inativo",
+    etapa: "inativos",
     atendente: "Fernanda",
     tempoNaEtapa: "2 meses",
     dataEntradaEtapa: "29/03/2026",
@@ -144,7 +144,7 @@ export const MOCK_CARDS_RECOMPRA: CardCliente[] = [
   {
     id: "r11",
     contato: { nome: "Atacado do Bairro", telefone: "+55 62 88001-0011" },
-    etapa: "perdido",
+    etapa: "perdidos",
     atendente: "Carlos",
     tempoNaEtapa: "3 meses",
     dataEntradaEtapa: "29/02/2026",

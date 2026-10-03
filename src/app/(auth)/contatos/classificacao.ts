@@ -5,10 +5,10 @@ export function calcularClassificacao(
 ): ClassificacaoContato {
   const recompra = cards.find((c) => c.funil === "recompra")
   if (recompra) {
-    if (["em_onboarding", "cliente_ativo", "aguardando_recompra", "recompra_realizada"].includes(recompra.etapa)) return "ativo"
-    if (recompra.etapa === "em_risco") return "em_risco"
-    if (recompra.etapa === "inativo") return "inativo"
-    if (recompra.etapa === "perdido") return "perdido"
+    if (["onboarding", "reposicao", "ativos"].includes(recompra.etapa)) return "ativo"
+    if (recompra.etapa === "ativos_ri") return "em_risco"
+    if (recompra.etapa === "inativos" || recompra.etapa === "inativos_rp") return "inativo"
+    if (recompra.etapa === "perdidos") return "perdido"
   }
   if (cards.some((c) => c.funil === "entrada")) return "lead"
   return "sem_historico"

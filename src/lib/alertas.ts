@@ -79,12 +79,13 @@ const ETAPA_LABEL: Record<string, string> = {
   negociacao: "Negociação",
   nutricao: "Nutrição",
   ganho: "Ganho",
-  em_onboarding: "Em Onboarding",
-  cliente_ativo: "Cliente Ativo",
-  aguardando_recompra: "Aguardando Recompra",
-  recompra_realizada: "Recompra Realizada",
-  em_risco: "Em Risco",
-  inativo: "Inativo",
+  onboarding: "Onboarding",
+  reposicao: "Reposição",
+  ativos: "Ativos",
+  ativos_ri: "Ativos RI",
+  inativos: "Inativos",
+  inativos_rp: "Inativos RP",
+  perdidos: "Perdidos",
   perdido: "Perdido",
 }
 
@@ -131,11 +132,11 @@ export function calcularAlertas(
 
     // Funil de recompra: alertas por tempo parado na etapa
     const dias = diasDesde(card.etapa_changed_at, agora)
-    if (card.etapa === "aguardando_recompra" && dias > config.semRecompraDias) {
+    if (card.etapa === "reposicao" && dias > config.semRecompraDias) {
       adicionar(card, "sem_recompra", card.etapa_changed_at, dias)
-    } else if (card.etapa === "em_risco" && dias > config.emRiscoDias) {
+    } else if (card.etapa === "ativos_ri" && dias > config.emRiscoDias) {
       adicionar(card, "em_risco", card.etapa_changed_at, dias)
-    } else if (card.etapa === "inativo" && dias > config.inativoDias) {
+    } else if (card.etapa === "inativos" && dias > config.inativoDias) {
       adicionar(card, "inativo", card.etapa_changed_at, dias)
     }
   }

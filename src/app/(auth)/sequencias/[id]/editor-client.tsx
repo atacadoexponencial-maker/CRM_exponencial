@@ -21,7 +21,7 @@ const GATILHOS: Array<{ id: string; label: string }> = [
   { id: "card_lead", label: "Automático — card criado em Lead (Entrada)" },
   { id: "catalogo_enviado", label: "Automático — card movido para Catálogo Enviado" },
   { id: "onboarding", label: "Automático — card criado em Onboarding (Recompra)" },
-  { id: "inativo", label: "Automático — card movido para Inativo" },
+  { id: "inativo", label: "Automático — card movido para Inativos" },
 ]
 
 const ETAPA_NOVA: EtapaSequencia = { tipo: "mensagem", prazoDias: 1, conteudo: "", instrucao: "" }
