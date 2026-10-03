@@ -15,7 +15,6 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu"
 import { BalaoMensagem } from "./balao-mensagem"
-import { PainelContato } from "./painel-contato"
 import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio, atribuirConversa, transferirConversa, resolverConversa, reabrirConversa, aplicarEtiqueta, removerEtiqueta } from "../actions"
 import type { Conversa } from "../mock-conversas"
 import type { Mensagem } from "../mock-mensagens"
@@ -104,12 +103,13 @@ interface PainelConversaProps {
   atendentesTransferir: Array<{ id: string; nome: string }>
   onConversaAtualizada: (id: string, updates: Partial<Conversa>) => void
   nomeUsuario: string
-  onNavegar: (id: string) => void
   etiquetasDisponiveis: Array<{ id: string; nome: string; cor: string }>
   mensagensRapidas: Array<{ id: string; titulo: string; conteudo: string }>
+  /** Abre a ficha do contato, que a tela do chat mostra entre a lista e a conversa. */
+  onAbrirFicha: () => void
 }
 
-export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtribuir, atendentes, atendentesTransferir, onConversaAtualizada, nomeUsuario, onNavegar, etiquetasDisponiveis, mensagensRapidas }: PainelConversaProps) {
+export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtribuir, atendentes, atendentesTransferir, onConversaAtualizada, nomeUsuario, etiquetasDisponiveis, mensagensRapidas, onAbrirFicha }: PainelConversaProps) {
   /**
    * B7-02: por que a mídia não está disponível neste canal, se for o caso.
    * `null` significa disponível. Vem pronto do servidor, via `conversa.canal`.
@@ -121,7 +121,6 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
   const [buscaAberta, setBuscaAberta] = useState(false)
   const [termoBusca, setTermoBusca] = useState("")
   const [modoNota, setModoNota] = useState(false)
-  const [painelContato, setPainelContato] = useState(false)
   const [texto, setTexto] = useState("")
   const [seletorMRAberto, setSeletorMRAberto] = useState(false)
   const [termoBuscaMR, setTermoBuscaMR] = useState("")
@@ -437,7 +436,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
         <div className="flex items-center justify-between px-4 py-3 border-b bg-background shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <button
-              onClick={() => setPainelContato(true)}
+              onClick={onAbrirFicha}
               className="font-semibold text-sm hover:underline truncate text-left"
             >
               {nomeExibido}
@@ -916,17 +915,6 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
           </div>
         </div>
       </div>
-
-      {/* Painel lateral de contato */}
-      {painelContato && (
-        <PainelContato
-          conversa={conversa}
-          conversaId={conversa.id}
-          onFechar={() => setPainelContato(false)}
-          onConversaAtualizada={onConversaAtualizada}
-          onNavegar={onNavegar}
-        />
-      )}
     </div>
   )
 }

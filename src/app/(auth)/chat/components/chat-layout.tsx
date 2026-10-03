@@ -1,11 +1,13 @@
 "use client"
 
 import { useState, useTransition, useEffect } from "react"
-import { Loader2 } from "lucide-react"
+import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import { createClient } from "@/integrations/supabase/client"
 import { formatarHoraDoDia, formatarHorarioDaLista } from "@/lib/datas"
 import { FiltrosCaixa } from "./filtros-caixa"
 import { PainelConversa } from "./painel-conversa"
+import { PainelContato } from "./painel-contato"
+import { COOKIE_CAIXA_RECOLHIDA, gravarPreferencia } from "@/lib/preferencias-layout"
 import { buscarConversa, buscarMensagens, carregarMaisConversas, marcarComoLidas } from "../actions"
 import type { Conversa, StatusConversa } from "../mock-conversas"
 import type { Mensagem } from "../mock-mensagens"
@@ -22,9 +24,11 @@ interface ChatLayoutProps {
   etiquetasDisponiveis: Array<{ id: string; nome: string; cor: string }>
   mensagensRapidas: Array<{ id: string; titulo: string; conteudo: string }>
   conversaInicialId?: string | null
+  /** Preferência gravada em cookie: a caixa de entrada começa recolhida. */
+  caixaRecolhidaInicial?: boolean
 }
 
-export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsuario, workspaceId, atendentes, atendentesTransferir, etiquetasDisponiveis, mensagensRapidas, conversaInicialId }: ChatLayoutProps) {
+export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsuario, workspaceId, atendentes, atendentesTransferir, etiquetasDisponiveis, mensagensRapidas, conversaInicialId, caixaRecolhidaInicial = false }: ChatLayoutProps) {
   const [conversasState, setConversasState] = useState<Conversa[]>(conversas)
   const [temMais, setTemMais] = useState(temMaisConversas)
   const [carregandoMais, setCarregandoMais] = useState(false)
@@ -34,6 +38,8 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsu
   const [abertas, setAbertas] = useState<Set<string>>(new Set())
   // B13-02: contatos que foram para a lixeira enquanto a caixa estava aberta.
   const [contatosExcluidos, setContatosExcluidos] = useState<Set<string>>(new Set())
+  const [caixaRecolhida, setCaixaRecolhida] = useState(caixaRecolhidaInicial)
+  const [fichaAberta, setFichaAberta] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
@@ -212,6 +218,8 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsu
 
   function handleConversaClick(id: string) {
     setConversaAtivaId(id)
+    // A ficha é de um contato só: trocar de conversa a fecha.
+    if (id !== conversaAtivaId) setFichaAberta(false)
     setAbertas((prev) => new Set(prev).add(id))
     setErroConversaId(null)
     marcarComoLidas(id).catch(() => {})
@@ -268,13 +276,51 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsu
     )
   }
 
+  function alternarCaixa() {
+    const proximo = !caixaRecolhida
+    setCaixaRecolhida(proximo)
+    gravarPreferencia(COOKIE_CAIXA_RECOLHIDA, proximo)
+  }
+
+  const totalNaoLidas = conversasComLeitura.reduce((soma, c) => soma + c.naoLidas, 0)
+
   const carregando = isPending && conversaAtivaId !== null && mensagensLocais[conversaAtivaId] === undefined
 
   return (
     <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 57px)" }}>
+      {caixaRecolhida ? (
+        <aside className="w-12 shrink-0 border-r flex flex-col items-center gap-2 py-2">
+          <button
+            type="button"
+            onClick={alternarCaixa}
+            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            aria-label="Expandir caixa de entrada"
+            title="Expandir caixa de entrada"
+          >
+            <PanelLeftOpen className="size-4" />
+          </button>
+          {totalNaoLidas > 0 && (
+            <span
+              className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground"
+              title={`${totalNaoLidas} mensagens não lidas`}
+            >
+              {totalNaoLidas > 99 ? "99+" : totalNaoLidas}
+            </span>
+          )}
+        </aside>
+      ) : (
       <aside className="w-80 shrink-0 border-r flex flex-col overflow-hidden">
-        <div className="px-4 py-3 border-b">
+        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b">
           <h1 className="text-sm font-semibold">Caixa de Entrada</h1>
+          <button
+            type="button"
+            onClick={alternarCaixa}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            aria-label="Recolher caixa de entrada"
+            title="Recolher caixa de entrada"
+          >
+            <PanelLeftClose className="size-4" />
+          </button>
         </div>
         <FiltrosCaixa
           conversas={conversasComLeitura}
@@ -288,6 +334,19 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsu
           onFimDaLista={handleCarregarMais}
         />
       </aside>
+      )}
+
+      {/* Ficha do contato: entre a lista e a conversa. */}
+      {fichaAberta && conversaAtiva && !ativaFoiExcluida && (
+        <PainelContato
+          key={conversaAtiva.id}
+          conversa={conversaAtiva}
+          conversaId={conversaAtiva.id}
+          onFechar={() => setFichaAberta(false)}
+          onConversaAtualizada={handleConversaAtualizada}
+          onNavegar={handleConversaClick}
+        />
+      )}
 
       <main className="flex-1 flex overflow-hidden">
         {ativaFoiExcluida ? (
@@ -314,9 +373,9 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsu
             atendentesTransferir={atendentesTransferir}
             onConversaAtualizada={handleConversaAtualizada}
             nomeUsuario={nomeUsuario}
-            onNavegar={handleConversaClick}
             etiquetasDisponiveis={etiquetasDisponiveis}
             mensagensRapidas={mensagensRapidas}
+            onAbrirFicha={() => setFichaAberta(true)}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
