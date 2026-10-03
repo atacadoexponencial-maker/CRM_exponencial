@@ -156,10 +156,13 @@ export const MOCK_CARDS_RECOMPRA: CardCliente[] = [
 
 export type EtapaEntrada =
   | "lead"
-  | "em_qualificacao"
+  | "sondagem"
   | "catalogo_enviado"
-  | "em_negociacao"
-  | "primeira_compra"
+  | "follow_catalogo"
+  | "negociacao"
+  | "nutricao"
+  | "ganho"
+  | "perdido"
 
 export interface CardLead {
   id: string
@@ -174,12 +177,15 @@ export interface CardLead {
   conversaId: string | null
 }
 
-export const ETAPAS_ENTRADA: { id: EtapaEntrada; label: string }[] = [
+export const ETAPAS_ENTRADA: { id: EtapaEntrada; label: string; alerta?: boolean }[] = [
   { id: "lead", label: "Lead" },
-  { id: "em_qualificacao", label: "Em Qualificação" },
+  { id: "sondagem", label: "Sondagem" },
   { id: "catalogo_enviado", label: "Catálogo Enviado" },
-  { id: "em_negociacao", label: "Em Negociação" },
-  { id: "primeira_compra", label: "Primeira Compra" },
+  { id: "follow_catalogo", label: "Follow do Catálogo" },
+  { id: "negociacao", label: "Negociação" },
+  { id: "nutricao", label: "Nutrição" },
+  { id: "ganho", label: "Ganho" },
+  { id: "perdido", label: "Perdido", alerta: true },
 ]
 
 export interface HistoricoEtapa {
@@ -208,7 +214,7 @@ export const MOCK_PAINEL_DATA: Record<string, { historico: HistoricoEtapa[]; not
   "4": {
     historico: [
       { deEtapa: "", etapa: "Lead", data: "18/05/2026 10:02" },
-      { deEtapa: "Lead", etapa: "Em Qualificação", data: "21/05/2026 14:35", responsavel: "Carlos" },
+      { deEtapa: "Lead", etapa: "Sondagem", data: "21/05/2026 14:35", responsavel: "Carlos" },
     ],
     notas: [
       { id: "n2", autor: "Carlos", texto: "Já tem CNPJ. Volume mensal estimado em R$ 3.000.", data: "21/05/2026" },
@@ -254,7 +260,7 @@ export const MOCK_CARDS_ENTRADA: CardLead[] = [
   {
     id: "4",
     contato: { nome: "Mercadinho da Esquina", telefone: "+55 31 90010-0123" },
-    etapa: "em_qualificacao",
+    etapa: "sondagem",
     atendente: "Carlos",
     tempoNaEtapa: "5 dias",
     dataEntradaEtapa: "24/05/2026",
@@ -265,7 +271,7 @@ export const MOCK_CARDS_ENTRADA: CardLead[] = [
   {
     id: "5",
     contato: { nome: "Hortifruti da Vila", telefone: "+55 11 86014-4567" },
-    etapa: "em_qualificacao",
+    etapa: "sondagem",
     atendente: "Fernanda",
     tempoNaEtapa: "1 semana",
     dataEntradaEtapa: "22/05/2026",
@@ -298,7 +304,7 @@ export const MOCK_CARDS_ENTRADA: CardLead[] = [
   {
     id: "8",
     contato: { nome: "Supermercado Família", telefone: "+55 62 85015-5678" },
-    etapa: "em_negociacao",
+    etapa: "negociacao",
     atendente: "Fernanda",
     tempoNaEtapa: "4 dias",
     dataEntradaEtapa: "25/05/2026",
@@ -309,7 +315,7 @@ export const MOCK_CARDS_ENTRADA: CardLead[] = [
   {
     id: "9",
     contato: { nome: "Distribuidora Norte", telefone: "+55 92 94006-6789" },
-    etapa: "em_negociacao",
+    etapa: "negociacao",
     atendente: "Carlos",
     tempoNaEtapa: "2 semanas",
     dataEntradaEtapa: "15/05/2026",
@@ -320,7 +326,7 @@ export const MOCK_CARDS_ENTRADA: CardLead[] = [
   {
     id: "10",
     contato: { nome: "Loja do Bairro", telefone: "+55 47 80020-0123" },
-    etapa: "primeira_compra",
+    etapa: "ganho",
     atendente: "Fernanda",
     tempoNaEtapa: "1 dia",
     dataEntradaEtapa: "28/05/2026",

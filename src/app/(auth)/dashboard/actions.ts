@@ -34,8 +34,10 @@ async function carregarDados(filtro: FiltroDashboard) {
     cardsQuery,
     supabase
       .from("contact_purchases")
-      .select("contact_id, data, valor")
-      .eq("workspace_id", perfil.workspace_id),
+      // B13-03: compra de contato na lixeira não conta; volta ao restaurar.
+      .select("contact_id, data, valor, contato:contacts!inner(excluido_em)")
+      .eq("workspace_id", perfil.workspace_id)
+      .is("contato.excluido_em", null),
   ])
 
   const cards = (cardsData ?? []) as CardRow[]

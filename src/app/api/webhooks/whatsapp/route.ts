@@ -4,6 +4,7 @@ import { processarAutomacoes } from "@/lib/automacoes"
 import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"
 import { transmitirMensagem } from "@/lib/whatsapp/realtime"
 import { escolherConversaDoNumero } from "@/lib/whatsapp/recebimento"
+import { tirarDaLixeira } from "@/lib/lixeira"
 
 // Valida a assinatura X-Hub-Signature-256 que a Meta envia em todo webhook.
 // Sem META_APP_SECRET configurado (ex.: ambiente de teste) a validação é pulada.
@@ -104,16 +105,22 @@ export async function POST(request: NextRequest) {
 
     let { data: contact } = await supabase
       .from("contacts")
-      .select("id")
+      .select("id, excluido_em")
       .eq("workspace_id", workspace_id)
       .eq("phone_number", phoneNumber)
       .single()
+
+    // B13-05: cliente na lixeira que escreve sai dela, com o histórico. Se falhar,
+    // a mensagem é gravada mesmo assim (fica escondida até restaurarem).
+    if (contact?.excluido_em) {
+      await tirarDaLixeira(supabase, workspace_id, contact.id).catch(() => {})
+    }
 
     if (!contact) {
       const { data: newContact, error } = await supabase
         .from("contacts")
         .insert({ workspace_id, phone_number: phoneNumber })
-        .select("id")
+        .select("id, excluido_em")
         .single()
       if (error || !newContact) return NextResponse.json({ error: "db error" }, { status: 500 })
       contact = newContact

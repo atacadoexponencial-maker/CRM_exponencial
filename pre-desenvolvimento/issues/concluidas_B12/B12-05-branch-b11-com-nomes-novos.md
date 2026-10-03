@@ -70,10 +70,10 @@ Nenhuma.
 
 ## Checklist
 
-- [ ] Branch sem commit novo desde `ffa26ab`
-- [ ] Merge da `master` com o conflito do README resolvido
-- [ ] Nomes trocados nos 4 arquivos do branch, em commit separado do merge
-- [ ] Busca por expans/retenc no branch: só `package-lock.json` e a ata de 30/09
-- [ ] `npx tsc --noEmit`, `npm run lint` e `npm run build` no branch
-- [ ] Push do branch e preview do protótipo abrindo
-- [ ] Mensagem para o Luan com o que mudou (Marcelle envia)
+- [x] Branch sem commit novo desde `ffa26ab` (conferido antes do merge e antes do push)
+- [x] Merge da `master` com o conflito do README resolvido (`c513132`)
+- [x] Nomes trocados nos 4 arquivos do branch, em commit separado do merge (`16a997d`)
+- [x] Busca por expans/retenc no branch: nos arquivos do Luan, só `package-lock.json` e a ata de 30/09; o resto é igual à `master` (redirect, migrations, spec, privacidade e documentos fora do escopo da spec)
+- [x] `npx tsc --noEmit`, `npm run lint` (3 avisos de sempre) e `npm run build` no branch
+- [x] Push do branch (`16a997d`) e preview publicado no Vercel com sucesso (02/10). Abrir o protótipo no preview exige login da Vercel — a conferência na tela fica com o Luan e a Marcelle no teste que já estava previsto.
+- [x] Mensagem para o Luan com o que mudou — texto entregue à Marcelle para ela enviar

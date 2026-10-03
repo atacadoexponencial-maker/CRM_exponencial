@@ -4,6 +4,7 @@
 // cliente autenticado de verdade no lugar do cliente baseado em cookies do SSR.
 
 import { createClient } from "@supabase/supabase-js"
+import { createHmac } from "node:crypto"
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest"
 
 vi.mock("@/integrations/supabase/server", () => ({
@@ -155,9 +156,7 @@ describe("Issue 27 — Marcar mensagens como lidas", () => {
 })
 
 function buildStatusPayload(phoneNumberId: string, wamid: string, status: string) {
-  return new NextRequest("http://localhost/api/webhooks/whatsapp", {
-    method: "POST",
-    body: JSON.stringify({
+  const corpo = JSON.stringify({
       object: "whatsapp_business_account",
       entry: [{
         changes: [{
@@ -168,8 +167,13 @@ function buildStatusPayload(phoneNumberId: string, wamid: string, status: string
           field: "messages",
         }],
       }],
-    }),
-    headers: { "Content-Type": "application/json" },
+    })
+  // Com META_APP_SECRET no ambiente a rota exige a assinatura da Meta; o teste assina como ela.
+  const assinatura = "sha256=" + createHmac("sha256", process.env.META_APP_SECRET ?? "").update(corpo).digest("hex")
+  return new NextRequest("http://localhost/api/webhooks/whatsapp", {
+    method: "POST",
+    body: corpo,
+    headers: { "Content-Type": "application/json", "x-hub-signature-256": assinatura },
   })
 }
 

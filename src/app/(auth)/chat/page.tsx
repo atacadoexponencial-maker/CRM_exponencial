@@ -1,4 +1,6 @@
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
+import { COOKIE_CAIXA_RECOLHIDA } from "@/lib/preferencias-layout"
 import { sessaoAtual } from "@/lib/sessao"
 import { ChatLayout } from "./components/chat-layout"
 import { listarConversas, TAMANHO_PAGINA_CONVERSAS } from "./conversas"
@@ -42,7 +44,7 @@ async function atendentesParaTransferir(
 export default async function ChatPage({ searchParams }: { searchParams: Promise<{ conversa?: string }> }) {
   // `searchParams` do Next não é uma Promise comum: aguardado à parte, como antes.
   const { conversa: conversaInicialId } = await searchParams
-  const { supabase, user, perfil } = await sessaoAtual()
+  const [{ supabase, user, perfil }, cookieStore] = await Promise.all([sessaoAtual(), cookies()])
   if (!user || !perfil) redirect("/login")
 
   const escopo = { workspaceId: perfil.workspace_id, papel: perfil.role, userId: user.id }
@@ -102,6 +104,7 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
       etiquetasDisponiveis={etiquetasDisponiveis}
       mensagensRapidas={mensagensRapidas}
       conversaInicialId={conversaInicialId ?? null}
+      caixaRecolhidaInicial={cookieStore.get(COOKIE_CAIXA_RECOLHIDA)?.value === "1"}
     />
   )
 }

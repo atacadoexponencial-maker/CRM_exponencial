@@ -16,6 +16,7 @@ import type { createServiceClient } from "@/integrations/supabase/service"
 import { processarAutomacoes } from "@/lib/automacoes"
 import { transmitirMensagem } from "./realtime"
 import { guardarMidiaRecebida, type MidiaDoEvento, type MidiaGuardada } from "./midia-recebida"
+import { tirarDaLixeira } from "@/lib/lixeira"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -301,12 +302,19 @@ async function acharOuCriarContato(
 ): Promise<string> {
   const { data: existente } = await supabase
     .from("contacts")
-    .select("id")
+    .select("id, excluido_em")
     .eq("workspace_id", workspaceId)
     .eq("phone_number", identificador)
     .maybeSingle()
 
-  if (existente) return existente.id
+  if (existente) {
+    // B13-05: cliente na lixeira que escreve sai dela, com o histórico. Se falhar,
+    // a mensagem é gravada mesmo assim (fica escondida até restaurarem).
+    if (existente.excluido_em) {
+      await tirarDaLixeira(supabase, workspaceId, existente.id).catch(() => {})
+    }
+    return existente.id
+  }
 
   const { data: criado, error } = await supabase
     .from("contacts")

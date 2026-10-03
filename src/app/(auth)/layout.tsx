@@ -1,5 +1,7 @@
+import { cookies } from "next/headers"
 import { sessaoAtual } from "@/lib/sessao"
 import { SidebarNav } from "@/components/shared/sidebar-nav"
+import { COOKIE_MENU_RECOLHIDO } from "@/lib/preferencias-layout"
 
 async function dadosDoUsuario(): Promise<{
   papel: "admin" | "gerente" | "atendente"
@@ -29,11 +31,12 @@ async function dadosDoUsuario(): Promise<{
 }
 
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
-  const { papel, nome, atrasados } = await dadosDoUsuario()
+  const [{ papel, nome, atrasados }, cookieStore] = await Promise.all([dadosDoUsuario(), cookies()])
+  const menuRecolhido = cookieStore.get(COOKIE_MENU_RECOLHIDO)?.value === "1"
 
   return (
     <div className="h-screen overflow-hidden flex flex-col lg:flex-row">
-      <SidebarNav papel={papel} nomeUsuario={nome} atrasados={atrasados} />
+      <SidebarNav papel={papel} nomeUsuario={nome} atrasados={atrasados} recolhidoInicial={menuRecolhido} />
       <main className="flex-1 min-w-0 flex flex-col overflow-y-auto">
         {children}
       </main>

@@ -69,9 +69,21 @@ describe("calcularAlertas", () => {
     expect(alertas[0].tipo).toBe("lead_sem_resposta")
   })
 
-  it("não gera alerta de lead para card em primeira_compra", () => {
-    const cards = [card({ id: "1", etapa: "primeira_compra", ultimaAtividade: "2026-05-01T10:00:00" })]
+  it("não gera alerta de lead para card em ganho", () => {
+    const cards = [card({ id: "1", etapa: "ganho", ultimaAtividade: "2026-05-01T10:00:00" })]
     expect(calcularAlertas(cards, CONFIG_ALERTAS_PADRAO, [], agora)).toHaveLength(0)
+  })
+
+  it("B14-02 — não gera alerta de lead para card em perdido no Funil de Entrada", () => {
+    const cards = [card({ id: "1", etapa: "perdido", ultimaAtividade: "2026-05-01T10:00:00" })]
+    expect(calcularAlertas(cards, CONFIG_ALERTAS_PADRAO, [], agora)).toHaveLength(0)
+  })
+
+  it("B14-02 — card em nutrição continua gerando alerta de lead sem resposta", () => {
+    const cards = [card({ id: "1", etapa: "nutricao", ultimaAtividade: "2026-05-01T10:00:00" })]
+    const alertas = calcularAlertas(cards, CONFIG_ALERTAS_PADRAO, [], agora)
+    expect(alertas).toHaveLength(1)
+    expect(alertas[0].etapaLabel).toBe("Nutrição")
   })
 
   it("gera alertas de recompra por tempo parado na etapa", () => {

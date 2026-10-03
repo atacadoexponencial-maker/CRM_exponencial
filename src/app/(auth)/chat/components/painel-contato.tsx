@@ -104,7 +104,7 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
   }
 
   return (
-    <aside className="w-72 shrink-0 border-l bg-background flex flex-col overflow-hidden">
+    <aside className="w-72 shrink-0 border-r bg-background flex flex-col overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
         <span className="text-sm font-semibold">Informações do contato</span>
         <button

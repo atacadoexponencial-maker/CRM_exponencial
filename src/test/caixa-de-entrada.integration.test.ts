@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { NextRequest } from "next/server"
+import { createHmac } from "node:crypto"
 
 vi.mock("@/integrations/supabase/service", () => ({
   createServiceClient: vi.fn(),
@@ -26,10 +27,13 @@ function buildWebhookPayload(phoneNumberId: string, from: string, body: string, 
 }
 
 function makeRequest(payload: unknown): NextRequest {
+  const corpo = JSON.stringify(payload)
+  // Com META_APP_SECRET no ambiente a rota exige a assinatura da Meta; o teste assina como ela.
+  const assinatura = "sha256=" + createHmac("sha256", process.env.META_APP_SECRET ?? "").update(corpo).digest("hex")
   return new NextRequest("http://localhost/api/webhooks/whatsapp", {
     method: "POST",
-    body: JSON.stringify(payload),
-    headers: { "Content-Type": "application/json" },
+    body: corpo,
+    headers: { "Content-Type": "application/json", "x-hub-signature-256": assinatura },
   })
 }
 

@@ -39,6 +39,12 @@ export async function processarAutomacoes(gatilho: GatilhoAutomacao): Promise<vo
   try {
     const supabase = createServiceClient()
 
+    // B13-03: nada dispara para contato na lixeira.
+    if (gatilho.contactId) {
+      const { data: naLixeira } = await supabase.rpc("contato_na_lixeira", { p_contact_id: gatilho.contactId })
+      if (naLixeira) return
+    }
+
     const { data } = await supabase
       .from("automations")
       .select("id, gatilho_tipo, gatilho_config, acao_tipo, acao_config")

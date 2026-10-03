@@ -73,10 +73,12 @@ export const TIPO_ALERTA_NUMERO_LABEL: Record<TipoAlertaDeNumero, string> = {
 
 const ETAPA_LABEL: Record<string, string> = {
   lead: "Lead",
-  em_qualificacao: "Em Qualificação",
+  sondagem: "Sondagem",
   catalogo_enviado: "Catálogo Enviado",
-  em_negociacao: "Em Negociação",
-  primeira_compra: "Primeira Compra",
+  follow_catalogo: "Follow do Catálogo",
+  negociacao: "Negociação",
+  nutricao: "Nutrição",
+  ganho: "Ganho",
   em_onboarding: "Em Onboarding",
   cliente_ativo: "Cliente Ativo",
   aguardando_recompra: "Aguardando Recompra",
@@ -118,7 +120,7 @@ export function calcularAlertas(
   for (const card of cards) {
     if (card.funil === "entrada") {
       // Lead sem resposta: lead ativo sem atividade na conversa há N dias
-      if (card.etapa === "primeira_compra") continue
+      if (card.etapa === "ganho" || card.etapa === "perdido") continue
       const referencia = card.ultimaAtividade ?? card.etapa_changed_at
       const dias = diasDesde(referencia, agora)
       if (dias >= config.leadSemRespostaDias) {

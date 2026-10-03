@@ -162,6 +162,7 @@ export function FunilEntrada({ cards, papel, atendentes }: FunilEntradaProps) {
                 titulo={etapa.label}
                 etapaId={etapa.id}
                 cards={cardsColuna}
+                alertaVisual={etapa.alerta}
                 onCardClick={(card) => setCardSelecionado(card as CardLead)}
                 onCardDrop={handleMoverCard}
               />

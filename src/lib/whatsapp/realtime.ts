@@ -19,7 +19,7 @@ export type MensagemTransmitida = {
   status: string | null
 }
 
-export async function transmitirMensagem(mensagem: MensagemTransmitida): Promise<void> {
+async function transmitir(workspaceId: string, event: string, payload: unknown): Promise<void> {
   await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/realtime/v1/api/broadcast`, {
     method: "POST",
     headers: {
@@ -28,11 +28,25 @@ export async function transmitirMensagem(mensagem: MensagemTransmitida): Promise
       "Authorization": `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
     },
     body: JSON.stringify({
-      messages: [{
-        topic: `workspace:${mensagem.workspace_id}`,
-        event: "nova_mensagem",
-        payload: mensagem,
-      }],
+      messages: [{ topic: `workspace:${workspaceId}`, event, payload }],
     }),
   })
+}
+
+export async function transmitirMensagem(mensagem: MensagemTransmitida): Promise<void> {
+  await transmitir(mensagem.workspace_id, "nova_mensagem", mensagem)
+}
+
+/**
+ * B13-02: o contato foi para a lixeira. A caixa de entrada aberta tira as
+ * conversas dele — as políticas do banco já as escondem, mas a tela aberta não
+ * relê sozinha.
+ */
+export async function transmitirContatoExcluido(workspaceId: string, contactId: string): Promise<void> {
+  await transmitir(workspaceId, "contato_excluido", { contact_id: contactId })
+}
+
+/** B13-05: o contato saiu da lixeira; a caixa de entrada aberta volta a mostrá-lo. */
+export async function transmitirContatoRestaurado(workspaceId: string, contactId: string): Promise<void> {
+  await transmitir(workspaceId, "contato_restaurado", { contact_id: contactId })
 }

@@ -30,21 +30,21 @@ describe("calcularMetricas", () => {
   it("conta novos leads no período e leads ativos agora", () => {
     const cards = [
       card({ id: "1", created_at: "2026-06-05T10:00:00" }),
-      card({ id: "2", created_at: "2026-06-20T10:00:00", etapa: "em_negociacao" }),
+      card({ id: "2", created_at: "2026-06-20T10:00:00", etapa: "negociacao" }),
       card({ id: "3", created_at: "2026-05-01T10:00:00" }), // fora do período
-      card({ id: "4", created_at: "2026-06-15T10:00:00", etapa: "primeira_compra" }),
+      card({ id: "4", created_at: "2026-06-15T10:00:00", etapa: "ganho" }),
     ]
 
     const m = calcularMetricas(cards, [], [], range)
 
     expect(m.entrada.novosLeads).toBe(3) // 1, 2 e 4
-    expect(m.entrada.leadsAtivos).toBe(3) // todos menos o que está em primeira_compra
+    expect(m.entrada.leadsAtivos).toBe(3) // todos menos o que está em ganho
   })
 
   it("calcula taxa de conversão e funil de passagem", () => {
     const cards = [
-      card({ id: "1", etapa: "primeira_compra" }),
-      card({ id: "2", etapa: "em_qualificacao" }),
+      card({ id: "1", etapa: "ganho" }),
+      card({ id: "2", etapa: "sondagem" }),
       card({ id: "3", etapa: "lead" }),
       card({ id: "4", etapa: "lead" }),
     ]
@@ -54,18 +54,59 @@ describe("calcularMetricas", () => {
     expect(m.conversao.taxaGeral).toBe(25) // 1 de 4
     expect(m.conversao.funil[0].quantidade).toBe(4) // todos passaram por Lead
     expect(m.conversao.funil[1].quantidade).toBe(2) // 1 e 2
-    expect(m.conversao.funil[4].quantidade).toBe(1)
+    expect(m.conversao.funil[5].quantidade).toBe(1) // Ganho
   })
 
   it("considera o histórico para cards que regrediram de etapa", () => {
     const cards = [card({ id: "1", etapa: "lead" })]
     const history: HistoryRow[] = [
-      { card_id: "1", para_etapa: "em_negociacao", created_at: "2026-06-12T10:00:00" },
+      { card_id: "1", para_etapa: "negociacao", created_at: "2026-06-12T10:00:00" },
     ]
 
     const m = calcularMetricas(cards, history, [], range)
 
-    expect(m.conversao.funil[3].quantidade).toBe(1) // atingiu Em Negociação via histórico
+    expect(m.conversao.funil[4].quantidade).toBe(1) // atingiu Negociação via histórico
+  })
+
+  it("B14-02 — gráfico de conversão tem 6 degraus, com Follow do Catálogo e sem Nutrição e Perdido", () => {
+    const m = calcularMetricas([card({ id: "1" })], [], [], range)
+    expect(m.conversao.funil.map((f) => f.etapa)).toEqual([
+      "lead", "sondagem", "catalogo_enviado", "follow_catalogo", "negociacao", "ganho",
+    ])
+  })
+
+  it("B14-02 — card em Perdido não conta como lead ativo", () => {
+    const cards = [
+      card({ id: "1", etapa: "perdido" }),
+      card({ id: "2", etapa: "nutricao" }),
+      card({ id: "3", etapa: "follow_catalogo" }),
+    ]
+    const m = calcularMetricas(cards, [], [], range)
+    expect(m.entrada.leadsAtivos).toBe(2) // Nutrição e Follow contam; Perdido não
+  })
+
+  it("B14-02 — card em Nutrição conta pelas etapas do histórico", () => {
+    const cards = [card({ id: "1", etapa: "nutricao" })]
+    const history: HistoryRow[] = [
+      { card_id: "1", para_etapa: "negociacao", created_at: "2026-06-12T10:00:00" },
+      { card_id: "1", para_etapa: "nutricao", created_at: "2026-06-14T10:00:00" },
+    ]
+    const m = calcularMetricas(cards, history, [], range)
+    expect(m.conversao.funil[4].quantidade).toBe(1) // chegou em Negociação
+    expect(m.conversao.funil[5].quantidade).toBe(0) // não chegou em Ganho
+  })
+
+  it("B14-02 — card que passou por Ganho e está em Perdido não conta como convertido", () => {
+    const cards = [card({ id: "1", etapa: "perdido" })]
+    const history: HistoryRow[] = [
+      { card_id: "1", para_etapa: "negociacao", created_at: "2026-06-12T10:00:00" },
+      { card_id: "1", para_etapa: "ganho", created_at: "2026-06-13T10:00:00" },
+      { card_id: "1", para_etapa: "perdido", created_at: "2026-06-14T10:00:00" },
+    ]
+    const m = calcularMetricas(cards, history, [], range)
+    expect(m.conversao.funil[4].quantidade).toBe(1) // os degraus anteriores contam
+    expect(m.conversao.funil[5].quantidade).toBe(0)
+    expect(m.conversao.taxaGeral).toBe(0)
   })
 
   it("calcula métricas de recompra e taxa de recompra", () => {
@@ -124,7 +165,7 @@ describe("calcularPerformanceVendedores", () => {
       { id: "u2", nome: "Bruno" },
     ]
     const cards = [
-      card({ id: "1", atendente_id: "u1", etapa: "primeira_compra", created_at: "2026-06-05T10:00:00" }),
+      card({ id: "1", atendente_id: "u1", etapa: "ganho", created_at: "2026-06-05T10:00:00" }),
       card({ id: "2", atendente_id: "u1", etapa: "lead", created_at: "2026-06-06T10:00:00" }),
       card({ id: "r1", atendente_id: "u1", funil: "recompra", etapa: "cliente_ativo" }),
       card({ id: "3", atendente_id: "u2", etapa: "lead", created_at: "2026-06-07T10:00:00" }),

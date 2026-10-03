@@ -48,6 +48,10 @@ export async function iniciarExecucaoSequencia(
     atendenteId: string | null
   }
 ): Promise<{ erro?: string }> {
+  // B13-03: contato na lixeira não inicia sequência.
+  const { data: naLixeira } = await supabase.rpc("contato_na_lixeira", { p_contact_id: params.contactId })
+  if (naLixeira) return { erro: "Contato não encontrado" }
+
   // Não inicia a mesma sequência duas vezes enquanto há execução em andamento
   const { data: existente } = await supabase
     .from("sequence_runs")
@@ -164,6 +168,16 @@ export async function processarSequenciasPendentes(): Promise<number> {
 
   for (const run of runs ?? []) {
     try {
+      // B13-03: contato foi para a lixeira — encerra sem enviar nem criar lembrete.
+      const { data: naLixeira } = await supabase.rpc("contato_na_lixeira", { p_contact_id: run.contact_id })
+      if (naLixeira) {
+        await supabase
+          .from("sequence_runs")
+          .update({ status: "cancelada", proxima_execucao: null, finished_at: agora })
+          .eq("id", run.id)
+        continue
+      }
+
       const { data: stepsData } = await supabase
         .from("sequence_steps")
         .select("id, ordem, tipo, prazo_dias, conteudo, instrucao")

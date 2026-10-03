@@ -362,6 +362,8 @@ export type Database = {
           cidade: string | null
           classificacao: string
           created_at: string
+          excluido_em: string | null
+          excluido_por: string | null
           icp: string | null
           id: string
           name: string | null
@@ -376,6 +378,8 @@ export type Database = {
           cidade?: string | null
           classificacao?: string
           created_at?: string
+          excluido_em?: string | null
+          excluido_por?: string | null
           icp?: string | null
           id?: string
           name?: string | null
@@ -390,6 +394,8 @@ export type Database = {
           cidade?: string | null
           classificacao?: string
           created_at?: string
+          excluido_em?: string | null
+          excluido_por?: string | null
           icp?: string | null
           id?: string
           name?: string | null
@@ -403,6 +409,13 @@ export type Database = {
           {
             foreignKeyName: "contacts_atendente_id_fkey"
             columns: ["atendente_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_excluido_por_fkey"
+            columns: ["excluido_por"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1381,6 +1394,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apagar_contato_de_vez: {
+        Args: { p_contact_id: string }
+        Returns: boolean
+      }
+      contato_na_lixeira: { Args: { p_contact_id: string }; Returns: boolean }
+      conversa_na_lixeira: {
+        Args: { p_conversation_id: string }
+        Returns: boolean
+      }
       get_auth_user_workspace_id: { Args: never; Returns: string }
     }
     Enums: {

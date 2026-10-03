@@ -137,7 +137,7 @@ export const REGRAS_EXEMPLO: RegraExemplo[] = [
           id: "g1",
           tipo: "gatilho",
           gatilho: "card_movido",
-          parametros: { funil: "entrada", etapa: "em_qualificacao" },
+          parametros: { funil: "entrada", etapa: "sondagem" },
           posicao: { x: 0, y: 0 },
         },
         { id: "a1", tipo: "acao", acao: "atribuir_time", parametros: { time_id: "time-entrada" }, posicao: { x: 0, y: 160 } },

@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/campanhas",
       "schedule": "30 11 * * *"
+    },
+    {
+      "path": "/api/cron/lixeira",
+      "schedule": "0 6 * * *"
     }
   ]
 }

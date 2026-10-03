@@ -4,13 +4,16 @@ import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import { processarAutomacoes } from "@/lib/automacoes"
 import { processarGatilhoSequencia } from "@/lib/sequencias"
+import { createServiceClient } from "@/integrations/supabase/service"
+import { tirarDaLixeira } from "@/lib/lixeira"
 import { type CardLead, type EtapaEntrada, type CardCliente, type EtapaRecompra, type HistoricoEtapa, type NotaInterna } from "./mock-pipeline"
 
 function calcularTempoNaEtapa(etapaChangedAt: string): string {
   const agora = new Date()
   const mudou = new Date(etapaChangedAt)
   const diffMs = agora.getTime() - mudou.getTime()
-  const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  // O relógio do banco pode estar milissegundos à frente do servidor; card recém-criado é "Hoje", nunca "-1 dias".
+  const diffDias = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)))
 
   if (diffDias === 0) return "Hoje"
   if (diffDias === 1) return "1 dia"
@@ -89,6 +92,14 @@ export async function criarNovoLead(telefone: string, nome: string | null): Prom
 
   if (contatoError || !contato) throw new Error("Erro ao criar ou localizar contato")
 
+  // B13-05: telefone de contato na lixeira traz o contato de volta, com o
+  // histórico. Antes do card: card de contato na lixeira nasceria invisível.
+  try {
+    await tirarDaLixeira(createServiceClient(), profile.workspace_id, contato.id)
+  } catch {
+    throw new Error("Erro ao criar ou localizar contato")
+  }
+
   const { data: novoCard, error: cardError } = await supabase
     .from("pipeline_cards")
     .insert({
@@ -164,7 +175,7 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
       })
   }
 
-  if (novaEtapa === "primeira_compra" && card.contact_id && card.workspace_id) {
+  if (novaEtapa === "ganho" && card.contact_id && card.workspace_id) {
     const { data: existente } = await supabase
       .from("pipeline_cards")
       .select("id")

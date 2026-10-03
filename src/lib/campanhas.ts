@@ -167,13 +167,16 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
   // Nome do vendedor por contato (variável {{nome_vendedor}})
   const contactIds = lote.map((r) => r.contact_id).filter(Boolean) as string[]
   const vendedorPorContato: Record<string, string> = {}
+  // B13-03: contato que foi para a lixeira depois da confirmação não recebe.
+  const naLixeira = new Set<string>()
   if (contactIds.length > 0) {
     const { data: contatos } = await supabase
       .from("contacts")
-      .select("id, atendente:profiles!contacts_atendente_id_fkey(name)")
+      .select("id, excluido_em, atendente:profiles!contacts_atendente_id_fkey(name)")
       .in("id", contactIds)
-    for (const c of (contatos ?? []) as unknown as Array<{ id: string; atendente: { name: string } | null }>) {
+    for (const c of (contatos ?? []) as unknown as Array<{ id: string; excluido_em: string | null; atendente: { name: string } | null }>) {
       if (c.atendente?.name) vendedorPorContato[c.id] = c.atendente.name
+      if (c.excluido_em) naLixeira.add(c.id)
     }
   }
 
@@ -189,6 +192,14 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
       .maybeSingle()
 
     if (atual?.status !== "enviando") return enviados
+
+    if (destinatario.contact_id && naLixeira.has(destinatario.contact_id)) {
+      await supabase
+        .from("campaign_recipients")
+        .update({ status: "excluido", atualizado_em: new Date().toISOString() })
+        .eq("id", destinatario.id)
+      continue
+    }
 
     const nomeVendedor = destinatario.contact_id
       ? (vendedorPorContato[destinatario.contact_id] ?? "")

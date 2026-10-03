@@ -2,9 +2,12 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Search, ChevronDown, Loader2 } from "lucide-react"
+import Link from "next/link"
+import { Search, ChevronDown, Loader2, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NovoContatoDialog } from "./novo-contato-dialog"
+import { DialogoExcluirContato } from "./dialogo-excluir-contato"
+import { resumoExclusaoContato, excluirContato, type ResumoExclusao } from "../lixeira/actions"
 import { listarContatos } from "../actions"
 import {
   type Contato,
@@ -63,9 +66,11 @@ interface ListaContatosProps {
   /** A primeira página veio cheia: há mais no servidor (B10-06). */
   temMais?: boolean
   papel: string
+  /** B13-04: quantos contatos o usuário vê na lixeira. */
+  totalLixeira?: number
 }
 
-export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInicial = false, papel }: ListaContatosProps) {
+export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInicial = false, papel, totalLixeira = 0 }: ListaContatosProps) {
   const router = useRouter()
   const [busca, setBusca] = useState("")
 
@@ -108,7 +113,44 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
     }
   }
 
-  const contatos = resultadoBusca ?? paginas
+  // B13-02: contatos excluídos nesta tela somem na hora, sem recarregar a lista.
+  const [excluidos, setExcluidos] = useState<Set<string>>(new Set())
+  const [resumoExclusao, setResumoExclusao] = useState<ResumoExclusao | null>(null)
+  const [preparandoExclusao, setPreparandoExclusao] = useState<string | null>(null)
+  const [excluindo, setExcluindo] = useState(false)
+  const [erroExclusao, setErroExclusao] = useState<string | null>(null)
+
+  function abrirExclusao(contactId: string) {
+    setErroExclusao(null)
+    setPreparandoExclusao(contactId)
+    resumoExclusaoContato(contactId)
+      .then((r) => {
+        if ("erro" in r) setErroExclusao(r.erro)
+        else setResumoExclusao(r.resumo)
+      })
+      .catch(() => setErroExclusao("Não foi possível excluir. Tente de novo."))
+      .finally(() => setPreparandoExclusao(null))
+  }
+
+  function confirmarExclusao() {
+    if (!resumoExclusao) return
+    const id = resumoExclusao.contactId
+    setExcluindo(true)
+    setErroExclusao(null)
+    excluirContato(id)
+      .then((r) => {
+        if ("erro" in r) { setErroExclusao(r.erro); return }
+        setExcluidos((prev) => new Set(prev).add(id))
+        setResumoExclusao(null)
+      })
+      .catch(() => setErroExclusao("Não foi possível excluir. Tente de novo."))
+      .finally(() => setExcluindo(false))
+  }
+
+  const contatos = useMemo(
+    () => (resultadoBusca ?? paginas).filter((c) => !excluidos.has(c.id)),
+    [resultadoBusca, paginas, excluidos]
+  )
   const [classificacao, setClassificacao] = useState<ClassificacaoContato | "todas">("todas")
   const [tipo, setTipo] = useState<TipoContato | "todos">("todos")
   const [nicho, setNicho] = useState<string | null>(null)
@@ -156,7 +198,16 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">Contatos</h1>
-        {papel !== "atendente" && <NovoContatoDialog />}
+        <div className="flex items-center gap-3">
+          <Link
+            href="/contatos/lixeira"
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <Trash2 className="size-3.5" aria-hidden />
+            Lixeira ({totalLixeira + excluidos.size})
+          </Link>
+          {papel !== "atendente" && <NovoContatoDialog />}
+        </div>
       </div>
 
       {/* Barra de ferramentas */}
@@ -326,6 +377,7 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
                 {papel !== "atendente" && (
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Atendente</th>
                 )}
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -353,11 +405,43 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
                   {papel !== "atendente" && (
                     <td className="px-4 py-3 text-muted-foreground">{contato.atendente ?? "—"}</td>
                   )}
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      aria-label={`Excluir ${contato.nome}`}
+                      disabled={preparandoExclusao === contato.id}
+                      onClick={(e) => { e.stopPropagation(); abrirExclusao(contato.id) }}
+                      className="inline-flex size-7 items-center justify-center rounded-md text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                    >
+                      {preparandoExclusao === contato.id
+                        ? <Loader2 className="size-3.5 animate-spin" />
+                        : <Trash2 className="size-3.5" />}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {erroExclusao && !resumoExclusao && (
+        <p className="mt-3 text-xs text-destructive">{erroExclusao}</p>
+      )}
+
+      {resumoExclusao && (
+        <DialogoExcluirContato
+          aberto
+          onAbertoChange={(aberto) => { if (!aberto) { setResumoExclusao(null); setErroExclusao(null) } }}
+          nome={resumoExclusao.nome}
+          telefone={resumoExclusao.telefone}
+          funis={resumoExclusao.funis}
+          conversas={resumoExclusao.conversas}
+          mensagens={resumoExclusao.mensagens}
+          erro={erroExclusao}
+          excluindo={excluindo}
+          onConfirmar={confirmarExclusao}
+        />
       )}
 
       {buscando && (

@@ -27,6 +27,8 @@ const STATUS_LABEL: Record<string, string> = {
   entregue: "Entregue",
   lido: "Lido",
   falhou: "Falhou",
+  // B13-03: o contato foi para a lixeira antes de a mensagem sair.
+  excluido: "Excluído",
 }
 
 /** De quanto em quanto tempo o progresso se atualiza sozinho, em ms. */
@@ -39,6 +41,7 @@ const STATUS_CLASS: Record<string, string> = {
   entregue: "bg-teal-500/10 text-teal-600",
   lido: "bg-green-500/10 text-green-600",
   falhou: "bg-red-500/10 text-red-600",
+  excluido: "bg-secondary text-muted-foreground",
 }
 
 export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCampanha }) {

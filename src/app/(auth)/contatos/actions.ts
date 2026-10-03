@@ -4,6 +4,8 @@ import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import type { Contato, ContatoPerfil, ClassificacaoContato, TipoContato, ICP } from "./mock-contatos"
 import { calcularClassificacao } from "./classificacao"
+import { createServiceClient } from "@/integrations/supabase/service"
+import { tirarDaLixeira } from "@/lib/lixeira"
 
 const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, nicho, cidade, created_at, profiles!contacts_atendente_id_fkey(name)"
 
@@ -43,6 +45,8 @@ export async function verificarNumeroDuplicado(telefone: string): Promise<boolea
     .select("id", { count: "exact", head: true })
     .eq("workspace_id", profile.workspace_id)
     .eq("phone_number", telefone)
+    // B13-05: telefone de contato na lixeira não é "já cadastrado" — criar o restaura.
+    .is("excluido_em", null)
 
   return (count ?? 0) > 0
 }
@@ -67,6 +71,24 @@ export async function criarContato(dados: {
 
   if (!profile) return { erro: "Perfil não encontrado" }
   if (profile.role === "atendente") return { erro: "Sem permissão para criar contatos" }
+
+  // B13-05: telefone de contato na lixeira restaura o contato antigo, com o
+  // histórico (os dados antigos ficam), em vez de criar outro.
+  const { data: naLixeira } = await supabase
+    .from("contacts")
+    .select("id")
+    .eq("workspace_id", profile.workspace_id)
+    .eq("phone_number", dados.telefone)
+    .not("excluido_em", "is", null)
+    .maybeSingle()
+  if (naLixeira) {
+    try {
+      await tirarDaLixeira(createServiceClient(), profile.workspace_id, naLixeira.id)
+    } catch {
+      return { erro: "Erro ao criar contato. Tente novamente." }
+    }
+    return { id: naLixeira.id }
+  }
 
   const { data, error } = await supabase
     .from("contacts")
@@ -101,10 +123,13 @@ const ETAPA_RECOMPRA_LABEL: Record<string, string> = {
 
 const ETAPA_ENTRADA_LABEL: Record<string, string> = {
   lead: "Lead",
-  em_qualificacao: "Em Qualificação",
+  sondagem: "Sondagem",
   catalogo_enviado: "Catálogo Enviado",
-  em_negociacao: "Em Negociação",
-  primeira_compra: "Primeira Compra",
+  follow_catalogo: "Follow do Catálogo",
+  negociacao: "Negociação",
+  nutricao: "Nutrição",
+  ganho: "Ganho",
+  perdido: "Perdido",
 }
 
 
@@ -122,10 +147,12 @@ function formatarDataEvento(iso: string): string {
 
 const ETAPA_LABEL_ALL: Record<string, string> = {
   lead: "Lead",
-  em_qualificacao: "Em Qualificação",
+  sondagem: "Sondagem",
   catalogo_enviado: "Catálogo Enviado",
-  em_negociacao: "Em Negociação",
-  primeira_compra: "Primeira Compra",
+  follow_catalogo: "Follow do Catálogo",
+  negociacao: "Negociação",
+  nutricao: "Nutrição",
+  ganho: "Ganho",
   em_onboarding: "Em Onboarding",
   cliente_ativo: "Cliente Ativo",
   aguardando_recompra: "Aguardando Recompra",
@@ -146,6 +173,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
       .from("contacts")
       .select(PERFIL_SELECT)
       .eq("id", id)
+      .is("excluido_em", null)
       .single(),
     supabase
       .from("pipeline_cards")
@@ -370,7 +398,7 @@ export async function listarContatos(opcoes: OpcoesListagemContatos = {}): Promi
 
   if (profile.role === "admin" || profile.role === "gerente") {
     const { data } = await aplicarOpcoes(
-      supabase.from("contacts").select(CONTACT_SELECT).eq("workspace_id", profile.workspace_id),
+      supabase.from("contacts").select(CONTACT_SELECT).eq("workspace_id", profile.workspace_id).is("excluido_em", null),
       opcoes
     )
 
@@ -397,7 +425,7 @@ export async function listarContatos(opcoes: OpcoesListagemContatos = {}): Promi
   if (contactIds.length === 0) return []
 
   const { data } = await aplicarOpcoes(
-    supabase.from("contacts").select(CONTACT_SELECT).in("id", contactIds),
+    supabase.from("contacts").select(CONTACT_SELECT).in("id", contactIds).is("excluido_em", null),
     opcoes
   )
 

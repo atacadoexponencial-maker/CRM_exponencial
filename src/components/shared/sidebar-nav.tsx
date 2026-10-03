@@ -15,6 +15,8 @@ import {
   Menu,
   MessageSquare,
   MessageSquareText,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plug,
   Tags,
   FileBadge,
@@ -25,6 +27,7 @@ import {
   Zap,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { COOKIE_MENU_RECOLHIDO, gravarPreferencia } from "@/lib/preferencias-layout"
 
 type Papel = "admin" | "gerente" | "atendente"
 
@@ -90,19 +93,25 @@ function montarSecoes(atrasados: number): SecaoNav[] {
 function ItemLink({
   item,
   ativo,
+  recolhido,
   onNavegar,
 }: {
   item: ItemNav
   ativo: boolean
+  recolhido?: boolean
   onNavegar?: () => void
 }) {
   const Icone = item.icone
+  const temBadge = (item.badge ?? 0) > 0
   return (
     <Link
       href={item.href}
       onClick={onNavegar}
+      title={recolhido ? item.label : undefined}
+      aria-label={recolhido ? item.label : undefined}
       className={cn(
         "group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+        recolhido && "justify-center px-0 py-2",
         ativo
           ? "bg-primary/10 text-primary font-medium"
           : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
@@ -112,8 +121,12 @@ function ItemLink({
         <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 rounded-full bg-primary" />
       )}
       <Icone className={cn("size-4 shrink-0", ativo ? "text-primary" : "text-muted-foreground/70 group-hover:text-foreground")} />
-      <span className="truncate">{item.label}</span>
-      {(item.badge ?? 0) > 0 && (
+      {recolhido ? (
+        temBadge && <span className="absolute top-1 right-2 h-2 w-2 rounded-full bg-destructive" />
+      ) : (
+        <span className="truncate">{item.label}</span>
+      )}
+      {!recolhido && temBadge && (
         <span className="ml-auto flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-white">
           {item.badge! > 9 ? "9+" : item.badge}
         </span>
@@ -127,8 +140,15 @@ function ConteudoNav({
   nomeUsuario,
   atrasados,
   pathname,
+  recolhido = false,
+  onAlternar,
   onNavegar,
-}: SidebarNavProps & { pathname: string; onNavegar?: () => void }) {
+}: SidebarNavProps & {
+  pathname: string
+  recolhido?: boolean
+  onAlternar?: () => void
+  onNavegar?: () => void
+}) {
   const secoes = montarSecoes(atrasados)
 
   function visivel(item: ItemNav) {
@@ -143,16 +163,31 @@ function ConteudoNav({
   return (
     <div className="flex h-full flex-col">
       {/* Marca */}
-      <Link
-        href="/dashboard"
-        onClick={onNavegar}
-        className="flex items-center gap-2.5 px-4 h-14 border-b shrink-0"
-      >
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Zap className="size-4" />
-        </span>
-        <span className="font-semibold text-sm tracking-tight">CRM Exponencial</span>
-      </Link>
+      <div className={cn("flex items-center h-14 border-b shrink-0", recolhido ? "justify-center" : "px-4 gap-2")}>
+        {!recolhido && (
+          <Link
+            href="/dashboard"
+            onClick={onNavegar}
+            className="flex flex-1 min-w-0 items-center gap-2.5"
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Zap className="size-4" />
+            </span>
+            <span className="font-semibold text-sm tracking-tight truncate">CRM Exponencial</span>
+          </Link>
+        )}
+        {onAlternar && (
+          <button
+            type="button"
+            onClick={onAlternar}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            aria-label={recolhido ? "Expandir menu" : "Recolher menu"}
+            title={recolhido ? "Expandir menu" : "Recolher menu"}
+          >
+            {recolhido ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+          </button>
+        )}
+      </div>
 
       {/* Seções */}
       <nav className="flex-1 overflow-y-auto px-2.5 py-3 flex flex-col gap-4">
@@ -161,13 +196,13 @@ function ConteudoNav({
           if (itens.length === 0) return null
           return (
             <div key={i} className="flex flex-col gap-0.5">
-              {secao.titulo && (
+              {secao.titulo && !recolhido && (
                 <span className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                   {secao.titulo}
                 </span>
               )}
               {itens.map((item) => (
-                <ItemLink key={item.href} item={item} ativo={ehAtivo(item.href)} onNavegar={onNavegar} />
+                <ItemLink key={item.href} item={item} ativo={ehAtivo(item.href)} recolhido={recolhido} onNavegar={onNavegar} />
               ))}
             </div>
           )
@@ -179,33 +214,45 @@ function ConteudoNav({
         <Link
           href="/perfil"
           onClick={onNavegar}
+          title={recolhido ? "Meu perfil" : undefined}
+          aria-label={recolhido ? "Meu perfil" : undefined}
           className={cn(
             "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors",
+            recolhido && "justify-center px-0",
             ehAtivo("/perfil")
               ? "bg-primary/10 text-primary font-medium"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
           )}
         >
           <UserCircle className="size-5 shrink-0" />
-          <span className="flex flex-col min-w-0">
-            <span className="truncate font-medium text-foreground text-xs">{nomeUsuario}</span>
-            <span className="text-[11px] text-muted-foreground">Meu perfil</span>
-          </span>
+          {!recolhido && (
+            <span className="flex flex-col min-w-0">
+              <span className="truncate font-medium text-foreground text-xs">{nomeUsuario}</span>
+              <span className="text-[11px] text-muted-foreground">Meu perfil</span>
+            </span>
+          )}
         </Link>
       </div>
     </div>
   )
 }
 
-export function SidebarNav(props: SidebarNavProps) {
+export function SidebarNav({ recolhidoInicial = false, ...props }: SidebarNavProps & { recolhidoInicial?: boolean }) {
   const pathname = usePathname()
   const [aberto, setAberto] = useState(false)
+  const [recolhido, setRecolhido] = useState(recolhidoInicial)
+
+  function alternarRecolhido() {
+    const proximo = !recolhido
+    setRecolhido(proximo)
+    gravarPreferencia(COOKIE_MENU_RECOLHIDO, proximo)
+  }
 
   return (
     <>
       {/* Sidebar fixa (desktop) */}
-      <aside className="hidden lg:flex w-60 shrink-0 border-r bg-background flex-col">
-        <ConteudoNav {...props} pathname={pathname} />
+      <aside className={cn("hidden lg:flex shrink-0 border-r bg-background flex-col", recolhido ? "w-14" : "w-60")}>
+        <ConteudoNav {...props} pathname={pathname} recolhido={recolhido} onAlternar={alternarRecolhido} />
       </aside>
 
       {/* Barra superior + drawer (mobile) */}
