@@ -125,8 +125,11 @@ const ETAPA_ENTRADA_LABEL: Record<string, string> = {
   lead: "Lead",
   sondagem: "Sondagem",
   catalogo_enviado: "Catálogo Enviado",
+  follow_catalogo: "Follow do Catálogo",
   negociacao: "Negociação",
+  nutricao: "Nutrição",
   ganho: "Ganho",
+  perdido: "Perdido",
 }
 
 
@@ -146,7 +149,9 @@ const ETAPA_LABEL_ALL: Record<string, string> = {
   lead: "Lead",
   sondagem: "Sondagem",
   catalogo_enviado: "Catálogo Enviado",
+  follow_catalogo: "Follow do Catálogo",
   negociacao: "Negociação",
+  nutricao: "Nutrição",
   ganho: "Ganho",
   em_onboarding: "Em Onboarding",
   cliente_ativo: "Cliente Ativo",

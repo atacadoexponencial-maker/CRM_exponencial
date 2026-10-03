@@ -158,8 +158,11 @@ export type EtapaEntrada =
   | "lead"
   | "sondagem"
   | "catalogo_enviado"
+  | "follow_catalogo"
   | "negociacao"
+  | "nutricao"
   | "ganho"
+  | "perdido"
 
 export interface CardLead {
   id: string
@@ -174,12 +177,15 @@ export interface CardLead {
   conversaId: string | null
 }
 
-export const ETAPAS_ENTRADA: { id: EtapaEntrada; label: string }[] = [
+export const ETAPAS_ENTRADA: { id: EtapaEntrada; label: string; alerta?: boolean }[] = [
   { id: "lead", label: "Lead" },
   { id: "sondagem", label: "Sondagem" },
   { id: "catalogo_enviado", label: "Catálogo Enviado" },
+  { id: "follow_catalogo", label: "Follow do Catálogo" },
   { id: "negociacao", label: "Negociação" },
+  { id: "nutricao", label: "Nutrição" },
   { id: "ganho", label: "Ganho" },
+  { id: "perdido", label: "Perdido", alerta: true },
 ]
 
 export interface HistoricoEtapa {

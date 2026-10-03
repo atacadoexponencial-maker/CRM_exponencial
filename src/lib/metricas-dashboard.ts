@@ -68,9 +68,13 @@ const ETAPAS_FUNIL: Array<{ id: string; label: string }> = [
   { id: "lead", label: "Lead" },
   { id: "sondagem", label: "Sondagem" },
   { id: "catalogo_enviado", label: "Catálogo Enviado" },
+  { id: "follow_catalogo", label: "Follow do Catálogo" },
   { id: "negociacao", label: "Negociação" },
   { id: "ganho", label: "Ganho" },
 ]
+
+// Nutrição e Perdido não são degraus da conversão: o card nelas conta pelas etapas do histórico.
+const ETAPA_GANHO_IDX = ETAPAS_FUNIL.length - 1
 
 const ETAPAS_RECOMPRA_ATIVAS = ["em_onboarding", "cliente_ativo", "aguardando_recompra", "recompra_realizada"]
 
@@ -133,7 +137,7 @@ export function calcularMetricas(
 
   // ── Entrada de Leads ──────────────────────────────────────────────
   const novosLeadsCards = entrada.filter((c) => noPeriodo(c.created_at))
-  const leadsAtivos = entrada.filter((c) => c.etapa !== "ganho").length
+  const leadsAtivos = entrada.filter((c) => c.etapa !== "ganho" && c.etapa !== "perdido").length
 
   // Buckets semanais do período
   const leadsPorSemana: Array<{ label: string; valor: number }> = []
@@ -156,6 +160,8 @@ export function calcularMetricas(
   // ── Conversão ─────────────────────────────────────────────────────
   const indiceEtapa = new Map(ETAPAS_FUNIL.map((e, i) => [e.id, i]))
   function atingiuEtapa(card: CardRow, etapaIdx: number): boolean {
+    // Card em Perdido nunca conta como convertido, mesmo que já tenha passado por Ganho.
+    if (card.etapa === "perdido" && etapaIdx === ETAPA_GANHO_IDX) return false
     const atual = indiceEtapa.get(card.etapa) ?? 0
     if (atual >= etapaIdx) return true
     return (historyPorCard.get(card.id) ?? []).some(
@@ -269,6 +275,7 @@ export function calcularPerformanceVendedores(
     const convertidos = entrada.filter(
       (c) =>
         noPeriodo(c.created_at) &&
+        c.etapa !== "perdido" &&
         (c.etapa === "ganho" ||
           history.some((h) => h.card_id === c.id && h.para_etapa === "ganho"))
     ).length
