@@ -105,4 +105,4 @@ para escolha nos gatilhos e ações das automações e com o nome certo no perfi
 - [x] Testes novos e existentes passando
 - [x] `npm run build` e `npm run lint` passam
 - [x] Conferência visual: `next start` + Playwright com workspace temporário — 8 colunas, Perdido destacado, mover para Follow/Nutrição/Perdido e de volta, dashboard com 6 degraus (03/10: alerta some em Perdido e volta ao sair; nada criado na Recompra; timeline do perfil com os nomes novos; workspaces apagados)
-- [ ] Commit + push; deploy Ready
+- [x] Commit + push (`7a14c31`); deploy Ready (03/10)
