@@ -1,3 +1,6 @@
+/** Cor da coluna no quadro (Funil de Recompra, B15-02). */
+export type CorColuna = "verde" | "amarelo" | "cinza" | "laranja" | "vermelho"
+
 export type EtapaRecompra =
   | "onboarding"
   | "reposicao"
@@ -20,14 +23,14 @@ export interface CardCliente {
   conversaId: string | null
 }
 
-export const ETAPAS_RECOMPRA: { id: EtapaRecompra; label: string; alerta: boolean }[] = [
-  { id: "onboarding", label: "Onboarding", alerta: false },
-  { id: "reposicao", label: "Reposição", alerta: false },
-  { id: "ativos", label: "Ativos", alerta: false },
-  { id: "ativos_ri", label: "Ativos RI", alerta: true },
-  { id: "inativos", label: "Inativos", alerta: true },
-  { id: "inativos_rp", label: "Inativos RP", alerta: true },
-  { id: "perdidos", label: "Perdidos", alerta: true },
+export const ETAPAS_RECOMPRA: { id: EtapaRecompra; label: string; cor?: CorColuna }[] = [
+  { id: "onboarding", label: "Onboarding" },
+  { id: "reposicao", label: "Reposição" },
+  { id: "ativos", label: "Ativos", cor: "verde" },
+  { id: "ativos_ri", label: "Ativos RI", cor: "amarelo" },
+  { id: "inativos", label: "Inativos", cor: "cinza" },
+  { id: "inativos_rp", label: "Inativos RP", cor: "laranja" },
+  { id: "perdidos", label: "Perdidos", cor: "vermelho" },
 ]
 
 export const MOCK_CARDS_RECOMPRA: CardCliente[] = [

@@ -145,7 +145,7 @@ export function FunilRecompra({ cards, papel, atendentes }: FunilRecompraProps) 
                 titulo={etapa.label}
                 etapaId={etapa.id}
                 cards={cardsColuna}
-                alertaVisual={etapa.alerta}
+                cor={etapa.cor}
                 mensagemVazia="Nenhum cliente nesta etapa"
                 onCardClick={(card) => setCardSelecionado(card as CardCliente)}
                 onCardDrop={handleMoverCard}
