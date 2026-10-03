@@ -3,7 +3,14 @@
 import { MessageSquare } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import type { CardLead, CardCliente } from "../mock-pipeline"
+import { ETAPAS_RECOMPRA, type CardLead, type CardCliente, type CorColuna } from "../mock-pipeline"
+
+// Cards das colunas de risco da Recompra levam a cor da coluna (B15-02). Classes inteiras para o Tailwind.
+const DESTAQUE_RISCO: Partial<Record<CorColuna, string>> = {
+  amarelo: "border-l-2 border-l-yellow-500 bg-yellow-500/5",
+  cinza: "border-l-2 border-l-zinc-400 bg-zinc-400/5",
+  laranja: "border-l-2 border-l-orange-500 bg-orange-500/5",
+}
 
 interface CardLeadProps {
   card: CardLead | CardCliente
@@ -13,6 +20,7 @@ interface CardLeadProps {
 export function CardLeadItem({ card, onPainelAbrir }: CardLeadProps) {
   const semAtendente = card.atendente === null
   const emRisco = card.etapa === "ativos_ri" || card.etapa === "inativos" || card.etapa === "inativos_rp"
+  const corRisco = emRisco ? ETAPAS_RECOMPRA.find((e) => e.id === card.etapa)?.cor : undefined
   // "perdido" é do Funil de Entrada; "perdidos", da Recompra.
   const perdido = card.etapa === "perdido" || card.etapa === "perdidos"
   const router = useRouter()
@@ -28,7 +36,7 @@ export function CardLeadItem({ card, onPainelAbrir }: CardLeadProps) {
       onClick={onPainelAbrir}
       className={cn(
         "bg-card rounded-lg border border-border p-3 flex flex-col gap-2 cursor-pointer hover:border-muted-foreground/40 transition-colors",
-        emRisco && "border-l-2 border-l-red-500 bg-red-500/5",
+        corRisco && DESTAQUE_RISCO[corRisco],
         perdido && "border-l-2 border-l-muted-foreground/40 opacity-60",
         semAtendente && !emRisco && !perdido && "border-l-2 border-l-amber-500"
       )}
