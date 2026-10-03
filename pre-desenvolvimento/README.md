@@ -9,7 +9,6 @@ no ar sai daqui. Quem abre a pasta deve saber, sem ler nada, o que falta fazer.
 |---|---|---|
 | `spec-automacoes-v2.md` — automações com gatilho, condições e ações (fase 1) | `issues/B11-01` a `B11-09` | Escrita em 29/09/2026. Nenhuma issue começada. Implementador: Luan. Ordem sugerida: 01 → 02 → 03 → 04 → 05 → 07 → 06 → 08 → 09. |
 | `spec-lixeira-contatos.md` — excluir lead e contato, com lixeira de 30 dias e restaurar | `issues/B13-01` a `B13-06` | Escrita e aprovada em 02/10/2026. Ordem: 01 (protótipo) → 02 → 03 → 04 → 05 → 06. A 06 depende do `CRON_SECRET` no Vercel. |
-| `spec-etapas-funil-entrada.md` — etapas novas do Funil de Entrada (Sondagem, Follow do Catálogo, Nutrição, Ganho, Perdido) | `issues/B14-01` a `B14-03` | Escrita e aprovada em 03/10/2026. Ordem: 01 → 02 → 03 (a 03 é no branch da B11). |
 
 Quando a última issue de uma spec entrar no ar, mova a spec para
 `docs/specs-arquivadas/` e as issues para `issues/concluidas_<série>/`.
@@ -37,6 +36,9 @@ Quando a última issue de uma spec entrar no ar, mova a spec para
 - **Funis Entrada e Recompra** (B12, 02/10/2026): spec
   `docs/specs-arquivadas/spec-renomear-funis.md`, issues em
   `issues/concluidas_B12/`.
+- **Etapas novas do Funil de Entrada** (B14, 03/10/2026): spec
+  `docs/specs-arquivadas/spec-etapas-funil-entrada.md`, issues em
+  `issues/concluidas_B14/`.
 
 As issues da parte A (gateway) ficam no repositório `whatsapp-gateway`.
 
