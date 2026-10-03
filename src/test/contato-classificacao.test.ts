@@ -6,11 +6,11 @@ describe("Issue 11 — Classificação automática derivada do pipeline", () => 
     expect(calcularClassificacao([])).toBe("sem_historico")
   })
 
-  it("Contato com card em Entrada (etapa != 'primeira_compra') retorna 'lead'", () => {
+  it("Contato com card em Entrada (etapa != 'ganho') retorna 'lead'", () => {
     expect(calcularClassificacao([{ funil: "entrada", etapa: "lead" }])).toBe("lead")
-    expect(calcularClassificacao([{ funil: "entrada", etapa: "em_qualificacao" }])).toBe("lead")
-    expect(calcularClassificacao([{ funil: "entrada", etapa: "em_negociacao" }])).toBe("lead")
-    expect(calcularClassificacao([{ funil: "entrada", etapa: "primeira_compra" }])).toBe("lead")
+    expect(calcularClassificacao([{ funil: "entrada", etapa: "sondagem" }])).toBe("lead")
+    expect(calcularClassificacao([{ funil: "entrada", etapa: "negociacao" }])).toBe("lead")
+    expect(calcularClassificacao([{ funil: "entrada", etapa: "ganho" }])).toBe("lead")
   })
 
   it("Contato com card em Recompra na etapa 'em_onboarding' retorna 'ativo'", () => {
@@ -43,7 +43,7 @@ describe("Issue 11 — Classificação automática derivada do pipeline", () => 
 
   it("Quando há card em Entrada e Recompra simultaneamente, Recompra tem precedência", () => {
     const cards = [
-      { funil: "entrada", etapa: "em_qualificacao" },
+      { funil: "entrada", etapa: "sondagem" },
       { funil: "recompra", etapa: "cliente_ativo" },
     ]
     expect(calcularClassificacao(cards)).toBe("ativo")

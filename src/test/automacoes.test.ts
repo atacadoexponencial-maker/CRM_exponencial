@@ -83,7 +83,7 @@ describe("processarAutomacoes", () => {
               {
                 id: "auto-1",
                 gatilho_tipo: "card_movido",
-                gatilho_config: { funil: "entrada", etapa: "em_negociacao" },
+                gatilho_config: { funil: "entrada", etapa: "negociacao" },
                 acao_tipo: "aplicar_etiqueta",
                 acao_config: { label_id: "label-1" },
               },
@@ -114,7 +114,7 @@ describe("processarAutomacoes", () => {
       contactId: "contact-1",
       cardId: "card-1",
       funil: "entrada",
-      etapa: "em_negociacao",
+      etapa: "negociacao",
     })
     expect(upsert).toHaveBeenCalledWith(
       { conversation_id: "conv-9", label_id: "label-1" },

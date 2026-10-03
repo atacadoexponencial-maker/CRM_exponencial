@@ -151,7 +151,7 @@ describe("Issue 11 — Classificação Automática (Integração com Pipeline)",
   it("Contato com card de Entrada e Recompra: classificação derivada da Recompra", async () => {
     const client = await autenticarComo(adminEmail)
     const contactId = await criarContato(wsId, "+5511999011003")
-    await criarCard(wsId, contactId, "entrada", "primeira_compra")
+    await criarCard(wsId, contactId, "entrada", "ganho")
     await criarCard(wsId, contactId, "recompra", "em_onboarding")
 
     const { data: cards } = await client

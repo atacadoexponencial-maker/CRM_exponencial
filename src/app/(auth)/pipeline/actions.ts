@@ -175,7 +175,7 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
       })
   }
 
-  if (novaEtapa === "primeira_compra" && card.contact_id && card.workspace_id) {
+  if (novaEtapa === "ganho" && card.contact_id && card.workspace_id) {
     const { data: existente } = await supabase
       .from("pipeline_cards")
       .select("id")

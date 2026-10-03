@@ -30,21 +30,21 @@ describe("calcularMetricas", () => {
   it("conta novos leads no período e leads ativos agora", () => {
     const cards = [
       card({ id: "1", created_at: "2026-06-05T10:00:00" }),
-      card({ id: "2", created_at: "2026-06-20T10:00:00", etapa: "em_negociacao" }),
+      card({ id: "2", created_at: "2026-06-20T10:00:00", etapa: "negociacao" }),
       card({ id: "3", created_at: "2026-05-01T10:00:00" }), // fora do período
-      card({ id: "4", created_at: "2026-06-15T10:00:00", etapa: "primeira_compra" }),
+      card({ id: "4", created_at: "2026-06-15T10:00:00", etapa: "ganho" }),
     ]
 
     const m = calcularMetricas(cards, [], [], range)
 
     expect(m.entrada.novosLeads).toBe(3) // 1, 2 e 4
-    expect(m.entrada.leadsAtivos).toBe(3) // todos menos o que está em primeira_compra
+    expect(m.entrada.leadsAtivos).toBe(3) // todos menos o que está em ganho
   })
 
   it("calcula taxa de conversão e funil de passagem", () => {
     const cards = [
-      card({ id: "1", etapa: "primeira_compra" }),
-      card({ id: "2", etapa: "em_qualificacao" }),
+      card({ id: "1", etapa: "ganho" }),
+      card({ id: "2", etapa: "sondagem" }),
       card({ id: "3", etapa: "lead" }),
       card({ id: "4", etapa: "lead" }),
     ]
@@ -60,12 +60,12 @@ describe("calcularMetricas", () => {
   it("considera o histórico para cards que regrediram de etapa", () => {
     const cards = [card({ id: "1", etapa: "lead" })]
     const history: HistoryRow[] = [
-      { card_id: "1", para_etapa: "em_negociacao", created_at: "2026-06-12T10:00:00" },
+      { card_id: "1", para_etapa: "negociacao", created_at: "2026-06-12T10:00:00" },
     ]
 
     const m = calcularMetricas(cards, history, [], range)
 
-    expect(m.conversao.funil[3].quantidade).toBe(1) // atingiu Em Negociação via histórico
+    expect(m.conversao.funil[3].quantidade).toBe(1) // atingiu Negociação via histórico
   })
 
   it("calcula métricas de recompra e taxa de recompra", () => {
@@ -124,7 +124,7 @@ describe("calcularPerformanceVendedores", () => {
       { id: "u2", nome: "Bruno" },
     ]
     const cards = [
-      card({ id: "1", atendente_id: "u1", etapa: "primeira_compra", created_at: "2026-06-05T10:00:00" }),
+      card({ id: "1", atendente_id: "u1", etapa: "ganho", created_at: "2026-06-05T10:00:00" }),
       card({ id: "2", atendente_id: "u1", etapa: "lead", created_at: "2026-06-06T10:00:00" }),
       card({ id: "r1", atendente_id: "u1", funil: "recompra", etapa: "cliente_ativo" }),
       card({ id: "3", atendente_id: "u2", etapa: "lead", created_at: "2026-06-07T10:00:00" }),

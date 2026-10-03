@@ -17,7 +17,7 @@ export type MetricasDashboard = {
     leadsPorSemana: Array<{ label: string; valor: number }>
   }
   conversao: {
-    taxaGeral: number | null // % de cards criados no período que chegaram a Primeira Compra
+    taxaGeral: number | null // % de cards criados no período que chegaram em Ganho
     funil: Array<{ etapa: string; label: string; quantidade: number; percentualDaAnterior: number | null }>
   }
   recompra: {
@@ -66,10 +66,10 @@ export type PurchaseRow = { contact_id: string; data: string; valor: number }
 
 const ETAPAS_FUNIL: Array<{ id: string; label: string }> = [
   { id: "lead", label: "Lead" },
-  { id: "em_qualificacao", label: "Em Qualificação" },
+  { id: "sondagem", label: "Sondagem" },
   { id: "catalogo_enviado", label: "Catálogo Enviado" },
-  { id: "em_negociacao", label: "Em Negociação" },
-  { id: "primeira_compra", label: "Primeira Compra" },
+  { id: "negociacao", label: "Negociação" },
+  { id: "ganho", label: "Ganho" },
 ]
 
 const ETAPAS_RECOMPRA_ATIVAS = ["em_onboarding", "cliente_ativo", "aguardando_recompra", "recompra_realizada"]
@@ -133,7 +133,7 @@ export function calcularMetricas(
 
   // ── Entrada de Leads ──────────────────────────────────────────────
   const novosLeadsCards = entrada.filter((c) => noPeriodo(c.created_at))
-  const leadsAtivos = entrada.filter((c) => c.etapa !== "primeira_compra").length
+  const leadsAtivos = entrada.filter((c) => c.etapa !== "ganho").length
 
   // Buckets semanais do período
   const leadsPorSemana: Array<{ label: string; valor: number }> = []
@@ -269,8 +269,8 @@ export function calcularPerformanceVendedores(
     const convertidos = entrada.filter(
       (c) =>
         noPeriodo(c.created_at) &&
-        (c.etapa === "primeira_compra" ||
-          history.some((h) => h.card_id === c.id && h.para_etapa === "primeira_compra"))
+        (c.etapa === "ganho" ||
+          history.some((h) => h.card_id === c.id && h.para_etapa === "ganho"))
     ).length
     const clientesAtivos = recompra.filter((c) => ETAPAS_RECOMPRA_ATIVAS.includes(c.etapa)).length
     const emRisco = recompra.filter((c) => c.etapa === "em_risco").length

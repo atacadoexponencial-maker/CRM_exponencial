@@ -123,10 +123,10 @@ const ETAPA_RECOMPRA_LABEL: Record<string, string> = {
 
 const ETAPA_ENTRADA_LABEL: Record<string, string> = {
   lead: "Lead",
-  em_qualificacao: "Em Qualificação",
+  sondagem: "Sondagem",
   catalogo_enviado: "Catálogo Enviado",
-  em_negociacao: "Em Negociação",
-  primeira_compra: "Primeira Compra",
+  negociacao: "Negociação",
+  ganho: "Ganho",
 }
 
 
@@ -144,10 +144,10 @@ function formatarDataEvento(iso: string): string {
 
 const ETAPA_LABEL_ALL: Record<string, string> = {
   lead: "Lead",
-  em_qualificacao: "Em Qualificação",
+  sondagem: "Sondagem",
   catalogo_enviado: "Catálogo Enviado",
-  em_negociacao: "Em Negociação",
-  primeira_compra: "Primeira Compra",
+  negociacao: "Negociação",
+  ganho: "Ganho",
   em_onboarding: "Em Onboarding",
   cliente_ativo: "Cliente Ativo",
   aguardando_recompra: "Aguardando Recompra",
