@@ -67,4 +67,4 @@ troca de situação e a seção de pedidos no perfil do contato.
 - [x] Contador na aba Pedidos; rota aberta a todos os papéis
 - [x] `npm run build` e `npm run lint` passam
 - [x] Conferência visual (Admin e Atendente) (03/10: filtros, busca por WhatsApp, aviso de estoque ao fechar, cancelar fechado, seção do perfil; Atendente vê só Pedidos)
-- [ ] Commit + push; deploy Ready
+- [x] Commit + push (`e6141b0`); deploy Ready (03/10)
