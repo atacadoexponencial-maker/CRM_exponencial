@@ -1,6 +1,6 @@
 "use client"
 
-// Protótipo da B16-01: a lista de produtos e as categorias com dados fixos e em memória.
+// Protótipo da B16-01 (e base dos outros protótipos do catálogo): a lista de produtos e as categorias com dados fixos e em memória.
 // Nada é gravado; a B16-05 troca por actions do servidor e apaga esta pasta.
 
 import { useState } from "react"
@@ -13,7 +13,7 @@ import { CATEGORIAS_EXEMPLO, PRODUTOS_EXEMPLO } from "./dados-exemplo"
 
 export const HREFS_PROTOTIPO = {
   produtos: "/catalogo/prototipo",
-  aparencia: null,
+  aparencia: "/catalogo/prototipo/aparencia",
   configuracoes: "/catalogo/prototipo/configuracoes",
   pedidos: null,
 }
@@ -21,7 +21,7 @@ export const HREFS_PROTOTIPO = {
 export function FaixaPrototipo({ children }: { children?: React.ReactNode }) {
   return (
     <div className="border-b border-amber-500/30 bg-amber-500/15 px-4 py-2 text-sm text-amber-200">
-      <strong>Protótipo (B16-01):</strong> dados de exemplo, nada é gravado. Recarregar a página volta ao início.{" "}
+      <strong>Protótipo do catálogo:</strong> dados de exemplo, nada é gravado. Recarregar a página volta ao início.{" "}
       {children}
     </div>
   )
