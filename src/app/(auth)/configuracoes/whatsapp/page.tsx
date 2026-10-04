@@ -58,24 +58,22 @@ export default async function WhatsAppPage() {
     <div className="max-w-5xl mx-auto w-full px-4 py-8">
       <h1 className="text-xl font-semibold mb-6">WhatsApp</h1>
 
-      <ListaNumeros numeros={numeros} termoAceito={termoAceito} />
+      <ListaNumeros
+        numeros={numeros}
+        termoAceito={termoAceito}
+        fluxoMeta={conexao ? null : <WizardConexao />}
+      />
 
-      <div className="mt-10 border-t pt-8">
-        <h2 className="text-base font-semibold mb-1">API Oficial da Meta</h2>
-        <p className="text-sm text-muted-foreground mb-5">
-          Fluxo atual de conexão pela Meta, inalterado.
-        </p>
-
-        {conexao ? (
+      {/* O passo de conexão da Meta vive na escolha de canal, acima; aqui ficam
+          só as ações do número da Meta que já existe. */}
+      {conexao && (
+        <div className="mt-10 border-t pt-8">
+          <h2 className="text-base font-semibold mb-5">API Oficial da Meta</h2>
           <div className="rounded-lg border p-6 max-w-md">
             <AcoesWhatsApp conexaoId={conexao.id} status={conexao.status} />
           </div>
-        ) : (
-          <div className="flex justify-center py-8">
-            <WizardConexao />
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
