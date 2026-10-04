@@ -78,4 +78,4 @@ liberar o botão, e vê o texto da mensagem do pedido — sem nenhuma marca do C
 - [x] Os 3 layouts alternáveis no protótipo
 - [x] `npm run build` e `npm run lint` passam
 - [x] Conferência visual: Playwright em tela de celular, sem login (03/10: 20 verificações — título da loja, sem marca do CRM, variação indisponível, limite de estoque, carrinho persistente, mínimo, WhatsApp inválido, mensagem e link, carrinho esvazia, produto inexistente)
-- [ ] Commit + push; deploy Ready
+- [x] Commit + push (`0238b3c`); deploy Ready (03/10)
