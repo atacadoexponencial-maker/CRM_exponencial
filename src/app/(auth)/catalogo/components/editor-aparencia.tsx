@@ -7,11 +7,51 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { Vitrine, type CategoriaVitrine, type ProdutoVitrine } from "@/app/loja/components/vitrine"
-import { avisoContraste, corValida, type LayoutVitrine, type TemaLoja } from "@/app/loja/components/tema"
+import { avisoContraste, corValida, luminancia, type LayoutVitrine, type TemaLoja } from "@/app/loja/components/tema"
 import { FONTES } from "@/app/loja/components/fontes"
 import { FORMATOS_FOTO, FORMATOS_LOGO, TAMANHO_MAX_BANNER, TAMANHO_MAX_LOGO } from "@/lib/catalogo/regras"
 
 export type TipoImagemLoja = "logo" | "banner"
+
+/** Abaixo disso a logo some no fundo do topo da loja (ex.: logo branca sobre fundo branco). */
+const CONTRASTE_MINIMO_LOGO = 1.5
+
+/** Luminância média das partes visíveis da imagem; `null` se não der para ler. */
+function luminanciaDaImagem(url: string): Promise<number | null> {
+  return new Promise((resolver) => {
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+    img.onerror = () => resolver(null)
+    img.onload = () => {
+      try {
+        const lado = 64
+        const tela = document.createElement("canvas")
+        tela.width = lado
+        tela.height = lado
+        const g = tela.getContext("2d")
+        if (!g) return resolver(null)
+        g.drawImage(img, 0, 0, lado, lado)
+        const d = g.getImageData(0, 0, lado, lado).data
+        let soma = 0
+        let peso = 0
+        for (let i = 0; i < d.length; i += 4) {
+          const alfa = d[i + 3] / 255
+          if (alfa < 0.1) continue
+          const [r, gg, b] = [d[i], d[i + 1], d[i + 2]].map((c) => {
+            const v = c / 255
+            return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+          })
+          soma += (0.2126 * r + 0.7152 * gg + 0.0722 * b) * alfa
+          peso += alfa
+        }
+        resolver(peso > 0 ? soma / peso : null)
+      } catch {
+        resolver(null) // imagem de outro domínio sem permissão de leitura: sem aviso
+      }
+    }
+    img.src = url
+  })
+}
 
 const LIMITE_IMAGEM: Record<TipoImagemLoja, number> = { logo: TAMANHO_MAX_LOGO, banner: TAMANHO_MAX_BANNER }
 const FORMATOS_IMAGEM: Record<TipoImagemLoja, string[]> = { logo: Object.keys(FORMATOS_LOGO), banner: Object.keys(FORMATOS_FOTO) }
@@ -69,6 +109,15 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
   const entradaBanner = useRef<HTMLInputElement>(null)
   const quadro = useRef<HTMLDivElement>(null)
   const [larguraQuadro, setLarguraQuadro] = useState(0)
+  const [luzDaLogo, setLuzDaLogo] = useState<{ url: string; luminancia: number | null } | null>(null)
+
+  useEffect(() => {
+    const url = tema.logoUrl
+    if (!url) return
+    let ativo = true
+    luminanciaDaImagem(url).then((l) => { if (ativo) setLuzDaLogo({ url, luminancia: l }) })
+    return () => { ativo = false }
+  }, [tema.logoUrl])
 
   useEffect(() => {
     const el = quadro.current
@@ -81,6 +130,13 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
 
   const alterado = JSON.stringify(tema) !== JSON.stringify(salvo)
   const contraste = avisoContraste(tema)
+  const lumLogo = luzDaLogo && luzDaLogo.url === tema.logoUrl ? luzDaLogo.luminancia : null
+  const lumFundo = corValida(tema.corFundo) ? luminancia(tema.corFundo) : null
+  const avisoLogo =
+    lumLogo !== null && lumFundo !== null &&
+    (Math.max(lumLogo, lumFundo) + 0.05) / (Math.min(lumLogo, lumFundo) + 0.05) < CONTRASTE_MINIMO_LOGO
+      ? `Sua logo é ${lumFundo > 0.5 ? "clara" : "escura"} e o fundo da loja também: ela fica invisível no topo da loja. Envie uma versão ${lumFundo > 0.5 ? "escura" : "clara"} da logo ou mude a cor de fundo.`
+      : null
 
   function mudar<K extends keyof TemaLoja>(campo: K, valor: TemaLoja[K]) {
     setTema((atual) => ({ ...atual, [campo]: valor }))
@@ -158,6 +214,12 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
           {tipo === "logo" ? "PNG, JPG, SVG ou WebP, até 2 MB. Sem logo, aparece o nome da loja." : "PNG, JPG ou WebP, até 5 MB. Formato largo (ex.: 1500 × 500)."}
         </p>
         {erroImagem[tipo] && <p className="text-xs text-destructive">{erroImagem[tipo]}</p>}
+        {tipo === "logo" && avisoLogo && (
+          <p className="flex items-start gap-1.5 text-xs text-amber-300" role="status">
+            <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
+            {avisoLogo}
+          </p>
+        )}
       </div>
     )
   }
