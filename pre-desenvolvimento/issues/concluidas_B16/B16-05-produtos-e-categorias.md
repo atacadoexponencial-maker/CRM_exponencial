@@ -92,4 +92,4 @@ não vê a lista de produtos.
 - [x] Testes de integração passando (8/8 em `catalogo-produtos.integration.test.ts`)
 - [x] `npm run build` e `npm run lint` passam
 - [x] Conferência visual com Playwright (criar com foto, editar, ocultar, reordenar, categoria) (03/10: fotos no armazenamento, ocultar persiste, foto removida sai do storage, excluir apaga produto e arquivos; corrigido no caminho: `router.refresh()` logo depois do `push` cancelava a navegação)
-- [ ] Commit + push; deploy Ready
+- [x] Commit + push (`ebad09b`); deploy Ready (03/10)
