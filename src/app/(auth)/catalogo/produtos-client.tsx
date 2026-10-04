@@ -55,6 +55,7 @@ export function ProdutosClient({ inicial, hrefLoja }: { inicial: Catalogo; hrefL
           produtos={catalogo.produtos}
           categorias={catalogo.categorias}
           hrefNovo="/catalogo/produtos/nova"
+          hrefImportar="/catalogo/importar"
           hrefEditar={(id) => `/catalogo/produtos/${id}`}
           hrefLoja={hrefLoja}
           onAlternarVisivel={(id) => {

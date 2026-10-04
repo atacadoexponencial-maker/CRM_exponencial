@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Eye, EyeOff, GripVertical, ImageOff, Package, Plus, Search, Store } from "lucide-react"
+import { Eye, EyeOff, FileSpreadsheet, GripVertical, ImageOff, Package, Plus, Search, Store } from "lucide-react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -31,6 +31,8 @@ interface ListaProdutosProps {
   /** Já na ordem do lojista. */
   categorias: CategoriaCatalogo[]
   hrefNovo: string
+  /** Página de importação por planilha (B18). */
+  hrefImportar?: string
   hrefEditar: (id: string) => string
   /** `null` mostra o link desabilitado (catálogo ainda não publicado). */
   hrefLoja: string | null
@@ -49,6 +51,7 @@ export function ListaProdutos({
   produtos,
   categorias,
   hrefNovo,
+  hrefImportar,
   hrefEditar,
   hrefLoja,
   onAlternarVisivel,
@@ -87,10 +90,18 @@ export function ListaProdutos({
             Cadastre os produtos com fotos, preço e variações. Depois é só mandar o link da loja para as clientes.
           </p>
         </div>
-        <Link href={hrefNovo} data-slot="button" className={buttonVariants({ size: "sm" })}>
-          <Plus className="size-4 mr-1.5" />
-          Cadastrar o primeiro produto
-        </Link>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Link href={hrefNovo} data-slot="button" className={buttonVariants({ size: "sm" })}>
+            <Plus className="size-4 mr-1.5" />
+            Cadastrar o primeiro produto
+          </Link>
+          {hrefImportar && (
+            <Link href={hrefImportar} data-slot="button" className={buttonVariants({ size: "sm", variant: "outline" })}>
+              <FileSpreadsheet className="size-4 mr-1.5" />
+              Importar planilha
+            </Link>
+          )}
+        </div>
       </div>
     )
   }
@@ -140,6 +151,12 @@ export function ListaProdutos({
             <Store className="size-4 mr-1.5" />
             Ver minha loja
           </Button>
+        )}
+        {hrefImportar && (
+          <Link href={hrefImportar} data-slot="button" className={buttonVariants({ size: "sm", variant: "outline" })}>
+            <FileSpreadsheet className="size-4 mr-1.5" />
+            Importar planilha
+          </Link>
         )}
         <Link href={hrefNovo} data-slot="button" className={buttonVariants({ size: "sm" })}>
           <Plus className="size-4 mr-1.5" />
