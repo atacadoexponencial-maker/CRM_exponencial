@@ -9,7 +9,6 @@ no ar sai daqui. Quem abre a pasta deve saber, sem ler nada, o que falta fazer.
 |---|---|---|
 | `spec-automacoes-v2.md` — automações com gatilho, condições e ações (fase 1) | `issues/B11-01` a `B11-09` | Escrita em 29/09/2026. Nenhuma issue começada. Implementador: Luan. Ordem sugerida: 01 → 02 → 03 → 04 → 05 → 07 → 06 → 08 → 09. |
 | `spec-lixeira-contatos.md` — excluir lead e contato, com lixeira de 30 dias e restaurar | `issues/B13-01` a `B13-06` | Escrita e aprovada em 02/10/2026. Ordem: 01 (protótipo) → 02 → 03 → 04 → 05 → 06. A 06 depende do `CRON_SECRET` no Vercel. |
-| `spec-catalogo.md` — catálogo da loja: produtos com variações e estoque, vitrine pública com a marca do lojista, carrinho, pedido pelo WhatsApp e pedidos no CRM | `issues/B16-01` a `B16-11` | Escrita e aprovada em 03/10/2026. Protótipos 01–04 primeiro; depois 05 → 06 → 07 → 08 → 09 → 10 → 11. |
 
 Quando a última issue de uma spec entrar no ar, mova a spec para
 `docs/specs-arquivadas/` e as issues para `issues/concluidas_<série>/`.
@@ -43,6 +42,8 @@ Quando a última issue de uma spec entrar no ar, mova a spec para
 - **Etapas novas do Funil de Recompra** (B15, 03/10/2026): spec
   `docs/specs-arquivadas/spec-etapas-funil-recompra.md`, issues em
   `issues/concluidas_B15/`.
+- **Catálogo da loja** (B16, 03/10/2026): spec `docs/specs-arquivadas/spec-catalogo.md`,
+  issues em `issues/concluidas_B16/`.
 
 As issues da parte A (gateway) ficam no repositório `whatsapp-gateway`.
 

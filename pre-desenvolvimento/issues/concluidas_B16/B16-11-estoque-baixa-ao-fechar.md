@@ -58,4 +58,4 @@ vitrine passa a mostrar indisponível se zerar), e cancelar o mesmo pedido devol
 - [x] Testes de integração (9/9 em `catalogo-pedidos-crm.integration.test.ts`, 3 novos; os 43 do catálogo juntos passam; suíte completa: as falhas foram só limite de requisições — os 11 arquivos passam isolados)
 - [x] `npm run build` e `npm run lint` passam
 - [x] Conferência (fechar, vitrine indisponível, cancelar devolve) (03/10: pedido não mexe no estoque; fechar 3 de 3 deixa M indisponível na vitrine e P disponível; cancelar devolve 3)
-- [ ] Commit + push; deploy Ready
+- [x] Commit + push (`bbc95b6`); deploy Ready (03/10)
