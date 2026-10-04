@@ -8,7 +8,7 @@ import { AbasCatalogo } from "../../components/abas-catalogo"
 import { EditorAparencia } from "../../components/editor-aparencia"
 import type { ProdutoVitrine } from "@/app/loja/components/vitrine"
 import { CATEGORIAS_EXEMPLO, CONFIG_EXEMPLO, PRODUTOS_EXEMPLO, TEMA_EXEMPLO } from "../dados-exemplo"
-import { FaixaPrototipo, HREFS_PROTOTIPO, estoqueTotal } from "../prototipo-produtos-client"
+import { FaixaPrototipo, HREFS_PROTOTIPO, estoqueTotal } from "../compartilhado"
 
 const PRODUTOS_VITRINE: ProdutoVitrine[] = PRODUTOS_EXEMPLO.filter((p) => p.visivel).map((p) => ({
   id: p.id ?? "",

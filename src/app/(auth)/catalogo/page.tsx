@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation"
 import { sessaoAtual } from "@/lib/sessao"
-import { PrototipoProdutosClient } from "./prototipo-produtos-client"
+import { listarCatalogo } from "./actions"
+import { ProdutosClient } from "./produtos-client"
 
-export default async function PrototipoCatalogoPage() {
+export default async function CatalogoPage() {
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
   if (perfil?.role !== "admin" && perfil?.role !== "gerente") redirect("/perfil")
 
-  return <PrototipoProdutosClient />
+  const catalogo = await listarCatalogo()
+  return <ProdutosClient inicial={catalogo} />
 }

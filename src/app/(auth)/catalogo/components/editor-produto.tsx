@@ -31,20 +31,23 @@ export interface ProdutoEditavel {
   estoque: EstoquePorCombinacao
 }
 
-export const MAX_FOTOS = 8
-export const TAMANHO_MAX_FOTO = 5 * 1024 * 1024
-const FORMATOS_FOTO = ["image/jpeg", "image/png", "image/webp"]
+import { FORMATOS_FOTO as EXTENSOES_FOTO, MAX_FOTOS, TAMANHO_MAX_FOTO } from "@/lib/catalogo/regras"
+
+export { MAX_FOTOS, TAMANHO_MAX_FOTO }
+const FORMATOS_FOTO = Object.keys(EXTENSOES_FOTO)
 
 interface EditorProdutoProps {
   inicial: ProdutoEditavel
   categorias: CategoriaCatalogo[]
   hrefVoltar: string
-  /** Recebe arquivos já conferidos (formato e tamanho) e devolve as fotos para mostrar. */
-  onAdicionarFotos: (arquivos: File[]) => Promise<FotoProduto[]>
+  /** Recebe arquivos já conferidos (formato e tamanho); devolve as fotos enviadas e o erro de cada uma que falhou. */
+  onAdicionarFotos: (arquivos: File[]) => Promise<{ fotos: FotoProduto[]; erros: string[] }>
   /** Devolve `erro` para mostrar ou `aviso` de sucesso. */
   onSalvar: (produto: ProdutoEditavel) => Promise<{ erro?: string; aviso?: string }>
   onExcluir?: () => void
   novoId: () => string
+  /** Mostra variações e estoque (desligado até a B16-06). */
+  comVariacoes?: boolean
 }
 
 type ErrosCampo = Partial<Record<"nome" | "preco" | "precoDe" | "fotos", string>>
@@ -60,7 +63,7 @@ function paraTexto(n: number | null): string {
   return n === null ? "" : n.toFixed(2).replace(".", ",")
 }
 
-export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFotos, onSalvar, onExcluir, novoId }: EditorProdutoProps) {
+export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFotos, onSalvar, onExcluir, novoId, comVariacoes = true }: EditorProdutoProps) {
   const [produto, setProduto] = useState<ProdutoEditavel>(inicial)
   const [precoTexto, setPrecoTexto] = useState(paraTexto(inicial.preco))
   const [precoDeTexto, setPrecoDeTexto] = useState(paraTexto(inicial.precoDe))
@@ -69,6 +72,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
   const [salvando, setSalvando] = useState(false)
   const [confirmarExclusao, setConfirmarExclusao] = useState(false)
   const [arrastandoFoto, setArrastandoFoto] = useState<string | null>(null)
+  const [enviandoFotos, setEnviandoFotos] = useState(0)
   const entradaFotos = useRef<HTMLInputElement>(null)
 
   function mudar<K extends keyof ProdutoEditavel>(campo: K, valor: ProdutoEditavel[K]) {
@@ -86,10 +90,16 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
       return true
     })
     if (aceitos.length > vagas) recusados.push(`O produto aceita até ${MAX_FOTOS} fotos; ${aceitos.length - vagas} ficaram de fora.`)
-    setErros((e) => ({ ...e, fotos: recusados.length ? recusados.join(" · ") : undefined }))
-    const novas = await onAdicionarFotos(aceitos.slice(0, Math.max(0, vagas)))
-    setProduto((atual) => ({ ...atual, fotos: [...atual.fotos, ...novas] }))
     if (entradaFotos.current) entradaFotos.current.value = ""
+    const paraEnviar = aceitos.slice(0, Math.max(0, vagas))
+    setErros((e) => ({ ...e, fotos: recusados.length ? recusados.join(" · ") : undefined }))
+    if (paraEnviar.length === 0) return
+    setEnviandoFotos(paraEnviar.length)
+    const { fotos: novas, erros: falhas } = await onAdicionarFotos(paraEnviar)
+    setEnviandoFotos(0)
+    setProduto((atual) => ({ ...atual, fotos: [...atual.fotos, ...novas] }))
+    const todos = [...recusados, ...falhas]
+    setErros((e) => ({ ...e, fotos: todos.length ? todos.join(" · ") : undefined }))
   }
 
   function moverFoto(idArrastado: string, idAlvo: string) {
@@ -143,7 +153,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
             </Button>
           )}
           <Link href={hrefVoltar}><Button size="sm" variant="outline">Cancelar</Button></Link>
-          <Button size="sm" onClick={salvar} disabled={salvando}>{salvando ? "Salvando..." : "Salvar"}</Button>
+          <Button size="sm" onClick={salvar} disabled={salvando || enviandoFotos > 0}>{salvando ? "Salvando..." : "Salvar"}</Button>
         </div>
       </div>
 
@@ -192,9 +202,9 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
           <section className="rounded-lg border p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold">Fotos <span className="font-normal text-muted-foreground">· {produto.fotos.length}/{MAX_FOTOS}</span></h2>
-              <Button size="sm" variant="outline" onClick={() => entradaFotos.current?.click()} disabled={produto.fotos.length >= MAX_FOTOS}>
+              <Button size="sm" variant="outline" onClick={() => entradaFotos.current?.click()} disabled={produto.fotos.length >= MAX_FOTOS || enviandoFotos > 0}>
                 <ImagePlus className="size-4" />
-                Adicionar fotos
+                {enviandoFotos > 0 ? `Enviando ${enviandoFotos} ${enviandoFotos === 1 ? "foto" : "fotos"}...` : "Adicionar fotos"}
               </Button>
               <input
                 ref={entradaFotos}
@@ -236,7 +246,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
             )}
           </section>
 
-          <section className="rounded-lg border p-4 space-y-3">
+          {comVariacoes && <section className="rounded-lg border p-4 space-y-3">
             <h2 className="text-sm font-semibold">Variações e estoque</h2>
             <p className="text-xs text-muted-foreground">Até 2 tipos (ex.: Tamanho e Cor). Cada combinação tem o próprio estoque; com zero, aparece indisponível na loja.</p>
             <VariacoesEstoque
@@ -246,7 +256,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
               onMudarEstoque={(chave, qtd) => mudar("estoque", { ...produto.estoque, [chave]: qtd })}
               novoId={novoId}
             />
-          </section>
+          </section>}
         </div>
 
         <aside className="space-y-4">

@@ -37,6 +37,8 @@ interface ListaProdutosProps {
   onAlternarVisivel: (id: string) => void
   /** Solta `idArrastado` no lugar de `idAlvo`, dentro da mesma categoria. */
   onReordenar: (idArrastado: string, idAlvo: string) => void
+  /** Mostra estoque e o selo Esgotado (desligado até existir estoque, B16-06). */
+  comEstoque?: boolean
 }
 
 export function formatarPreco(valor: number): string {
@@ -51,6 +53,7 @@ export function ListaProdutos({
   hrefLoja,
   onAlternarVisivel,
   onReordenar,
+  comEstoque = true,
 }: ListaProdutosProps) {
   const [busca, setBusca] = useState("")
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("todas")
@@ -161,7 +164,7 @@ export function ListaProdutos({
           </h2>
           <ul>
             {grupo.itens.map((p) => {
-              const esgotado = p.estoqueTotal === 0
+              const esgotado = comEstoque && p.estoqueTotal === 0
               return (
                 <li
                   key={p.id}
@@ -191,7 +194,7 @@ export function ListaProdutos({
                   <Link href={hrefEditar(p.id)} className="flex-1 min-w-0">
                     <p className={cn("text-sm font-medium truncate", !p.visivel && "text-muted-foreground")}>{p.nome}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatarPreco(p.preco)} · {p.estoqueTotal} em estoque
+                      {formatarPreco(p.preco)}{comEstoque && ` · ${p.estoqueTotal} em estoque`}
                     </p>
                   </Link>
                   <div className="flex items-center gap-1.5 shrink-0">

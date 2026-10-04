@@ -9,7 +9,7 @@ import { ListaPedidos } from "../../components/lista-pedidos"
 import { DetalhePedido, type PedidoDetalhe } from "../../components/detalhe-pedido"
 import { SecaoPedidosContato } from "../../components/secao-pedidos-contato"
 import { pedidosExemplo } from "../dados-exemplo"
-import { FaixaPrototipo, HREFS_PROTOTIPO } from "../prototipo-produtos-client"
+import { FaixaPrototipo, HREFS_PROTOTIPO } from "../compartilhado"
 
 export function PrototipoPedidosClient({ agoraMs, papel }: { agoraMs: number; papel: string }) {
   const [pedidos, setPedidos] = useState<PedidoDetalhe[]>(() => pedidosExemplo(agoraMs))

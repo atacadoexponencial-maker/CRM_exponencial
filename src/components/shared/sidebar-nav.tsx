@@ -60,8 +60,7 @@ function montarSecoes(atrasados: number): SecaoNav[] {
         { href: "/pipeline", label: "Pipeline", icone: Kanban },
         { href: "/chat", label: "Chat", icone: MessageSquare },
         { href: "/contatos", label: "Contatos", icone: Contact },
-        // B16-01: protótipo; a B16-05 aponta para /catalogo.
-        { href: "/catalogo/prototipo", label: "Catálogo", icone: Store, papeis: ["admin", "gerente"] },
+        { href: "/catalogo", label: "Catálogo", icone: Store, papeis: ["admin", "gerente"] },
       ],
     },
     {

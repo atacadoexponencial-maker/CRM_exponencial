@@ -6,7 +6,7 @@
 import { AbasCatalogo } from "../../components/abas-catalogo"
 import { FormConfiguracoes } from "../../components/form-configuracoes"
 import { CONFIG_EXEMPLO, ENDERECOS_EM_USO, NUMEROS_EXEMPLO } from "../dados-exemplo"
-import { FaixaPrototipo, HREFS_PROTOTIPO } from "../prototipo-produtos-client"
+import { FaixaPrototipo, HREFS_PROTOTIPO } from "../compartilhado"
 
 export function PrototipoConfiguracoesClient({ prefixoLink }: { prefixoLink: string }) {
   return (
