@@ -1,6 +1,7 @@
 // Fontes que o lojista pode escolher para a vitrine. Pelo next/font/google, os arquivos
 // são baixados no build e servidos pelo próprio CRM: a vitrine não chama o Google.
 
+import type { IDS_FONTE } from "@/lib/catalogo/regras"
 import { DM_Serif_Display, Inter, Lora, Montserrat, Nunito, Playfair_Display, Poppins, Space_Grotesk } from "next/font/google"
 
 const inter = Inter({ subsets: ["latin"], display: "swap" })
@@ -12,7 +13,7 @@ const playfair = Playfair_Display({ subsets: ["latin"], display: "swap" })
 const lora = Lora({ subsets: ["latin"], display: "swap" })
 const dmSerif = DM_Serif_Display({ subsets: ["latin"], weight: ["400"], display: "swap" })
 
-export type IdFonte = "inter" | "poppins" | "montserrat" | "nunito" | "space-grotesk" | "playfair" | "lora" | "dm-serif"
+export type IdFonte = (typeof IDS_FONTE)[number]
 
 export const FONTES: { id: IdFonte; nome: string; estilo: string; familia: string }[] = [
   { id: "inter", nome: "Inter", estilo: "Neutra e moderna", familia: inter.style.fontFamily },

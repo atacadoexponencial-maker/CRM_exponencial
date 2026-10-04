@@ -9,11 +9,12 @@ import { cn } from "@/lib/utils"
 import { Vitrine, type CategoriaVitrine, type ProdutoVitrine } from "@/app/loja/components/vitrine"
 import { avisoContraste, corValida, type LayoutVitrine, type TemaLoja } from "@/app/loja/components/tema"
 import { FONTES } from "@/app/loja/components/fontes"
+import { FORMATOS_FOTO, FORMATOS_LOGO, TAMANHO_MAX_BANNER, TAMANHO_MAX_LOGO } from "@/lib/catalogo/regras"
 
 export type TipoImagemLoja = "logo" | "banner"
 
-const LIMITE_IMAGEM: Record<TipoImagemLoja, number> = { logo: 2 * 1024 * 1024, banner: 5 * 1024 * 1024 }
-const FORMATOS_IMAGEM = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"]
+const LIMITE_IMAGEM: Record<TipoImagemLoja, number> = { logo: TAMANHO_MAX_LOGO, banner: TAMANHO_MAX_BANNER }
+const FORMATOS_IMAGEM: Record<TipoImagemLoja, string[]> = { logo: Object.keys(FORMATOS_LOGO), banner: Object.keys(FORMATOS_FOTO) }
 
 /** Largura em que a prévia "Computador" é desenhada antes de ser reduzida para caber. */
 const LARGURA_COMPUTADOR = 1280
@@ -52,8 +53,8 @@ interface EditorAparenciaProps {
   categorias: CategoriaVitrine[]
   produtos: ProdutoVitrine[]
   avisoMinimo?: string | null
-  /** Recebe o arquivo já conferido e devolve o endereço da imagem. */
-  onEnviarImagem: (tipo: TipoImagemLoja, arquivo: File) => Promise<string>
+  /** Recebe o arquivo já conferido e devolve o endereço da imagem (ou o erro). */
+  onEnviarImagem: (tipo: TipoImagemLoja, arquivo: File) => Promise<{ url: string } | { erro: string }>
   onSalvar: (tema: TemaLoja) => Promise<{ erro?: string; aviso?: string }>
 }
 
@@ -88,8 +89,8 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
 
   async function escolherImagem(tipo: TipoImagemLoja, arquivo: File | undefined) {
     if (!arquivo) return
-    if (!FORMATOS_IMAGEM.includes(arquivo.type)) {
-      setErroImagem((e) => ({ ...e, [tipo]: "Use PNG, JPG, SVG ou WebP." }))
+    if (!FORMATOS_IMAGEM[tipo].includes(arquivo.type)) {
+      setErroImagem((e) => ({ ...e, [tipo]: tipo === "logo" ? "Use PNG, JPG, SVG ou WebP." : "Use PNG, JPG ou WebP." }))
       return
     }
     if (arquivo.size > LIMITE_IMAGEM[tipo]) {
@@ -97,8 +98,12 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
       return
     }
     setErroImagem((e) => ({ ...e, [tipo]: undefined }))
-    const url = await onEnviarImagem(tipo, arquivo)
-    mudar(tipo === "logo" ? "logoUrl" : "bannerUrl", url)
+    const r = await onEnviarImagem(tipo, arquivo)
+    if ("erro" in r) {
+      setErroImagem((e) => ({ ...e, [tipo]: r.erro }))
+      return
+    }
+    mudar(tipo === "logo" ? "logoUrl" : "bannerUrl", r.url)
   }
 
   async function salvar() {
@@ -144,13 +149,13 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
           <input
             ref={entrada}
             type="file"
-            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+            accept={FORMATOS_IMAGEM[tipo].join(",")}
             className="hidden"
             onChange={(e) => { escolherImagem(tipo, e.target.files?.[0]); e.target.value = "" }}
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          {tipo === "logo" ? "PNG, JPG, SVG ou WebP, até 2 MB. Sem logo, aparece o nome da loja." : "Até 5 MB. Formato largo (ex.: 1500 × 500)."}
+          {tipo === "logo" ? "PNG, JPG, SVG ou WebP, até 2 MB. Sem logo, aparece o nome da loja." : "PNG, JPG ou WebP, até 5 MB. Formato largo (ex.: 1500 × 500)."}
         </p>
         {erroImagem[tipo] && <p className="text-xs text-destructive">{erroImagem[tipo]}</p>}
       </div>

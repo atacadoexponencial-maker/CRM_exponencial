@@ -17,7 +17,7 @@ import {
 /** Abas do catálogo; as que ainda não existem de verdade aparecem como "Em breve". */
 export const HREFS_CATALOGO: Record<AbaCatalogo, string | null> = {
   produtos: "/catalogo",
-  aparencia: null,
+  aparencia: "/catalogo/aparencia",
   configuracoes: "/catalogo/configuracoes",
   pedidos: null,
 }

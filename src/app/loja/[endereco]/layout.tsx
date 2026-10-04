@@ -5,12 +5,17 @@ import { carregarLojaPublica } from "@/lib/catalogo/loja-publica"
 export async function generateMetadata({ params }: { params: Promise<{ endereco: string }> }): Promise<Metadata> {
   const { endereco } = await params
   const loja = await carregarLojaPublica(endereco)
-  if (!loja) return { title: "Catálogo indisponível", robots: { index: false } }
+  if (!loja) return { title: "Catálogo indisponível", robots: { index: false }, icons: { icon: "data:," } }
   const descricao = loja.tema.boasVindas || `Catálogo de ${loja.tema.nomeLoja}`
+  // O WhatsApp não mostra SVG na prévia do link: usa o banner, ou a logo se não for SVG.
+  const logoRaster = loja.tema.logoUrl && !loja.tema.logoUrl.endsWith(".svg") ? loja.tema.logoUrl : null
+  const imagem = loja.tema.bannerUrl ?? logoRaster
   return {
     title: loja.tema.nomeLoja,
     description: descricao,
-    openGraph: { title: loja.tema.nomeLoja, description: descricao, type: "website", ...(loja.tema.logoUrl ? { images: [loja.tema.logoUrl] } : {}) },
+    // Ícone da aba: a logo da loja; sem logo, nenhum (nunca o ícone do CRM).
+    icons: { icon: loja.tema.logoUrl ?? "data:," },
+    openGraph: { title: loja.tema.nomeLoja, description: descricao, type: "website", ...(imagem ? { images: [imagem] } : {}) },
   }
 }
 

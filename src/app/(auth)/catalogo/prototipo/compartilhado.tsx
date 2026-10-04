@@ -1,12 +1,8 @@
-// Peças dos protótipos do catálogo que ainda ficam no ar (aparência, configurações e
-// pedidos) até as issues que trocam cada um por dados reais (B16-07, B16-08, B16-10).
-
-import type { ProdutoEditavel } from "../components/editor-produto"
-import { estoqueTotal as somaEstoque } from "@/lib/catalogo/combinacoes"
+// Peças do protótipo do catálogo que ainda fica no ar (pedidos) até a B16-10.
 
 export const HREFS_PROTOTIPO = {
   produtos: "/catalogo",
-  aparencia: "/catalogo/prototipo/aparencia",
+  aparencia: "/catalogo/aparencia",
   configuracoes: "/catalogo/configuracoes",
   pedidos: "/catalogo/prototipo/pedidos",
 }
@@ -18,8 +14,4 @@ export function FaixaPrototipo({ children }: { children?: React.ReactNode }) {
       {children}
     </div>
   )
-}
-
-export function estoqueTotal(p: ProdutoEditavel): number {
-  return somaEstoque(p.tipos, p.estoque)
 }

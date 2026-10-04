@@ -1,10 +1,8 @@
-// Protótipos da B16-01 e B16-02: dados fixos, nada vem do banco. Sai na B16-05 (produtos),
-// na B16-07 (configurações) e na B16-08 (aparência).
+// Protótipo de pedidos (B16-04): dados fixos, nada vem do banco. Sai na B16-10.
 
 import type { CategoriaCatalogo } from "../components/lista-produtos"
 import type { ProdutoEditavel } from "../components/editor-produto"
 import type { ConfigCatalogo, NumeroConectado } from "../components/form-configuracoes"
-import type { TemaLoja } from "@/app/loja/components/tema"
 import type { PedidoDetalhe } from "../components/detalhe-pedido"
 
 /** Foto de exemplo desenhada na hora (sem depender de imagem externa). */
@@ -83,22 +81,6 @@ export const CONFIG_EXEMPLO: ConfigCatalogo = {
   minimo: { tipo: "pecas", valor: 12 },
   mensagemFechamento: "Formas de pagamento: Pix e boleto. Enviamos para todo o Brasil.",
   publicado: false,
-}
-
-// B16-02: tema de exemplo da tela de Aparência.
-const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="72"><text x="0" y="52" font-family="Georgia, serif" font-size="46" font-style="italic" fill="#7c3a2d">Bela Ateliê</text></svg>`
-
-export const LOGO_EXEMPLO = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(LOGO_SVG)}`
-
-export const TEMA_EXEMPLO: TemaLoja = {
-  nomeLoja: "Bela Ateliê",
-  boasVindas: "Moda feminina no atacado desde 2015 · Enviamos para todo o Brasil",
-  logoUrl: LOGO_EXEMPLO,
-  bannerUrl: null,
-  corPrincipal: "#7c3a2d",
-  corFundo: "#faf6f1",
-  fonteId: "playfair",
-  layout: "grade",
 }
 
 // B16-04: pedidos de exemplo (datas relativas a agora).

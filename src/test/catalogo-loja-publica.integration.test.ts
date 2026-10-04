@@ -14,6 +14,8 @@ import { carregarConfiguracoes, salvarConfiguracoes, verificarEndereco } from "@
 import { salvarProduto } from "@/app/(auth)/catalogo/actions"
 import { carregarLojaPublica, carregarProdutoPublico, carregarVitrine } from "@/lib/catalogo/loja-publica"
 import type { ConfigCatalogo } from "@/app/(auth)/catalogo/components/form-configuracoes"
+import { carregarTema, prepararEnvioImagemLoja, salvarAparencia } from "@/app/(auth)/catalogo/aparencia/actions"
+import { TEMA_PADRAO } from "@/app/loja/components/tema"
 
 const mockSsr = vi.mocked(createSsrClient)
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -131,5 +133,38 @@ describe("B16-07 — Configurações do catálogo e vitrine pública", { timeout
     await service.from("whatsapp_connections").update({ status: "removed" }).eq("id", numeroA)
     expect(await carregarLojaPublica(slugA)).toBeNull()
     await service.from("whatsapp_connections").update({ status: "connected" }).eq("id", numeroA)
+  })
+})
+
+describe("B16-08 — Aparência da loja aplicada na vitrine", { timeout: 30_000 }, () => {
+  it("sem tema salvo, a aparência padrão vem com o nome da empresa", async () => {
+    await entrarComo(emailB)
+    expect(await carregarTema()).toMatchObject({ ...TEMA_PADRAO, nomeLoja: `Loja B ${ts}` })
+  })
+
+  it("salva o tema e a loja pública passa a usar", async () => {
+    await entrarComo(emailA)
+    const tema = { ...TEMA_PADRAO, nomeLoja: "Bela Ateliê", boasVindas: "Atacado desde 2015", corPrincipal: "#7C3A2D", corFundo: "#faf6f1", fonteId: "playfair" as const, layout: "destaque" as const }
+    expect((await salvarAparencia(tema)).erro).toBeUndefined()
+    expect((await carregarLojaPublica(slugA))?.tema).toMatchObject({ nomeLoja: "Bela Ateliê", boasVindas: "Atacado desde 2015", corPrincipal: "#7c3a2d", fonteId: "playfair", layout: "destaque" })
+  })
+
+  it("rejeita cor inválida, fonte fora da lista e imagem de fora da pasta da empresa", async () => {
+    await entrarComo(emailA)
+    expect((await salvarAparencia({ ...TEMA_PADRAO, corFundo: "vermelho" })).erro).toMatch(/#rrggbb/)
+    expect((await salvarAparencia({ ...TEMA_PADRAO, fonteId: "comic-sans" as never })).erro).toMatch(/Fonte/)
+    expect((await salvarAparencia({ ...TEMA_PADRAO, logoUrl: "https://outro-site.com/logo.png" })).erro).toMatch(/Imagem inválida/)
+  })
+
+  it("logo aceita SVG; banner não", async () => {
+    await entrarComo(emailA)
+    expect("token" in (await prepararEnvioImagemLoja("logo", { tipo: "image/svg+xml", tamanho: 1000 }))).toBe(true)
+    expect(await prepararEnvioImagemLoja("banner", { tipo: "image/svg+xml", tamanho: 1000 })).toMatchObject({ erro: expect.stringMatching(/PNG, JPG ou WebP/) })
+    expect(await prepararEnvioImagemLoja("logo", { tipo: "image/png", tamanho: 3 * 1024 * 1024 })).toMatchObject({ erro: expect.stringMatching(/2 MB/) })
+  })
+
+  it("atendente não muda a aparência", async () => {
+    await entrarComo(emailAtendA)
+    expect((await salvarAparencia(TEMA_PADRAO)).erro).toMatch(/Admin e Gerente/)
   })
 })

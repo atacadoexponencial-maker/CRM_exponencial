@@ -6,7 +6,8 @@
 import { createServiceClient } from "@/integrations/supabase/service"
 import { chaveCombinacao, combinacoes, type TipoVariacao } from "./combinacoes"
 import { BUCKET_CATALOGO } from "./regras"
-import { TEMA_PADRAO, type TemaLoja } from "@/app/loja/components/tema"
+import { TEMA_PADRAO, type LayoutVitrine, type TemaLoja } from "@/app/loja/components/tema"
+import type { IdFonte } from "@/app/loja/components/fontes"
 import type { CategoriaVitrine, ProdutoVitrine } from "@/app/loja/components/vitrine"
 import type { ProdutoDetalhe } from "@/app/loja/components/pagina-produto"
 import type { MinimoPedido } from "@/app/loja/components/pedido"
@@ -25,6 +26,32 @@ export function urlPublicaImagem(caminho: string): string {
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET_CATALOGO}/${caminho}`
 }
 
+interface ColunasTema {
+  store_name: string | null
+  welcome_text: string
+  logo_path: string | null
+  banner_path: string | null
+  primary_color: string
+  background_color: string
+  font_id: string
+  layout: string
+}
+
+/** Tema da loja a partir das colunas de catalog_settings (padrão quando não há linha). */
+export function temaDasConfiguracoes(cfg: ColunasTema | null, nomeEmpresa: string): TemaLoja {
+  if (!cfg) return { ...TEMA_PADRAO, nomeLoja: nomeEmpresa }
+  return {
+    nomeLoja: cfg.store_name ?? nomeEmpresa,
+    boasVindas: cfg.welcome_text,
+    logoUrl: cfg.logo_path ? urlPublicaImagem(cfg.logo_path) : null,
+    bannerUrl: cfg.banner_path ? urlPublicaImagem(cfg.banner_path) : null,
+    corPrincipal: cfg.primary_color,
+    corFundo: cfg.background_color,
+    fonteId: cfg.font_id as IdFonte,
+    layout: cfg.layout as LayoutVitrine,
+  }
+}
+
 function soDigitos(numero: string): string {
   const d = numero.replace(/\D/g, "")
   return d.length === 10 || d.length === 11 ? "55" + d : d
@@ -35,7 +62,7 @@ export async function carregarLojaPublica(endereco: string): Promise<LojaPublica
   const service = createServiceClient()
   const { data: cfg } = await service
     .from("catalog_settings")
-    .select("workspace_id, slug, min_type, min_value, closing_message, published, whatsapp_connections(phone_number, status), workspaces(name)")
+    .select("workspace_id, slug, min_type, min_value, closing_message, published, store_name, welcome_text, logo_path, banner_path, primary_color, background_color, font_id, layout, whatsapp_connections(phone_number, status), workspaces(name)")
     .eq("slug", endereco.toLowerCase())
     .eq("published", true)
     .maybeSingle()
@@ -48,7 +75,7 @@ export async function carregarLojaPublica(endereco: string): Promise<LojaPublica
   return {
     workspaceId: cfg.workspace_id,
     endereco: cfg.slug,
-    tema: { ...TEMA_PADRAO, nomeLoja: empresa?.name ?? TEMA_PADRAO.nomeLoja },
+    tema: temaDasConfiguracoes(cfg, empresa?.name ?? TEMA_PADRAO.nomeLoja),
     minimo: { tipo: cfg.min_type as MinimoPedido["tipo"], valor: cfg.min_value === null ? null : Number(cfg.min_value) },
     mensagemFechamento: cfg.closing_message,
     whatsapp: soDigitos(conexao.phone_number),
