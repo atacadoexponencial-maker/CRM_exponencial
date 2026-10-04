@@ -17,11 +17,11 @@ export const COR_SITUACAO: Record<SituacaoPedido, string> = {
   cancelado: "bg-muted text-muted-foreground border-border",
 }
 
-/** Para onde cada situação pode ir: Novo → Em atendimento → Fechado; Cancelar de qualquer uma ainda aberta. */
+/** Para onde cada situação pode ir: Novo → Em atendimento → Fechado; Fechado volta para Em atendimento; Cancelar de qualquer uma ainda aberta. */
 export const PROXIMAS_SITUACOES: Record<SituacaoPedido, SituacaoPedido[]> = {
   novo: ["em_atendimento", "fechado", "cancelado"],
   em_atendimento: ["fechado", "cancelado"],
-  fechado: ["cancelado"],
+  fechado: ["em_atendimento", "cancelado"],
   cancelado: [],
 }
 

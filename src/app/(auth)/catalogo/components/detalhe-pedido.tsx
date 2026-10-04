@@ -34,6 +34,11 @@ export interface PedidoDetalhe extends PedidoResumo {
   hrefConversa: string | null
 }
 
+function rotuloBotao(de: SituacaoPedido, para: SituacaoPedido): string {
+  if (para === "em_atendimento" && de === "fechado") return "Voltar para Em atendimento"
+  return ROTULO_BOTAO[para]
+}
+
 const ROTULO_BOTAO: Record<SituacaoPedido, string> = {
   novo: "Novo",
   em_atendimento: "Em atendimento",
@@ -130,13 +135,13 @@ export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedi
             <div className="flex flex-wrap gap-2">
               {PROXIMAS_SITUACOES[pedido.situacao].map((s) => (
                 <Button key={s} size="sm" variant={s === "cancelado" ? "destructive" : s === "fechado" ? "default" : "outline"} onClick={() => pedir(s)} disabled={mudando}>
-                  {ROTULO_BOTAO[s]}
+                  {rotuloBotao(pedido.situacao, s)}
                 </Button>
               ))}
             </div>
             <p className="text-xs text-muted-foreground">
               {pedido.situacao === "fechado"
-                ? "O estoque deste pedido já foi baixado. Cancelar devolve as peças ao estoque."
+                ? "O estoque deste pedido já foi baixado. Voltar para Em atendimento ou cancelar devolve as peças ao estoque."
                 : "Ao marcar como Fechado, o estoque das peças do pedido baixa."}
             </p>
             {erro && <p className="text-xs text-destructive" role="alert">{erro}</p>}
