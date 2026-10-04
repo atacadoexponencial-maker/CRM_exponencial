@@ -87,7 +87,7 @@ export function ListaProdutos({
             Cadastre os produtos com fotos, preço e variações. Depois é só mandar o link da loja para as clientes.
           </p>
         </div>
-        <Link href={hrefNovo} className={buttonVariants({ size: "sm" })}>
+        <Link href={hrefNovo} data-slot="button" className={buttonVariants({ size: "sm" })}>
           <Plus className="size-4 mr-1.5" />
           Cadastrar o primeiro produto
         </Link>
@@ -131,7 +131,7 @@ export function ListaProdutos({
           <option value="ocultos">Só ocultos</option>
         </select>
         {hrefLoja ? (
-          <a href={hrefLoja} target="_blank" rel="noreferrer" className={buttonVariants({ size: "sm", variant: "outline" })}>
+          <a href={hrefLoja} target="_blank" rel="noreferrer" data-slot="button" className={buttonVariants({ size: "sm", variant: "outline" })}>
             <Store className="size-4 mr-1.5" />
             Ver minha loja
           </a>
@@ -141,7 +141,7 @@ export function ListaProdutos({
             Ver minha loja
           </Button>
         )}
-        <Link href={hrefNovo} className={buttonVariants({ size: "sm" })}>
+        <Link href={hrefNovo} data-slot="button" className={buttonVariants({ size: "sm" })}>
           <Plus className="size-4 mr-1.5" />
           Novo produto
         </Link>

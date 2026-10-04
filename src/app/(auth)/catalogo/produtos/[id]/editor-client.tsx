@@ -9,6 +9,7 @@ import { EditorProduto, type FotoProduto, type ProdutoEditavel } from "../../com
 import type { CategoriaCatalogo } from "../../components/lista-produtos"
 import { excluirProduto, prepararEnvioFoto, salvarProduto } from "../../actions"
 import { HREFS_CATALOGO } from "../../produtos-client"
+import { ALVOS_TOQUE_CELULAR } from "../../components/alvos-toque"
 
 export function EditorClient({ inicial, categorias }: { inicial: ProdutoEditavel; categorias: CategoriaCatalogo[] }) {
   const router = useRouter()
@@ -33,7 +34,7 @@ export function EditorClient({ inicial, categorias }: { inicial: ProdutoEditavel
   }
 
   return (
-    <div className="max-w-6xl mx-auto w-full px-4 py-8">
+    <div className={`max-w-6xl mx-auto w-full px-4 py-8 ${ALVOS_TOQUE_CELULAR}`}>
       <h1 className="text-xl font-semibold mb-4">{inicial.id ? inicial.nome : "Novo produto"}</h1>
       <AbasCatalogo ativa="produtos" hrefs={HREFS_CATALOGO} />
       <EditorProduto

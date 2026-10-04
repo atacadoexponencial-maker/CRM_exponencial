@@ -172,7 +172,7 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
             type="color"
             value={corValida(valor) ? valor : "#000000"}
             onChange={(e) => mudar(campo, e.target.value)}
-            className="h-8 w-10 rounded border border-input bg-transparent cursor-pointer"
+            className="h-8 w-10 max-md:size-11 rounded border border-input bg-transparent cursor-pointer"
             aria-label={`${rotulo}: escolher`}
           />
           <Input id={campo} value={valor} onChange={(e) => mudar(campo, e.target.value)} className="h-8 w-28 font-mono" aria-invalid={!corValida(valor)} />
@@ -273,7 +273,7 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
                 key={id}
                 type="button"
                 onClick={() => setDispositivo(id)}
-                className={cn("flex items-center gap-1.5 rounded-md px-2.5 h-7 text-xs", dispositivo === id ? "bg-muted text-foreground" : "text-muted-foreground")}
+                className={cn("flex items-center gap-1.5 rounded-md px-2.5 h-7 max-md:h-11 text-xs", dispositivo === id ? "bg-muted text-foreground" : "text-muted-foreground")}
                 aria-pressed={dispositivo === id}
               >
                 <Icone className="size-3.5" />
@@ -282,7 +282,7 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
             ))}
           </div>
         </div>
-        <div ref={quadro} className="flex justify-center rounded-xl border bg-muted/20 p-4">
+        <div ref={quadro} className="flex justify-center rounded-xl border bg-muted/20 p-4" data-previa-loja>
           {dispositivo === "celular" ? (
             <div className="w-[390px] overflow-y-auto overflow-x-hidden border shadow-xl rounded-[2rem]" style={{ height: ALTURA_PREVIA }} data-testid="previa-vitrine">
               <Vitrine tema={tema} categorias={categorias} produtos={produtos} quantidadeNoCarrinho={3} avisoMinimo={avisoMinimo} />

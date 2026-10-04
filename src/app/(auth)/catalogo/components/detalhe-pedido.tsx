@@ -94,8 +94,8 @@ export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedi
           <p className="text-sm font-medium">{pedido.cliente.nome}</p>
           <p className="text-sm text-muted-foreground">{formatarWhatsapp(pedido.cliente.whatsapp)}</p>
           <div className="flex flex-wrap gap-2">
-            {pedido.hrefContato && <Link href={pedido.hrefContato} className={buttonVariants({ size: "sm", variant: "outline" })}><User className="size-3.5" />Perfil do contato</Link>}
-            {pedido.hrefConversa && <Link href={pedido.hrefConversa} className={buttonVariants({ size: "sm", variant: "outline" })}><MessageSquare className="size-3.5" />Abrir conversa</Link>}
+            {pedido.hrefContato && <Link href={pedido.hrefContato} data-slot="button" className={buttonVariants({ size: "sm", variant: "outline" })}><User className="size-3.5" />Perfil do contato</Link>}
+            {pedido.hrefConversa && <Link href={pedido.hrefConversa} data-slot="button" className={buttonVariants({ size: "sm", variant: "outline" })}><MessageSquare className="size-3.5" />Abrir conversa</Link>}
           </div>
         </section>
 

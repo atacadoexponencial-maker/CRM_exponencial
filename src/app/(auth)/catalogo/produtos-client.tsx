@@ -4,6 +4,7 @@ import { useState, useTransition } from "react"
 import { AbasCatalogo, type AbaCatalogo } from "./components/abas-catalogo"
 import { ListaProdutos } from "./components/lista-produtos"
 import { PainelCategorias } from "./components/painel-categorias"
+import { ALVOS_TOQUE_CELULAR } from "./components/alvos-toque"
 import {
   alternarVisivel,
   criarCategoria,
@@ -45,7 +46,7 @@ export function ProdutosClient({ inicial, hrefLoja }: { inicial: Catalogo; hrefL
   }
 
   return (
-    <div className="max-w-6xl mx-auto w-full px-4 py-8">
+    <div className={`max-w-6xl mx-auto w-full px-4 py-8 ${ALVOS_TOQUE_CELULAR}`}>
       <h1 className="text-xl font-semibold mb-4">Catálogo</h1>
       <AbasCatalogo ativa="produtos" hrefs={HREFS_CATALOGO} />
       {erro && <p role="alert" className="mb-4 rounded-lg border border-destructive/40 px-3 py-2 text-sm text-destructive">{erro}</p>}

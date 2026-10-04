@@ -71,6 +71,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
   const [mensagem, setMensagem] = useState<{ tipo: "erro" | "aviso"; texto: string } | null>(null)
   const [salvando, setSalvando] = useState(false)
   const [confirmarExclusao, setConfirmarExclusao] = useState(false)
+  const [avisoEsgotado, setAvisoEsgotado] = useState(false)
   const [arrastandoFoto, setArrastandoFoto] = useState<string | null>(null)
   const [enviandoFotos, setEnviandoFotos] = useState(0)
   const entradaFotos = useRef<HTMLInputElement>(null)
@@ -114,7 +115,8 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
     })
   }
 
-  async function salvar() {
+  /** `escolha` vem do aviso de produto sem estoque: salvar como está ou oculto. */
+  async function salvar(escolha?: "assim" | "oculto") {
     const preco = paraNumero(precoTexto)
     const precoDe = paraNumero(precoDeTexto)
     const novosErros: ErrosCampo = {}
@@ -129,8 +131,19 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
     const chaves = new Set(combinacoes(produto.tipos).map(chaveCombinacao))
     const estoque = Object.fromEntries(Object.entries(produto.estoque).filter(([k]) => chaves.has(k)))
 
+    // Vai entrar na loja agora (novo, ou estava oculto) sem nenhuma peça: apareceria "Esgotado".
+    const entraNaLoja = produto.visivel && (inicial.id === null || !inicial.visivel)
+    const semEstoque = Object.values(estoque).every((q) => !q)
+    if (!escolha && comVariacoes && entraNaLoja && semEstoque) {
+      setAvisoEsgotado(true)
+      return
+    }
+    setAvisoEsgotado(false)
+    const final = escolha === "oculto" ? { ...produto, visivel: false } : produto
+    if (escolha === "oculto") mudar("visivel", false)
+
     setSalvando(true)
-    const resultado = await onSalvar({ ...produto, nome: produto.nome.trim(), preco, precoDe, estoque })
+    const resultado = await onSalvar({ ...final, nome: produto.nome.trim(), preco, precoDe, estoque })
     setSalvando(false)
     if (resultado.erro) setMensagem({ tipo: "erro", texto: resultado.erro })
     else if (resultado.aviso) setMensagem({ tipo: "aviso", texto: resultado.aviso })
@@ -152,8 +165,8 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
               Excluir produto
             </Button>
           )}
-          <Link href={hrefVoltar} className={buttonVariants({ size: "sm", variant: "outline" })}>Cancelar</Link>
-          <Button size="sm" onClick={salvar} disabled={salvando || enviandoFotos > 0}>{salvando ? "Salvando..." : "Salvar"}</Button>
+          <Link href={hrefVoltar} data-slot="button" className={buttonVariants({ size: "sm", variant: "outline" })}>Cancelar</Link>
+          <Button size="sm" onClick={() => salvar()} disabled={salvando || enviandoFotos > 0}>{salvando ? "Salvando..." : "Salvar"}</Button>
         </div>
       </div>
 
@@ -246,7 +259,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
             )}
           </section>
 
-          {comVariacoes && <section className="rounded-lg border p-4 space-y-3">
+          {comVariacoes && <section id="estoque-do-produto" className="rounded-lg border p-4 space-y-3 scroll-mt-4">
             <h2 className="text-sm font-semibold">Variações e estoque</h2>
             <p className="text-xs text-muted-foreground">Até 2 tipos (ex.: Tamanho e Cor). Cada combinação tem o próprio estoque; com zero, aparece indisponível na loja.</p>
             <VariacoesEstoque
@@ -290,6 +303,33 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
           </section>
         </aside>
       </div>
+
+      <Dialog open={avisoEsgotado} onOpenChange={setAvisoEsgotado}>
+        <DialogPopup className="max-w-md">
+          <DialogTitle>Este produto vai aparecer como Esgotado na loja</DialogTitle>
+          <DialogDescription className="mt-2">
+            Ele está marcado como visível, mas não tem nenhuma peça em estoque. A cliente vê o produto e não consegue comprar.
+          </DialogDescription>
+          <div className="mt-5 flex flex-wrap justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => salvar("assim")}>Salvar assim</Button>
+            <Button variant="outline" size="sm" onClick={() => salvar("oculto")}>Salvar oculto</Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                setAvisoEsgotado(false)
+                // Depois que a janela fecha (ela devolve o foco ao Salvar), leva ao estoque.
+                setTimeout(() => {
+                  const secao = document.getElementById("estoque-do-produto")
+                  secao?.scrollIntoView({ behavior: "smooth" })
+                  secao?.querySelector<HTMLInputElement>("input[type=number]")?.focus({ preventScroll: true })
+                }, 250)
+              }}
+            >
+              Informar o estoque
+            </Button>
+          </div>
+        </DialogPopup>
+      </Dialog>
 
       <Dialog open={confirmarExclusao} onOpenChange={setConfirmarExclusao}>
         <DialogPopup className="max-w-sm">

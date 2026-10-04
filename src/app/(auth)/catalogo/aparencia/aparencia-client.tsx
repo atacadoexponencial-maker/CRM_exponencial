@@ -8,6 +8,7 @@ import { AbasCatalogo } from "../components/abas-catalogo"
 import { EditorAparencia, type TipoImagemLoja } from "../components/editor-aparencia"
 import { HREFS_CATALOGO } from "../produtos-client"
 import { prepararEnvioImagemLoja, salvarAparencia } from "./actions"
+import { ALVOS_TOQUE_CELULAR } from "../components/alvos-toque"
 
 interface AparenciaClientProps {
   inicial: TemaLoja
@@ -27,7 +28,7 @@ export function AparenciaClient({ inicial, categorias, produtos, avisoMinimo }: 
   }
 
   return (
-    <div className="max-w-7xl mx-auto w-full px-4 py-8">
+    <div className={`max-w-7xl mx-auto w-full px-4 py-8 ${ALVOS_TOQUE_CELULAR}`}>
       <h1 className="text-xl font-semibold mb-4">Catálogo</h1>
       <AbasCatalogo ativa="aparencia" hrefs={HREFS_CATALOGO} />
       {produtos.length === 0 && (

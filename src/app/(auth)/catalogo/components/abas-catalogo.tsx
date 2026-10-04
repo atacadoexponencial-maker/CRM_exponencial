@@ -27,7 +27,7 @@ export function AbasCatalogo({ ativa, hrefs, contadores }: AbasCatalogoProps) {
       {visiveis.map((aba) => {
         const href = hrefs[aba.id]!
         const classe = cn(
-          "px-3 py-2 text-sm border-b-2 -mb-px transition-colors",
+          "px-3 py-3 md:py-2 text-sm border-b-2 -mb-px transition-colors",
           aba.id === ativa
             ? "border-primary text-foreground font-medium"
             : "border-transparent text-muted-foreground hover:text-foreground"

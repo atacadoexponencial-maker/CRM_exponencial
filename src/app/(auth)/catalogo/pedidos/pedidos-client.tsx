@@ -7,6 +7,7 @@ import { ListaPedidos, type PedidoResumo } from "../components/lista-pedidos"
 import { DetalhePedido, type PedidoDetalhe } from "../components/detalhe-pedido"
 import { hrefsDoCatalogo } from "../produtos-client"
 import { carregarPedido, mudarSituacaoPedido } from "./actions"
+import { ALVOS_TOQUE_CELULAR } from "../components/alvos-toque"
 
 interface PedidosClientProps {
   inicial: PedidoResumo[]
@@ -26,7 +27,7 @@ export function PedidosClient({ inicial, abertoInicial, papel }: PedidosClientPr
   }
 
   return (
-    <div className="max-w-6xl mx-auto w-full px-4 py-8">
+    <div className={`max-w-6xl mx-auto w-full px-4 py-8 ${ALVOS_TOQUE_CELULAR}`}>
       <h1 className="text-xl font-semibold mb-4">{papel === "atendente" ? "Pedidos" : "Catálogo"}</h1>
       <AbasCatalogo ativa="pedidos" hrefs={hrefsDoCatalogo(papel)} contadores={{ pedidos: novos }} />
       <div className="grid gap-6 lg:grid-cols-[1fr_24rem] items-start">

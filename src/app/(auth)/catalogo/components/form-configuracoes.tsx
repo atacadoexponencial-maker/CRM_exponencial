@@ -47,6 +47,8 @@ interface FormConfiguracoesProps {
 
 export function FormConfiguracoes({ inicial, numeros, prefixoLink, onVerificarEndereco, onSalvar }: FormConfiguracoesProps) {
   const [config, setConfig] = useState<ConfigCatalogo>(inicial)
+  /** O que está gravado: a chave e o link mostram o que vale de fato, não o que ainda não foi salvo. */
+  const [salvo, setSalvo] = useState<ConfigCatalogo>(inicial)
   const [disponibilidade, setDisponibilidade] = useState<"disponivel" | "em_uso" | null>(null)
   const [copiado, setCopiado] = useState(false)
   const [mensagem, setMensagem] = useState<{ tipo: "erro" | "aviso"; texto: string } | null>(null)
@@ -59,7 +61,10 @@ export function FormConfiguracoes({ inicial, numeros, prefixoLink, onVerificarEn
     !enderecoValido && "o endereço da loja",
     !config.conexaoId && "o número que recebe os pedidos",
   ].filter(Boolean) as string[]
-  const trocouEnderecoPublicado = inicial.publicado && inicial.endereco !== "" && config.endereco !== inicial.endereco
+  const trocouEnderecoPublicado = salvo.publicado && salvo.endereco !== "" && config.endereco !== salvo.endereco
+  const alterado = JSON.stringify(config) !== JSON.stringify(salvo)
+  const linkSalvo = salvo.endereco ? prefixoLink + salvo.endereco : null
+  const enderecoNaoSalvo = config.endereco !== salvo.endereco
 
   function mudar<K extends keyof ConfigCatalogo>(campo: K, valor: ConfigCatalogo[K]) {
     setConfig((atual) => ({ ...atual, [campo]: valor }))
@@ -68,13 +73,14 @@ export function FormConfiguracoes({ inicial, numeros, prefixoLink, onVerificarEn
 
   async function verificar(endereco: string) {
     setDisponibilidade(null)
-    if (endereco.length < 3 || endereco === inicial.endereco) return
+    if (endereco.length < 3 || endereco === salvo.endereco) return
     setDisponibilidade(await onVerificarEndereco(endereco))
   }
 
   async function copiar() {
+    if (!linkSalvo) return
     try {
-      await navigator.clipboard.writeText(link)
+      await navigator.clipboard.writeText(linkSalvo)
       setCopiado(true)
       setTimeout(() => setCopiado(false), 2000)
     } catch {
@@ -106,8 +112,12 @@ export function FormConfiguracoes({ inicial, numeros, prefixoLink, onVerificarEn
     setSalvando(true)
     const r = await onSalvar(config)
     setSalvando(false)
-    if (r.erro) setMensagem({ tipo: "erro", texto: r.erro })
-    else if (r.aviso) setMensagem({ tipo: "aviso", texto: r.aviso })
+    if (r.erro) {
+      setMensagem({ tipo: "erro", texto: r.erro })
+      return
+    }
+    setSalvo(config)
+    if (r.aviso) setMensagem({ tipo: "aviso", texto: r.aviso })
   }
 
   const campoTexto = "w-full min-h-20 rounded-lg border border-input bg-input/30 px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 resize-y"
@@ -129,7 +139,7 @@ export function FormConfiguracoes({ inicial, numeros, prefixoLink, onVerificarEn
             onChange={(e) => { const v = normalizarEndereco(e.target.value); mudar("endereco", v); setDisponibilidade(null) }}
             onBlur={(e) => verificar(e.target.value)}
             placeholder="nome-da-loja"
-            className="h-8 flex-1 min-w-0 bg-transparent pr-2.5 text-sm outline-none"
+            className="h-8 max-md:h-11 flex-1 min-w-0 bg-transparent pr-2.5 text-sm outline-none"
             aria-label="Endereço da loja"
           />
         </div>
@@ -141,11 +151,14 @@ export function FormConfiguracoes({ inicial, numeros, prefixoLink, onVerificarEn
         <div className="flex items-center gap-2">
           <Globe className="size-4 text-muted-foreground shrink-0" />
           <span className="text-sm truncate">{link}</span>
-          <Button size="sm" variant="outline" onClick={copiar} disabled={!enderecoValido}>
+          <Button size="sm" variant="outline" onClick={copiar} disabled={!linkSalvo || enderecoNaoSalvo}>
             {copiado ? <Check className="size-4" /> : <Copy className="size-4" />}
             {copiado ? "Copiado" : "Copiar link"}
           </Button>
         </div>
+        {enderecoNaoSalvo && config.endereco !== "" && (
+          <p className="text-xs text-amber-300">Salve para copiar o novo link.</p>
+        )}
       </section>
 
       <section className="rounded-lg border p-4 space-y-3">
@@ -217,20 +230,22 @@ export function FormConfiguracoes({ inicial, numeros, prefixoLink, onVerificarEn
         <div>
           <h2 className="text-sm font-semibold">Catálogo publicado</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            {config.publicado
-              ? "A loja está aberta no link acima."
-              : faltaParaPublicar.length > 0
-                ? `Para publicar, falta escolher ${faltaParaPublicar.join(" e ")}.`
-                : "Desligado, o link mostra \"Catálogo indisponível no momento\"."}
+            {salvo.publicado ? "Hoje a loja está aberta no link acima." : "Hoje a loja está fechada: o link mostra \"Catálogo indisponível no momento\"."}
           </p>
+          {config.publicado && faltaParaPublicar.length > 0 ? (
+            <p className="text-xs text-amber-300 mt-1">Para publicar, falta escolher {faltaParaPublicar.join(" e ")}.</p>
+          ) : config.publicado !== salvo.publicado ? (
+            <p className="text-xs text-amber-300 mt-1">{config.publicado ? "Salve para abrir a loja." : "Salve para fechar a loja."}</p>
+          ) : null}
         </div>
-        <label className="flex items-center gap-2 text-sm cursor-pointer">
+        <label className="flex items-center gap-2 text-sm cursor-pointer shrink-0">
           <input type="checkbox" checked={config.publicado} onChange={(e) => mudar("publicado", e.target.checked)} className="accent-primary size-4" />
-          {config.publicado ? "Publicado" : "Despublicado"}
+          Publicar a loja
         </label>
       </section>
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-3">
+        {alterado && <span className="mr-auto text-xs text-amber-300">Alterações não salvas</span>}
         <Button onClick={() => salvar()} disabled={salvando}>{salvando ? "Salvando..." : "Salvar configurações"}</Button>
       </div>
 
@@ -238,7 +253,7 @@ export function FormConfiguracoes({ inicial, numeros, prefixoLink, onVerificarEn
         <DialogPopup className="max-w-sm">
           <DialogTitle>Trocar o endereço da loja?</DialogTitle>
           <DialogDescription className="mt-2">
-            O link antigo ({prefixoLink + inicial.endereco}) deixa de funcionar. Quem já recebeu esse link vai ver &quot;Catálogo indisponível&quot;.
+            O link antigo ({prefixoLink + salvo.endereco}) deixa de funcionar. Quem já recebeu esse link vai ver &quot;Catálogo indisponível&quot;.
           </DialogDescription>
           <div className="mt-5 flex justify-end gap-2">
             <DialogClose render={<Button variant="outline" size="sm" />}>Cancelar</DialogClose>
