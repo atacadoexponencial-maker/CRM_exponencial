@@ -75,4 +75,4 @@ vitrine pública abre com a identidade nova; descartar volta ao que estava salvo
 - [x] Testes de integração (12/12 em `catalogo-loja-publica.integration.test.ts`, 5 novos)
 - [x] `npm run build` e `npm run lint` passam
 - [x] Conferência visual (03/10: prévia com produtos reais, logo pelo armazenamento, loja com título, fundo, fonte, Destaques, logo, og:image e ícone da loja; logo removida some do armazenamento; ícone do CRM só no CRM)
-- [x] Commit + push (`bd68eea`); deploy Ready (03/10)
+- [x] Commit + push (`92fed68` + `61af04d` — o primeiro saiu incompleto); deploy Ready (03/10)
