@@ -69,12 +69,19 @@ export function useCarrinho(endereco: string) {
   )
 
   function adicionar(novo: NovoItemCarrinho, quantidade: number) {
-    const existente = itens.find((i) => i.produtoId === novo.produtoId && i.combinacao === novo.combinacao)
-    if (existente) {
-      atualizar(itens.map((i) => (i === existente ? { ...i, ...novo, quantidade: Math.min(novo.maximo, i.quantidade + quantidade) } : i)))
-    } else {
-      atualizar([...itens, { ...novo, quantidade: Math.min(novo.maximo, quantidade) }])
+    adicionarVarios([{ item: novo, quantidade }])
+  }
+
+  /** Vários itens numa gravação só (a grade do produto): cada um soma ao que já havia. */
+  function adicionarVarios(novos: { item: NovoItemCarrinho; quantidade: number }[]) {
+    let lista = itens
+    for (const { item: novo, quantidade } of novos) {
+      const existente = lista.find((i) => i.produtoId === novo.produtoId && i.combinacao === novo.combinacao)
+      lista = existente
+        ? lista.map((i) => (i === existente ? { ...i, ...novo, quantidade: Math.min(novo.maximo, i.quantidade + quantidade) } : i))
+        : [...lista, { ...novo, quantidade: Math.min(novo.maximo, quantidade) }]
     }
+    atualizar(lista)
   }
 
   function mudarQuantidade(produtoId: string, combinacao: string, quantidade: number) {
@@ -99,5 +106,5 @@ export function useCarrinho(endereco: string) {
     atualizar([])
   }
 
-  return { itens, adicionar, mudarQuantidade, ajustarLimites, remover, esvaziar }
+  return { itens, adicionar, adicionarVarios, mudarQuantidade, ajustarLimites, remover, esvaziar }
 }

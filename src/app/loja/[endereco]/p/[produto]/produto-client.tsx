@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { PaginaProduto, type ProdutoDetalhe } from "../../../components/pagina-produto"
-import type { MinimoPedido } from "../../../components/pedido"
+import { textoDoMinimo, type MinimoPedido } from "../../../components/pedido"
 import type { TemaLoja } from "../../../components/tema"
 import { useCarrinhoLoja } from "../../usar-carrinho-loja"
 
@@ -23,17 +23,20 @@ export function ProdutoClient({ endereco, tema, minimo, produto }: ProdutoClient
         produto={produto}
         quantidadeNoCarrinho={pecas}
         noCarrinho={(combinacao) => carrinho.itens.find((i) => i.produtoId === produto.id && i.combinacao === combinacao)?.quantidade ?? 0}
-        onAdicionar={(combinacao, quantidade) =>
-          carrinho.adicionar(
-            {
-              produtoId: produto.id,
-              combinacao,
-              nome: produto.nome,
-              preco: produto.preco,
-              fotoUrl: produto.fotos[0] ?? null,
-              maximo: produto.estoque[combinacao] ?? 0,
-            },
-            quantidade
+        avisoMinimo={textoDoMinimo(minimo)}
+        onAdicionar={(itens) =>
+          carrinho.adicionarVarios(
+            itens.map(({ combinacao, quantidade }) => ({
+              item: {
+                produtoId: produto.id,
+                combinacao,
+                nome: produto.nome,
+                preco: produto.preco,
+                fotoUrl: produto.fotos[0] ?? null,
+                maximo: produto.estoque[combinacao] ?? 0,
+              },
+              quantidade,
+            }))
           )
         }
         onVoltar={() => router.push(`/loja/${endereco}`)}

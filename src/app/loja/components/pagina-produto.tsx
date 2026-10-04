@@ -1,11 +1,14 @@
 "use client"
 
 // Página do produto na vitrine. Só desenha: o estoque e as ações chegam por props.
+// Produto com variação compra por grade (B17): todas as combinações de uma vez.
 
 import { useState } from "react"
 import { ArrowLeft, Check, ImageOff, Minus, Plus, X } from "lucide-react"
 import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { chaveCombinacao, combinacoes } from "@/lib/catalogo/combinacoes"
+import { blocosDaGrade, limitarQuantidade, totaisDaGrade } from "@/lib/catalogo/grade"
+import { GradeQuantidades } from "./grade-quantidades"
 import { coresDaVitrine, type TemaLoja } from "./tema"
 import { familiaDaFonte } from "./fontes"
 import { CabecalhoLoja } from "./vitrine"
@@ -28,44 +31,46 @@ interface PaginaProdutoProps {
   quantidadeNoCarrinho?: number
   /** Quantas peças desta combinação já estão no carrinho (limita o que dá para somar). */
   noCarrinho?: (combinacao: string) => number
+  /** Texto do pedido mínimo da loja (ex.: "Pedido mínimo: 6 peças"); `null` quando não há. */
+  avisoMinimo?: string | null
   /** Sem esta função, a página só mostra o produto (sem quantidade nem botão). */
-  onAdicionar?: (combinacao: string, quantidade: number) => void
+  onAdicionar?: (itens: { combinacao: string; quantidade: number }[]) => void
   onVoltar: () => void
   onAbrirCarrinho?: () => void
 }
 
-export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarrinho = () => 0, onAdicionar, onVoltar, onAbrirCarrinho }: PaginaProdutoProps) {
+export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarrinho = () => 0, avisoMinimo = null, onAdicionar, onVoltar, onAbrirCarrinho }: PaginaProdutoProps) {
   const cores = coresDaVitrine(tema)
   const tipos = produto.tipos.filter((t) => t.opcoes.length > 0)
-  const [escolhas, setEscolhas] = useState<(string | null)[]>(tipos.map(() => null))
-  const [quantidade, setQuantidade] = useState(1)
+  const semVariacao = tipos.length === 0
+  const blocos = blocosDaGrade(tipos)
+  const [quantidades, setQuantidades] = useState<Record<string, number>>({})
+  const [quantidadeUnica, setQuantidadeUnica] = useState(1)
   const [fotoAtiva, setFotoAtiva] = useState(0)
   const [ampliada, setAmpliada] = useState(false)
-  const [adicionado, setAdicionado] = useState(false)
+  const [adicionadas, setAdicionadas] = useState<number | null>(null)
 
-  const estoqueDe = (opcoes: string[]) => produto.estoque[chaveCombinacao(opcoes)] ?? 0
-  const todas = combinacoes(tipos)
-  const escolhaCompleta = escolhas.every((e) => e !== null)
-  const combinacao = escolhaCompleta ? chaveCombinacao(escolhas as string[]) : null
-  const disponivel = combinacao !== null ? Math.max(0, estoqueDe(escolhas as string[]) - noCarrinho(combinacao)) : 0
-  const esgotado = todas.every((c) => estoqueDe(c) === 0)
+  const estoqueDe = (combinacao: string) => produto.estoque[combinacao] ?? 0
+  const disponivelDe = (combinacao: string) => Math.max(0, estoqueDe(combinacao) - noCarrinho(combinacao))
+  const esgotado = combinacoes(tipos).every((c) => estoqueDe(chaveCombinacao(c)) === 0)
+  const livreUnica = disponivelDe("")
+  const escolhidas: Record<string, number> = semVariacao ? (livreUnica > 0 ? { "": Math.min(quantidadeUnica, livreUnica) } : {}) : quantidades
+  const { pecas, valor } = totaisDaGrade(escolhidas, produto.preco)
 
-  /** Opção sem estoque em nenhuma combinação compatível com as outras escolhas. */
-  function opcaoIndisponivel(indice: number, opcao: string): boolean {
-    return !todas.some((c) => c[indice] === opcao && escolhas.every((e, i) => i === indice || e === null || c[i] === e) && estoqueDe(c) > 0)
-  }
-
-  function escolher(indice: number, opcao: string) {
-    setEscolhas((atual) => atual.map((e, i) => (i === indice ? (e === opcao ? null : opcao) : e)))
-    setQuantidade(1)
-    setAdicionado(false)
+  function mudar(combinacao: string, quantidade: number) {
+    setQuantidades((atual) => ({ ...atual, [combinacao]: quantidade }))
+    setAdicionadas(null)
   }
 
   function adicionar() {
-    if (combinacao === null || disponivel === 0 || !onAdicionar) return
-    onAdicionar(combinacao, Math.min(quantidade, disponivel))
-    setAdicionado(true)
-    setQuantidade(1)
+    const itens = Object.entries(escolhidas)
+      .filter(([, q]) => q > 0)
+      .map(([combinacao, quantidade]) => ({ combinacao, quantidade }))
+    if (itens.length === 0 || !onAdicionar) return
+    onAdicionar(itens)
+    setAdicionadas(pecas)
+    setQuantidades({})
+    setQuantidadeUnica(1)
   }
 
   const fotos = produto.fotos
@@ -74,7 +79,7 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
     <div className="@container min-h-full [&_:is(h1,h2,h3)]:[font-family:inherit]" style={{ background: cores.fundo, color: cores.texto, fontFamily: familiaDaFonte(tema.fonteId) }}>
       <CabecalhoLoja tema={tema} quantidadeNoCarrinho={quantidadeNoCarrinho} onAbrirCarrinho={onAbrirCarrinho} onAbrirLoja={onVoltar} />
 
-      <div className="max-w-5xl mx-auto px-4 py-4 space-y-4">
+      <div className={`max-w-5xl mx-auto px-4 py-4 space-y-4 ${onAdicionar && !esgotado ? "pb-24 @3xl:pb-4" : ""}`}>
         <button type="button" onClick={onVoltar} className="inline-flex items-center gap-1.5 text-sm" style={{ color: cores.suave }}>
           <ArrowLeft className="size-4" />
           Voltar
@@ -131,75 +136,60 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
               </p>
             </div>
 
-            {tipos.map((tipo, indice) => (
-              <div key={tipo.id} className="space-y-2">
-                <p className="text-sm font-medium">
-                  {tipo.nome}
-                  {escolhas[indice] && <span style={{ color: cores.suave }}>: {escolhas[indice]}</span>}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {tipo.opcoes.map((opcao) => {
-                    const indisponivel = opcaoIndisponivel(indice, opcao)
-                    const ativa = escolhas[indice] === opcao
-                    return (
-                      <button
-                        key={opcao}
-                        type="button"
-                        disabled={indisponivel}
-                        onClick={() => escolher(indice, opcao)}
-                        className={`min-w-11 h-10 px-3 rounded-lg border text-sm ${indisponivel ? "line-through opacity-40 cursor-not-allowed" : ""}`}
-                        style={ativa ? { background: cores.principal, color: cores.sobrePrincipal, borderColor: cores.principal } : { borderColor: cores.borda }}
-                        aria-pressed={ativa}
-                        aria-label={indisponivel ? `${opcao} (indisponível)` : opcao}
-                      >
-                        {opcao}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-
             {esgotado ? (
               <p className="rounded-lg px-3 py-2 text-sm" style={{ background: cores.superficie }}>Produto esgotado no momento.</p>
             ) : !onAdicionar ? null : (
               <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center rounded-lg border" style={{ borderColor: cores.borda }}>
-                    <button type="button" onClick={() => setQuantidade((q) => Math.max(1, q - 1))} className="size-10 flex items-center justify-center" aria-label="Diminuir quantidade"><Minus className="size-4" /></button>
-                    <span className="w-10 text-center tabular-nums" aria-live="polite">{quantidade}</span>
-                    <button
-                      type="button"
-                      onClick={() => setQuantidade((q) => Math.min(Math.max(1, disponivel), q + 1))}
-                      disabled={combinacao !== null && quantidade >= disponivel}
-                      className="size-10 flex items-center justify-center disabled:opacity-30"
-                      aria-label="Aumentar quantidade"
-                    >
-                      <Plus className="size-4" />
-                    </button>
-                  </div>
-                  {combinacao !== null && (
+                {avisoMinimo && <p className="text-xs font-medium" style={{ color: cores.principal }}>{avisoMinimo.replace("Pedido mínimo:", "Pedido mínimo da loja:")}</p>}
+                {semVariacao ? (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center rounded-lg border" style={{ borderColor: cores.borda }}>
+                      <button type="button" onClick={() => { setQuantidadeUnica((q) => Math.max(1, q - 1)); setAdicionadas(null) }} disabled={quantidadeUnica <= 1} className="size-11 flex items-center justify-center disabled:opacity-30" aria-label="Diminuir quantidade"><Minus className="size-4" /></button>
+                      <input
+                        value={String(Math.min(quantidadeUnica, Math.max(1, livreUnica)))}
+                        onChange={(e) => { setQuantidadeUnica(Math.max(1, limitarQuantidade(e.target.value, livreUnica))); setAdicionadas(null) }}
+                        onFocus={(e) => e.target.select()}
+                        disabled={livreUnica === 0}
+                        inputMode="numeric"
+                        className="w-12 h-11 bg-transparent text-center text-base tabular-nums outline-none"
+                        aria-label="Quantidade"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { setQuantidadeUnica((q) => Math.min(Math.max(1, livreUnica), q + 1)); setAdicionadas(null) }}
+                        disabled={quantidadeUnica >= livreUnica}
+                        className="size-11 flex items-center justify-center disabled:opacity-30"
+                        aria-label="Aumentar quantidade"
+                      >
+                        <Plus className="size-4" />
+                      </button>
+                    </div>
                     <span className="text-xs" style={{ color: cores.suave }}>
-                      {disponivel > 0 ? `${disponivel} disponíveis` : "Você já tem todas as peças disponíveis no carrinho"}
+                      {livreUnica > 0 ? `${livreUnica} ${livreUnica === 1 ? "disponível" : "disponíveis"}` : "Você já tem todas as peças disponíveis no carrinho"}
                     </span>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={adicionar}
-                  disabled={combinacao === null || disponivel === 0}
-                  className="w-full h-12 rounded-full font-semibold disabled:opacity-40"
-                  style={{ background: cores.principal, color: cores.sobrePrincipal }}
-                >
-                  {combinacao === null ? `Escolha ${tipos.filter((_, i) => escolhas[i] === null).map((t) => t.nome.toLowerCase()).join(" e ")}` : "Adicionar ao carrinho"}
-                </button>
-                {adicionado && (
+                  </div>
+                ) : (
+                  <GradeQuantidades cores={cores} blocos={blocos} quantidades={quantidades} estoque={estoqueDe} disponivel={disponivelDe} onMudar={mudar} />
+                )}
+                {adicionadas !== null && (
                   <p className="flex items-center justify-center gap-1.5 text-sm" role="status">
                     <Check className="size-4" style={{ color: cores.principal }} />
-                    Adicionado.{" "}
-                    <button type="button" onClick={onAbrirCarrinho} className="underline">Ver carrinho</button>
+                    {adicionadas} {adicionadas === 1 ? "peça adicionada" : "peças adicionadas"}.{" "}
+                    <button type="button" onClick={onAbrirCarrinho} className="underline min-h-11">Ver carrinho</button>
                   </p>
                 )}
+                <div className="fixed inset-x-0 bottom-0 z-20 border-t p-3 @3xl:static @3xl:border-0 @3xl:p-0" style={{ background: cores.fundo, borderColor: cores.borda }}>
+                  <button
+                    type="button"
+                    onClick={adicionar}
+                    disabled={pecas === 0}
+                    className="w-full h-12 rounded-full font-semibold disabled:opacity-40"
+                    style={{ background: cores.principal, color: cores.sobrePrincipal }}
+                    aria-live="polite"
+                  >
+                    {pecas === 0 ? "Escolha as quantidades" : `Adicionar ${pecas} ${pecas === 1 ? "peça" : "peças"} · ${formatarPreco(valor)}`}
+                  </button>
+                </div>
               </div>
             )}
 
