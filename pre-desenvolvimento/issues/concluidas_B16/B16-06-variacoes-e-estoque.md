@@ -71,4 +71,4 @@ estoque total e "Esgotado" quando tudo está em zero.
 - [x] Testes de integração (13/13, 5 novos)
 - [x] `npm run build` e `npm run lint` passam
 - [x] Conferência visual (03/10: grade P/M × Azul/Preto, 7 em estoque na lista, valores voltam ao reabrir, Esgotado ao zerar)
-- [ ] Commit + push; deploy Ready
+- [x] Commit + push (`8bb9e81`); deploy Ready (03/10)
