@@ -75,4 +75,4 @@ duas larguras, e escolhe a lista de fontes e o desenho dos três layouts.
 - [x] Aba Aparência ligada no protótipo
 - [x] `npm run build` e `npm run lint` passam
 - [x] Conferência visual: `next start` + Playwright — capturas dos 3 layouts em celular e computador e do aviso de contraste (03/10: 15 verificações; corrigidos no caminho — títulos herdam a fonte da loja, que o CSS global do CRM fixava, e a prévia Computador desenha a 1280 px e reduz)
-- [ ] Commit + push; deploy Ready; link para a Marcelle
+- [x] Commit + push (`e0d83a5`); deploy Ready; link para a Marcelle (03/10) — falta a aprovação dela
