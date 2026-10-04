@@ -85,9 +85,6 @@ export const CONFIG_EXEMPLO: ConfigCatalogo = {
   publicado: false,
 }
 
-/** Endereços que o protótipo finge estarem em uso por outras lojas. */
-export const ENDERECOS_EM_USO = ["loja", "atacado", "moda"]
-
 // B16-02: tema de exemplo da tela de Aparência.
 const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="72"><text x="0" y="52" font-family="Georgia, serif" font-size="46" font-style="italic" fill="#7c3a2d">Bela Ateliê</text></svg>`
 

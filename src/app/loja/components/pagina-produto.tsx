@@ -25,15 +25,16 @@ export interface ProdutoDetalhe {
 interface PaginaProdutoProps {
   tema: TemaLoja
   produto: ProdutoDetalhe
-  quantidadeNoCarrinho: number
+  quantidadeNoCarrinho?: number
   /** Quantas peças desta combinação já estão no carrinho (limita o que dá para somar). */
-  noCarrinho: (combinacao: string) => number
-  onAdicionar: (combinacao: string, quantidade: number) => void
+  noCarrinho?: (combinacao: string) => number
+  /** Sem esta função, a página só mostra o produto (sem quantidade nem botão). */
+  onAdicionar?: (combinacao: string, quantidade: number) => void
   onVoltar: () => void
-  onAbrirCarrinho: () => void
+  onAbrirCarrinho?: () => void
 }
 
-export function PaginaProduto({ tema, produto, quantidadeNoCarrinho, noCarrinho, onAdicionar, onVoltar, onAbrirCarrinho }: PaginaProdutoProps) {
+export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarrinho = () => 0, onAdicionar, onVoltar, onAbrirCarrinho }: PaginaProdutoProps) {
   const cores = coresDaVitrine(tema)
   const tipos = produto.tipos.filter((t) => t.opcoes.length > 0)
   const [escolhas, setEscolhas] = useState<(string | null)[]>(tipos.map(() => null))
@@ -61,7 +62,7 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho, noCarrinho,
   }
 
   function adicionar() {
-    if (combinacao === null || disponivel === 0) return
+    if (combinacao === null || disponivel === 0 || !onAdicionar) return
     onAdicionar(combinacao, Math.min(quantidade, disponivel))
     setAdicionado(true)
     setQuantidade(1)
@@ -161,7 +162,7 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho, noCarrinho,
 
             {esgotado ? (
               <p className="rounded-lg px-3 py-2 text-sm" style={{ background: cores.superficie }}>Produto esgotado no momento.</p>
-            ) : (
+            ) : !onAdicionar ? null : (
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center rounded-lg border" style={{ borderColor: cores.borda }}>

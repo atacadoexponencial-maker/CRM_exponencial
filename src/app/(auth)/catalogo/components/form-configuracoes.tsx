@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 
-export type TipoMinimo = "nenhum" | "pecas" | "valor"
+import type { TipoMinimo } from "@/app/loja/components/pedido"
+
+export type { TipoMinimo }
 
 export interface ConfigCatalogo {
   endereco: string

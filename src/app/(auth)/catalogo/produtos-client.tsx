@@ -18,11 +18,11 @@ import {
 export const HREFS_CATALOGO: Record<AbaCatalogo, string | null> = {
   produtos: "/catalogo",
   aparencia: null,
-  configuracoes: null,
+  configuracoes: "/catalogo/configuracoes",
   pedidos: null,
 }
 
-export function ProdutosClient({ inicial }: { inicial: Catalogo }) {
+export function ProdutosClient({ inicial, hrefLoja }: { inicial: Catalogo; hrefLoja: string | null }) {
   const [catalogo, setCatalogo] = useState(inicial)
   const [erro, setErro] = useState<string | null>(null)
   const [, iniciar] = useTransition()
@@ -50,7 +50,7 @@ export function ProdutosClient({ inicial }: { inicial: Catalogo }) {
           categorias={catalogo.categorias}
           hrefNovo="/catalogo/produtos/nova"
           hrefEditar={(id) => `/catalogo/produtos/${id}`}
-          hrefLoja={null}
+          hrefLoja={hrefLoja}
           onAlternarVisivel={(id) => {
             // Mostra na hora; a resposta do servidor confirma.
             setCatalogo((c) => ({ ...c, produtos: c.produtos.map((p) => (p.id === id ? { ...p, visivel: !p.visivel } : p)) }))

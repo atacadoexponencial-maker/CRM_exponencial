@@ -129,7 +129,7 @@ export function CabecalhoLoja({
           <span className="block text-lg font-semibold truncate">{tema.nomeLoja}</span>
         )}
       </button>
-      <button
+      {onAbrirCarrinho && <button
         type="button"
         onClick={onAbrirCarrinho}
         className="relative flex items-center justify-center size-10 rounded-full shrink-0"
@@ -142,7 +142,7 @@ export function CabecalhoLoja({
             {quantidadeNoCarrinho}
           </span>
         )}
-      </button>
+      </button>}
     </header>
   )
 }

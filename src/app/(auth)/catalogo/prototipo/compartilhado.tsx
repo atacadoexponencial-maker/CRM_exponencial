@@ -7,7 +7,7 @@ import { estoqueTotal as somaEstoque } from "@/lib/catalogo/combinacoes"
 export const HREFS_PROTOTIPO = {
   produtos: "/catalogo",
   aparencia: "/catalogo/prototipo/aparencia",
-  configuracoes: "/catalogo/prototipo/configuracoes",
+  configuracoes: "/catalogo/configuracoes",
   pedidos: "/catalogo/prototipo/pedidos",
 }
 
