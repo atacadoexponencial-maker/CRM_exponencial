@@ -90,4 +90,4 @@ total, e o pedido aparece gravado ligado ao contato.
 - [x] Testes de integração (9/9 em `catalogo-pedido.integration.test.ts`)
 - [x] `npm run build` e `npm run lint` passam
 - [x] Conferência visual (celular, sem login) (03/10: carrinho persiste entre páginas, mínimo bloqueia, estoque que muda no meio é recusado e ajusta o carrinho, pedido abre o WhatsApp com a mensagem, confirmação com o número, carrinho esvazia)
-- [ ] Commit + push; deploy Ready
+- [x] Commit + push (`0ad058f`); deploy Ready (03/10)
