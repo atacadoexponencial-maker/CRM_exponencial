@@ -6,29 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 
-export interface TipoVariacao {
-  id: string
-  nome: string
-  opcoes: string[]
-}
+import { chaveCombinacao, combinacoes, MAX_TIPOS_VARIACAO, type EstoquePorCombinacao, type TipoVariacao } from "@/lib/catalogo/combinacoes"
 
-/** Estoque por combinação; a chave é `chaveCombinacao([...opções])` ("" quando não há variação). */
-export type EstoquePorCombinacao = Record<string, number>
-
-export const MAX_TIPOS_VARIACAO = 2
-
-export function chaveCombinacao(opcoes: string[]): string {
-  return opcoes.join(" / ")
-}
-
-/** Todas as combinações das opções, na ordem dos tipos. Sem tipo com opção, uma combinação vazia. */
-export function combinacoes(tipos: TipoVariacao[]): string[][] {
-  const comOpcoes = tipos.filter((t) => t.opcoes.length > 0)
-  return comOpcoes.reduce<string[][]>(
-    (acc, tipo) => acc.flatMap((parcial) => tipo.opcoes.map((o) => [...parcial, o])),
-    [[]]
-  )
-}
+export { chaveCombinacao, combinacoes, MAX_TIPOS_VARIACAO, type EstoquePorCombinacao, type TipoVariacao }
 
 interface VariacoesEstoqueProps {
   tipos: TipoVariacao[]

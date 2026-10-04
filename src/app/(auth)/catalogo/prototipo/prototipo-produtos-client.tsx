@@ -7,7 +7,7 @@ import { useState } from "react"
 import { AbasCatalogo } from "../components/abas-catalogo"
 import { ListaProdutos, type CategoriaCatalogo, type ProdutoResumo } from "../components/lista-produtos"
 import { PainelCategorias } from "../components/painel-categorias"
-import { combinacoes, chaveCombinacao } from "../components/variacoes-estoque"
+import { estoqueTotal as somaEstoque } from "@/lib/catalogo/combinacoes"
 import type { ProdutoEditavel } from "../components/editor-produto"
 import { CATEGORIAS_EXEMPLO, PRODUTOS_EXEMPLO } from "./dados-exemplo"
 
@@ -28,7 +28,7 @@ export function FaixaPrototipo({ children }: { children?: React.ReactNode }) {
 }
 
 export function estoqueTotal(p: ProdutoEditavel): number {
-  return combinacoes(p.tipos).reduce((soma, c) => soma + (p.estoque[chaveCombinacao(c)] ?? 0), 0)
+  return somaEstoque(p.tipos, p.estoque)
 }
 
 function paraResumo(p: ProdutoEditavel): ProdutoResumo {

@@ -106,6 +106,47 @@ function CartaoDestaque({ produto, cores, onAbrir }: { produto: ProdutoVitrine; 
   )
 }
 
+export function CabecalhoLoja({
+  tema,
+  quantidadeNoCarrinho = 0,
+  onAbrirCarrinho,
+  onAbrirLoja,
+}: {
+  tema: TemaLoja
+  quantidadeNoCarrinho?: number
+  onAbrirCarrinho?: () => void
+  /** Tocar na logo volta para a vitrine. */
+  onAbrirLoja?: () => void
+}) {
+  const cores = coresDaVitrine(tema)
+  return (
+    <header className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 border-b" style={{ background: cores.fundo, borderColor: cores.borda }}>
+      <button type="button" onClick={onAbrirLoja} className="min-w-0 text-left" aria-label={`Voltar para ${tema.nomeLoja}`} disabled={!onAbrirLoja}>
+        {tema.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={tema.logoUrl} alt={tema.nomeLoja} className="h-9 max-w-40 object-contain" />
+        ) : (
+          <span className="block text-lg font-semibold truncate">{tema.nomeLoja}</span>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={onAbrirCarrinho}
+        className="relative flex items-center justify-center size-10 rounded-full shrink-0"
+        style={{ background: cores.superficie }}
+        aria-label={`Carrinho com ${quantidadeNoCarrinho} peças`}
+      >
+        <ShoppingBag className="size-5" />
+        {quantidadeNoCarrinho > 0 && (
+          <span className="absolute -right-1 -top-1 min-w-5 h-5 px-1 rounded-full text-[11px] font-semibold flex items-center justify-center" style={{ background: cores.principal, color: cores.sobrePrincipal }}>
+            {quantidadeNoCarrinho}
+          </span>
+        )}
+      </button>
+    </header>
+  )
+}
+
 export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, avisoMinimo, onAbrirProduto, onAbrirCarrinho }: VitrineProps) {
   const [categoriaAtiva, setCategoriaAtiva] = useState<string | null>(null)
   const [busca, setBusca] = useState("")
@@ -128,28 +169,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
   return (
     // O CSS global do CRM fixa a fonte dos títulos; na vitrine eles herdam a fonte da loja.
     <div className="@container min-h-full [&_:is(h1,h2,h3)]:[font-family:inherit]" style={{ background: cores.fundo, color: cores.texto, fontFamily: familiaDaFonte(tema.fonteId) }}>
-      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 border-b" style={{ background: cores.fundo, borderColor: cores.borda }}>
-        {tema.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={tema.logoUrl} alt={tema.nomeLoja} className="h-9 max-w-40 object-contain" />
-        ) : (
-          <span className="text-lg font-semibold truncate">{tema.nomeLoja}</span>
-        )}
-        <button
-          type="button"
-          onClick={onAbrirCarrinho}
-          className="relative flex items-center justify-center size-10 rounded-full"
-          style={{ background: cores.superficie }}
-          aria-label={`Carrinho com ${quantidadeNoCarrinho} peças`}
-        >
-          <ShoppingBag className="size-5" />
-          {quantidadeNoCarrinho > 0 && (
-            <span className="absolute -right-1 -top-1 min-w-5 h-5 px-1 rounded-full text-[11px] font-semibold flex items-center justify-center" style={{ background: cores.principal, color: cores.sobrePrincipal }}>
-              {quantidadeNoCarrinho}
-            </span>
-          )}
-        </button>
-      </header>
+      <CabecalhoLoja tema={tema} quantidadeNoCarrinho={quantidadeNoCarrinho} onAbrirCarrinho={onAbrirCarrinho} />
 
       {tema.bannerUrl && (
         // eslint-disable-next-line @next/next/no-img-element

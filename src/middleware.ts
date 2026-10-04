@@ -8,6 +8,7 @@ const PREFIXOS_PUBLICOS = [
   '/politica-de-privacidade',
   '/termos-de-servico',
   '/exclusao-de-dados',
+  '/loja', // vitrine do catálogo: a cliente da loja abre sem login (B16)
 ]
 
 function rotaPublica(pathname: string): boolean {
