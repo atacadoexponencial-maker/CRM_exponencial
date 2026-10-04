@@ -133,7 +133,7 @@ export function PainelCategorias({ categorias, contagem, onCriar, onRenomear, on
             <DialogClose render={<Button variant="outline" size="sm" />}>Cancelar</DialogClose>
             <Button
               size="sm"
-              variant="destructive"
+              variant="destructive" className="text-red-400"
               onClick={() => { if (excluindo) onExcluir(excluindo.id); setExcluindo(null) }}
             >
               Excluir categoria

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { AlertTriangle, ImageOff, MessageSquare, User, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
 import { formatarPreco } from "./lista-produtos"
@@ -94,8 +94,8 @@ export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedi
           <p className="text-sm font-medium">{pedido.cliente.nome}</p>
           <p className="text-sm text-muted-foreground">{formatarWhatsapp(pedido.cliente.whatsapp)}</p>
           <div className="flex flex-wrap gap-2">
-            {pedido.hrefContato && <Link href={pedido.hrefContato}><Button size="sm" variant="outline"><User className="size-3.5" />Perfil do contato</Button></Link>}
-            {pedido.hrefConversa && <Link href={pedido.hrefConversa}><Button size="sm" variant="outline"><MessageSquare className="size-3.5" />Abrir conversa</Button></Link>}
+            {pedido.hrefContato && <Link href={pedido.hrefContato} className={buttonVariants({ size: "sm", variant: "outline" })}><User className="size-3.5" />Perfil do contato</Link>}
+            {pedido.hrefConversa && <Link href={pedido.hrefConversa} className={buttonVariants({ size: "sm", variant: "outline" })}><MessageSquare className="size-3.5" />Abrir conversa</Link>}
           </div>
         </section>
 
@@ -134,7 +134,7 @@ export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedi
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Situação</h3>
             <div className="flex flex-wrap gap-2">
               {PROXIMAS_SITUACOES[pedido.situacao].map((s) => (
-                <Button key={s} size="sm" variant={s === "cancelado" ? "destructive" : s === "fechado" ? "default" : "outline"} onClick={() => pedir(s)} disabled={mudando}>
+                <Button key={s} size="sm" variant={s === "cancelado" ? "destructive" : s === "fechado" ? "default" : "outline"} className={s === "cancelado" ? "text-red-400" : undefined} onClick={() => pedir(s)} disabled={mudando}>
                   {rotuloBotao(pedido.situacao, s)}
                 </Button>
               ))}
@@ -185,7 +185,7 @@ export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedi
           )}
           <div className="mt-5 flex justify-end gap-2">
             <DialogClose render={<Button variant="outline" size="sm" />}>Voltar</DialogClose>
-            <Button size="sm" variant={confirmar === "cancelado" ? "destructive" : "default"} onClick={() => confirmar && mudar(confirmar)}>
+            <Button size="sm" variant={confirmar === "cancelado" ? "destructive" : "default"} className={confirmar === "cancelado" ? "text-red-400" : undefined} onClick={() => confirmar && mudar(confirmar)}>
               {confirmar === "fechado" ? "Fechar mesmo assim" : "Cancelar pedido"}
             </Button>
           </div>

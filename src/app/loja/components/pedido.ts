@@ -33,10 +33,10 @@ export function faltaParaMinimo(itens: ItemPedido[], minimo: MinimoPedido): stri
   const { pecas, valor } = totaisDoPedido(itens)
   if (minimo.tipo === "pecas") {
     const falta = minimo.valor - pecas
-    return falta > 0 ? `Faltam ${falta} ${falta === 1 ? "peça" : "peças"} para o pedido mínimo de ${minimo.valor}` : null
+    return falta > 0 ? `${falta === 1 ? "Falta 1 peça" : `Faltam ${falta} peças`} para o pedido mínimo de ${minimo.valor}` : null
   }
   const falta = minimo.valor - valor
-  return falta > 0.0049 ? `Faltam ${reais(falta)} para o pedido mínimo de ${reais(minimo.valor)}` : null
+  return falta > 0.0049 ? `Falta ${reais(falta)} para o pedido mínimo de ${reais(minimo.valor)}` : null
 }
 
 export function textoDoMinimo(minimo: MinimoPedido): string | null {

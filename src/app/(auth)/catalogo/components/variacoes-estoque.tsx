@@ -21,7 +21,8 @@ interface VariacoesEstoqueProps {
 
 export function VariacoesEstoque({ tipos, estoque, onMudarTipos, onMudarEstoque, novoId }: VariacoesEstoqueProps) {
   const [novaOpcao, setNovaOpcao] = useState<Record<string, string>>({})
-  const [removendo, setRemovendo] = useState<{ tipoId: string; opcao: string; pecas: number } | null>(null)
+  /** `opcao: null` = o tipo inteiro. */
+  const [removendo, setRemovendo] = useState<{ tipoId: string; nome: string; opcao: string | null; pecas: number } | null>(null)
 
   const linhas = combinacoes(tipos)
 
@@ -35,6 +36,15 @@ export function VariacoesEstoque({ tipos, estoque, onMudarTipos, onMudarEstoque,
 
   function removerTipo(id: string) {
     onMudarTipos(tipos.filter((t) => t.id !== id))
+  }
+
+  function pedirRemocaoTipo(tipo: TipoVariacao) {
+    const pecas = tipo.opcoes.length > 0 ? linhas.reduce((soma, l) => soma + (estoque[chaveCombinacao(l)] ?? 0), 0) : 0
+    if (pecas > 0) {
+      setRemovendo({ tipoId: tipo.id, nome: tipo.nome, opcao: null, pecas })
+      return
+    }
+    removerTipo(tipo.id)
   }
 
   function adicionarOpcao(tipoId: string) {
@@ -54,7 +64,7 @@ export function VariacoesEstoque({ tipos, estoque, onMudarTipos, onMudarEstoque,
   function pedirRemocaoOpcao(tipoId: string, opcao: string) {
     const pecas = pecasDaOpcao(tipoId, opcao)
     if (pecas > 0) {
-      setRemovendo({ tipoId, opcao, pecas })
+      setRemovendo({ tipoId, nome: opcao, opcao, pecas })
       return
     }
     removerOpcao(tipoId, opcao)
@@ -75,7 +85,7 @@ export function VariacoesEstoque({ tipos, estoque, onMudarTipos, onMudarEstoque,
               className="h-8 max-w-48 font-medium"
               aria-label="Nome do tipo de variação"
             />
-            <Button size="icon-sm" variant="ghost" onClick={() => removerTipo(tipo.id)} aria-label={`Remover ${tipo.nome}`}>
+            <Button size="icon-sm" variant="ghost" onClick={() => pedirRemocaoTipo(tipo)} aria-label={`Remover ${tipo.nome}`}>
               <Trash2 />
             </Button>
           </div>
@@ -151,16 +161,18 @@ export function VariacoesEstoque({ tipos, estoque, onMudarTipos, onMudarEstoque,
 
       <Dialog open={removendo !== null} onOpenChange={(aberto) => { if (!aberto) setRemovendo(null) }}>
         <DialogPopup className="max-w-sm">
-          <DialogTitle>Remover a opção {removendo?.opcao}?</DialogTitle>
+          <DialogTitle>{removendo?.opcao === null ? `Remover ${removendo?.nome}?` : `Remover a opção ${removendo?.opcao}?`}</DialogTitle>
           <DialogDescription className="mt-2">
-            As combinações com {removendo?.opcao} somam {removendo?.pecas} peças em estoque. Elas saem da grade e da loja.
+            {removendo?.opcao === null
+              ? `As combinações deste produto somam ${removendo?.pecas} peças em estoque. Sem ${removendo?.nome}, o estoque delas é apagado e precisa ser informado de novo.`
+              : `As combinações com ${removendo?.opcao} somam ${removendo?.pecas} peças em estoque. Elas saem da grade e da loja.`}
           </DialogDescription>
           <div className="mt-5 flex justify-end gap-2">
             <DialogClose render={<Button variant="outline" size="sm" />}>Cancelar</DialogClose>
             <Button
               size="sm"
-              variant="destructive"
-              onClick={() => { if (removendo) removerOpcao(removendo.tipoId, removendo.opcao); setRemovendo(null) }}
+              variant="destructive" className="text-red-400"
+              onClick={() => { if (removendo) { if (removendo.opcao === null) removerTipo(removendo.tipoId); else removerOpcao(removendo.tipoId, removendo.opcao) } setRemovendo(null) }}
             >
               Remover
             </Button>

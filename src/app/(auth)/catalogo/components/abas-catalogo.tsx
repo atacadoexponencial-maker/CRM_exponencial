@@ -12,17 +12,20 @@ const ABAS: { id: AbaCatalogo; label: string }[] = [
 
 interface AbasCatalogoProps {
   ativa: AbaCatalogo
-  /** Endereço de cada aba; `null` mostra a aba desabilitada. */
+  /** Endereço de cada aba; `null` esconde a aba (ex.: o Atendente só vê Pedidos). */
   hrefs: Record<AbaCatalogo, string | null>
   /** Número ao lado do nome da aba (ex.: pedidos Novos). */
   contadores?: Partial<Record<AbaCatalogo, number>>
 }
 
 export function AbasCatalogo({ ativa, hrefs, contadores }: AbasCatalogoProps) {
+  const visiveis = ABAS.filter((aba) => hrefs[aba.id] !== null)
+  // Uma aba só não é navegação: o título da página já diz onde se está.
+  if (visiveis.length < 2) return null
   return (
     <nav className="flex gap-1 border-b border-border mb-6" aria-label="Seções do catálogo">
-      {ABAS.map((aba) => {
-        const href = hrefs[aba.id]
+      {visiveis.map((aba) => {
+        const href = hrefs[aba.id]!
         const classe = cn(
           "px-3 py-2 text-sm border-b-2 -mb-px transition-colors",
           aba.id === ativa
@@ -40,13 +43,6 @@ export function AbasCatalogo({ ativa, hrefs, contadores }: AbasCatalogoProps) {
             ) : null}
           </>
         )
-        if (!href) {
-          return (
-            <span key={aba.id} className={cn(classe, "opacity-40 cursor-not-allowed hover:text-muted-foreground")} title="Em breve">
-              {rotulo}
-            </span>
-          )
-        }
         return (
           <Link key={aba.id} href={href} className={classe} aria-current={aba.id === ativa ? "page" : undefined}>
             {rotulo}

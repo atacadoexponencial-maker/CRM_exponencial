@@ -3,7 +3,7 @@
 import { useRef, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, ImagePlus, Star, Trash2, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
@@ -147,12 +147,12 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
         </Link>
         <div className="flex gap-2">
           {onExcluir && (
-            <Button size="sm" variant="destructive" onClick={() => setConfirmarExclusao(true)}>
+            <Button size="sm" variant="destructive" className="text-red-400" onClick={() => setConfirmarExclusao(true)}>
               <Trash2 className="size-4" />
               Excluir produto
             </Button>
           )}
-          <Link href={hrefVoltar}><Button size="sm" variant="outline">Cancelar</Button></Link>
+          <Link href={hrefVoltar} className={buttonVariants({ size: "sm", variant: "outline" })}>Cancelar</Link>
           <Button size="sm" onClick={salvar} disabled={salvando || enviandoFotos > 0}>{salvando ? "Salvando..." : "Salvar"}</Button>
         </div>
       </div>
@@ -299,7 +299,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
           </DialogDescription>
           <div className="mt-5 flex justify-end gap-2">
             <DialogClose render={<Button variant="outline" size="sm" />}>Cancelar</DialogClose>
-            <Button size="sm" variant="destructive" onClick={() => { setConfirmarExclusao(false); onExcluir?.() }}>Excluir produto</Button>
+            <Button size="sm" variant="destructive" className="text-red-400" onClick={() => { setConfirmarExclusao(false); onExcluir?.() }}>Excluir produto</Button>
           </div>
         </DialogPopup>
       </Dialog>

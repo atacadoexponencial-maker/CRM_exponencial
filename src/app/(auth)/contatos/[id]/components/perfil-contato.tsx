@@ -20,6 +20,7 @@ import {
 } from "../../mock-contatos"
 import { TimelineContato } from "./timeline-contato"
 import { SecaoPedidosContato } from "../../../catalogo/components/secao-pedidos-contato"
+import { formatarWhatsapp } from "../../../catalogo/components/lista-pedidos"
 import { RegistrarCompraDialog } from "./registrar-compra-dialog"
 import { DialogoExcluirContato } from "../../components/dialogo-excluir-contato"
 import { resumoExclusaoContato, excluirContato, restaurarContato, type ResumoExclusao } from "../../lixeira/actions"
@@ -238,7 +239,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira }: PerfilCo
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="text-xl font-semibold">{contato.nome}</h1>
-          <p className="text-sm text-muted-foreground">{contato.telefone}</p>
+          <p className="text-sm text-muted-foreground">{formatarWhatsapp(contato.telefone.replace(/\D/g, ""))}</p>
           <span className={cn(
             "inline-flex items-center self-start px-2 py-0.5 text-xs rounded-md border font-medium mt-1",
             CLASSIFICACAO_BADGE[contato.classificacao]
@@ -432,7 +433,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira }: PerfilCo
             ) : (
               <div className="rounded-lg border divide-y text-sm">
                 <Row label="Nome" value={contato.nome} />
-                <Row label="WhatsApp" value={contato.telefone} />
+                <Row label="WhatsApp" value={formatarWhatsapp(contato.telefone.replace(/\D/g, ""))} />
                 <Row label="Tipo" value={contato.tipo ? TIPO_LABEL[contato.tipo] : "—"} />
                 <Row label="Nicho" value={contato.nicho ?? "—"} />
                 <Row label="Cidade" value={contato.cidade ?? "—"} />

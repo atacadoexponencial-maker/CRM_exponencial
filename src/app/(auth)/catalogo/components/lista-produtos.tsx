@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Eye, EyeOff, GripVertical, ImageOff, Package, Plus, Search, Store } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -87,11 +87,9 @@ export function ListaProdutos({
             Cadastre os produtos com fotos, preço e variações. Depois é só mandar o link da loja para as clientes.
           </p>
         </div>
-        <Link href={hrefNovo}>
-          <Button size="sm">
-            <Plus className="size-4 mr-1.5" />
-            Cadastrar o primeiro produto
-          </Button>
+        <Link href={hrefNovo} className={buttonVariants({ size: "sm" })}>
+          <Plus className="size-4 mr-1.5" />
+          Cadastrar o primeiro produto
         </Link>
       </div>
     )
@@ -133,11 +131,9 @@ export function ListaProdutos({
           <option value="ocultos">Só ocultos</option>
         </select>
         {hrefLoja ? (
-          <a href={hrefLoja} target="_blank" rel="noreferrer">
-            <Button size="sm" variant="outline">
-              <Store className="size-4 mr-1.5" />
-              Ver minha loja
-            </Button>
+          <a href={hrefLoja} target="_blank" rel="noreferrer" className={buttonVariants({ size: "sm", variant: "outline" })}>
+            <Store className="size-4 mr-1.5" />
+            Ver minha loja
           </a>
         ) : (
           <Button size="sm" variant="outline" disabled title="Publique o catálogo para ter o link da loja">
@@ -145,11 +141,9 @@ export function ListaProdutos({
             Ver minha loja
           </Button>
         )}
-        <Link href={hrefNovo}>
-          <Button size="sm">
-            <Plus className="size-4 mr-1.5" />
-            Novo produto
-          </Button>
+        <Link href={hrefNovo} className={buttonVariants({ size: "sm" })}>
+          <Plus className="size-4 mr-1.5" />
+          Novo produto
         </Link>
       </div>
 
@@ -198,7 +192,7 @@ export function ListaProdutos({
                     </p>
                   </Link>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {esgotado && <Badge variant="destructive">Esgotado</Badge>}
+                    {esgotado && <Badge variant="outline" className="border-amber-500/30 bg-amber-500/15 text-amber-300">Esgotado</Badge>}
                     {!p.visivel && <Badge variant="secondary">Oculto</Badge>}
                     <Button
                       size="icon-sm"

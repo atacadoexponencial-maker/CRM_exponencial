@@ -156,7 +156,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
   const filtrados = produtos.filter(
     (p) => (!termo || p.nome.toLowerCase().includes(termo)) && (categoriaAtiva === null || p.categoriaId === categoriaAtiva)
   )
-  const grupos = [...categorias, { id: null as string | null, nome: "Outros" }]
+  const grupos = [...categorias, { id: null as string | null, nome: "Mais produtos" }]
     .map((c) => ({ ...c, itens: filtrados.filter((p) => p.categoriaId === c.id) }))
     .filter((g) => g.itens.length > 0)
   const destaques = produtos.filter((p) => p.destaque)
@@ -178,7 +178,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
 
       <div className="px-4 pt-5 pb-10 space-y-5 max-w-6xl mx-auto">
         <div className="space-y-1">
-          {tema.logoUrl && <h1 className="text-2xl @3xl:text-3xl font-semibold">{tema.nomeLoja}</h1>}
+          {tema.logoUrl ? <h1 className="text-2xl @3xl:text-3xl font-semibold">{tema.nomeLoja}</h1> : <h1 className="sr-only">{tema.nomeLoja}</h1>}
           {tema.boasVindas && <p className="text-sm" style={{ color: cores.suave }}>{tema.boasVindas}</p>}
           {avisoMinimo && <p className="text-xs font-medium" style={{ color: cores.principal }}>{avisoMinimo}</p>}
         </div>
@@ -189,8 +189,8 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar produto"
-            className="w-full h-10 rounded-full pl-9 pr-4 text-sm outline-none border"
-            style={{ background: cores.superficie, borderColor: cores.borda, color: cores.texto }}
+            className="w-full h-10 rounded-full pl-9 pr-4 text-sm outline-none border focus-visible:ring-2"
+            style={{ background: cores.superficie, borderColor: cores.borda, color: cores.texto, ["--tw-ring-color" as string]: cores.principal }}
             aria-label="Buscar produto"
           />
         </div>
