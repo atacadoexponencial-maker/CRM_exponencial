@@ -116,3 +116,51 @@ describe("B16-10 — Pedidos no CRM e no perfil do contato", { timeout: 30_000 }
     expect((await mudarSituacaoPedido(pedidoId, "fechado")).erro).toMatch(/não é permitida/)
   })
 })
+
+describe("B16-11 — Estoque baixa ao fechar e volta ao cancelar", { timeout: 30_000 }, () => {
+  let produto = ""
+  const estoque = async () => (await service.from("catalog_stock").select("quantity").eq("product_id", produto).eq("combination", "M").single()).data!.quantity
+  async function pedidoNovo(quantidade: number, fone: string) {
+    const r = await registrarPedido(slug, { nome: "Cliente", whatsapp: fone }, [{ produtoId: produto, combinacao: "M", quantidade }])
+    if (!r.ok) throw new Error(r.erro)
+    return (await service.from("catalog_orders").select("id").eq("workspace_id", ws).eq("number", r.numero).single()).data!.id as string
+  }
+
+  beforeAll(async () => {
+    produto = (await service.from("catalog_products").insert({ workspace_id: ws, name: "Vestido", price: 50, variant_types: [{ id: "t", nome: "Tamanho", opcoes: ["M"] }] }).select("id").single()).data!.id
+    await service.from("catalog_stock").insert({ workspace_id: ws, product_id: produto, combination: "M", quantity: 5 })
+  })
+
+  it("fechar baixa o estoque e cancelar o fechado devolve", async () => {
+    const id = await pedidoNovo(3, "31977770001")
+    await entrarComo(emailAtend)
+    expect((await mudarSituacaoPedido(id, "fechado")).erro).toBeUndefined()
+    expect(await estoque()).toBe(2)
+    expect((await mudarSituacaoPedido(id, "cancelado")).erro).toBeUndefined()
+    expect(await estoque()).toBe(5)
+  })
+
+  it("estoque insuficiente vai a zero e o cancelamento devolve só o que saiu", async () => {
+    const a = await pedidoNovo(4, "31977770002")
+    const b = await pedidoNovo(4, "31977770003")
+    await entrarComo(emailAtend)
+    await mudarSituacaoPedido(a, "fechado")
+    expect(await estoque()).toBe(1)
+    // Na hora de fechar o segundo, só há 1: vai a zero, nunca negativo.
+    await mudarSituacaoPedido(b, "fechado")
+    expect(await estoque()).toBe(0)
+    const { data: vitrine } = await service.from("catalog_stock").select("quantity").eq("product_id", produto)
+    expect(vitrine?.[0].quantity).toBe(0)
+    await mudarSituacaoPedido(b, "cancelado")
+    expect(await estoque()).toBe(1)
+    await mudarSituacaoPedido(a, "cancelado")
+    expect(await estoque()).toBe(5)
+  })
+
+  it("cancelar um pedido que não estava fechado não mexe no estoque", async () => {
+    const id = await pedidoNovo(2, "31977770004")
+    await entrarComo(emailAtend)
+    await mudarSituacaoPedido(id, "cancelado")
+    expect(await estoque()).toBe(5)
+  })
+})

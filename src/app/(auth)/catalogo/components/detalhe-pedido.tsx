@@ -134,9 +134,11 @@ export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedi
                 </Button>
               ))}
             </div>
-            {pedido.situacao !== "fechado" && (
-              <p className="text-xs text-muted-foreground">Ao marcar como Fechado, o estoque das peças do pedido baixa.</p>
-            )}
+            <p className="text-xs text-muted-foreground">
+              {pedido.situacao === "fechado"
+                ? "O estoque deste pedido já foi baixado. Cancelar devolve as peças ao estoque."
+                : "Ao marcar como Fechado, o estoque das peças do pedido baixa."}
+            </p>
             {erro && <p className="text-xs text-destructive" role="alert">{erro}</p>}
           </section>
         )}
