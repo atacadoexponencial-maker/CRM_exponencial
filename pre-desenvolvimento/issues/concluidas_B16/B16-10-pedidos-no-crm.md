@@ -77,4 +77,4 @@ contato com o evento na linha do tempo.
 - [x] Testes de integração (6/6 em `catalogo-pedidos-crm.integration.test.ts`; testes antigos de contatos 23/23)
 - [x] `npm run build` e `npm run lint` passam
 - [x] Conferência visual (Admin e Atendente) (03/10: pedido feito pela loja aparece com contador "Catálogo 1", histórico com quem mudou, perfil com seção, link e evento; Atendente vê só Pedidos e muda a situação)
-- [ ] Commit + push; deploy Ready
+- [x] Commit + push (`b4fceb5`); deploy Ready (03/10)
