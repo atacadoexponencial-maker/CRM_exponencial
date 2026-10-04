@@ -9,5 +9,5 @@ export default async function ProdutoLojaPage({ params }: { params: Promise<{ en
   if (!loja) notFound()
   const produto = await carregarProdutoPublico(loja.workspaceId, produtoId)
   if (!produto) return <ProdutoNaoEncontrado endereco={loja.endereco} tema={loja.tema} />
-  return <ProdutoClient endereco={loja.endereco} tema={loja.tema} produto={produto} />
+  return <ProdutoClient endereco={loja.endereco} tema={loja.tema} minimo={loja.minimo} produto={produto} />
 }
