@@ -16,6 +16,7 @@ export type TipoEvento =
   | "mudanca_etapa"
   | "nota_interna"
   | "compra_registrada"
+  | "pedido_catalogo"
   | "dados_editados"
 
 /** Contatos por página na listagem (B10-06). Fica aqui porque `actions.ts` é
@@ -61,6 +62,8 @@ export interface ContatoPerfil extends Contato {
   cards: CardPipelineMock[]
   compras: Compra[]
   timeline: EventoTimeline[]
+  /** Pedidos feitos pela loja do catálogo (B16-10). */
+  pedidosCatalogo?: import("../catalogo/components/lista-pedidos").PedidoResumo[]
 }
 
 export const CLASSIFICACAO_LABEL: Record<ClassificacaoContato, string> = {
@@ -89,6 +92,7 @@ export const TIPOS_EVENTO: Record<TipoEvento, string> = {
   mudanca_etapa: "Mudança de etapa",
   nota_interna: "Nota interna",
   compra_registrada: "Compra registrada",
+  pedido_catalogo: "Pedido do catálogo",
   dados_editados: "Dados editados",
 }
 

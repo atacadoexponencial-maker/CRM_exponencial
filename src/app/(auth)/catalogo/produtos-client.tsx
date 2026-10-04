@@ -14,12 +14,17 @@ import {
   type Catalogo,
 } from "./actions"
 
-/** Abas do catálogo; as que ainda não existem de verdade aparecem como "Em breve". */
+/** Abas do catálogo para Admin e Gerente. */
 export const HREFS_CATALOGO: Record<AbaCatalogo, string | null> = {
   produtos: "/catalogo",
   aparencia: "/catalogo/aparencia",
   configuracoes: "/catalogo/configuracoes",
-  pedidos: null,
+  pedidos: "/catalogo/pedidos",
+}
+
+/** Atendente só enxerga Pedidos. */
+export function hrefsDoCatalogo(papel: string): Record<AbaCatalogo, string | null> {
+  return papel === "atendente" ? { produtos: null, aparencia: null, configuracoes: null, pedidos: "/catalogo/pedidos" } : HREFS_CATALOGO
 }
 
 export function ProdutosClient({ inicial, hrefLoja }: { inicial: Catalogo; hrefLoja: string | null }) {

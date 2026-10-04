@@ -18,6 +18,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plug,
+  ShoppingBag,
   Store,
   Tags,
   FileBadge,
@@ -49,9 +50,11 @@ interface SidebarNavProps {
   papel: Papel
   nomeUsuario: string
   atrasados: number
+  /** Pedidos do catálogo ainda Novos (B16-10). */
+  pedidosNovos?: number
 }
 
-function montarSecoes(atrasados: number): SecaoNav[] {
+function montarSecoes(atrasados: number, pedidosNovos: number): SecaoNav[] {
   return [
     {
       titulo: null,
@@ -60,7 +63,9 @@ function montarSecoes(atrasados: number): SecaoNav[] {
         { href: "/pipeline", label: "Pipeline", icone: Kanban },
         { href: "/chat", label: "Chat", icone: MessageSquare },
         { href: "/contatos", label: "Contatos", icone: Contact },
-        { href: "/catalogo", label: "Catálogo", icone: Store, papeis: ["admin", "gerente"] },
+        { href: "/catalogo", label: "Catálogo", icone: Store, papeis: ["admin", "gerente"], badge: pedidosNovos },
+        // Atendente vê só os pedidos do catálogo.
+        { href: "/catalogo/pedidos", label: "Pedidos", icone: ShoppingBag, papeis: ["atendente"], badge: pedidosNovos },
       ],
     },
     {
@@ -141,6 +146,7 @@ function ConteudoNav({
   papel,
   nomeUsuario,
   atrasados,
+  pedidosNovos = 0,
   pathname,
   recolhido = false,
   onAlternar,
@@ -151,7 +157,7 @@ function ConteudoNav({
   onAlternar?: () => void
   onNavegar?: () => void
 }) {
-  const secoes = montarSecoes(atrasados)
+  const secoes = montarSecoes(atrasados, pedidosNovos)
 
   function visivel(item: ItemNav) {
     return !item.papeis || item.papeis.includes(papel)

@@ -19,6 +19,7 @@ import {
   ICP_LABEL,
 } from "../../mock-contatos"
 import { TimelineContato } from "./timeline-contato"
+import { SecaoPedidosContato } from "../../../catalogo/components/secao-pedidos-contato"
 import { RegistrarCompraDialog } from "./registrar-compra-dialog"
 import { DialogoExcluirContato } from "../../components/dialogo-excluir-contato"
 import { resumoExclusaoContato, excluirContato, restaurarContato, type ResumoExclusao } from "../../lixeira/actions"
@@ -573,6 +574,11 @@ export function PerfilContato({ contato, papel, contactId, naLixeira }: PerfilCo
               </div>
             )}
           </section>
+
+          {/* B16-10: pedidos feitos pela loja do catálogo */}
+          {contato.pedidosCatalogo && contato.pedidosCatalogo.length > 0 && (
+            <SecaoPedidosContato pedidos={contato.pedidosCatalogo} hrefPedido={(pid) => `/catalogo/pedidos?pedido=${pid}`} />
+          )}
 
           {/* Histórico de compras */}
           <section className="space-y-3">
