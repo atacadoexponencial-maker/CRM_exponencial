@@ -15,7 +15,7 @@ export const HREFS_PROTOTIPO = {
   produtos: "/catalogo/prototipo",
   aparencia: "/catalogo/prototipo/aparencia",
   configuracoes: "/catalogo/prototipo/configuracoes",
-  pedidos: null,
+  pedidos: "/catalogo/prototipo/pedidos",
 }
 
 export function FaixaPrototipo({ children }: { children?: React.ReactNode }) {
