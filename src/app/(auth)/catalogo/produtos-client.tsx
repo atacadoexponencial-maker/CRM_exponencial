@@ -51,7 +51,6 @@ export function ProdutosClient({ inicial }: { inicial: Catalogo }) {
           hrefNovo="/catalogo/produtos/nova"
           hrefEditar={(id) => `/catalogo/produtos/${id}`}
           hrefLoja={null}
-          comEstoque={false}
           onAlternarVisivel={(id) => {
             // Mostra na hora; a resposta do servidor confirma.
             setCatalogo((c) => ({ ...c, produtos: c.produtos.map((p) => (p.id === id ? { ...p, visivel: !p.visivel } : p)) }))

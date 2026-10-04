@@ -40,7 +40,6 @@ export function EditorClient({ inicial, categorias }: { inicial: ProdutoEditavel
         inicial={inicial}
         categorias={categorias}
         hrefVoltar="/catalogo"
-        comVariacoes={false}
         onAdicionarFotos={enviarFotos}
         onSalvar={async (produto) => {
           const r = await salvarProduto(produto)

@@ -8,7 +8,8 @@ import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import type { CategoriaCatalogo, ProdutoResumo } from "./components/lista-produtos"
 import type { FotoProduto, ProdutoEditavel } from "./components/editor-produto"
-import { BUCKET_CATALOGO, FORMATOS_FOTO, MAX_FOTOS, TAMANHO_MAX_FOTO } from "@/lib/catalogo/regras"
+import { BUCKET_CATALOGO, ESTOQUE_MAXIMO, FORMATOS_FOTO, MAX_FOTOS, MAX_OPCOES_POR_TIPO, TAMANHO_MAX_FOTO } from "@/lib/catalogo/regras"
+import { chaveCombinacao, combinacoes, MAX_TIPOS_VARIACAO, type TipoVariacao } from "@/lib/catalogo/combinacoes"
 
 export interface Catalogo {
   categorias: CategoriaCatalogo[]
@@ -42,7 +43,7 @@ export async function listarCatalogo(): Promise<Catalogo> {
     supabase.from("catalog_categories").select("id, name").eq("workspace_id", perfil.workspace_id).order("position").order("created_at"),
     supabase
       .from("catalog_products")
-      .select("id, name, category_id, price, visible, photos")
+      .select("id, name, category_id, price, visible, photos, catalog_stock(quantity)")
       .eq("workspace_id", perfil.workspace_id)
       .order("position")
       .order("created_at"),
@@ -55,7 +56,8 @@ export async function listarCatalogo(): Promise<Catalogo> {
       nome: p.name,
       categoriaId: p.category_id,
       preco: Number(p.price),
-      estoqueTotal: 0, // estoque é da B16-06
+      // As combinações que saíram da grade são apagadas ao salvar: somar todas as linhas basta.
+      estoqueTotal: ((p.catalog_stock as { quantity: number }[] | null) ?? []).reduce((s, e) => s + e.quantity, 0),
       visivel: p.visible,
       fotoUrl: Array.isArray(p.photos) && p.photos[0] ? urlPublica(p.photos[0] as string) : null,
     })),
@@ -67,7 +69,7 @@ export async function carregarProduto(id: string): Promise<ProdutoEditavel | nul
   if (!s.ok) return null
   const { data } = await s.supabase
     .from("catalog_products")
-    .select("id, name, description, price, compare_at_price, sku, category_id, visible, featured, photos")
+    .select("id, name, description, price, compare_at_price, sku, category_id, visible, featured, photos, variant_types, catalog_stock(combination, quantity)")
     .eq("id", id)
     .eq("workspace_id", s.perfil.workspace_id)
     .maybeSingle()
@@ -83,9 +85,37 @@ export async function carregarProduto(id: string): Promise<ProdutoEditavel | nul
     visivel: data.visible,
     destaque: data.featured,
     fotos: ((data.photos as string[]) ?? []).map(fotoDoCaminho),
-    tipos: [],
-    estoque: { "": 0 },
+    tipos: (data.variant_types as TipoVariacao[]) ?? [],
+    estoque: Object.fromEntries(((data.catalog_stock as { combination: string; quantity: number }[] | null) ?? []).map((e) => [e.combination, e.quantity])),
   }
+}
+
+/** Confere tipos e estoque; devolve o erro ou o estoque só das combinações que existem. */
+function validarVariacoes(tipos: TipoVariacao[], estoque: Record<string, number>): { erro: string } | { tipos: TipoVariacao[]; estoque: Record<string, number> } {
+  if (tipos.length > MAX_TIPOS_VARIACAO) return { erro: `O produto aceita até ${MAX_TIPOS_VARIACAO} tipos de variação.` }
+  const limpos: TipoVariacao[] = []
+  for (const tipo of tipos) {
+    const nome = tipo.nome.trim()
+    if (!nome) return { erro: "Dê um nome a cada tipo de variação (ex.: Tamanho)." }
+    const opcoes = tipo.opcoes.map((o) => o.trim()).filter(Boolean)
+    if (opcoes.length > MAX_OPCOES_POR_TIPO) return { erro: `${nome}: até ${MAX_OPCOES_POR_TIPO} opções.` }
+    if (new Set(opcoes.map((o) => o.toLowerCase())).size !== opcoes.length) return { erro: `${nome}: há opções repetidas.` }
+    if (opcoes.some((o) => o.includes(" / "))) return { erro: `${nome}: a opção não pode ter " / ".` }
+    limpos.push({ id: tipo.id, nome, opcoes })
+  }
+  const grade: Record<string, number> = {}
+  for (const c of combinacoes(limpos)) {
+    const chave = chaveCombinacao(c)
+    const qtd = estoque[chave] ?? 0
+    if (!Number.isInteger(qtd) || qtd < 0 || qtd > ESTOQUE_MAXIMO) return { erro: `Estoque de ${chave || "produto"}: use um número inteiro de 0 a ${ESTOQUE_MAXIMO.toLocaleString("pt-BR")}.` }
+    grade[chave] = qtd
+  }
+  return { tipos: limpos, estoque: grade }
+}
+
+async function gravarEstoque(supabase: Awaited<ReturnType<typeof sessaoAtual>>["supabase"], produtoId: string, tipos: TipoVariacao[], estoque: Record<string, number>) {
+  const { error } = await supabase.rpc("salvar_estoque_produto", { p_produto: produtoId, p_tipos: tipos, p_estoque: estoque })
+  return !error
 }
 
 /** URL assinada para o navegador mandar a foto direto ao armazenamento (sem passar pela Vercel). */
@@ -129,6 +159,8 @@ export async function salvarProduto(produto: ProdutoEditavel): Promise<Resultado
   if (caminhos.length > MAX_FOTOS) return { erro: `O produto aceita até ${MAX_FOTOS} fotos.` }
   if (caminhos.some((c) => !c.startsWith(`${perfil.workspace_id}/produtos/`))) return { erro: "Foto inválida. Envie de novo." }
   if (!(await categoriaDaEmpresa(supabase, perfil.workspace_id, produto.categoriaId))) return { erro: "Categoria não encontrada." }
+  const variacoes = validarVariacoes(produto.tipos, produto.estoque)
+  if ("erro" in variacoes) return { erro: variacoes.erro }
 
   const campos = {
     name: nome,
@@ -150,6 +182,7 @@ export async function salvarProduto(produto: ProdutoEditavel): Promise<Resultado
       .select("id")
       .single()
     if (error || !data) return { erro: "Não deu para salvar o produto. Tente de novo." }
+    if (!(await gravarEstoque(supabase, data.id, variacoes.tipos, variacoes.estoque))) return { erro: "O produto foi salvo, mas o estoque não. Abra e salve de novo." }
     return { id: data.id }
   }
 
@@ -168,6 +201,7 @@ export async function salvarProduto(produto: ProdutoEditavel): Promise<Resultado
     .eq("id", produto.id)
     .eq("workspace_id", perfil.workspace_id)
   if (error) return { erro: "Não deu para salvar o produto. Tente de novo." }
+  if (!(await gravarEstoque(supabase, produto.id, variacoes.tipos, variacoes.estoque))) return { erro: "Não deu para salvar o estoque. Tente de novo." }
 
   const removidas = ((antes.photos as string[]) ?? []).filter((c) => !caminhos.includes(c))
   if (removidas.length) await createServiceClient().storage.from(BUCKET_CATALOGO).remove(removidas).catch(() => {})

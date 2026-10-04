@@ -167,3 +167,53 @@ describe("B16-05 — Cadastrar produtos e organizar categorias", { timeout: 30_0
     expect((ok as { caminho: string }).caminho.startsWith(`${wsA}/produtos/`)).toBe(true)
   })
 })
+
+describe("B16-06 — Variações e grade de estoque", { timeout: 30_000 }, () => {
+  const tipos = [
+    { id: "t1", nome: "Tamanho", opcoes: ["P", "M", "G"] },
+    { id: "t2", nome: "Cor", opcoes: ["Azul", "Preto"] },
+  ]
+
+  it("grava tipos e estoque por combinação e devolve igual", async () => {
+    await entrarComo(emailA)
+    const estoque = { "P / Azul": 1, "P / Preto": 2, "M / Azul": 3, "M / Preto": 0, "G / Azul": 5, "G / Preto": 4 }
+    const r = (await salvarProduto(produto({ nome: "Com grade", tipos, estoque }))) as { id: string }
+    const salvo = await carregarProduto(r.id)
+    expect(salvo?.tipos.map((t) => t.opcoes)).toEqual([["P", "M", "G"], ["Azul", "Preto"]])
+    expect(salvo?.estoque).toEqual(estoque)
+    expect((await listarCatalogo()).produtos.find((p) => p.id === r.id)?.estoqueTotal).toBe(15)
+  })
+
+  it("remover uma opção apaga as combinações dela do banco", async () => {
+    await entrarComo(emailA)
+    const r = (await salvarProduto(produto({ nome: "Encolhe", tipos, estoque: { "P / Azul": 1, "G / Azul": 9 } }))) as { id: string }
+    const sem = [{ ...tipos[0], opcoes: ["P", "M"] }, tipos[1]]
+    await salvarProduto(produto({ id: r.id, nome: "Encolhe", tipos: sem, estoque: { "P / Azul": 1, "G / Azul": 9 } }))
+    const { data } = await service.from("catalog_stock").select("combination").eq("product_id", r.id)
+    expect((data ?? []).map((d) => d.combination).sort()).toEqual(["M / Azul", "M / Preto", "P / Azul", "P / Preto"])
+  })
+
+  it("sem variação usa um estoque único; zerado aparece esgotado (estoque 0)", async () => {
+    await entrarComo(emailA)
+    const r = (await salvarProduto(produto({ nome: "Único", tipos: [], estoque: { "": 0 } }))) as { id: string }
+    expect((await listarCatalogo()).produtos.find((p) => p.id === r.id)?.estoqueTotal).toBe(0)
+  })
+
+  it("rejeita opção repetida, estoque negativo e mais de 2 tipos", async () => {
+    await entrarComo(emailA)
+    expect((await salvarProduto(produto({ tipos: [{ id: "x", nome: "Cor", opcoes: ["Azul", "azul"] }] }))).erro).toMatch(/repetidas/)
+    expect((await salvarProduto(produto({ tipos: [], estoque: { "": -1 } }))).erro).toMatch(/inteiro de 0/)
+    const tres = [...tipos, { id: "t3", nome: "Tecido", opcoes: ["Linho"] }]
+    expect((await salvarProduto(produto({ tipos: tres }))).erro).toMatch(/até 2 tipos/)
+  })
+
+  it("atendente não grava estoque nem pela função do banco", async () => {
+    await entrarComo(emailA)
+    const r = (await salvarProduto(produto({ nome: "Protegido", tipos: [], estoque: { "": 5 } }))) as { id: string }
+    const atend = createClient(URL, ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
+    await atend.auth.signInWithPassword({ email: emailAtendA, password: SENHA })
+    await atend.rpc("salvar_estoque_produto", { p_produto: r.id, p_tipos: [], p_estoque: { "": 999 } })
+    const { data } = await service.from("catalog_stock").select("quantity").eq("product_id", r.id).single()
+    expect(data?.quantity).toBe(5)
+  })
+})
