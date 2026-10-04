@@ -93,4 +93,4 @@ indisponível no momento".
 - [x] Testes de integração (7/7 em `catalogo-loja-publica.integration.test.ts`)
 - [x] `npm run build` e `npm run lint` passam
 - [x] Conferência visual (CRM + celular sem login) (03/10: publicar, Ver minha loja, loja 200 sem login com título e og:title da loja, sem oculto e sem marca do CRM, P indisponível, produto oculto "não encontrado", loja inexistente e despublicada 404)
-- [ ] Commit + push; deploy Ready
+- [x] Commit + push (`949cc86`); deploy Ready (03/10)
