@@ -27,7 +27,7 @@ async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promi
   const { workspace_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
-  const provider = await resolverProviderDaConversa(supabase, conversaId, workspace_id)
+  const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
 
   if (!provider) throw new Error("Conexão WhatsApp não encontrada")
 
@@ -80,7 +80,7 @@ async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Pr
   const { workspace_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
-  const provider = await resolverProviderDaConversa(supabase, conversaId, workspace_id)
+  const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
 
   if (!provider) throw new Error("Conexão WhatsApp não encontrada")
 
@@ -163,7 +163,7 @@ async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData):
   const { workspace_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
-  const provider = await resolverProviderDaConversa(supabase, conversaId, workspace_id)
+  const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
 
   if (!provider) throw new Error("Conexão WhatsApp não encontrada")
 
@@ -233,7 +233,7 @@ async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Pro
   const { workspace_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
-  const provider = await resolverProviderDaConversa(supabase, conversaId, workspace_id)
+  const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
 
   if (!provider) throw new Error("Conexão WhatsApp não encontrada")
 
@@ -302,7 +302,7 @@ async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Pro
   const { workspace_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
-  const provider = await resolverProviderDaConversa(supabase, conversaId, workspace_id)
+  const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
 
   if (!provider) throw new Error("Conexão WhatsApp não encontrada")
 
@@ -702,7 +702,7 @@ async function avisarLeituraNoCanal(
 
     if (!ultima?.wamid) return
 
-    const provider = await resolverProviderDaConversa(supabase, conversaId, linha.workspace_id)
+    const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, linha.workspace_id)
     if (!provider?.suporta("marcar_lida")) return
 
     await provider.marcarComoLida({

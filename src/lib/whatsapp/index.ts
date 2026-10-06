@@ -37,8 +37,11 @@ export type {
  *
  * Tanto `createServiceClient` quanto o cliente SSR resolvem para o mesmo
  * `SupabaseClient<any, "public", "public", any, any>`, porque nenhum dos dois
- * passa o generic `Database`. Por isso o seletor aceita os dois sem cast, e a
- * RLS do chat é preservada: cada chamador passa o cliente que já usava.
+ * passa o generic `Database`.
+ *
+ * B19-03: as resoluções leem `access_token` e `instance_token`, que o banco não
+ * entrega mais ao usuário logado. Quem chama passa `createServiceClient()`, e o
+ * filtro por empresa é feito aqui, com o `workspaceId` que o servidor tirou da sessão.
  *
  * O tipo vem da fábrica, e não de uma descrição estrutural da cadeia
  * `.from().select()...`, porque os builders do postgrest-js não são `Promise`
@@ -95,6 +98,7 @@ export async function resolverProviderDaConversa(
     .from("conversations")
     .select(`whatsapp_connection_id, conexao:whatsapp_connections(${COLUNAS_DA_CONEXAO})`)
     .eq("id", conversaId)
+    .eq("workspace_id", workspaceId)
     .maybeSingle()
 
   const conexao = (conversa as { conexao?: ConexaoParaProvider | null } | null)?.conexao

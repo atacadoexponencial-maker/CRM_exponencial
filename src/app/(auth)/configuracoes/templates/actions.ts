@@ -1,6 +1,7 @@
 "use server"
 
 import { sessaoAtual } from "@/lib/sessao"
+import { createServiceClient } from "@/integrations/supabase/service"
 
 export type Template = {
   id: string
@@ -11,12 +12,13 @@ export type Template = {
 }
 
 async function obterConexao() {
-  const { supabase: ssrClient, user, perfil } = await sessaoAtual()
+  const { user, perfil } = await sessaoAtual()
   if (!user) return null
 
   if (perfil?.role !== "admin") return null
 
-  const { data: conexao } = await ssrClient
+  // B19-03: `access_token` só é legível pela chave de serviço; o filtro de empresa fica.
+  const { data: conexao } = await createServiceClient()
     .from("whatsapp_connections")
     .select("waba_id, access_token")
     .eq("workspace_id", perfil.workspace_id)

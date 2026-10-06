@@ -294,11 +294,12 @@ export async function avaliarDisparo(
   connectionId: string | null,
   totalDestinatarios: number
 ): Promise<AvaliacaoDoDisparo> {
-  const { supabase, perfil } = await perfilGestor()
+  const { perfil } = await perfilGestor()
   if (!perfil) return { aviso: null, estimativa: "", ritmoConfirmado: false }
 
+  // B19-03: `instance_token` só é legível pela chave de serviço; o filtro de empresa fica.
   const { data: conexao } = connectionId
-    ? await supabase
+    ? await createServiceClient()
         .from("whatsapp_connections")
         .select("canal, instance_id, instance_token")
         .eq("id", connectionId)
