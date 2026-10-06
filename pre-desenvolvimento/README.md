@@ -9,6 +9,7 @@ no ar sai daqui. Quem abre a pasta deve saber, sem ler nada, o que falta fazer.
 |---|---|---|
 | `spec-automacoes-v2.md` — automações com gatilho, condições e ações (fase 1) | `issues/B11-01` a `B11-09` | Escrita em 29/09/2026. Nenhuma issue começada. Implementador: Luan. Ordem sugerida: 01 → 02 → 03 → 04 → 05 → 07 → 06 → 08 → 09. |
 | `spec-lixeira-contatos.md` — excluir lead e contato, com lixeira de 30 dias e restaurar | `issues/B13-01` a `B13-06` | Escrita e aprovada em 02/10/2026. Ordem: 01 (protótipo) → 02 → 03 → 04 → 05 → 06. A 06 depende do `CRON_SECRET` no Vercel. |
+| `spec-seguranca-rodada-1.md` — falhas críticas da auditoria de 06/10 (cadastro, perfil, credenciais do WhatsApp, tempo real, listagem de arquivos) | `issues/B19-01` a `B19-06` | Escrita e aprovada em 06/10/2026. Ordem: 01 → 02 → 03 → 04 → 05 → 06. A 06 só depois de 01 e 02 no ar. |
 
 Quando a última issue de uma spec entrar no ar, mova a spec para
 `docs/specs-arquivadas/` e as issues para `issues/concluidas_<série>/`.
