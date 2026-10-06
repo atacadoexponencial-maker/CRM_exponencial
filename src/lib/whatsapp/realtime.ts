@@ -28,7 +28,8 @@ async function transmitir(workspaceId: string, event: string, payload: unknown):
       "Authorization": `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
     },
     body: JSON.stringify({
-      messages: [{ topic: `workspace:${workspaceId}`, event, payload }],
+      // B19-04: canal privado — só quem é da empresa entra (policy em realtime.messages).
+      messages: [{ topic: `workspace:${workspaceId}`, event, payload, private: true }],
     }),
   })
 }

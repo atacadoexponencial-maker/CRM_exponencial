@@ -46,7 +46,8 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsu
     const supabase = createClient()
 
     const channel = supabase
-      .channel(`workspace:${workspaceId}`)
+      // B19-04: canal privado. O Realtime só deixa entrar quem é desta empresa.
+      .channel(`workspace:${workspaceId}`, { config: { private: true } })
       .on(
         "postgres_changes",
         {
@@ -180,8 +181,8 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsu
       )
 
     // O canal precisa entrar com a credencial do usuário. Sem ela, entra como
-    // anônimo, e o RLS esconde todo `postgres_changes` de conversas e
-    // mensagens — só o broadcast, que não passa por RLS, chegava. A sessão lida
+    // anônimo: o RLS esconde todo `postgres_changes` de conversas e mensagens,
+    // e o canal privado recusa a entrada (B19-04). A sessão lida
     // dos cookies não é repassada ao tempo real sozinha; renovações do token,
     // sim, pelo próprio cliente.
     let encerrado = false

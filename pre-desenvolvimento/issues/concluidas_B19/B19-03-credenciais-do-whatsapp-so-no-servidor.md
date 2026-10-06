@@ -82,5 +82,5 @@ dela. A permissão foi conferida no Supabase de produção, não só no arquivo 
 - [x] `resolverProviderDaConversa` filtra por `workspace_id`
 - [x] Chat, estimativa de campanha, templates e reinscrever webhook leem credencial pela chave de serviço
 - [x] Migration com revoke na tabela e grant por coluna
-- [ ] Testes novos e existentes (`whatsapp-numero-de-origem`, `whatsapp-provider`, chat, templates, campanhas) passando; build e lint ok
-- [ ] Código publicado **antes** do `db push`; depois do push, `has_column_privilege('authenticated','whatsapp_connections','access_token','SELECT')` = false no remoto
+- [x] Testes novos e existentes (`whatsapp-numero-de-origem`, `whatsapp-provider`, chat, templates, campanhas) passando; build e lint ok
+- [x] Código publicado **antes** do `db push`; depois do push, `has_column_privilege('authenticated','whatsapp_connections','access_token','SELECT')` = false no remoto
