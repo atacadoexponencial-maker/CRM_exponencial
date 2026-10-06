@@ -52,24 +52,20 @@ export function temaDasConfiguracoes(cfg: ColunasTema | null, nomeEmpresa: strin
   }
 }
 
-function soDigitos(numero: string): string {
-  const d = numero.replace(/\D/g, "")
-  return d.length === 10 || d.length === 11 ? "55" + d : d
-}
-
-/** A loja do endereço, se estiver publicada e com um número ativo para receber pedidos. */
+/** A loja do endereço, se estiver publicada e com o número que recebe os pedidos. */
 export async function carregarLojaPublica(endereco: string): Promise<LojaPublica | null> {
   const service = createServiceClient()
   const { data: cfg } = await service
     .from("catalog_settings")
-    .select("workspace_id, slug, min_type, min_value, closing_message, published, store_name, welcome_text, logo_path, banner_path, primary_color, background_color, font_id, layout, whatsapp_connections(phone_number, status), workspaces(name)")
+    .select("workspace_id, slug, min_type, min_value, closing_message, published, store_name, welcome_text, logo_path, banner_path, primary_color, background_color, font_id, layout, orders_whatsapp, workspaces(name)")
     .eq("slug", endereco.toLowerCase())
     .eq("published", true)
     .maybeSingle()
   if (!cfg) return null
 
-  const conexao = cfg.whatsapp_connections as unknown as { phone_number: string | null; status: string | null } | null
-  if (!conexao?.phone_number || conexao.status === "removed") return null
+  // O número dos pedidos é o que a pessoa digitou, sem ligação com as conexões do CRM:
+  // remover ou pausar um número em Configurações › WhatsApp não tira a loja do ar.
+  if (!cfg.orders_whatsapp) return null
   const empresa = cfg.workspaces as unknown as { name: string } | null
 
   return {
@@ -78,7 +74,7 @@ export async function carregarLojaPublica(endereco: string): Promise<LojaPublica
     tema: temaDasConfiguracoes(cfg, empresa?.name ?? TEMA_PADRAO.nomeLoja),
     minimo: { tipo: cfg.min_type as MinimoPedido["tipo"], valor: cfg.min_value === null ? null : Number(cfg.min_value) },
     mensagemFechamento: cfg.closing_message,
-    whatsapp: soDigitos(conexao.phone_number),
+    whatsapp: cfg.orders_whatsapp,
   }
 }
 

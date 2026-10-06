@@ -5,7 +5,8 @@
 import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { enderecoDeLojaValido } from "@/lib/catalogo/regras"
-import type { ConfigCatalogo, NumeroConectado } from "../components/form-configuracoes"
+import { normalizarWhatsapp } from "@/app/loja/components/pedido"
+import type { ConfigCatalogo } from "../components/form-configuracoes"
 
 async function exigirGestor() {
   const { supabase, user, perfil } = await sessaoAtual()
@@ -14,39 +15,34 @@ async function exigirGestor() {
   return { ok: true as const, supabase, perfil }
 }
 
-function rotuloDoNumero(numero: string | null, nome: string | null): string {
-  const d = (numero ?? "").replace(/\D/g, "")
-  const m = /^55(\d{2})(\d{4,5})(\d{4})$/.exec(d)
-  const formatado = m ? `+55 ${m[1]} ${m[2]}-${m[3]}` : numero ?? "Número sem telefone"
-  return nome ? `${formatado} · ${nome}` : formatado
+/** Número gravado (55 + DDD + número) como a pessoa digita: (21) 99999-0000. */
+function numeroParaExibir(digitos: string | null): string {
+  const m = /^55(\d{2})(\d{4,5})(\d{4})$/.exec(digitos ?? "")
+  return m ? `(${m[1]}) ${m[2]}-${m[3]}` : ""
 }
 
 const CONFIG_VAZIA: ConfigCatalogo = {
   endereco: "",
-  conexaoId: null,
+  numeroPedidos: "",
   minimo: { tipo: "nenhum", valor: null },
   mensagemFechamento: "",
   publicado: false,
 }
 
-export async function carregarConfiguracoes(): Promise<{ config: ConfigCatalogo; numeros: NumeroConectado[] } | null> {
+export async function carregarConfiguracoes(): Promise<{ config: ConfigCatalogo } | null> {
   const s = await exigirGestor()
   if (!s.ok) return null
-  const [{ data: cfg }, { data: conexoes }] = await Promise.all([
-    s.supabase.from("catalog_settings").select("slug, whatsapp_connection_id, min_type, min_value, closing_message, published").eq("workspace_id", s.perfil.workspace_id).maybeSingle(),
-    s.supabase.from("whatsapp_connections").select("id, phone_number, display_name, status").eq("workspace_id", s.perfil.workspace_id).neq("status", "removed").order("created_at"),
-  ])
+  const { data: cfg } = await s.supabase.from("catalog_settings").select("slug, orders_whatsapp, min_type, min_value, closing_message, published").eq("workspace_id", s.perfil.workspace_id).maybeSingle()
   return {
     config: cfg
       ? {
           endereco: cfg.slug ?? "",
-          conexaoId: cfg.whatsapp_connection_id,
+          numeroPedidos: numeroParaExibir(cfg.orders_whatsapp),
           minimo: { tipo: cfg.min_type as ConfigCatalogo["minimo"]["tipo"], valor: cfg.min_value === null ? null : Number(cfg.min_value) },
           mensagemFechamento: cfg.closing_message,
           publicado: cfg.published,
         }
       : CONFIG_VAZIA,
-    numeros: (conexoes ?? []).map((c) => ({ id: c.id, rotulo: rotuloDoNumero(c.phone_number, c.display_name) })),
   }
 }
 
@@ -71,17 +67,15 @@ export async function salvarConfiguracoes(config: ConfigCatalogo): Promise<{ err
   if (config.minimo.tipo === "pecas" && !Number.isInteger(config.minimo.valor)) return { erro: "O mínimo de peças precisa ser um número inteiro." }
   if (config.mensagemFechamento.length > 500) return { erro: "A mensagem de fechamento passa de 500 caracteres." }
 
-  if (config.conexaoId) {
-    const { data: conexao } = await supabase.from("whatsapp_connections").select("id, status").eq("id", config.conexaoId).eq("workspace_id", perfil.workspace_id).maybeSingle()
-    if (!conexao || conexao.status === "removed") return { erro: "Esse número não está mais conectado. Escolha outro." }
-  }
-  if (config.publicado && (!endereco || !config.conexaoId)) return { erro: "Para publicar, escolha o endereço da loja e o número que recebe os pedidos." }
+  const numeroPedidos = config.numeroPedidos.trim() ? normalizarWhatsapp(config.numeroPedidos) : null
+  if (config.numeroPedidos.trim() && !numeroPedidos) return { erro: "Número dos pedidos inválido: informe o WhatsApp com DDD, ex.: (21) 99999-0000." }
+  if (config.publicado && (!endereco || !numeroPedidos)) return { erro: "Para publicar, escolha o endereço da loja e informe o número que recebe os pedidos." }
   if (endereco && (await verificarEndereco(endereco)) === "em_uso") return { erro: "Esse endereço já é de outra loja. Escolha outro." }
 
   const { error } = await supabase.from("catalog_settings").upsert({
     workspace_id: perfil.workspace_id,
     slug: endereco || null,
-    whatsapp_connection_id: config.conexaoId,
+    orders_whatsapp: numeroPedidos,
     min_type: config.minimo.tipo,
     min_value: config.minimo.tipo === "nenhum" ? null : config.minimo.valor,
     closing_message: config.mensagemFechamento.trim(),

@@ -16,7 +16,7 @@ let ws = "", conexao = "", vestido = "", camisa = "", oculto = ""
 beforeAll(async () => {
   ws = (await service.from("workspaces").insert({ name: `Pedidos ${ts}` }).select().single()).data!.id
   conexao = (await service.from("whatsapp_connections").insert({ workspace_id: ws, canal: "gateway", status: "connected", phone_number: "5511900000000", instance_id: `inst_ped_${ts}`, instance_token: "t" }).select("id").single()).data!.id
-  await service.from("catalog_settings").insert({ workspace_id: ws, slug, whatsapp_connection_id: conexao, published: true, min_type: "pecas", min_value: 3, closing_message: "Pix" })
+  await service.from("catalog_settings").insert({ workspace_id: ws, slug, orders_whatsapp: "5511900000000", published: true, min_type: "pecas", min_value: 3, closing_message: "Pix" })
   vestido = (await service.from("catalog_products").insert({ workspace_id: ws, name: "Vestido", price: 50, variant_types: [{ id: "t", nome: "Tamanho", opcoes: ["P", "M"] }] }).select("id").single()).data!.id
   camisa = (await service.from("catalog_products").insert({ workspace_id: ws, name: "Camisa", price: 20 }).select("id").single()).data!.id
   oculto = (await service.from("catalog_products").insert({ workspace_id: ws, name: "Oculto", price: 10, visible: false }).select("id").single()).data!.id

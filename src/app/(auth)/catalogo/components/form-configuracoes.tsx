@@ -14,15 +14,11 @@ export type { TipoMinimo }
 
 export interface ConfigCatalogo {
   endereco: string
-  conexaoId: string | null
+  /** Como a pessoa digitou, ex.: (21) 99999-0000. O servidor confere e grava só os dígitos. */
+  numeroPedidos: string
   minimo: { tipo: TipoMinimo; valor: number | null }
   mensagemFechamento: string
   publicado: boolean
-}
-
-export interface NumeroConectado {
-  id: string
-  rotulo: string
 }
 
 /** Endereço da loja: minúsculas, números e hífen, sem acento. */
@@ -38,14 +34,13 @@ export function normalizarEndereco(texto: string): string {
 
 interface FormConfiguracoesProps {
   inicial: ConfigCatalogo
-  numeros: NumeroConectado[]
   /** Ex.: "https://crm-exponencial.vercel.app/loja/" */
   prefixoLink: string
   onVerificarEndereco: (endereco: string) => Promise<"disponivel" | "em_uso">
   onSalvar: (config: ConfigCatalogo) => Promise<{ erro?: string; aviso?: string }>
 }
 
-export function FormConfiguracoes({ inicial, numeros, prefixoLink, onVerificarEndereco, onSalvar }: FormConfiguracoesProps) {
+export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, onSalvar }: FormConfiguracoesProps) {
   const [config, setConfig] = useState<ConfigCatalogo>(inicial)
   /** O que está gravado: a chave e o link mostram o que vale de fato, não o que ainda não foi salvo. */
   const [salvo, setSalvo] = useState<ConfigCatalogo>(inicial)
@@ -59,7 +54,7 @@ export function FormConfiguracoes({ inicial, numeros, prefixoLink, onVerificarEn
   const link = prefixoLink + (config.endereco || "seu-endereco")
   const faltaParaPublicar = [
     !enderecoValido && "o endereço da loja",
-    !config.conexaoId && "o número que recebe os pedidos",
+    !config.numeroPedidos.trim() && "o número que recebe os pedidos",
   ].filter(Boolean) as string[]
   const trocouEnderecoPublicado = salvo.publicado && salvo.endereco !== "" && config.endereco !== salvo.endereco
   const alterado = JSON.stringify(config) !== JSON.stringify(salvo)
@@ -102,7 +97,7 @@ export function FormConfiguracoes({ inicial, numeros, prefixoLink, onVerificarEn
       return
     }
     if (config.publicado && faltaParaPublicar.length > 0) {
-      setMensagem({ tipo: "erro", texto: `Para publicar, falta escolher ${faltaParaPublicar.join(" e ")}.` })
+      setMensagem({ tipo: "erro", texto: `Para publicar, falta preencher ${faltaParaPublicar.join(" e ")}.` })
       return
     }
     if (trocouEnderecoPublicado && !confirmado) {
@@ -163,19 +158,19 @@ export function FormConfiguracoes({ inicial, numeros, prefixoLink, onVerificarEn
 
       <section className="rounded-lg border p-4 space-y-3">
         <h2 className="text-sm font-semibold">WhatsApp que recebe os pedidos</h2>
-        {numeros.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhum número conectado. Conecte um número em Configurações › WhatsApp.</p>
-        ) : (
-          <select
-            value={config.conexaoId ?? ""}
-            onChange={(e) => mudar("conexaoId", e.target.value || null)}
-            className="h-8 w-full rounded-lg border border-input bg-input/30 px-2 text-sm"
-            aria-label="Número que recebe os pedidos"
-          >
-            <option value="">Escolha um número</option>
-            {numeros.map((n) => <option key={n.id} value={n.id}>{n.rotulo}</option>)}
-          </select>
-        )}
+        <Input
+          type="tel"
+          inputMode="tel"
+          autoComplete="off"
+          value={config.numeroPedidos}
+          onChange={(e) => mudar("numeroPedidos", e.target.value)}
+          placeholder="(21) 99999-0000"
+          aria-label="Número que recebe os pedidos"
+          aria-describedby="numero-pedidos-ajuda"
+        />
+        <p id="numero-pedidos-ajuda" className="text-xs text-muted-foreground">
+          Com DDD. A cliente fecha o pedido mandando a mensagem para este número no WhatsApp. Ele não precisa estar conectado ao CRM.
+        </p>
       </section>
 
       <section className="rounded-lg border p-4 space-y-3">
@@ -233,7 +228,7 @@ export function FormConfiguracoes({ inicial, numeros, prefixoLink, onVerificarEn
             {salvo.publicado ? "Hoje a loja está aberta no link acima." : "Hoje a loja está fechada: o link mostra \"Catálogo indisponível no momento\"."}
           </p>
           {config.publicado && faltaParaPublicar.length > 0 ? (
-            <p className="text-xs text-amber-300 mt-1">Para publicar, falta escolher {faltaParaPublicar.join(" e ")}.</p>
+            <p className="text-xs text-amber-300 mt-1">Para publicar, falta preencher {faltaParaPublicar.join(" e ")}.</p>
           ) : config.publicado !== salvo.publicado ? (
             <p className="text-xs text-amber-300 mt-1">{config.publicado ? "Salve para abrir a loja." : "Salve para fechar a loja."}</p>
           ) : null}

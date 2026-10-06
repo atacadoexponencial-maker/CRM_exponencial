@@ -53,13 +53,14 @@ async function entrarComo(email: string) {
   mockSsr.mockResolvedValue(c as never)
 }
 function config(parcial: Partial<ConfigCatalogo>): ConfigCatalogo {
-  return { endereco: "", conexaoId: null, minimo: { tipo: "nenhum", valor: null }, mensagemFechamento: "", publicado: false, ...parcial }
+  return { endereco: "", numeroPedidos: "", minimo: { tipo: "nenhum", valor: null }, mensagemFechamento: "", publicado: false, ...parcial }
 }
 
 const emailA = `loja-admin-a-${ts}@catalogo-test.com`
 const emailAtendA = `loja-atend-a-${ts}@catalogo-test.com`
 const emailB = `loja-admin-b-${ts}@catalogo-test.com`
-let wsA = "", numeroA = "", numeroB = ""
+let wsA = "", numeroA = ""
+const PEDIDOS = "(21) 90000-1111"
 
 beforeAll(async () => {
   wsA = await criarEmpresa(`Loja A ${ts}`)
@@ -68,7 +69,6 @@ beforeAll(async () => {
   await criarUsuario(wsA, emailAtendA, "atendente")
   await criarUsuario(wsB, emailB, "admin")
   numeroA = await criarNumero(wsA)
-  numeroB = await criarNumero(wsB)
 }, 60_000)
 
 afterAll(async () => {
@@ -85,32 +85,33 @@ describe("B16-07 — Configurações do catálogo e vitrine pública", { timeout
   it("só publica com endereço e número; despublicada, a loja não abre", async () => {
     await entrarComo(emailA)
     expect((await salvarConfiguracoes(config({ endereco: slugA, publicado: true }))).erro).toMatch(/Para publicar/)
-    expect((await salvarConfiguracoes(config({ endereco: slugA, conexaoId: numeroA, publicado: false }))).erro).toBeUndefined()
+    expect((await salvarConfiguracoes(config({ endereco: slugA, numeroPedidos: PEDIDOS, publicado: false }))).erro).toBeUndefined()
     expect(await carregarLojaPublica(slugA)).toBeNull()
   })
 
   it("publicada, a loja abre com o nome da empresa, o mínimo e o WhatsApp", async () => {
     await entrarComo(emailA)
-    await salvarConfiguracoes(config({ endereco: slugA, conexaoId: numeroA, minimo: { tipo: "pecas", valor: 12 }, mensagemFechamento: "Pix", publicado: true }))
+    await salvarConfiguracoes(config({ endereco: slugA, numeroPedidos: PEDIDOS, minimo: { tipo: "pecas", valor: 12 }, mensagemFechamento: "Pix", publicado: true }))
     const loja = await carregarLojaPublica(slugA.toUpperCase())
     expect(loja).toMatchObject({ endereco: slugA, minimo: { tipo: "pecas", valor: 12 }, mensagemFechamento: "Pix", whatsapp: "5521900001111" })
     expect(loja?.tema.nomeLoja).toBe(`Loja A ${ts}`)
-    expect((await carregarConfiguracoes())?.config).toMatchObject({ endereco: slugA, publicado: true })
+    expect((await carregarConfiguracoes())?.config).toMatchObject({ endereco: slugA, numeroPedidos: PEDIDOS, publicado: true })
   })
 
   it("endereço é único entre empresas e os reservados são recusados", async () => {
     await entrarComo(emailB)
     expect(await verificarEndereco(slugA)).toBe("em_uso")
-    expect((await salvarConfiguracoes(config({ endereco: slugA, conexaoId: numeroB }))).erro).toMatch(/outra loja/)
+    expect((await salvarConfiguracoes(config({ endereco: slugA, numeroPedidos: PEDIDOS }))).erro).toMatch(/outra loja/)
     expect((await salvarConfiguracoes(config({ endereco: "prototipo" }))).erro).toMatch(/Endereço inválido/)
     expect((await salvarConfiguracoes(config({ endereco: "-ruim" }))).erro).toMatch(/Endereço inválido/)
     await entrarComo(emailA)
     expect(await verificarEndereco(slugA)).toBe("disponivel")
   })
 
-  it("empresa B não usa o número da empresa A", async () => {
+  it("número dos pedidos inválido é recusado", async () => {
     await entrarComo(emailB)
-    expect((await salvarConfiguracoes(config({ endereco: `loja-b-${ts}`, conexaoId: numeroA }))).erro).toMatch(/não está mais conectado/)
+    expect((await salvarConfiguracoes(config({ endereco: `loja-b-${ts}`, numeroPedidos: "9999" }))).erro).toMatch(/Número dos pedidos inválido/)
+    expect((await salvarConfiguracoes(config({ endereco: `loja-b-${ts}`, numeroPedidos: "99999-0000" }))).erro).toMatch(/Número dos pedidos inválido/)
   })
 
   it("atendente não salva configurações", async () => {
@@ -129,10 +130,11 @@ describe("B16-07 — Configurações do catálogo e vitrine pública", { timeout
     expect(await carregarProdutoPublico(wsA, oculto.id)).toBeNull()
   })
 
-  it("número removido tira a loja do ar", async () => {
+  it("remover o número no CRM não tira a loja do ar", async () => {
     await service.from("whatsapp_connections").update({ status: "removed" }).eq("id", numeroA)
-    expect(await carregarLojaPublica(slugA)).toBeNull()
-    await service.from("whatsapp_connections").update({ status: "connected" }).eq("id", numeroA)
+    expect(await carregarLojaPublica(slugA)).toMatchObject({ endereco: slugA, whatsapp: "5521900001111" })
+    await service.from("whatsapp_connections").delete().eq("id", numeroA)
+    expect(await carregarLojaPublica(slugA)).toMatchObject({ endereco: slugA, whatsapp: "5521900001111" })
   })
 })
 

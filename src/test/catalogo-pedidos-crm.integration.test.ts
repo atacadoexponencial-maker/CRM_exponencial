@@ -46,7 +46,7 @@ beforeAll(async () => {
   await criarUsuario(wsB, emailB, "admin", "Outra")
   const conexao = (await service.from("whatsapp_connections").insert({ workspace_id: ws, canal: "gateway", status: "connected", phone_number: "5511900000000", instance_id: `inst_pcrm_${ts}`, instance_token: "t" }).select("id").single()).data!.id
   criados.conexaoIds.push(conexao)
-  await service.from("catalog_settings").insert({ workspace_id: ws, slug, whatsapp_connection_id: conexao, published: true })
+  await service.from("catalog_settings").insert({ workspace_id: ws, slug, orders_whatsapp: "5511900000000", published: true })
   const produto = (await service.from("catalog_products").insert({ workspace_id: ws, name: "Camisa", price: 25 }).select("id").single()).data!.id
   await service.from("catalog_stock").insert({ workspace_id: ws, product_id: produto, combination: "", quantity: 1 })
   const r = await registrarPedido(slug, { nome: "Ana Souza", whatsapp: "21988880001" }, [{ produtoId: produto, combinacao: "", quantidade: 1 }])

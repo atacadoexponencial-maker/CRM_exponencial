@@ -15,5 +15,5 @@ export default async function ConfiguracoesCatalogoPage() {
   const h = await headers()
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "crm-exponencial.vercel.app"
   const protocolo = h.get("x-forwarded-proto") ?? "https"
-  return <ConfiguracoesClient inicial={dados.config} numeros={dados.numeros} prefixoLink={`${protocolo}://${host}/loja/`} />
+  return <ConfiguracoesClient inicial={dados.config} prefixoLink={`${protocolo}://${host}/loja/`} />
 }
