@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cadastrarEmpresa } from "./actions"
 import { schema, type DadosCadastro } from "./schema"
+import { AVISO_MUITAS_TENTATIVAS } from "../login/avisos"
 
 export { schema }
 
@@ -33,6 +34,8 @@ export default function CadastroPage() {
     if ("erro" in resultado) {
       if (resultado.erro === "email_em_uso") {
         setError("email", { type: "manual", message: "E-mail já está em uso" })
+      } else if (resultado.erro === "limite") {
+        setError("nomeEmpresa", { type: "manual", message: AVISO_MUITAS_TENTATIVAS })
       } else if (resultado.erro === "falha_login") {
         router.push("/login")
       } else {

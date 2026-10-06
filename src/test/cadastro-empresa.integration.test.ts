@@ -7,6 +7,12 @@
 import { createClient } from "@supabase/supabase-js"
 import { describe, it, expect, vi, afterAll } from "vitest"
 
+// B20-05: as actions leem o IP de quem chama. Este arquivo faz mais cadastros do que o
+// freio deixa por endereço (5 por hora), então cada chamada vem de um endereço próprio.
+vi.mock("next/headers", () => ({
+  headers: async () => new Headers({ "x-forwarded-for": `teste-${Date.now()}-${Math.random()}` }),
+}))
+
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!

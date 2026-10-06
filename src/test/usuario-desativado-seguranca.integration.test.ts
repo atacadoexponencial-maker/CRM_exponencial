@@ -6,6 +6,11 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest"
 
+// B20-05: as actions leem o IP de quem chama; cada rodada usa um endereço próprio para o
+// freio de tentativas não misturar rodadas.
+const IP_DO_TESTE = `teste-${Date.now()}-${Math.random()}`
+vi.mock("next/headers", () => ({ headers: async () => new Headers({ "x-forwarded-for": IP_DO_TESTE }) }))
+
 let clienteDaVez: SupabaseClient
 vi.mock("@/integrations/supabase/server", () => ({ createClient: async () => clienteDaVez }))
 

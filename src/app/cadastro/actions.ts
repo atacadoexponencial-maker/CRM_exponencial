@@ -4,10 +4,14 @@ import { garantirSequenciasPredefinidas } from "@/lib/sequencias"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { schema } from "./schema"
+import { chaveDoIp, ipDaRequisicao, passouDoLimite, registrarTentativa } from "@/lib/limite-de-tentativas"
+
+// B20-05: até 5 cadastros por hora por endereço de internet.
+const LIMITE_CADASTROS_POR_HORA = 5
 
 export type ResultadoCadastro =
   | { ok: true }
-  | { erro: "email_em_uso" | "dados_invalidos" | "falha" | "falha_login" }
+  | { erro: "email_em_uso" | "dados_invalidos" | "falha" | "falha_login" | "limite" }
 
 // B19-01: o cadastro é uma operação só. Esta é a única action pública da tela — não
 // recebe código de empresa de fora: a empresa nasce aqui, junto com o Admin dela.
@@ -20,6 +24,12 @@ export async function cadastrarEmpresa(dados: unknown): Promise<ResultadoCadastr
   const email = validacao.data.email.trim()
   const { senha } = validacao.data
   if (!nomeEmpresa || !nomeResponsavel) return { erro: "dados_invalidos" }
+
+  const chaveIp = chaveDoIp(await ipDaRequisicao())
+  if (await passouDoLimite("cadastro", [{ chave: chaveIp, limite: LIMITE_CADASTROS_POR_HORA }], 60)) {
+    return { erro: "limite" }
+  }
+  await registrarTentativa("cadastro", [chaveIp])
 
   const adminClient = createServiceClient()
 
