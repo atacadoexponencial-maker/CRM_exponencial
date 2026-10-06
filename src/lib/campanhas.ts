@@ -127,6 +127,8 @@ async function providerDaCampanha(
     .from("whatsapp_connections")
     .select("canal, phone_number_id, access_token, instance_id, instance_token, status")
     .eq("id", campanha.whatsapp_connection_id)
+    // B20-03: número de outra empresa não é número desta campanha.
+    .eq("workspace_id", campanha.workspace_id)
     .maybeSingle()
 
   if (!conexao || conexao.status !== "connected") return null
@@ -159,6 +161,7 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
     .from("campaign_recipients")
     .select("id, contact_id, nome_snapshot, telefone_snapshot")
     .eq("campaign_id", campanha.id)
+    .eq("workspace_id", campanha.workspace_id)
     .eq("status", "pendente")
     .limit(TAMANHO_LOTE)
 
