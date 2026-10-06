@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { use, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 import { realizarLogin } from "./actions"
+import { AVISO_CONTA_DESATIVADA } from "./avisos"
 
 const schema = z.object({
   email: z.string().min(1, "E-mail é obrigatório").email("E-mail inválido"),
@@ -17,7 +18,9 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
-export default function LoginPage() {
+export default function LoginPage({ searchParams }: { searchParams: Promise<{ motivo?: string }> }) {
+  // B20-02: o middleware manda para cá quem foi desativado com a sessão aberta.
+  const { motivo } = use(searchParams)
   // Fica ligado do clique até a página seguinte abrir: o redirect da action
   // troca de tela sozinho, então só o erro desliga.
   const [entrando, setEntrando] = useState(false)
@@ -80,6 +83,10 @@ export default function LoginPage() {
               <p className="text-sm text-destructive">{errors.senha.message}</p>
             )}
           </div>
+
+          {motivo === "desativada" && !errors.root && (
+            <p className="text-sm text-destructive text-center">{AVISO_CONTA_DESATIVADA}</p>
+          )}
 
           {errors.root && (
             <p className="text-sm text-destructive text-center">{errors.root.message}</p>

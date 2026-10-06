@@ -66,6 +66,7 @@ senha, papel e times.
 - **Modificar:** `src/app/(auth)/configuracoes/usuarios/actions.ts` — `desativarUsuario` bane; `reativarUsuario` tira o ban (e desfaz o status se falhar).
 - **Modificar:** `src/app/login/actions.ts` — `user_banned` ou perfil ausente → aviso de conta desativada (encerrando a sessão).
 - **Modificar:** `src/middleware.ts` — `user_banned` no `getUser` → `/login?motivo=desativada`.
+- **Criar:** `src/app/login/avisos.ts` — texto do aviso de conta desativada, usado pela action e pela tela (um `"use server"` só exporta funções).
 - **Modificar:** `src/app/login/page.tsx` — lê `searchParams` e mostra o aviso quando `motivo=desativada`.
 - **Criar:** `src/test/usuario-desativado-seguranca.integration.test.ts` — contra o Supabase real.
 
@@ -75,9 +76,9 @@ senha, papel e times.
 
 ## Checklist
 
-- [ ] Migration aplicada e conferida no remoto
-- [ ] Desativar bane; reativar tira o ban e desfaz status se falhar
-- [ ] Login com aviso de conta desativada (banido e inativo sem ban)
-- [ ] Middleware leva o banido para `/login?motivo=desativada`; tela mostra o aviso
-- [ ] Testes: desativado não entra; token antigo não lê conversas, contatos, mensagens nem perfis pelo banco; reativado entra e vê os dados
-- [ ] Testes existentes de usuários passando; build e lint ok
+- [x] Migration aplicada e conferida no remoto
+- [x] Desativar bane; reativar tira o ban e desfaz status se falhar
+- [x] Login com aviso de conta desativada (banido e inativo sem ban)
+- [x] Middleware leva o banido para `/login?motivo=desativada`; tela mostra o aviso
+- [x] Testes: desativado não entra; token antigo não lê conversas, contatos, mensagens nem perfis pelo banco; reativado entra e vê os dados
+- [x] Testes existentes de usuários passando; build e lint ok

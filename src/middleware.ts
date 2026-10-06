@@ -44,11 +44,14 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error } = await supabase.auth.getUser()
 
   if (!user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    url.search = ''
+    // B20-02: usuário desativado é banido no Auth; a tela de login avisa o porquê.
+    if (error?.code === 'user_banned') url.searchParams.set('motivo', 'desativada')
     return NextResponse.redirect(url)
   }
 

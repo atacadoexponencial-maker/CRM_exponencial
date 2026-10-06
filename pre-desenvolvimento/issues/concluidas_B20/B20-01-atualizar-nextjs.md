@@ -48,4 +48,4 @@ abrem normalmente no CRM publicado.
 - [x] `package.json` e `package-lock.json` com `next` e `eslint-config-next` 16.3.8
 - [x] `npm audit --omit=dev` sem aviso do `next`
 - [x] Build, lint e suíte de testes passando
-- [ ] Publicado; login, chat, pipeline, contatos, campanhas, catálogo e loja abrem (status 200/redirect esperado)
+- [x] Publicado; login, chat, pipeline, contatos, campanhas, catálogo e loja abrem (status 200/redirect esperado)
