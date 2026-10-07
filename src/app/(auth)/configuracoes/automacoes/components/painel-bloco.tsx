@@ -248,6 +248,37 @@ function CampoParametro({
         />
       )
     }
+    case "tag_livre": {
+      // As tags que a empresa já usa e combinam com o que foi digitado
+      const sugestoes = opcoes.tags.filter((t) => t.id !== valor && t.id.includes(valor)).slice(0, 12)
+      return (
+        <>
+          <Input
+            id={id}
+            value={valor}
+            maxLength={50}
+            placeholder="ex.: interessado"
+            // Como a tela do contato grava: minúsculas e sem espaço
+            onChange={(e) => onMudar(campo.chave, e.target.value.toLowerCase().replace(/\s/g, ""))}
+          />
+          {sugestoes.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {sugestoes.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => onMudar(campo.chave, t.id)}
+                  className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  {t.nome}
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">Pode ser uma tag nova. Minúsculas e sem espaço.</p>
+        </>
+      )
+    }
     case "arquivo":
       return (
         <>

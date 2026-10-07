@@ -4,6 +4,7 @@
 
 import { describe, it, expect, vi } from "vitest"
 import {
+  normalizarTag,
   pendenciasDoFluxo,
   percorrerFluxo,
   problemasDeEstrutura,
@@ -225,7 +226,7 @@ describe("pendenciasDoFluxo: só o que o motor executa (B11-10)", () => {
           verificacoes: [{ id: "v", tipo: "tag_contato", operador: "tem", valor: "vip" }],
           posicao,
         },
-        { id: "a", tipo: "acao", acao: "adicionar_tag", parametros: { tag: "vip" }, posicao },
+        { id: "a", tipo: "acao", acao: "iniciar_sequencia", parametros: { sequencia_id: "seq-1" }, posicao },
       ],
       ligacoes: [liga("g", "c"), liga("c", "a", "sim")],
     }
@@ -233,6 +234,24 @@ describe("pendenciasDoFluxo: só o que o motor executa (B11-10)", () => {
     expect(porBloco.g).toContain(EM_BREVE)
     expect(porBloco.c).toContain(EM_BREVE)
     expect(porBloco.a).toContain(EM_BREVE)
+  })
+})
+
+describe("tag nas ações de tag (B11-11)", () => {
+  const PENDENCIA = "A tag não pode ter espaço e vai até 50 caracteres"
+  const comTag = (tag: string): Fluxo => ({
+    blocos: [gatilho(), { id: "a", tipo: "acao", acao: "adicionar_tag", parametros: { tag }, posicao }],
+    ligacoes: [liga("g", "a")],
+  })
+
+  it("aceita tag sem espaço, em qualquer caixa", () => {
+    expect(pendenciasDoFluxo(comTag("VIP")).porBloco.a ?? []).not.toContain(PENDENCIA)
+    expect(normalizarTag("  VIP ")).toBe("vip")
+  })
+
+  it("recusa tag com espaço ou com mais de 50 caracteres", () => {
+    expect(pendenciasDoFluxo(comTag("cliente vip")).porBloco.a).toContain(PENDENCIA)
+    expect(pendenciasDoFluxo(comTag("x".repeat(51))).porBloco.a).toContain(PENDENCIA)
   })
 })
 

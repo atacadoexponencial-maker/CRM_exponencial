@@ -194,3 +194,41 @@ livre é recusado. No chip não há esse limite. A saída provável é uma açã
 "Enviar template", que vale só para números da API Oficial, combinada com a
 condição de canal. Até lá, um "Enviar mensagem" fora da janela num número da API
 Oficial falha, e a falha fica no histórico (B11-03).
+
+## 7. Ações de contato e de time antes da hora (B11-11, 07/10/2026)
+
+**Decidido:** a pedido do Luan, as ações que não dependem do WhatsApp entram
+antes do resto da B11-06 e da B11-08: adicionar e remover tag, remover etiqueta,
+alterar dado do contato e atribuir a um time. Os gatilhos e as condições de tag e
+dados continuam na B11-06.
+
+### 7.1 Classificação fora do "alterar dado do contato"
+
+**Achado:** o CRM calcula a classificação do contato pela etapa dos cards
+(`calcularClassificacao`), no perfil, na lista e nas campanhas. A coluna
+`contacts.classificacao` existe, mas nenhuma tela a lê e nada a grava.
+
+**Decidido:** a ação muda tipo, nicho, cidade, ou acrescenta uma linha às
+observações. Para mudar a classificação, move-se o card.
+
+**Descartado:** gravar a coluna. A automação pareceria funcionar e nada mudaria
+na tela. Também foi descartado fazer as telas lerem a coluna, porque aí ela
+competiria com a etapa do card e as duas poderiam discordar.
+
+### 7.2 Tag nova no "adicionar tag"
+
+O editor só oferecia as tags que algum contato já tem. Numa empresa sem tags,
+"adicionar tag" não teria o que escolher. O campo passou a aceitar uma tag
+digitada, com as existentes como sugestão, e com as mesmas regras da tela do
+contato: minúsculas, sem espaço, até 50 caracteres. "Remover tag" continua
+escolhendo entre as existentes.
+
+### 7.3 Atribuir a um time
+
+Entre os membros ativos do time, ganha o que tem menos conversas abertas
+(`em_espera` e `em_atendimento`). No empate, o primeiro pelo nome, para o
+resultado ser previsível. O escolhido recebe a conversa e o card, como em
+"atribuir atendente".
+
+**Descartado:** sortear no empate. Um sorteio deixaria o teste no preview sem
+resultado previsível e não traz equilíbrio a mais que a contagem de conversas.

@@ -64,6 +64,8 @@ export type CampoTela =
   /** Valor do dado do contato escolhido no parâmetro `campo`. */
   | { chave: "valor"; rotulo: string; tipo: "valor_do_campo"; vazio: string }
   | { chave: string; rotulo: string; tipo: "arquivo" }
+  /** Tag digitada, que pode ser nova; as tags que a empresa já usa aparecem como sugestão. */
+  | { chave: "tag"; rotulo: string; tipo: "tag_livre" }
 
 export const FUNIS: Opcao[] = [
   { id: "entrada", nome: "Funil de Entrada" },
@@ -118,7 +120,8 @@ export function opcoesDaFonte(fonte: FonteOpcoes, opcoes: OpcoesEditor): Opcao[]
     case "camposContatoGatilho":
       return ["classificacao", "tipo", "nicho", "cidade", "atendente"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] }))
     case "camposContatoAcao":
-      return ["classificacao", "tipo", "nicho", "cidade", "observacoes"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] }))
+      // Sem classificação: o CRM a calcula pela etapa dos cards (B11-11)
+      return ["tipo", "nicho", "cidade", "observacoes"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] }))
     default:
       return opcoes[fonte]
   }
@@ -294,7 +297,7 @@ export const ACOES: Record<AcaoTipo, { rotulo: string; icone: LucideIcon; campos
   adicionar_tag: {
     rotulo: "Adicionar tag ao contato",
     icone: Tag,
-    campos: [{ chave: "tag", rotulo: "Tag", tipo: "opcoes", fonte: "tags", vazio: "Escolha a tag…" }],
+    campos: [{ chave: "tag", rotulo: "Tag", tipo: "tag_livre" }],
   },
   remover_tag: {
     rotulo: "Remover tag do contato",

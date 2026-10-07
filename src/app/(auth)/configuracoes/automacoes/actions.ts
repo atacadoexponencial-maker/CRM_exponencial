@@ -12,7 +12,7 @@ import { revalidatePath } from "next/cache"
 import { createServiceClient } from "@/integrations/supabase/service"
 import type { Json } from "@/integrations/supabase/types"
 import { lerFluxo } from "@/lib/automacoes/fluxo-recebido"
-import { etapaValida, referenciasDoFluxo } from "@/lib/automacoes/referencias"
+import { dadoDoContatoValido, etapaValida, referenciasDoFluxo } from "@/lib/automacoes/referencias"
 import { fluxoDaRegraAntiga } from "@/lib/automacoes/regra-antiga"
 import { simularFluxo } from "@/lib/automacoes/simulacao"
 import { pendenciasDoFluxo, type Fluxo, type ResultadoSimulacao } from "@/lib/fluxo-automacao"
@@ -150,12 +150,15 @@ export async function buscarRegraParaEditor(
   return { regra: { id: null, automationId: antiga.id, nome: antiga.nome, fluxo: fluxoDaRegraAntiga(antiga) } }
 }
 
-/** Etiquetas, atendentes, números e etapas citados no fluxo existem e são da empresa? */
+/** Etiquetas, atendentes, números, times e etapas citados no fluxo existem e são da empresa? */
 async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Fluxo): Promise<string | null> {
-  const { etiquetas, atendentes, conexoes, etapas } = referenciasDoFluxo(fluxo)
+  const { etiquetas, atendentes, conexoes, times, etapas, dadosDoContato } = referenciasDoFluxo(fluxo)
   if (!etapas.every(etapaValida)) return "Uma etapa escolhida não existe no funil. Escolha de novo."
+  if (!dadosDoContato.every(({ campo, valor }) => dadoDoContatoValido(campo, valor))) {
+    return "O dado do contato escolhido não pode receber esse valor. Confira o campo e o valor."
+  }
 
-  const contar = async (tabela: "labels" | "profiles" | "whatsapp_connections", ids: string[]) => {
+  const contar = async (tabela: "labels" | "profiles" | "whatsapp_connections" | "teams", ids: string[]) => {
     if (ids.length === 0) return 0
     const { count } = await supabase
       .from(tabela)
@@ -164,14 +167,16 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
       .in("id", ids)
     return count ?? 0
   }
-  const [nEtiquetas, nAtendentes, nConexoes] = await Promise.all([
+  const [nEtiquetas, nAtendentes, nConexoes, nTimes] = await Promise.all([
     contar("labels", etiquetas),
     contar("profiles", atendentes),
     contar("whatsapp_connections", conexoes),
+    contar("teams", times),
   ])
   if (nEtiquetas !== etiquetas.length) return "Uma etiqueta escolhida não existe mais. Escolha de novo."
   if (nAtendentes !== atendentes.length) return "Um atendente escolhido não existe mais. Escolha de novo."
   if (nConexoes !== conexoes.length) return "Um número escolhido não existe mais. Escolha de novo."
+  if (nTimes !== times.length) return "Um time escolhido não existe mais. Escolha de novo."
   return null
 }
 

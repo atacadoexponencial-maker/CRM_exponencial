@@ -6,14 +6,15 @@
 **Spec:** `pre-desenvolvimento/spec-automacoes-v2.md`
 **Depende de:** B11-05
 
+> **Mudança de 07/10/2026:** "atribuir a um time" foi feita antes, na B11-11. As
+> condições de conversa (sem atendente, atendente é, card em funil e etapa) já
+> vieram na B11-02.
+
 ## Descrição
 
-Entram as ações atribuir a um time (o CRM escolhe o atendente do time com
-menos conversas abertas), iniciar sequência, resolver conversa e reabrir
-conversa; e a condição de horário comercial (dentro/fora), com os dias e a
-faixa configurados uma vez em Configurações do workspace. Entram também as
-condições de conversa que faltavam (sem atendente, atendente é, card em funil
-e etapa) caso a B11-02 não as tenha coberto.
+Entram as ações iniciar sequência, resolver conversa e reabrir conversa, e a
+condição de horário comercial (dentro/fora), com os dias e a faixa configurados
+uma vez em Configurações do workspace.
 
 ## Pronto quando
 

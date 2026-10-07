@@ -6,20 +6,28 @@
 **Spec:** `pre-desenvolvimento/spec-automacoes-v2.md`
 **Depende de:** B11-05
 
+> **Mudança de 07/10/2026:** as ações (adicionar e remover tag, remover etiqueta,
+> alterar dado do contato) foram feitas antes, na B11-11. Ficam aqui os gatilhos e
+> as condições. "Aplicar etiqueta" já existia desde a primeira versão.
+
 ## Descrição
 
 Entram os gatilhos "tag adicionada ao contato", "etiqueta aplicada à conversa"
-e "dado do contato alterado" (campo e valor opcional); as condições de contato
-(tem/não tem tag, classificação é/não é, tipo é/não é); e as ações adicionar e
-remover tag, aplicar e remover etiqueta, e alterar dado do contato
-(classificação, tipo, nicho, cidade, acrescentar linha às observações).
-Mudanças feitas por automação não disparam esses gatilhos.
+e "dado do contato alterado" (campo e valor opcional), e as condições de contato
+(tem/não tem tag, classificação é/não é, tipo é/não é). Mudanças feitas por
+automação não disparam esses gatilhos, inclusive as das ações da B11-11.
+
+**Atenção à classificação** (achado da B11-11): o CRM calcula a classificação
+pela etapa dos cards (`calcularClassificacao`, em
+`src/app/(auth)/contatos/classificacao.ts`), e a coluna `contacts.classificacao`
+não é gravada. A condição "classificação é" precisa usar o mesmo cálculo, e não
+a coluna.
 
 Cobre os itens correspondentes do "Editor" e do "Motor".
 
 ## Pronto quando
 
 No preview do branch `b11-automacoes-v2` (o merge no `master` é um só, no fim da
-série), a regra "tag vip adicionada → classificação = ativo, aplicar
-etiqueta VIP, enviar mensagem" roda ao adicionar a tag pela tela de contato, e
-a etiqueta aplicada por ela não dispara uma regra de "etiqueta aplicada".
+série), a regra "tag vip adicionada → tipo = Lojista, aplicar etiqueta VIP,
+enviar mensagem" roda ao adicionar a tag pela tela de contato, e a etiqueta
+aplicada por ela não dispara uma regra de "etiqueta aplicada".

@@ -3,7 +3,7 @@
 
 import { describe, it, expect } from "vitest"
 import { lerFluxo } from "@/lib/automacoes/fluxo-recebido"
-import { etapaValida, referenciasDoFluxo } from "@/lib/automacoes/referencias"
+import { dadoDoContatoValido, etapaValida, referenciasDoFluxo } from "@/lib/automacoes/referencias"
 import type { Fluxo } from "@/lib/fluxo-automacao"
 
 const posicao = { x: 10, y: 20 }
@@ -105,6 +105,39 @@ describe("referenciasDoFluxo", () => {
       ligacoes: [],
     }
     expect(referenciasDoFluxo(fluxo).atendentes).toEqual([])
+  })
+})
+
+describe("referencias das ações da B11-11", () => {
+  it("junta os times e os dados do contato citados", () => {
+    const fluxo: Fluxo = {
+      blocos: [
+        { id: "a1", tipo: "acao", acao: "atribuir_time", parametros: { time_id: "time-1" }, posicao },
+        { id: "a2", tipo: "acao", acao: "alterar_dado_contato", parametros: { campo: "tipo", valor: "lojista" }, posicao },
+      ],
+      ligacoes: [],
+    }
+    const refs = referenciasDoFluxo(fluxo)
+    expect(refs.times).toEqual(["time-1"])
+    expect(refs.dadosDoContato).toEqual([{ campo: "tipo", valor: "lojista" }])
+  })
+})
+
+describe("dadoDoContatoValido", () => {
+  it("aceita tipo da lista, nicho, cidade e observações", () => {
+    expect(dadoDoContatoValido("tipo", "lojista")).toBe(true)
+    expect(dadoDoContatoValido("nicho", "Moda praia")).toBe(true)
+    expect(dadoDoContatoValido("cidade", "Fortaleza")).toBe(true)
+    expect(dadoDoContatoValido("observacoes", "Pediu catálogo")).toBe(true)
+  })
+
+  it("recusa classificação, campo inventado, tipo fora da lista, valor vazio e texto longo demais", () => {
+    expect(dadoDoContatoValido("classificacao", "ativo")).toBe(false)
+    expect(dadoDoContatoValido("telefone", "999")).toBe(false)
+    expect(dadoDoContatoValido("tipo", "atacadista")).toBe(false)
+    expect(dadoDoContatoValido("tipo", "toString")).toBe(false)
+    expect(dadoDoContatoValido("cidade", "   ")).toBe(false)
+    expect(dadoDoContatoValido("nicho", "x".repeat(101))).toBe(false)
   })
 })
 

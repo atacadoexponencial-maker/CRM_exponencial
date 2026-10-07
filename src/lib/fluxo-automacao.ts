@@ -153,7 +153,26 @@ export const ACOES_DISPONIVEIS: readonly AcaoTipo[] = [
   "aplicar_etiqueta",
   "atribuir_atendente",
   "mover_card",
+  // B11-11
+  "adicionar_tag",
+  "remover_tag",
+  "remover_etiqueta",
+  "alterar_dado_contato",
+  "atribuir_time",
 ]
+
+/** Tag como a tela do contato grava: minúsculas e sem espaço nas pontas. */
+export function normalizarTag(tag: string): string {
+  return tag.trim().toLowerCase()
+}
+
+/** As regras de `adicionarTagContato` (src/app/(auth)/contatos/actions.ts): até 50 caracteres, sem espaço. */
+export function tagValida(tag: string): boolean {
+  const normalizada = normalizarTag(tag)
+  return normalizada.length > 0 && normalizada.length <= 50 && !/\s/.test(normalizada)
+}
+
+const ACOES_COM_TAG: readonly AcaoTipo[] = ["adicionar_tag", "remover_tag"]
 /** A proteção de repetição chega com o histórico (B11-03). Até lá, o editor não a oferece. */
 export const REPETICAO_DISPONIVEL = false
 const EM_BREVE = "Ainda não disponível: escolha outra opção"
@@ -277,6 +296,8 @@ export function pendenciasDoFluxo(fluxo: Fluxo): PendenciasFluxo {
       if (!ACOES_DISPONIVEIS.includes(bloco.acao)) anotar(bloco.id, EM_BREVE)
       if (PARAMETROS_OBRIGATORIOS_ACAO[bloco.acao].some((p) => !bloco.parametros[p]?.trim())) {
         anotar(bloco.id, "Complete a configuração da ação")
+      } else if (ACOES_COM_TAG.includes(bloco.acao) && !tagValida(bloco.parametros.tag)) {
+        anotar(bloco.id, "A tag não pode ter espaço e vai até 50 caracteres")
       }
     } else {
       if (bloco.verificacoes.some((v) => !VERIFICACOES_DISPONIVEIS.includes(v.tipo))) anotar(bloco.id, EM_BREVE)
