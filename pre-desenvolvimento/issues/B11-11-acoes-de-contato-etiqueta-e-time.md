@@ -171,6 +171,41 @@ para horário.
 apagada antes do commit, o seletor de atributo mostrou 7 verificações
 disponíveis e 3 "em breve", e a tag digitada "Cliente VIP" virou `clientevip`.
 
+## Ajuste de 07/10/2026: "mover card" segue a regra do CRM
+
+**O que o Luan viu:** uma regra "card movido para Sondagem → tem a tag `tag`? sim:
+adicionar tag `tem-tag` e mover para Onboarding / não: mover para Reposição" não
+mudou nenhum card de lugar. O botão de teste mostrava o caminho certo.
+
+**O que o banco mostrou:** o motor e a condição funcionaram. O contato com a tag
+seguiu pelo "sim" e ganhou `tem-tag`. As duas ações de mover apontavam para
+etapas do Funil de Recompra, e os dois contatos só tinham card no Funil de
+Entrada. "Mover card" move o card que o contato já tem naquele funil. Sem card,
+a ação falha, e por enquanto sem aviso nenhum, porque o histórico é da B11-03.
+O teste não mostrou isso porque ele não executa as ações.
+
+**Decidido com o Luan: seguir a regra do CRM.**
+- A automação não cria card em funil onde o contato não tem. Na Recompra, o card
+  nasce quando o card da Entrada chega em Ganho.
+- Mover para Ganho no Funil de Entrada passa a criar o card na Recompra, em
+  Onboarding, como o arrastar manual (`moverCard`). Antes, a automação só
+  mudava a etapa. Isso vale também para as regras antigas no branch.
+- No editor, a ação "mover card" com o Funil de Recompra mostra um aviso
+  explicando isso.
+
+**Descartado:** criar o card em qualquer funil. Um lead viraria cliente na
+Recompra (e mudaria de classificação) sem passar por Ganho.
+
+**Em aberto (seção 7.5 das decisões):** o arrastar manual também inicia
+sequências quando o card entra em Ganho (onboarding), Catálogo Enviado e
+Inativos. A automação ainda não inicia, porque as sequências podem mandar
+mensagem e isso mudaria as regras antigas. Fica para o Luan decidir.
+
+**Arquivos:** `src/lib/automacoes/acoes.ts` (`abrirCardDeRecompra`),
+`painel-bloco.tsx` (aviso), `src/test/automacoes-acoes.test.ts` (4 testes) e
+`src/test/automacoes-banco-falso.ts` (respostas em ordem para tabelas
+consultadas mais de uma vez).
+
 **Como foi verificado (primeira parte):** 19 testes novos. A suíte unitária inteira, sem os
 `*.integration.test.ts`, deu 41 arquivos e 465 testes passando. `tsc` sem erro,
 lint limpo nos arquivos da issue e `npm run build` com código de saída 0. As

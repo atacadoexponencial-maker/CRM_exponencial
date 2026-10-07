@@ -94,27 +94,59 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
         .eq("funil", funil)
         .maybeSingle()
 
+      // Contato sem card neste funil: a automação não cria. Na Recompra, o card
+      // nasce quando o card da Entrada chega em Ganho (abaixo), como no CRM.
       if (!card) return false
-      if (card.etapa === etapa) return true
 
-      const { error } = await supabase
-        .from("pipeline_cards")
-        .update({ etapa, etapa_changed_at: new Date().toISOString() })
-        .eq("id", card.id)
-      if (error) return false
+      if (card.etapa !== etapa) {
+        const { error } = await supabase
+          .from("pipeline_cards")
+          .update({ etapa, etapa_changed_at: new Date().toISOString() })
+          .eq("id", card.id)
+        if (error) return false
 
-      // alterado_por nulo = movimentação feita pelo sistema/automação
-      await supabase.from("pipeline_card_history").insert({
-        card_id: card.id,
-        de_etapa: card.etapa,
-        para_etapa: etapa,
-        alterado_por: null,
-      })
+        // alterado_por nulo = movimentação feita pelo sistema/automação
+        await supabase.from("pipeline_card_history").insert({
+          card_id: card.id,
+          de_etapa: card.etapa,
+          para_etapa: etapa,
+          alterado_por: null,
+        })
+      }
+
+      if (funil === "entrada" && etapa === "ganho") return abrirCardDeRecompra(contexto, contactId)
       return true
     }
     default:
       return false
   }
+}
+
+/**
+ * Regra do CRM para o card que chega em Ganho: o contato ganha um card na
+ * Recompra, em Onboarding, se ainda não tiver. É o que o arrastar manual faz
+ * (`moverCard`, em src/app/(auth)/pipeline/actions.ts). Diferente dele, aqui
+ * não roda automação para o card novo (guarda anti-loop) nem inicia a
+ * sequência de onboarding (decisões, seção 7.5).
+ */
+async function abrirCardDeRecompra({ supabase, gatilho }: ContextoDaExecucao, contactId: string): Promise<boolean> {
+  const { data: existente, error: erroBusca } = await supabase
+    .from("pipeline_cards")
+    .select("id")
+    .eq("workspace_id", gatilho.workspaceId)
+    .eq("contact_id", contactId)
+    .eq("funil", "recompra")
+    .maybeSingle()
+  if (erroBusca) return false
+  if (existente) return true
+
+  const { error } = await supabase.from("pipeline_cards").insert({
+    funil: "recompra",
+    etapa: "onboarding",
+    contact_id: contactId,
+    workspace_id: gatilho.workspaceId,
+  })
+  return !error
 }
 
 /**

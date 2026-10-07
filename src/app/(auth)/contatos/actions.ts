@@ -523,6 +523,23 @@ export async function removerTagContato(
   return {}
 }
 
+/** Tags do contato, na ordem em que entraram. Usado pelo painel do card no funil (B11-12). */
+export async function listarTagsContato(contactId: string): Promise<string[]> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  // A RLS de contact_tags limita à empresa de quem está logado
+  const { data } = await supabase
+    .from("contact_tags")
+    .select("tag")
+    .eq("contact_id", contactId)
+    .order("created_at")
+
+  return (data ?? []).map((t) => t.tag)
+}
+
 export async function atualizarObservacoesContato(
   contactId: string,
   observacoes: string

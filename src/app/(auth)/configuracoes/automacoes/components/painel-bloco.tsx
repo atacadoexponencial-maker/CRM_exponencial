@@ -113,6 +113,12 @@ export function PainelBloco({ bloco, gatilho, opcoes, pendencias, onMudar, onRem
               opcoes={opcoes}
               onMudar={(parametros) => onMudar({ ...bloco, parametros })}
             />
+            {bloco.acao === "mover_card" && bloco.parametros.funil === "recompra" && (
+              <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                Só move quem já tem card na Recompra. Um lead da Entrada ganha esse card quando chega em
+                Ganho: para levá-lo à Recompra, mova para Ganho no Funil de Entrada.
+              </p>
+            )}
           </>
         )}
 

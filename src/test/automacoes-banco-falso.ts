@@ -5,12 +5,17 @@
 import { vi } from "vitest"
 import type { ContextoDaExecucao, GatilhoAutomacao, ServiceClient } from "@/lib/automacoes/contexto"
 
-/** `lista`: o que um select aguardado devolve; `um`: o que `maybeSingle`/`single` devolve. */
-type Tabela = { lista?: unknown; um?: unknown; erro?: { code?: string; message?: string } }
+/**
+ * `lista`: o que um select aguardado devolve; `um`: o que `maybeSingle`/`single`
+ * devolve. `umEmOrdem`: uma resposta por chamada de `maybeSingle`/`single`, na
+ * ordem, para tabelas consultadas mais de uma vez.
+ */
+type Tabela = { lista?: unknown; um?: unknown; umEmOrdem?: unknown[]; erro?: { code?: string; message?: string } }
 type Chamada = { tabela: string; metodo: string; args: unknown[] }
 
 export function banco(tabelas: Record<string, Tabela>) {
   const chamadas: Chamada[] = []
+  const usadas: Record<string, number> = {}
   const from = vi.fn((tabela: string) => {
     const config = tabelas[tabela] ?? {}
     const erro = config.erro ?? null
@@ -21,8 +26,14 @@ export function banco(tabelas: Record<string, Tabela>) {
         return obj
       })
     }
-    obj.maybeSingle = vi.fn(() => Promise.resolve({ data: config.um ?? null, error: erro }))
-    obj.single = vi.fn(() => Promise.resolve({ data: config.um ?? null, error: erro }))
+    const proximo = () => {
+      if (!config.umEmOrdem) return config.um ?? null
+      const i = usadas[tabela] ?? 0
+      usadas[tabela] = i + 1
+      return config.umEmOrdem[i] ?? null
+    }
+    obj.maybeSingle = vi.fn(() => Promise.resolve({ data: proximo(), error: erro }))
+    obj.single = vi.fn(() => Promise.resolve({ data: proximo(), error: erro }))
     obj.then = (resolve: (v: unknown) => void) => Promise.resolve({ data: config.lista ?? null, error: erro }).then(resolve)
     return obj
   })

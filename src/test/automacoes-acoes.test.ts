@@ -177,3 +177,41 @@ describe("atribuir a um time", () => {
     expect(b.gravacoes("conversations")).toEqual([])
   })
 })
+
+describe("mover card segue a regra do CRM (B11-11)", () => {
+  it("contato sem card no funil de destino: não move nem cria nada", async () => {
+    const b = banco({ pipeline_cards: { umEmOrdem: [null] } })
+    const ok = await executarAcao(b.contexto(cardMovido), acao("mover_card", { funil: "recompra", etapa: "onboarding" }))
+
+    expect(ok).toBe(false)
+    expect(b.gravacoes("pipeline_cards")).toEqual([])
+  })
+
+  it("Ganho no Funil de Entrada cria o card na Recompra, em Onboarding", async () => {
+    // 1ª consulta: o card na Entrada; 2ª: card na Recompra, que não existe
+    const b = banco({ pipeline_cards: { umEmOrdem: [{ id: "card-1", etapa: "negociacao" }, null] } })
+    const ok = await executarAcao(b.contexto(cardMovido), acao("mover_card", { funil: "entrada", etapa: "ganho" }))
+
+    expect(ok).toBe(true)
+    const gravacoes = b.gravacoes("pipeline_cards").map((g) => [g.metodo, g.args[0]])
+    expect(gravacoes).toEqual([
+      ["update", expect.objectContaining({ etapa: "ganho" })],
+      ["insert", { funil: "recompra", etapa: "onboarding", contact_id: "contato-1", workspace_id: "ws-1" }],
+    ])
+    expect(b.gravacoes("pipeline_card_history")[0].args[0]).toMatchObject({ de_etapa: "negociacao", para_etapa: "ganho" })
+  })
+
+  it("Ganho com card na Recompra já existente não cria outro", async () => {
+    const b = banco({ pipeline_cards: { umEmOrdem: [{ id: "card-1", etapa: "negociacao" }, { id: "card-r" }] } })
+    await executarAcao(b.contexto(cardMovido), acao("mover_card", { funil: "entrada", etapa: "ganho" }))
+
+    expect(b.gravacoes("pipeline_cards").map((g) => g.metodo)).toEqual(["update"])
+  })
+
+  it("outras etapas só movem o card", async () => {
+    const b = banco({ pipeline_cards: { umEmOrdem: [{ id: "card-1", etapa: "lead" }] } })
+    await executarAcao(b.contexto(cardMovido), acao("mover_card", { funil: "entrada", etapa: "negociacao" }))
+
+    expect(b.gravacoes("pipeline_cards").map((g) => g.metodo)).toEqual(["update"])
+  })
+})

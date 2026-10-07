@@ -248,3 +248,24 @@ falta, entram como verificações novas ("nicho é", "cidade é").
 **Verificações que continuam "em breve":** texto e tipo da mensagem (só servem
 nos gatilhos de mensagem, que ainda não estão liberados) e horário comercial
 (depende da configuração de horário, B11-08).
+
+### 7.5 "Mover card" segue a regra do CRM
+
+**Achado no teste do Luan:** uma regra mandava leads da Entrada para etapas da
+Recompra, e nada acontecia. "Mover card" move o card que o contato já tem no
+funil de destino, e os leads não tinham card na Recompra.
+
+**Decidido com o Luan:** a automação segue a regra do arrastar manual. Não cria
+card em funil onde o contato não tem. Mover para Ganho no Funil de Entrada cria
+o card na Recompra, em Onboarding, se ainda não houver. O editor avisa quando a
+ação aponta para a Recompra.
+
+**Descartado:** criar o card em qualquer funil. Um lead viraria cliente na
+Recompra sem passar por Ganho, e a classificação (calculada pelos cards) mudaria
+para "ativo".
+
+**Em aberto:** o arrastar manual também inicia sequências quando o card entra em
+Ganho (onboarding), Catálogo Enviado e Inativos. A automação ainda não inicia.
+Fazer igual seria a mesma "regra do CRM", mas as sequências podem mandar
+mensagem, e as regras antigas que movem cards passariam a iniciá-las no branch.
+Fica para o Luan decidir.

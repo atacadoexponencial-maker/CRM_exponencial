@@ -10,6 +10,7 @@ import { IniciarSequenciaDialog } from "@/components/shared/iniciar-sequencia-di
 import { Button } from "@/components/ui/button"
 import { DialogoExcluirContato } from "../../contatos/components/dialogo-excluir-contato"
 import { resumoExclusaoPorCard, excluirContatoPorCard, type ResumoExclusao } from "../../contatos/lixeira/actions"
+import { TagsDoContato } from "./tags-do-contato"
 
 interface PainelCardProps {
   card: CardLead | CardCliente | null
@@ -213,6 +214,8 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
                 ))}
               </div>
             )}
+
+            {card.contactId && <TagsDoContato contactId={card.contactId} />}
           </div>
 
           {/* Mudar etapa */}
