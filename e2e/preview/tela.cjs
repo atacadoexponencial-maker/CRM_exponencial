@@ -17,7 +17,8 @@ async function adicionarBloco(page, item, { bloco, indice = 0 } = {}) {
   if (await fechar.count()) await fechar.click()
   const escopo = bloco ? page.locator(".react-flow__node").filter({ hasText: bloco }) : page
   await escopo.getByRole("button", { name: "Adicionar o próximo bloco" }).nth(indice).click()
-  await page.getByRole("dialog").getByRole("button", { name: item }).click()
+  // Nome exato: "Enviar mensagem" também casaria com "Enviar mensagem rápida"
+  await page.getByRole("dialog").getByRole("button", { name: item, exact: true }).click()
   await page.waitForTimeout(300)
 }
 

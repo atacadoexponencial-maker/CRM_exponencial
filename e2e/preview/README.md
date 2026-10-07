@@ -55,6 +55,7 @@ código de saída 0 só se tudo passou.
 | `roteiro-b11-10.cjs` | Editor e lista gravando; regra antiga convertida. |
 | `roteiro-b11-11-e-12.cjs` | Ações e condições de contato e time; tags no painel do card. |
 | `roteiro-b11-03.cjs` | Proteção de repetição, ação com etiqueta apagada e a página de histórico. |
+| `roteiro-b11-06.cjs` | Gatilhos de tag, etiqueta e dado do contato, e automação que não dispara automação. |
 
 ## A empresa de teste
 

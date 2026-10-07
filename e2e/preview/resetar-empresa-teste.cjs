@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 // Devolve a empresa de teste ao estado inicial dos roteiros: sem regras em fluxo
 // nem histórico, regra antiga ativa, cards da Entrada em Lead sem atendente, sem
-// cards na Recompra, conversas sem atendente, Ana sem etiqueta e Bruno com
-// "Interessado", sem tags e sem tipo, nicho, cidade e observações.
+// cards na Recompra, conversas sem atendente, só a etiqueta "Interessado" (na
+// conversa do Bruno), sem tags e sem tipo, nicho, cidade e observações.
 // Só mexe na empresa cujo nome começa com "[TESTE]".
 // Uso: node e2e/preview/resetar-empresa-teste.cjs
 
@@ -34,6 +34,9 @@ const { lerEnv, bancoDeServico, conferirEmpresaDeTeste } = require("./comum.cjs"
   await feito(
     db.from("contacts").update({ tipo: null, nicho: null, cidade: null, observacoes: null }).in("id", contatos.map((c) => c.id))
   )
+
+  // Etiquetas criadas pelos roteiros (VIP, Temporária): fica só a "Interessado"
+  await feito(db.from("labels").delete().eq("workspace_id", ws).neq("name", "Interessado"))
 
   const conversas = await feito(db.from("conversations").select("id, contact_id").eq("workspace_id", ws))
   await feito(db.from("conversations").update({ assigned_to: null }).eq("workspace_id", ws))
