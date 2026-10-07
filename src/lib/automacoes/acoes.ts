@@ -11,7 +11,8 @@
 // Guarda anti-loop: as ações gravam direto no banco e nunca chamam o motor de
 // novo, então mover um card aqui não dispara as regras de "card movido".
 
-import { normalizarTag, tagValida, type BlocoAcao } from "@/lib/fluxo-automacao"
+import { SEQUENCIA_DA_ETAPA, normalizarTag, tagValida, type BlocoAcao } from "@/lib/fluxo-automacao"
+import { processarGatilhoSequencia } from "@/lib/sequencias"
 import { enviarTextoWhatsApp } from "@/lib/whatsapp-envio"
 import { conversaDoEvento, type ContextoDaExecucao } from "./contexto"
 import { dadoDoContatoValido } from "./referencias"
@@ -88,7 +89,7 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
 
       const { data: card } = await supabase
         .from("pipeline_cards")
-        .select("id, etapa")
+        .select("id, etapa, atendente_id")
         .eq("workspace_id", gatilho.workspaceId)
         .eq("contact_id", contactId)
         .eq("funil", funil)
@@ -98,7 +99,8 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
       // nasce quando o card da Entrada chega em Ganho (abaixo), como no CRM.
       if (!card) return false
 
-      if (card.etapa !== etapa) {
+      const moveu = card.etapa !== etapa
+      if (moveu) {
         const { error } = await supabase
           .from("pipeline_cards")
           .update({ etapa, etapa_changed_at: new Date().toISOString() })
@@ -114,7 +116,25 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
         })
       }
 
-      if (funil === "entrada" && etapa === "ganho") return abrirCardDeRecompra(contexto, contactId)
+      // A sequência da etapa começa só se o admin marcou na ação, e só quando o
+      // card de fato entra nela (ou, em Ganho, quando o card da Recompra nasce)
+      const sequencia = parametros.iniciar_sequencia === "sim" ? SEQUENCIA_DA_ETAPA[`${funil}:${etapa}`] : undefined
+      let entrouNaEtapa = moveu
+
+      if (funil === "entrada" && etapa === "ganho") {
+        const recompra = await abrirCardDeRecompra(contexto, contactId)
+        if (recompra === "falhou") return false
+        entrouNaEtapa = recompra === "criado"
+      }
+
+      if (sequencia && entrouNaEtapa) {
+        await processarGatilhoSequencia({
+          workspaceId: gatilho.workspaceId,
+          contactId,
+          atendenteId: card.atendente_id,
+          gatilho: sequencia,
+        })
+      }
       return true
     }
     default:
@@ -126,10 +146,13 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
  * Regra do CRM para o card que chega em Ganho: o contato ganha um card na
  * Recompra, em Onboarding, se ainda não tiver. É o que o arrastar manual faz
  * (`moverCard`, em src/app/(auth)/pipeline/actions.ts). Diferente dele, aqui
- * não roda automação para o card novo (guarda anti-loop) nem inicia a
- * sequência de onboarding (decisões, seção 7.5).
+ * não roda automação para o card novo (guarda anti-loop). A sequência de
+ * onboarding é opção da ação (decisões, seção 7.5).
  */
-async function abrirCardDeRecompra({ supabase, gatilho }: ContextoDaExecucao, contactId: string): Promise<boolean> {
+async function abrirCardDeRecompra(
+  { supabase, gatilho }: ContextoDaExecucao,
+  contactId: string
+): Promise<"criado" | "existente" | "falhou"> {
   const { data: existente, error: erroBusca } = await supabase
     .from("pipeline_cards")
     .select("id")
@@ -137,8 +160,8 @@ async function abrirCardDeRecompra({ supabase, gatilho }: ContextoDaExecucao, co
     .eq("contact_id", contactId)
     .eq("funil", "recompra")
     .maybeSingle()
-  if (erroBusca) return false
-  if (existente) return true
+  if (erroBusca) return "falhou"
+  if (existente) return "existente"
 
   const { error } = await supabase.from("pipeline_cards").insert({
     funil: "recompra",
@@ -146,7 +169,7 @@ async function abrirCardDeRecompra({ supabase, gatilho }: ContextoDaExecucao, co
     contact_id: contactId,
     workspace_id: gatilho.workspaceId,
   })
-  return !error
+  return error ? "falhou" : "criado"
 }
 
 /**

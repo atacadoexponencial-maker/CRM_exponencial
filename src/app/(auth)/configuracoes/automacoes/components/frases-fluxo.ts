@@ -2,7 +2,7 @@
 // resumo da regra inteira, na lista.
 
 import type { Bloco, BlocoAcao, BlocoGatilho, Fluxo, Verificacao } from "@/lib/fluxo-automacao"
-import { gatilhoDoFluxo } from "@/lib/fluxo-automacao"
+import { SEQUENCIA_DA_ETAPA, gatilhoDoFluxo } from "@/lib/fluxo-automacao"
 import {
   ACOES,
   FUNIS,
@@ -99,10 +99,12 @@ export function fraseAcao(bloco: BlocoAcao, opcoes: OpcoesEditor): string {
       return p.atendente_id ? `Atribuir a ${nomeEm(opcoes.atendentes, p.atendente_id)}` : rotulo
     case "atribuir_time":
       return p.time_id ? `Atribuir ao time ${nomeEm(opcoes.times, p.time_id)}` : rotulo
-    case "mover_card":
-      return p.funil && p.etapa
-        ? `Mover card para "${nomeEm(etapasDoFunil(p.funil), p.etapa)}" (${nomeEm(FUNIS, p.funil)})`
-        : rotulo
+    case "mover_card": {
+      if (!p.funil || !p.etapa) return rotulo
+      const destino = `Mover card para "${nomeEm(etapasDoFunil(p.funil), p.etapa)}" (${nomeEm(FUNIS, p.funil)})`
+      const comSequencia = p.iniciar_sequencia === "sim" && SEQUENCIA_DA_ETAPA[`${p.funil}:${p.etapa}`]
+      return comSequencia ? `${destino} e iniciar a sequência` : destino
+    }
     case "iniciar_sequencia":
       return p.sequencia_id ? `Iniciar a sequência "${nomeEm(opcoes.sequencias, p.sequencia_id)}"` : rotulo
     case "resolver_conversa":

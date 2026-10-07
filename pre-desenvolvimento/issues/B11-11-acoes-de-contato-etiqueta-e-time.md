@@ -196,10 +196,14 @@ O teste não mostrou isso porque ele não executa as ações.
 **Descartado:** criar o card em qualquer funil. Um lead viraria cliente na
 Recompra (e mudaria de classificação) sem passar por Ganho.
 
-**Em aberto (seção 7.5 das decisões):** o arrastar manual também inicia
-sequências quando o card entra em Ganho (onboarding), Catálogo Enviado e
-Inativos. A automação ainda não inicia, porque as sequências podem mandar
-mensagem e isso mudaria as regras antigas. Fica para o Luan decidir.
+**Sequências da etapa (decidido pelo Luan, seção 7.5 das decisões):** a ação
+"mover card" ganhou a opção "Iniciar a sequência desta etapa", que só aparece
+para Ganho, Catálogo Enviado e Inativos e começa desmarcada. As etapas e as
+sequências ficam em `SEQUENCIA_DA_ETAPA` (`src/lib/fluxo-automacao.ts`), e o
+motor chama `processarGatilhoSequencia`, a mesma função do arrastar manual. A
+sequência só começa quando o card entra na etapa, e em Ganho só quando o card
+da Recompra nasce. Testes: 5 casos em `automacoes-acoes.test.ts`. Suíte
+unitária com 484 testes passando e build com código 0.
 
 **Arquivos:** `src/lib/automacoes/acoes.ts` (`abrirCardDeRecompra`),
 `painel-bloco.tsx` (aviso), `src/test/automacoes-acoes.test.ts` (4 testes) e

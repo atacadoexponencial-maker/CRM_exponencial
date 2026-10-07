@@ -8,9 +8,12 @@ vi.mock("@/lib/whatsapp-envio", async (importOriginal) => ({
   enviarTextoWhatsApp: vi.fn().mockResolvedValue(true),
 }))
 
+vi.mock("@/lib/sequencias", () => ({ processarGatilhoSequencia: vi.fn().mockResolvedValue(undefined) }))
+
 import { executarAcao } from "@/lib/automacoes/acoes"
 import type { GatilhoAutomacao } from "@/lib/automacoes/contexto"
 import type { AcaoTipo, BlocoAcao } from "@/lib/fluxo-automacao"
+import { processarGatilhoSequencia } from "@/lib/sequencias"
 import { banco } from "./automacoes-banco-falso"
 
 const conversaCriada: GatilhoAutomacao = {
@@ -213,5 +216,67 @@ describe("mover card segue a regra do CRM (B11-11)", () => {
     await executarAcao(b.contexto(cardMovido), acao("mover_card", { funil: "entrada", etapa: "negociacao" }))
 
     expect(b.gravacoes("pipeline_cards").map((g) => g.metodo)).toEqual(["update"])
+  })
+})
+
+describe("mover card com a opção de iniciar a sequência da etapa", () => {
+  const iniciou = vi.mocked(processarGatilhoSequencia)
+
+  it("Catálogo Enviado com a opção marcada inicia a sequência de catálogo, com o atendente do card", async () => {
+    iniciou.mockClear()
+    const b = banco({ pipeline_cards: { umEmOrdem: [{ id: "card-1", etapa: "sondagem", atendente_id: "carla" }] } })
+    await executarAcao(
+      b.contexto(cardMovido),
+      acao("mover_card", { funil: "entrada", etapa: "catalogo_enviado", iniciar_sequencia: "sim" })
+    )
+    expect(iniciou).toHaveBeenCalledWith({
+      workspaceId: "ws-1",
+      contactId: "contato-1",
+      atendenteId: "carla",
+      gatilho: "catalogo_enviado",
+    })
+  })
+
+  it("sem a opção, não inicia", async () => {
+    iniciou.mockClear()
+    const b = banco({ pipeline_cards: { umEmOrdem: [{ id: "card-1", etapa: "sondagem", atendente_id: null }] } })
+    await executarAcao(b.contexto(cardMovido), acao("mover_card", { funil: "entrada", etapa: "catalogo_enviado" }))
+    expect(iniciou).not.toHaveBeenCalled()
+  })
+
+  it("card que já estava na etapa não reinicia a sequência", async () => {
+    iniciou.mockClear()
+    const b = banco({ pipeline_cards: { umEmOrdem: [{ id: "card-1", etapa: "catalogo_enviado", atendente_id: null }] } })
+    await executarAcao(
+      b.contexto(cardMovido),
+      acao("mover_card", { funil: "entrada", etapa: "catalogo_enviado", iniciar_sequencia: "sim" })
+    )
+    expect(iniciou).not.toHaveBeenCalled()
+  })
+
+  it("Ganho inicia o onboarding só quando o card da Recompra nasce", async () => {
+    iniciou.mockClear()
+    const novo = banco({ pipeline_cards: { umEmOrdem: [{ id: "card-1", etapa: "negociacao", atendente_id: null }, null] } })
+    await executarAcao(novo.contexto(cardMovido), acao("mover_card", { funil: "entrada", etapa: "ganho", iniciar_sequencia: "sim" }))
+    expect(iniciou).toHaveBeenCalledWith(expect.objectContaining({ gatilho: "onboarding" }))
+
+    iniciou.mockClear()
+    const jaTinha = banco({
+      pipeline_cards: { umEmOrdem: [{ id: "card-1", etapa: "negociacao", atendente_id: null }, { id: "card-r" }] },
+    })
+    await executarAcao(jaTinha.contexto(cardMovido), acao("mover_card", { funil: "entrada", etapa: "ganho", iniciar_sequencia: "sim" }))
+    expect(iniciou).not.toHaveBeenCalled()
+  })
+
+  it("Inativos, na Recompra, inicia a sequência de inativo; etapa sem sequência ignora a opção", async () => {
+    iniciou.mockClear()
+    const inativos = banco({ pipeline_cards: { umEmOrdem: [{ id: "card-r", etapa: "ativos", atendente_id: null }] } })
+    await executarAcao(inativos.contexto(cardMovido), acao("mover_card", { funil: "recompra", etapa: "inativos", iniciar_sequencia: "sim" }))
+    expect(iniciou).toHaveBeenCalledWith(expect.objectContaining({ gatilho: "inativo" }))
+
+    iniciou.mockClear()
+    const outra = banco({ pipeline_cards: { umEmOrdem: [{ id: "card-1", etapa: "lead", atendente_id: null }] } })
+    await executarAcao(outra.contexto(cardMovido), acao("mover_card", { funil: "entrada", etapa: "sondagem", iniciar_sequencia: "sim" }))
+    expect(iniciou).not.toHaveBeenCalled()
   })
 })

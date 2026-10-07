@@ -170,6 +170,18 @@ export const ACOES_DISPONIVEIS: readonly AcaoTipo[] = [
   "atribuir_time",
 ]
 
+/**
+ * Etapas em que o arrastar manual inicia uma sequência (`moverCard`, em
+ * src/app/(auth)/pipeline/actions.ts), por `funil:etapa`. Na ação "mover card",
+ * o admin escolhe se a automação faz o mesmo (parâmetro `iniciar_sequencia`).
+ * Em Ganho, a sequência de onboarding só começa quando o card da Recompra nasce.
+ */
+export const SEQUENCIA_DA_ETAPA: Record<string, "onboarding" | "catalogo_enviado" | "inativo"> = {
+  "entrada:ganho": "onboarding",
+  "entrada:catalogo_enviado": "catalogo_enviado",
+  "recompra:inativos": "inativo",
+}
+
 /** Tag como a tela do contato grava: minúsculas e sem espaço nas pontas. */
 export function normalizarTag(tag: string): string {
   return tag.trim().toLowerCase()

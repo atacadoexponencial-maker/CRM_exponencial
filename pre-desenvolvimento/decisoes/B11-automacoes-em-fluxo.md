@@ -264,8 +264,14 @@ ação aponta para a Recompra.
 Recompra sem passar por Ganho, e a classificação (calculada pelos cards) mudaria
 para "ativo".
 
-**Em aberto:** o arrastar manual também inicia sequências quando o card entra em
-Ganho (onboarding), Catálogo Enviado e Inativos. A automação ainda não inicia.
-Fazer igual seria a mesma "regra do CRM", mas as sequências podem mandar
-mensagem, e as regras antigas que movem cards passariam a iniciá-las no branch.
-Fica para o Luan decidir.
+**Sequências da etapa, decidido pelo Luan em 07/10/2026:** o arrastar manual
+inicia uma sequência quando o card entra em Ganho (onboarding), Catálogo Enviado
+ou Inativos. Na automação, isso virou uma opção da ação "mover card": "Iniciar a
+sequência desta etapa, como ao arrastar o card". Ela só aparece para essas três
+etapas e começa desmarcada. A sequência só começa quando o card de fato entra na
+etapa. Em Ganho, só quando o card da Recompra nasce, como no manual.
+
+**Descartado:** iniciar sempre, igual ao manual. As sequências podem mandar
+mensagem, e as regras antigas que movem cards passariam a iniciá-las sem
+ninguém ter escolhido. Também foi descartado nunca iniciar, porque aí a
+automação não conseguiria repetir o que o time faz à mão.

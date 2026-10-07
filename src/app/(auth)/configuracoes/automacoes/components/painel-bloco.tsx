@@ -10,6 +10,7 @@ import {
   GATILHOS_DE_MENSAGEM,
   GATILHOS_DISPONIVEIS,
   OPERADORES_SEM_VALOR,
+  SEQUENCIA_DA_ETAPA,
   VERIFICACOES_DE_MENSAGEM,
   VERIFICACOES_DISPONIVEIS,
   type AcaoTipo,
@@ -113,6 +114,27 @@ export function PainelBloco({ bloco, gatilho, opcoes, pendencias, onMudar, onRem
               opcoes={opcoes}
               onMudar={(parametros) => onMudar({ ...bloco, parametros })}
             />
+            {bloco.acao === "mover_card" && SEQUENCIA_DA_ETAPA[`${bloco.parametros.funil}:${bloco.parametros.etapa}`] && (
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 shrink-0 accent-primary"
+                  checked={bloco.parametros.iniciar_sequencia === "sim"}
+                  onChange={(e) =>
+                    onMudar({
+                      ...bloco,
+                      parametros: { ...bloco.parametros, iniciar_sequencia: e.target.checked ? "sim" : "" },
+                    })
+                  }
+                />
+                <span>
+                  Iniciar a sequência desta etapa, como ao arrastar o card
+                  <span className="block text-xs text-muted-foreground">
+                    As sequências ativas para esta etapa começam para o contato e podem mandar mensagem.
+                  </span>
+                </span>
+              </label>
+            )}
             {bloco.acao === "mover_card" && bloco.parametros.funil === "recompra" && (
               <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
                 Só move quem já tem card na Recompra. Um lead da Entrada ganha esse card quando chega em
