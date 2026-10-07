@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { MoreHorizontal, Plus, Zap } from "lucide-react"
+import { History, MoreHorizontal, Plus, Zap } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogPopup, DialogTitle } from "@/components/ui/dialog"
@@ -39,6 +39,8 @@ interface ListaRegrasProps {
   /** Enquanto o histórico não existe (B11-03), as colunas de execução somem e o item do menu fica desabilitado. */
   historicoDisponivel: boolean
   onNova: () => void
+  /** Botão "Histórico" no topo, com as execuções de todas as regras. */
+  onAbrirHistorico?: () => void
   onEditar: (id: string) => void
   onAlternar: (id: string, ativa: boolean) => void
   onDuplicar: (id: string) => void
@@ -63,6 +65,7 @@ export function ListaRegras({
   opcoes,
   historicoDisponivel,
   onNova,
+  onAbrirHistorico,
   onEditar,
   onAlternar,
   onDuplicar,
@@ -90,10 +93,18 @@ export function ListaRegras({
     <>
       <div className="mb-2 flex items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">Automações</h1>
-        <Button onClick={onNova} size="sm">
-          <Plus />
-          Nova automação
-        </Button>
+        <div className="flex gap-2">
+          {historicoDisponivel && onAbrirHistorico && (
+            <Button onClick={onAbrirHistorico} size="sm" variant="outline">
+              <History />
+              Histórico
+            </Button>
+          )}
+          <Button onClick={onNova} size="sm">
+            <Plus />
+            Nova automação
+          </Button>
+        </div>
       </div>
       <p className="mb-6 text-sm text-muted-foreground">
         Cada automação começa num gatilho e segue por condições e ações que você liga como quiser.

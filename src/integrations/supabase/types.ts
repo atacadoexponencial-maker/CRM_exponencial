@@ -97,6 +97,7 @@ export type Database = {
           gatilho_tipo: string
           id: string
           nome: string
+          repeticao: Json
           workspace_id: string
         }
         Insert: {
@@ -107,6 +108,7 @@ export type Database = {
           gatilho_tipo?: string
           id?: string
           nome: string
+          repeticao?: Json
           workspace_id: string
         }
         Update: {
@@ -117,6 +119,7 @@ export type Database = {
           gatilho_tipo?: string
           id?: string
           nome?: string
+          repeticao?: Json
           workspace_id?: string
         }
         Relationships: [
@@ -129,6 +132,63 @@ export type Database = {
           },
           {
             foreignKeyName: "automation_flows_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_runs: {
+        Row: {
+          caminho: Json
+          contact_id: string | null
+          created_at: string
+          evento: Json
+          id: string
+          motivo: string | null
+          regra_id: string
+          regra_nome: string
+          regra_origem: string
+          resultado: string
+          workspace_id: string
+        }
+        Insert: {
+          caminho?: Json
+          contact_id?: string | null
+          created_at?: string
+          evento: Json
+          id?: string
+          motivo?: string | null
+          regra_id: string
+          regra_nome: string
+          regra_origem: string
+          resultado: string
+          workspace_id: string
+        }
+        Update: {
+          caminho?: Json
+          contact_id?: string | null
+          created_at?: string
+          evento?: Json
+          id?: string
+          motivo?: string | null
+          regra_id?: string
+          regra_nome?: string
+          regra_origem?: string
+          resultado?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_runs_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_runs_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

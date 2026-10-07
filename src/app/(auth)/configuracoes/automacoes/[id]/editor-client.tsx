@@ -35,6 +35,7 @@ export function EditorClient({
       automationId: regra.automationId,
       nome: editada.nome,
       fluxo: editada.fluxo,
+      repeticao: editada.repeticao,
     })
     if (resultado.erro) return { erro: resultado.erro }
     if (!idSalvo.current && resultado.id) {
@@ -46,7 +47,7 @@ export function EditorClient({
 
   return (
     <EditorFluxo
-      regraInicial={{ nome: regra.nome, repeticao: { modo: "sempre" }, fluxo: regra.fluxo }}
+      regraInicial={{ nome: regra.nome, repeticao: regra.repeticao, fluxo: regra.fluxo }}
       opcoes={opcoes}
       avisoInicial={acabouDeSalvar ? AVISO_SALVA : undefined}
       buscarContatos={buscarContatosTeste}

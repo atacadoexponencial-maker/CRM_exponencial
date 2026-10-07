@@ -31,6 +31,19 @@ export async function enviarTextoWhatsApp(
   contactId: string,
   texto: string
 ): Promise<boolean> {
+  return (await enviarTextoWhatsAppComMotivo(supabase, workspaceId, contactId, texto)).ok
+}
+
+/**
+ * O mesmo envio, devolvendo o motivo da falha em português. As automações usam
+ * esta, para o histórico dizer por que a mensagem não saiu (B11-03).
+ */
+export async function enviarTextoWhatsAppComMotivo(
+  supabase: ServiceClient,
+  workspaceId: string,
+  contactId: string,
+  texto: string
+): Promise<{ ok: true } | { ok: false; motivo: string }> {
   // B7-01: o número é o da conversa aberta do contato, e não "um do
   // workspace". É por aqui que automações e sequências passam, e elas não têm
   // conversa em mão — por isso a resolução é por contato.
@@ -39,11 +52,12 @@ export async function enviarTextoWhatsApp(
     supabase.from("contacts").select("phone_number").eq("id", contactId).single(),
   ])
 
-  if (!provider || !contato) return false
+  if (!provider) return { ok: false, motivo: "Nenhum número de WhatsApp conectado" }
+  if (!contato) return { ok: false, motivo: "Contato não encontrado" }
 
   const resultado = await provider.enviarTexto(contato.phone_number, texto)
 
-  if (!resultado.ok) return false
+  if (!resultado.ok) return { ok: false, motivo: `O WhatsApp recusou o envio: ${resultado.motivo}` }
 
   const wamid = resultado.mensagemId
   const agora = new Date().toISOString()
@@ -78,7 +92,7 @@ export async function enviarTextoWhatsApp(
     conversaId = nova?.id ?? null
   }
 
-  if (!conversaId) return true // mensagem saiu, só não foi registrada em conversa
+  if (!conversaId) return { ok: true } // mensagem saiu, só não foi registrada em conversa
 
   await supabase.from("messages").insert({
     conversation_id: conversaId,
@@ -96,5 +110,5 @@ export async function enviarTextoWhatsApp(
     .update({ last_message_text: texto, last_message_at: agora })
     .eq("id", conversaId)
 
-  return true
+  return { ok: true }
 }

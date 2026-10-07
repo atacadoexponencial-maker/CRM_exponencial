@@ -5,7 +5,7 @@ import { describe, it, expect, vi } from "vitest"
 
 vi.mock("@/lib/whatsapp-envio", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/whatsapp-envio")>()),
-  enviarTextoWhatsApp: vi.fn().mockResolvedValue(true),
+  enviarTextoWhatsAppComMotivo: vi.fn().mockResolvedValue({ ok: true }),
 }))
 
 vi.mock("@/lib/sequencias", () => ({ processarGatilhoSequencia: vi.fn().mockResolvedValue(undefined) }))
@@ -45,18 +45,21 @@ describe("adicionar e remover tag", () => {
     const b = banco({})
     const ok = await executarAcao(b.contexto(conversaCriada), acao("adicionar_tag", { tag: "  VIP " }))
 
-    expect(ok).toBe(true)
+    expect(ok).toEqual({ ok: true })
     expect(b.gravacoes("contact_tags")[0].args[0]).toEqual({ contact_id: "contato-1", workspace_id: "ws-1", tag: "vip" })
   })
 
   it("tag que o contato já tem conta como feita", async () => {
     const b = banco({ contact_tags: { erro: { code: "23505" } } })
-    expect(await executarAcao(b.contexto(conversaCriada), acao("adicionar_tag", { tag: "vip" }))).toBe(true)
+    expect(await executarAcao(b.contexto(conversaCriada), acao("adicionar_tag", { tag: "vip" }))).toEqual({ ok: true })
   })
 
   it("tag com espaço não é gravada", async () => {
     const b = banco({})
-    expect(await executarAcao(b.contexto(conversaCriada), acao("adicionar_tag", { tag: "cliente vip" }))).toBe(false)
+    expect(await executarAcao(b.contexto(conversaCriada), acao("adicionar_tag", { tag: "cliente vip" }))).toEqual({
+      ok: false,
+      motivo: "A tag não é válida",
+    })
     expect(b.gravacoes("contact_tags")).toEqual([])
   })
 
@@ -64,7 +67,7 @@ describe("adicionar e remover tag", () => {
     const b = banco({})
     const ok = await executarAcao(b.contexto(conversaCriada), acao("remover_tag", { tag: "VIP" }))
 
-    expect(ok).toBe(true)
+    expect(ok).toEqual({ ok: true })
     expect(b.gravacoes("contact_tags")[0].metodo).toBe("delete")
     expect(b.filtros("contact_tags")).toEqual([
       ["contact_id", "contato-1"],
@@ -79,7 +82,7 @@ describe("remover etiqueta", () => {
     const b = banco({})
     const ok = await executarAcao(b.contexto(conversaCriada), acao("remover_etiqueta", { label_id: "label-1" }))
 
-    expect(ok).toBe(true)
+    expect(ok).toEqual({ ok: true })
     expect(b.gravacoes("conversation_labels")[0].metodo).toBe("delete")
     expect(b.filtros("conversation_labels")).toEqual([
       ["conversation_id", "conv-1"],
@@ -89,7 +92,10 @@ describe("remover etiqueta", () => {
 
   it("sem conversa aberta, falha", async () => {
     const b = banco({ conversations: { um: null } })
-    expect(await executarAcao(b.contexto(cardMovido), acao("remover_etiqueta", { label_id: "label-1" }))).toBe(false)
+    expect(await executarAcao(b.contexto(cardMovido), acao("remover_etiqueta", { label_id: "label-1" }))).toEqual({
+      ok: false,
+      motivo: "O contato não tem conversa aberta",
+    })
   })
 })
 
@@ -98,7 +104,7 @@ describe("alterar dado do contato", () => {
     const b = banco({})
     const ok = await executarAcao(b.contexto(conversaCriada), acao("alterar_dado_contato", { campo: "tipo", valor: "lojista" }))
 
-    expect(ok).toBe(true)
+    expect(ok).toEqual({ ok: true })
     expect(b.gravacoes("contacts")[0].args[0]).toEqual({ tipo: "lojista" })
     expect(b.filtros("contacts")).toEqual([
       ["id", "contato-1"],
@@ -124,8 +130,8 @@ describe("alterar dado do contato", () => {
     const b = banco({})
     const contexto = b.contexto(conversaCriada)
 
-    expect(await executarAcao(contexto, acao("alterar_dado_contato", { campo: "classificacao", valor: "ativo" }))).toBe(false)
-    expect(await executarAcao(contexto, acao("alterar_dado_contato", { campo: "tipo", valor: "atacadista" }))).toBe(false)
+    expect((await executarAcao(contexto, acao("alterar_dado_contato", { campo: "classificacao", valor: "ativo" }))).ok).toBe(false)
+    expect((await executarAcao(contexto, acao("alterar_dado_contato", { campo: "tipo", valor: "atacadista" }))).ok).toBe(false)
     expect(b.gravacoes("contacts")).toEqual([])
   })
 })
@@ -150,7 +156,7 @@ describe("atribuir a um time", () => {
     })
     const ok = await executarAcao(b.contexto(cardMovido), acao("atribuir_time", { time_id: "time-1" }))
 
-    expect(ok).toBe(true)
+    expect(ok).toEqual({ ok: true })
     expect(b.gravacoes("conversations")[0].args[0]).toEqual({ assigned_to: "carla" })
     expect(b.gravacoes("pipeline_cards")[0].args[0]).toEqual({ atendente_id: "carla" })
   })
@@ -176,7 +182,10 @@ describe("atribuir a um time", () => {
 
   it("time sem membro ativo falha e não grava nada", async () => {
     const b = banco({ user_teams: { lista: [{ user_id: "bruno" }] }, profiles: { lista: [] } })
-    expect(await executarAcao(b.contexto(conversaCriada), acao("atribuir_time", { time_id: "time-1" }))).toBe(false)
+    expect(await executarAcao(b.contexto(conversaCriada), acao("atribuir_time", { time_id: "time-1" }))).toEqual({
+      ok: false,
+      motivo: "O time não tem atendente ativo",
+    })
     expect(b.gravacoes("conversations")).toEqual([])
   })
 })
@@ -186,7 +195,7 @@ describe("mover card segue a regra do CRM (B11-11)", () => {
     const b = banco({ pipeline_cards: { umEmOrdem: [null] } })
     const ok = await executarAcao(b.contexto(cardMovido), acao("mover_card", { funil: "recompra", etapa: "onboarding" }))
 
-    expect(ok).toBe(false)
+    expect(ok).toEqual({ ok: false, motivo: "O contato não tem card no Funil de Recompra" })
     expect(b.gravacoes("pipeline_cards")).toEqual([])
   })
 
@@ -195,7 +204,7 @@ describe("mover card segue a regra do CRM (B11-11)", () => {
     const b = banco({ pipeline_cards: { umEmOrdem: [{ id: "card-1", etapa: "negociacao" }, null] } })
     const ok = await executarAcao(b.contexto(cardMovido), acao("mover_card", { funil: "entrada", etapa: "ganho" }))
 
-    expect(ok).toBe(true)
+    expect(ok).toEqual({ ok: true })
     const gravacoes = b.gravacoes("pipeline_cards").map((g) => [g.metodo, g.args[0]])
     expect(gravacoes).toEqual([
       ["update", expect.objectContaining({ etapa: "ganho" })],
@@ -278,5 +287,35 @@ describe("mover card com a opção de iniciar a sequência da etapa", () => {
     const outra = banco({ pipeline_cards: { umEmOrdem: [{ id: "card-1", etapa: "lead", atendente_id: null }] } })
     await executarAcao(outra.contexto(cardMovido), acao("mover_card", { funil: "entrada", etapa: "sondagem", iniciar_sequencia: "sim" }))
     expect(iniciou).not.toHaveBeenCalled()
+  })
+})
+
+describe("motivos de falha que vão para o histórico (B11-03)", () => {
+  it("etiqueta apagada", async () => {
+    const b = banco({ conversation_labels: { erro: { code: "23503" } } })
+    expect(await executarAcao(b.contexto(conversaCriada), acao("aplicar_etiqueta", { label_id: "apagada" }))).toEqual({
+      ok: false,
+      motivo: "A etiqueta não existe mais",
+    })
+  })
+
+  it("atendente apagado", async () => {
+    const b = banco({ conversations: { erro: { code: "23503" } } })
+    expect(await executarAcao(b.contexto(conversaCriada), acao("atribuir_atendente", { atendente_id: "x" }))).toEqual({
+      ok: false,
+      motivo: "O atendente não existe mais",
+    })
+  })
+
+  it("evento sem contato e ação ainda não disponível", async () => {
+    const b = banco({})
+    expect(await executarAcao(b.contexto({ ...cardMovido, contactId: null }), acao("adicionar_tag", { tag: "vip" }))).toEqual({
+      ok: false,
+      motivo: "O evento não tem contato",
+    })
+    expect(await executarAcao(b.contexto(conversaCriada), acao("iniciar_sequencia", { sequencia_id: "s" }))).toEqual({
+      ok: false,
+      motivo: "Esta ação ainda não está disponível",
+    })
   })
 })

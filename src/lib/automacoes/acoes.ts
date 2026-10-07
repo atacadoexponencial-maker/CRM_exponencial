@@ -3,101 +3,122 @@
 // e as da B11-11 (tags, remover etiqueta, dado do contato, atribuir a um time).
 // As outras do editor entram nas próximas issues; até lá, contam como falha.
 //
-// Cada ação devolve se deu certo. Falha não interrompe o caminho: quem percorre
-// o fluxo segue para o próximo bloco (ver `percorrerFluxo`). Ação que não muda
-// nada porque o contato já está como ela deixaria (tag que ele já tem, etiqueta
-// que não está lá) conta como feita.
+// Cada ação devolve se deu certo e, se não, o motivo em português, que vai para
+// o histórico (B11-03). Falha não interrompe o caminho: quem percorre o fluxo
+// segue para o próximo bloco (ver `percorrerFluxo`). Ação que não muda nada
+// porque o contato já está como ela deixaria (tag que ele já tem, etiqueta que
+// não está lá) conta como feita.
 //
 // Guarda anti-loop: as ações gravam direto no banco e nunca chamam o motor de
 // novo, então mover um card aqui não dispara as regras de "card movido".
 
-import { SEQUENCIA_DA_ETAPA, normalizarTag, tagValida, type BlocoAcao } from "@/lib/fluxo-automacao"
+import {
+  SEQUENCIA_DA_ETAPA,
+  normalizarTag,
+  tagValida,
+  type BlocoAcao,
+  type ResultadoAcao,
+} from "@/lib/fluxo-automacao"
 import { processarGatilhoSequencia } from "@/lib/sequencias"
-import { enviarTextoWhatsApp } from "@/lib/whatsapp-envio"
+import { enviarTextoWhatsAppComMotivo } from "@/lib/whatsapp-envio"
 import { conversaDoEvento, type ContextoDaExecucao } from "./contexto"
 import { dadoDoContatoValido } from "./referencias"
 
 const CONVERSA_ABERTA = ["em_espera", "em_atendimento"]
 
-export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAcao): Promise<boolean> {
+const FEITO: ResultadoAcao = { ok: true }
+const falhou = (motivo: string): ResultadoAcao => ({ ok: false, motivo })
+
+const SEM_CONVERSA = falhou("O contato não tem conversa aberta")
+const CONFIGURACAO_INCOMPLETA = falhou("A ação está sem configuração")
+const ERRO_NO_BANCO = falhou("Erro ao gravar no banco")
+
+/** Erro de chave estrangeira: o registro apontado (etiqueta, atendente) foi apagado. */
+const apontaParaApagado = (error: { code?: string } | null) => error?.code === "23503"
+
+const NOME_DO_FUNIL: Record<string, string> = { entrada: "Funil de Entrada", recompra: "Funil de Recompra" }
+
+export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAcao): Promise<ResultadoAcao> {
   const { supabase, gatilho } = contexto
   const contactId = gatilho.contactId
-  if (!contactId) return false
+  if (!contactId) return falhou("O evento não tem contato")
   const parametros = bloco.parametros
 
   switch (bloco.acao) {
     case "enviar_mensagem": {
-      if (!parametros.texto) return false
-      return enviarTextoWhatsApp(supabase, gatilho.workspaceId, contactId, parametros.texto)
+      if (!parametros.texto) return CONFIGURACAO_INCOMPLETA
+      return enviarTextoWhatsAppComMotivo(supabase, gatilho.workspaceId, contactId, parametros.texto)
     }
     case "aplicar_etiqueta": {
-      if (!parametros.label_id) return false
+      if (!parametros.label_id) return CONFIGURACAO_INCOMPLETA
       const conversaId = await conversaDoEvento(contexto)
-      if (!conversaId) return false
+      if (!conversaId) return SEM_CONVERSA
       const { error } = await supabase
         .from("conversation_labels")
         .upsert({ conversation_id: conversaId, label_id: parametros.label_id }, { onConflict: "conversation_id,label_id" })
-      return !error
+      if (apontaParaApagado(error)) return falhou("A etiqueta não existe mais")
+      return error ? ERRO_NO_BANCO : FEITO
     }
     case "remover_etiqueta": {
-      if (!parametros.label_id) return false
+      if (!parametros.label_id) return CONFIGURACAO_INCOMPLETA
       const conversaId = await conversaDoEvento(contexto)
-      if (!conversaId) return false
+      if (!conversaId) return SEM_CONVERSA
       const { error } = await supabase
         .from("conversation_labels")
         .delete()
         .eq("conversation_id", conversaId)
         .eq("label_id", parametros.label_id)
-      return !error
+      return error ? ERRO_NO_BANCO : FEITO
     }
     case "atribuir_atendente": {
-      if (!parametros.atendente_id) return false
+      if (!parametros.atendente_id) return CONFIGURACAO_INCOMPLETA
       return atribuir(contexto, parametros.atendente_id)
     }
     case "atribuir_time": {
-      if (!parametros.time_id) return false
+      if (!parametros.time_id) return CONFIGURACAO_INCOMPLETA
       const atendenteId = await atendenteDoTime(contexto, parametros.time_id)
-      if (!atendenteId) return false
+      if (!atendenteId) return falhou("O time não tem atendente ativo")
       return atribuir(contexto, atendenteId)
     }
     case "adicionar_tag": {
-      if (!tagValida(parametros.tag ?? "")) return false
+      if (!tagValida(parametros.tag ?? "")) return falhou("A tag não é válida")
       const { error } = await supabase
         .from("contact_tags")
         .insert({ contact_id: contactId, workspace_id: gatilho.workspaceId, tag: normalizarTag(parametros.tag) })
       // 23505: o contato já tem a tag
-      return !error || error.code === "23505"
+      return !error || error.code === "23505" ? FEITO : ERRO_NO_BANCO
     }
     case "remover_tag": {
-      if (!parametros.tag) return false
+      if (!parametros.tag) return CONFIGURACAO_INCOMPLETA
       const { error } = await supabase
         .from("contact_tags")
         .delete()
         .eq("contact_id", contactId)
         .eq("workspace_id", gatilho.workspaceId)
         .eq("tag", normalizarTag(parametros.tag))
-      return !error
+      return error ? ERRO_NO_BANCO : FEITO
     }
     case "alterar_dado_contato": {
       const { campo, valor } = parametros
-      if (!campo || !valor || !dadoDoContatoValido(campo, valor)) return false
+      if (!campo || !valor || !dadoDoContatoValido(campo, valor)) return falhou("O campo ou o valor não é válido")
       return alterarDadoDoContato(contexto, contactId, campo, valor)
     }
     case "mover_card": {
       const { funil, etapa } = parametros
-      if (!funil || !etapa) return false
+      if (!funil || !etapa) return CONFIGURACAO_INCOMPLETA
 
-      const { data: card } = await supabase
+      const { data: card, error: erroBusca } = await supabase
         .from("pipeline_cards")
         .select("id, etapa, atendente_id")
         .eq("workspace_id", gatilho.workspaceId)
         .eq("contact_id", contactId)
         .eq("funil", funil)
         .maybeSingle()
+      if (erroBusca) return ERRO_NO_BANCO
 
       // Contato sem card neste funil: a automação não cria. Na Recompra, o card
       // nasce quando o card da Entrada chega em Ganho (abaixo), como no CRM.
-      if (!card) return false
+      if (!card) return falhou(`O contato não tem card no ${NOME_DO_FUNIL[funil] ?? funil}`)
 
       const moveu = card.etapa !== etapa
       if (moveu) {
@@ -105,7 +126,7 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
           .from("pipeline_cards")
           .update({ etapa, etapa_changed_at: new Date().toISOString() })
           .eq("id", card.id)
-        if (error) return false
+        if (error) return ERRO_NO_BANCO
 
         // alterado_por nulo = movimentação feita pelo sistema/automação
         await supabase.from("pipeline_card_history").insert({
@@ -123,7 +144,7 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
 
       if (funil === "entrada" && etapa === "ganho") {
         const recompra = await abrirCardDeRecompra(contexto, contactId)
-        if (recompra === "falhou") return false
+        if (recompra === "falhou") return falhou("O card foi para Ganho, mas o card na Recompra não pôde ser criado")
         entrouNaEtapa = recompra === "criado"
       }
 
@@ -135,10 +156,10 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
           gatilho: sequencia,
         })
       }
-      return true
+      return FEITO
     }
     default:
-      return false
+      return falhou("Esta ação ainda não está disponível")
   }
 }
 
@@ -177,19 +198,20 @@ async function abrirCardDeRecompra(
  * duas gravações são tentadas, como na primeira versão: a falha de uma não
  * impede a outra.
  */
-async function atribuir(contexto: ContextoDaExecucao, atendenteId: string): Promise<boolean> {
+async function atribuir(contexto: ContextoDaExecucao, atendenteId: string): Promise<ResultadoAcao> {
   const { supabase, gatilho } = contexto
-  let deuCerto = true
+  const erros: Array<{ code?: string } | null> = []
   const conversaId = await conversaDoEvento(contexto)
   if (conversaId) {
     const { error } = await supabase.from("conversations").update({ assigned_to: atendenteId }).eq("id", conversaId)
-    if (error) deuCerto = false
+    erros.push(error)
   }
   if (gatilho.tipo === "card_movido") {
     const { error } = await supabase.from("pipeline_cards").update({ atendente_id: atendenteId }).eq("id", gatilho.cardId)
-    if (error) deuCerto = false
+    erros.push(error)
   }
-  return deuCerto
+  if (erros.some(apontaParaApagado)) return falhou("O atendente não existe mais")
+  return erros.some(Boolean) ? ERRO_NO_BANCO : FEITO
 }
 
 /**
@@ -233,7 +255,7 @@ async function alterarDadoDoContato(
   contactId: string,
   campo: string,
   valor: string
-): Promise<boolean> {
+): Promise<ResultadoAcao> {
   let mudanca: Record<string, string> = { [campo]: valor.trim() }
 
   if (campo === "observacoes") {
@@ -243,7 +265,8 @@ async function alterarDadoDoContato(
       .eq("id", contactId)
       .eq("workspace_id", gatilho.workspaceId)
       .maybeSingle()
-    if (error || !contato) return false
+    if (error) return ERRO_NO_BANCO
+    if (!contato) return falhou("Contato não encontrado")
     const atuais = (contato.observacoes ?? "").trimEnd()
     mudanca = { observacoes: atuais ? `${atuais}\n${valor.trim()}` : valor.trim() }
   }
@@ -253,5 +276,5 @@ async function alterarDadoDoContato(
     .update(mudanca)
     .eq("id", contactId)
     .eq("workspace_id", gatilho.workspaceId)
-  return !error
+  return error ? ERRO_NO_BANCO : FEITO
 }

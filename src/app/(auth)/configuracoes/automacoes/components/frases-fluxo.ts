@@ -6,6 +6,7 @@ import { SEQUENCIA_DA_ETAPA, gatilhoDoFluxo } from "@/lib/fluxo-automacao"
 import {
   ACOES,
   FUNIS,
+  GATILHOS,
   VERIFICACOES,
   etapasDoFunil,
   opcoesDaFonte,
@@ -129,4 +130,18 @@ export function resumoRegra(fluxo: Fluxo, opcoes: OpcoesEditor): string {
   const acoes = fluxo.blocos.filter((b) => b.tipo === "acao").length
   const partes = [condicoes > 0 ? plural(condicoes, "condição", "condições") : null, plural(acoes, "ação", "ações")]
   return `${inicio} → ${partes.filter(Boolean).join(", ")}`
+}
+
+/** O que aconteceu numa execução do histórico: "Card entrou em "Sondagem" (Funil de Entrada)". */
+export function fraseDoEvento(evento: Record<string, string>): string {
+  switch (evento.tipo) {
+    case "card_movido": {
+      const etapa = evento.funil ? nomeEm(etapasDoFunil(evento.funil), evento.etapa) : evento.etapa
+      return `Card entrou em "${etapa}" (${nomeEm(FUNIS, evento.funil)})`
+    }
+    case "conversa_criada":
+      return "Conversa criada"
+    default:
+      return GATILHOS[evento.tipo as keyof typeof GATILHOS]?.rotulo ?? evento.tipo ?? "Evento"
+  }
 }

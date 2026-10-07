@@ -8,13 +8,17 @@
 //  - `automation_flows`, as regras em fluxo, que só o branch conhece.
 // As duas rodam juntas, na ordem de criação.
 //
+// Antes de percorrer, a proteção de repetição da regra pode barrar o contato;
+// depois, a execução é gravada no histórico, com o caminho (B11-03, `execucoes.ts`).
+//
 // Roda sempre no backend com o service client (o webhook não tem sessão de
 // usuário) e nunca propaga erro para quem disparou o gatilho.
-// Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seção 5.
+// Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seções 5 e 8.
 
 import { createServiceClient } from "@/integrations/supabase/service"
 import {
   gatilhoDoFluxo,
+  lerRepeticao,
   percorrerFluxo,
   problemasDeEstrutura,
   type BlocoGatilho,
@@ -22,14 +26,20 @@ import {
 } from "@/lib/fluxo-automacao"
 import { executarAcao } from "./acoes"
 import type { ContextoDaExecucao, GatilhoAutomacao, ServiceClient } from "./contexto"
+import {
+  motivoParaIgnorar,
+  passosDoCaminho,
+  registrarExecucao,
+  resultadoDoCaminho,
+  type RegraDaExecucao,
+} from "./execucoes"
 import { lerFluxo } from "./fluxo-recebido"
 import { fluxoDaRegraAntiga } from "./regra-antiga"
 import { verificacaoVale } from "./verificacoes"
 
 export type { GatilhoAutomacao } from "./contexto"
 
-interface RegraCarregada {
-  id: string
+interface RegraCarregada extends RegraDaExecucao {
   criadaEm: string
   fluxo: Fluxo
 }
@@ -50,15 +60,49 @@ export async function processarAutomacoes(gatilho: GatilhoAutomacao): Promise<vo
       const blocoGatilho = gatilhoDoFluxo(regra.fluxo)
       if (!blocoGatilho || problemasDeEstrutura(regra.fluxo).length > 0) continue
       if (!gatilhoCorresponde(blocoGatilho, gatilho)) continue
-
-      // Cada regra é isolada: erro ao avaliar uma condição encerra só esta.
-      await percorrerFluxo(regra.fluxo, {
-        avaliarVerificacao: (verificacao) => verificacaoVale(contexto, verificacao),
-        executarAcao: (bloco) => executarAcao(contexto, bloco),
-      }).catch(() => {})
+      await executarRegra(contexto, regra)
     }
   } catch {
     // Automação nunca pode derrubar o fluxo principal (envio, webhook, pipeline)
+  }
+}
+
+/** Proteção, percurso e registro de uma regra. Cada regra é isolada: nada aqui sobe. */
+async function executarRegra(contexto: ContextoDaExecucao, regra: RegraCarregada): Promise<void> {
+  const { supabase, gatilho } = contexto
+
+  let motivo: string | null
+  try {
+    motivo = await motivoParaIgnorar(supabase, regra, gatilho.contactId)
+  } catch {
+    // Melhor não disparar do que disparar em dobro
+    await registrarExecucao(supabase, {
+      gatilho,
+      regra,
+      resultado: "falhou",
+      motivo: "Não foi possível conferir a proteção de repetição",
+    })
+    return
+  }
+  if (motivo) {
+    await registrarExecucao(supabase, { gatilho, regra, resultado: "ignorada", motivo })
+    return
+  }
+
+  try {
+    const caminho = await percorrerFluxo(regra.fluxo, {
+      avaliarVerificacao: (verificacao) => verificacaoVale(contexto, verificacao),
+      executarAcao: (bloco) => executarAcao(contexto, bloco),
+    })
+    await registrarExecucao(supabase, {
+      gatilho,
+      regra,
+      resultado: resultadoDoCaminho(caminho),
+      motivo: caminho.erro?.motivo,
+      passos: passosDoCaminho(regra.fluxo, caminho),
+    })
+  } catch {
+    await registrarExecucao(supabase, { gatilho, regra, resultado: "falhou", motivo: "Erro inesperado ao rodar a regra" })
   }
 }
 
@@ -74,13 +118,13 @@ async function carregarRegras(supabase: ServiceClient, gatilho: GatilhoAutomacao
   const [antigas, fluxos, convertidas] = await Promise.all([
     supabase
       .from("automations")
-      .select("id, created_at, gatilho_tipo, gatilho_config, acao_tipo, acao_config")
+      .select("id, nome, created_at, gatilho_tipo, gatilho_config, acao_tipo, acao_config")
       .eq("workspace_id", gatilho.workspaceId)
       .eq("gatilho_tipo", gatilho.tipo)
       .eq("ativa", true),
     supabase
       .from("automation_flows")
-      .select("id, created_at, fluxo")
+      .select("id, nome, created_at, fluxo, repeticao")
       .eq("workspace_id", gatilho.workspaceId)
       .eq("gatilho_tipo", gatilho.tipo)
       .eq("ativa", true),
@@ -94,12 +138,29 @@ async function carregarRegras(supabase: ServiceClient, gatilho: GatilhoAutomacao
   const substituidas = new Set((convertidas.data ?? []).map((r) => r.automation_id))
   const regras: RegraCarregada[] = []
   for (const r of antigas.data ?? []) {
-    if (!substituidas.has(r.id)) regras.push({ id: r.id, criadaEm: r.created_at, fluxo: fluxoDaRegraAntiga(r) })
+    if (substituidas.has(r.id)) continue
+    // Regra antiga não tem proteção de repetição: roda sempre, como rodava
+    regras.push({
+      id: r.id,
+      origem: "antiga",
+      nome: r.nome,
+      repeticao: { modo: "sempre" },
+      criadaEm: r.created_at,
+      fluxo: fluxoDaRegraAntiga(r),
+    })
   }
   for (const r of fluxos.data ?? []) {
     // Fluxo fora do formato (gravado por fora do editor) não roda
     const fluxo = lerFluxo(r.fluxo)
-    if (fluxo) regras.push({ id: r.id, criadaEm: r.created_at, fluxo })
+    if (!fluxo) continue
+    regras.push({
+      id: r.id,
+      origem: "fluxo",
+      nome: r.nome,
+      repeticao: lerRepeticao(r.repeticao),
+      criadaEm: r.created_at,
+      fluxo,
+    })
   }
   return regras.sort((a, b) => (a.criadaEm < b.criadaEm ? -1 : a.criadaEm > b.criadaEm ? 1 : 0))
 }

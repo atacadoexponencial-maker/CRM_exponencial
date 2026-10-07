@@ -9,16 +9,16 @@ vi.mock("@/integrations/supabase/service", () => ({
 // Só o envio é falso; buscarConversaAberta continua a de verdade, sobre o banco mockado.
 vi.mock("@/lib/whatsapp-envio", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/whatsapp-envio")>()),
-  enviarTextoWhatsApp: vi.fn().mockResolvedValue(true),
+  enviarTextoWhatsAppComMotivo: vi.fn().mockResolvedValue({ ok: true }),
 }))
 
 import { createServiceClient } from "@/integrations/supabase/service"
 import { processarAutomacoes } from "@/lib/automacoes"
 import type { Fluxo } from "@/lib/fluxo-automacao"
-import { enviarTextoWhatsApp } from "@/lib/whatsapp-envio"
+import { enviarTextoWhatsAppComMotivo } from "@/lib/whatsapp-envio"
 
 const mockCreateServiceClient = vi.mocked(createServiceClient)
-const mockEnviarTexto = vi.mocked(enviarTextoWhatsApp)
+const mockEnviarTexto = vi.mocked(enviarTextoWhatsAppComMotivo)
 
 type Resultado = { data?: unknown; error?: unknown }
 
@@ -27,7 +27,7 @@ type Resultado = { data?: unknown; error?: unknown }
 function chain(resultado: Resultado) {
   const obj: Record<string, unknown> = {}
   const self = () => obj
-  for (const m of ["select", "eq", "in", "not", "order", "limit", "update", "insert"]) {
+  for (const m of ["select", "eq", "neq", "gte", "in", "not", "order", "limit", "update", "insert"]) {
     obj[m] = vi.fn(self)
   }
   obj.single = vi.fn(() => Promise.resolve(resultado))
@@ -423,5 +423,192 @@ describe("processarAutomacoes com fluxo de blocos (B11-02)", () => {
       { conversation_id: "conv-1", label_id: "label-da-antiga" },
       { onConflict: "conversation_id,label_id" }
     )
+  })
+})
+
+describe("histórico e proteção de repetição (B11-03)", () => {
+  const posicao = { x: 0, y: 0 }
+  const conversaCriada = {
+    tipo: "conversa_criada" as const,
+    workspaceId: "ws-1",
+    contactId: "contact-1",
+    conversationId: "conv-1",
+  }
+
+  // Gatilho → aplicar etiqueta → enviar mensagem
+  const fluxo: Fluxo = {
+    blocos: [
+      { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao },
+      { id: "etiqueta", tipo: "acao", acao: "aplicar_etiqueta", parametros: { label_id: "label-1" }, posicao },
+      { id: "msg", tipo: "acao", acao: "enviar_mensagem", parametros: { texto: "Oi" }, posicao },
+    ],
+    ligacoes: [
+      { de: "g", saida: "proximo", para: "etiqueta" },
+      { de: "etiqueta", saida: "proximo", para: "msg" },
+    ],
+  }
+
+  /** automation_runs falso: a execução anterior que a proteção acha, e as linhas gravadas. */
+  function historico(anterior: unknown = null, erro: unknown = null) {
+    const gravadas: Array<Record<string, unknown>> = []
+    const filtros: unknown[][] = []
+    const obj: Record<string, unknown> = {}
+    for (const m of ["select", "eq", "neq", "gte", "limit"]) {
+      obj[m] = vi.fn((...args: unknown[]) => {
+        filtros.push([m, ...args])
+        return obj
+      })
+    }
+    obj.maybeSingle = vi.fn(() => Promise.resolve({ data: anterior, error: erro }))
+    obj.insert = vi.fn((linha: Record<string, unknown>) => {
+      gravadas.push(linha)
+      return Promise.resolve({ error: null })
+    })
+    return { obj, gravadas, filtros }
+  }
+
+  function banco(tabelas: Record<string, unknown>) {
+    mockCreateServiceClient.mockReturnValue({
+      rpc: vi.fn().mockResolvedValue({ data: false }),
+      from: vi.fn((tabela: string) => tabelas[tabela] ?? chain({ data: null })),
+    } as unknown as ReturnType<typeof createServiceClient>)
+  }
+
+  const regra = (repeticao: unknown) =>
+    chain({ data: [{ id: "regra-1", nome: "Boas-vindas", created_at: "2026-10-07T10:00:00Z", fluxo, repeticao }] })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("grava a execução concluída com o caminho, o evento e o nome da regra", async () => {
+    const h = historico()
+    banco({
+      automation_flows: regra({ modo: "sempre" }),
+      automation_runs: h.obj,
+      conversation_labels: { upsert: vi.fn().mockResolvedValue({ error: null }) },
+    })
+
+    await processarAutomacoes(conversaCriada)
+
+    expect(h.gravadas).toHaveLength(1)
+    expect(h.gravadas[0]).toMatchObject({
+      workspace_id: "ws-1",
+      regra_id: "regra-1",
+      regra_origem: "fluxo",
+      regra_nome: "Boas-vindas",
+      contact_id: "contact-1",
+      evento: { tipo: "conversa_criada", conversationId: "conv-1" },
+      resultado: "concluida",
+      motivo: null,
+    })
+    const caminho = h.gravadas[0].caminho as Array<Record<string, unknown>>
+    expect(caminho.map((p) => [(p.bloco as { id: string }).id, p.ok])).toEqual([
+      ["g", undefined],
+      ["etiqueta", true],
+      ["msg", true],
+    ])
+  })
+
+  it("ação que falha fica com o motivo, a seguinte roda, e a execução fica 'falhou'", async () => {
+    const h = historico()
+    banco({
+      automation_flows: regra({ modo: "sempre" }),
+      automation_runs: h.obj,
+      conversation_labels: { upsert: vi.fn().mockResolvedValue({ error: { code: "23503" } }) },
+    })
+
+    await processarAutomacoes(conversaCriada)
+
+    expect(mockEnviarTexto).toHaveBeenCalledTimes(1)
+    expect(h.gravadas[0].resultado).toBe("falhou")
+    const caminho = h.gravadas[0].caminho as Array<Record<string, unknown>>
+    expect(caminho[1]).toMatchObject({ ok: false, motivo: "A etiqueta não existe mais" })
+    expect(caminho[2]).toMatchObject({ ok: true })
+  })
+
+  it("'uma vez por contato' com execução anterior: ignora, grava o motivo e não executa nada", async () => {
+    const h = historico({ id: "execucao-anterior" })
+    const upsert = vi.fn().mockResolvedValue({ error: null })
+    banco({ automation_flows: regra({ modo: "uma_vez_por_contato" }), automation_runs: h.obj, conversation_labels: { upsert } })
+
+    await processarAutomacoes(conversaCriada)
+
+    expect(upsert).not.toHaveBeenCalled()
+    expect(mockEnviarTexto).not.toHaveBeenCalled()
+    expect(h.gravadas[0]).toMatchObject({
+      resultado: "ignorada",
+      motivo: "Já rodou para este contato (proteção: uma vez por contato)",
+      caminho: [],
+    })
+    // Procura só execuções que contaram: ignorada não gasta a vez
+    expect(h.filtros).toContainEqual(["neq", "resultado", "ignorada"])
+    expect(h.filtros).toContainEqual(["eq", "contact_id", "contact-1"])
+  })
+
+  it("'uma vez por contato' sem execução anterior: roda", async () => {
+    const h = historico(null)
+    banco({
+      automation_flows: regra({ modo: "uma_vez_por_contato" }),
+      automation_runs: h.obj,
+      conversation_labels: { upsert: vi.fn().mockResolvedValue({ error: null }) },
+    })
+
+    await processarAutomacoes(conversaCriada)
+
+    expect(mockEnviarTexto).toHaveBeenCalledTimes(1)
+    expect(h.gravadas[0].resultado).toBe("concluida")
+  })
+
+  it("'a cada N horas' procura só a janela das últimas N horas", async () => {
+    const h = historico({ id: "recente" })
+    banco({ automation_flows: regra({ modo: "a_cada_horas", horas: 6 }), automation_runs: h.obj })
+
+    const antes = Date.now()
+    await processarAutomacoes(conversaCriada)
+
+    const gte = h.filtros.find((f) => f[0] === "gte")
+    expect(gte?.[1]).toBe("created_at")
+    const desde = new Date(gte?.[2] as string).getTime()
+    expect(antes - desde).toBeGreaterThanOrEqual(6 * 3_600_000 - 1000)
+    expect(antes - desde).toBeLessThanOrEqual(6 * 3_600_000 + 1000)
+    expect(h.gravadas[0]).toMatchObject({ resultado: "ignorada", motivo: expect.stringContaining("6 horas") })
+  })
+
+  it("erro ao conferir a proteção: não roda e grava 'falhou'", async () => {
+    const h = historico(null, { message: "timeout" })
+    banco({ automation_flows: regra({ modo: "uma_vez_por_contato" }), automation_runs: h.obj })
+
+    await processarAutomacoes(conversaCriada)
+
+    expect(mockEnviarTexto).not.toHaveBeenCalled()
+    expect(h.gravadas[0]).toMatchObject({ resultado: "falhou", motivo: "Não foi possível conferir a proteção de repetição" })
+  })
+
+  it("regra antiga roda sempre e é gravada como 'antiga'", async () => {
+    const h = historico({ id: "qualquer" })
+    banco({
+      automations: chain({
+        data: [
+          {
+            id: "antiga-1",
+            nome: "Etiqueta na conversa nova",
+            created_at: "2026-10-02T10:00:00Z",
+            gatilho_tipo: "conversa_criada",
+            gatilho_config: {},
+            acao_tipo: "aplicar_etiqueta",
+            acao_config: { label_id: "label-1" },
+          },
+        ],
+      }),
+      automation_runs: h.obj,
+      conversation_labels: { upsert: vi.fn().mockResolvedValue({ error: null }) },
+    })
+
+    await processarAutomacoes(conversaCriada)
+
+    expect(h.gravadas[0]).toMatchObject({ regra_id: "antiga-1", regra_origem: "antiga", resultado: "concluida" })
+    // Sem proteção, nem consulta a execução anterior
+    expect(h.filtros.some((f) => f[0] === "neq")).toBe(false)
   })
 })

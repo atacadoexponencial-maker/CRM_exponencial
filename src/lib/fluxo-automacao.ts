@@ -97,6 +97,22 @@ export type Repeticao =
   | { modo: "a_cada_horas"; horas: number }
   | { modo: "sempre" }
 
+/** Até um ano entre execuções para o mesmo contato. */
+const HORAS_MAXIMAS = 24 * 365
+
+/**
+ * Proteção de repetição lida do banco ou recebida do editor. Fora do formato
+ * vira "sempre", que é como as regras rodavam antes da proteção existir.
+ */
+export function lerRepeticao(valor: unknown): Repeticao {
+  const r = (valor ?? {}) as { modo?: unknown; horas?: unknown }
+  if (r.modo === "uma_vez_por_contato") return { modo: "uma_vez_por_contato" }
+  if (r.modo === "a_cada_horas" && Number.isInteger(r.horas) && (r.horas as number) >= 1 && (r.horas as number) <= HORAS_MAXIMAS) {
+    return { modo: "a_cada_horas", horas: r.horas as number }
+  }
+  return { modo: "sempre" }
+}
+
 /** O caminho que um contato percorreria, sem executar nada. */
 export interface ResultadoSimulacao {
   /** Blocos percorridos, na ordem. */
@@ -194,8 +210,8 @@ export function tagValida(tag: string): boolean {
 }
 
 const ACOES_COM_TAG: readonly AcaoTipo[] = ["adicionar_tag", "remover_tag"]
-/** A proteção de repetição chega com o histórico (B11-03). Até lá, o editor não a oferece. */
-export const REPETICAO_DISPONIVEL = false
+/** A proteção de repetição chegou com o histórico (B11-03). */
+export const REPETICAO_DISPONIVEL = true
 const EM_BREVE = "Ainda não disponível: escolha outra opção"
 
 export function saidasDoBloco(bloco: Bloco): Saida[] {
@@ -351,18 +367,29 @@ export function respondeTodaMensagem(fluxo: Fluxo, repeticao: Repeticao): boolea
   )
 }
 
+/** O que uma ação devolve: deu certo, ou o motivo da falha em português, para o histórico (B11-03). */
+export type ResultadoAcao = { ok: true } | { ok: false; motivo: string }
+
 /** O caminho de uma execução: o mesmo que a simulação mostra, mais as ações que falharam. */
 export interface CaminhoPercorrido extends ResultadoSimulacao {
   /** Ações que falharam, por id. O caminho segue depois delas. */
   falhas: string[]
+  /** Motivo de cada ação que falhou, por id. */
+  motivos: Record<string, string>
+  /** O que encerrou o caminho no meio: uma condição que não conseguiu consultar o banco. */
+  erro?: { bloco: string; motivo: string }
 }
 
 /** Quem avalia e quem executa: o motor consulta e grava no banco; a simulação só consulta. */
 export interface ExecutoresDoFluxo {
+  /** Exceção encerra o caminho, com `erro` no resultado. */
   avaliarVerificacao: (verificacao: Verificacao) => Promise<boolean>
-  /** `false` ou exceção contam como falha da ação. */
-  executarAcao: (bloco: BlocoAcao) => Promise<boolean>
+  /** Exceção conta como falha da ação. */
+  executarAcao: (bloco: BlocoAcao) => Promise<ResultadoAcao>
 }
+
+const ERRO_NA_CONDICAO = "Não foi possível avaliar a condição: erro ao consultar o banco"
+const ERRO_NA_ACAO = "Erro inesperado ao executar a ação"
 
 /**
  * Percorre o fluxo a partir do gatilho. Na condição, as verificações são
@@ -372,10 +399,11 @@ export interface ExecutoresDoFluxo {
  *
  * Não confere a estrutura: quem chama usa `problemasDeEstrutura` antes. Mesmo
  * assim, o percurso para ao voltar a um bloco já percorrido, para nunca rodar
- * sem fim. Exceção ao avaliar uma verificação sobe para quem chamou.
+ * sem fim. Uma condição que dá erro encerra o caminho ali, com `erro`: o que já
+ * foi percorrido fica no resultado, para o histórico mostrar até onde chegou.
  */
 export async function percorrerFluxo(fluxo: Fluxo, executores: ExecutoresDoFluxo): Promise<CaminhoPercorrido> {
-  const caminho: CaminhoPercorrido = { blocos: [], saidas: {}, falhas: [] }
+  const caminho: CaminhoPercorrido = { blocos: [], saidas: {}, falhas: [], motivos: {} }
   const porId = new Map(fluxo.blocos.map((b) => [b.id, b]))
 
   let bloco: Bloco | undefined = gatilhoDoFluxo(fluxo)
@@ -386,17 +414,27 @@ export async function percorrerFluxo(fluxo: Fluxo, executores: ExecutoresDoFluxo
     let saida: Saida = "proximo"
     if (bloco.tipo === "condicao") {
       let valem = true
-      for (const verificacao of bloco.verificacoes) {
-        if (!(await executores.avaliarVerificacao(verificacao))) {
-          valem = false
-          break
+      try {
+        for (const verificacao of bloco.verificacoes) {
+          if (!(await executores.avaliarVerificacao(verificacao))) {
+            valem = false
+            break
+          }
         }
+      } catch {
+        caminho.erro = { bloco: id, motivo: ERRO_NA_CONDICAO }
+        break
       }
       saida = valem ? "sim" : "nao"
       caminho.saidas[id] = saida
     } else if (bloco.tipo === "acao") {
-      const deuCerto = await executores.executarAcao(bloco).catch(() => false)
-      if (!deuCerto) caminho.falhas.push(id)
+      const resultado = await executores
+        .executarAcao(bloco)
+        .catch((): ResultadoAcao => ({ ok: false, motivo: ERRO_NA_ACAO }))
+      if (!resultado.ok) {
+        caminho.falhas.push(id)
+        caminho.motivos[id] = resultado.motivo
+      }
     }
 
     const ligacao: Ligacao | undefined = fluxo.ligacoes.find((l) => l.de === id && l.saida === saida)

@@ -59,7 +59,7 @@ export async function eventoDaSimulacao(
   }
 }
 
-/** `null` quando o gatilho ainda não pode ser testado. Erro de banco sobe para quem chamou. */
+/** `null` quando o gatilho ainda não pode ser testado. Erro de banco (inclusive numa condição) sobe para quem chamou. */
 export async function simularFluxo(
   supabase: ServiceClient,
   workspaceId: string,
@@ -72,7 +72,9 @@ export async function simularFluxo(
   const contexto = { supabase, gatilho: evento }
   const caminho = await percorrerFluxo(fluxo, {
     avaliarVerificacao: (verificacao) => verificacaoVale(contexto, verificacao),
-    executarAcao: async () => true,
+    executarAcao: async () => ({ ok: true }),
   })
+  // Uma condição que não conseguiu consultar o banco: o teste não tem resultado para mostrar
+  if (caminho.erro) throw new Error(caminho.erro.motivo)
   return { blocos: caminho.blocos, saidas: caminho.saidas }
 }

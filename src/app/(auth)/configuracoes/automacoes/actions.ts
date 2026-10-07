@@ -6,7 +6,10 @@
 // produção usa até o merge do branch da B11. Salvar uma regra antiga no editor
 // cria a versão em fluxo dela (`automation_id`), e o motor do branch passa a
 // rodar só a nova.
-// Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seções 5 e 6.
+//
+// Histórico (B11-03): o motor grava cada execução em `automation_runs`; aqui a
+// lista conta as execuções e a página de histórico as lê.
+// Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seções 5, 6 e 8.
 
 import { revalidatePath } from "next/cache"
 import { createServiceClient } from "@/integrations/supabase/service"
@@ -21,7 +24,14 @@ import {
 } from "@/lib/automacoes/referencias"
 import { fluxoDaRegraAntiga } from "@/lib/automacoes/regra-antiga"
 import { simularFluxo } from "@/lib/automacoes/simulacao"
-import { pendenciasDoFluxo, type Fluxo, type ResultadoSimulacao } from "@/lib/fluxo-automacao"
+import type { PassoGravado, ResultadoExecucao } from "@/lib/automacoes/execucoes"
+import {
+  lerRepeticao,
+  pendenciasDoFluxo,
+  type Fluxo,
+  type Repeticao,
+  type ResultadoSimulacao,
+} from "@/lib/fluxo-automacao"
 import { sessaoAtual } from "@/lib/sessao"
 import type { ContatoTeste } from "./components/editor-fluxo"
 import type { RegraListada } from "./components/lista-regras"
@@ -36,7 +46,36 @@ export interface RegraDoEditor {
   automationId: string | null
   nome: string
   fluxo: Fluxo
+  repeticao: Repeticao
 }
+
+/** Uma execução como a página de histórico mostra. */
+export interface ExecucaoListada {
+  id: string
+  quando: string
+  regraId: string
+  regraNome: string
+  /** A regra não existe mais (excluída ou trocada pela versão nova). */
+  regraExcluida: boolean
+  contato: { id: string; nome: string } | null
+  evento: Record<string, string>
+  resultado: ResultadoExecucao
+  motivo: string | null
+  caminho: PassoGravado[]
+}
+
+export interface FiltrosDoHistorico {
+  regraId?: string
+  resultado?: ResultadoExecucao
+  dias: 7 | 30
+}
+
+/** Regra nova nasce protegida, como no protótipo aprovado (B11-01): uma vez por contato. */
+const REPETICAO_DA_REGRA_NOVA: Repeticao = { modo: "uma_vez_por_contato" }
+/** Regra antiga não tinha proteção: a versão nova dela continua rodando sempre. */
+const REPETICAO_DA_REGRA_ANTIGA: Repeticao = { modo: "sempre" }
+
+const DIA_EM_MS = 86_400_000
 
 async function adminDaSessao() {
   const { supabase, user, perfil } = await sessaoAtual()
@@ -65,6 +104,11 @@ export async function listarRegras(): Promise<RegraListada[]> {
   ])
 
   const substituidas = new Set((fluxos ?? []).map((f) => f.automation_id).filter(Boolean))
+  const execucoes = await execucoesPorRegra(admin)
+  const contagem = (id: string) => ({
+    execucoes7dias: execucoes.get(id)?.ultimos7dias ?? 0,
+    ultimaExecucao: execucoes.get(id)?.ultima ?? null,
+  })
   const regras: RegraListada[] = []
   const criadaEm = new Map<string, string>()
   for (const f of fluxos ?? []) {
@@ -77,8 +121,7 @@ export async function listarRegras(): Promise<RegraListada[]> {
       ativa: f.ativa,
       fluxo,
       substituiAntiga: f.automation_id !== null,
-      execucoes7dias: 0,
-      ultimaExecucao: null,
+      ...contagem(f.id),
     })
   }
   for (const a of antigas ?? []) {
@@ -90,14 +133,38 @@ export async function listarRegras(): Promise<RegraListada[]> {
       ativa: a.ativa,
       fluxo: fluxoDaRegraAntiga(a),
       versaoAntiga: true,
-      execucoes7dias: 0,
-      ultimaExecucao: null,
+      ...contagem(a.id),
     })
   }
 
   // Na ordem de criação, como o motor roda
   const quando = (r: RegraListada) => criadaEm.get(r.id) ?? ""
   return regras.sort((a, b) => (quando(a) < quando(b) ? -1 : quando(a) > quando(b) ? 1 : 0))
+}
+
+/**
+ * Execuções que contaram (concluídas e com falha) nos últimos 30 dias, por
+ * regra: quantas nos últimos 7 dias e a mais recente. As ignoradas pela proteção
+ * não contam como execução.
+ */
+async function execucoesPorRegra({ supabase, workspaceId }: Admin) {
+  const agora = Date.now()
+  const { data } = await supabase
+    .from("automation_runs")
+    .select("regra_id, created_at")
+    .eq("workspace_id", workspaceId)
+    .neq("resultado", "ignorada")
+    .gte("created_at", new Date(agora - 30 * DIA_EM_MS).toISOString())
+    .order("created_at", { ascending: false })
+    .limit(5000)
+
+  const porRegra = new Map<string, { ultimos7dias: number; ultima: string }>()
+  for (const r of data ?? []) {
+    const atual = porRegra.get(r.regra_id) ?? { ultimos7dias: 0, ultima: r.created_at }
+    if (new Date(r.created_at).getTime() >= agora - 7 * DIA_EM_MS) atual.ultimos7dias++
+    porRegra.set(r.regra_id, atual)
+  }
+  return porRegra
 }
 
 /**
@@ -115,13 +182,21 @@ export async function buscarRegraParaEditor(
   if (id !== "nova") {
     const { data } = await supabase
       .from("automation_flows")
-      .select("id, nome, fluxo, automation_id")
+      .select("id, nome, fluxo, automation_id, repeticao")
       .eq("id", id)
       .eq("workspace_id", workspaceId)
       .maybeSingle()
     const fluxo = data ? lerFluxo(data.fluxo) : null
     if (!data || !fluxo) return { redirecionar: CAMINHO_LISTA }
-    return { regra: { id: data.id, automationId: data.automation_id, nome: data.nome, fluxo } }
+    return {
+      regra: {
+        id: data.id,
+        automationId: data.automation_id,
+        nome: data.nome,
+        fluxo,
+        repeticao: lerRepeticao(data.repeticao),
+      },
+    }
   }
 
   if (!antigaId) {
@@ -134,6 +209,7 @@ export async function buscarRegraParaEditor(
           blocos: [{ id: "gatilho", tipo: "gatilho", gatilho: "card_movido", parametros: {}, posicao: { x: 0, y: 0 } }],
           ligacoes: [],
         },
+        repeticao: REPETICAO_DA_REGRA_NOVA,
       },
     }
   }
@@ -153,7 +229,15 @@ export async function buscarRegraParaEditor(
     .eq("workspace_id", workspaceId)
     .maybeSingle()
   if (!antiga) return { redirecionar: CAMINHO_LISTA }
-  return { regra: { id: null, automationId: antiga.id, nome: antiga.nome, fluxo: fluxoDaRegraAntiga(antiga) } }
+  return {
+    regra: {
+      id: null,
+      automationId: antiga.id,
+      nome: antiga.nome,
+      fluxo: fluxoDaRegraAntiga(antiga),
+      repeticao: REPETICAO_DA_REGRA_ANTIGA,
+    },
+  }
 }
 
 /** Etiquetas, atendentes, números, times e etapas citados no fluxo existem e são da empresa? */
@@ -195,6 +279,7 @@ export async function salvarRegra(dados: {
   automationId: string | null
   nome: string
   fluxo: unknown
+  repeticao: unknown
 }): Promise<{ erro?: string; id?: string }> {
   const admin = await adminDaSessao()
   if (!admin) return { erro: SEM_PERMISSAO }
@@ -213,10 +298,17 @@ export async function salvarRegra(dados: {
   const erroReferencia = await conferirReferencias(admin, fluxo)
   if (erroReferencia) return { erro: erroReferencia }
 
+  // lerRepeticao troca o que está fora do formato por "sempre": aqui isso é erro, e não um padrão
+  const repeticao = lerRepeticao(dados.repeticao)
+  if (repeticao.modo !== (dados.repeticao as { modo?: unknown } | null)?.modo) {
+    return { erro: "A proteção de repetição não é válida. Para 'a cada N horas', use de 1 a 8760 horas." }
+  }
+  const repeticaoJson = repeticao as unknown as Json
+
   if (dados.id) {
     const { data, error } = await supabase
       .from("automation_flows")
-      .update({ nome, fluxo: paraJson(fluxo) })
+      .update({ nome, fluxo: paraJson(fluxo), repeticao: repeticaoJson })
       .eq("id", dados.id)
       .eq("workspace_id", workspaceId)
       .select("id")
@@ -242,7 +334,14 @@ export async function salvarRegra(dados: {
 
   const { data, error } = await supabase
     .from("automation_flows")
-    .insert({ workspace_id: workspaceId, nome, fluxo: paraJson(fluxo), ativa, automation_id: dados.automationId })
+    .insert({
+      workspace_id: workspaceId,
+      nome,
+      fluxo: paraJson(fluxo),
+      repeticao: repeticaoJson,
+      ativa,
+      automation_id: dados.automationId,
+    })
     .select("id")
     .single()
   if (error?.code === "23505") {
@@ -275,7 +374,7 @@ export async function duplicarRegra(id: string, versaoAntiga: boolean): Promise<
   if (!admin) return { erro: SEM_PERMISSAO }
   const { supabase, workspaceId } = admin
 
-  let original: { nome: string; fluxo: Fluxo } | null = null
+  let original: { nome: string; fluxo: Fluxo; repeticao: Repeticao } | null = null
   if (versaoAntiga) {
     const { data } = await supabase
       .from("automations")
@@ -283,16 +382,16 @@ export async function duplicarRegra(id: string, versaoAntiga: boolean): Promise<
       .eq("id", id)
       .eq("workspace_id", workspaceId)
       .maybeSingle()
-    if (data) original = { nome: data.nome, fluxo: fluxoDaRegraAntiga(data) }
+    if (data) original = { nome: data.nome, fluxo: fluxoDaRegraAntiga(data), repeticao: REPETICAO_DA_REGRA_ANTIGA }
   } else {
     const { data } = await supabase
       .from("automation_flows")
-      .select("nome, fluxo")
+      .select("nome, fluxo, repeticao")
       .eq("id", id)
       .eq("workspace_id", workspaceId)
       .maybeSingle()
     const fluxo = data ? lerFluxo(data.fluxo) : null
-    if (data && fluxo) original = { nome: data.nome, fluxo }
+    if (data && fluxo) original = { nome: data.nome, fluxo, repeticao: lerRepeticao(data.repeticao) }
   }
   if (!original) return { erro: "Esta automação não existe mais." }
 
@@ -300,6 +399,7 @@ export async function duplicarRegra(id: string, versaoAntiga: boolean): Promise<
     workspace_id: workspaceId,
     nome: `${original.nome} (cópia)`.slice(0, 120),
     fluxo: paraJson(original.fluxo),
+    repeticao: original.repeticao as unknown as Json,
     ativa: false,
   })
   if (error) return { erro: "Não foi possível duplicar a automação. Tente novamente." }
@@ -388,4 +488,53 @@ export async function simularRegra(
   } catch {
     return { erro: "Não foi possível testar agora. Tente novamente." }
   }
+}
+
+/**
+ * Execuções do histórico, mais recentes primeiro, com os filtros da página. Até
+ * 300 por consulta: para ver mais antigas, o admin estreita o filtro.
+ */
+export async function listarExecucoes(filtros: FiltrosDoHistorico): Promise<ExecucaoListada[]> {
+  const admin = await adminDaSessao()
+  if (!admin) return []
+  const { supabase, workspaceId } = admin
+
+  let consulta = supabase
+    .from("automation_runs")
+    .select("id, created_at, regra_id, regra_nome, contact_id, evento, resultado, motivo, caminho, contacts(name, phone_number)")
+    .eq("workspace_id", workspaceId)
+    .gte("created_at", new Date(Date.now() - filtros.dias * DIA_EM_MS).toISOString())
+    .order("created_at", { ascending: false })
+    .limit(300)
+  if (filtros.regraId) consulta = consulta.eq("regra_id", filtros.regraId)
+  if (filtros.resultado) consulta = consulta.eq("resultado", filtros.resultado)
+
+  const [{ data }, { data: fluxos }, { data: antigas }] = await Promise.all([
+    consulta,
+    supabase.from("automation_flows").select("id, automation_id").eq("workspace_id", workspaceId),
+    supabase.from("automations").select("id").eq("workspace_id", workspaceId),
+  ])
+
+  // Regra antiga trocada pela versão nova conta como "não existe mais" na lista de regras
+  const substituidas = new Set((fluxos ?? []).map((f) => f.automation_id).filter(Boolean))
+  const existentes = new Set([
+    ...(fluxos ?? []).map((f) => f.id),
+    ...(antigas ?? []).map((a) => a.id).filter((id) => !substituidas.has(id)),
+  ])
+
+  return (data ?? []).map((e) => {
+    const contato = e.contacts as unknown as { name: string | null; phone_number: string } | null
+    return {
+      id: e.id,
+      quando: e.created_at,
+      regraId: e.regra_id,
+      regraNome: e.regra_nome,
+      regraExcluida: !existentes.has(e.regra_id),
+      contato: e.contact_id && contato ? { id: e.contact_id, nome: contato.name || contato.phone_number } : null,
+      evento: (e.evento ?? {}) as Record<string, string>,
+      resultado: e.resultado as ResultadoExecucao,
+      motivo: e.motivo,
+      caminho: (Array.isArray(e.caminho) ? e.caminho : []) as unknown as PassoGravado[],
+    }
+  })
 }

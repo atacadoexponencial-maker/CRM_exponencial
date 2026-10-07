@@ -33,8 +33,9 @@ export function ListaClient({ regras, opcoes }: { regras: RegraListada[]; opcoes
       <ListaRegras
         regras={regras}
         opcoes={opcoes}
-        historicoDisponivel={false}
+        historicoDisponivel
         onNova={() => router.push("/configuracoes/automacoes/nova")}
+        onAbrirHistorico={() => router.push("/configuracoes/automacoes/historico")}
         onEditar={(id) =>
           router.push(
             porId(id)?.versaoAntiga ? `/configuracoes/automacoes/nova?antiga=${id}` : `/configuracoes/automacoes/${id}`
@@ -42,7 +43,7 @@ export function ListaClient({ regras, opcoes }: { regras: RegraListada[]; opcoes
         }
         onAlternar={(id, ativa) => executar(alternarRegra(id, ativa))}
         onDuplicar={(id) => executar(duplicarRegra(id, porId(id)?.versaoAntiga ?? false))}
-        onVerHistorico={() => {}}
+        onVerHistorico={(id) => router.push(`/configuracoes/automacoes/historico?regra=${id}`)}
         onExcluir={(id) => executar(excluirRegra(id))}
       />
     </>

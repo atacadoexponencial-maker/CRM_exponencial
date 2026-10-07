@@ -4,6 +4,7 @@
 
 import { describe, it, expect, vi } from "vitest"
 import {
+  lerRepeticao,
   normalizarTag,
   pendenciasDoFluxo,
   percorrerFluxo,
@@ -12,6 +13,7 @@ import {
   type BlocoAcao,
   type Fluxo,
   type Ligacao,
+  type ResultadoAcao,
   type Verificacao,
 } from "@/lib/fluxo-automacao"
 import { fluxoDaRegraAntiga } from "@/lib/automacoes/regra-antiga"
@@ -49,10 +51,10 @@ function executores() {
       verificadas.push(v.id)
       return v.valor === "vale"
     }),
-    executarAcao: vi.fn(async (b: BlocoAcao) => {
+    executarAcao: vi.fn(async (b: BlocoAcao): Promise<ResultadoAcao> => {
       executadas.push(b.id)
       if (b.parametros.texto === "explode") throw new Error("envio caiu")
-      return b.parametros.texto !== "falha"
+      return b.parametros.texto === "falha" ? { ok: false, motivo: "A etiqueta não existe mais" } : { ok: true }
     }),
   }
 }
@@ -107,6 +109,8 @@ describe("percorrerFluxo", () => {
     expect(ex.executadas).toEqual(["a1", "a2", "a3"])
     expect(caminho.falhas).toEqual(["a1", "a2"])
     expect(caminho.blocos).toEqual(["g", "a1", "a2", "a3"])
+    // O motivo de cada falha vai para o histórico (B11-03); exceção vira um motivo genérico
+    expect(caminho.motivos).toEqual({ a1: "A etiqueta não existe mais", a2: "Erro inesperado ao executar a ação" })
   })
 
   it("caminhos que se juntam levam ao mesmo bloco, que roda uma vez", async () => {
@@ -152,14 +156,17 @@ describe("percorrerFluxo", () => {
     expect(ex.executadas).toEqual(["a1", "a2"])
   })
 
-  it("erro ao avaliar uma verificação sobe para quem chamou", async () => {
-    const fluxo = fluxoSimNao("vale")
-    await expect(
-      percorrerFluxo(fluxo, {
-        avaliarVerificacao: () => Promise.reject(new Error("banco caiu")),
-        executarAcao: async () => true,
-      })
-    ).rejects.toThrow("banco caiu")
+  it("erro ao avaliar uma verificação encerra o caminho ali, com o erro e o que já foi percorrido", async () => {
+    const executarAcao = vi.fn(async (): Promise<ResultadoAcao> => ({ ok: true }))
+    const caminho = await percorrerFluxo(fluxoSimNao("vale"), {
+      avaliarVerificacao: () => Promise.reject(new Error("banco caiu")),
+      executarAcao,
+    })
+
+    expect(caminho.blocos).toEqual(["g", "c"])
+    expect(caminho.erro).toEqual({ bloco: "c", motivo: "Não foi possível avaliar a condição: erro ao consultar o banco" })
+    expect(caminho.saidas).toEqual({})
+    expect(executarAcao).not.toHaveBeenCalled()
   })
 })
 
@@ -281,5 +288,21 @@ describe("fluxoDaRegraAntiga", () => {
       acao_config: ["inesperado"],
     })
     expect(fluxo.blocos.map((b) => ("parametros" in b ? b.parametros : null))).toEqual([{}, {}])
+  })
+})
+
+describe("lerRepeticao (B11-03)", () => {
+  it("aceita os três modos", () => {
+    expect(lerRepeticao({ modo: "sempre" })).toEqual({ modo: "sempre" })
+    expect(lerRepeticao({ modo: "uma_vez_por_contato" })).toEqual({ modo: "uma_vez_por_contato" })
+    expect(lerRepeticao({ modo: "a_cada_horas", horas: 24 })).toEqual({ modo: "a_cada_horas", horas: 24 })
+  })
+
+  it("fora do formato vira 'sempre', como as regras rodavam antes da proteção", () => {
+    expect(lerRepeticao(null)).toEqual({ modo: "sempre" })
+    expect(lerRepeticao({ modo: "duas_vezes" })).toEqual({ modo: "sempre" })
+    expect(lerRepeticao({ modo: "a_cada_horas", horas: 0 })).toEqual({ modo: "sempre" })
+    expect(lerRepeticao({ modo: "a_cada_horas", horas: 1.5 })).toEqual({ modo: "sempre" })
+    expect(lerRepeticao({ modo: "a_cada_horas", horas: 24 * 366 })).toEqual({ modo: "sempre" })
   })
 })

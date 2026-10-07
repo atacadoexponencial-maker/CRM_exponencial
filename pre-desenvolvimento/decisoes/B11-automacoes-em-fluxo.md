@@ -275,3 +275,68 @@ etapa. Em Ganho, só quando o card da Recompra nasce, como no manual.
 mensagem, e as regras antigas que movem cards passariam a iniciá-las sem
 ninguém ter escolhido. Também foi descartado nunca iniciar, porque aí a
 automação não conseguiria repetir o que o time faz à mão.
+
+## 8. Histórico de execuções e proteção de repetição (B11-03, 07/10/2026)
+
+### 8.1 Uma tabela, com cópias
+
+**Decidido:** cada execução é uma linha em `automation_runs`, com cópias do que
+importa para lê-la depois: o nome da regra, o evento e os blocos percorridos,
+cada um com a saída tomada ou o resultado da ação. A regra é apontada por
+`regra_id`, sem chave estrangeira.
+
+**Por quê:** o histórico precisa continuar legível quando a regra muda ou é
+excluída (spec: "ver a execução de uma regra que foi excluída, com o nome que ela
+tinha"). Também precisa apontar tanto para regras em fluxo quanto para regras
+antigas, que estão em tabelas diferentes até o merge.
+
+**Descartado:** guardar só os ids dos blocos e montar o detalhe a partir da regra
+atual. Bastaria editar a regra para o detalhe de execuções antigas mostrar blocos
+que não existiam, ou não mostrar os que existiam.
+
+### 8.2 Resultado da execução e de cada ação
+
+- **`concluida`:** o caminho terminou sem falha.
+- **`falhou`:** alguma ação falhou, ou uma condição não conseguiu consultar o
+  banco.
+- **`ignorada`:** a proteção de repetição barrou.
+
+Cada ação tem o próprio resultado e o motivo em português, como "A etiqueta não
+existe mais" ou "Nenhum número de WhatsApp conectado". Assim uma ação que falhou
+no meio e as seguintes que deram certo aparecem como tal.
+
+**Condição com erro de banco:** antes da B11-03, o erro subia e a regra parava
+sem deixar rastro. Agora o percurso para ali e devolve o que já percorreu, e a
+execução fica `falhou`, com o caminho até a condição.
+
+### 8.3 Proteção de repetição
+
+- **"Uma vez por contato":** barra se já houve uma execução concluída ou com
+  falha da regra para o contato. A ignorada não gasta a vez.
+- **"No máximo a cada N horas":** barra se houve uma nas últimas N horas, de 1 a
+  8760 (um ano).
+- **"Sempre":** não barra.
+
+Sem contato no evento, não há o que proteger, e a regra roda. Se a consulta da
+proteção falhar, a regra não roda e a execução fica `falhou`: é melhor não
+disparar do que disparar em dobro.
+
+**Padrões:** regra nova nasce em "uma vez por contato", como no protótipo
+aprovado. Regra antiga, e a versão nova criada a partir dela, ficam em "sempre",
+que é como rodavam. Uma regra de "card movido" com "uma vez por contato" só roda
+na primeira vez que o card entra na etapa. Quem quiser que rode toda vez escolhe
+"sempre".
+
+### 8.4 Envio com motivo
+
+`enviarTextoWhatsApp` devolve só certo ou errado, e as sequências usam assim.
+Nasceu ao lado dela a `enviarTextoWhatsAppComMotivo`, que devolve o motivo, e a
+primeira passou a chamar a segunda. As sequências não mudam.
+
+### 8.5 O que fica para depois
+
+- **Limpeza das execuções antigas:** a página mostra no máximo 30 dias, mas as
+  linhas mais antigas continuam no banco. Uma rotina de limpeza entra quando o
+  volume pedir.
+- **Contagem da lista:** a lista conta as execuções lendo até 5.000 linhas dos
+  últimos 30 dias. Com muito volume, vira uma consulta agregada no banco.
