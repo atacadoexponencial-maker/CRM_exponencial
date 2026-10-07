@@ -38,6 +38,10 @@ node e2e/preview/resetar-empresa-teste.cjs
 node e2e/preview/roteiro-b11-11-e-12.cjs https://crm-exponencial-xxxx.vercel.app
 node e2e/preview/resetar-empresa-teste.cjs
 node e2e/preview/roteiro-b11-03.cjs https://crm-exponencial-xxxx.vercel.app
+node e2e/preview/resetar-empresa-teste.cjs
+node e2e/preview/roteiro-b11-06.cjs https://crm-exponencial-xxxx.vercel.app
+node e2e/preview/resetar-empresa-teste.cjs
+node e2e/preview/roteiro-menus.cjs https://crm-exponencial-xxxx.vercel.app
 ```
 
 Cada roteiro imprime uma linha `OK` ou `FALHOU` por verificação e termina com
@@ -56,6 +60,7 @@ código de saída 0 só se tudo passou.
 | `roteiro-b11-11-e-12.cjs` | Ações e condições de contato e time; tags no painel do card. |
 | `roteiro-b11-03.cjs` | Proteção de repetição, ação com etiqueta apagada e a página de histórico. |
 | `roteiro-b11-06.cjs` | Gatilhos de tag, etiqueta e dado do contato, e automação que não dispara automação. |
+| `roteiro-menus.cjs` | Itens de menu do chat, de etiquetas e de times fazendo o que prometem. Protege contra a volta do `onSelect` (decisões da B11, seção 9.4). |
 
 ## A empresa de teste
 

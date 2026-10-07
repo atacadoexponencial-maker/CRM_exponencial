@@ -122,9 +122,8 @@ salva mesmo assim. O motor não propaga erro.
 
 ## Execução (07/10/2026)
 
-**Aberta.** O código está pronto e o "Pronto quando" passou. Falta comprovar
-pela tela o gatilho "etiqueta aplicada", que depende do conserto de um bug do
-chat, fora da B11 (abaixo).
+**Concluída em 07/10/2026.** O "Pronto quando" passou pela tela em 9 de 9
+pontos, depois do conserto dos menus no `master` (abaixo).
 
 **O que ficou diferente do plano:**
 
@@ -161,3 +160,13 @@ transferir, resolver e reabrir no chat; adiar e reatribuir na agenda; editar e
 excluir etiquetas, mensagens rápidas, times e usuários; um item das sequências.
 O gatilho "etiqueta aplicada" está coberto pelos testes automatizados. Pela
 tela, só depois do conserto.
+
+**Depois do conserto (07/10/2026):** o Luan aprovou consertar direto no
+`master`. Os 23 itens passaram para `onClick` (commit `fec6626`), e o `master`
+foi trazido para o branch. No preview do commit `b3759a0`:
+
+- `roteiro-b11-06.cjs` passou em **9 de 9**, incluindo a etiqueta VIP aplicada
+  pelo chat na conversa do Bruno, que disparou a regra B.
+- O `roteiro-menus.cjs` (novo) passou em 7 de 7.
+
+O caminho do conserto está nas decisões, seção 9.4.

@@ -107,6 +107,8 @@
    usam `onSelect`, mas o menu do Base UI só dispara `onClick`. Pelo código,
    "Editar" e "Excluir" da tela atual de automações não devem funcionar. Falta
    confirmar clicando.
+   > **Atualização de 07/10/2026:** confirmado na B11-06 (eram 23 itens no
+   > `master`) e consertado direto no `master`. Veja as decisões, seção 9.4.
 3. **`npm run test` mexe no banco real:** os testes de integração criam usuários
    no Supabase de produção (e os apagam no fim). Rodado inteiro, bate no limite
    de login do Auth: foram 27 falhas, nenhuma ligada à B11. `qr-code-conectado`

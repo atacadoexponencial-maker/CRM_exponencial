@@ -114,7 +114,7 @@ async function adicionarTagNoContato(page, nome, tag) {
   await moverCard(page, URL_PREVIEW, "Teste B11 Carla", "Ganho")
   r.confere("D: card para Ganho muda a classificação para Ativo e dispara", (await tags(carla)).includes("virou-cliente"))
 
-  // 4. Etiqueta pelo chat na conversa do Bruno (depende dos menus do chat, ver decisões 9.4)
+  // 4. Etiqueta pelo chat na conversa do Bruno (só funciona desde o conserto dos menus, decisões 9.4)
   const { data: convBruno } = await db.from("conversations").select("id").eq("contact_id", bruno).single()
   await page.goto(`${URL_PREVIEW}/chat?conversa=${convBruno.id}`, { waitUntil: "networkidle" })
   await page.locator("button:has(svg.lucide-ellipsis-vertical), button:has(svg.lucide-more-vertical)").first().click()
@@ -122,7 +122,7 @@ async function adicionarTagNoContato(page, nome, tag) {
   await page.getByRole("menuitem", { name: /VIP/ }).click()
   await page.waitForTimeout(4000)
   r.confere(
-    "B: etiqueta aplicada pelo chat dispara a regra (depende do conserto dos menus com onSelect)",
+    "B: etiqueta aplicada pelo chat dispara a regra",
     (await tags(bruno)).includes("etiqueta-vip")
   )
 

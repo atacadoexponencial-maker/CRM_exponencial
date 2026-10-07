@@ -393,6 +393,27 @@ na produção:
   usuários.
 - **Sequências:** um item do menu.
 
-Já tinha sido anotado na B11-01 como suspeita e agora está confirmado. A
-correção (`onSelect` → `onClick`) fica para o Luan decidir onde e quando fazer,
-porque mexe em telas fora da B11 e vai para a produção.
+Já tinha sido anotado na B11-01 como suspeita e agora está confirmado.
+
+**Conserto (07/10/2026):** o Luan decidiu consertar direto no `master`, fora do
+merge único da B11, porque o bug estava na produção. Foi feito assim:
+
+- Branch `fix/menus-onselect`, criado a partir do `master`, com a troca de
+  `onSelect` por `onClick` nos 23 itens de 9 arquivos (commit `fec6626`).
+- Conferido no preview desse branch com `e2e/preview/roteiro-menus.cjs`:
+  - No chat, aplicar e remover etiqueta, resolver e reabrir, conferidos no banco.
+  - "Editar" das etiquetas e o menu de times abrem os diálogos.
+  - Nenhum erro no console.
+- Entrou no `master` por avanço direto, sem commit de merge, porque o `master`
+  não tinha andado. O branch foi apagado.
+- O `master` foi trazido para o `b11-automacoes-v2`. O único conflito foi a tela
+  antiga de automações, que o `master` alterou e a B11 apagou. Ficou apagada.
+
+**Descartado:** consertar só no branch da B11. O bug ficaria na produção até o
+merge único, que depende da aprovação da B11-01.
+
+**Achado no caminho:** o roteiro travava no "Resolver" porque o reset da empresa
+de teste não devolvia o status das conversas. Uma rodada anterior tinha
+resolvido e reaberto a da Ana. Sem atendente, "Reabrir" deixa a conversa em
+espera, e nesse status o menu só oferece "Atribuir". O reset passou a voltar as
+conversas para "em atendimento".
