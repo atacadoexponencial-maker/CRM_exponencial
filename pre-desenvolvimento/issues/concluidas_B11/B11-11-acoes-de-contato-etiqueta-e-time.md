@@ -126,7 +126,7 @@ Nenhuma mudança. As ações usam `contact_tags`, `conversation_labels`,
 
 ## Execução (07/10/2026)
 
-**Aberta até o teste no preview**, como a B11-10.
+**Fechada depois do teste no preview** (ver o fim do arquivo).
 
 **O que ficou diferente do plano:**
 
@@ -214,3 +214,22 @@ consultadas mais de uma vez).
 `*.integration.test.ts`, deu 41 arquivos e 465 testes passando. `tsc` sem erro,
 lint limpo nos arquivos da issue e `npm run build` com código de saída 0. As
 ações rodando de verdade ficam para o teste no preview.
+
+## Teste no preview (07/10/2026): passou
+
+No preview `crm-exponencial-gsp333zcs (commit b8a28a6)`, com a empresa "[TESTE] Automações B11", pela tela:
+
+- **"card movido para Catálogo Enviado → adicionar tag `interessado`, tipo
+  Lojista, observações 'entrou em catálogo', atribuir ao time Entrada":** a Ana
+  ficou com a tag, o tipo e a linha nas observações. A conversa e o card dela
+  foram para o admin, único membro do time.
+- **"card movido para Nutrição → tem a tag `interessado`? sim: mover para Ganho
+  / não: mover para Perdido":** a Ana (com a tag) foi para Ganho e ganhou o card
+  na Recompra, em Onboarding. O Bruno (sem a tag) foi para Perdido.
+- **"card movido para Negociação → remover a tag `interessado`, remover a
+  etiqueta Interessado":** as duas saíram da Ana.
+- Nenhum erro no console.
+
+**Não testado no preview:** a opção "iniciar a sequência da etapa". A empresa
+de teste não tem sequência cadastrada, e as sequências mandam mensagem. A opção
+está coberta pelos testes automatizados (5 casos).

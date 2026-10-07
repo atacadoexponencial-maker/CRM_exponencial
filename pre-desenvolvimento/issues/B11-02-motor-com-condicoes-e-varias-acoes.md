@@ -265,3 +265,18 @@ gravando no banco, a próxima issue. Depois desse teste, a issue vai para
   não sobrou usuário, empresa nem arquivo criado nas últimas 3 horas.
 - Fica o aviso para quem for mexer nos testes: quando os testes da B19-01
   falham, eles podem deixar empresa de teste no banco de produção.
+
+## Teste no preview (07/10/2026): passou em parte
+
+No preview `crm-exponencial-gsp333zcs` (commit b8a28a6), com a empresa "[TESTE]
+Automações B11", nos roteiros da B11-10 e da B11-11:
+
+- **Regras antigas seguem disparando:** a regra antiga "card movido para Follow
+  do Catálogo → atribuir atendente" rodou pelo motor novo.
+- **Fluxos com condição:** os caminhos "sim" e "não" foram seguidos conforme o
+  contato (etiqueta da conversa e tag do contato). As ações rodaram em fila, e
+  ação sem efeito não interrompeu o caminho.
+
+**Falta:** a parte do "Pronto quando" com o canal e o envio de mensagem. A
+empresa de teste não tem número conectado. Depende de conectar um chip de teste
+nela, o que também é preciso para a B11-04. A issue fica aberta até lá.

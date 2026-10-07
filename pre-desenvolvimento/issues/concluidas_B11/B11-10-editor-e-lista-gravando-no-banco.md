@@ -209,7 +209,7 @@ A tabela `automations` não muda. Depois de aplicar, regenerar
 
 ## Execução (07/10/2026)
 
-**Aberta até o teste no preview.** O "Pronto quando" pede o admin montando e
+**Fechada depois do teste no preview (ver o fim do arquivo).** Antes: O "Pronto quando" pede o admin montando e
 rodando uma regra no preview. Isso depende do Luan logado como admin e de um
 contato de teste, então a issue vai para `concluidas_B11/` depois desse teste.
 
@@ -246,3 +246,27 @@ contato de teste, então a issue vai para `concluidas_B11/` depois desse teste.
   ações "em breve" e o diálogo de teste abriu a busca. Não houve erro no
   console. Salvar, simular e buscar contatos de verdade dependem de sessão de
   admin e ficam para o teste no preview.
+
+## Teste no preview (07/10/2026): passou
+
+No preview `crm-exponencial-gsp333zcs (commit b8a28a6)`, com a empresa "[TESTE] Automações B11" e o navegador
+automático (Playwright) logado como admin dela, tudo pela tela:
+
+- A regra antiga apareceu na lista como "Versão antiga · continua rodando".
+- A regra "card movido para Sondagem → conversa tem a etiqueta Interessado? sim:
+  atribuir ao admin / não: aplicar Interessado" foi montada pelo editor e salva.
+  O endereço passou de `nova` para o id, e o aviso "Automação salva" ficou na
+  tela.
+- "Testar com um contato" com a Ana mostrou 1 ação, pelo "não".
+- Saindo e voltando, os 4 blocos estavam iguais.
+- Movendo os cards pelo funil: a Ana (sem a etiqueta) ganhou a etiqueta e não
+  foi atribuída; o Bruno (com a etiqueta) foi atribuído ao admin, na conversa e
+  no card.
+- A regra antiga rodou no branch. Convertida no editor, saiu da lista, e a
+  versão nova guardou o `automation_id`. Com a versão nova pausada pela lista, a
+  antiga deixou de rodar.
+- Nenhum erro no console.
+
+**Bug achado no teste e corrigido (b8a28a6):** depois do primeiro salvamento,
+o Next carregava a página de novo, e o aviso sumia. Agora o editor remonta já
+com o aviso (`?salva=1`).

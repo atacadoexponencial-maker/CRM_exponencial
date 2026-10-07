@@ -45,3 +45,9 @@ verdade dependem de sessão e ficam para o teste no preview.
 
 - [x] Seção de tags no painel do card
 - [x] Adicionar e remover usando as actions do perfil do contato
+
+## Teste no preview (07/10/2026): passou
+
+No preview `crm-exponencial-gsp333zcs (commit b8a28a6)`, com a empresa "[TESTE] Automações B11": a tag `vip`
+adicionada pelo painel do card da Carla foi gravada e apareceu no perfil do
+contato. Removida pelo painel, saiu do banco. Nenhum erro no console.
