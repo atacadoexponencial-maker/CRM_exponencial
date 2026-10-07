@@ -274,7 +274,7 @@ Automações B11", nos roteiros da B11-10 e da B11-11:
 - **Regras antigas seguem disparando:** a regra antiga "card movido para Follow
   do Catálogo → atribuir atendente" rodou pelo motor novo.
 - **Fluxos com condição:** os caminhos "sim" e "não" foram seguidos conforme o
-  contato (etiqueta da conversa e tag do contato). As ações rodaram em fila, e
+  contato (etiqueta da conversa e tag do contato). As ações rodaram uma depois da outra, e
   ação sem efeito não interrompeu o caminho.
 
 **Falta:** a parte do "Pronto quando" com o canal e o envio de mensagem. A
