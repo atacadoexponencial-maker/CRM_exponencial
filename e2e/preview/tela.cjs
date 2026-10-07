@@ -42,13 +42,40 @@ async function salvarRegra(page) {
   return new URL(page.url()).pathname.split("/").pop()
 }
 
-/** Move o card pelo painel do card no funil, como o time faz, e dá tempo para as automações rodarem. */
+/** Id das etapas pelo rótulo do botão, para reconhecer a action de mover o card. */
+const ETAPA_PELO_ROTULO = {
+  Lead: "lead",
+  Sondagem: "sondagem",
+  "Catálogo Enviado": "catalogo_enviado",
+  "Follow do Catálogo": "follow_catalogo",
+  Negociação: "negociacao",
+  Nutrição: "nutricao",
+  Ganho: "ganho",
+  Perdido: "perdido",
+}
+
+/**
+ * Move o card pelo painel do card no funil, como o time faz, e espera a resposta
+ * da action de mover: só ela leva a etapa de destino no corpo (a página e o painel
+ * chamam outras actions no mesmo endereço). Ela só responde depois de as
+ * automações rodarem e serem gravadas no histórico.
+ */
 async function moverCard(page, url, nomeContato, etapa) {
+  const etapaId = ETAPA_PELO_ROTULO[etapa]
+  if (!etapaId) throw new Error(`etapa sem id conhecido: ${etapa}`)
   await page.goto(`${url}/pipeline`, { waitUntil: "networkidle" })
   await page.getByText(nomeContato, { exact: true }).first().click()
   await page.getByRole("button", { name: "Mover para etapa..." }).click()
-  await page.getByRole("button", { name: etapa, exact: true }).last().click()
-  await page.waitForTimeout(4000)
+  await Promise.all([
+    page.waitForResponse(
+      (r) =>
+        r.request().method() === "POST" &&
+        new URL(r.url()).pathname === "/pipeline" &&
+        (r.request().postData() ?? "").includes(`"${etapaId}"`),
+      { timeout: 60000 }
+    ),
+    page.getByRole("button", { name: etapa, exact: true }).last().click(),
+  ])
 }
 
 module.exports = { escolher, adicionarBloco, novaRegra, salvarRegra, moverCard }

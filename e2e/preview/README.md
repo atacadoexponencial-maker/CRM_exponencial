@@ -36,6 +36,8 @@ node e2e/preview/resetar-empresa-teste.cjs
 node e2e/preview/roteiro-b11-10.cjs https://crm-exponencial-xxxx.vercel.app
 node e2e/preview/resetar-empresa-teste.cjs
 node e2e/preview/roteiro-b11-11-e-12.cjs https://crm-exponencial-xxxx.vercel.app
+node e2e/preview/resetar-empresa-teste.cjs
+node e2e/preview/roteiro-b11-03.cjs https://crm-exponencial-xxxx.vercel.app
 ```
 
 Cada roteiro imprime uma linha `OK` ou `FALHOU` por verificação e termina com
@@ -52,6 +54,7 @@ código de saída 0 só se tudo passou.
 | `resetar-empresa-teste.cjs` | Devolve a empresa de teste ao estado inicial. |
 | `roteiro-b11-10.cjs` | Editor e lista gravando; regra antiga convertida. |
 | `roteiro-b11-11-e-12.cjs` | Ações e condições de contato e time; tags no painel do card. |
+| `roteiro-b11-03.cjs` | Proteção de repetição, ação com etiqueta apagada e a página de histórico. |
 
 ## A empresa de teste
 
@@ -78,5 +81,10 @@ nela.
   condição com o "sim" já ligado, o "+" do "não" é o de índice 0.
 - **Primeiro salvamento:** o editor remonta no endereço com o id (`?salva=1`).
   Espere o endereço mudar antes do próximo clique.
+- **Mover card e conferir o banco:** a página do funil e o painel do card chamam
+  outras actions do servidor no mesmo endereço (`POST /pipeline`). Para saber
+  que as automações terminaram, espere a resposta que leva a etapa de destino no
+  corpo (`moverCard` em `tela.cjs`). Uma espera fixa, ou "a próxima resposta",
+  falhava de vez em quando.
 - **Arrastar no canvas:** arrastar a menos de ~15px da borda liga a rolagem
   automática do React Flow.

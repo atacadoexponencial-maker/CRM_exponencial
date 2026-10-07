@@ -164,13 +164,52 @@ Migration **só de acréscimo**: `supabase/migrations/20261007000002_automation_
 
 ### Checklist
 
-- [ ] Migration aplicada e `types.ts` regenerado
-- [ ] `ResultadoAcao` e motivos em todas as ações; envio com motivo
-- [ ] Proteção de repetição no motor, com execução `ignorada`
-- [ ] Registro da execução com o caminho
-- [ ] Editor salva e abre a proteção; regra nova nasce "uma vez por contato"
-- [ ] Página de histórico com filtros e detalhe
-- [ ] Lista com execuções em 7 dias, última execução e "Ver histórico"
-- [ ] Testes automatizados e suíte unitária passando; build com código 0
-- [ ] Roteiro no preview passando
-- [ ] Registro de decisões (seção 8)
+- [x] Migration aplicada e `types.ts` regenerado
+- [x] `ResultadoAcao` e motivos em todas as ações; envio com motivo
+- [x] Proteção de repetição no motor, com execução `ignorada`
+- [x] Registro da execução com o caminho
+- [x] Editor salva e abre a proteção; regra nova nasce "uma vez por contato"
+- [x] Página de histórico com filtros e detalhe
+- [x] Lista com execuções em 7 dias, última execução e "Ver histórico"
+- [x] Testes automatizados e suíte unitária passando; build com código 0
+- [x] Roteiro no preview passando
+- [x] Registro de decisões (seção 8)
+
+## Execução (07/10/2026)
+
+**O que ficou diferente do plano:**
+
+- **Condição com erro de banco não lança mais exceção.** `percorrerFluxo` para
+  ali e devolve o que percorreu, com `erro`. Antes, o erro subia e a execução
+  sumia sem rastro. A simulação ("Testar com um contato") transforma `erro` de
+  volta em exceção, para mostrar "Não foi possível testar agora".
+- **`automacoes-execucoes.test.ts` a mais**, com as partes puras do histórico
+  (passos, resultado e evento gravado).
+- **Os roteiros de teste moram em `e2e/preview/`**, e não em `scripts/`, que é
+  ignorado pelo git de propósito.
+
+**Como foi verificado:**
+
+- Suíte unitária sem os `*.integration.test.ts`: 43 arquivos, 500 testes
+  passando. `tsc` e lint limpos, build com código de saída 0.
+- **No preview** (commit 45832b3), com a empresa "[TESTE] Automações B11":
+  `e2e/preview/roteiro-b11-03.cjs` passou nos 12 pontos.
+  - A regra nova nasceu com "uma vez por contato".
+  - Disparada duas vezes para a Ana, ficou concluída e depois ignorada, com o
+    motivo.
+  - A regra com a etiqueta apagada ficou "falhou": a ação da etiqueta com "A
+    etiqueta não existe mais" e a atribuição seguinte feita.
+  - A página de histórico listou as 3 execuções e abriu o detalhe com o motivo.
+    O filtro "Ignorada" deixou 1, a lista contou 1 execução em 7 dias e "Ver
+    histórico" abriu filtrado.
+- **Regressão:** os roteiros da B11-10 (14 pontos) e da B11-11/12 (13 pontos)
+  passaram de novo no mesmo preview, duas rodadas seguidas cada.
+
+**Problema no roteiro, corrigido no caminho:** depois de mover um card, o
+roteiro esperava 4 segundos fixos para conferir o banco, e às vezes conferia
+antes de as automações terminarem. A primeira tentativa de correção, esperar "a
+próxima resposta do servidor", pegou a resposta de outra action da página e
+piorou. Ficou esperando a resposta da action de mover, reconhecida pela etapa
+no corpo da requisição. O motor estava certo o tempo todo, e o banco confirmou.
+
+**Fechada:** os "Pronto quando" passaram no preview. Vai para `concluidas_B11/`.
