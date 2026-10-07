@@ -161,7 +161,7 @@ service client.
 
 **Aberta só pela parte de mensagem**, como a B11-02. O gatilho "mensagem
 recebida" e o envio pelo chip ainda não chegam ao preview (B11-04). Todo o
-resto passou pela tela. Falta também a decisão sobre o card (abaixo).
+resto passou pela tela.
 
 **O que ficou diferente do plano:**
 
@@ -201,8 +201,12 @@ resto passou pela tela. Falta também a decisão sobre o card (abaixo).
     começa com o admin como responsável.
   - Nenhum erro no console.
 
-**Ponto em aberto (decisões, seção 10.5):** o "Pronto quando" diz que "o card
-do contato fica com um atendente do time". Hoje "atribuir" passa o card só no
-gatilho "card movido", como na primeira versão e no chat. Com "mensagem
-recebida", o card não mudaria. Falta o Luan decidir entre corrigir a frase ou
-fazer "atribuir" passar também o card, e, nesse caso, qual card.
+**Card principal (decisões, seção 10.5):** o "Pronto quando" pede o card do
+contato com um atendente do time, e "atribuir" só passava o card no gatilho
+"card movido". O Luan decidiu que "atribuir" passa também o card, e que o
+principal é o da Recompra: quem foi ganho na Entrada vira cliente recorrente lá.
+Fora do "card movido", a conversa e o card principal (o da Recompra, ou o da
+Entrada se não houver) vão para o atendente. No preview (commit `99ebe33`), o
+Bruno, com card nos dois funis, teve o da Recompra atribuído ao admin, e o da
+Entrada ficou como estava. O roteiro passou em **9 de 9**, e a suíte, com 553
+testes.

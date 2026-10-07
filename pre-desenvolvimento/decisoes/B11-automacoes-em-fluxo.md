@@ -228,7 +228,8 @@ escolhendo entre as existentes.
 Entre os membros ativos do time, ganha o que tem menos conversas abertas
 (`em_espera` e `em_atendimento`). No empate, o primeiro pelo nome, para o
 resultado ser previsível. O escolhido recebe a conversa e o card, como em
-"atribuir atendente".
+"atribuir atendente". Desde a B11-08, fora do gatilho "card movido", o card é o
+principal do contato, o da Recompra se houver (seção 10.5).
 
 **Descartado:** sortear no empate. Um sorteio deixaria o teste no preview sem
 resultado previsível e não traz equilíbrio a mais que a contagem de conversas.
@@ -476,15 +477,34 @@ atendimento ou outra tela passar a usar o horário, ele muda de lugar.
   com atendente, a conversa volta "em atendimento"; sem, "em espera". Contato
   sem conversa nenhuma é falha.
 
-### 10.5 Ponto em aberto: o card no "Pronto quando"
+### 10.5 "Atribuir" passa também o card principal
 
-O "Pronto quando" da B11-08 diz que, na regra de mensagem recebida fora do
-horário, "o card do contato fica com um atendente do time". Hoje "atribuir"
-(atendente ou time) passa a conversa e, só no gatilho "card movido", o card
-daquele evento. É o mesmo comportamento da primeira versão e do chat, onde
-atribuir a conversa não mexe no card. Com "mensagem recebida", o card não
-mudaria. A decisão é do Luan e só pesa quando a B11-04 chegar:
+**O problema:** o "Pronto quando" da B11-08 diz que, na regra de mensagem
+recebida fora do horário, "o card do contato fica com um atendente do time".
+Até aqui, "atribuir" (atendente ou time) passava a conversa e só passava o card
+no gatilho "card movido", como na primeira versão e no chat. Com "mensagem
+recebida", o card não mudaria.
 
-- manter assim e corrigir a frase do "Pronto quando"; ou
-- fazer "atribuir" passar também o card do contato. Nesse caso, falta decidir
-  qual card, porque o contato pode ter um na Entrada e outro na Recompra.
+**Decisão do Luan (07/10/2026):** "atribuir" passa também o card, e o principal
+é o da Recompra. Nas palavras dele: no Funil de Entrada ficam só os clientes
+novos; quem é ganho lá fez o primeiro pedido e vira cliente recorrente na
+Recompra. Quem tem card nos dois funis é atendido pelo da Recompra.
+
+Ficou assim:
+
+- **Gatilho "card movido":** passa o card que se moveu, porque é dele que a
+  regra trata. Não mudou.
+- **Os outros gatilhos:** passam a conversa aberta e o card principal do
+  contato, que é o da Recompra, se houver, ou o da Entrada.
+- **Sem conversa aberta e sem card:** a ação falha com "O contato não tem
+  conversa aberta nem card". Antes, ela contava como feita sem mudar nada.
+
+**Consequência no merge:** as regras antigas viram fluxo. Uma regra antiga
+"conversa criada → atribuir atendente" passa a mudar também o card principal
+do contato, o que antes não fazia. É o que o Luan descreveu como certo.
+
+**Descartado:**
+
+- Manter só a conversa e corrigir a frase do "Pronto quando". O card ficaria com
+  um atendente diferente do da conversa.
+- Passar os dois cards. O da Entrada de um cliente ganho não é mais trabalhado.
