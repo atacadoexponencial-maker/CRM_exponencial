@@ -6,10 +6,19 @@ vi.mock("@/integrations/supabase/service", () => ({
   createServiceClient: vi.fn(),
 }))
 
+// Só o envio é falso; buscarConversaAberta continua a de verdade, sobre o banco mockado.
+vi.mock("@/lib/whatsapp-envio", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/whatsapp-envio")>()),
+  enviarTextoWhatsApp: vi.fn().mockResolvedValue(true),
+}))
+
 import { createServiceClient } from "@/integrations/supabase/service"
 import { processarAutomacoes } from "@/lib/automacoes"
+import type { Fluxo } from "@/lib/fluxo-automacao"
+import { enviarTextoWhatsApp } from "@/lib/whatsapp-envio"
 
 const mockCreateServiceClient = vi.mocked(createServiceClient)
+const mockEnviarTexto = vi.mocked(enviarTextoWhatsApp)
 
 type Resultado = { data?: unknown; error?: unknown }
 
@@ -185,5 +194,186 @@ describe("processarAutomacoes", () => {
         conversationId: "conv-1",
       })
     ).resolves.toBeUndefined()
+  })
+})
+
+describe("processarAutomacoes com fluxo de blocos (B11-02)", () => {
+  const posicao = { x: 0, y: 0 }
+  const conversaCriada = {
+    tipo: "conversa_criada" as const,
+    workspaceId: "ws-1",
+    contactId: "contact-1",
+    conversationId: "conv-1",
+  }
+
+  // Gatilho → canal é "direto"? sim: etiqueta e depois mensagem / não: outra mensagem
+  const fluxoPorCanal: Fluxo = {
+    blocos: [
+      { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao },
+      { id: "c", tipo: "condicao", verificacoes: [{ id: "v", tipo: "canal", operador: "e", valor: "direto" }], posicao },
+      { id: "etiqueta", tipo: "acao", acao: "aplicar_etiqueta", parametros: { label_id: "label-direto" }, posicao },
+      { id: "msg-sim", tipo: "acao", acao: "enviar_mensagem", parametros: { texto: "Oi pelo canal direto" }, posicao },
+      { id: "msg-nao", tipo: "acao", acao: "enviar_mensagem", parametros: { texto: "Oi pela API Oficial" }, posicao },
+    ],
+    ligacoes: [
+      { de: "g", saida: "proximo", para: "c" },
+      { de: "c", saida: "sim", para: "etiqueta" },
+      { de: "etiqueta", saida: "proximo", para: "msg-sim" },
+      { de: "c", saida: "nao", para: "msg-nao" },
+    ],
+  }
+
+  /** Banco falso: cada tabela devolve o que o teste mandou; as outras, nada. */
+  function banco(tabelas: Record<string, unknown>) {
+    mockCreateServiceClient.mockReturnValue({
+      rpc: vi.fn().mockResolvedValue({ data: false }),
+      from: vi.fn((tabela: string) => tabelas[tabela] ?? chain({ data: null })),
+    } as unknown as ReturnType<typeof createServiceClient>)
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("condição de canal: no canal direto aplica a etiqueta e manda a mensagem do sim", async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null })
+    banco({
+      automation_flows: chain({ data: [{ id: "fluxo-1", created_at: "2026-10-07T10:00:00Z", fluxo: fluxoPorCanal }] }),
+      conversations: chain({ data: { whatsapp_connection_id: "conn-1", conexao: { canal: "gateway" } } }),
+      conversation_labels: { upsert },
+    })
+
+    await processarAutomacoes(conversaCriada)
+
+    expect(upsert).toHaveBeenCalledWith(
+      { conversation_id: "conv-1", label_id: "label-direto" },
+      { onConflict: "conversation_id,label_id" }
+    )
+    expect(mockEnviarTexto).toHaveBeenCalledTimes(1)
+    expect(mockEnviarTexto).toHaveBeenCalledWith(expect.anything(), "ws-1", "contact-1", "Oi pelo canal direto")
+  })
+
+  it("condição de canal: na API Oficial segue pelo não e manda só a outra mensagem", async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null })
+    banco({
+      automation_flows: chain({ data: [{ id: "fluxo-1", created_at: "2026-10-07T10:00:00Z", fluxo: fluxoPorCanal }] }),
+      conversations: chain({ data: { whatsapp_connection_id: "conn-1", conexao: { canal: "meta" } } }),
+      conversation_labels: { upsert },
+    })
+
+    await processarAutomacoes(conversaCriada)
+
+    expect(upsert).not.toHaveBeenCalled()
+    expect(mockEnviarTexto).toHaveBeenCalledTimes(1)
+    expect(mockEnviarTexto).toHaveBeenCalledWith(expect.anything(), "ws-1", "contact-1", "Oi pela API Oficial")
+  })
+
+  it("conversa sem número gravado: o canal não vale e o caminho vai pelo não", async () => {
+    banco({
+      automation_flows: chain({ data: [{ id: "fluxo-1", created_at: "2026-10-07T10:00:00Z", fluxo: fluxoPorCanal }] }),
+      conversations: chain({ data: { whatsapp_connection_id: null, conexao: null } }),
+    })
+
+    await processarAutomacoes(conversaCriada)
+
+    expect(mockEnviarTexto).toHaveBeenCalledWith(expect.anything(), "ws-1", "contact-1", "Oi pela API Oficial")
+  })
+
+  it("regras antigas e fluxos rodam juntos, na ordem de criação", async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null })
+    const fluxoEtiqueta: Fluxo = {
+      blocos: [
+        { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao },
+        { id: "a", tipo: "acao", acao: "aplicar_etiqueta", parametros: { label_id: "label-do-fluxo" }, posicao },
+      ],
+      ligacoes: [{ de: "g", saida: "proximo", para: "a" }],
+    }
+    banco({
+      automations: chain({
+        data: [
+          {
+            id: "antiga-1",
+            created_at: "2026-10-02T10:00:00Z",
+            gatilho_tipo: "conversa_criada",
+            gatilho_config: {},
+            acao_tipo: "aplicar_etiqueta",
+            acao_config: { label_id: "label-da-antiga" },
+          },
+        ],
+      }),
+      automation_flows: chain({ data: [{ id: "fluxo-1", created_at: "2026-10-01T10:00:00Z", fluxo: fluxoEtiqueta }] }),
+      conversation_labels: { upsert },
+    })
+
+    await processarAutomacoes(conversaCriada)
+
+    expect(upsert.mock.calls.map(([vinculo]) => vinculo.label_id)).toEqual(["label-do-fluxo", "label-da-antiga"])
+  })
+
+  it("fluxo com laço não roda, e as outras regras do evento rodam", async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null })
+    const fluxoComLaco: Fluxo = {
+      blocos: [
+        { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao },
+        { id: "a1", tipo: "acao", acao: "enviar_mensagem", parametros: { texto: "laço" }, posicao },
+        { id: "a2", tipo: "acao", acao: "enviar_mensagem", parametros: { texto: "laço" }, posicao },
+      ],
+      ligacoes: [
+        { de: "g", saida: "proximo", para: "a1" },
+        { de: "a1", saida: "proximo", para: "a2" },
+        { de: "a2", saida: "proximo", para: "a1" },
+      ],
+    }
+    banco({
+      automations: chain({
+        data: [
+          {
+            id: "antiga-1",
+            created_at: "2026-10-02T10:00:00Z",
+            gatilho_tipo: "conversa_criada",
+            gatilho_config: {},
+            acao_tipo: "aplicar_etiqueta",
+            acao_config: { label_id: "label-da-antiga" },
+          },
+        ],
+      }),
+      automation_flows: chain({ data: [{ id: "fluxo-1", created_at: "2026-10-01T10:00:00Z", fluxo: fluxoComLaco }] }),
+      conversation_labels: { upsert },
+    })
+
+    await processarAutomacoes(conversaCriada)
+
+    expect(mockEnviarTexto).not.toHaveBeenCalled()
+    expect(upsert).toHaveBeenCalledTimes(1)
+  })
+
+  it("erro de banco numa condição encerra só aquela regra", async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null })
+    banco({
+      automations: chain({
+        data: [
+          {
+            id: "antiga-1",
+            created_at: "2026-10-08T10:00:00Z",
+            gatilho_tipo: "conversa_criada",
+            gatilho_config: {},
+            acao_tipo: "aplicar_etiqueta",
+            acao_config: { label_id: "label-da-antiga" },
+          },
+        ],
+      }),
+      automation_flows: chain({ data: [{ id: "fluxo-1", created_at: "2026-10-07T10:00:00Z", fluxo: fluxoPorCanal }] }),
+      conversations: chain({ data: null, error: { message: "timeout" } }),
+      conversation_labels: { upsert },
+    })
+
+    await processarAutomacoes(conversaCriada)
+
+    // O fluxo parou na condição: nenhuma das duas mensagens saiu
+    expect(mockEnviarTexto).not.toHaveBeenCalled()
+    expect(upsert).toHaveBeenCalledWith(
+      { conversation_id: "conv-1", label_id: "label-da-antiga" },
+      { onConflict: "conversation_id,label_id" }
+    )
   })
 })

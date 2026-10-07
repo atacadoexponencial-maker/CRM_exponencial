@@ -82,3 +82,63 @@ desenvolvimento. O preview grava no banco real. Por isso:
   para o preview por um tempo.
 - O branch vai viver bastante tempo, então o `master` deve ser trazido para dentro
   dele de tempos em tempos.
+
+## 5. Onde o fluxo fica guardado e como as regras antigas entram (07/10/2026)
+
+Os três pontos que ficaram em aberto na sessão de 30/09 foram fechados no plano da
+B11-02.
+
+### 5.1 Tabela nova, `automation_flows`, com o fluxo em `jsonb`
+
+**Decidido:** as regras em fluxo ficam numa tabela nova. O fluxo inteiro (blocos e
+ligações) fica numa coluna `jsonb`. O tipo do gatilho é uma coluna **gerada** a
+partir do fluxo, para o motor filtrar por gatilho sem ler todas as regras.
+
+**Descartado 1: colunas novas em `automations`.** Uma regra nova ali precisaria de
+`gatilho_tipo` e `acao_tipo` preenchidos, que são obrigatórios e só aceitam os
+valores antigos. Com valores antigos, o motor publicado executaria a regra nova
+como se fosse antiga. Para evitar isso, seria preciso afrouxar as restrições, e
+aí a tela publicada listaria regras que ela não sabe mostrar. A tabela nova é
+invisível para o `master`.
+
+**Descartado 2: tabelas separadas de blocos e de ligações.** O fluxo é sempre lido
+e gravado inteiro: o editor salva o desenho todo, e o motor carrega o desenho
+todo. Em tabelas separadas, cada salvamento viraria várias escritas que precisam
+dar certo juntas. A validação já está nas funções puras de
+`src/lib/fluxo-automacao.ts`, e não precisa do banco. O histórico (B11-03) aponta
+para a regra e para o `id` do bloco, que é estável dentro do fluxo.
+
+### 5.2 Regras antigas viram fluxo na hora, e não por cópia
+
+**Decidido:** o motor lê as regras de `automations` como sempre e monta, em
+memória, o fluxo de dois blocos de cada uma (gatilho → ação). Nada é copiado
+para `automation_flows` antes do merge.
+
+**Descartado: copiar as regras antigas na migration**, como a primeira versão da
+issue previa. Até o merge, a produção continua editando `automations` pela tela
+antiga, e o próprio `master` já mudou essas regras por migration (os funis
+renomeados na B12 e as etapas novas na B14 e na B15). Uma cópia feita agora
+ficaria desatualizada sem ninguém perceber. Lendo na hora, a regra antiga roda
+sempre do jeito que está gravada.
+
+**Consequência para o merge:** a cópia para `automation_flows` acontece uma vez
+só, na limpeza depois do merge, mantendo o mesmo `id` de cada regra. Assim o
+histórico da B11-03 continua apontando para a regra certa.
+
+### 5.3 Teste no preview
+
+As ações rodam de verdade, então o teste usa um contato de teste. No preview, só
+chegam os gatilhos que nascem no CRM: o card movido chega, e a conversa criada
+não, porque ela nasce de mensagem recebida, que vai para a produção. Uma regra
+nova (em `automation_flows`) só roda no preview, porque o `master` não conhece a
+tabela. Um card movido na produção continua disparando só as regras antigas.
+
+### 5.4 O editor passa a gravar logo depois do motor
+
+**Decidido em 07/10/2026:** o Luan quer montar e testar automações no preview logo
+depois do motor. Por isso, a parte da B11-05 que liga o editor e a lista ao banco
+vem logo depois da B11-02, numa issue própria. A B11-05 fica com o gatilho
+"mensagem enviada pelo time".
+
+**Descartado:** testar o motor só com fluxos gravados por script, esperando a
+B11-05 para o editor gravar.

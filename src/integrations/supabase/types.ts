@@ -88,6 +88,44 @@ export type Database = {
           },
         ]
       }
+      automation_flows: {
+        Row: {
+          ativa: boolean
+          created_at: string
+          fluxo: Json
+          gatilho_tipo: string
+          id: string
+          nome: string
+          workspace_id: string
+        }
+        Insert: {
+          ativa?: boolean
+          created_at?: string
+          fluxo: Json
+          gatilho_tipo?: string
+          id?: string
+          nome: string
+          workspace_id: string
+        }
+        Update: {
+          ativa?: boolean
+          created_at?: string
+          fluxo?: Json
+          gatilho_tipo?: string
+          id?: string
+          nome?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_flows_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automations: {
         Row: {
           acao_config: Json
@@ -1644,6 +1682,27 @@ export type Database = {
           },
         ]
       }
+      tentativas_de_acesso: {
+        Row: {
+          chave: string
+          criado_em: string
+          id: number
+          tipo: string
+        }
+        Insert: {
+          chave: string
+          criado_em?: string
+          id?: never
+          tipo: string
+        }
+        Update: {
+          chave?: string
+          criado_em?: string
+          id?: never
+          tipo?: string
+        }
+        Relationships: []
+      }
       user_teams: {
         Row: {
           team_id: string
@@ -1759,6 +1818,14 @@ export type Database = {
       apagar_contato_de_vez: {
         Args: { p_contact_id: string }
         Returns: boolean
+      }
+      cadastrar_empresa: {
+        Args: {
+          p_nome_empresa: string
+          p_nome_responsavel: string
+          p_user_id: string
+        }
+        Returns: string
       }
       contato_na_lixeira: { Args: { p_contact_id: string }; Returns: boolean }
       conversa_na_lixeira: {

@@ -199,18 +199,16 @@ export interface PendenciasFluxo {
   gerais: string[]
 }
 
-/** Tudo que impede o fluxo de ser salvo. Vazio = pode salvar. */
-export function pendenciasDoFluxo(fluxo: Fluxo): PendenciasFluxo {
-  const porBloco: Record<string, string[]> = {}
-  const gerais: string[] = []
-  const anotar = (id: string, motivo: string) => {
-    ;(porBloco[id] ??= []).push(motivo)
-  }
+/**
+ * O que impede o fluxo de ser percorrido: número de gatilhos, ligações
+ * inválidas e laço. O motor não roda uma regra com qualquer um destes; o
+ * editor mostra os mesmos textos entre as pendências gerais.
+ */
+export function problemasDeEstrutura(fluxo: Fluxo): string[] {
+  const problemas: string[] = []
 
   const gatilhos = fluxo.blocos.filter((b) => b.tipo === "gatilho")
-  if (gatilhos.length !== 1) gerais.push("O fluxo precisa de exatamente um gatilho")
-  const gatilho = gatilhoDoFluxo(fluxo)
-  const deMensagem = gatilho ? GATILHOS_DE_MENSAGEM.includes(gatilho.gatilho) : false
+  if (gatilhos.length !== 1) problemas.push("O fluxo precisa de exatamente um gatilho")
 
   const porId = new Map(fluxo.blocos.map((b) => [b.id, b]))
   const saidasUsadas = new Set<string>()
@@ -230,10 +228,24 @@ export function pendenciasDoFluxo(fluxo: Fluxo): PendenciasFluxo {
     }
     saidasUsadas.add(chave)
   }
-  if (ligacaoInvalida) gerais.push("O fluxo tem ligações inválidas")
+  if (ligacaoInvalida) problemas.push("O fluxo tem ligações inválidas")
   if (fluxo.ligacoes.some((l) => formaLaco(fluxo.ligacoes.filter((x) => x !== l), l.de, l.para))) {
-    gerais.push("O fluxo tem um laço: um caminho volta a um bloco anterior")
+    problemas.push("O fluxo tem um laço: um caminho volta a um bloco anterior")
   }
+
+  return problemas
+}
+
+/** Tudo que impede o fluxo de ser salvo. Vazio = pode salvar. */
+export function pendenciasDoFluxo(fluxo: Fluxo): PendenciasFluxo {
+  const porBloco: Record<string, string[]> = {}
+  const gerais = problemasDeEstrutura(fluxo)
+  const anotar = (id: string, motivo: string) => {
+    ;(porBloco[id] ??= []).push(motivo)
+  }
+
+  const gatilho = gatilhoDoFluxo(fluxo)
+  const deMensagem = gatilho ? GATILHOS_DE_MENSAGEM.includes(gatilho.gatilho) : false
 
   const alcancaveis = blocosAlcancaveis(fluxo)
   for (const bloco of fluxo.blocos) {
@@ -277,4 +289,59 @@ export function respondeTodaMensagem(fluxo: Fluxo, repeticao: Repeticao): boolea
   return fluxo.blocos.some(
     (b) => b.tipo === "acao" && alcancaveis.has(b.id) && ACOES_QUE_ENVIAM.includes(b.acao)
   )
+}
+
+/** O caminho de uma execução: o mesmo que a simulação mostra, mais as ações que falharam. */
+export interface CaminhoPercorrido extends ResultadoSimulacao {
+  /** Ações que falharam, por id. O caminho segue depois delas. */
+  falhas: string[]
+}
+
+/** Quem avalia e quem executa: o motor consulta e grava no banco; a simulação só consulta. */
+export interface ExecutoresDoFluxo {
+  avaliarVerificacao: (verificacao: Verificacao) => Promise<boolean>
+  /** `false` ou exceção contam como falha da ação. */
+  executarAcao: (bloco: BlocoAcao) => Promise<boolean>
+}
+
+/**
+ * Percorre o fluxo a partir do gatilho. Na condição, as verificações são
+ * avaliadas em ordem, até a primeira que não vale (E), e o caminho segue pelo
+ * "sim" ou pelo "não". Na ação, segue pelo "proximo" mesmo que ela falhe. O
+ * caminho termina numa saída sem ligação.
+ *
+ * Não confere a estrutura: quem chama usa `problemasDeEstrutura` antes. Mesmo
+ * assim, o percurso para ao voltar a um bloco já percorrido, para nunca rodar
+ * sem fim. Exceção ao avaliar uma verificação sobe para quem chamou.
+ */
+export async function percorrerFluxo(fluxo: Fluxo, executores: ExecutoresDoFluxo): Promise<CaminhoPercorrido> {
+  const caminho: CaminhoPercorrido = { blocos: [], saidas: {}, falhas: [] }
+  const porId = new Map(fluxo.blocos.map((b) => [b.id, b]))
+
+  let bloco: Bloco | undefined = gatilhoDoFluxo(fluxo)
+  while (bloco && !caminho.blocos.includes(bloco.id)) {
+    const id: string = bloco.id
+    caminho.blocos.push(id)
+
+    let saida: Saida = "proximo"
+    if (bloco.tipo === "condicao") {
+      let valem = true
+      for (const verificacao of bloco.verificacoes) {
+        if (!(await executores.avaliarVerificacao(verificacao))) {
+          valem = false
+          break
+        }
+      }
+      saida = valem ? "sim" : "nao"
+      caminho.saidas[id] = saida
+    } else if (bloco.tipo === "acao") {
+      const deuCerto = await executores.executarAcao(bloco).catch(() => false)
+      if (!deuCerto) caminho.falhas.push(id)
+    }
+
+    const ligacao: Ligacao | undefined = fluxo.ligacoes.find((l) => l.de === id && l.saida === saida)
+    bloco = ligacao ? porId.get(ligacao.para) : undefined
+  }
+
+  return caminho
 }
