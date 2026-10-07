@@ -19,6 +19,7 @@ import {
   classificacaoValida,
   dadoDoContatoValido,
   etapaValida,
+  gatilhoDeDadoValido,
   referenciasDoFluxo,
   tipoDeContatoValido,
 } from "@/lib/automacoes/referencias"
@@ -242,7 +243,7 @@ export async function buscarRegraParaEditor(
 
 /** Etiquetas, atendentes, números, times e etapas citados no fluxo existem e são da empresa? */
 async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Fluxo): Promise<string | null> {
-  const { etiquetas, atendentes, conexoes, times, etapas, dadosDoContato, tiposDeContato, classificacoes } =
+  const { etiquetas, atendentes, conexoes, times, etapas, dadosDoContato, tiposDeContato, classificacoes, gatilhosDeDado } =
     referenciasDoFluxo(fluxo)
   if (!etapas.every(etapaValida)) return "Uma etapa escolhida não existe no funil. Escolha de novo."
   if (!dadosDoContato.every(({ campo, valor }) => dadoDoContatoValido(campo, valor))) {
@@ -250,6 +251,9 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
   }
   if (!tiposDeContato.every(tipoDeContatoValido) || !classificacoes.every(classificacaoValida)) {
     return "Um tipo ou classificação escolhido numa condição não existe. Escolha de novo."
+  }
+  if (!gatilhosDeDado.every(({ campo, valor }) => gatilhoDeDadoValido(campo, valor))) {
+    return "O campo ou o valor do gatilho não é válido. Escolha de novo."
   }
 
   const contar = async (tabela: "labels" | "profiles" | "whatsapp_connections" | "teams", ids: string[]) => {

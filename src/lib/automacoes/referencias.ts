@@ -18,6 +18,8 @@ export interface ReferenciasDoFluxo {
   /** Valores das verificações "tipo do contato é" e "classificação do contato é". */
   tiposDeContato: string[]
   classificacoes: string[]
+  /** Campo e valor do gatilho "dado do contato alterado" (B11-06). */
+  gatilhosDeDado: Array<{ campo: string; valor: string }>
 }
 
 const PREFIXO_NUMERO = "numero:"
@@ -31,6 +33,7 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
   const dadosDoContato: ReferenciasDoFluxo["dadosDoContato"] = []
   const tiposDeContato: string[] = []
   const classificacoes: string[] = []
+  const gatilhosDeDado: ReferenciasDoFluxo["gatilhosDeDado"] = []
 
   for (const bloco of fluxo.blocos) {
     if (bloco.tipo === "condicao") {
@@ -57,6 +60,9 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
     if (bloco.tipo === "acao" && bloco.acao === "alterar_dado_contato") {
       dadosDoContato.push({ campo: p.campo ?? "", valor: p.valor ?? "" })
     }
+    if (bloco.tipo === "gatilho" && bloco.gatilho === "dado_contato_alterado") {
+      gatilhosDeDado.push({ campo: p.campo ?? "", valor: p.valor ?? "" })
+    }
   }
 
   return {
@@ -68,6 +74,7 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
     dadosDoContato,
     tiposDeContato,
     classificacoes,
+    gatilhosDeDado,
   }
 }
 
@@ -99,4 +106,23 @@ const ETAPAS_DO_FUNIL: Record<string, readonly string[]> = {
 export function etapaValida({ funil, etapa }: { funil: string; etapa: string }): boolean {
   const etapas = ETAPAS_DO_FUNIL[funil]
   return etapas !== undefined && (etapa === "" || etapas.includes(etapa))
+}
+
+/**
+ * Gatilho "dado do contato alterado": o campo é um dos que têm de onde disparar
+ * (o atendente não tem: B11-06), e o valor, quando preenchido, é um que o campo aceita.
+ */
+export function gatilhoDeDadoValido(campo: string, valor: string): boolean {
+  const texto = valor.trim()
+  switch (campo) {
+    case "classificacao":
+      return !texto || classificacaoValida(texto)
+    case "tipo":
+      return !texto || tipoDeContatoValido(texto)
+    case "nicho":
+    case "cidade":
+      return texto.length <= 100
+    default:
+      return false
+  }
 }

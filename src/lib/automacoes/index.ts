@@ -19,6 +19,7 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import {
   gatilhoDoFluxo,
   lerRepeticao,
+  normalizarTag,
   percorrerFluxo,
   problemasDeEstrutura,
   type BlocoGatilho,
@@ -165,13 +166,21 @@ async function carregarRegras(supabase: ServiceClient, gatilho: GatilhoAutomacao
   return regras.sort((a, b) => (a.criadaEm < b.criadaEm ? -1 : a.criadaEm > b.criadaEm ? 1 : 0))
 }
 
-function gatilhoCorresponde(bloco: BlocoGatilho, gatilho: GatilhoAutomacao): boolean {
+/** O evento é o que o bloco de gatilho espera? Parâmetro vazio vale como "qualquer". */
+export function gatilhoCorresponde(bloco: BlocoGatilho, gatilho: GatilhoAutomacao): boolean {
   if (bloco.gatilho !== gatilho.tipo) return false
-  if (gatilho.tipo === "card_movido") {
-    // Parâmetro vazio = qualquer funil ou etapa
-    const { funil, etapa } = bloco.parametros
-    if (funil && funil !== gatilho.funil) return false
-    if (etapa && etapa !== gatilho.etapa) return false
+  const p = bloco.parametros
+  switch (gatilho.tipo) {
+    case "card_movido":
+      return (!p.funil || p.funil === gatilho.funil) && (!p.etapa || p.etapa === gatilho.etapa)
+    case "tag_adicionada":
+      return !p.tag || normalizarTag(p.tag) === gatilho.tag
+    case "etiqueta_aplicada":
+      return !p.label_id || p.label_id === gatilho.labelId
+    case "dado_contato_alterado":
+      // O campo é obrigatório no gatilho; o valor, não
+      return p.campo === gatilho.campo && (!p.valor || p.valor.trim() === gatilho.valor)
+    default:
+      return true
   }
-  return true
 }

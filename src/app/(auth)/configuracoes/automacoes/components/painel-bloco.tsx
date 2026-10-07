@@ -277,7 +277,15 @@ function CampoParametro({
       )
     }
     case "tag_livre":
-      return <CampoTag id={id} valor={valor} tags={opcoes.tags} onMudar={(novo) => onMudar(campo.chave, novo)} />
+      return (
+        <CampoTag
+          id={id}
+          valor={valor}
+          tags={opcoes.tags}
+          vazio={campo.vazio}
+          onMudar={(novo) => onMudar(campo.chave, novo)}
+        />
+      )
 
     case "arquivo":
       return (
@@ -452,12 +460,15 @@ function CampoTag({
   "aria-label": rotuloAcessivel,
   valor,
   tags,
+  vazio,
   onMudar,
 }: {
   id?: string
   "aria-label"?: string
   valor: string
   tags: Opcao[]
+  /** Quando o campo pode ficar em branco (no gatilho, "qualquer tag"). */
+  vazio?: string
   onMudar: (valor: string) => void
 }) {
   // As que combinam com o que foi digitado
@@ -469,7 +480,7 @@ function CampoTag({
         aria-label={rotuloAcessivel}
         value={valor}
         maxLength={50}
-        placeholder="ex.: interessado"
+        placeholder={vazio ?? "ex.: interessado"}
         // Como a tela do contato grava: minúsculas e sem espaço
         onChange={(e) => onMudar(e.target.value.toLowerCase().replace(/\s/g, ""))}
       />
@@ -487,7 +498,9 @@ function CampoTag({
           ))}
         </div>
       )}
-      <p className="text-xs text-muted-foreground">Pode ser uma tag nova. Minúsculas e sem espaço.</p>
+      <p className="text-xs text-muted-foreground">
+        {vazio ? `Em branco: ${vazio.toLowerCase()}. ` : ""}Pode ser uma tag nova. Minúsculas e sem espaço.
+      </p>
     </>
   )
 }

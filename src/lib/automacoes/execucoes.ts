@@ -59,10 +59,18 @@ export function resultadoDoCaminho(caminho: CaminhoPercorrido): "concluida" | "f
 
 /** O evento sem a empresa e o contato, que ficam em colunas próprias. */
 export function eventoGravado(gatilho: GatilhoAutomacao): Record<string, string> {
-  if (gatilho.tipo === "card_movido") {
-    return { tipo: gatilho.tipo, funil: gatilho.funil, etapa: gatilho.etapa, cardId: gatilho.cardId }
+  switch (gatilho.tipo) {
+    case "card_movido":
+      return { tipo: gatilho.tipo, funil: gatilho.funil, etapa: gatilho.etapa, cardId: gatilho.cardId }
+    case "conversa_criada":
+      return { tipo: gatilho.tipo, conversationId: gatilho.conversationId }
+    case "tag_adicionada":
+      return { tipo: gatilho.tipo, tag: gatilho.tag }
+    case "etiqueta_aplicada":
+      return { tipo: gatilho.tipo, conversationId: gatilho.conversationId, labelId: gatilho.labelId }
+    case "dado_contato_alterado":
+      return { tipo: gatilho.tipo, campo: gatilho.campo, valor: gatilho.valor }
   }
-  return { tipo: gatilho.tipo, conversationId: gatilho.conversationId }
 }
 
 /**

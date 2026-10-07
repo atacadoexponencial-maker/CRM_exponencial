@@ -306,3 +306,20 @@ describe("lerRepeticao (B11-03)", () => {
     expect(lerRepeticao({ modo: "a_cada_horas", horas: 24 * 366 })).toEqual({ modo: "sempre" })
   })
 })
+
+describe("tag no gatilho 'tag adicionada' (B11-06)", () => {
+  const comTag = (tag: string): Fluxo => ({
+    blocos: [
+      { id: "g", tipo: "gatilho", gatilho: "tag_adicionada", parametros: { tag }, posicao },
+      { id: "a", tipo: "acao", acao: "adicionar_tag", parametros: { tag: "x" }, posicao },
+    ],
+    ligacoes: [liga("g", "a")],
+  })
+  const PENDENCIA = "A tag não pode ter espaço e vai até 50 caracteres"
+
+  it("vazia vale como 'qualquer tag'; preenchida segue as regras da tag", () => {
+    expect(pendenciasDoFluxo(comTag("")).porBloco.g ?? []).toEqual([])
+    expect(pendenciasDoFluxo(comTag("vip")).porBloco.g ?? []).toEqual([])
+    expect(pendenciasDoFluxo(comTag("cliente vip")).porBloco.g).toContain(PENDENCIA)
+  })
+})

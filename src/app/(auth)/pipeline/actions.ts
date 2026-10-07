@@ -3,6 +3,7 @@
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import { processarAutomacoes } from "@/lib/automacoes"
+import { cardsDepoisDoMovimento, prepararGatilhoDeClassificacao } from "@/lib/automacoes/gatilhos-do-crm"
 import { processarGatilhoSequencia } from "@/lib/sequencias"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { tirarDaLixeira } from "@/lib/lixeira"
@@ -100,6 +101,12 @@ export async function criarNovoLead(telefone: string, nome: string | null): Prom
     throw new Error("Erro ao criar ou localizar contato")
   }
 
+  // B11-06: o lead novo pode mudar a classificação (de "sem histórico" para "lead")
+  const dispararClassificacao = await prepararGatilhoDeClassificacao(profile.workspace_id, contato.id, (cards) => [
+    ...cards,
+    { funil: "entrada", etapa: "lead" },
+  ])
+
   const { data: novoCard, error: cardError } = await supabase
     .from("pipeline_cards")
     .insert({
@@ -127,6 +134,8 @@ export async function criarNovoLead(telefone: string, nome: string | null): Prom
     atendenteId: null,
     gatilho: "card_lead",
   })
+
+  await dispararClassificacao()
 }
 
 export async function moverCard(cardId: string, novaEtapa: string): Promise<void> {
@@ -142,6 +151,11 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
     .single()
 
   if (cardError || !card) throw new Error("Card não encontrado")
+
+  // B11-06: a classificação vem da etapa dos cards; o gatilho dispara no fim, se ela mudou
+  const dispararClassificacao = await prepararGatilhoDeClassificacao(card.workspace_id, card.contact_id, (cards) =>
+    cardsDepoisDoMovimento(cards, cardId, novaEtapa)
+  )
 
   const { error: updateError } = await supabase
     .from("pipeline_cards")
@@ -218,6 +232,8 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
       gatilho: novaEtapa === "catalogo_enviado" ? "catalogo_enviado" : "inativo",
     })
   }
+
+  await dispararClassificacao()
 }
 
 export async function adicionarNota(cardId: string, texto: string): Promise<void> {

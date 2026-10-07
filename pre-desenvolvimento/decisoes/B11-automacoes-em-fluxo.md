@@ -340,3 +340,59 @@ primeira passou a chamar a segunda. As sequências não mudam.
   volume pedir.
 - **Contagem da lista:** a lista conta as execuções lendo até 5.000 linhas dos
   últimos 30 dias. Com muito volume, vira uma consulta agregada no banco.
+
+## 9. Gatilhos de tag, etiqueta e dado do contato (B11-06, 07/10/2026)
+
+### 9.1 Onde nascem
+
+Os três gatilhos nascem nas actions do CRM que mudam o dado, depois de gravar:
+
+| Gatilho | Action |
+|---|---|
+| Tag adicionada | `adicionarTagContato`, usada no perfil e no painel do card |
+| Etiqueta aplicada | `aplicarEtiqueta`, do chat |
+| Tipo, nicho ou cidade alterados | `atualizarDadosContato`, que compara o antes e o depois |
+| Classificação alterada | `moverCard` e `criarNovoLead`, do funil |
+
+As actions só chamam funções de `src/lib/automacoes/gatilhos-do-crm.ts`, para a
+mudança nas telas de outros módulos ficar em uma ou duas linhas.
+
+**Automação não dispara automação, por construção:** as ações das automações
+gravam direto no banco e não passam por essas actions. A classificação é o caso
+delicado. O "depois" é calculado a partir dos cards de antes, com só o movimento
+manual aplicado (e o card de Onboarding que nasce em Ganho). Assim, o que as
+automações de "card movido" moverem no meio-tempo não conta.
+
+**Descartado:** disparar a partir de gatilhos do banco (triggers do Postgres).
+Pegaria tudo, inclusive o que as próprias automações gravam, e a guarda
+anti-loop teria que distinguir quem gravou.
+
+### 9.2 Sem "atendente" no gatilho de dado
+
+`contacts.atendente_id` nunca é gravado por nenhuma tela, e o perfil mostra o
+atendente sempre vazio. Um gatilho sobre ele nunca dispararia, por isso saiu da
+lista de campos. Quem atende o contato muda na conversa (atribuir, transferir) e
+no card. Isso pode virar um gatilho próprio na fase 2.
+
+### 9.3 Não dispara o que não mudou
+
+Não disparam: a tag que o contato já tinha (o banco recusa a repetida), a
+etiqueta que a conversa já tinha e o dado salvo com o mesmo valor. Um dado
+apagado dispara com valor vazio.
+
+### 9.4 Achado: os menus do Base UI não usam `onSelect`
+
+Ao testar a "etiqueta aplicada" pelo chat no preview, clicar na etiqueta não
+aplicou nada. O `DropdownMenuItem` do Base UI só tem `onClick`, e 21 itens de
+menu do app (23 no `master`) usam `onSelect`, que nunca é chamado. Isso afeta,
+na produção:
+
+- **Chat:** etiquetas, transferir, resolver e reabrir.
+- **Agenda:** adiar lembrete e reatribuir.
+- **Configurações:** editar e excluir etiquetas, mensagens rápidas, times e
+  usuários.
+- **Sequências:** um item do menu.
+
+Já tinha sido anotado na B11-01 como suspeita e agora está confirmado. A
+correção (`onSelect` → `onClick`) fica para o Luan decidir onde e quando fazer,
+porque mexe em telas fora da B11 e vai para a produção.

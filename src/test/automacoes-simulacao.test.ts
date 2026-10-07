@@ -117,3 +117,35 @@ describe("simularFluxo", () => {
     expect(resultado).toEqual({ blocos: ["g", "c", "nao"], saidas: { c: "nao" } })
   })
 })
+
+describe("eventoDaSimulacao dos gatilhos de tag, etiqueta e dado (B11-06)", () => {
+  const so = (gatilho: string, parametros: Record<string, string>): Fluxo => ({
+    blocos: [{ id: "g", tipo: "gatilho", gatilho: gatilho as "tag_adicionada", parametros, posicao }],
+    ligacoes: [],
+  })
+
+  it("tag: o evento leva a tag do gatilho, normalizada", async () => {
+    const { supabase } = banco({})
+    expect(await eventoDaSimulacao(supabase, "ws-1", "contato-1", so("tag_adicionada", { tag: " VIP" }))).toEqual({
+      tipo: "tag_adicionada",
+      workspaceId: "ws-1",
+      contactId: "contato-1",
+      tag: "vip",
+    })
+  })
+
+  it("etiqueta: a conversa mais recente do contato e a etiqueta do gatilho", async () => {
+    const { supabase } = banco({ conversations: { data: { id: "conv-7" } } })
+    expect(await eventoDaSimulacao(supabase, "ws-1", "contato-1", so("etiqueta_aplicada", { label_id: "l1" }))).toMatchObject({
+      conversationId: "conv-7",
+      labelId: "l1",
+    })
+  })
+
+  it("dado: o campo e o valor do gatilho", async () => {
+    const { supabase } = banco({})
+    expect(
+      await eventoDaSimulacao(supabase, "ws-1", "contato-1", so("dado_contato_alterado", { campo: "tipo", valor: "lojista" }))
+    ).toMatchObject({ tipo: "dado_contato_alterado", campo: "tipo", valor: "lojista" })
+  })
+})

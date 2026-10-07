@@ -133,7 +133,7 @@ export function resumoRegra(fluxo: Fluxo, opcoes: OpcoesEditor): string {
 }
 
 /** O que aconteceu numa execução do histórico: "Card entrou em "Sondagem" (Funil de Entrada)". */
-export function fraseDoEvento(evento: Record<string, string>): string {
+export function fraseDoEvento(evento: Record<string, string>, opcoes?: OpcoesEditor): string {
   switch (evento.tipo) {
     case "card_movido": {
       const etapa = evento.funil ? nomeEm(etapasDoFunil(evento.funil), evento.etapa) : evento.etapa
@@ -141,6 +141,15 @@ export function fraseDoEvento(evento: Record<string, string>): string {
     }
     case "conversa_criada":
       return "Conversa criada"
+    case "tag_adicionada":
+      return `Tag "${evento.tag}" adicionada`
+    case "etiqueta_aplicada":
+      return `Etiqueta "${opcoes ? nomeEm(opcoes.etiquetas, evento.labelId) : evento.labelId}" aplicada`
+    case "dado_contato_alterado": {
+      const campo = rotuloCampoContato(evento.campo)
+      if (!evento.valor) return `${campo} apagado`
+      return `${campo} mudou para "${opcoes ? valorDoCampo(evento.campo, evento.valor, opcoes) : evento.valor}"`
+    }
     default:
       return GATILHOS[evento.tipo as keyof typeof GATILHOS]?.rotulo ?? evento.tipo ?? "Evento"
   }

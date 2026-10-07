@@ -11,6 +11,7 @@ import { listarConversas, TAMANHO_PAGINA_CONVERSAS } from "./conversas"
 /** Mesmo teto do painel: limite da requisição no Vercel, não do WhatsApp. */
 const LIMITE_ANEXO_BYTES = 4 * 1024 * 1024
 import { sessaoAtual } from "@/lib/sessao"
+import { dispararEtiquetaAplicada } from "@/lib/automacoes/gatilhos-do-crm"
 
 async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promise<void> {
   const supabase = await createClient()
@@ -826,6 +827,9 @@ export async function aplicarEtiqueta(
     .insert({ conversation_id: conversaId, label_id: labelId })
 
   if (error) return { erro: "Não foi possível aplicar a etiqueta." }
+
+  // B11-06: só depois de gravar; etiqueta repetida falha no insert e não chega aqui
+  await dispararEtiquetaAplicada(conversaId, labelId)
 
   return {}
 }

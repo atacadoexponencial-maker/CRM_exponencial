@@ -64,8 +64,11 @@ export type CampoTela =
   /** Valor do dado do contato escolhido no parâmetro `campo`. */
   | { chave: "valor"; rotulo: string; tipo: "valor_do_campo"; vazio: string }
   | { chave: string; rotulo: string; tipo: "arquivo" }
-  /** Tag digitada, que pode ser nova; as tags que a empresa já usa aparecem como sugestão. */
-  | { chave: "tag"; rotulo: string; tipo: "tag_livre" }
+  /**
+   * Tag digitada, que pode ser nova; as tags que a empresa já usa aparecem como sugestão.
+   * Com `vazio`, deixar em branco vale como "qualquer tag" (no gatilho).
+   */
+  | { chave: "tag"; rotulo: string; tipo: "tag_livre"; vazio?: string }
 
 export const FUNIS: Opcao[] = [
   { id: "entrada", nome: "Funil de Entrada" },
@@ -118,7 +121,8 @@ export function opcoesDaFonte(fonte: FonteOpcoes, opcoes: OpcoesEditor): Opcao[]
         ...opcoes.numeros.map((n) => ({ id: `numero:${n.id}`, nome: `Número ${n.nome}` })),
       ]
     case "camposContatoGatilho":
-      return ["classificacao", "tipo", "nicho", "cidade", "atendente"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] }))
+      // Sem "atendente": contacts.atendente_id não é gravado por nenhuma tela (B11-06)
+      return ["classificacao", "tipo", "nicho", "cidade"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] }))
     case "camposContatoAcao":
       // Sem classificação: o CRM a calcula pela etapa dos cards (B11-11)
       return ["tipo", "nicho", "cidade", "observacoes"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] }))
@@ -152,7 +156,7 @@ export const GATILHOS: Record<GatilhoTipo, { rotulo: string; icone: LucideIcon; 
   tag_adicionada: {
     rotulo: "Tag adicionada ao contato",
     icone: Tag,
-    campos: [{ chave: "tag", rotulo: "Tag", tipo: "opcoes", fonte: "tags", vazio: "Qualquer tag" }],
+    campos: [{ chave: "tag", rotulo: "Tag", tipo: "tag_livre", vazio: "Qualquer tag" }],
   },
   etiqueta_aplicada: {
     rotulo: "Etiqueta aplicada à conversa",

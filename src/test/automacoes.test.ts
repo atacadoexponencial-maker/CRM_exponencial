@@ -13,8 +13,8 @@ vi.mock("@/lib/whatsapp-envio", async (importOriginal) => ({
 }))
 
 import { createServiceClient } from "@/integrations/supabase/service"
-import { processarAutomacoes } from "@/lib/automacoes"
-import type { Fluxo } from "@/lib/fluxo-automacao"
+import { gatilhoCorresponde, processarAutomacoes } from "@/lib/automacoes"
+import type { Fluxo, GatilhoTipo } from "@/lib/fluxo-automacao"
 import { enviarTextoWhatsAppComMotivo } from "@/lib/whatsapp-envio"
 
 const mockCreateServiceClient = vi.mocked(createServiceClient)
@@ -610,5 +610,49 @@ describe("histórico e proteção de repetição (B11-03)", () => {
     expect(h.gravadas[0]).toMatchObject({ regra_id: "antiga-1", regra_origem: "antiga", resultado: "concluida" })
     // Sem proteção, nem consulta a execução anterior
     expect(h.filtros.some((f) => f[0] === "neq")).toBe(false)
+  })
+})
+
+describe("gatilhos de tag, etiqueta e dado do contato (B11-06)", () => {
+  const posicao = { x: 0, y: 0 }
+  const bloco = (gatilho: GatilhoTipo, parametros: Record<string, string> = {}) =>
+    ({ id: "g", tipo: "gatilho", gatilho, parametros, posicao }) as const
+  const tag = (t: string) => ({ tipo: "tag_adicionada" as const, workspaceId: "ws", contactId: "c", tag: t })
+  const etiqueta = (labelId: string) => ({
+    tipo: "etiqueta_aplicada" as const,
+    workspaceId: "ws",
+    contactId: "c",
+    conversationId: "conv",
+    labelId,
+  })
+  const dado = (campo: string, valor: string) => ({
+    tipo: "dado_contato_alterado" as const,
+    workspaceId: "ws",
+    contactId: "c",
+    campo,
+    valor,
+  })
+
+  it("tag: a do gatilho (normalizada) ou qualquer uma", () => {
+    expect(gatilhoCorresponde(bloco("tag_adicionada", { tag: "VIP" }), tag("vip"))).toBe(true)
+    expect(gatilhoCorresponde(bloco("tag_adicionada", { tag: "vip" }), tag("atacado"))).toBe(false)
+    expect(gatilhoCorresponde(bloco("tag_adicionada"), tag("atacado"))).toBe(true)
+  })
+
+  it("etiqueta: a do gatilho ou qualquer uma", () => {
+    expect(gatilhoCorresponde(bloco("etiqueta_aplicada", { label_id: "l1" }), etiqueta("l1"))).toBe(true)
+    expect(gatilhoCorresponde(bloco("etiqueta_aplicada", { label_id: "l1" }), etiqueta("l2"))).toBe(false)
+    expect(gatilhoCorresponde(bloco("etiqueta_aplicada"), etiqueta("l2"))).toBe(true)
+  })
+
+  it("dado: o campo precisa ser o mesmo; o valor, só quando o gatilho tem um", () => {
+    expect(gatilhoCorresponde(bloco("dado_contato_alterado", { campo: "tipo" }), dado("tipo", "lojista"))).toBe(true)
+    expect(gatilhoCorresponde(bloco("dado_contato_alterado", { campo: "tipo", valor: "lojista" }), dado("tipo", "lojista"))).toBe(true)
+    expect(gatilhoCorresponde(bloco("dado_contato_alterado", { campo: "tipo", valor: "lojista" }), dado("tipo", "revendedor"))).toBe(false)
+    expect(gatilhoCorresponde(bloco("dado_contato_alterado", { campo: "tipo" }), dado("cidade", "Natal"))).toBe(false)
+  })
+
+  it("gatilho de outro tipo não casa", () => {
+    expect(gatilhoCorresponde(bloco("tag_adicionada"), etiqueta("l1"))).toBe(false)
   })
 })

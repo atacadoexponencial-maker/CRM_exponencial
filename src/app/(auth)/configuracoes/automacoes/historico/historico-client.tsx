@@ -134,7 +134,7 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes }: Historic
                     {e.regraExcluida && <span className="ml-1.5 text-xs text-muted-foreground">(excluída)</span>}
                   </td>
                   <td className="hidden px-4 py-3 md:table-cell">{e.contato?.nome ?? "—"}</td>
-                  <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">{fraseDoEvento(e.evento)}</td>
+                  <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">{fraseDoEvento(e.evento, opcoes)}</td>
                   <td className="px-4 py-3">
                     <SeloResultado resultado={e.resultado} />
                   </td>
@@ -166,7 +166,7 @@ function DetalheDaExecucao({ execucao, opcoes }: { execucao: ExecucaoListada; op
         <SeloResultado resultado={execucao.resultado} />
       </DialogTitle>
       <DialogDescription className="mb-4">
-        {quando(execucao.quando)} · {fraseDoEvento(execucao.evento)}
+        {quando(execucao.quando)} · {fraseDoEvento(execucao.evento, opcoes)}
       </DialogDescription>
 
       <p className="mb-3 text-sm">

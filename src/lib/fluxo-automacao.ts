@@ -162,7 +162,14 @@ const ACOES_QUE_ENVIAM: readonly AcaoTipo[] = ["enviar_mensagem", "enviar_mensag
 // O que o motor (src/lib/automacoes) já sabe executar. O editor mostra o resto
 // como "em breve", e `pendenciasDoFluxo` não deixa salvar. Cada issue da B11 que
 // ensina o motor a fazer algo novo acrescenta aqui.
-export const GATILHOS_DISPONIVEIS: readonly GatilhoTipo[] = ["card_movido", "conversa_criada"]
+export const GATILHOS_DISPONIVEIS: readonly GatilhoTipo[] = [
+  "card_movido",
+  "conversa_criada",
+  // B11-06
+  "tag_adicionada",
+  "etiqueta_aplicada",
+  "dado_contato_alterado",
+]
 // A primeira serve de padrão para a verificação nova no editor
 export const VERIFICACOES_DISPONIVEIS: readonly VerificacaoTipo[] = [
   "tag_contato",
@@ -328,6 +335,9 @@ export function pendenciasDoFluxo(fluxo: Fluxo): PendenciasFluxo {
       if (!GATILHOS_DISPONIVEIS.includes(bloco.gatilho)) anotar(bloco.id, EM_BREVE)
       if (PARAMETROS_OBRIGATORIOS_GATILHO[bloco.gatilho].some((p) => !bloco.parametros[p]?.trim())) {
         anotar(bloco.id, "Complete a configuração do gatilho")
+      } else if (bloco.gatilho === "tag_adicionada" && bloco.parametros.tag?.trim() && !tagValida(bloco.parametros.tag)) {
+        // Tag vazia vale como "qualquer tag"; preenchida, segue as regras da tag
+        anotar(bloco.id, "A tag não pode ter espaço e vai até 50 caracteres")
       }
     } else if (bloco.tipo === "acao") {
       if (!ACOES_DISPONIVEIS.includes(bloco.acao)) anotar(bloco.id, EM_BREVE)
