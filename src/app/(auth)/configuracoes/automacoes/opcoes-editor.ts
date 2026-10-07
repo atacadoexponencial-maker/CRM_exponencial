@@ -3,12 +3,13 @@
 // (server components), com a sessão do admin.
 
 import type { createClient } from "@/integrations/supabase/server"
+import { horarioDoBanco } from "@/lib/horario-comercial"
 import type { OpcoesEditor } from "./components/catalogo"
 
 type ClienteDaSessao = Awaited<ReturnType<typeof createClient>>
 
 export async function carregarOpcoesEditor(supabase: ClienteDaSessao, workspaceId: string): Promise<OpcoesEditor> {
-  const [etiquetas, perfis, tags, times, sequencias, rapidas, numeros] = await Promise.all([
+  const [etiquetas, perfis, tags, times, sequencias, rapidas, numeros, horario] = await Promise.all([
     supabase.from("labels").select("id, name, color").eq("workspace_id", workspaceId).order("name"),
     supabase.from("profiles").select("id, name").eq("workspace_id", workspaceId).eq("status", "active").order("name"),
     supabase.from("contact_tags").select("tag").eq("workspace_id", workspaceId),
@@ -16,6 +17,7 @@ export async function carregarOpcoesEditor(supabase: ClienteDaSessao, workspaceI
     supabase.from("sequences").select("id, nome").eq("workspace_id", workspaceId).order("nome"),
     supabase.from("quick_replies").select("id, title").eq("workspace_id", workspaceId).order("title"),
     supabase.from("whatsapp_connections").select("id, display_name, phone_number").eq("workspace_id", workspaceId),
+    supabase.from("business_hours").select("dias, inicio, fim").eq("workspace_id", workspaceId).maybeSingle(),
   ])
 
   const nomesDeTag = [...new Set((tags.data ?? []).map((t) => t.tag))].sort((a, b) => a.localeCompare(b, "pt-BR"))
@@ -28,5 +30,6 @@ export async function carregarOpcoesEditor(supabase: ClienteDaSessao, workspaceI
     sequencias: (sequencias.data ?? []).map((s) => ({ id: s.id, nome: s.nome })),
     mensagensRapidas: (rapidas.data ?? []).map((q) => ({ id: q.id, nome: q.title })),
     numeros: (numeros.data ?? []).map((n) => ({ id: n.id, nome: n.display_name || n.phone_number || "sem nome" })),
+    horarioComercial: horarioDoBanco(horario.data),
   }
 }

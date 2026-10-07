@@ -129,6 +129,20 @@ describe("referencias das ações da B11-11", () => {
   })
 })
 
+describe("referencias das ações da B11-08", () => {
+  it("junta as sequências citadas, sem repetir", () => {
+    const fluxo: Fluxo = {
+      blocos: [
+        { id: "a1", tipo: "acao", acao: "iniciar_sequencia", parametros: { sequencia_id: "seq-1" }, posicao },
+        { id: "a2", tipo: "acao", acao: "iniciar_sequencia", parametros: { sequencia_id: "seq-1" }, posicao },
+        { id: "a3", tipo: "acao", acao: "resolver_conversa", parametros: {}, posicao },
+      ],
+      ligacoes: [],
+    }
+    expect(referenciasDoFluxo(fluxo).sequencias).toEqual(["seq-1"])
+  })
+})
+
 describe("tipo e classificação nas condições", () => {
   const fluxo: Fluxo = {
     blocos: [

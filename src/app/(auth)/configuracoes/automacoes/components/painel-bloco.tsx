@@ -21,6 +21,7 @@ import {
   type Verificacao,
   type VerificacaoTipo,
 } from "@/lib/fluxo-automacao"
+import { descreverHorario } from "@/lib/horario-comercial"
 import {
   ACOES,
   FUNIS,
@@ -387,6 +388,12 @@ function EditorVerificacoes({
               itens={paraItens(item.operadores)}
               onMudar={(operador) => mudar(v.id, { operador })}
             />
+            {v.tipo === "horario_comercial" && (
+              <p className="text-xs text-muted-foreground">
+                Horário comercial: {descreverHorario(opcoes.horarioComercial)}. Para mudar, use o botão
+                &quot;Horário comercial&quot; na lista de automações.
+              </p>
+            )}
             {pedeValor && item.valor.tipo === "texto" && (
               <Input
                 aria-label="Valor"

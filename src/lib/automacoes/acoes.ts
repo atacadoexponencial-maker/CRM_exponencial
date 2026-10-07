@@ -1,7 +1,8 @@
 // Ações que o motor já sabe executar: as 4 da primeira versão (enviar mensagem,
 // aplicar etiqueta, atribuir atendente, mover card), com o mesmo comportamento,
-// e as da B11-11 (tags, remover etiqueta, dado do contato, atribuir a um time).
-// As outras do editor entram nas próximas issues; até lá, contam como falha.
+// as da B11-11 (tags, remover etiqueta, dado do contato, atribuir a um time) e
+// as da B11-08 (iniciar sequência, resolver e reabrir a conversa). As outras do
+// editor entram nas próximas issues; até lá, contam como falha.
 //
 // Cada ação devolve se deu certo e, se não, o motivo em português, que vai para
 // o histórico (B11-03). Falha não interrompe o caminho: quem percorre o fluxo
@@ -19,7 +20,7 @@ import {
   type BlocoAcao,
   type ResultadoAcao,
 } from "@/lib/fluxo-automacao"
-import { processarGatilhoSequencia } from "@/lib/sequencias"
+import { SEQUENCIA_JA_EM_ANDAMENTO, iniciarExecucaoSequencia, processarGatilhoSequencia } from "@/lib/sequencias"
 import { enviarTextoWhatsAppComMotivo } from "@/lib/whatsapp-envio"
 import { conversaDoEvento, type ContextoDaExecucao } from "./contexto"
 import { dadoDoContatoValido } from "./referencias"
@@ -158,9 +159,84 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
       }
       return FEITO
     }
+    case "iniciar_sequencia": {
+      if (!parametros.sequencia_id) return CONFIGURACAO_INCOMPLETA
+      return iniciarSequencia(contexto, contactId, parametros.sequencia_id)
+    }
+    case "resolver_conversa": {
+      const conversaId = await conversaDoEvento(contexto)
+      // Sem conversa aberta, não há o que resolver: o contato já está como a ação o deixaria
+      if (!conversaId) return FEITO
+      const { error } = await supabase.from("conversations").update({ status: "resolvida" }).eq("id", conversaId)
+      return error ? ERRO_NO_BANCO : FEITO
+    }
+    case "reabrir_conversa":
+      return reabrirConversa(contexto, contactId)
     default:
       return falhou("Esta ação ainda não está disponível")
   }
+}
+
+/**
+ * Mesmo início do manual (`iniciarSequenciaManual`). O responsável é o atendente
+ * da conversa agora, depois das ações anteriores do caminho ("atribuir ao time →
+ * iniciar sequência" já pega quem foi atribuído); sem ele, a sequência escolhe
+ * em cada lembrete (`resolverAtendente`). Já em andamento conta como feito.
+ */
+async function iniciarSequencia(contexto: ContextoDaExecucao, contactId: string, sequenciaId: string): Promise<ResultadoAcao> {
+  const { supabase, gatilho } = contexto
+  // O service client passa por cima da RLS: a empresa da sequência é conferida aqui
+  const { data: sequencia, error } = await supabase
+    .from("sequences")
+    .select("ativa")
+    .eq("id", sequenciaId)
+    .eq("workspace_id", gatilho.workspaceId)
+    .maybeSingle()
+  if (error) return ERRO_NO_BANCO
+  if (!sequencia) return falhou("A sequência não existe mais")
+  if (!sequencia.ativa) return falhou("A sequência está desativada")
+
+  let atendenteId: string | null = null
+  const conversaId = await conversaDoEvento(contexto)
+  if (conversaId) {
+    const { data: conversa } = await supabase.from("conversations").select("assigned_to").eq("id", conversaId).maybeSingle()
+    atendenteId = conversa?.assigned_to ?? null
+  }
+
+  const { erro } = await iniciarExecucaoSequencia(supabase, {
+    workspaceId: gatilho.workspaceId,
+    sequenceId: sequenciaId,
+    contactId,
+    atendenteId,
+  })
+  return !erro || erro === SEQUENCIA_JA_EM_ANDAMENTO ? FEITO : falhou(erro)
+}
+
+/**
+ * A conversa do evento, nos gatilhos de conversa; nos outros, a mais recente do
+ * contato, que pode estar resolvida (`conversaDoEvento` só acha a aberta). Volta
+ * como o "Reabrir" do chat: com atendente, em atendimento; sem, em espera.
+ */
+async function reabrirConversa({ supabase, gatilho }: ContextoDaExecucao, contactId: string): Promise<ResultadoAcao> {
+  const colunas = "id, status, assigned_to"
+  const { data: conversa, error } =
+    gatilho.tipo === "conversa_criada" || gatilho.tipo === "etiqueta_aplicada"
+      ? await supabase.from("conversations").select(colunas).eq("id", gatilho.conversationId).maybeSingle()
+      : await supabase
+          .from("conversations")
+          .select(colunas)
+          .eq("workspace_id", gatilho.workspaceId)
+          .eq("contact_id", contactId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+  if (error) return ERRO_NO_BANCO
+  if (!conversa) return falhou("O contato não tem conversa")
+  if (CONVERSA_ABERTA.includes(conversa.status)) return FEITO
+
+  const status = conversa.assigned_to ? "em_atendimento" : "em_espera"
+  const { error: erroAoGravar } = await supabase.from("conversations").update({ status }).eq("id", conversa.id)
+  return erroAoGravar ? ERRO_NO_BANCO : FEITO
 }
 
 /**

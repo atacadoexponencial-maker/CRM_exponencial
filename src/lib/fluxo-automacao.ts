@@ -179,6 +179,8 @@ export const VERIFICACOES_DISPONIVEIS: readonly VerificacaoTipo[] = [
   "etiqueta_conversa",
   "atendente",
   "card_etapa",
+  // B11-08
+  "horario_comercial",
 ]
 export const ACOES_DISPONIVEIS: readonly AcaoTipo[] = [
   "enviar_mensagem",
@@ -191,6 +193,10 @@ export const ACOES_DISPONIVEIS: readonly AcaoTipo[] = [
   "remover_etiqueta",
   "alterar_dado_contato",
   "atribuir_time",
+  // B11-08
+  "iniciar_sequencia",
+  "resolver_conversa",
+  "reabrir_conversa",
 ]
 
 /**

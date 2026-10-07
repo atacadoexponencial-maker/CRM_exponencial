@@ -1,7 +1,7 @@
-// O que um fluxo cita de fora dele: etiquetas, atendentes, números de WhatsApp e
-// etapas de funil. O servidor confere tudo antes de gravar, porque o motor roda
-// com o service client, que passa por cima da RLS: uma etiqueta de outra empresa
-// gravada no fluxo seria aplicada sem ninguém barrar.
+// O que um fluxo cita de fora dele: etiquetas, atendentes, números de WhatsApp,
+// times, sequências e etapas de funil. O servidor confere tudo antes de gravar,
+// porque o motor roda com o service client, que passa por cima da RLS: uma
+// etiqueta de outra empresa gravada no fluxo seria aplicada sem ninguém barrar.
 
 import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "@/app/(auth)/contatos/mock-contatos"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
@@ -12,6 +12,7 @@ export interface ReferenciasDoFluxo {
   atendentes: string[]
   conexoes: string[]
   times: string[]
+  sequencias: string[]
   etapas: Array<{ funil: string; etapa: string }>
   /** Campo e valor de cada "alterar dado do contato". */
   dadosDoContato: Array<{ campo: string; valor: string }>
@@ -29,6 +30,7 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
   const atendentes = new Set<string>()
   const conexoes = new Set<string>()
   const times = new Set<string>()
+  const sequencias = new Set<string>()
   const etapas: ReferenciasDoFluxo["etapas"] = []
   const dadosDoContato: ReferenciasDoFluxo["dadosDoContato"] = []
   const tiposDeContato: string[] = []
@@ -55,6 +57,7 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
     if (p.label_id) etiquetas.add(p.label_id)
     if (p.atendente_id) atendentes.add(p.atendente_id)
     if (p.time_id) times.add(p.time_id)
+    if (p.sequencia_id) sequencias.add(p.sequencia_id)
     // Funil sozinho também é conferido: o gatilho "card movido" aceita "qualquer etapa"
     if (p.funil) etapas.push({ funil: p.funil, etapa: p.etapa ?? "" })
     if (bloco.tipo === "acao" && bloco.acao === "alterar_dado_contato") {
@@ -70,6 +73,7 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
     atendentes: [...atendentes],
     conexoes: [...conexoes],
     times: [...times],
+    sequencias: [...sequencias],
     etapas,
     dadosDoContato,
     tiposDeContato,

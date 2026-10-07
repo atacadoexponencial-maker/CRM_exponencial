@@ -9,9 +9,11 @@
 //
 // Histórico (B11-03): o motor grava cada execução em `automation_runs`; aqui a
 // lista conta as execuções e a página de histórico as lê.
-// Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seções 5, 6 e 8.
+// Horário comercial (B11-08): gravado em `business_hours`, lido pela condição.
+// Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seções 5, 6, 8 e 10.
 
 import { revalidatePath } from "next/cache"
+import { z } from "zod"
 import { createServiceClient } from "@/integrations/supabase/service"
 import type { Json } from "@/integrations/supabase/types"
 import { lerFluxo } from "@/lib/automacoes/fluxo-recebido"
@@ -33,6 +35,7 @@ import {
   type Repeticao,
   type ResultadoSimulacao,
 } from "@/lib/fluxo-automacao"
+import { problemaDoHorario } from "@/lib/horario-comercial"
 import { sessaoAtual } from "@/lib/sessao"
 import type { ContatoTeste } from "./components/editor-fluxo"
 import type { RegraListada } from "./components/lista-regras"
@@ -241,10 +244,20 @@ export async function buscarRegraParaEditor(
   }
 }
 
-/** Etiquetas, atendentes, números, times e etapas citados no fluxo existem e são da empresa? */
+/** Etiquetas, atendentes, números, times, sequências e etapas citados no fluxo existem e são da empresa? */
 async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Fluxo): Promise<string | null> {
-  const { etiquetas, atendentes, conexoes, times, etapas, dadosDoContato, tiposDeContato, classificacoes, gatilhosDeDado } =
-    referenciasDoFluxo(fluxo)
+  const {
+    etiquetas,
+    atendentes,
+    conexoes,
+    times,
+    sequencias,
+    etapas,
+    dadosDoContato,
+    tiposDeContato,
+    classificacoes,
+    gatilhosDeDado,
+  } = referenciasDoFluxo(fluxo)
   if (!etapas.every(etapaValida)) return "Uma etapa escolhida não existe no funil. Escolha de novo."
   if (!dadosDoContato.every(({ campo, valor }) => dadoDoContatoValido(campo, valor))) {
     return "O dado do contato escolhido não pode receber esse valor. Confira o campo e o valor."
@@ -256,7 +269,7 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
     return "O campo ou o valor do gatilho não é válido. Escolha de novo."
   }
 
-  const contar = async (tabela: "labels" | "profiles" | "whatsapp_connections" | "teams", ids: string[]) => {
+  const contar = async (tabela: "labels" | "profiles" | "whatsapp_connections" | "teams" | "sequences", ids: string[]) => {
     if (ids.length === 0) return 0
     const { count } = await supabase
       .from(tabela)
@@ -265,16 +278,18 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
       .in("id", ids)
     return count ?? 0
   }
-  const [nEtiquetas, nAtendentes, nConexoes, nTimes] = await Promise.all([
+  const [nEtiquetas, nAtendentes, nConexoes, nTimes, nSequencias] = await Promise.all([
     contar("labels", etiquetas),
     contar("profiles", atendentes),
     contar("whatsapp_connections", conexoes),
     contar("teams", times),
+    contar("sequences", sequencias),
   ])
   if (nEtiquetas !== etiquetas.length) return "Uma etiqueta escolhida não existe mais. Escolha de novo."
   if (nAtendentes !== atendentes.length) return "Um atendente escolhido não existe mais. Escolha de novo."
   if (nConexoes !== conexoes.length) return "Um número escolhido não existe mais. Escolha de novo."
   if (nTimes !== times.length) return "Um time escolhido não existe mais. Escolha de novo."
+  if (nSequencias !== sequencias.length) return "Uma sequência escolhida não existe mais. Escolha de novo."
   return null
 }
 
@@ -425,6 +440,38 @@ export async function excluirRegra(id: string): Promise<{ erro?: string }> {
     .maybeSingle()
   if (error || !data) return { erro: "Não foi possível excluir a automação. Tente novamente." }
   revalidatePath(CAMINHO_LISTA)
+  return {}
+}
+
+const HorarioRecebido = z.object({
+  dias: z.array(z.number()).max(7),
+  inicio: z.string(),
+  fim: z.string(),
+})
+
+/** Horário comercial da empresa (B11-08), usado pela condição de horário. Uma linha por empresa. */
+export async function salvarHorarioComercial(dados: unknown): Promise<{ erro?: string }> {
+  const admin = await adminDaSessao()
+  if (!admin) return { erro: SEM_PERMISSAO }
+
+  const recebido = HorarioRecebido.safeParse(dados)
+  if (!recebido.success) return { erro: "O horário veio num formato inválido. Recarregue a página." }
+  const problema = problemaDoHorario(recebido.data)
+  if (problema) return { erro: problema }
+
+  const { dias, inicio, fim } = recebido.data
+  const { error } = await admin.supabase.from("business_hours").upsert(
+    {
+      workspace_id: admin.workspaceId,
+      dias: [...dias].sort((a, b) => a - b),
+      inicio,
+      fim,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "workspace_id" }
+  )
+  if (error) return { erro: "Não foi possível salvar o horário. Tente novamente." }
+  revalidatePath(CAMINHO_LISTA, "layout")
   return {}
 }
 

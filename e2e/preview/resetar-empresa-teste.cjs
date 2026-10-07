@@ -2,7 +2,8 @@
 // Devolve a empresa de teste ao estado inicial dos roteiros: sem regras em fluxo
 // nem histórico, regra antiga ativa, cards da Entrada em Lead sem atendente, sem
 // cards na Recompra, conversas sem atendente, só a etiqueta "Interessado" (na
-// conversa do Bruno), sem tags e sem tipo, nicho, cidade e observações.
+// conversa do Bruno), sem tags e sem tipo, nicho, cidade e observações, sem
+// sequências e sem horário comercial gravado (vale o padrão).
 // Só mexe na empresa cujo nome começa com "[TESTE]".
 // Uso: node e2e/preview/resetar-empresa-teste.cjs
 
@@ -46,6 +47,13 @@ const { lerEnv, bancoDeServico, conferirEmpresaDeTeste } = require("./comum.cjs"
   if (conversaBruno && etiqueta) {
     await feito(db.from("conversation_labels").insert({ conversation_id: conversaBruno.id, label_id: etiqueta }))
   }
+
+  // B11-08: sequências criadas pelos roteiros (a empresa de teste não tem outras),
+  // com as execuções e os lembretes delas, e o horário comercial
+  await feito(db.from("reminders").delete().eq("workspace_id", ws))
+  await feito(db.from("sequence_runs").delete().eq("workspace_id", ws))
+  await feito(db.from("sequences").delete().eq("workspace_id", ws))
+  await feito(db.from("business_hours").delete().eq("workspace_id", ws))
 
   console.log("empresa de teste no estado inicial")
 })().catch((e) => {

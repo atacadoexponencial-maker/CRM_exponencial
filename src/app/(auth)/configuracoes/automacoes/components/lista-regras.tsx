@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { History, MoreHorizontal, Plus, Zap } from "lucide-react"
+import { Clock, History, MoreHorizontal, Plus, Zap } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogPopup, DialogTitle } from "@/components/ui/dialog"
@@ -41,6 +41,8 @@ interface ListaRegrasProps {
   onNova: () => void
   /** Botão "Histórico" no topo, com as execuções de todas as regras. */
   onAbrirHistorico?: () => void
+  /** Botão "Horário comercial" no topo, que a condição de horário usa (B11-08). */
+  onAbrirHorario?: () => void
   onEditar: (id: string) => void
   onAlternar: (id: string, ativa: boolean) => void
   onDuplicar: (id: string) => void
@@ -66,6 +68,7 @@ export function ListaRegras({
   historicoDisponivel,
   onNova,
   onAbrirHistorico,
+  onAbrirHorario,
   onEditar,
   onAlternar,
   onDuplicar,
@@ -91,9 +94,15 @@ export function ListaRegras({
 
   return (
     <>
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">Automações</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {onAbrirHorario && (
+            <Button onClick={onAbrirHorario} size="sm" variant="outline">
+              <Clock />
+              Horário comercial
+            </Button>
+          )}
           {historicoDisponivel && onAbrirHistorico && (
             <Button onClick={onAbrirHistorico} size="sm" variant="outline">
               <History />

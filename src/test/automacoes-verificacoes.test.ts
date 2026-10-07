@@ -1,7 +1,8 @@
 // Testes das verificações de contato no motor (B11-11): tag, tipo e
-// classificação. O banco é falso (`automacoes-banco-falso.ts`).
+// classificação; e a de horário comercial (B11-08). O banco é falso
+// (`automacoes-banco-falso.ts`).
 
-import { describe, it, expect } from "vitest"
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest"
 import type { GatilhoAutomacao } from "@/lib/automacoes/contexto"
 import { verificacaoVale } from "@/lib/automacoes/verificacoes"
 import type { Verificacao, VerificacaoTipo } from "@/lib/fluxo-automacao"
@@ -91,5 +92,38 @@ describe("evento sem contato", () => {
     ]) {
       expect(await verificacaoVale(b.contexto(semContato), v)).toBe(false)
     }
+  })
+})
+
+describe("horário comercial (B11-08)", () => {
+  // Quarta, 7 de outubro de 2026, 09:00 em Brasília
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-10-07T12:00:00Z"))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it("sem horário gravado, vale o padrão (seg a sex, 08:00 às 18:00)", async () => {
+    const b = banco({ business_hours: { um: null } })
+    expect(await verificacaoVale(b.contexto(evento), verificacao("horario_comercial", "dentro", ""))).toBe(true)
+    expect(await verificacaoVale(b.contexto(evento), verificacao("horario_comercial", "fora", ""))).toBe(false)
+    expect(b.filtros("business_hours")).toEqual([
+      ["workspace_id", "ws-1"],
+      ["workspace_id", "ws-1"],
+    ])
+  })
+
+  it("usa o horário que a empresa gravou", async () => {
+    const soSabado = banco({ business_hours: { um: { dias: [6], inicio: "08:00:00", fim: "12:00:00" } } })
+    const tarde = banco({ business_hours: { um: { dias: [1, 2, 3, 4, 5], inicio: "13:00:00", fim: "18:00:00" } } })
+    expect(await verificacaoVale(soSabado.contexto(evento), verificacao("horario_comercial", "fora", ""))).toBe(true)
+    expect(await verificacaoVale(tarde.contexto(evento), verificacao("horario_comercial", "dentro", ""))).toBe(false)
+  })
+
+  it("erro de banco sobe, para encerrar a regra", async () => {
+    const b = banco({ business_hours: { erro: { message: "timeout" } } })
+    await expect(verificacaoVale(b.contexto(evento), verificacao("horario_comercial", "dentro", ""))).rejects.toBeTruthy()
   })
 })

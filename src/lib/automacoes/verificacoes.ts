@@ -1,7 +1,7 @@
 // Verificações do bloco de condição que o motor já sabe avaliar: canal, etiqueta
 // e atendente da conversa, e etapa do card do contato (B11-02); tag, tipo e
-// classificação do contato (B11-11). As outras do editor (texto e tipo da
-// mensagem, horário) entram nas próximas issues; até lá, não valem.
+// classificação do contato (B11-11); horário comercial (B11-08). As outras do
+// editor (texto e tipo da mensagem) entram nas próximas issues; até lá, não valem.
 //
 // Cada verificação consulta o banco na hora, para enxergar o que uma ação
 // anterior do mesmo caminho acabou de mudar (uma tag que o fluxo acabou de
@@ -11,6 +11,7 @@
 
 import { calcularClassificacao } from "@/app/(auth)/contatos/classificacao"
 import { normalizarTag, type Verificacao } from "@/lib/fluxo-automacao"
+import { dentroDoHorario, horarioDoBanco } from "@/lib/horario-comercial"
 import { conversaDoEvento, type ContextoDaExecucao } from "./contexto"
 
 /** Opção do editor ("Canal da conversa é …") → `whatsapp_connections.canal`. */
@@ -37,9 +38,26 @@ export async function verificacaoVale(contexto: ContextoDaExecucao, verificacao:
       return tipoVale(contexto, verificacao)
     case "classificacao":
       return classificacaoVale(contexto, verificacao)
+    case "horario_comercial":
+      return horarioVale(contexto, verificacao)
     default:
       return false
   }
+}
+
+/** A hora de agora, no fuso da operação, contra o horário que a empresa gravou (ou o padrão). */
+async function horarioVale({ supabase, gatilho }: ContextoDaExecucao, { operador }: Verificacao): Promise<boolean> {
+  if (operador !== "dentro" && operador !== "fora") return false
+
+  const { data, error } = await supabase
+    .from("business_hours")
+    .select("dias, inicio, fim")
+    .eq("workspace_id", gatilho.workspaceId)
+    .maybeSingle()
+  if (error) throw error
+
+  const dentro = dentroDoHorario(horarioDoBanco(data), new Date())
+  return operador === "dentro" ? dentro : !dentro
 }
 
 async function tagVale({ supabase, gatilho }: ContextoDaExecucao, { operador, valor }: Verificacao): Promise<boolean> {

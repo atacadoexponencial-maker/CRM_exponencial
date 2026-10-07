@@ -23,6 +23,7 @@ import {
   Users,
 } from "lucide-react"
 import type { AcaoTipo, GatilhoTipo, VerificacaoTipo } from "@/lib/fluxo-automacao"
+import type { HorarioComercial } from "@/lib/horario-comercial"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "../../../pipeline/mock-pipeline"
 import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "../../../contatos/mock-contatos"
 
@@ -37,6 +38,8 @@ export interface OpcoesEditor {
   sequencias: Opcao[]
   mensagensRapidas: Opcao[]
   numeros: Opcao[]
+  /** O da empresa, ou o padrão: o painel da condição de horário mostra qual vale. */
+  horarioComercial: HorarioComercial
 }
 
 export type FonteOpcoes =

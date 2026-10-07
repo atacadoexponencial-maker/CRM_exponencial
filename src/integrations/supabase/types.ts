@@ -240,6 +240,38 @@ export type Database = {
           },
         ]
       }
+      business_hours: {
+        Row: {
+          dias: number[]
+          fim: string
+          inicio: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          dias: number[]
+          fim: string
+          inicio: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          dias?: number[]
+          fim?: string
+          inicio?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_hours_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_recipients: {
         Row: {
           atualizado_em: string | null

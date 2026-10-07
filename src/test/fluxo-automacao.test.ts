@@ -230,10 +230,10 @@ describe("pendenciasDoFluxo: só o que o motor executa (B11-10)", () => {
         {
           id: "c",
           tipo: "condicao",
-          verificacoes: [{ id: "v", tipo: "horario_comercial", operador: "dentro", valor: "" }],
+          verificacoes: [{ id: "v", tipo: "texto_mensagem", operador: "contem", valor: "oi" }],
           posicao,
         },
-        { id: "a", tipo: "acao", acao: "iniciar_sequencia", parametros: { sequencia_id: "seq-1" }, posicao },
+        { id: "a", tipo: "acao", acao: "enviar_mensagem_rapida", parametros: { mensagem_rapida_id: "r-1" }, posicao },
       ],
       ligacoes: [liga("g", "c"), liga("c", "a", "sim")],
     }
