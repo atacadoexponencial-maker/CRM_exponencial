@@ -11,14 +11,14 @@ export default async function EditorAutomacaoPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ antiga?: string }>
+  searchParams: Promise<{ antiga?: string; salva?: string }>
 }) {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
 
   if (perfil?.role !== "admin") redirect("/perfil")
 
-  const [{ id }, { antiga }] = await Promise.all([params, searchParams])
+  const [{ id }, { antiga, salva }] = await Promise.all([params, searchParams])
   const [resultado, opcoes] = await Promise.all([
     buscarRegraParaEditor(id, antiga ?? null),
     carregarOpcoesEditor(supabase, perfil.workspace_id),
@@ -26,5 +26,12 @@ export default async function EditorAutomacaoPage({
   if ("redirecionar" in resultado) redirect(resultado.redirecionar)
 
   // A chave recria o editor ao trocar de regra, para o desenho de uma não ficar na outra
-  return <EditorClient key={resultado.regra.id ?? `nova:${antiga ?? ""}`} regra={resultado.regra} opcoes={opcoes} />
+  return (
+    <EditorClient
+      key={resultado.regra.id ?? `nova:${antiga ?? ""}`}
+      regra={resultado.regra}
+      opcoes={opcoes}
+      acabouDeSalvar={salva === "1"}
+    />
+  )
 }

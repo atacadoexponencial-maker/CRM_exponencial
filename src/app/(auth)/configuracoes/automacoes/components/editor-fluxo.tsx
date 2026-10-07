@@ -67,6 +67,8 @@ interface EditorFluxoProps {
   salvar: (regra: RegraEditada) => Promise<{ erro?: string; aviso?: string }>
   simular: (contatoId: string, fluxo: Fluxo) => Promise<{ erro?: string; resultado?: ResultadoSimulacao }>
   onVoltar: () => void
+  /** Aviso que o editor já mostra ao abrir, como "Automação salva" logo depois do primeiro salvamento. */
+  avisoInicial?: string
 }
 
 const ITENS_REPETICAO: ItemSelecao[] = [
@@ -139,7 +141,15 @@ export function EditorFluxo(props: EditorFluxoProps) {
   )
 }
 
-function EditorFluxoInterno({ regraInicial, opcoes, buscarContatos, salvar, simular, onVoltar }: EditorFluxoProps) {
+function EditorFluxoInterno({
+  regraInicial,
+  opcoes,
+  buscarContatos,
+  salvar,
+  simular,
+  onVoltar,
+  avisoInicial,
+}: EditorFluxoProps) {
   const [nos, setNos, onNodesChange] = useNodesState<NoFluxo>(paraNos(regraInicial.fluxo))
   const [ligacoes, setLigacoes, onEdgesChange] = useEdgesState<LigacaoFluxo>(
     regraInicial.fluxo.ligacoes.map((l) => novaLigacao(l.de, l.saida, l.para))
@@ -153,7 +163,9 @@ function EditorFluxoInterno({ regraInicial, opcoes, buscarContatos, salvar, simu
   const [avisoRepeticao, setAvisoRepeticao] = useState(false)
   const [destacarErros, setDestacarErros] = useState(false)
   const [erroNome, setErroNome] = useState(false)
-  const [mensagem, setMensagem] = useState<{ tipo: "erro" | "ok"; texto: string } | null>(null)
+  const [mensagem, setMensagem] = useState<{ tipo: "erro" | "ok"; texto: string } | null>(
+    avisoInicial ? { tipo: "ok", texto: avisoInicial } : null
+  )
   const [salvando, setSalvando] = useState(false)
 
   const areaRef = useRef<HTMLDivElement>(null)
