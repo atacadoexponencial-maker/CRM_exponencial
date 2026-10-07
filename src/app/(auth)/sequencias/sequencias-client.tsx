@@ -158,7 +158,7 @@ export function SequenciasClient({
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
                               variant="destructive"
-                              onSelect={() => {
+                              onClick={() => {
                                 setExcluindoId(s.id)
                                 setErroExcluir(null)
                                 setDialogExcluirAberto(true)

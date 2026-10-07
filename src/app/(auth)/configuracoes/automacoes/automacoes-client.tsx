@@ -261,12 +261,12 @@ export function AutomacoesClient({ automacoesIniciais, etiquetas, atendentes }: 
                         <span className="sr-only">Abrir menu</span>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => abrirEditar(a)}>
+                        <DropdownMenuItem onClick={() => abrirEditar(a)}>
                           Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           variant="destructive"
-                          onSelect={() => {
+                          onClick={() => {
                             setExcluindoId(a.id)
                             setErroExcluir(null)
                             setDialogExcluirAberto(true)
