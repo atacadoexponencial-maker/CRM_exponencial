@@ -232,3 +232,19 @@ resultado ser previsível. O escolhido recebe a conversa e o card, como em
 
 **Descartado:** sortear no empate. Um sorteio deixaria o teste no preview sem
 resultado previsível e não traz equilíbrio a mais que a contagem de conversas.
+
+### 7.4 Toda ação sobre um dado tem a condição que o lê
+
+**Regra:** o que uma ação liberada muda, uma condição liberada consegue
+perguntar. Senão o fluxo escreve um dado que ele mesmo não consegue usar. O Luan
+achou isso no primeiro teste: dava para adicionar uma tag, mas a condição "tag do
+contato" estava "em breve". Por isso entraram as condições de tag, tipo e
+classificação junto com as ações.
+
+**Exceções aceitas por enquanto:** nicho, cidade e observações podem ser
+alterados, mas não há condição sobre eles, e a spec não prevê nenhuma. Se fizer
+falta, entram como verificações novas ("nicho é", "cidade é").
+
+**Verificações que continuam "em breve":** texto e tipo da mensagem (só servem
+nos gatilhos de mensagem, que ainda não estão liberados) e horário comercial
+(depende da configuração de horário, B11-08).

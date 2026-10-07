@@ -147,7 +147,16 @@ const ACOES_QUE_ENVIAM: readonly AcaoTipo[] = ["enviar_mensagem", "enviar_mensag
 // como "em breve", e `pendenciasDoFluxo` não deixa salvar. Cada issue da B11 que
 // ensina o motor a fazer algo novo acrescenta aqui.
 export const GATILHOS_DISPONIVEIS: readonly GatilhoTipo[] = ["card_movido", "conversa_criada"]
-export const VERIFICACOES_DISPONIVEIS: readonly VerificacaoTipo[] = ["canal", "etiqueta_conversa", "atendente", "card_etapa"]
+// A primeira serve de padrão para a verificação nova no editor
+export const VERIFICACOES_DISPONIVEIS: readonly VerificacaoTipo[] = [
+  "tag_contato",
+  "classificacao",
+  "tipo_contato",
+  "canal",
+  "etiqueta_conversa",
+  "atendente",
+  "card_etapa",
+]
 export const ACOES_DISPONIVEIS: readonly AcaoTipo[] = [
   "enviar_mensagem",
   "aplicar_etiqueta",

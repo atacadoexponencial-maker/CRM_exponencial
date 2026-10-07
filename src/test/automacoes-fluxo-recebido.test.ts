@@ -3,7 +3,13 @@
 
 import { describe, it, expect } from "vitest"
 import { lerFluxo } from "@/lib/automacoes/fluxo-recebido"
-import { dadoDoContatoValido, etapaValida, referenciasDoFluxo } from "@/lib/automacoes/referencias"
+import {
+  classificacaoValida,
+  dadoDoContatoValido,
+  etapaValida,
+  referenciasDoFluxo,
+  tipoDeContatoValido,
+} from "@/lib/automacoes/referencias"
 import type { Fluxo } from "@/lib/fluxo-automacao"
 
 const posicao = { x: 10, y: 20 }
@@ -120,6 +126,37 @@ describe("referencias das ações da B11-11", () => {
     const refs = referenciasDoFluxo(fluxo)
     expect(refs.times).toEqual(["time-1"])
     expect(refs.dadosDoContato).toEqual([{ campo: "tipo", valor: "lojista" }])
+  })
+})
+
+describe("tipo e classificação nas condições", () => {
+  const fluxo: Fluxo = {
+    blocos: [
+      {
+        id: "c",
+        tipo: "condicao",
+        verificacoes: [
+          { id: "v1", tipo: "tipo_contato", operador: "e", valor: "revendedor" },
+          { id: "v2", tipo: "classificacao", operador: "nao_e", valor: "em_risco" },
+        ],
+        posicao,
+      },
+    ],
+    ligacoes: [],
+  }
+
+  it("são juntados para o servidor conferir", () => {
+    const refs = referenciasDoFluxo(fluxo)
+    expect(refs.tiposDeContato).toEqual(["revendedor"])
+    expect(refs.classificacoes).toEqual(["em_risco"])
+  })
+
+  it("valem só os valores que a tela do contato mostra", () => {
+    expect(tipoDeContatoValido("revendedor")).toBe(true)
+    expect(tipoDeContatoValido("atacadista")).toBe(false)
+    expect(classificacaoValida("em_risco")).toBe(true)
+    expect(classificacaoValida("vip")).toBe(false)
+    expect(classificacaoValida("constructor")).toBe(false)
   })
 })
 

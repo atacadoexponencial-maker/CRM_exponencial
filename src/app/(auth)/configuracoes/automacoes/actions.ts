@@ -12,7 +12,13 @@ import { revalidatePath } from "next/cache"
 import { createServiceClient } from "@/integrations/supabase/service"
 import type { Json } from "@/integrations/supabase/types"
 import { lerFluxo } from "@/lib/automacoes/fluxo-recebido"
-import { dadoDoContatoValido, etapaValida, referenciasDoFluxo } from "@/lib/automacoes/referencias"
+import {
+  classificacaoValida,
+  dadoDoContatoValido,
+  etapaValida,
+  referenciasDoFluxo,
+  tipoDeContatoValido,
+} from "@/lib/automacoes/referencias"
 import { fluxoDaRegraAntiga } from "@/lib/automacoes/regra-antiga"
 import { simularFluxo } from "@/lib/automacoes/simulacao"
 import { pendenciasDoFluxo, type Fluxo, type ResultadoSimulacao } from "@/lib/fluxo-automacao"
@@ -152,10 +158,14 @@ export async function buscarRegraParaEditor(
 
 /** Etiquetas, atendentes, números, times e etapas citados no fluxo existem e são da empresa? */
 async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Fluxo): Promise<string | null> {
-  const { etiquetas, atendentes, conexoes, times, etapas, dadosDoContato } = referenciasDoFluxo(fluxo)
+  const { etiquetas, atendentes, conexoes, times, etapas, dadosDoContato, tiposDeContato, classificacoes } =
+    referenciasDoFluxo(fluxo)
   if (!etapas.every(etapaValida)) return "Uma etapa escolhida não existe no funil. Escolha de novo."
   if (!dadosDoContato.every(({ campo, valor }) => dadoDoContatoValido(campo, valor))) {
     return "O dado do contato escolhido não pode receber esse valor. Confira o campo e o valor."
+  }
+  if (!tiposDeContato.every(tipoDeContatoValido) || !classificacoes.every(classificacaoValida)) {
+    return "Um tipo ou classificação escolhido numa condição não existe. Escolha de novo."
   }
 
   const contar = async (tabela: "labels" | "profiles" | "whatsapp_connections" | "teams", ids: string[]) => {

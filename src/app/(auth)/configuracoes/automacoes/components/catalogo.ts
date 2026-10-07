@@ -176,6 +176,8 @@ type ValorVerificacao =
   | { tipo: "opcoes"; fonte: FonteOpcoes }
   | { tipo: "funil_etapa" }
   | { tipo: "nenhum" }
+  /** Tag digitada, como na ação "adicionar tag": dá para conferir uma tag que o fluxo acabou de criar. */
+  | { tipo: "tag_livre" }
 
 export const VERIFICACOES: Record<
   VerificacaoTipo,
@@ -211,7 +213,7 @@ export const VERIFICACOES: Record<
       { id: "tem", nome: "tem" },
       { id: "nao_tem", nome: "não tem" },
     ],
-    valor: { tipo: "opcoes", fonte: "tags" },
+    valor: { tipo: "tag_livre" },
   },
   classificacao: {
     rotulo: "Classificação do contato",

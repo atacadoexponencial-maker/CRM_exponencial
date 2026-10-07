@@ -248,37 +248,9 @@ function CampoParametro({
         />
       )
     }
-    case "tag_livre": {
-      // As tags que a empresa já usa e combinam com o que foi digitado
-      const sugestoes = opcoes.tags.filter((t) => t.id !== valor && t.id.includes(valor)).slice(0, 12)
-      return (
-        <>
-          <Input
-            id={id}
-            value={valor}
-            maxLength={50}
-            placeholder="ex.: interessado"
-            // Como a tela do contato grava: minúsculas e sem espaço
-            onChange={(e) => onMudar(campo.chave, e.target.value.toLowerCase().replace(/\s/g, ""))}
-          />
-          {sugestoes.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {sugestoes.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => onMudar(campo.chave, t.id)}
-                  className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  {t.nome}
-                </button>
-              ))}
-            </div>
-          )}
-          <p className="text-xs text-muted-foreground">Pode ser uma tag nova. Minúsculas e sem espaço.</p>
-        </>
-      )
-    }
+    case "tag_livre":
+      return <CampoTag id={id} valor={valor} tags={opcoes.tags} onMudar={(novo) => onMudar(campo.chave, novo)} />
+
     case "arquivo":
       return (
         <>
@@ -396,6 +368,14 @@ function EditorVerificacoes({
                 onMudar={(valor) => mudar(v.id, { valor })}
               />
             )}
+            {pedeValor && item.valor.tipo === "tag_livre" && (
+              <CampoTag
+                aria-label="Valor"
+                valor={v.valor}
+                tags={opcoes.tags}
+                onMudar={(valor) => mudar(v.id, { valor })}
+              />
+            )}
             {pedeValor && item.valor.tipo === "funil_etapa" && (
               <SeletorFunilEtapa valor={v.valor} onMudar={(valor) => mudar(v.id, { valor })} />
             )}
@@ -432,5 +412,54 @@ function SeletorFunilEtapa({ valor, onMudar }: { valor: string; onMudar: (valor:
         onMudar={(novo) => onMudar(`${funil}:${novo}`)}
       />
     </div>
+  )
+}
+
+/**
+ * Tag digitada, que pode ser nova, com as tags que a empresa já usa como
+ * sugestão. Serve à ação "adicionar tag" e à condição "tag do contato".
+ */
+function CampoTag({
+  id,
+  "aria-label": rotuloAcessivel,
+  valor,
+  tags,
+  onMudar,
+}: {
+  id?: string
+  "aria-label"?: string
+  valor: string
+  tags: Opcao[]
+  onMudar: (valor: string) => void
+}) {
+  // As que combinam com o que foi digitado
+  const sugestoes = tags.filter((t) => t.id !== valor && t.id.includes(valor)).slice(0, 12)
+  return (
+    <>
+      <Input
+        id={id}
+        aria-label={rotuloAcessivel}
+        value={valor}
+        maxLength={50}
+        placeholder="ex.: interessado"
+        // Como a tela do contato grava: minúsculas e sem espaço
+        onChange={(e) => onMudar(e.target.value.toLowerCase().replace(/\s/g, ""))}
+      />
+      {sugestoes.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {sugestoes.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => onMudar(t.id)}
+              className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              {t.nome}
+            </button>
+          ))}
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground">Pode ser uma tag nova. Minúsculas e sem espaço.</p>
+    </>
   )
 }

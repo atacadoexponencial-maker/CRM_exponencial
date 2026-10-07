@@ -3,7 +3,7 @@
 // com o service client, que passa por cima da RLS: uma etiqueta de outra empresa
 // gravada no fluxo seria aplicada sem ninguém barrar.
 
-import { TIPO_LABEL } from "@/app/(auth)/contatos/mock-contatos"
+import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "@/app/(auth)/contatos/mock-contatos"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
 import type { Fluxo } from "@/lib/fluxo-automacao"
 
@@ -15,6 +15,9 @@ export interface ReferenciasDoFluxo {
   etapas: Array<{ funil: string; etapa: string }>
   /** Campo e valor de cada "alterar dado do contato". */
   dadosDoContato: Array<{ campo: string; valor: string }>
+  /** Valores das verificações "tipo do contato é" e "classificação do contato é". */
+  tiposDeContato: string[]
+  classificacoes: string[]
 }
 
 const PREFIXO_NUMERO = "numero:"
@@ -26,6 +29,8 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
   const times = new Set<string>()
   const etapas: ReferenciasDoFluxo["etapas"] = []
   const dadosDoContato: ReferenciasDoFluxo["dadosDoContato"] = []
+  const tiposDeContato: string[] = []
+  const classificacoes: string[] = []
 
   for (const bloco of fluxo.blocos) {
     if (bloco.tipo === "condicao") {
@@ -37,6 +42,8 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
           const [funil = "", etapa = ""] = v.valor.split(":")
           etapas.push({ funil, etapa })
         }
+        if (v.tipo === "tipo_contato") tiposDeContato.push(v.valor)
+        if (v.tipo === "classificacao") classificacoes.push(v.valor)
       }
       continue
     }
@@ -59,8 +66,14 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
     times: [...times],
     etapas,
     dadosDoContato,
+    tiposDeContato,
+    classificacoes,
   }
 }
+
+/** Valores que a tela do contato mostra como tipo e como classificação. */
+export const tipoDeContatoValido = (tipo: string) => Object.hasOwn(TIPO_LABEL, tipo)
+export const classificacaoValida = (classificacao: string) => Object.hasOwn(CLASSIFICACAO_LABEL, classificacao)
 
 /**
  * Campos que a ação "alterar dado do contato" muda. A classificação fica de
@@ -72,7 +85,7 @@ const LIMITE_POR_CAMPO: Record<string, number> = { nicho: 100, cidade: 100, obse
 export function dadoDoContatoValido(campo: string, valor: string): boolean {
   const texto = valor.trim()
   if (!texto) return false
-  if (campo === "tipo") return Object.hasOwn(TIPO_LABEL, texto)
+  if (campo === "tipo") return tipoDeContatoValido(texto)
   const limite = LIMITE_POR_CAMPO[campo]
   return limite !== undefined && texto.length <= limite
 }

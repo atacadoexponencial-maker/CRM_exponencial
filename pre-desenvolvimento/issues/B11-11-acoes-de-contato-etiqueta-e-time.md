@@ -138,7 +138,40 @@ Nenhuma mudança. As ações usam `contact_tags`, `conversation_labels`,
 - **`dadoDoContatoValido` confere o tipo com `Object.hasOwn`**, e não com `in`.
   Com `in`, um valor como `toString` passaria, porque vem do protótipo do objeto.
 
-**Como foi verificado:** 19 testes novos. A suíte unitária inteira, sem os
+## Ajuste de 07/10/2026: condições de contato junto com as ações
+
+No primeiro teste, o Luan notou que as ações de tag e de dado do contato estavam
+liberadas, mas as condições ainda apareciam "em breve". Dava para adicionar uma
+tag e não dava para perguntar se o contato tinha ela. O bloco de condição foi
+conferido contra o que o motor faz, e três verificações entraram:
+
+- **Tag do contato tem / não tem.** O valor aceita tag digitada, como na ação,
+  para conferir uma tag que o próprio fluxo acabou de adicionar. O campo de tag
+  virou um componente (`CampoTag`), usado na ação e na condição.
+- **Tipo do contato é / não é.** Contato sem tipo "não é" nenhum tipo.
+- **Classificação do contato é / não é**, calculada pela etapa dos cards com
+  `calcularClassificacao`, igual ao que o CRM mostra (seção 7.1 das decisões).
+
+Continuam "em breve" e fazem sentido assim: texto e tipo da mensagem (só valem
+nos gatilhos de mensagem, que ainda não estão liberados) e horário comercial
+(precisa da configuração de horário, B11-08).
+
+**Arquivos do ajuste:** `src/lib/automacoes/verificacoes.ts` (as três
+verificações), `src/lib/fluxo-automacao.ts` (`VERIFICACOES_DISPONIVEIS`, com a
+tag primeiro, que vira o padrão da verificação nova), `src/lib/automacoes/referencias.ts`
+e `actions.ts` (o servidor confere tipo e classificação), `catalogo.ts` e
+`painel-bloco.tsx` (tag digitada na condição), `src/test/automacoes-verificacoes.test.ts`
+(novo), `src/test/automacoes-banco-falso.ts` (o banco falso, que saiu do teste
+das ações para servir aos dois) e ajustes nos testes de fluxo e de referências.
+Um teste da B11-10 trocou de novo de exemplo de verificação "em breve": de tag
+para horário.
+
+**Verificação do ajuste:** suíte unitária com 42 arquivos e 475 testes passando,
+`tsc` e lint limpos, build com código 0. No Playwright, numa rota temporária
+apagada antes do commit, o seletor de atributo mostrou 7 verificações
+disponíveis e 3 "em breve", e a tag digitada "Cliente VIP" virou `clientevip`.
+
+**Como foi verificado (primeira parte):** 19 testes novos. A suíte unitária inteira, sem os
 `*.integration.test.ts`, deu 41 arquivos e 465 testes passando. `tsc` sem erro,
 lint limpo nos arquivos da issue e `npm run build` com código de saída 0. As
 ações rodando de verdade ficam para o teste no preview.

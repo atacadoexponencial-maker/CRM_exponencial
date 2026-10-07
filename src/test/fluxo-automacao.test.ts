@@ -223,7 +223,7 @@ describe("pendenciasDoFluxo: só o que o motor executa (B11-10)", () => {
         {
           id: "c",
           tipo: "condicao",
-          verificacoes: [{ id: "v", tipo: "tag_contato", operador: "tem", valor: "vip" }],
+          verificacoes: [{ id: "v", tipo: "horario_comercial", operador: "dentro", valor: "" }],
           posicao,
         },
         { id: "a", tipo: "acao", acao: "iniciar_sequencia", parametros: { sequencia_id: "seq-1" }, posicao },
