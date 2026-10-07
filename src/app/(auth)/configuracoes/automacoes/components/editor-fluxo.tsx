@@ -42,6 +42,7 @@ import {
   type LigacaoFluxo,
   type NoFluxo,
 } from "./blocos-fluxo"
+import { CampoSelecao, type ItemSelecao } from "./campo-selecao"
 import { MenuNovoBloco, type ItemNovoBloco } from "./menu-novo-bloco"
 import { PainelBloco } from "./painel-bloco"
 
@@ -67,8 +68,11 @@ interface EditorFluxoProps {
   onVoltar: () => void
 }
 
-const selectClass =
-  "h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+const ITENS_REPETICAO: ItemSelecao[] = [
+  { valor: "uma_vez_por_contato", rotulo: "Uma vez por contato" },
+  { valor: "a_cada_horas", rotulo: "No máximo a cada N horas por contato" },
+  { valor: "sempre", rotulo: "Sempre (a cada disparo)" },
+]
 
 // Distância do bloco novo até o bloco de onde ele sai
 const ESPACO_VERTICAL = 90
@@ -299,19 +303,16 @@ function EditorFluxoInterno({ regraInicial, opcoes, contatosTeste, salvar, simul
           }}
         />
         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-          <select
+          <CampoSelecao
             aria-label="Proteção de repetição"
-            className={cn(selectClass, "min-w-0 max-w-full")}
-            value={repeticao.modo}
-            onChange={(e) => {
-              const modo = e.target.value as Repeticao["modo"]
+            className="w-auto min-w-0 max-w-full"
+            valor={repeticao.modo}
+            itens={ITENS_REPETICAO}
+            onMudar={(valor) => {
+              const modo = valor as Repeticao["modo"]
               setRepeticao(modo === "a_cada_horas" ? { modo, horas: 24 } : { modo })
             }}
-          >
-            <option value="uma_vez_por_contato">Uma vez por contato</option>
-            <option value="a_cada_horas">No máximo a cada N horas por contato</option>
-            <option value="sempre">Sempre (a cada disparo)</option>
-          </select>
+          />
           {repeticao.modo === "a_cada_horas" && (
             <>
               <Input

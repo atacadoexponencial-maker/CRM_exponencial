@@ -265,3 +265,31 @@ para não mexer no menu até a B11-05. Essa regra foi trocada só no branch:
   clientes.
 - **Antes do merge:** a B11-05 apaga a rota do protótipo e volta o item para
   `/configuracoes/automacoes`. O protótipo continua sem gravar nada.
+
+## Ajuste de 07/10/2026: listas de escolha no estilo do site
+
+O Luan pediu os dropdowns do editor estilizados no estilo do site. O
+`<select>` nativo abre uma lista que o navegador desenha com as cores do
+sistema, fora do tema escuro.
+
+- **O que mudou:** os 11 `<select>` do editor (10 no painel do bloco e 1 na barra do topo,
+  o da repetição) usam o Select do Base UI, gerado pelo shadcn
+  (`npx shadcn add select`, em `src/components/ui/select.tsx`). A lista abre
+  embaixo do campo, com as cores do tema e a marca no item escolhido.
+- **`campo-selecao.tsx`:** adapta o Select à forma dos campos do painel. O
+  valor é texto, `""` quando nada está escolhido, e o item vazio ("Qualquer
+  etapa", "Escolha…") é opcional. Também aceita item desabilitado.
+- **Correção no que o shadcn gerou:** o comando importou `cn` de um pacote do
+  npm chamado `cn`, sem relação com o projeto, e o instalou. O pacote foi
+  desinstalado, e a importação aponta para `@/lib/utils`, como nos outros
+  componentes de `ui/`.
+- **Alternativa descartada:** só trocar as cores do `<select>` nativo por CSS.
+  A lista aberta continua sendo do sistema operacional e não aceita o estilo
+  do site em todos os navegadores.
+- **Fora daqui:** as outras telas do CRM ainda usam `<select>` nativo (18
+  arquivos). Trocá-las é trabalho para o `master`, não para este branch.
+- **Verificação:** lint e tipos limpos, build com código de saída 0. Um roteiro
+  do Playwright, numa rota temporária apagada antes do commit, abriu as listas
+  de repetição, atributo, valor, ação e etapa. Escolher um item mostra o
+  rótulo no botão, e o item vazio aparece quando nada está escolhido. Não
+  houve erro no console.

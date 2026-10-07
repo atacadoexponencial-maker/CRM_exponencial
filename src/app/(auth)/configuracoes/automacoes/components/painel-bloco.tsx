@@ -26,16 +26,20 @@ import {
   opcoesDaFonte,
   opcoesDoCampoContato,
   type CampoTela,
+  type Opcao,
   type OpcoesEditor,
 } from "./catalogo"
-
-const selectClass =
-  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+import { CampoSelecao, type ItemSelecao } from "./campo-selecao"
 
 const textareaClass =
   "w-full min-h-24 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 resize-y"
 
 const TITULO = { gatilho: "Gatilho", condicao: "Condição", acao: "Ação" } as const
+
+const paraItens = (opcoes: Opcao[]): ItemSelecao[] => opcoes.map((o) => ({ valor: o.id, rotulo: o.nome }))
+
+const ITENS_GATILHO = (Object.keys(GATILHOS) as GatilhoTipo[]).map((tipo) => ({ valor: tipo, rotulo: GATILHOS[tipo].rotulo }))
+const ITENS_ACAO = (Object.keys(ACOES) as AcaoTipo[]).map((tipo) => ({ valor: tipo, rotulo: ACOES[tipo].rotulo }))
 
 interface PainelBlocoProps {
   bloco: Bloco
@@ -63,18 +67,12 @@ export function PainelBloco({ bloco, gatilho, opcoes, pendencias, onMudar, onRem
           <>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="painel-gatilho">Quando</Label>
-              <select
+              <CampoSelecao
                 id="painel-gatilho"
-                className={selectClass}
-                value={bloco.gatilho}
-                onChange={(e) => onMudar({ ...bloco, gatilho: e.target.value as GatilhoTipo, parametros: {} })}
-              >
-                {(Object.keys(GATILHOS) as GatilhoTipo[]).map((tipo) => (
-                  <option key={tipo} value={tipo}>
-                    {GATILHOS[tipo].rotulo}
-                  </option>
-                ))}
-              </select>
+                valor={bloco.gatilho}
+                itens={ITENS_GATILHO}
+                onMudar={(valor) => onMudar({ ...bloco, gatilho: valor as GatilhoTipo, parametros: {} })}
+              />
             </div>
             <CamposParametros
               campos={GATILHOS[bloco.gatilho].campos}
@@ -89,18 +87,12 @@ export function PainelBloco({ bloco, gatilho, opcoes, pendencias, onMudar, onRem
           <>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="painel-acao">Fazer</Label>
-              <select
+              <CampoSelecao
                 id="painel-acao"
-                className={selectClass}
-                value={bloco.acao}
-                onChange={(e) => onMudar({ ...bloco, acao: e.target.value as AcaoTipo, parametros: {} })}
-              >
-                {(Object.keys(ACOES) as AcaoTipo[]).map((tipo) => (
-                  <option key={tipo} value={tipo}>
-                    {ACOES[tipo].rotulo}
-                  </option>
-                ))}
-              </select>
+                valor={bloco.acao}
+                itens={ITENS_ACAO}
+                onMudar={(valor) => onMudar({ ...bloco, acao: valor as AcaoTipo, parametros: {} })}
+              />
             </div>
             <CamposParametros
               campos={ACOES[bloco.acao].campos}
@@ -206,32 +198,24 @@ function CampoParametro({
       )
     case "opcoes":
       return (
-        <select id={id} className={selectClass} value={valor} onChange={(e) => onMudar(campo.chave, e.target.value)}>
-          <option value="">{campo.vazio}</option>
-          {opcoesDaFonte(campo.fonte, opcoes).map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.nome}
-            </option>
-          ))}
-        </select>
+        <CampoSelecao
+          id={id}
+          valor={valor}
+          vazio={campo.vazio}
+          itens={paraItens(opcoesDaFonte(campo.fonte, opcoes))}
+          onMudar={(novo) => onMudar(campo.chave, novo)}
+        />
       )
     case "etapa":
       return (
-        <select
+        <CampoSelecao
           id={id}
-          className={selectClass}
-          value={valor}
-          disabled={!parametros.funil}
-          onChange={(e) => onMudar("etapa", e.target.value)}
-        >
-          <option value="">{parametros.funil ? campo.vazio : "Escolha o funil primeiro"}</option>
-          {parametros.funil &&
-            etapasDoFunil(parametros.funil).map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.nome}
-              </option>
-            ))}
-        </select>
+          valor={valor}
+          vazio={parametros.funil ? campo.vazio : "Escolha o funil primeiro"}
+          itens={parametros.funil ? paraItens(etapasDoFunil(parametros.funil)) : []}
+          desabilitado={!parametros.funil}
+          onMudar={(novo) => onMudar("etapa", novo)}
+        />
       )
     case "valor_do_campo": {
       const lista = opcoesDoCampoContato(parametros.campo, opcoes)
@@ -242,14 +226,13 @@ function CampoParametro({
         return <Input id={id} value={valor} onChange={(e) => onMudar("valor", e.target.value)} />
       }
       return (
-        <select id={id} className={selectClass} value={valor} onChange={(e) => onMudar("valor", e.target.value)}>
-          <option value="">{campo.vazio}</option>
-          {lista.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.nome}
-            </option>
-          ))}
-        </select>
+        <CampoSelecao
+          id={id}
+          valor={valor}
+          vazio={campo.vazio}
+          itens={paraItens(lista)}
+          onMudar={(novo) => onMudar("valor", novo)}
+        />
       )
     }
     case "arquivo":
@@ -280,6 +263,15 @@ function EditorVerificacoes({
   onMudar: (bloco: Bloco) => void
 }) {
   const deMensagem = gatilho ? GATILHOS_DE_MENSAGEM.includes(gatilho) : false
+
+  const itensAtributo: ItemSelecao[] = (Object.keys(VERIFICACOES) as VerificacaoTipo[]).map((tipo) => {
+    const soEmMensagem = VERIFICACOES_DE_MENSAGEM.includes(tipo) && !deMensagem
+    return {
+      valor: tipo,
+      rotulo: VERIFICACOES[tipo].rotulo + (soEmMensagem ? " (só em gatilhos de mensagem)" : ""),
+      desabilitado: soEmMensagem,
+    }
+  })
 
   function mudarVerificacoes(verificacoes: Verificacao[]) {
     onMudar({ ...bloco, verificacoes })
@@ -324,40 +316,24 @@ function EditorVerificacoes({
                 <X />
               </Button>
             </div>
-            <select
+            <CampoSelecao
               aria-label="Atributo"
-              className={selectClass}
-              value={v.tipo}
-              onChange={(e) => {
-                const tipo = e.target.value as VerificacaoTipo
+              valor={v.tipo}
+              itens={itensAtributo}
+              onMudar={(valor) => {
+                const tipo = valor as VerificacaoTipo
                 mudar(v.id, { tipo, operador: VERIFICACOES[tipo].operadores[0].id, valor: "" })
               }}
-            >
-              {(Object.keys(VERIFICACOES) as VerificacaoTipo[]).map((tipo) => {
-                const soMensagem = VERIFICACOES_DE_MENSAGEM.includes(tipo)
-                return (
-                  <option key={tipo} value={tipo} disabled={soMensagem && !deMensagem}>
-                    {VERIFICACOES[tipo].rotulo}
-                    {soMensagem && !deMensagem ? " (só em gatilhos de mensagem)" : ""}
-                  </option>
-                )
-              })}
-            </select>
+            />
             {invalida && (
               <p className="text-xs text-destructive">Não vale para este gatilho. Remova ou troque a verificação.</p>
             )}
-            <select
+            <CampoSelecao
               aria-label="Operador"
-              className={selectClass}
-              value={v.operador}
-              onChange={(e) => mudar(v.id, { operador: e.target.value })}
-            >
-              {item.operadores.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.nome}
-                </option>
-              ))}
-            </select>
+              valor={v.operador}
+              itens={paraItens(item.operadores)}
+              onMudar={(operador) => mudar(v.id, { operador })}
+            />
             {pedeValor && item.valor.tipo === "texto" && (
               <Input
                 aria-label="Valor"
@@ -367,19 +343,13 @@ function EditorVerificacoes({
               />
             )}
             {pedeValor && item.valor.tipo === "opcoes" && (
-              <select
+              <CampoSelecao
                 aria-label="Valor"
-                className={selectClass}
-                value={v.valor}
-                onChange={(e) => mudar(v.id, { valor: e.target.value })}
-              >
-                <option value="">Escolha…</option>
-                {opcoesDaFonte(item.valor.fonte, opcoes).map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.nome}
-                  </option>
-                ))}
-              </select>
+                valor={v.valor}
+                vazio="Escolha…"
+                itens={paraItens(opcoesDaFonte(item.valor.fonte, opcoes))}
+                onMudar={(valor) => mudar(v.id, { valor })}
+              />
             )}
             {pedeValor && item.valor.tipo === "funil_etapa" && (
               <SeletorFunilEtapa valor={v.valor} onMudar={(valor) => mudar(v.id, { valor })} />
@@ -401,34 +371,21 @@ function SeletorFunilEtapa({ valor, onMudar }: { valor: string; onMudar: (valor:
   const [funil = "", etapa = ""] = valor.split(":")
   return (
     <div className="grid grid-cols-2 gap-2">
-      <select
+      <CampoSelecao
         aria-label="Funil"
-        className={selectClass}
-        value={funil}
-        onChange={(e) => onMudar(e.target.value ? `${e.target.value}:` : "")}
-      >
-        <option value="">Funil…</option>
-        {FUNIS.map((f) => (
-          <option key={f.id} value={f.id}>
-            {f.nome}
-          </option>
-        ))}
-      </select>
-      <select
+        valor={funil}
+        vazio="Funil…"
+        itens={paraItens(FUNIS)}
+        onMudar={(novo) => onMudar(novo ? `${novo}:` : "")}
+      />
+      <CampoSelecao
         aria-label="Etapa"
-        className={selectClass}
-        value={etapa}
-        disabled={!funil}
-        onChange={(e) => onMudar(`${funil}:${e.target.value}`)}
-      >
-        <option value="">Etapa…</option>
-        {funil &&
-          etapasDoFunil(funil).map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.nome}
-            </option>
-          ))}
-      </select>
+        valor={etapa}
+        vazio="Etapa…"
+        itens={funil ? paraItens(etapasDoFunil(funil)) : []}
+        desabilitado={!funil}
+        onMudar={(novo) => onMudar(`${funil}:${novo}`)}
+      />
     </div>
   )
 }
