@@ -247,3 +247,21 @@ temporária foi apagada antes do commit.
   ("Request rate limit reached"). Eles criam usuários de teste no Supabase, que
   é o de produção, e os apagam no `afterAll`. `qr-code-conectado` procura o
   texto "leia o código no aparelho", que a tela não tem mais.
+
+## Ajuste de 07/10/2026: o menu abre o protótipo
+
+O Luan pediu que o item "Automações" do menu abra o protótipo no branch, porque
+digitar `/prototipo` no endereço a cada teste não era prático. O plano dizia
+para não mexer no menu até a B11-05. Essa regra foi trocada só no branch:
+
+- **O que mudou:** o `href` do item em `src/components/shared/sidebar-nav.tsx`
+  aponta para `/configuracoes/automacoes/prototipo`. A tela antiga continua no
+  endereço de sempre, só sai do menu.
+- **Alternativa descartada:** fazer `/configuracoes/automacoes` mostrar o
+  protótipo. Isso mexeria no `page.tsx` da tela de verdade, que a B11-05
+  reescreve, e esconderia a tela antiga, que ainda serve para comparar.
+- **Efeito no preview:** fica mais difícil abrir a tela antiga por engano. Ela
+  grava no Supabase de produção, e uma regra salva ali dispara para os
+  clientes.
+- **Antes do merge:** a B11-05 apaga a rota do protótipo e volta o item para
+  `/configuracoes/automacoes`. O protótipo continua sem gravar nada.

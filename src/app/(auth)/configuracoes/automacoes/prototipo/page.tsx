@@ -2,7 +2,8 @@ import { redirect } from "next/navigation"
 import { sessaoAtual } from "@/lib/sessao"
 import { PrototipoClient } from "./prototipo-client"
 
-// Protótipo da B11-01: fora do menu, dados fixos, nada é gravado. Sai na B11-05.
+// Protótipo da B11-01: dados fixos, nada é gravado. No branch, o item
+// "Automações" do menu abre esta rota. Sai na B11-05.
 export default async function PrototipoAutomacoesPage({
   searchParams,
 }: {

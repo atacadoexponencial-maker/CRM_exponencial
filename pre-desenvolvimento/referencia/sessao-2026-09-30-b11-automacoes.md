@@ -8,10 +8,12 @@
 
 ## 1. Onde retomar
 
-1. **Testar o protótipo** (Luan e Marcelle) neste endereço:
-   https://crm-exponencial-omvmcfsaj-atacadoexponencial-8267s-projects.vercel.app/configuracoes/automacoes/prototipo
+1. **Testar o protótipo** (Luan e Marcelle) no preview mais recente do branch,
+   que aparece no painel da Vercel. O endereço muda a cada envio.
    - Pede o login da Vercel e depois o login de **admin** do CRM.
-   - A rota não está no menu: o endereço tem que ser digitado.
+   - Desde 07/10, o item "Automações" do menu abre o protótipo (só no branch).
+     Antes, o endereço `/configuracoes/automacoes/prototipo` tinha que ser
+     digitado.
    - O que experimentar: abrir "Catálogo e ausência", usar o "+" de uma saída
      livre, ligar blocos arrastando, configurar um bloco no painel e usar
      "Testar com um contato" com a Ana, o Bruno e a Carla, que percorrem
@@ -22,10 +24,10 @@
    `issues/concluidas_B11/`.
 4. **Começar a B11-02** (motor e banco). Ver a seção 6.
 
-> ⚠️ **No preview, não use a tela antiga de automações** (o item "Automações" do
-> menu, em `/configuracoes/automacoes`). O preview grava no Supabase de produção,
-> e uma regra salva ali passa a disparar de verdade para os clientes. O protótipo
-> não grava nada.
+> ⚠️ **No preview, não use a tela antiga de automações** (em
+> `/configuracoes/automacoes`, fora do menu desde 07/10). O preview grava no
+> Supabase de produção, e uma regra salva ali passa a disparar de verdade para
+> os clientes. O protótipo não grava nada.
 
 ---
 

@@ -15,7 +15,9 @@ editor aprovado na B11-01 passa a gravar e carregar regras de verdade, com
 todos os gatilhos, condições e ações já implementados até aqui; os blocos e
 opções ainda não implementados ficam desabilitados com "em breve". A lista
 nova substitui a antiga, com interruptor, duplicar e excluir. A rota do
-protótipo sai do repositório.
+protótipo sai do repositório, e o item "Automações" do menu lateral
+(`src/components/shared/sidebar-nav.tsx`), que no branch aponta para o
+protótipo desde 07/10/2026, volta para `/configuracoes/automacoes`.
 
 Cobre, no "Editor", o gatilho "Mensagem enviada pelo time" e as regras do
 editor (salvar, trocar gatilho); na "Lista", ver, pausar, duplicar e excluir;
