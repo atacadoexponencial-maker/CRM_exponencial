@@ -13,7 +13,7 @@
 // existente, e os demais tipos criam mensagem nova.
 
 import type { createServiceClient } from "@/integrations/supabase/service"
-import { processarAutomacoes } from "@/lib/automacoes"
+import { dispararAutomacoes } from "@/lib/automacoes/fila"
 import { transmitirMensagem } from "./realtime"
 import { guardarMidiaRecebida, type MidiaDoEvento, type MidiaGuardada } from "./midia-recebida"
 import { tirarDaLixeira } from "@/lib/lixeira"
@@ -246,7 +246,7 @@ export async function registrarMensagemRecebida({
   // Meta hoje: não existe gatilho de "mensagem recebida" em `automacoes.ts`, e
   // inventar um aqui mudaria o produto por conta própria.
   if (conversaCriada) {
-    await processarAutomacoes({
+    await dispararAutomacoes({
       tipo: "conversa_criada",
       workspaceId,
       contactId,

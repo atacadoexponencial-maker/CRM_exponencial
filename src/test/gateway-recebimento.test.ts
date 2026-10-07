@@ -7,12 +7,12 @@ vi.mock("@/lib/whatsapp/realtime", () => ({
   transmitirMensagem: vi.fn().mockResolvedValue(undefined),
 }))
 
-vi.mock("@/lib/automacoes", () => ({
-  processarAutomacoes: vi.fn().mockResolvedValue(undefined),
+vi.mock("@/lib/automacoes/fila", () => ({
+  dispararAutomacoes: vi.fn().mockResolvedValue(undefined),
 }))
 
 import { transmitirMensagem } from "@/lib/whatsapp/realtime"
-import { processarAutomacoes } from "@/lib/automacoes"
+import { dispararAutomacoes } from "@/lib/automacoes/fila"
 import {
   identificadorDoContato,
   PREFIXO_LID,
@@ -202,7 +202,7 @@ describe("automações", () => {
 
     await registrarMensagemRecebida({ supabase, workspaceId: WORKSPACE, evento: TEXTO, recebidoEm: RECEBIDO_EM })
 
-    expect(processarAutomacoes).toHaveBeenCalledWith({
+    expect(dispararAutomacoes).toHaveBeenCalledWith({
       tipo: "conversa_criada",
       workspaceId: WORKSPACE,
       contactId: "contato-novo",
@@ -218,7 +218,7 @@ describe("automações", () => {
 
     await registrarMensagemRecebida({ supabase, workspaceId: WORKSPACE, evento: TEXTO, recebidoEm: RECEBIDO_EM })
 
-    expect(processarAutomacoes).not.toHaveBeenCalled()
+    expect(dispararAutomacoes).not.toHaveBeenCalled()
   })
 })
 

@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
-vi.mock("@/lib/automacoes/index", () => ({ processarAutomacoes: vi.fn().mockResolvedValue(undefined) }))
+vi.mock("@/lib/automacoes/fila", () => ({ dispararAutomacoes: vi.fn().mockResolvedValue(undefined) }))
 vi.mock("@/integrations/supabase/service", () => ({ createServiceClient: vi.fn() }))
 
 import { createServiceClient } from "@/integrations/supabase/service"
@@ -16,9 +16,9 @@ import {
   dispararTagAdicionada,
   prepararGatilhoDeClassificacao,
 } from "@/lib/automacoes/gatilhos-do-crm"
-import { processarAutomacoes } from "@/lib/automacoes/index"
+import { dispararAutomacoes } from "@/lib/automacoes/fila"
 
-const motor = vi.mocked(processarAutomacoes)
+const motor = vi.mocked(dispararAutomacoes)
 
 /** Service client falso: toda consulta devolve `resultado`, pelo `await` ou pelo `maybeSingle`. */
 function servico(resultado: { data: unknown; error?: unknown }) {

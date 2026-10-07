@@ -54,6 +54,8 @@ const { lerEnv, bancoDeServico, conferirEmpresaDeTeste } = require("./comum.cjs"
   await feito(db.from("sequence_runs").delete().eq("workspace_id", ws))
   await feito(db.from("sequences").delete().eq("workspace_id", ws))
   await feito(db.from("business_hours").delete().eq("workspace_id", ws))
+  // B11-09: eventos que ficaram na fila (descartados ou de uma rodada interrompida)
+  await feito(db.from("automation_queue").delete().eq("workspace_id", ws))
 
   console.log("empresa de teste no estado inicial")
 })().catch((e) => {

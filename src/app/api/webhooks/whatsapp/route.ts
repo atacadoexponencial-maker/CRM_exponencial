@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServiceClient } from "@/integrations/supabase/service"
-import { processarAutomacoes } from "@/lib/automacoes"
+import { dispararAutomacoes } from "@/lib/automacoes/fila"
 import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"
 import { transmitirMensagem } from "@/lib/whatsapp/realtime"
 import { escolherConversaDoNumero } from "@/lib/whatsapp/recebimento"
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
       if (error || !novaConversa) return NextResponse.json({ error: "db error" }, { status: 500 })
       conversaId = novaConversa.id
 
-      await processarAutomacoes({
+      await dispararAutomacoes({
         tipo: "conversa_criada",
         workspaceId: workspace_id,
         contactId: contact.id,

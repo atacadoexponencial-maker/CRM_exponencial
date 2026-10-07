@@ -84,4 +84,26 @@ function criarRelatorio() {
   }
 }
 
-module.exports = { PROJETO, lerEnv, bancoDeServico, conferirEmpresaDeTeste, abrirPreview, criarRelatorio }
+/**
+ * Espera a fila de automações da empresa esvaziar (B11-09). Desde a fila, as
+ * regras rodam depois da resposta da ação, e o roteiro só pode conferir o banco
+ * quando elas terminarem. O evento entra na fila antes da resposta, então, logo
+ * depois dela, a fila vazia quer dizer que as regras já rodaram. Devolve quanto
+ * esperou, em milissegundos.
+ */
+async function esperarAutomacoes(db, workspaceId, limiteMs = 30000) {
+  const inicio = Date.now()
+  while (Date.now() - inicio < limiteMs) {
+    const { count, error } = await db
+      .from("automation_queue")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .in("status", ["pendente", "processando"])
+    if (error) throw new Error(error.message)
+    if (count === 0) return Date.now() - inicio
+    await new Promise((resolver) => setTimeout(resolver, 300))
+  }
+  throw new Error(`a fila de automações não esvaziou em ${limiteMs / 1000} s`)
+}
+
+module.exports = { PROJETO, lerEnv, bancoDeServico, conferirEmpresaDeTeste, abrirPreview, criarRelatorio, esperarAutomacoes }

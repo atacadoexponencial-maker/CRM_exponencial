@@ -6,8 +6,8 @@ vi.mock("@/lib/whatsapp/realtime", () => ({
   transmitirMensagem: vi.fn().mockResolvedValue(undefined),
 }))
 
-vi.mock("@/lib/automacoes", () => ({
-  processarAutomacoes: vi.fn().mockResolvedValue(undefined),
+vi.mock("@/lib/automacoes/fila", () => ({
+  dispararAutomacoes: vi.fn().mockResolvedValue(undefined),
 }))
 
 import { guardarMidiaRecebida } from "@/lib/whatsapp/midia-recebida"

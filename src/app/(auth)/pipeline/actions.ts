@@ -2,7 +2,7 @@
 
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
-import { processarAutomacoes } from "@/lib/automacoes"
+import { dispararAutomacoes } from "@/lib/automacoes/fila"
 import { cardsDepoisDoMovimento, prepararGatilhoDeClassificacao } from "@/lib/automacoes/gatilhos-do-crm"
 import { processarGatilhoSequencia } from "@/lib/sequencias"
 import { createServiceClient } from "@/integrations/supabase/service"
@@ -119,7 +119,7 @@ export async function criarNovoLead(telefone: string, nome: string | null): Prom
 
   if (cardError || !novoCard) throw new Error("Erro ao criar card no pipeline")
 
-  await processarAutomacoes({
+  await dispararAutomacoes({
     tipo: "card_movido",
     workspaceId: profile.workspace_id,
     contactId: contato.id,
@@ -195,7 +195,7 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
         .single()
 
       if (cardRecompra) {
-        await processarAutomacoes({
+        await dispararAutomacoes({
           tipo: "card_movido",
           workspaceId: card.workspace_id,
           contactId: card.contact_id,
@@ -214,7 +214,7 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
     }
   }
 
-  await processarAutomacoes({
+  await dispararAutomacoes({
     tipo: "card_movido",
     workspaceId: card.workspace_id,
     contactId: card.contact_id,

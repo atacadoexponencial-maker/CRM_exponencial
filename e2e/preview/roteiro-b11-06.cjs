@@ -10,7 +10,7 @@
 // etiqueta pelo chat na conversa do Bruno (B).
 // Uso: node e2e/preview/roteiro-b11-06.cjs <endereço do preview>
 
-const { abrirPreview, bancoDeServico, conferirEmpresaDeTeste, criarRelatorio } = require("./comum.cjs")
+const { abrirPreview, bancoDeServico, conferirEmpresaDeTeste, criarRelatorio, esperarAutomacoes } = require("./comum.cjs")
 const { adicionarBloco, escolher, moverCard, salvarRegra } = require("./tela.cjs")
 
 const URL_PREVIEW = process.argv[2]
@@ -86,6 +86,7 @@ async function adicionarTagNoContato(page, nome, tag) {
     }),
     page.getByRole("button", { name: "Adicionar", exact: true }).click(),
   ])
+  await esperarAutomacoes(db, ws)
   const { data: dadosAna } = await db.from("contacts").select("tipo").eq("id", ana).single()
   const { data: convAna } = await db.from("conversations").select("id").eq("contact_id", ana).single()
   const { data: etiquetasAna } = await db.from("conversation_labels").select("label_id").eq("conversation_id", convAna.id)
@@ -108,6 +109,7 @@ async function adicionarTagNoContato(page, nome, tag) {
     }),
     page.getByRole("button", { name: "Salvar" }).first().click(),
   ])
+  await esperarAutomacoes(db, ws)
   r.confere("C: tipo editado no perfil do Bruno dispara 'dado alterado'", (await tags(bruno)).includes("tipo-lojista"))
 
   // 3. Card da Carla para Ganho: classificação vira Ativo
@@ -121,6 +123,7 @@ async function adicionarTagNoContato(page, nome, tag) {
   await page.getByRole("menuitem", { name: "Etiquetas" }).hover()
   await page.getByRole("menuitem", { name: /VIP/ }).click()
   await page.waitForTimeout(4000)
+  await esperarAutomacoes(db, ws)
   r.confere(
     "B: etiqueta aplicada pelo chat dispara a regra",
     (await tags(bruno)).includes("etiqueta-vip")

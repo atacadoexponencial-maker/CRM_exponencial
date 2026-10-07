@@ -139,6 +139,47 @@ export type Database = {
           },
         ]
       }
+      automation_queue: {
+        Row: {
+          chave: string
+          created_at: string
+          evento: Json
+          id: string
+          iniciado_em: string | null
+          motivo: string | null
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          evento: Json
+          id?: string
+          iniciado_em?: string | null
+          motivo?: string | null
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          evento?: Json
+          id?: string
+          iniciado_em?: string | null
+          motivo?: string | null
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_queue_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_runs: {
         Row: {
           caminho: Json
@@ -1955,6 +1996,25 @@ export type Database = {
           numero: number
           pedido_id: string
         }[]
+      }
+      reivindicar_evento_de_automacao: {
+        Args: { p_chave: string }
+        Returns: {
+          chave: string
+          created_at: string
+          evento: Json
+          id: string
+          iniciado_em: string | null
+          motivo: string | null
+          status: string
+          workspace_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "automation_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       salvar_estoque_produto: {
         Args: { p_estoque: Json; p_produto: string; p_tipos: Json }

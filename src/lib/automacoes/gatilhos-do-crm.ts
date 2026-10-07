@@ -1,7 +1,8 @@
 // Gatilhos que nascem em telas do CRM (B11-06): tag adicionada, etiqueta aplicada
 // e dado do contato alterado. As actions que mudam esses dados chamam estas
-// funções depois de gravar. As ações das automações gravam direto no banco e não
-// passam por elas: é assim que automação não dispara automação.
+// funções depois de gravar; o evento vai para a fila (`fila.ts`), e as regras
+// rodam logo depois da resposta (B11-09). As ações das automações gravam direto
+// no banco e não passam por elas: é assim que automação não dispara automação.
 //
 // Nada aqui lança erro: a tag que a pessoa adicionou fica salva mesmo se as
 // automações falharem.
@@ -10,7 +11,7 @@
 import { calcularClassificacao } from "@/app/(auth)/contatos/classificacao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { normalizarTag } from "@/lib/fluxo-automacao"
-import { processarAutomacoes } from "./index"
+import { dispararAutomacoes } from "./fila"
 
 /** Campos que a tela do contato edita e que têm gatilho. A classificação vem dos cards (abaixo). */
 const CAMPOS_EDITAVEIS = ["tipo", "nicho", "cidade"] as const
@@ -42,7 +43,7 @@ export function cardsDepoisDoMovimento(cards: CardDoContato[], cardId: string, n
 }
 
 export async function dispararTagAdicionada(workspaceId: string, contactId: string, tag: string): Promise<void> {
-  await processarAutomacoes({ tipo: "tag_adicionada", workspaceId, contactId, tag: normalizarTag(tag) })
+  await dispararAutomacoes({ tipo: "tag_adicionada", workspaceId, contactId, tag: normalizarTag(tag) })
 }
 
 /** A action do chat só tem a conversa em mão: a empresa e o contato vêm dela. */
@@ -54,7 +55,7 @@ export async function dispararEtiquetaAplicada(conversationId: string, labelId: 
       .eq("id", conversationId)
       .maybeSingle()
     if (!data) return
-    await processarAutomacoes({
+    await dispararAutomacoes({
       tipo: "etiqueta_aplicada",
       workspaceId: data.workspace_id,
       contactId: data.contact_id,
@@ -74,7 +75,7 @@ export async function dispararDadosAlterados(
   depois: DadosDoContato
 ): Promise<void> {
   for (const { campo, valor } of camposQueMudaram(antes, depois)) {
-    await processarAutomacoes({ tipo: "dado_contato_alterado", workspaceId, contactId, campo, valor })
+    await dispararAutomacoes({ tipo: "dado_contato_alterado", workspaceId, contactId, campo, valor })
   }
 }
 
@@ -104,7 +105,7 @@ export async function prepararGatilhoDeClassificacao(
     const depois = calcularClassificacao(mudanca(cards))
     if (antes === depois) return nada
     return () =>
-      processarAutomacoes({ tipo: "dado_contato_alterado", workspaceId, contactId, campo: "classificacao", valor: depois })
+      dispararAutomacoes({ tipo: "dado_contato_alterado", workspaceId, contactId, campo: "classificacao", valor: depois })
   } catch {
     return nada
   }

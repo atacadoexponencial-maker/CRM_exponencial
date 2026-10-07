@@ -13,7 +13,11 @@
 //
 // Roda sempre no backend com o service client (o webhook não tem sessão de
 // usuário) e nunca propaga erro para quem disparou o gatilho.
-// Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seções 5 e 8.
+//
+// Quem dispara não chama este arquivo direto (B11-09): grava o evento na fila
+// (`fila.ts`), que chama `processarAutomacoes` logo depois da resposta, um evento
+// de cada vez por contato.
+// Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seções 5, 8 e 11.
 
 import { createServiceClient } from "@/integrations/supabase/service"
 import {

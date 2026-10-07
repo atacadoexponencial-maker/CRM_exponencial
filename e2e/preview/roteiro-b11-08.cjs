@@ -12,7 +12,7 @@
 // B no Bruno (reabre e inicia a sequência).
 // Uso: node e2e/preview/roteiro-b11-08.cjs <endereço do preview>
 
-const { abrirPreview, bancoDeServico, conferirEmpresaDeTeste, criarRelatorio } = require("./comum.cjs")
+const { abrirPreview, bancoDeServico, conferirEmpresaDeTeste, criarRelatorio, esperarAutomacoes } = require("./comum.cjs")
 const { adicionarBloco, escolher, salvarRegra } = require("./tela.cjs")
 
 const URL_PREVIEW = process.argv[2]
@@ -71,6 +71,7 @@ const r = criarRelatorio()
       }),
       page.getByRole("button", { name: "Adicionar", exact: true }).click(),
     ])
+    await esperarAutomacoes(db, ws)
   }
 
   async function regraComTag(nome, tag) {

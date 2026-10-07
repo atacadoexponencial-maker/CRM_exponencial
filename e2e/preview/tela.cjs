@@ -1,5 +1,8 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // Passos de tela que os roteiros repetem: montar regras no editor de automações e
 // mover cards pelo funil. Recebem a página do Playwright e o endereço do preview.
+
+const { bancoDeServico, esperarAutomacoes, lerEnv } = require("./comum.cjs")
 
 /** Abre uma lista do painel (Select do Base UI) e escolhe a opção pelo texto. */
 async function escolher(page, seletorCampo, opcao) {
@@ -58,8 +61,8 @@ const ETAPA_PELO_ROTULO = {
 /**
  * Move o card pelo painel do card no funil, como o time faz, e espera a resposta
  * da action de mover: só ela leva a etapa de destino no corpo (a página e o painel
- * chamam outras actions no mesmo endereço). Ela só responde depois de as
- * automações rodarem e serem gravadas no histórico.
+ * chamam outras actions no mesmo endereço). Desde a fila (B11-09), as automações
+ * rodam depois da resposta: espera também a fila esvaziar.
  */
 async function moverCard(page, url, nomeContato, etapa) {
   const etapaId = ETAPA_PELO_ROTULO[etapa]
@@ -77,6 +80,7 @@ async function moverCard(page, url, nomeContato, etapa) {
     ),
     page.getByRole("button", { name: etapa, exact: true }).last().click(),
   ])
+  await esperarAutomacoes(bancoDeServico(), lerEnv().B11_TESTE_WORKSPACE_ID)
 }
 
 module.exports = { escolher, adicionarBloco, novaRegra, salvarRegra, moverCard }
