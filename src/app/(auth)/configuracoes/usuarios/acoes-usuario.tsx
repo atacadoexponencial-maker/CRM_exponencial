@@ -143,24 +143,24 @@ export function AcoesUsuario({
         <DropdownMenuContent align="end">
           <DropdownMenuItem
             disabled={ehEuMesmo}
-            onSelect={() => setDialogAberto(true)}
+            onClick={() => setDialogAberto(true)}
           >
             Editar papel
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => handleDialogTimesOpenChange(true)}>
+          <DropdownMenuItem onClick={() => handleDialogTimesOpenChange(true)}>
             Gerenciar times
           </DropdownMenuItem>
           {usuario.status === "active" ? (
             <DropdownMenuItem
               variant="destructive"
               disabled={ehEuMesmo}
-              onSelect={() => { setErroDesativar(null); setDialogDesativarAberto(true) }}
+              onClick={() => { setErroDesativar(null); setDialogDesativarAberto(true) }}
             >
               Desativar
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem
-              onSelect={() => { setErroReativar(null); setDialogReativarAberto(true) }}
+              onClick={() => { setErroReativar(null); setDialogReativarAberto(true) }}
             >
               Reativar
             </DropdownMenuItem>

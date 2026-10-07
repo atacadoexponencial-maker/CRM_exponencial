@@ -120,18 +120,18 @@ export function AcoesTime({
           <span className="sr-only">Abrir menu</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => handleDialogMembrosOpenChange(true)}>
+          <DropdownMenuItem onClick={() => handleDialogMembrosOpenChange(true)}>
             Gerenciar membros
           </DropdownMenuItem>
           {!isDefault && (
-            <DropdownMenuItem onSelect={() => handleDialogEditarOpenChange(true)}>
+            <DropdownMenuItem onClick={() => handleDialogEditarOpenChange(true)}>
               Editar nome
             </DropdownMenuItem>
           )}
           {!isDefault && (
             <DropdownMenuItem
               variant="destructive"
-              onSelect={() => { setErroExcluir(null); setDialogExcluirAberto(true) }}
+              onClick={() => { setErroExcluir(null); setDialogExcluirAberto(true) }}
             >
               Excluir
             </DropdownMenuItem>

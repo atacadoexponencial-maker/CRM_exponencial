@@ -165,7 +165,7 @@ export function AgendaEquipeClient({
                         {atendentes
                           .filter((a) => a.id !== item.atendenteId)
                           .map((a) => (
-                            <DropdownMenuItem key={a.id} onSelect={() => handleReatribuir(item.id, a.id)}>
+                            <DropdownMenuItem key={a.id} onClick={() => handleReatribuir(item.id, a.id)}>
                               {a.nome}
                             </DropdownMenuItem>
                           ))}

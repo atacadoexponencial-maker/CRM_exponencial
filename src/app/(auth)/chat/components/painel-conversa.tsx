@@ -504,7 +504,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
                           <DropdownMenuItem
                             key={etiqueta.id}
                             disabled={pendingLabelId === etiqueta.id}
-                            onSelect={async () => {
+                            onClick={async () => {
                               if (pendingLabelId) return
                               setPendingLabelId(etiqueta.id)
                               if (aplicada) {
@@ -549,7 +549,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
                             atendentes.map((a) => (
                               <DropdownMenuItem
                                 key={a.id}
-                                onSelect={async () => {
+                                onClick={async () => {
                                   try {
                                     const { nomeAtribuido } = await atribuirConversa(conversa.id, a.id)
                                     onConversaAtualizada(conversa.id, {
@@ -580,7 +580,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
                             atendentesTransferir.map((a) => (
                               <DropdownMenuItem
                                 key={a.id}
-                                onSelect={async () => {
+                                onClick={async () => {
                                   try {
                                     const { nomeAtribuido } = await transferirConversa(conversa.id, a.id)
                                     onConversaAtualizada(conversa.id, { atribuidaA: nomeAtribuido })
@@ -601,7 +601,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
                     return (
                       <DropdownMenuItem
                         key="resolver"
-                        onSelect={async () => {
+                        onClick={async () => {
                           try {
                             await resolverConversa(conversa.id)
                             onConversaAtualizada(conversa.id, { status: "resolvida" })
@@ -618,7 +618,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, podeAtr
                     return (
                       <DropdownMenuItem
                         key="reabrir"
-                        onSelect={async () => {
+                        onClick={async () => {
                           try {
                             const { novoStatus } = await reabrirConversa(conversa.id)
                             onConversaAtualizada(conversa.id, { status: novoStatus })

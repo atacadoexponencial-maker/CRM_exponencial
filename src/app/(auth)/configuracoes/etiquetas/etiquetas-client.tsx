@@ -199,12 +199,12 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
                         <span className="sr-only">Abrir menu</span>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => abrirEditar(etiqueta)}>
+                        <DropdownMenuItem onClick={() => abrirEditar(etiqueta)}>
                           Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           variant="destructive"
-                          onSelect={() => abrirExcluir(etiqueta.id)}
+                          onClick={() => abrirExcluir(etiqueta.id)}
                         >
                           Excluir
                         </DropdownMenuItem>

@@ -152,12 +152,12 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
                         <span className="sr-only">Abrir menu</span>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => abrirEditar(msg)}>
+                        <DropdownMenuItem onClick={() => abrirEditar(msg)}>
                           Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           variant="destructive"
-                          onSelect={() => abrirExcluir(msg.id)}
+                          onClick={() => abrirExcluir(msg.id)}
                         >
                           Excluir
                         </DropdownMenuItem>

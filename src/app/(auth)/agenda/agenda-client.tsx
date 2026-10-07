@@ -242,9 +242,9 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
                             Adiar
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onSelect={() => handleAdiar(item.id, 1)}>1 dia</DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => handleAdiar(item.id, 3)}>3 dias</DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => handleAdiar(item.id, 7)}>1 semana</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleAdiar(item.id, 1)}>1 dia</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleAdiar(item.id, 3)}>3 dias</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleAdiar(item.id, 7)}>1 semana</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                         <Button size="sm" variant="outline" className="h-7" onClick={() => handleFeito(item.id)}>
