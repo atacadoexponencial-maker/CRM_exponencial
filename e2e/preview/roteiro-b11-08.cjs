@@ -8,7 +8,8 @@
 //     Entrada → resolver a conversa
 //  B. tag "reabrir" → reabrir a conversa → iniciar a sequência "B11-08 Boas-vindas"
 // e dispara pelo perfil: Ana dentro do horário (A segue pelo "não"), Bruno fora
-// (A atribui e resolve) e, depois, B no Bruno (reabre e inicia a sequência).
+// (A atribui a conversa e o card principal, o da Recompra, e resolve) e, depois,
+// B no Bruno (reabre e inicia a sequência).
 // Uso: node e2e/preview/roteiro-b11-08.cjs <endereço do preview>
 
 const { abrirPreview, bancoDeServico, conferirEmpresaDeTeste, criarRelatorio } = require("./comum.cjs")
@@ -121,7 +122,9 @@ const r = criarRelatorio()
     JSON.stringify(conversaAna)
   )
 
-  // 4. Bruno, fora do horário: atribui ao time Entrada e resolve
+  // 4. Bruno, fora do horário: atribui ao time Entrada e resolve. Ele ganha um card
+  // na Recompra, que passa a ser o principal: é esse que recebe o atendente
+  await db.from("pipeline_cards").insert({ funil: "recompra", etapa: "onboarding", contact_id: bruno, workspace_id: ws })
   const hora = horaEmBrasilia()
   const fora = hora < 12 ? ["13:00", "14:00"] : ["01:00", "02:00"]
   await definirHorario(fora[0], fora[1])
@@ -131,6 +134,13 @@ const r = criarRelatorio()
     "fora do horário: a conversa do Bruno vai para o admin (único do time Entrada) e é resolvida",
     conversaBruno.status === "resolvida" && conversaBruno.assigned_to === admin.id,
     JSON.stringify(conversaBruno)
+  )
+  const { data: cardsBruno } = await db.from("pipeline_cards").select("funil, atendente_id").eq("contact_id", bruno)
+  const atendenteNo = (funil) => cardsBruno.find((c) => c.funil === funil)?.atendente_id ?? null
+  r.confere(
+    "fora do horário: o card principal (Recompra) vai para o admin, e o da Entrada fica como estava",
+    atendenteNo("recompra") === admin.id && atendenteNo("entrada") === null,
+    JSON.stringify(cardsBruno)
   )
 
   const { data: execucoesA } = await db

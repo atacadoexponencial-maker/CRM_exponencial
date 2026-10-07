@@ -430,3 +430,61 @@ describe("resolver e reabrir a conversa (B11-08)", () => {
     })
   })
 })
+
+describe("atribuir passa também o card principal do contato (B11-08)", () => {
+  const tagAdicionada: GatilhoAutomacao = { tipo: "tag_adicionada", workspaceId: "ws-1", contactId: "contato-1", tag: "vip" }
+  const cardAtualizado = (b: ReturnType<typeof banco>) =>
+    b.chamadas.filter((c) => c.tabela === "pipeline_cards" && c.metodo === "eq" && c.args[0] === "id").map((c) => c.args[1])
+
+  it("fora do gatilho de card movido, o card da Recompra é o principal", async () => {
+    const b = banco({
+      pipeline_cards: { lista: [{ id: "card-entrada", funil: "entrada" }, { id: "card-recompra", funil: "recompra" }] },
+    })
+    expect(await executarAcao(b.contexto(conversaCriada), acao("atribuir_atendente", { atendente_id: "u-1" }))).toEqual({
+      ok: true,
+    })
+    expect(b.gravacoes("conversations")[0].args[0]).toEqual({ assigned_to: "u-1" })
+    expect(b.gravacoes("pipeline_cards")[0].args[0]).toEqual({ atendente_id: "u-1" })
+    expect(cardAtualizado(b)).toEqual(["card-recompra"])
+    expect(b.filtros("pipeline_cards")).toContainEqual(["contact_id", "contato-1"])
+  })
+
+  it("sem card na Recompra, fica o da Entrada", async () => {
+    const b = banco({ pipeline_cards: { lista: [{ id: "card-entrada", funil: "entrada" }] } })
+    await executarAcao(b.contexto(conversaCriada), acao("atribuir_atendente", { atendente_id: "u-1" }))
+    expect(cardAtualizado(b)).toEqual(["card-entrada"])
+  })
+
+  it("no card movido, é o card que se moveu, mesmo com card na Recompra", async () => {
+    const b = banco({ pipeline_cards: { lista: [{ id: "card-recompra", funil: "recompra" }] } })
+    await executarAcao(b.contexto(cardMovido), acao("atribuir_atendente", { atendente_id: "u-1" }))
+    expect(cardAtualizado(b)).toEqual(["card-1"])
+    expect(b.chamadas.some((c) => c.tabela === "pipeline_cards" && c.metodo === "select")).toBe(false)
+  })
+
+  it("sem conversa aberta, passa só o card", async () => {
+    const b = banco({ conversations: { um: null }, pipeline_cards: { lista: [{ id: "card-entrada", funil: "entrada" }] } })
+    expect(await executarAcao(b.contexto(tagAdicionada), acao("atribuir_atendente", { atendente_id: "u-1" }))).toEqual({
+      ok: true,
+    })
+    expect(b.gravacoes("conversations")).toEqual([])
+    expect(cardAtualizado(b)).toEqual(["card-entrada"])
+  })
+
+  it("sem conversa aberta e sem card, falha com o motivo", async () => {
+    const b = banco({ conversations: { um: null }, pipeline_cards: { lista: [] } })
+    expect(await executarAcao(b.contexto(tagAdicionada), acao("atribuir_atendente", { atendente_id: "u-1" }))).toEqual({
+      ok: false,
+      motivo: "O contato não tem conversa aberta nem card",
+    })
+  })
+
+  it("erro ao procurar o card: a conversa é passada mesmo assim, e a ação conta como erro", async () => {
+    const b = banco({ pipeline_cards: { erro: { message: "timeout" } } })
+    expect(await executarAcao(b.contexto(conversaCriada), acao("atribuir_atendente", { atendente_id: "u-1" }))).toEqual({
+      ok: false,
+      motivo: "Erro ao gravar no banco",
+    })
+    expect(b.gravacoes("conversations")[0].args[0]).toEqual({ assigned_to: "u-1" })
+  })
+})

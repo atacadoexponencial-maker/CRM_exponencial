@@ -270,24 +270,50 @@ async function abrirCardDeRecompra(
 }
 
 /**
- * Passa a conversa do evento e, no "card movido", o card para o atendente. As
- * duas gravações são tentadas, como na primeira versão: a falha de uma não
- * impede a outra.
+ * Passa a conversa do evento e o card do contato para o atendente (decisões,
+ * seção 10.5). As duas gravações são tentadas, como na primeira versão: a
+ * falha de uma não impede a outra.
  */
 async function atribuir(contexto: ContextoDaExecucao, atendenteId: string): Promise<ResultadoAcao> {
-  const { supabase, gatilho } = contexto
+  const { supabase } = contexto
   const erros: Array<{ code?: string } | null> = []
   const conversaId = await conversaDoEvento(contexto)
   if (conversaId) {
     const { error } = await supabase.from("conversations").update({ assigned_to: atendenteId }).eq("id", conversaId)
     erros.push(error)
   }
-  if (gatilho.tipo === "card_movido") {
-    const { error } = await supabase.from("pipeline_cards").update({ atendente_id: atendenteId }).eq("id", gatilho.cardId)
+  const card = await cardDoContato(contexto)
+  if (card.erro) erros.push(card.erro)
+  if (card.id) {
+    const { error } = await supabase.from("pipeline_cards").update({ atendente_id: atendenteId }).eq("id", card.id)
     erros.push(error)
   }
+  if (!conversaId && !card.id && !card.erro) return falhou("O contato não tem conversa aberta nem card")
   if (erros.some(apontaParaApagado)) return falhou("O atendente não existe mais")
   return erros.some(Boolean) ? ERRO_NO_BANCO : FEITO
+}
+
+/**
+ * No "card movido", o card que se moveu: é dele que a regra trata. Nos outros
+ * gatilhos, o card principal do contato: o da Recompra, se houver, porque quem
+ * foi ganho na Entrada passa a ser atendido lá; senão, o da Entrada.
+ */
+async function cardDoContato({
+  supabase,
+  gatilho,
+}: ContextoDaExecucao): Promise<{ id: string | null; erro?: { code?: string } }> {
+  if (gatilho.tipo === "card_movido") return { id: gatilho.cardId }
+  if (!gatilho.contactId) return { id: null }
+
+  const { data: cards, error } = await supabase
+    .from("pipeline_cards")
+    .select("id, funil")
+    .eq("workspace_id", gatilho.workspaceId)
+    .eq("contact_id", gatilho.contactId)
+  if (error) return { id: null, erro: error }
+
+  const principal = cards?.find((c) => c.funil === "recompra") ?? cards?.find((c) => c.funil === "entrada")
+  return { id: principal?.id ?? null }
 }
 
 /**
