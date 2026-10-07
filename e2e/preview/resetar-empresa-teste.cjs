@@ -39,7 +39,8 @@ const { lerEnv, bancoDeServico, conferirEmpresaDeTeste } = require("./comum.cjs"
   await feito(db.from("labels").delete().eq("workspace_id", ws).neq("name", "Interessado"))
 
   const conversas = await feito(db.from("conversations").select("id, contact_id").eq("workspace_id", ws))
-  await feito(db.from("conversations").update({ assigned_to: null }).eq("workspace_id", ws))
+  // Sem atendente, "Reabrir" deixa a conversa em espera, e aí o menu não oferece "Resolver"
+  await feito(db.from("conversations").update({ assigned_to: null, status: "em_atendimento" }).eq("workspace_id", ws))
   await feito(db.from("conversation_labels").delete().in("conversation_id", conversas.map((c) => c.id)))
   const conversaBruno = conversas.find((c) => c.contact_id === bruno)
   if (conversaBruno && etiqueta) {
