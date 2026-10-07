@@ -143,6 +143,21 @@ export const PARAMETROS_OBRIGATORIOS_ACAO: Record<AcaoTipo, readonly string[]> =
 
 const ACOES_QUE_ENVIAM: readonly AcaoTipo[] = ["enviar_mensagem", "enviar_mensagem_rapida", "enviar_midia"]
 
+// O que o motor (src/lib/automacoes) já sabe executar. O editor mostra o resto
+// como "em breve", e `pendenciasDoFluxo` não deixa salvar. Cada issue da B11 que
+// ensina o motor a fazer algo novo acrescenta aqui.
+export const GATILHOS_DISPONIVEIS: readonly GatilhoTipo[] = ["card_movido", "conversa_criada"]
+export const VERIFICACOES_DISPONIVEIS: readonly VerificacaoTipo[] = ["canal", "etiqueta_conversa", "atendente", "card_etapa"]
+export const ACOES_DISPONIVEIS: readonly AcaoTipo[] = [
+  "enviar_mensagem",
+  "aplicar_etiqueta",
+  "atribuir_atendente",
+  "mover_card",
+]
+/** A proteção de repetição chega com o histórico (B11-03). Até lá, o editor não a oferece. */
+export const REPETICAO_DISPONIVEL = false
+const EM_BREVE = "Ainda não disponível: escolha outra opção"
+
 export function saidasDoBloco(bloco: Bloco): Saida[] {
   return bloco.tipo === "condicao" ? ["sim", "nao"] : ["proximo"]
 }
@@ -254,14 +269,17 @@ export function pendenciasDoFluxo(fluxo: Fluxo): PendenciasFluxo {
     }
 
     if (bloco.tipo === "gatilho") {
+      if (!GATILHOS_DISPONIVEIS.includes(bloco.gatilho)) anotar(bloco.id, EM_BREVE)
       if (PARAMETROS_OBRIGATORIOS_GATILHO[bloco.gatilho].some((p) => !bloco.parametros[p]?.trim())) {
         anotar(bloco.id, "Complete a configuração do gatilho")
       }
     } else if (bloco.tipo === "acao") {
+      if (!ACOES_DISPONIVEIS.includes(bloco.acao)) anotar(bloco.id, EM_BREVE)
       if (PARAMETROS_OBRIGATORIOS_ACAO[bloco.acao].some((p) => !bloco.parametros[p]?.trim())) {
         anotar(bloco.id, "Complete a configuração da ação")
       }
     } else {
+      if (bloco.verificacoes.some((v) => !VERIFICACOES_DISPONIVEIS.includes(v.tipo))) anotar(bloco.id, EM_BREVE)
       if (bloco.verificacoes.length === 0) anotar(bloco.id, "Adicione ao menos uma verificação")
       if (!deMensagem && bloco.verificacoes.some((v) => VERIFICACOES_DE_MENSAGEM.includes(v.tipo))) {
         anotar(bloco.id, "Verificação de mensagem não vale para este gatilho")

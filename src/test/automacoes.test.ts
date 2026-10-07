@@ -27,7 +27,7 @@ type Resultado = { data?: unknown; error?: unknown }
 function chain(resultado: Resultado) {
   const obj: Record<string, unknown> = {}
   const self = () => obj
-  for (const m of ["select", "eq", "in", "order", "limit", "update", "insert"]) {
+  for (const m of ["select", "eq", "in", "not", "order", "limit", "update", "insert"]) {
     obj[m] = vi.fn(self)
   }
   obj.single = vi.fn(() => Promise.resolve(resultado))
@@ -345,6 +345,54 @@ describe("processarAutomacoes com fluxo de blocos (B11-02)", () => {
 
     expect(mockEnviarTexto).not.toHaveBeenCalled()
     expect(upsert).toHaveBeenCalledTimes(1)
+  })
+
+  it("regra antiga que já tem versão em fluxo não roda; a versão nova roda (B11-10)", async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null })
+    const fluxoEtiqueta: Fluxo = {
+      blocos: [
+        { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao },
+        { id: "a", tipo: "acao", acao: "aplicar_etiqueta", parametros: { label_id: "label-da-nova" }, posicao },
+      ],
+      ligacoes: [{ de: "g", saida: "proximo", para: "a" }],
+    }
+    banco({
+      automations: chain({
+        data: [
+          {
+            id: "antiga-1",
+            created_at: "2026-10-02T10:00:00Z",
+            gatilho_tipo: "conversa_criada",
+            gatilho_config: {},
+            acao_tipo: "aplicar_etiqueta",
+            acao_config: { label_id: "label-da-antiga" },
+          },
+        ],
+      }),
+      // As duas consultas de automation_flows (regras e convertidas) leem esta linha
+      automation_flows: chain({
+        data: [{ id: "fluxo-1", created_at: "2026-10-07T10:00:00Z", fluxo: fluxoEtiqueta, automation_id: "antiga-1" }],
+      }),
+      conversation_labels: { upsert },
+    })
+
+    await processarAutomacoes(conversaCriada)
+
+    expect(upsert.mock.calls.map(([vinculo]) => vinculo.label_id)).toEqual(["label-da-nova"])
+  })
+
+  it("fluxo gravado fora do formato não roda", async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null })
+    banco({
+      automation_flows: chain({
+        data: [{ id: "fluxo-1", created_at: "2026-10-07T10:00:00Z", fluxo: { blocos: [{ tipo: "gatilho" }], ligacoes: [] } }],
+      }),
+      conversation_labels: { upsert },
+    })
+
+    await expect(processarAutomacoes(conversaCriada)).resolves.toBeUndefined()
+    expect(upsert).not.toHaveBeenCalled()
+    expect(mockEnviarTexto).not.toHaveBeenCalled()
   })
 
   it("erro de banco numa condição encerra só aquela regra", async () => {

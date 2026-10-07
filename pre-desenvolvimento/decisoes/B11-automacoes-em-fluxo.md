@@ -142,3 +142,55 @@ vem logo depois da B11-02, numa issue própria. A B11-05 fica com o gatilho
 
 **Descartado:** testar o motor só com fluxos gravados por script, esperando a
 B11-05 para o editor gravar.
+
+## 6. Regras antigas no branch, e chip e API Oficial juntos (07/10/2026)
+
+### 6.1 Regra antiga na lista nova: "versão antiga", e a nova vira a principal
+
+**Decidido com o Luan (B11-10):** a lista nova mostra as regras de `automations`
+marcadas como "Versão antiga · continua rodando". Abrir uma no editor e salvar
+cria a versão em fluxo, que guarda o `id` da antiga em
+`automation_flows.automation_id`. A partir daí, o motor do branch roda só a
+versão nova, mesmo que ela esteja pausada: o admin trocou uma pela outra.
+Excluir a versão nova faz a antiga voltar a valer no branch.
+
+**O branch não pausa nem exclui a regra antiga.** As duas ações gravariam em
+`automations`, que é a tabela que a produção lê até o merge, e isso mudaria o CRM
+publicado. Na lista, o interruptor e o "Excluir" da regra antiga ficam
+desligados.
+
+**Descartado:** esconder as regras antigas do branch. O admin perderia de vista
+o que já roda, e uma regra antiga e uma nova poderiam fazer a mesma coisa em
+dobro sem ninguém perceber.
+
+**Consequência para o merge:** na limpeza depois do merge, a regra antiga com
+versão nova é descartada, e a sem versão nova é copiada para `automation_flows`
+com o mesmo `id` (seção 5.2).
+
+### 6.2 Só se monta o que o motor executa
+
+`GATILHOS_DISPONIVEIS`, `VERIFICACOES_DISPONIVEIS`, `ACOES_DISPONIVEIS` e
+`REPETICAO_DISPONIVEL`, em `src/lib/fluxo-automacao.ts`, dizem o que o motor já
+sabe fazer. O editor mostra o resto como "em breve", e `pendenciasDoFluxo` recusa,
+tanto no editor quanto no servidor. Cada issue da B11 que ensina algo novo ao
+motor acrescenta a essas listas.
+
+**Descartado:** deixar montar tudo e ignorar no motor o que ele não conhece. A
+regra seria salva, pareceria pronta e não faria parte do que mostra.
+
+### 6.3 Chip (gateway) e API Oficial na mesma empresa
+
+**Situação em 07/10:** o CRM roda com chip (canal direto). A API Oficial vai
+entrar depois, e haverá empresas com os dois canais.
+
+**Não muda nada na B11 agora.** O envio de mensagem do motor sai pelo número da
+conversa do contato, com o canal que ele tiver (B7-01). A condição "Canal da
+conversa é API Oficial / canal direto / número X" deixa o fluxo seguir caminhos
+diferentes conforme o canal.
+
+**Ponto em aberto para quando a API Oficial entrar:** fora da janela de 24 horas
+desde a última mensagem do cliente, a Meta só aceita template aprovado, e texto
+livre é recusado. No chip não há esse limite. A saída provável é uma ação
+"Enviar template", que vale só para números da API Oficial, combinada com a
+condição de canal. Até lá, um "Enviar mensagem" fora da janela num número da API
+Oficial falha, e a falha fica no histórico (B11-03).

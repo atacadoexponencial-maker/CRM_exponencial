@@ -2,7 +2,7 @@
 
 import { Split } from "lucide-react"
 import { Dialog, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
-import type { AcaoTipo } from "@/lib/fluxo-automacao"
+import { ACOES_DISPONIVEIS, type AcaoTipo } from "@/lib/fluxo-automacao"
 import { ACOES, GRUPOS_NOVO_BLOCO } from "./catalogo"
 
 export type ItemNovoBloco = "condicao" | AcaoTipo
@@ -40,15 +40,19 @@ export function MenuNovoBloco({ aberto, saida, onFechar, onEscolher }: MenuNovoB
                 {grupo.itens.map((item) => {
                   const Icone = item === "condicao" ? Split : ACOES[item].icone
                   const rotulo = item === "condicao" ? "Condição (sim / não)" : ACOES[item].rotulo
+                  // O que o motor ainda não executa aparece, mas não dá para escolher
+                  const emBreve = item !== "condicao" && !ACOES_DISPONIVEIS.includes(item)
                   return (
                     <button
                       key={item}
                       type="button"
+                      disabled={emBreve}
                       onClick={() => onEscolher(item)}
-                      className="flex items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm transition-colors hover:bg-muted"
+                      className="flex items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
                     >
                       <Icone className="size-4 shrink-0 text-muted-foreground" />
-                      {rotulo}
+                      <span className="flex-1">{rotulo}</span>
+                      {emBreve && <span className="text-xs text-muted-foreground">em breve</span>}
                     </button>
                   )
                 })}

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { MoreHorizontal, Plus, Zap } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -21,6 +22,13 @@ export interface RegraListada {
   nome: string
   ativa: boolean
   fluxo: Fluxo
+  /**
+   * Regra da primeira versão (tabela `automations`), que a produção ainda usa.
+   * Continua rodando; pausar e excluir não são oferecidos aqui (B11-10).
+   */
+  versaoAntiga?: boolean
+  /** Versão em fluxo de uma regra antiga: excluí-la faz a antiga voltar a valer. */
+  substituiAntiga?: boolean
   execucoes7dias: number
   ultimaExecucao: string | null
 }
@@ -28,7 +36,7 @@ export interface RegraListada {
 interface ListaRegrasProps {
   regras: RegraListada[]
   opcoes: OpcoesEditor
-  /** Enquanto o histórico não existe (B11-03), o item aparece desabilitado. */
+  /** Enquanto o histórico não existe (B11-03), as colunas de execução somem e o item do menu fica desabilitado. */
   historicoDisponivel: boolean
   onNova: () => void
   onEditar: (id: string) => void
@@ -119,12 +127,16 @@ export function ListaRegras({
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Automação</th>
-                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground sm:table-cell">
-                  Execuções (7 dias)
-                </th>
-                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
-                  Última execução
-                </th>
+                {historicoDisponivel && (
+                  <>
+                    <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground sm:table-cell">
+                      Execuções (7 dias)
+                    </th>
+                    <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
+                      Última execução
+                    </th>
+                  </>
+                )}
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ativa</th>
                 <th className="px-2 py-3" aria-label="Ações" />
               </tr>
@@ -134,14 +146,25 @@ export function ListaRegras({
                 <tr key={r.id} className="border-b transition-colors last:border-0 hover:bg-muted/30">
                   <td className="px-4 py-3">
                     <button type="button" onClick={() => onEditar(r.id)} className="text-left">
-                      <span className="block font-medium hover:underline">{r.nome}</span>
+                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="font-medium hover:underline">{r.nome}</span>
+                        {r.versaoAntiga && (
+                          <Badge variant="outline" title="Abra e salve para trocar pela versão em fluxo">
+                            Versão antiga · continua rodando
+                          </Badge>
+                        )}
+                      </span>
                       <span className="block text-muted-foreground">{resumoRegra(r.fluxo, opcoes)}</span>
                     </button>
                   </td>
-                  <td className="hidden px-4 py-3 tabular-nums sm:table-cell">{r.execucoes7dias}</td>
-                  <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
-                    {r.ultimaExecucao ? formatarHorarioDaLista(r.ultimaExecucao) : "Nunca"}
-                  </td>
+                  {historicoDisponivel && (
+                    <>
+                      <td className="hidden px-4 py-3 tabular-nums sm:table-cell">{r.execucoes7dias}</td>
+                      <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
+                        {r.ultimaExecucao ? formatarHorarioDaLista(r.ultimaExecucao) : "Nunca"}
+                      </td>
+                    </>
+                  )}
                   <td className="px-4 py-3">
                     <button
                       type="button"
@@ -149,16 +172,24 @@ export function ListaRegras({
                       aria-checked={r.ativa}
                       aria-label={r.ativa ? `Pausar ${r.nome}` : `Ativar ${r.nome}`}
                       onClick={() => onAlternar(r.id, !r.ativa)}
+                      disabled={r.versaoAntiga}
                       className={cn(
-                        "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
+                        "relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50",
                         r.ativa ? "bg-primary" : "bg-muted-foreground/30"
                       )}
-                      title={r.ativa ? "Pausar" : "Ativar"}
+                      title={
+                        r.versaoAntiga
+                          ? "Versão antiga: para pausar, abra e salve a versão em fluxo"
+                          : r.ativa
+                            ? "Pausar"
+                            : "Ativar"
+                      }
                     >
                       <span
                         className={cn(
-                          "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                          r.ativa ? "translate-x-[18px]" : "translate-x-0.5"
+                          "inline-block h-4 w-4 transform rounded-full transition-transform",
+                          // No tema escuro o primary é branco: a bolinha ligada usa a cor de texto dele
+                          r.ativa ? "translate-x-[18px] bg-primary-foreground" : "translate-x-0.5 bg-white"
                         )}
                       />
                     </button>
@@ -175,15 +206,17 @@ export function ListaRegras({
                         <DropdownMenuItem disabled={!historicoDisponivel} onClick={() => onVerHistorico(r.id)}>
                           Ver histórico{historicoDisponivel ? "" : " (em breve)"}
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          variant="destructive"
-                          onClick={() => {
-                            setErroExcluir(null)
-                            setExcluindo(r)
-                          }}
-                        >
-                          Excluir
-                        </DropdownMenuItem>
+                        {!r.versaoAntiga && (
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() => {
+                              setErroExcluir(null)
+                              setExcluindo(r)
+                            }}
+                          >
+                            Excluir
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </td>
@@ -202,6 +235,11 @@ export function ListaRegras({
               Excluir <strong>{excluindo?.nome}</strong>? A regra para de rodar. O histórico do que ela já fez
               continua disponível.
             </p>
+            {excluindo?.substituiAntiga && (
+              <p className="text-sm text-muted-foreground">
+                Esta é a versão nova de uma regra antiga. Excluída, a versão antiga volta a rodar no lugar dela.
+              </p>
+            )}
             {erroExcluir && <p className="text-sm text-destructive">{erroExcluir}</p>}
             <div className="flex justify-end gap-2">
               <DialogClose render={<Button type="button" variant="outline" />}>Cancelar</DialogClose>

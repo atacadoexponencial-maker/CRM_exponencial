@@ -22,6 +22,7 @@ import {
 } from "@/lib/fluxo-automacao"
 import { executarAcao } from "./acoes"
 import type { ContextoDaExecucao, GatilhoAutomacao, ServiceClient } from "./contexto"
+import { lerFluxo } from "./fluxo-recebido"
 import { fluxoDaRegraAntiga } from "./regra-antiga"
 import { verificacaoVale } from "./verificacoes"
 
@@ -63,11 +64,14 @@ export async function processarAutomacoes(gatilho: GatilhoAutomacao): Promise<vo
 
 /**
  * Regras ativas do workspace para o gatilho, das duas tabelas, na ordem de
- * criação. As duas consultas são independentes: se uma falhar (por exemplo,
+ * criação. As consultas são independentes: se uma falhar (por exemplo,
  * `automation_flows` ainda não existe no banco), as regras da outra rodam.
+ *
+ * Regra antiga que já tem versão em fluxo (B11-10) não roda, mesmo com a versão
+ * nova pausada: o admin trocou uma pela outra.
  */
 async function carregarRegras(supabase: ServiceClient, gatilho: GatilhoAutomacao): Promise<RegraCarregada[]> {
-  const [antigas, fluxos] = await Promise.all([
+  const [antigas, fluxos, convertidas] = await Promise.all([
     supabase
       .from("automations")
       .select("id, created_at, gatilho_tipo, gatilho_config, acao_tipo, acao_config")
@@ -80,13 +84,23 @@ async function carregarRegras(supabase: ServiceClient, gatilho: GatilhoAutomacao
       .eq("workspace_id", gatilho.workspaceId)
       .eq("gatilho_tipo", gatilho.tipo)
       .eq("ativa", true),
+    supabase
+      .from("automation_flows")
+      .select("automation_id")
+      .eq("workspace_id", gatilho.workspaceId)
+      .not("automation_id", "is", null),
   ])
 
-  const regras: RegraCarregada[] = [
-    ...(antigas.data ?? []).map((r) => ({ id: r.id, criadaEm: r.created_at, fluxo: fluxoDaRegraAntiga(r) })),
-    // O formato é o de `Fluxo`; a estrutura é conferida antes de percorrer.
-    ...(fluxos.data ?? []).map((r) => ({ id: r.id, criadaEm: r.created_at, fluxo: r.fluxo as unknown as Fluxo })),
-  ]
+  const substituidas = new Set((convertidas.data ?? []).map((r) => r.automation_id))
+  const regras: RegraCarregada[] = []
+  for (const r of antigas.data ?? []) {
+    if (!substituidas.has(r.id)) regras.push({ id: r.id, criadaEm: r.created_at, fluxo: fluxoDaRegraAntiga(r) })
+  }
+  for (const r of fluxos.data ?? []) {
+    // Fluxo fora do formato (gravado por fora do editor) não roda
+    const fluxo = lerFluxo(r.fluxo)
+    if (fluxo) regras.push({ id: r.id, criadaEm: r.created_at, fluxo })
+  }
   return regras.sort((a, b) => (a.criadaEm < b.criadaEm ? -1 : a.criadaEm > b.criadaEm ? 1 : 0))
 }
 

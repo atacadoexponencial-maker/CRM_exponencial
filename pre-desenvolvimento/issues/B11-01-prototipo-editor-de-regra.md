@@ -248,6 +248,13 @@ temporária foi apagada antes do commit.
   é o de produção, e os apagam no `afterAll`. `qr-code-conectado` procura o
   texto "leia o código no aparelho", que a tela não tem mais.
 
+## Depois da B11-10 (07/10/2026)
+
+A rota do protótipo e os dados de exemplo saíram do repositório na B11-10, e o
+menu voltou para `/configuracoes/automacoes`, onde agora está o editor gravando
+no banco. A forma aprovada aqui é a mesma da tela real. A aprovação que falta
+(Luan e Marcelle) passa a ser feita nela.
+
 ## Ajuste de 07/10/2026: o menu abre o protótipo
 
 O Luan pediu que o item "Automações" do menu abra o protótipo no branch, porque

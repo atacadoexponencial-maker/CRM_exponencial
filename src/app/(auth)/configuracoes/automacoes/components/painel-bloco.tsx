@@ -6,9 +6,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import {
+  ACOES_DISPONIVEIS,
   GATILHOS_DE_MENSAGEM,
+  GATILHOS_DISPONIVEIS,
   OPERADORES_SEM_VALOR,
   VERIFICACOES_DE_MENSAGEM,
+  VERIFICACOES_DISPONIVEIS,
   type AcaoTipo,
   type Bloco,
   type BlocoCondicao,
@@ -38,8 +41,18 @@ const TITULO = { gatilho: "Gatilho", condicao: "Condição", acao: "Ação" } as
 
 const paraItens = (opcoes: Opcao[]): ItemSelecao[] => opcoes.map((o) => ({ valor: o.id, rotulo: o.nome }))
 
-const ITENS_GATILHO = (Object.keys(GATILHOS) as GatilhoTipo[]).map((tipo) => ({ valor: tipo, rotulo: GATILHOS[tipo].rotulo }))
-const ITENS_ACAO = (Object.keys(ACOES) as AcaoTipo[]).map((tipo) => ({ valor: tipo, rotulo: ACOES[tipo].rotulo }))
+/** O que o motor ainda não executa aparece desabilitado, com "(em breve)". */
+function itemDisponivel<T extends string>(valor: T, rotulo: string, disponiveis: readonly T[]): ItemSelecao {
+  const disponivel = disponiveis.includes(valor)
+  return { valor, rotulo: disponivel ? rotulo : `${rotulo} (em breve)`, desabilitado: !disponivel }
+}
+
+const ITENS_GATILHO = (Object.keys(GATILHOS) as GatilhoTipo[]).map((tipo) =>
+  itemDisponivel(tipo, GATILHOS[tipo].rotulo, GATILHOS_DISPONIVEIS)
+)
+const ITENS_ACAO = (Object.keys(ACOES) as AcaoTipo[]).map((tipo) =>
+  itemDisponivel(tipo, ACOES[tipo].rotulo, ACOES_DISPONIVEIS)
+)
 
 interface PainelBlocoProps {
   bloco: Bloco
@@ -265,12 +278,10 @@ function EditorVerificacoes({
   const deMensagem = gatilho ? GATILHOS_DE_MENSAGEM.includes(gatilho) : false
 
   const itensAtributo: ItemSelecao[] = (Object.keys(VERIFICACOES) as VerificacaoTipo[]).map((tipo) => {
+    const item = itemDisponivel(tipo, VERIFICACOES[tipo].rotulo, VERIFICACOES_DISPONIVEIS)
     const soEmMensagem = VERIFICACOES_DE_MENSAGEM.includes(tipo) && !deMensagem
-    return {
-      valor: tipo,
-      rotulo: VERIFICACOES[tipo].rotulo + (soEmMensagem ? " (só em gatilhos de mensagem)" : ""),
-      desabilitado: soEmMensagem,
-    }
+    if (item.desabilitado || !soEmMensagem) return item
+    return { ...item, rotulo: `${item.rotulo} (só em gatilhos de mensagem)`, desabilitado: true }
   })
 
   function mudarVerificacoes(verificacoes: Verificacao[]) {
@@ -282,7 +293,10 @@ function EditorVerificacoes({
   }
 
   function adicionar() {
-    const tipo: VerificacaoTipo = deMensagem ? "texto_mensagem" : "tag_contato"
+    // A primeira verificação que o motor executa e que vale para o gatilho
+    const tipo =
+      VERIFICACOES_DISPONIVEIS.find((t) => deMensagem || !VERIFICACOES_DE_MENSAGEM.includes(t)) ??
+      VERIFICACOES_DISPONIVEIS[0]
     mudarVerificacoes([
       ...bloco.verificacoes,
       { id: crypto.randomUUID(), tipo, operador: VERIFICACOES[tipo].operadores[0].id, valor: "" },

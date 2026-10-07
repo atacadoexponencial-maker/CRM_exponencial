@@ -1,11 +1,10 @@
 "use client"
 
 // Editor de fluxo de uma automação: canvas com os blocos ligados, painel do
-// bloco selecionado, simulação com um contato e salvar. Quem grava e quem
-// simula vêm por parâmetro: o protótipo (B11-01) passa funções que não gravam
-// nada, e o editor real (B11-05) passa as actions do servidor.
+// bloco selecionado, simulação com um contato e salvar. Quem grava, quem busca
+// contatos e quem simula vêm por parâmetro: as actions do servidor (B11-10).
 
-import { useCallback, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Background,
   Controls,
@@ -24,6 +23,7 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import {
+  REPETICAO_DISPONIVEL,
   formaLaco,
   gatilhoDoFluxo,
   pendenciasDoFluxo,
@@ -55,16 +55,17 @@ export interface RegraEditada {
 export interface ContatoTeste {
   id: string
   nome: string
-  /** O que ajuda a escolher: "escreveu 'Quero o CATÁLOGO', às 10h". */
+  /** O que ajuda a escolher entre contatos de mesmo nome, como o telefone. */
   descricao: string
 }
 
 interface EditorFluxoProps {
   regraInicial: RegraEditada
   opcoes: OpcoesEditor
-  contatosTeste: ContatoTeste[]
+  /** Busca por nome ou telefone; texto vazio traz os contatos que conversaram por último. */
+  buscarContatos: (texto: string) => Promise<ContatoTeste[]>
   salvar: (regra: RegraEditada) => Promise<{ erro?: string; aviso?: string }>
-  simular: (contatoId: string, fluxo: Fluxo) => Promise<ResultadoSimulacao>
+  simular: (contatoId: string, fluxo: Fluxo) => Promise<{ erro?: string; resultado?: ResultadoSimulacao }>
   onVoltar: () => void
 }
 
@@ -138,7 +139,7 @@ export function EditorFluxo(props: EditorFluxoProps) {
   )
 }
 
-function EditorFluxoInterno({ regraInicial, opcoes, contatosTeste, salvar, simular, onVoltar }: EditorFluxoProps) {
+function EditorFluxoInterno({ regraInicial, opcoes, buscarContatos, salvar, simular, onVoltar }: EditorFluxoProps) {
   const [nos, setNos, onNodesChange] = useNodesState<NoFluxo>(paraNos(regraInicial.fluxo))
   const [ligacoes, setLigacoes, onEdgesChange] = useEdgesState<LigacaoFluxo>(
     regraInicial.fluxo.ligacoes.map((l) => novaLigacao(l.de, l.saida, l.para))
@@ -243,7 +244,13 @@ function EditorFluxoInterno({ regraInicial, opcoes, contatosTeste, salvar, simul
 
   async function testar(contato: ContatoTeste) {
     setDialogTeste(false)
-    const resultado = await simular(contato.id, fluxo)
+    setMensagem(null)
+    const { erro, resultado } = await simular(contato.id, fluxo)
+    if (erro || !resultado) {
+      setSimulacao(null)
+      setMensagem({ tipo: "erro", texto: erro ?? "Não foi possível testar agora." })
+      return
+    }
     setSimulacao({ contato, resultado })
   }
 
@@ -303,17 +310,23 @@ function EditorFluxoInterno({ regraInicial, opcoes, contatosTeste, salvar, simul
           }}
         />
         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-          <CampoSelecao
-            aria-label="Proteção de repetição"
-            className="w-auto min-w-0 max-w-full"
-            valor={repeticao.modo}
-            itens={ITENS_REPETICAO}
-            onMudar={(valor) => {
-              const modo = valor as Repeticao["modo"]
-              setRepeticao(modo === "a_cada_horas" ? { modo, horas: 24 } : { modo })
-            }}
-          />
-          {repeticao.modo === "a_cada_horas" && (
+          {REPETICAO_DISPONIVEL ? (
+            <CampoSelecao
+              aria-label="Proteção de repetição"
+              className="w-auto min-w-0 max-w-full"
+              valor={repeticao.modo}
+              itens={ITENS_REPETICAO}
+              onMudar={(valor) => {
+                const modo = valor as Repeticao["modo"]
+                setRepeticao(modo === "a_cada_horas" ? { modo, horas: 24 } : { modo })
+              }}
+            />
+          ) : (
+            <span className="text-xs text-muted-foreground" title="Chega com o histórico de execuções">
+              Proteção de repetição: em breve
+            </span>
+          )}
+          {REPETICAO_DISPONIVEL && repeticao.modo === "a_cada_horas" && (
             <>
               <Input
                 aria-label="Horas entre execuções"
@@ -426,21 +439,9 @@ function EditorFluxoInterno({ regraInicial, opcoes, contatosTeste, salvar, simul
         <DialogPopup className="max-w-md">
           <DialogTitle>Testar com um contato</DialogTitle>
           <DialogDescription className="mb-4">
-            Mostra no canvas o caminho que o contato percorreria. Nada é executado.
+            Mostra no canvas o caminho que o contato percorreria, com os dados de agora. Nada é executado.
           </DialogDescription>
-          <div className="flex flex-col gap-1.5">
-            {contatosTeste.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => testar(c)}
-                className="rounded-lg border px-3 py-2 text-left transition-colors hover:bg-muted"
-              >
-                <span className="block text-sm font-medium">{c.nome}</span>
-                <span className="block text-xs text-muted-foreground">{c.descricao}</span>
-              </button>
-            ))}
-          </div>
+          {dialogTeste && <BuscaContatoTeste buscarContatos={buscarContatos} onEscolher={testar} />}
         </DialogPopup>
       </Dialog>
 
@@ -461,6 +462,65 @@ function EditorFluxoInterno({ regraInicial, opcoes, contatosTeste, salvar, simul
           </div>
         </DialogPopup>
       </Dialog>
+    </div>
+  )
+}
+
+/** Busca e lista de contatos do "Testar com um contato". */
+function BuscaContatoTeste({
+  buscarContatos,
+  onEscolher,
+}: {
+  buscarContatos: EditorFluxoProps["buscarContatos"]
+  onEscolher: (contato: ContatoTeste) => void
+}) {
+  const [texto, setTexto] = useState("")
+  const [contatos, setContatos] = useState<ContatoTeste[] | null>(null)
+
+  // Espera a pessoa parar de digitar antes de buscar; resposta velha é descartada
+  useEffect(() => {
+    let descartar = false
+    const espera = setTimeout(
+      async () => {
+        const encontrados = await buscarContatos(texto)
+        if (!descartar) setContatos(encontrados)
+      },
+      texto ? 300 : 0
+    )
+    return () => {
+      descartar = true
+      clearTimeout(espera)
+    }
+  }, [texto, buscarContatos])
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Input
+        autoFocus
+        aria-label="Buscar contato"
+        placeholder="Nome ou telefone"
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+      />
+      <div className="flex max-h-72 flex-col gap-1.5 overflow-y-auto">
+        {contatos === null ? (
+          <p className="px-1 text-sm text-muted-foreground">Buscando…</p>
+        ) : contatos.length === 0 ? (
+          <p className="px-1 text-sm text-muted-foreground">Nenhum contato encontrado.</p>
+        ) : (
+          contatos.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => onEscolher(c)}
+              className="rounded-lg border px-3 py-2 text-left transition-colors hover:bg-muted"
+            >
+              <span className="block text-sm font-medium">{c.nome}</span>
+              <span className="block text-xs text-muted-foreground">{c.descricao}</span>
+            </button>
+          ))
+        )}
+      </div>
     </div>
   )
 }

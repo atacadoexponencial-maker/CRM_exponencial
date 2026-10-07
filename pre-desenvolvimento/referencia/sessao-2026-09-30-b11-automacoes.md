@@ -8,6 +8,13 @@
 
 ## 1. Onde retomar
 
+> **Atualização de 07/10/2026:** esta lista ficou para trás. A B11-02 (motor) e
+> a B11-10 (editor e lista gravando no banco) foram feitas, e o protótipo saiu.
+> Em `/configuracoes/automacoes` do branch está a tela nova, que grava de
+> verdade, e a tela antiga não existe mais no branch. Para retomar, leia as
+> issues B11-02 e B11-10 e as seções 5 e 6 do registro de decisões. O texto
+> abaixo fica como registro da sessão de 30/09.
+
 1. **Testar o protótipo** (Luan e Marcelle) no preview mais recente do branch,
    que aparece no painel da Vercel. O endereço muda a cada envio.
    - Pede o login da Vercel e depois o login de **admin** do CRM.

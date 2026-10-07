@@ -204,6 +204,38 @@ describe("problemasDeEstrutura", () => {
   })
 })
 
+describe("pendenciasDoFluxo: só o que o motor executa (B11-10)", () => {
+  const EM_BREVE = "Ainda não disponível: escolha outra opção"
+
+  it("fluxo só com blocos disponíveis não tem pendência de 'em breve'", () => {
+    const fluxo: Fluxo = {
+      blocos: [gatilho(), condicao("c", "label-1"), acao("a1")],
+      ligacoes: [liga("g", "c"), liga("c", "a1", "sim")],
+    }
+    expect(Object.values(pendenciasDoFluxo(fluxo).porBloco).flat()).not.toContain(EM_BREVE)
+  })
+
+  it("marca gatilho, verificação e ação que o motor ainda não executa", () => {
+    const fluxo: Fluxo = {
+      blocos: [
+        { id: "g", tipo: "gatilho", gatilho: "mensagem_recebida", parametros: {}, posicao },
+        {
+          id: "c",
+          tipo: "condicao",
+          verificacoes: [{ id: "v", tipo: "tag_contato", operador: "tem", valor: "vip" }],
+          posicao,
+        },
+        { id: "a", tipo: "acao", acao: "adicionar_tag", parametros: { tag: "vip" }, posicao },
+      ],
+      ligacoes: [liga("g", "c"), liga("c", "a", "sim")],
+    }
+    const { porBloco } = pendenciasDoFluxo(fluxo)
+    expect(porBloco.g).toContain(EM_BREVE)
+    expect(porBloco.c).toContain(EM_BREVE)
+    expect(porBloco.a).toContain(EM_BREVE)
+  })
+})
+
 describe("fluxoDaRegraAntiga", () => {
   it("regra da primeira versão vira gatilho → ação com os mesmos parâmetros", () => {
     const fluxo = fluxoDaRegraAntiga({

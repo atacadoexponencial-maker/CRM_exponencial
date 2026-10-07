@@ -80,8 +80,7 @@ function montarSecoes(atrasados: number, pedidosNovos: number): SecaoNav[] {
       itens: [
         { href: "/sequencias", label: "Sequências", icone: ListChecks, papeis: ["admin", "gerente"] },
         { href: "/campanhas", label: "Campanhas", icone: Megaphone, papeis: ["admin", "gerente"] },
-        // Só no branch da B11: abre o protótipo. A B11-05 apaga a rota e volta para /configuracoes/automacoes.
-        { href: "/configuracoes/automacoes/prototipo", label: "Automações", icone: Zap, papeis: ["admin"] },
+        { href: "/configuracoes/automacoes", label: "Automações", icone: Zap, papeis: ["admin"] },
       ],
     },
     {
