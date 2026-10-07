@@ -417,3 +417,74 @@ de teste não devolvia o status das conversas. Uma rodada anterior tinha
 resolvido e reaberto a da Ana. Sem atendente, "Reabrir" deixa a conversa em
 espera, e nesse status o menu só oferece "Atribuir". O reset passou a voltar as
 conversas para "em atendimento".
+
+## 10. Sequência, resolver, reabrir e horário comercial (B11-08, 07/10/2026)
+
+### 10.1 Onde o horário fica guardado
+
+Numa tabela nova, `business_hours`, com uma linha por empresa, no padrão da
+`alert_config`. A migration só acrescenta. Sem linha, vale o padrão do código:
+de segunda a sexta, das 08:00 às 18:00. Assim, a condição funciona desde o
+primeiro dia, e o painel mostra qual horário está valendo.
+
+**Descartado:** uma coluna em `workspaces`. Essa tabela só tem política de
+leitura. Liberar a escrita para o admin deixaria ele mexer nas outras colunas
+da empresa.
+
+### 10.2 Uma faixa, no fuso de Brasília
+
+Uma faixa só para todos os dias marcados, como a spec pede ("dias e faixa").
+O início vem antes do fim, então não há faixa que atravesse a meia-noite. O
+início conta como dentro e o fim, como fora: às 18:00 em ponto já é fora.
+
+A hora é lida no fuso fixo da operação (`FUSO_DA_OPERACAO`), o mesmo das telas.
+A Vercel roda em UTC: sem o fuso escrito, sexta às 22h de Brasília seria sábado
+à 1h, e a regra erraria o dia.
+
+**Descartado:** uma faixa por dia (sábado só de manhã, por exemplo). Fica para
+quando alguém pedir.
+
+### 10.3 Onde se configura
+
+Pelo botão "Horário comercial" na lista de automações, ao lado de "Histórico",
+que abre um diálogo. O painel da condição de horário mostra o horário em vigor
+e diz onde mudar.
+
+**Descartado:** uma página própria no menu de Configurações. Seria mais um item
+no menu por causa de um ajuste que só as automações usam hoje. Se a fila de
+atendimento ou outra tela passar a usar o horário, ele muda de lugar.
+
+### 10.4 As três ações
+
+- **Iniciar sequência:** usa o mesmo início do manual
+  (`iniciarExecucaoSequencia`).
+  - O responsável é o atendente da conversa no momento da ação. Assim,
+    "atribuir ao time → iniciar sequência" já pega quem acabou de ser atribuído.
+    O nome dele preenche `{{nome_vendedor}}` nas mensagens da sequência.
+  - Sem atendente na conversa, a sequência escolhe a cada lembrete. É o que ela
+    já fazia: o atendente da conversa e, se não houver, o primeiro admin.
+  - Sequência já em andamento para o contato conta como feita, como a tag que
+    ele já tem.
+  - Sequência desativada ou apagada é falha, com o motivo no histórico.
+  - O plano era sempre começar sem responsável. Mudou ao ler o motor de
+    sequências: a mensagem usa o responsável gravado para o nome do vendedor, e
+    ficaria em branco.
+- **Resolver:** age na conversa aberta. Sem conversa aberta, não há o que
+  resolver, e conta como feita.
+- **Reabrir:** age na conversa mais recente do contato, porque a resolvida não
+  é "aberta" e `conversaDoEvento` não a encontra. Segue o "Reabrir" do chat:
+  com atendente, a conversa volta "em atendimento"; sem, "em espera". Contato
+  sem conversa nenhuma é falha.
+
+### 10.5 Ponto em aberto: o card no "Pronto quando"
+
+O "Pronto quando" da B11-08 diz que, na regra de mensagem recebida fora do
+horário, "o card do contato fica com um atendente do time". Hoje "atribuir"
+(atendente ou time) passa a conversa e, só no gatilho "card movido", o card
+daquele evento. É o mesmo comportamento da primeira versão e do chat, onde
+atribuir a conversa não mexe no card. Com "mensagem recebida", o card não
+mudaria. A decisão é do Luan e só pesa quando a B11-04 chegar:
+
+- manter assim e corrigir a frase do "Pronto quando"; ou
+- fazer "atribuir" passar também o card do contato. Nesse caso, falta decidir
+  qual card, porque o contato pode ter um na Entrada e outro na Recompra.

@@ -47,9 +47,9 @@ O registro está na seção 10 de `decisoes/B11-automacoes-em-fluxo.md`.
     item no menu por causa de um ajuste que só as automações usam. Se a fila de
     atendimento ou outra tela passar a usar, ele muda de lugar.
 - **Iniciar sequência** usa o mesmo `iniciarExecucaoSequencia` do início
-  manual. Sem atendente fixo: quando cada passo roda, a sequência usa o
-  atendente da conversa e, se não houver, o primeiro admin. Isso já é o que ela
-  faz hoje quando falta atendente.
+  manual. O responsável é o atendente da conversa no momento da ação. Sem
+  atendente, a sequência escolhe a cada lembrete, como já faz. (Mudou na
+  execução; veja abaixo.)
   - Sequência já em andamento para o contato conta como feita, como a tag que
     ele já tem.
   - Sequência desativada ou apagada conta como falha, com o motivo.
@@ -147,11 +147,62 @@ service client.
 
 ### Checklist
 
-- [ ] Migration `business_hours` aplicada (depois de `supabase migration list --linked`)
-- [ ] Horário comercial: funções puras, diálogo e action que grava
-- [ ] Condição de horário no motor e no painel
-- [ ] Ações iniciar sequência, resolver e reabrir no motor
-- [ ] Servidor confere as sequências do fluxo
-- [ ] Testes automatizados e suíte unitária passando; build com código 0
-- [ ] Roteiro no preview passando
-- [ ] Registro de decisões (seção 10)
+- [x] Migration `business_hours` aplicada (depois de `supabase migration list --linked`)
+- [x] Horário comercial: funções puras, diálogo e action que grava
+- [x] Condição de horário no motor e no painel
+- [x] Ações iniciar sequência, resolver e reabrir no motor
+- [x] Servidor confere as sequências do fluxo
+- [x] Testes automatizados e suíte unitária passando; build com código 0
+- [x] Roteiro no preview passando
+- [x] Registro de decisões (seção 10)
+- [ ] "Pronto quando" com "mensagem recebida" e a mensagem de ausência (espera a B11-04)
+
+## Execução (07/10/2026)
+
+**Aberta só pela parte de mensagem**, como a B11-02. O gatilho "mensagem
+recebida" e o envio pelo chip ainda não chegam ao preview (B11-04). Todo o
+resto passou pela tela. Falta também a decisão sobre o card (abaixo).
+
+**O que ficou diferente do plano:**
+
+- **Responsável da sequência:** o plano era começar sempre sem responsável.
+  Ao ler o motor de sequências, apareceu que a mensagem usa o responsável
+  gravado para preencher `{{nome_vendedor}}`, que ficaria em branco. Passou a
+  ser o atendente da conversa no momento da ação. Sem atendente, a sequência
+  escolhe a cada lembrete, como antes.
+- **`contexto.ts` e `simulacao.ts` não mudaram.** O reabrir faz a própria
+  consulta da conversa mais recente: devolve "erro ao gravar no banco" como as
+  outras ações, em vez de lançar exceção como a busca da simulação.
+- **Dois testes antigos** usavam a condição de horário e a ação de iniciar
+  sequência como exemplo de "ainda não disponível". Passaram a usar o texto da
+  mensagem e a mensagem rápida, que continuam fora.
+- **Tipos do Supabase gerados de novo** (`types.ts`), só com a tabela nova.
+
+**Como foi verificado:**
+
+- Suíte unitária com 45 arquivos e 547 testes passando, sendo 26 novos:
+  - Horário: conferência, leitura do banco, dentro e fora no fuso de Brasília,
+    início e fim da faixa, meia-noite e a frase do painel.
+  - A condição no motor.
+  - As três ações, com os casos de feita, falha e motivo.
+  - As sequências nas referências do fluxo.
+- `tsc` limpo. O lint de `src` e `e2e` ficou com 0 erros (os 3 avisos são
+  antigos, de telas que não mudaram). Build com código de saída 0.
+- **No preview** (commit `f12cf3c`), `e2e/preview/roteiro-b11-08.cjs` passou em
+  **8 de 8**, com 2 regras montadas pela tela e disparadas pela tag no perfil:
+  - O diálogo grava os 7 dias e a faixa, e o painel da condição mostra "Todos os
+    dias, das 00:00 às 23:59".
+  - Dentro do horário, a regra segue pelo "não": a conversa da Ana continua
+    aberta e sem atendente.
+  - Com a faixa trocada para fora do momento do teste, a conversa do Bruno vai
+    para o admin, único do time Entrada, e é resolvida.
+  - O histórico registra "não" na Ana e "sim" no Bruno.
+  - Reabrir devolve a conversa do Bruno para "em atendimento", e a sequência
+    começa com o admin como responsável.
+  - Nenhum erro no console.
+
+**Ponto em aberto (decisões, seção 10.5):** o "Pronto quando" diz que "o card
+do contato fica com um atendente do time". Hoje "atribuir" passa o card só no
+gatilho "card movido", como na primeira versão e no chat. Com "mensagem
+recebida", o card não mudaria. Falta o Luan decidir entre corrigir a frase ou
+fazer "atribuir" passar também o card, e, nesse caso, qual card.
