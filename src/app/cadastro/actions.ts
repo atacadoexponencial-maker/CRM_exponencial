@@ -1,83 +1,68 @@
 "use server"
 
 import { garantirSequenciasPredefinidas } from "@/lib/sequencias"
-import { createClient } from "@supabase/supabase-js"
+import { createServiceClient } from "@/integrations/supabase/service"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
+import { schema } from "./schema"
+import { chaveDoIp, ipDaRequisicao, passouDoLimite, registrarTentativa } from "@/lib/limite-de-tentativas"
 
-export async function verificarEmailEmUso(email: string): Promise<boolean> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+// B20-05: até 5 cadastros por hora por endereço de internet.
+const LIMITE_CADASTROS_POR_HORA = 5
 
-  const supabase = createClient(url, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+export type ResultadoCadastro =
+  | { ok: true }
+  | { erro: "email_em_uso" | "dados_invalidos" | "falha" | "falha_login" | "limite" }
 
-  const { data, error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
+// B19-01: o cadastro é uma operação só. Esta é a única action pública da tela — não
+// recebe código de empresa de fora: a empresa nasce aqui, junto com o Admin dela.
+export async function cadastrarEmpresa(dados: unknown): Promise<ResultadoCadastro> {
+  const validacao = schema.safeParse(dados)
+  if (!validacao.success) return { erro: "dados_invalidos" }
 
-  if (error) throw new Error("Erro ao verificar e-mail")
+  const nomeEmpresa = validacao.data.nomeEmpresa.trim()
+  const nomeResponsavel = validacao.data.nomeResponsavel.trim()
+  const email = validacao.data.email.trim()
+  const { senha } = validacao.data
+  if (!nomeEmpresa || !nomeResponsavel) return { erro: "dados_invalidos" }
 
-  return data.users.some((u) => u.email === email)
-}
+  const chaveIp = chaveDoIp(await ipDaRequisicao())
+  if (await passouDoLimite("cadastro", [{ chave: chaveIp, limite: LIMITE_CADASTROS_POR_HORA }], 60)) {
+    return { erro: "limite" }
+  }
+  await registrarTentativa("cadastro", [chaveIp])
 
-export async function criarWorkspace(nomeEmpresa: string): Promise<string> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-  const supabase = createClient(url, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
-  const { data, error } = await supabase
-    .from("workspaces")
-    .insert({ name: nomeEmpresa })
-    .select("id")
-    .single()
-
-  if (error) throw new Error("Erro ao criar workspace")
-
-  return data.id
-}
-
-export async function criarAdminETimesPadrao(
-  workspaceId: string,
-  nomeResponsavel: string,
-  email: string,
-  senha: string
-): Promise<void> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-  const adminClient = createClient(url, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  const adminClient = createServiceClient()
 
   const { data: userData, error: userError } = await adminClient.auth.admin.createUser({
     email,
     password: senha,
     email_confirm: true,
   })
-  if (userError) throw new Error("Erro ao criar usuário")
+  if (userError) {
+    if (userError.code === "email_exists") return { erro: "email_em_uso" }
+    return { erro: "falha" }
+  }
 
   const userId = userData.user.id
 
-  const { error: profileError } = await adminClient
-    .from("profiles")
-    .insert({ id: userId, workspace_id: workspaceId, name: nomeResponsavel, role: "admin" })
-  if (profileError) throw new Error("Erro ao criar perfil")
-
-  const { error: teamsError } = await adminClient
-    .from("teams")
-    .insert([
-      { workspace_id: workspaceId, name: "Entrada", is_default: true },
-      { workspace_id: workspaceId, name: "Recompra", is_default: true },
-    ])
-  if (teamsError) throw new Error("Erro ao criar times padrão")
+  const { data: workspaceId, error: cadastroError } = await adminClient.rpc("cadastrar_empresa", {
+    p_user_id: userId,
+    p_nome_empresa: nomeEmpresa,
+    p_nome_responsavel: nomeResponsavel,
+  })
+  if (cadastroError || !workspaceId) {
+    // A transação do banco já desfez empresa, perfil e times; falta o usuário do Auth.
+    await adminClient.auth.admin.deleteUser(userId)
+    return { erro: "falha" }
+  }
 
   // B10-08: as 4 sequências do método nascem com a empresa, não a cada visita
   // à biblioteca. Falha aqui é silenciosa (a função já é oportunista).
-  await garantirSequenciasPredefinidas(workspaceId)
+  await garantirSequenciasPredefinidas(workspaceId as string)
 
   const ssrClient = await createSsrClient()
   const { error: signInError } = await ssrClient.auth.signInWithPassword({ email, password: senha })
-  if (signInError) throw new Error("Erro ao autenticar usuário")
+  if (signInError) return { erro: "falha_login" }
+
+  return { ok: true }
 }

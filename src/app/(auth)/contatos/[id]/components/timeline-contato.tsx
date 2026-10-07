@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { MessageSquare, GitBranch, ArrowRight, FileText, ShoppingBag, Pencil } from "lucide-react"
+import { MessageSquare, GitBranch, ArrowRight, FileText, ShoppingBag, Pencil, Store } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { type EventoTimeline, type TipoEvento, TIPOS_EVENTO } from "../../mock-contatos"
 
@@ -11,6 +11,7 @@ const EVENTO_ICONE: Record<TipoEvento, React.ReactNode> = {
   mudanca_etapa: <ArrowRight className="size-3.5" />,
   nota_interna: <FileText className="size-3.5" />,
   compra_registrada: <ShoppingBag className="size-3.5" />,
+  pedido_catalogo: <Store className="size-3.5" />,
   dados_editados: <Pencil className="size-3.5" />,
 }
 
@@ -20,6 +21,7 @@ const EVENTO_COR: Record<TipoEvento, string> = {
   mudanca_etapa: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
   nota_interna: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
   compra_registrada: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
+  pedido_catalogo: "bg-sky-500/15 text-sky-300",
   dados_editados: "bg-secondary text-muted-foreground",
 }
 
@@ -30,6 +32,7 @@ const FILTROS: { label: string; valor: TipoEvento | "todos" }[] = [
   { label: "Etapa", valor: "mudanca_etapa" },
   { label: "Nota interna", valor: "nota_interna" },
   { label: "Compra", valor: "compra_registrada" },
+  { label: "Pedido do catálogo", valor: "pedido_catalogo" },
   { label: "Dados editados", valor: "dados_editados" },
 ]
 

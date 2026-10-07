@@ -5,6 +5,9 @@ import { QueryProvider } from "@/components/shared/query-provider";
 export const metadata: Metadata = {
   title: "CRM Exponencial",
   description: "CRM Exponencial",
+  // Declarado aqui (e não por src/app/favicon.ico, que entra em toda página) para a
+  // vitrine da loja poder trocar pelo ícone da própria loja (B16-08).
+  icons: { icon: "/favicon.ico" },
 };
 
 export default function RootLayout({

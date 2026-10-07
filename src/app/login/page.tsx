@@ -1,13 +1,15 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { use, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { createClient } from "@/integrations/supabase/client"
+import { Loader2 } from "lucide-react"
+import { realizarLogin } from "./actions"
+import { AVISO_CONTA_DESATIVADA } from "./avisos"
 
 const schema = z.object({
   email: z.string().min(1, "E-mail é obrigatório").email("E-mail inválido"),
@@ -16,8 +18,12 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
-export default function LoginPage() {
-  const router = useRouter()
+export default function LoginPage({ searchParams }: { searchParams: Promise<{ motivo?: string }> }) {
+  // B20-02: o middleware manda para cá quem foi desativado com a sessão aberta.
+  const { motivo } = use(searchParams)
+  // Fica ligado do clique até a página seguinte abrir: o redirect da action
+  // troca de tela sozinho, então só o erro desliga.
+  const [entrando, setEntrando] = useState(false)
   const {
     register,
     handleSubmit,
@@ -26,16 +32,17 @@ export default function LoginPage() {
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
   async function onSubmit(data: FormData) {
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({
-      email: data.email,
-      password: data.senha,
-    })
-    if (error) {
-      setError("root", { type: "manual", message: "E-mail ou senha incorretos" })
-      return
+    setEntrando(true)
+    try {
+      const resultado = await realizarLogin(data.email, data.senha)
+      if (resultado?.erro) {
+        setError("root", { type: "manual", message: resultado.erro })
+        setEntrando(false)
+      }
+    } catch {
+      setError("root", { type: "manual", message: "Não foi possível entrar. Tente novamente." })
+      setEntrando(false)
     }
-    router.push("/configuracoes/whatsapp")
   }
 
   return (
@@ -77,12 +84,17 @@ export default function LoginPage() {
             )}
           </div>
 
+          {motivo === "desativada" && !errors.root && (
+            <p className="text-sm text-destructive text-center">{AVISO_CONTA_DESATIVADA}</p>
+          )}
+
           {errors.root && (
             <p className="text-sm text-destructive text-center">{errors.root.message}</p>
           )}
 
-          <Button type="submit" className="mt-2 w-full">
-            Entrar
+          <Button type="submit" className="mt-2 w-full" disabled={entrando}>
+            {entrando && <Loader2 className="size-4 animate-spin" />}
+            {entrando ? "Entrando…" : "Entrar"}
           </Button>
         </form>
 

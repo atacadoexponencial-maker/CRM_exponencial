@@ -3,24 +3,16 @@
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { verificarEmailEmUso, criarWorkspace, criarAdminETimesPadrao } from "./actions"
+import { cadastrarEmpresa } from "./actions"
+import { schema, type DadosCadastro } from "./schema"
+import { AVISO_MUITAS_TENTATIVAS } from "../login/avisos"
 
-export const schema = z.object({
-  nomeEmpresa: z.string().min(1, "Nome da empresa é obrigatório"),
-  nomeResponsavel: z.string().min(1, "Nome do responsável é obrigatório"),
-  email: z.string().min(1, "E-mail é obrigatório").email("E-mail inválido"),
-  senha: z.string().min(8, "Senha deve ter pelo menos 8 caracteres"),
-  confirmarSenha: z.string().min(1, "Confirmação de senha é obrigatória"),
-}).refine((data) => data.senha === data.confirmarSenha, {
-  message: "As senhas não coincidem",
-  path: ["confirmarSenha"],
-})
+export { schema }
 
-type FormData = z.infer<typeof schema>
+type FormData = DadosCadastro
 
 export default function CadastroPage() {
   const router = useRouter()
@@ -32,29 +24,23 @@ export default function CadastroPage() {
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
   async function onSubmit(data: FormData) {
+    let resultado
     try {
-      const emUso = await verificarEmailEmUso(data.email)
-      if (emUso) {
+      resultado = await cadastrarEmpresa(data)
+    } catch {
+      resultado = { erro: "falha" as const }
+    }
+
+    if ("erro" in resultado) {
+      if (resultado.erro === "email_em_uso") {
         setError("email", { type: "manual", message: "E-mail já está em uso" })
-        return
+      } else if (resultado.erro === "limite") {
+        setError("nomeEmpresa", { type: "manual", message: AVISO_MUITAS_TENTATIVAS })
+      } else if (resultado.erro === "falha_login") {
+        router.push("/login")
+      } else {
+        setError("nomeEmpresa", { type: "manual", message: "Não foi possível concluir o cadastro. Tente novamente." })
       }
-    } catch {
-      setError("email", { type: "manual", message: "Não foi possível verificar o e-mail. Tente novamente." })
-      return
-    }
-
-    let workspaceId: string
-    try {
-      workspaceId = await criarWorkspace(data.nomeEmpresa)
-    } catch {
-      setError("nomeEmpresa", { type: "manual", message: "Não foi possível criar o workspace. Tente novamente." })
-      return
-    }
-
-    try {
-      await criarAdminETimesPadrao(workspaceId, data.nomeResponsavel, data.email, data.senha)
-    } catch {
-      setError("nomeEmpresa", { type: "manual", message: "Não foi possível concluir o cadastro. Tente novamente." })
       return
     }
 

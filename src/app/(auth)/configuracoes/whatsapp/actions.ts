@@ -725,7 +725,8 @@ export async function reinscreverWebhookWhatsApp(): Promise<{ erro?: string }> {
 
   if (perfil?.role !== "admin") return { erro: "Sem permissão" }
 
-  const { data: conexao } = await ssrClient
+  // B19-03: `access_token` só é legível pela chave de serviço; o filtro de empresa fica.
+  const { data: conexao } = await createServiceClient()
     .from("whatsapp_connections")
     .select("waba_id, access_token")
     .eq("workspace_id", perfil.workspace_id)

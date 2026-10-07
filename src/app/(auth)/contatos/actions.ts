@@ -169,7 +169,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const [{ data }, { data: cardsData }, { data: tagsData }, { data: comprasData }, { data: conversacoesData }] = await Promise.all([
+  const [{ data }, { data: cardsData }, { data: tagsData }, { data: comprasData }, { data: conversacoesData }, { data: pedidosData }] = await Promise.all([
     supabase
       .from("contacts")
       .select(PERFIL_SELECT)
@@ -195,6 +195,12 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
       .select("id, created_at, assigned_to, profiles!assigned_to(name)")
       .eq("contact_id", id)
       .order("last_message_at", { ascending: false }),
+    // B16-10: pedidos feitos pela loja do catálogo.
+    supabase
+      .from("catalog_orders")
+      .select("id, number, created_at, customer_name, customer_whatsapp, pieces, total, status")
+      .eq("contact_id", id)
+      .order("created_at", { ascending: false }),
   ])
 
   if (!data) return null
@@ -296,6 +302,16 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
     })
   }
 
+  for (const o of pedidosData ?? []) {
+    eventos.push({
+      id: `pedido-${o.id}`,
+      created_at: o.created_at,
+      tipo: "pedido_catalogo",
+      descricao: `Pedido #${o.number} recebido pelo catálogo — ${Number(o.total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`,
+      responsavel: "",
+    })
+  }
+
   eventos.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   const timeline = eventos.map((e) => ({
@@ -327,6 +343,15 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
       valor: Number(p.valor),
     })),
     timeline,
+    pedidosCatalogo: (pedidosData ?? []).map((o) => ({
+      id: o.id,
+      numero: o.number,
+      criadoEm: o.created_at,
+      cliente: { nome: o.customer_name, whatsapp: o.customer_whatsapp },
+      pecas: o.pieces,
+      total: Number(o.total),
+      situacao: o.status as import("../catalogo/components/situacao-pedido").SituacaoPedido,
+    })),
   }
 }
 

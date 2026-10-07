@@ -7,23 +7,29 @@ async function dadosDoUsuario(): Promise<{
   papel: "admin" | "gerente" | "atendente"
   nome: string
   atrasados: number
+  pedidosNovos: number
 }> {
-  const fallback = { papel: "atendente" as const, nome: "", atrasados: 0 }
+  const fallback = { papel: "atendente" as const, nome: "", atrasados: 0, pedidosNovos: 0 }
   try {
     const { supabase, user, perfil } = await sessaoAtual()
     if (!user) return fallback
 
-    const { count } = await supabase
+    const [{ count }, { count: novos }] = await Promise.all([
+      supabase
         .from("reminders")
         .select("id", { count: "exact", head: true })
         .eq("atendente_id", user.id)
         .eq("status", "pendente")
-        .lt("due_at", new Date().toISOString())
+        .lt("due_at", new Date().toISOString()),
+      // B16-10: pedidos do catálogo ainda Novos (o RLS limita à empresa).
+      supabase.from("catalog_orders").select("id", { count: "exact", head: true }).eq("status", "novo"),
+    ])
 
     return {
       papel: (perfil?.role as "admin" | "gerente" | "atendente") ?? "atendente",
       nome: perfil?.name ?? "",
       atrasados: count ?? 0,
+      pedidosNovos: novos ?? 0,
     }
   } catch {
     return fallback
@@ -31,12 +37,12 @@ async function dadosDoUsuario(): Promise<{
 }
 
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
-  const [{ papel, nome, atrasados }, cookieStore] = await Promise.all([dadosDoUsuario(), cookies()])
+  const [{ papel, nome, atrasados, pedidosNovos }, cookieStore] = await Promise.all([dadosDoUsuario(), cookies()])
   const menuRecolhido = cookieStore.get(COOKIE_MENU_RECOLHIDO)?.value === "1"
 
   return (
     <div className="h-screen overflow-hidden flex flex-col lg:flex-row">
-      <SidebarNav papel={papel} nomeUsuario={nome} atrasados={atrasados} recolhidoInicial={menuRecolhido} />
+      <SidebarNav papel={papel} nomeUsuario={nome} atrasados={atrasados} pedidosNovos={pedidosNovos} recolhidoInicial={menuRecolhido} />
       <main className="flex-1 min-w-0 flex flex-col overflow-y-auto">
         {children}
       </main>

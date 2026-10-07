@@ -18,6 +18,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plug,
+  ShoppingBag,
+  Store,
   Tags,
   FileBadge,
   UserCircle,
@@ -48,9 +50,11 @@ interface SidebarNavProps {
   papel: Papel
   nomeUsuario: string
   atrasados: number
+  /** Pedidos do catálogo ainda Novos (B16-10). */
+  pedidosNovos?: number
 }
 
-function montarSecoes(atrasados: number): SecaoNav[] {
+function montarSecoes(atrasados: number, pedidosNovos: number): SecaoNav[] {
   return [
     {
       titulo: null,
@@ -59,6 +63,9 @@ function montarSecoes(atrasados: number): SecaoNav[] {
         { href: "/pipeline", label: "Pipeline", icone: Kanban },
         { href: "/chat", label: "Chat", icone: MessageSquare },
         { href: "/contatos", label: "Contatos", icone: Contact },
+        { href: "/catalogo", label: "Catálogo", icone: Store, papeis: ["admin", "gerente"] },
+        // Atendente vê só os pedidos do catálogo; os outros papéis veem o catálogo e os pedidos.
+        { href: "/catalogo/pedidos", label: "Pedidos", icone: ShoppingBag, badge: pedidosNovos },
       ],
     },
     {
@@ -140,6 +147,7 @@ function ConteudoNav({
   papel,
   nomeUsuario,
   atrasados,
+  pedidosNovos = 0,
   pathname,
   recolhido = false,
   onAlternar,
@@ -150,15 +158,19 @@ function ConteudoNav({
   onAlternar?: () => void
   onNavegar?: () => void
 }) {
-  const secoes = montarSecoes(atrasados)
+  const secoes = montarSecoes(atrasados, pedidosNovos)
 
   function visivel(item: ItemNav) {
     return !item.papeis || item.papeis.includes(papel)
   }
 
+  const casa = (href: string) => pathname === href || pathname.startsWith(href + "/")
+  const todosHrefs = secoes.flatMap((secao) => secao.itens.map((item) => item.href))
+
   function ehAtivo(href: string) {
-    if (href === "/dashboard") return pathname === "/dashboard" || pathname.startsWith("/dashboard/")
-    return pathname === href || pathname.startsWith(href + "/")
+    if (!casa(href)) return false
+    // Em /catalogo/pedidos acende só "Pedidos", não também "Catálogo".
+    return !todosHrefs.some((outro) => outro.length > href.length && outro.startsWith(href + "/") && casa(outro))
   }
 
   return (

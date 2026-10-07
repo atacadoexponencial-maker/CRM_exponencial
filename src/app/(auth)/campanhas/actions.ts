@@ -294,11 +294,12 @@ export async function avaliarDisparo(
   connectionId: string | null,
   totalDestinatarios: number
 ): Promise<AvaliacaoDoDisparo> {
-  const { supabase, perfil } = await perfilGestor()
+  const { perfil } = await perfilGestor()
   if (!perfil) return { aviso: null, estimativa: "", ritmoConfirmado: false }
 
+  // B19-03: `instance_token` só é legível pela chave de serviço; o filtro de empresa fica.
   const { data: conexao } = connectionId
-    ? await supabase
+    ? await createServiceClient()
         .from("whatsapp_connections")
         .select("canal, instance_id, instance_token")
         .eq("id", connectionId)
@@ -395,6 +396,17 @@ export async function salvarRascunho(
   const erro = validarDados(dados, false)
   if (erro) return { erro }
 
+  // B20-03: o número escolhido tem de ser da empresa de quem salva.
+  if (dados.whatsappConnectionId) {
+    const { data: conexao } = await supabase
+      .from("whatsapp_connections")
+      .select("id")
+      .eq("id", dados.whatsappConnectionId)
+      .eq("workspace_id", perfil.workspace_id)
+      .maybeSingle()
+    if (!conexao) return { erro: "Número de WhatsApp inválido para esta campanha" }
+  }
+
   const payload = {
     nome: dados.nome.trim(),
     segmento: dados.segmento,
@@ -407,13 +419,17 @@ export async function salvarRascunho(
   }
 
   if (id) {
-    const { error } = await supabase
+    // B20-03: sem linha alcançada (campanha de outra empresa ou fora de edição) é erro —
+    // confirmarCampanha mexe nos destinatários com a chave de serviço logo depois.
+    const { data: salva, error } = await supabase
       .from("campaigns")
       .update(payload)
       .eq("id", id)
       .eq("workspace_id", perfil.workspace_id)
       .in("status", ["rascunho", "agendada"])
-    if (error) return { erro: "Não foi possível salvar a campanha" }
+      .select("id")
+      .maybeSingle()
+    if (error || !salva) return { erro: "Não foi possível salvar a campanha" }
     return { id }
   }
 

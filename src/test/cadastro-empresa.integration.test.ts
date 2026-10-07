@@ -1,224 +1,150 @@
-import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest"
-
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: vi.fn(),
-}))
-
-vi.mock("@/integrations/supabase/server", () => ({
-  createClient: vi.fn(),
-}))
+// @vitest-environment node
+// B19-01 — cadastro de empresa numa operação só. Bate no Supabase real; só o client SSR
+// (cookies do Next) é trocado por um client comum, porque o Vitest não tem requisição.
+// Substitui os testes das actions antigas (verificarEmailEmUso, criarWorkspace,
+// criarAdminETimesPadrao), que deixaram de existir.
 
 import { createClient } from "@supabase/supabase-js"
-import { createClient as createSsrClient } from "@/integrations/supabase/server"
-import { verificarEmailEmUso, criarWorkspace, criarAdminETimesPadrao } from "@/app/cadastro/actions"
+import { describe, it, expect, vi, afterAll } from "vitest"
 
-const mockSsrCreateClient = vi.mocked(createSsrClient)
+// B20-05: as actions leem o IP de quem chama. Este arquivo faz mais cadastros do que o
+// freio deixa por endereço (5 por hora), então cada chamada vem de um endereço próprio.
+vi.mock("next/headers", () => ({
+  headers: async () => new Headers({ "x-forwarded-for": `teste-${Date.now()}-${Math.random()}` }),
+}))
 
-const mockCreateClient = vi.mocked(createClient)
+const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-describe("verificarEmailEmUso", () => {
-  beforeAll(() => {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "http://localhost:54321"
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key"
-  })
-
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-  it("retorna true se e-mail já está cadastrado", async () => {
-    const mockListUsers = vi.fn().mockResolvedValue({
-      data: { users: [{ id: "user-123", email: "joao@empresa.com" }] },
-      error: null,
-    })
-    mockCreateClient.mockReturnValue({
-      auth: { admin: { listUsers: mockListUsers } },
-    } as unknown as ReturnType<typeof createClient>)
-
-    const result = await verificarEmailEmUso("joao@empresa.com")
-
-    expect(result).toBe(true)
-    expect(mockListUsers).toHaveBeenCalledWith({ page: 1, perPage: 1000 })
-  })
-
-  it("retorna false se e-mail não está cadastrado", async () => {
-    const mockListUsers = vi.fn().mockResolvedValue({
-      data: { users: [{ id: "user-456", email: "outro@empresa.com" }] },
-      error: null,
-    })
-    mockCreateClient.mockReturnValue({
-      auth: { admin: { listUsers: mockListUsers } },
-    } as unknown as ReturnType<typeof createClient>)
-
-    const result = await verificarEmailEmUso("novo@empresa.com")
-
-    expect(result).toBe(false)
-  })
-
-  it("lança erro em caso de falha inesperada no Supabase", async () => {
-    const mockListUsers = vi.fn().mockResolvedValue({
-      data: null,
-      error: { message: "Internal server error" },
-    })
-    mockCreateClient.mockReturnValue({
-      auth: { admin: { listUsers: mockListUsers } },
-    } as unknown as ReturnType<typeof createClient>)
-
-    await expect(verificarEmailEmUso("qualquer@empresa.com")).rejects.toThrow(
-      "Erro ao verificar e-mail"
-    )
-  })
-})
-
-describe("Issue 10 — Criar workspace isolado da empresa", () => {
-  beforeAll(() => {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "http://localhost:54321"
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key"
-  })
-
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-  it("cria um registro na tabela workspaces com os dados corretos", async () => {
-    const mockSingle = vi.fn().mockResolvedValue({
-      data: { id: "workspace-abc" },
-      error: null,
-    })
-    const mockSelect = vi.fn().mockReturnValue({ single: mockSingle })
-    const mockInsert = vi.fn().mockReturnValue({ select: mockSelect })
-    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert })
-    mockCreateClient.mockReturnValue({
-      from: mockFrom,
-    } as unknown as ReturnType<typeof createClient>)
-
-    const id = await criarWorkspace("Empresa Teste Ltda")
-
-    expect(id).toBe("workspace-abc")
-    expect(mockFrom).toHaveBeenCalledWith("workspaces")
-    expect(mockInsert).toHaveBeenCalledWith({ name: "Empresa Teste Ltda" })
-  })
-
-  it("empresa A não consegue acessar dados da empresa B — workspaces têm IDs distintos", async () => {
-    let callCount = 0
-    const ids = ["workspace-empresa-a", "workspace-empresa-b"]
-    const mockSingle = vi.fn().mockImplementation(() => {
-      return Promise.resolve({ data: { id: ids[callCount++] }, error: null })
-    })
-    const mockSelect = vi.fn().mockReturnValue({ single: mockSingle })
-    const mockInsert = vi.fn().mockReturnValue({ select: mockSelect })
-    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert })
-    mockCreateClient.mockReturnValue({
-      from: mockFrom,
-    } as unknown as ReturnType<typeof createClient>)
-
-    const idA = await criarWorkspace("Empresa A")
-    const idB = await criarWorkspace("Empresa B")
-
-    expect(idA).not.toBe(idB)
-    expect(idA).toBe("workspace-empresa-a")
-    expect(idB).toBe("workspace-empresa-b")
-  })
-
-  it("dois cadastros simultâneos criam dois workspaces distintos", async () => {
-    let callCount = 0
-    const ids = ["workspace-1", "workspace-2"]
-    const mockSingle = vi.fn().mockImplementation(() => {
-      return Promise.resolve({ data: { id: ids[callCount++] }, error: null })
-    })
-    const mockSelect = vi.fn().mockReturnValue({ single: mockSingle })
-    const mockInsert = vi.fn().mockReturnValue({ select: mockSelect })
-    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert })
-    mockCreateClient.mockReturnValue({
-      from: mockFrom,
-    } as unknown as ReturnType<typeof createClient>)
-
-    const [id1, id2] = await Promise.all([
-      criarWorkspace("Empresa 1"),
-      criarWorkspace("Empresa 2"),
-    ])
-
-    expect(id1).not.toBe(id2)
-  })
-})
-
-describe("Issue 11 — Criar Admin e times padrão ao cadastrar empresa", () => {
-  const WORKSPACE_ID = "workspace-test-id"
-
-  beforeAll(() => {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "http://localhost:54321"
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key"
-  })
-
-  beforeEach(() => {
-    vi.clearAllMocks()
-
-    const mockSignIn = vi.fn().mockResolvedValue({ error: null })
-    mockSsrCreateClient.mockResolvedValue({
-      auth: { signInWithPassword: mockSignIn },
-    } as unknown as Awaited<ReturnType<typeof createSsrClient>>)
-  })
-
-  function buildAdminClientMock(teamsData: unknown[] = []) {
-    const mockCreateUser = vi.fn().mockResolvedValue({
-      data: { user: { id: "user-admin-id" } },
-      error: null,
-    })
-    const mockProfileInsert = vi.fn().mockResolvedValue({ error: null })
-    const mockTeamsInsert = vi.fn().mockImplementation((data: unknown[]) => {
-      teamsData.push(...data)
-      return Promise.resolve({ error: null })
-    })
-    const mockFrom = vi.fn().mockImplementation((table: string) => {
-      if (table === "profiles") return { insert: mockProfileInsert }
-      if (table === "teams") return { insert: mockTeamsInsert }
-      return { insert: vi.fn().mockResolvedValue({ error: null }) }
-    })
-    mockCreateClient.mockReturnValue({
-      auth: { admin: { createUser: mockCreateUser } },
-      from: mockFrom,
-    } as unknown as ReturnType<typeof createClient>)
-    return { mockCreateUser, mockProfileInsert, mockTeamsInsert, mockFrom }
+vi.mock("@/integrations/supabase/server", async () => {
+  const { createClient } = await import("@supabase/supabase-js")
+  return {
+    createClient: async () =>
+      createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      }),
   }
+})
 
-  it("primeiro usuário criado tem papel 'admin'", async () => {
-    const { mockProfileInsert } = buildAdminClientMock()
+// Para o cenário "falha no meio": a função do banco falha quando o nome da empresa é este.
+const NOME_QUE_FALHA = "__forcar_falha_b19_01__"
+vi.mock("@/integrations/supabase/service", async () => {
+  const { createClient } = await import("@supabase/supabase-js")
+  return {
+    createServiceClient: () => {
+      const client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      })
+      const rpcOriginal = client.rpc.bind(client)
+      client.rpc = ((fn: string, args?: Record<string, unknown>) => {
+        if (fn === "cadastrar_empresa" && args?.p_nome_empresa === NOME_QUE_FALHA) {
+          return Promise.resolve({ data: null, error: { message: "falha forçada" } })
+        }
+        return rpcOriginal(fn, args)
+      }) as typeof client.rpc
+      return client
+    },
+  }
+})
 
-    await criarAdminETimesPadrao(WORKSPACE_ID, "João Silva", "joao@empresa.com", "senha123!")
+import { cadastrarEmpresa } from "@/app/cadastro/actions"
 
-    expect(mockProfileInsert).toHaveBeenCalledWith(
-      expect.objectContaining({ role: "admin", workspace_id: WORKSPACE_ID })
-    )
+const service = createClient(URL, SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } })
+const ts = Date.now()
+const usuariosCriados: string[] = []
+const empresasCriadas: string[] = []
+
+function dados(sufixo: string, extra: Record<string, unknown> = {}) {
+  return {
+    nomeEmpresa: `Empresa B19 ${sufixo} ${ts}`,
+    nomeResponsavel: "Responsável Teste",
+    email: `b19-01-${sufixo}-${ts}@teste.com`,
+    senha: "senha-segura-123",
+    confirmarSenha: "senha-segura-123",
+    ...extra,
+  }
+}
+
+async function perfilPorEmail(email: string) {
+  const anon = createClient(URL, ANON_KEY, { auth: { autoRefreshToken: false, persistSession: false } })
+  const { data } = await anon.auth.signInWithPassword({ email, password: "senha-segura-123" })
+  if (!data.user) return null
+  const { data: perfil } = await service.from("profiles").select("id, workspace_id, role, name").eq("id", data.user.id).single()
+  if (perfil) {
+    usuariosCriados.push(perfil.id)
+    empresasCriadas.push(perfil.workspace_id)
+  }
+  return perfil
+}
+
+afterAll(async () => {
+  for (const ws of empresasCriadas) {
+    await service.from("sequences").delete().eq("workspace_id", ws)
+    await service.from("teams").delete().eq("workspace_id", ws)
+    await service.from("profiles").delete().eq("workspace_id", ws)
+  }
+  for (const id of usuariosCriados) await service.auth.admin.deleteUser(id)
+  for (const ws of empresasCriadas) await service.from("workspaces").delete().eq("id", ws)
+}, 60_000)
+
+describe("B19-01 — Cadastro de empresa numa operação só", { timeout: 30_000 }, () => {
+  it("should criar empresa, Admin e times Entrada e Recompra numa chamada só", async () => {
+    const d = dados("ok")
+    const r = await cadastrarEmpresa(d)
+    expect(r).toEqual({ ok: true })
+
+    const perfil = await perfilPorEmail(d.email)
+    expect(perfil).toMatchObject({ role: "admin", name: "Responsável Teste" })
+
+    const { data: empresa } = await service.from("workspaces").select("name").eq("id", perfil!.workspace_id).single()
+    expect(empresa!.name).toBe(d.nomeEmpresa)
+
+    const { data: times } = await service.from("teams").select("name, is_default").eq("workspace_id", perfil!.workspace_id)
+    expect(times!.map((t) => t.name).sort()).toEqual(["Entrada", "Recompra"])
+    expect(times!.every((t) => t.is_default)).toBe(true)
   })
 
-  it("times 'Entrada' e 'Recompra' são criados automaticamente", async () => {
-    const captured: unknown[] = []
-    buildAdminClientMock(captured)
-
-    await criarAdminETimesPadrao(WORKSPACE_ID, "João Silva", "joao@empresa.com", "senha123!")
-
-    const names = (captured as Array<{ name: string }>).map((t) => t.name)
-    expect(names).toContain("Entrada")
-    expect(names).toContain("Recompra")
+  it("should gravar nomes sem espaços nas pontas", async () => {
+    const d = dados("trim", { nomeEmpresa: `  Empresa Trim ${ts}  `, nomeResponsavel: "  Maria  " })
+    expect(await cadastrarEmpresa(d)).toEqual({ ok: true })
+    const perfil = await perfilPorEmail(d.email)
+    expect(perfil!.name).toBe("Maria")
+    const { data: empresa } = await service.from("workspaces").select("name").eq("id", perfil!.workspace_id).single()
+    expect(empresa!.name).toBe(`Empresa Trim ${ts}`)
   })
 
-  it("times padrão têm flag is_default = true", async () => {
-    const captured: unknown[] = []
-    buildAdminClientMock(captured)
+  it("should reject e-mail já cadastrado sem criar nada", async () => {
+    const d = dados("repetido")
+    expect(await cadastrarEmpresa(d)).toEqual({ ok: true })
+    await perfilPorEmail(d.email)
 
-    await criarAdminETimesPadrao(WORKSPACE_ID, "João Silva", "joao@empresa.com", "senha123!")
+    const outraEmpresa = `Outra Empresa Repetida ${ts}`
+    const r = await cadastrarEmpresa({ ...d, nomeEmpresa: outraEmpresa })
+    expect(r).toEqual({ erro: "email_em_uso" })
 
-    const teams = captured as Array<{ is_default: boolean }>
-    expect(teams.every((t) => t.is_default === true)).toBe(true)
+    const { count } = await service.from("workspaces").select("id", { count: "exact", head: true }).eq("name", outraEmpresa)
+    expect(count).toBe(0)
   })
 
-  it("times padrão pertencem à empresa correta (não vazam para outra empresa)", async () => {
-    const captured: unknown[] = []
-    buildAdminClientMock(captured)
+  it("should reject dados inválidos mandados direto ao servidor", async () => {
+    expect(await cadastrarEmpresa({ ...dados("inv1"), email: "nao-e-email" })).toEqual({ erro: "dados_invalidos" })
+    expect(await cadastrarEmpresa({ ...dados("inv2"), senha: "curta", confirmarSenha: "curta" })).toEqual({ erro: "dados_invalidos" })
+    expect(await cadastrarEmpresa({ ...dados("inv3"), confirmarSenha: "outra-senha-123" })).toEqual({ erro: "dados_invalidos" })
+    expect(await cadastrarEmpresa({ ...dados("inv4"), nomeEmpresa: "   " })).toEqual({ erro: "dados_invalidos" })
+    expect(await cadastrarEmpresa(null)).toEqual({ erro: "dados_invalidos" })
 
-    await criarAdminETimesPadrao(WORKSPACE_ID, "João Silva", "joao@empresa.com", "senha123!")
+    const { count } = await service.from("workspaces").select("id", { count: "exact", head: true }).like("name", `Empresa B19 inv% ${ts}`)
+    expect(count).toBe(0)
+  })
 
-    const teams = captured as Array<{ workspace_id: string }>
-    expect(teams.every((t) => t.workspace_id === WORKSPACE_ID)).toBe(true)
+  it("should not deixar usuário nem empresa pela metade quando a função do banco falha", async () => {
+    const d = dados("falha", { nomeEmpresa: NOME_QUE_FALHA })
+    expect(await cadastrarEmpresa(d)).toEqual({ erro: "falha" })
+
+    // O usuário do Auth foi desfeito: o mesmo e-mail cadastra de novo sem "em uso".
+    const r = await cadastrarEmpresa({ ...d, nomeEmpresa: `Empresa B19 refeita ${ts}` })
+    expect(r).toEqual({ ok: true })
+    await perfilPorEmail(d.email)
   })
 })

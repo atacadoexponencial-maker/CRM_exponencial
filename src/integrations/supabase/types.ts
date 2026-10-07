@@ -275,6 +275,368 @@ export type Database = {
           },
         ]
       }
+      catalog_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          position: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_categories_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_order_events: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          from_status: string | null
+          id: string
+          order_id: string
+          to_status: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          order_id: string
+          to_status: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          order_id?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_order_events_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_order_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_order_items: {
+        Row: {
+          combination: string
+          estoque_baixado: number
+          id: string
+          order_id: string
+          photo_path: string | null
+          position: number
+          product_id: string | null
+          product_name: string
+          quantity: number
+          unit_price: number
+        }
+        Insert: {
+          combination?: string
+          estoque_baixado?: number
+          id?: string
+          order_id: string
+          photo_path?: string | null
+          position?: number
+          product_id?: string | null
+          product_name: string
+          quantity: number
+          unit_price: number
+        }
+        Update: {
+          combination?: string
+          estoque_baixado?: number
+          id?: string
+          order_id?: string
+          photo_path?: string | null
+          position?: number
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_orders: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          customer_name: string
+          customer_whatsapp: string
+          id: string
+          number: number
+          pieces: number
+          status: string
+          total: number
+          workspace_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          customer_name: string
+          customer_whatsapp: string
+          id?: string
+          number: number
+          pieces: number
+          status?: string
+          total: number
+          workspace_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          customer_name?: string
+          customer_whatsapp?: string
+          id?: string
+          number?: number
+          pieces?: number
+          status?: string
+          total?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_orders_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_orders_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_products: {
+        Row: {
+          category_id: string | null
+          compare_at_price: number | null
+          created_at: string
+          description: string
+          featured: boolean
+          id: string
+          name: string
+          photos: Json
+          position: number
+          price: number
+          sku: string
+          updated_at: string
+          variant_types: Json
+          visible: boolean
+          workspace_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          compare_at_price?: number | null
+          created_at?: string
+          description?: string
+          featured?: boolean
+          id?: string
+          name: string
+          photos?: Json
+          position?: number
+          price: number
+          sku?: string
+          updated_at?: string
+          variant_types?: Json
+          visible?: boolean
+          workspace_id: string
+        }
+        Update: {
+          category_id?: string | null
+          compare_at_price?: number | null
+          created_at?: string
+          description?: string
+          featured?: boolean
+          id?: string
+          name?: string
+          photos?: Json
+          position?: number
+          price?: number
+          sku?: string
+          updated_at?: string
+          variant_types?: Json
+          visible?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_products_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_settings: {
+        Row: {
+          background_color: string
+          banner_path: string | null
+          closing_message: string
+          font_id: string
+          layout: string
+          logo_path: string | null
+          min_type: string
+          min_value: number | null
+          orders_whatsapp: string | null
+          primary_color: string
+          published: boolean
+          slug: string | null
+          store_name: string | null
+          updated_at: string
+          welcome_text: string
+          whatsapp_connection_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          background_color?: string
+          banner_path?: string | null
+          closing_message?: string
+          font_id?: string
+          layout?: string
+          logo_path?: string | null
+          min_type?: string
+          min_value?: number | null
+          orders_whatsapp?: string | null
+          primary_color?: string
+          published?: boolean
+          slug?: string | null
+          store_name?: string | null
+          updated_at?: string
+          welcome_text?: string
+          whatsapp_connection_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          background_color?: string
+          banner_path?: string | null
+          closing_message?: string
+          font_id?: string
+          layout?: string
+          logo_path?: string | null
+          min_type?: string
+          min_value?: number | null
+          orders_whatsapp?: string | null
+          primary_color?: string
+          published?: boolean
+          slug?: string | null
+          store_name?: string | null
+          updated_at?: string
+          welcome_text?: string
+          whatsapp_connection_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_settings_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_stock: {
+        Row: {
+          combination: string
+          product_id: string
+          quantity: number
+          workspace_id: string
+        }
+        Insert: {
+          combination: string
+          product_id: string
+          quantity?: number
+          workspace_id: string
+        }
+        Update: {
+          combination?: string
+          product_id?: string
+          quantity?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_stock_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_purchases: {
         Row: {
           contact_id: string
@@ -1404,6 +1766,31 @@ export type Database = {
         Returns: boolean
       }
       get_auth_user_workspace_id: { Args: never; Returns: string }
+      importar_produto_catalogo: {
+        Args: { p_dados: Json; p_estoque: Json; p_produto: string }
+        Returns: string
+      }
+      mudar_situacao_pedido_catalogo: {
+        Args: { p_para: string; p_pedido: string }
+        Returns: undefined
+      }
+      registrar_pedido_catalogo: {
+        Args: {
+          p_contato: string
+          p_itens: Json
+          p_nome: string
+          p_whatsapp: string
+          p_workspace: string
+        }
+        Returns: {
+          numero: number
+          pedido_id: string
+        }[]
+      }
+      salvar_estoque_produto: {
+        Args: { p_estoque: Json; p_produto: string; p_tipos: Json }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

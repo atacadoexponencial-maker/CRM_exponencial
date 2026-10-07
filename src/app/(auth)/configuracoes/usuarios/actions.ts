@@ -174,13 +174,22 @@ export async function reativarUsuario(
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
-  const { error } = await adminClient
+  const { data: reativado, error } = await adminClient
     .from("profiles")
     .update({ status: "active" })
     .eq("id", usuarioId)
     .eq("workspace_id", perfil.workspace_id)
+    .select("id")
+    .maybeSingle()
 
-  if (error) return { erro: "Não foi possível reativar o usuário. Tente novamente." }
+  if (error || !reativado) return { erro: "Não foi possível reativar o usuário. Tente novamente." }
+
+  // B20-02: tira o ban do Auth. Se falhar, volta a inativo para não ficar meio-reativado.
+  const { error: banError } = await adminClient.auth.admin.updateUserById(usuarioId, { ban_duration: "none" })
+  if (banError) {
+    await adminClient.from("profiles").update({ status: "inactive" }).eq("id", usuarioId)
+    return { erro: "Não foi possível reativar o usuário. Tente novamente." }
+  }
 
   return {}
 }
@@ -208,13 +217,20 @@ export async function desativarUsuario(
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
-  const { error } = await adminClient
+  const { data: desativado, error } = await adminClient
     .from("profiles")
     .update({ status: "inactive" })
     .eq("id", usuarioId)
     .eq("workspace_id", perfil.workspace_id)
+    .select("id")
+    .maybeSingle()
 
-  if (error) return { erro: "Não foi possível desativar o usuário. Tente novamente." }
+  if (error || !desativado) return { erro: "Não foi possível desativar o usuário. Tente novamente." }
+
+  // B20-02: bane no Auth — derruba login, renovação da sessão e getUser na hora. O
+  // banco já fecha os dados para perfil inativo (o token antigo vale até expirar).
+  const { error: banError } = await adminClient.auth.admin.updateUserById(usuarioId, { ban_duration: "876000h" })
+  if (banError) return { erro: "Não foi possível desativar o usuário. Tente novamente." }
 
   return {}
 }

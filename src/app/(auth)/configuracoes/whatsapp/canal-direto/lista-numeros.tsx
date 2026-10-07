@@ -11,7 +11,7 @@
 // anuncia a volta ou explica a falha — e só então, se a sessão acabou, abre o
 // QR Code da mesma instância.
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react"
+import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Activity, CheckCircle2, Gauge, Plus, QrCode } from "lucide-react"
@@ -50,12 +50,16 @@ type Reconexao = {
 export function ListaNumeros({
   numeros,
   termoAceito,
+  fluxoMeta,
 }: {
   numeros: NumeroConectado[]
   /** B3-01: aceite da versão vigente do termo, lido no servidor. */
   termoAceito: boolean
+  /** Passo de conexão da API Oficial, mostrado só quando ela é escolhida. Nulo: já há número da Meta. */
+  fluxoMeta?: ReactNode
 }) {
-  const [conectando, setConectando] = useState<CanalEscolhido | null>(null)
+  // "escolha": os cartões de canal abertos, sem nenhum canal escolhido ainda.
+  const [conectando, setConectando] = useState<CanalEscolhido | "escolha" | null>(null)
   const [pareamento, setPareamento] = useState<Pareamento | null>(null)
   const [erroPareamento, setErroPareamento] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
@@ -279,7 +283,7 @@ export function ListaNumeros({
           </p>
         </div>
         {!conectando && (
-          <Button onClick={() => setConectando("meta")} disabled={criando}>
+          <Button onClick={() => setConectando("escolha")} disabled={criando}>
             <Plus className="size-4" aria-hidden />
             Conectar número
           </Button>
@@ -382,11 +386,14 @@ export function ListaNumeros({
             </>
           )}
 
-          {conectando === "meta" && (
-            <p className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
-              A conexão pela API Oficial continua no fluxo atual, abaixo.
-            </p>
-          )}
+          {conectando === "meta" &&
+            (fluxoMeta ? (
+              <div className="flex justify-center rounded-lg border py-8">{fluxoMeta}</div>
+            ) : (
+              <p className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+                Já existe um número na API Oficial; gerencie-o abaixo.
+              </p>
+            ))}
 
           <Button
             variant="outline"
