@@ -182,14 +182,14 @@ continuam como estão.
 - [x] Roteiros e scripts da empresa de teste sem a regra antiga
 - [x] Roteiros do preview passando
 - [x] Registro de decisões (seção 16)
-- [ ] Merge no `master` (com o ok do Luan) e produção conferida
+- [x] Merge no `master` (com o ok do Luan) e produção conferida
 
 **Parte 2:**
 
-- [ ] `supabase migration list --linked` com só esta migration pendente
-- [ ] Migration aplicada (com o ok do Luan) e conferida no banco
-- [ ] `types.ts` gerado de novo; build com código 0
-- [ ] Roteiro da B11-10 passando na produção depois da migration
+- [x] `supabase migration list --linked` com só esta migration pendente
+- [x] Migration aplicada (com o ok do Luan) e conferida no banco
+- [x] `types.ts` gerado de novo; build com código 0
+- [x] Roteiro da B11-10 passando na produção depois da migration
 
 ## Execução, parte 1 (08/10/2026)
 
@@ -226,3 +226,31 @@ Luan, e depois a parte 2.
     atendente;
   - B11-11/12 em 13 de 13, B11-03 em 12 de 12, B11-06 em 9 de 9, B11-08 em 9 de
     9, B11-09 em 11 de 11 e menus em 7 de 7.
+
+## Execução, parte 2 (08/10/2026)
+
+**Concluída.** O Luan deu o ok para o merge e para a migration.
+
+**Merge e produção:**
+
+- A parte 1 entrou no `master` (`d8eb76f`), e o deploy de produção terminou.
+- Na produção, o roteiro da B11-10 passou em **11 de 11**, com a regra antiga
+  ainda no banco. Com o código anterior, ela teria aparecido na lista. Isso
+  confirmou que o código novo estava no ar antes da migration.
+
+**Migration:**
+
+- O `supabase migration list --linked` mostrou 83 migrations, e só
+  `20261008000000_remover_regras_antigas.sql` estava pendente. O ensaio
+  (`--dry-run`) listou só ela, que foi aplicada com
+  `npx supabase db push --linked`.
+- **Conferido no banco:**
+  - `automations` não existe mais;
+  - `automation_flows.automation_id` não existe mais;
+  - as 3 regras em fluxo da empresa "Marcelle Midias" continuam lá;
+  - nenhuma migration ficou pendente.
+- **Tipos:** `types.ts` foi gerado de novo. Saíram só as 54 linhas da tabela e
+  da coluna, sem nenhuma outra diferença. `tsc` limpo, build com código de
+  saída 0 e suíte unitária com 612 testes passando.
+- **Depois da migration,** o roteiro da B11-10 passou de novo na produção, em
+  **11 de 11**, e o reset da empresa de teste funciona sem a tabela.
