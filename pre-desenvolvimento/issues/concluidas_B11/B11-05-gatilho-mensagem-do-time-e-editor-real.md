@@ -140,5 +140,37 @@ Nada novo.
 - [x] Histórico e simulação do evento novo
 - [x] Gatilho na lista de disponíveis
 - [x] Testes automatizados e suíte unitária passando; build com código 0
-- [ ] Roteiro no preview passando (com o chip e um número real, combinado com o Luan)
-- [ ] Registro de decisões (seção 13)
+- [x] Roteiro no preview passando (com o chip e um número real, combinado com o Luan)
+- [x] Registro de decisões (seção 13)
+
+## Execução (08/10/2026)
+
+**Concluída.** O "Pronto quando" passou no preview com envio de verdade: o
+número pessoal do Luan conectado como chip da empresa de teste, mandando para o
+número de trabalho dele.
+
+**O que ficou diferente do plano:**
+
+- **O roteiro usa uma automação no lugar da sequência** para mandar a mesma
+  frase. As duas enviam por `enviarTextoWhatsAppComMotivo`, que nunca chama o
+  motor. O teste automatizado cobre esse caminho, e uma automação é mais rápida
+  de montar e de disparar no preview do que uma sequência, que depende da rotina
+  diária.
+
+**Como foi verificado:**
+
+- 12 testes novos nesta issue, 5 deles em `chat-envio-automacoes.test.ts`: texto
+  e mídia disparam depois de gravar, envio que falhou não dispara, e o envio
+  das automações e sequências não chama o motor. A suíte unitária, já com a
+  B11-07, tem 49 arquivos e 615 testes passando. Lint com 0 erros e build com
+  código de saída 0.
+- **No preview** (commit `3c7c8ca`), `e2e/preview/roteiro-b11-05.cjs` passou em
+  **9 de 9**, com as 2 regras montadas pela tela:
+  - "Segue o catálogo 👇", escrita no chat, saiu pelo chip, moveu o card para
+    Catálogo Enviado e pôs a tag `catalogo-enviado`;
+  - "Segue o catálogo (automação)", mandada por uma regra, não disparou a regra
+    do time, e o card ficou em Lead;
+  - o histórico guarda o texto, e a página mostra `Mensagem do time: "Segue o
+    catálogo 👇"`.
+- As duas mensagens chegaram ao celular de trabalho e foram lidas (conferido
+  pelo Luan nos dois celulares).
