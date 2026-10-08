@@ -180,7 +180,7 @@ continuam como estão.
 - [x] Actions, lista, página e cliente do editor sem regra antiga
 - [x] Testes do motor reescritos sem `automations`; suíte unitária passando; lint e build com código 0
 - [x] Roteiros e scripts da empresa de teste sem a regra antiga
-- [ ] Roteiros do preview passando
+- [x] Roteiros do preview passando
 - [x] Registro de decisões (seção 16)
 - [ ] Merge no `master` (com o ok do Luan) e produção conferida
 
@@ -190,3 +190,39 @@ continuam como estão.
 - [ ] Migration aplicada (com o ok do Luan) e conferida no banco
 - [ ] `types.ts` gerado de novo; build com código 0
 - [ ] Roteiro da B11-10 passando na produção depois da migration
+
+## Execução, parte 1 (08/10/2026)
+
+**Parte 1 feita no branch** (`bcd24b5`). Falta o merge, que precisa do ok do
+Luan, e depois a parte 2.
+
+**O que ficou diferente do plano:**
+
+- **Uma verificação mudou de teste.** O teste removido "regra antiga roda
+  sempre" também conferia que o modo "sempre" nem consulta a execução anterior.
+  Essa conferência passou para o teste "grava a execução concluída", que usa o
+  mesmo modo.
+- **O roteiro da B11-04 não rodou no preview deste branch.** A
+  `GATEWAY_WEBHOOK_SECRET` com o valor do `.env` local vale só para o Preview do
+  branch `b11-automacoes-v2`, então a mensagem simulada recebe 401 aqui. A mudança
+  está em `carregarRegras`, que todos os gatilhos usam, e os outros roteiros
+  passam por ela com card movido, tag, etiqueta e dado do contato.
+
+**Como foi verificado:**
+
+- **Suíte unitária:** 49 arquivos e 612 testes passando. Saíram 4 testes que
+  testavam só a regra antiga, e entrou 1, de que o motor não consulta
+  `automations`. Esse teste falharia com o código anterior.
+- **Testes reescritos:** os 4 primeiros testes do motor, que vinham da primeira
+  versão, agora leem regras de dois blocos em `automation_flows` e continuam
+  conferindo o mesmo comportamento.
+- **Lint e build:** lint com 0 erros, sem contar os 3 avisos antigos. Build com
+  código de saída 0.
+- **Sobras:** nenhuma referência a `automations`, `regra-antiga`, `versaoAntiga`
+  ou `automationId` ficou em `src` e `e2e`, fora os tipos gerados.
+- **No preview** (`bcd24b5`), 7 roteiros com 72 verificações, todos passando:
+  - B11-10 em 11 de 11. A regra da empresa de teste continua em `automations`,
+    não aparece na lista, e a Carla movida para Follow do Catálogo ficou sem
+    atendente;
+  - B11-11/12 em 13 de 13, B11-03 em 12 de 12, B11-06 em 9 de 9, B11-08 em 9 de
+    9, B11-09 em 11 de 11 e menus em 7 de 7.
