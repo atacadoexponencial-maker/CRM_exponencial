@@ -803,3 +803,29 @@ entregue ao gateway.
 - **Descartado:** manter os 30 segundos até a chegada ao celular. Num número com
   fila, a espera é a proteção funcionando, e o roteiro falharia em todo chip
   novo.
+
+## 16. As regras da primeira versão saem (B11-13, 08/10/2026)
+
+A limpeza depois do merge previa copiar para `automation_flows` as regras de
+`automations` sem versão nova, e depois apagar a estrutura antiga (seções 4,
+5.2 e 6.1). No dia do merge, o banco de produção tinha uma regra antiga só, a da
+empresa de teste, criada para testar essa compatibilidade. Nenhuma regra nova
+estava ligada a uma antiga, e o histórico não tinha execução de regra antiga.
+
+**Decidido com o Luan:** não copiar nada, e tirar a camada inteira em duas
+partes, nesta ordem:
+
+1. **Código:** o motor, a lista, o editor e o histórico param de ler
+   `automations`. Somem o selo "Versão antiga", o endereço `nova?antiga=<id>` e a
+   ligação `automation_id`.
+2. **Banco:** só com a parte 1 no ar, uma migration apaga
+   `automation_flows.automation_id` e a tabela `automations`.
+
+Na ordem inversa, a produção ainda leria uma tabela que não existe mais.
+
+- **Descartado:** copiar a regra da empresa de teste. Ela só existia para
+  testar a camada que sai, e o roteiro da B11-10 passa a provar o contrário:
+  com a linha ainda no banco, ela não aparece nem roda.
+- **Fica:** `automation_runs.regra_origem`, sempre com `'fluxo'`. A coluna é
+  obrigatória. Tirá-la pediria uma terceira etapa, com código depois da
+  migration, para uma coluna que não atrapalha.

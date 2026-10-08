@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 // Devolve a empresa de teste ao estado inicial dos roteiros: sem regras em fluxo
-// nem histórico, regra antiga ativa, cards da Entrada em Lead sem atendente, sem
+// nem histórico, cards da Entrada em Lead sem atendente, sem
 // cards na Recompra, conversas sem atendente, só a etiqueta "Interessado" (na
 // conversa do Bruno), sem tags e sem tipo, nicho, cidade e observações, sem
 // sequências e sem horário comercial gravado (vale o padrão).
@@ -28,7 +28,6 @@ const { lerEnv, bancoDeServico, conferirEmpresaDeTeste } = require("./comum.cjs"
   // O histórico de execuções chega na B11-03; antes dela a tabela não existe
   const { error: erroHistorico } = await db.from("automation_runs").delete().eq("workspace_id", ws)
   if (erroHistorico && !/automation_runs/.test(erroHistorico.message)) throw new Error(erroHistorico.message)
-  await feito(db.from("automations").update({ ativa: true }).eq("workspace_id", ws))
   await feito(db.from("pipeline_cards").delete().eq("workspace_id", ws).eq("funil", "recompra"))
   await feito(db.from("pipeline_cards").update({ etapa: "lead", atendente_id: null }).eq("workspace_id", ws).eq("funil", "entrada"))
   await feito(db.from("contact_tags").delete().eq("workspace_id", ws))

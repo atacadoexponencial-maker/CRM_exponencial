@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { Clock, History, MoreHorizontal, Plus, Zap } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -22,13 +21,6 @@ export interface RegraListada {
   nome: string
   ativa: boolean
   fluxo: Fluxo
-  /**
-   * Regra da primeira versão (tabela `automations`), que a produção ainda usa.
-   * Continua rodando; pausar e excluir não são oferecidos aqui (B11-10).
-   */
-  versaoAntiga?: boolean
-  /** Versão em fluxo de uma regra antiga: excluí-la faz a antiga voltar a valer. */
-  substituiAntiga?: boolean
   execucoes7dias: number
   ultimaExecucao: string | null
 }
@@ -166,14 +158,7 @@ export function ListaRegras({
                 <tr key={r.id} className="border-b transition-colors last:border-0 hover:bg-muted/30">
                   <td className="px-4 py-3">
                     <button type="button" onClick={() => onEditar(r.id)} className="text-left">
-                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="font-medium hover:underline">{r.nome}</span>
-                        {r.versaoAntiga && (
-                          <Badge variant="outline" title="Abra e salve para trocar pela versão em fluxo">
-                            Versão antiga · continua rodando
-                          </Badge>
-                        )}
-                      </span>
+                      <span className="block font-medium hover:underline">{r.nome}</span>
                       <span className="block text-muted-foreground">{resumoRegra(r.fluxo, opcoes)}</span>
                     </button>
                   </td>
@@ -192,18 +177,11 @@ export function ListaRegras({
                       aria-checked={r.ativa}
                       aria-label={r.ativa ? `Pausar ${r.nome}` : `Ativar ${r.nome}`}
                       onClick={() => onAlternar(r.id, !r.ativa)}
-                      disabled={r.versaoAntiga}
                       className={cn(
-                        "relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                        "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
                         r.ativa ? "bg-primary" : "bg-muted-foreground/30"
                       )}
-                      title={
-                        r.versaoAntiga
-                          ? "Versão antiga: para pausar, abra e salve a versão em fluxo"
-                          : r.ativa
-                            ? "Pausar"
-                            : "Ativar"
-                      }
+                      title={r.ativa ? "Pausar" : "Ativar"}
                     >
                       <span
                         className={cn(
@@ -226,17 +204,15 @@ export function ListaRegras({
                         <DropdownMenuItem disabled={!historicoDisponivel} onClick={() => onVerHistorico(r.id)}>
                           Ver histórico{historicoDisponivel ? "" : " (em breve)"}
                         </DropdownMenuItem>
-                        {!r.versaoAntiga && (
-                          <DropdownMenuItem
-                            variant="destructive"
-                            onClick={() => {
-                              setErroExcluir(null)
-                              setExcluindo(r)
-                            }}
-                          >
-                            Excluir
-                          </DropdownMenuItem>
-                        )}
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onClick={() => {
+                            setErroExcluir(null)
+                            setExcluindo(r)
+                          }}
+                        >
+                          Excluir
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </td>
@@ -255,11 +231,6 @@ export function ListaRegras({
               Excluir <strong>{excluindo?.nome}</strong>? A regra para de rodar. O histórico do que ela já fez
               continua disponível.
             </p>
-            {excluindo?.substituiAntiga && (
-              <p className="text-sm text-muted-foreground">
-                Esta é a versão nova de uma regra antiga. Excluída, a versão antiga volta a rodar no lugar dela.
-              </p>
-            )}
             {erroExcluir && <p className="text-sm text-destructive">{erroExcluir}</p>}
             <div className="flex justify-end gap-2">
               <DialogClose render={<Button type="button" variant="outline" />}>Cancelar</DialogClose>

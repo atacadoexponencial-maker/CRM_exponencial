@@ -3,14 +3,15 @@
 // estado inicial (rode o resetar antes): monta pelo editor "card movido para
 // Sondagem → conversa tem Interessado? sim: atribuir ao admin / não: aplicar
 // Interessado", salva, simula, sai e volta, move os cards da Ana (sem etiqueta) e
-// do Bruno (com) e confere no banco. Depois, a regra antiga: roda, é convertida
-// no editor, a versão nova é pausada e a antiga para de rodar.
+// do Bruno (com) e confere no banco. Depois confere que a regra da primeira versão
+// (tabela `automations`, que saiu na B11-13) nem aparece na lista nem roda.
 // Uso: node e2e/preview/roteiro-b11-10.cjs <endereço do preview>
 
 const { abrirPreview, bancoDeServico, conferirEmpresaDeTeste, criarRelatorio } = require("./comum.cjs")
 const { adicionarBloco, escolher, moverCard, novaRegra, salvarRegra } = require("./tela.cjs")
 
 const URL_PREVIEW = process.argv[2]
+const REGRA_ANTIGA = "Regra antiga: follow do catálogo"
 
 ;(async () => {
   if (!URL_PREVIEW) throw new Error("passe o endereço do preview (veja endereco-preview.cjs)")
@@ -28,9 +29,9 @@ const URL_PREVIEW = process.argv[2]
   const conversa = async (contactId) =>
     (await db.from("conversations").select("id, assigned_to").eq("contact_id", contactId).single()).data
 
-  // Lista com a regra antiga marcada
+  // B11-13: a regra da primeira versão pode ainda estar no banco, mas não aparece
   await page.goto(`${URL_PREVIEW}/configuracoes/automacoes`, { waitUntil: "networkidle" })
-  r.confere("lista mostra a regra antiga marcada", (await page.getByText("Versão antiga · continua rodando").count()) === 1)
+  r.confere("lista não mostra a regra da primeira versão", (await page.getByText(REGRA_ANTIGA).count()) === 0)
 
   // Montar a regra pelo editor
   await novaRegra(page, URL_PREVIEW, "B11-10 Sondagem", "Sondagem")
@@ -71,29 +72,9 @@ const URL_PREVIEW = process.argv[2]
   r.confere("Bruno (com etiqueta) foi atribuído ao admin pelo 'sim'", (await conversa(bruno)).assigned_to === admin)
   r.confere("card do Bruno em Sondagem e com o admin", (await card(bruno)).etapa === "sondagem" && (await card(bruno)).atendente_id === admin)
 
-  // Regra antiga: roda, é convertida, a versão nova pausada, a antiga para
+  // A regra da primeira versão atribuía ao admin o card que entrasse em Follow do Catálogo
   await moverCard(page, URL_PREVIEW, "Teste B11 Carla", "Follow do Catálogo")
-  r.confere("regra antiga roda no branch (Carla atribuída ao admin)", (await card(carla)).atendente_id === admin)
-  await db.from("pipeline_cards").update({ etapa: "lead", atendente_id: null }).eq("contact_id", carla).eq("funil", "entrada")
-
-  await page.goto(`${URL_PREVIEW}/configuracoes/automacoes`, { waitUntil: "networkidle" })
-  await page.getByRole("button", { name: /Regra antiga: follow do catálogo/ }).first().click()
-  await page.waitForURL(/nova\?antiga=/)
-  await page.waitForSelector(".react-flow__node")
-  await salvarRegra(page)
-  await page.goto(`${URL_PREVIEW}/configuracoes/automacoes`, { waitUntil: "networkidle" })
-  r.confere("depois de salvar, a regra antiga sai da lista", (await page.getByText("Versão antiga · continua rodando").count()) === 0)
-  await page.getByRole("switch", { name: "Pausar Regra antiga: follow do catálogo" }).click()
-  await page.waitForTimeout(2500)
-  const { data: versaoNova } = await db
-    .from("automation_flows")
-    .select("ativa, automation_id")
-    .eq("workspace_id", ws)
-    .eq("nome", "Regra antiga: follow do catálogo")
-    .single()
-  r.confere("versão nova guarda a antiga e foi pausada pela lista", versaoNova.automation_id !== null && !versaoNova.ativa)
-  await moverCard(page, URL_PREVIEW, "Teste B11 Carla", "Follow do Catálogo")
-  r.confere("com a versão nova pausada, a antiga não roda no branch", (await card(carla)).atendente_id === null)
+  r.confere("a regra da primeira versão não roda (Carla continua sem atendente)", (await card(carla)).atendente_id === null)
 
   r.confere("sem erro no console", erros.length === 0, erros.join(" | "))
   await browser.close()

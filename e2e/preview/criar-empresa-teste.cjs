@@ -3,8 +3,7 @@
 // mesmo caminho do cadastro do site: usuário no Auth + `cadastrar_empresa`. Depois
 // acrescenta o que os roteiros usam: 3 contatos com card no Funil de Entrada
 // (telefones falsos), conversas da Ana e do Bruno sem número conectado, a
-// etiqueta "Interessado" na conversa do Bruno, o admin no time Entrada e uma
-// regra da primeira versão (tabela `automations`).
+// etiqueta "Interessado" na conversa do Bruno e o admin no time Entrada.
 // Grava e-mail, senha e id no .env.local, sem mostrar a senha.
 // Uso: node e2e/preview/criar-empresa-teste.cjs
 
@@ -80,18 +79,7 @@ const { PROJETO, lerEnv, bancoDeServico } = require("./comum.cjs")
   const conversaBruno = conversas.find((c) => c.contact_id === porNome.Bruno).id
   await feito(db.from("conversation_labels").insert({ conversation_id: conversaBruno, label_id: etiqueta.id }))
 
-  await feito(
-    db.from("automations").insert({
-      workspace_id: ws,
-      nome: "Regra antiga: follow do catálogo",
-      gatilho_tipo: "card_movido",
-      gatilho_config: { funil: "entrada", etapa: "follow_catalogo" },
-      acao_tipo: "atribuir_atendente",
-      acao_config: { atendente_id: admin },
-    })
-  )
-
-  fs.appendFileSync(
+fs.appendFileSync(
     path.join(PROJETO, ".env.local"),
     [
       "# Empresa de teste da B11 (e2e/preview). Não versionar.",

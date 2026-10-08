@@ -75,7 +75,7 @@ código de saída 0 só se tudo passou.
 | `endereco-preview.cjs` | Endereço do preview de um commit, pela API do GitHub e com a credencial que o git já guarda. |
 | `criar-empresa-teste.cjs` | Cria a empresa pelo mesmo caminho do cadastro do site (`cadastrar_empresa`) e os dados dos roteiros. |
 | `resetar-empresa-teste.cjs` | Devolve a empresa de teste ao estado inicial. |
-| `roteiro-b11-10.cjs` | Editor e lista gravando; regra antiga convertida. |
+| `roteiro-b11-10.cjs` | Editor e lista gravando; a regra da primeira versão (`automations`, que saiu na B11-13) não aparece nem roda. |
 | `roteiro-b11-11-e-12.cjs` | Ações e condições de contato e time; tags no painel do card. |
 | `roteiro-b11-03.cjs` | Proteção de repetição, ação com etiqueta apagada e a página de histórico. |
 | `roteiro-b11-06.cjs` | Gatilhos de tag, etiqueta e dado do contato, e automação que não dispara automação. |
@@ -98,7 +98,6 @@ O nome com "B11" é só de onde ela nasceu. Tem:
 - **Conversas:** Ana e Bruno têm, sem número conectado. A conversa do Bruno tem a
   etiqueta "Interessado".
 - **Time:** o admin é membro do time Entrada.
-- **Regra antiga:** uma, em `automations`.
 - **Número real:** o contato "Teste B11 Número real", com o número de
   `B11_TESTE_TELEFONE_REAL`, e a conversa dele. Nasceram nos roteiros de envio
   (B11-05 e B11-07) e ficam para os próximos.

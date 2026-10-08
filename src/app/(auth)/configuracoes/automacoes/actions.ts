@@ -1,11 +1,7 @@
 "use server"
 
 // Automações em fluxo (B11-10): a lista e o editor gravam em `automation_flows`.
-// As regras da primeira versão (`automations`) aparecem na lista como "versão
-// antiga" e só são lidas aqui: pausar ou excluir gravaria na tabela que a
-// produção usa até o merge do branch da B11. Salvar uma regra antiga no editor
-// cria a versão em fluxo dela (`automation_id`), e o motor do branch passa a
-// rodar só a nova.
+// As regras da primeira versão (`automations`) saíram na B11-13.
 //
 // Histórico (B11-03): o motor grava cada execução em `automation_runs`; aqui a
 // lista conta as execuções e a página de histórico as lê.
@@ -30,7 +26,6 @@ import {
   referenciasDoFluxo,
   tipoDeContatoValido,
 } from "@/lib/automacoes/referencias"
-import { fluxoDaRegraAntiga } from "@/lib/automacoes/regra-antiga"
 import { simularFluxo } from "@/lib/automacoes/simulacao"
 import type { PassoGravado, ResultadoExecucao } from "@/lib/automacoes/execucoes"
 import {
@@ -51,8 +46,6 @@ const SEM_PERMISSAO = "Sem permissão"
 /** A regra como o editor recebe: `id` nulo enquanto não foi salva. */
 export interface RegraDoEditor {
   id: string | null
-  /** Regra antiga que esta versão substitui. */
-  automationId: string | null
   nome: string
   fluxo: Fluxo
   repeticao: Repeticao
@@ -64,7 +57,7 @@ export interface ExecucaoListada {
   quando: string
   regraId: string
   regraNome: string
-  /** A regra não existe mais (excluída ou trocada pela versão nova). */
+  /** A regra não existe mais. */
   regraExcluida: boolean
   contato: { id: string; nome: string } | null
   evento: Record<string, string>
@@ -81,8 +74,6 @@ export interface FiltrosDoHistorico {
 
 /** Regra nova nasce protegida, como no protótipo aprovado (B11-01): uma vez por contato. */
 const REPETICAO_DA_REGRA_NOVA: Repeticao = { modo: "uma_vez_por_contato" }
-/** Regra antiga não tinha proteção: a versão nova dela continua rodando sempre. */
-const REPETICAO_DA_REGRA_ANTIGA: Repeticao = { modo: "sempre" }
 
 const DIA_EM_MS = 86_400_000
 
@@ -101,23 +92,12 @@ export async function listarRegras(): Promise<RegraListada[]> {
   if (!admin) return []
   const { supabase, workspaceId } = admin
 
-  const [{ data: fluxos }, { data: antigas }] = await Promise.all([
-    supabase
-      .from("automation_flows")
-      .select("id, nome, ativa, fluxo, automation_id, created_at")
-      .eq("workspace_id", workspaceId),
-    supabase
-      .from("automations")
-      .select("id, nome, ativa, gatilho_tipo, gatilho_config, acao_tipo, acao_config, created_at")
-      .eq("workspace_id", workspaceId),
-  ])
+  const { data: fluxos } = await supabase
+    .from("automation_flows")
+    .select("id, nome, ativa, fluxo, created_at")
+    .eq("workspace_id", workspaceId)
 
-  const substituidas = new Set((fluxos ?? []).map((f) => f.automation_id).filter(Boolean))
   const execucoes = await execucoesPorRegra(admin)
-  const contagem = (id: string) => ({
-    execucoes7dias: execucoes.get(id)?.ultimos7dias ?? 0,
-    ultimaExecucao: execucoes.get(id)?.ultima ?? null,
-  })
   const regras: RegraListada[] = []
   const criadaEm = new Map<string, string>()
   for (const f of fluxos ?? []) {
@@ -129,20 +109,8 @@ export async function listarRegras(): Promise<RegraListada[]> {
       nome: f.nome,
       ativa: f.ativa,
       fluxo,
-      substituiAntiga: f.automation_id !== null,
-      ...contagem(f.id),
-    })
-  }
-  for (const a of antigas ?? []) {
-    if (substituidas.has(a.id)) continue
-    criadaEm.set(a.id, a.created_at)
-    regras.push({
-      id: a.id,
-      nome: a.nome,
-      ativa: a.ativa,
-      fluxo: fluxoDaRegraAntiga(a),
-      versaoAntiga: true,
-      ...contagem(a.id),
+      execucoes7dias: execucoes.get(f.id)?.ultimos7dias ?? 0,
+      ultimaExecucao: execucoes.get(f.id)?.ultima ?? null,
     })
   }
 
@@ -176,43 +144,16 @@ async function execucoesPorRegra({ supabase, workspaceId }: Admin) {
   return porRegra
 }
 
-/**
- * A regra que o editor abre. `id` "nova" com `antigaId` abre a regra antiga
- * convertida em fluxo; se ela já tem versão nova, devolve o endereço dela.
- */
-export async function buscarRegraParaEditor(
-  id: string,
-  antigaId: string | null
-): Promise<{ regra: RegraDoEditor } | { redirecionar: string }> {
+/** A regra que o editor abre. `id` "nova" abre uma regra em branco. */
+export async function buscarRegraParaEditor(id: string): Promise<{ regra: RegraDoEditor } | { redirecionar: string }> {
   const admin = await adminDaSessao()
   if (!admin) return { redirecionar: "/perfil" }
   const { supabase, workspaceId } = admin
 
-  if (id !== "nova") {
-    const { data } = await supabase
-      .from("automation_flows")
-      .select("id, nome, fluxo, automation_id, repeticao")
-      .eq("id", id)
-      .eq("workspace_id", workspaceId)
-      .maybeSingle()
-    const fluxo = data ? lerFluxo(data.fluxo) : null
-    if (!data || !fluxo) return { redirecionar: CAMINHO_LISTA }
-    return {
-      regra: {
-        id: data.id,
-        automationId: data.automation_id,
-        nome: data.nome,
-        fluxo,
-        repeticao: lerRepeticao(data.repeticao),
-      },
-    }
-  }
-
-  if (!antigaId) {
+  if (id === "nova") {
     return {
       regra: {
         id: null,
-        automationId: null,
         nome: "",
         fluxo: {
           blocos: [{ id: "gatilho", tipo: "gatilho", gatilho: "card_movido", parametros: {}, posicao: { x: 0, y: 0 } }],
@@ -223,30 +164,15 @@ export async function buscarRegraParaEditor(
     }
   }
 
-  const { data: versaoNova } = await supabase
+  const { data } = await supabase
     .from("automation_flows")
-    .select("id")
-    .eq("automation_id", antigaId)
+    .select("id, nome, fluxo, repeticao")
+    .eq("id", id)
     .eq("workspace_id", workspaceId)
     .maybeSingle()
-  if (versaoNova) return { redirecionar: `${CAMINHO_LISTA}/${versaoNova.id}` }
-
-  const { data: antiga } = await supabase
-    .from("automations")
-    .select("id, nome, gatilho_tipo, gatilho_config, acao_tipo, acao_config")
-    .eq("id", antigaId)
-    .eq("workspace_id", workspaceId)
-    .maybeSingle()
-  if (!antiga) return { redirecionar: CAMINHO_LISTA }
-  return {
-    regra: {
-      id: null,
-      automationId: antiga.id,
-      nome: antiga.nome,
-      fluxo: fluxoDaRegraAntiga(antiga),
-      repeticao: REPETICAO_DA_REGRA_ANTIGA,
-    },
-  }
+  const fluxo = data ? lerFluxo(data.fluxo) : null
+  if (!data || !fluxo) return { redirecionar: CAMINHO_LISTA }
+  return { regra: { id: data.id, nome: data.nome, fluxo, repeticao: lerRepeticao(data.repeticao) } }
 }
 
 /** Etiquetas, atendentes, números, times, sequências e etapas citados no fluxo existem e são da empresa? */
@@ -353,7 +279,6 @@ export async function guardarArquivoDaAutomacao(
 
 export async function salvarRegra(dados: {
   id: string | null
-  automationId: string | null
   nome: string
   fluxo: unknown
   repeticao: unknown
@@ -396,34 +321,11 @@ export async function salvarRegra(dados: {
     return { id: data.id }
   }
 
-  // A versão nova de uma regra antiga nasce ativa ou pausada como a antiga estava
-  let ativa = true
-  if (dados.automationId) {
-    const { data: antiga } = await supabase
-      .from("automations")
-      .select("ativa")
-      .eq("id", dados.automationId)
-      .eq("workspace_id", workspaceId)
-      .maybeSingle()
-    if (!antiga) return { erro: "A regra antiga não existe mais." }
-    ativa = antiga.ativa
-  }
-
   const { data, error } = await supabase
     .from("automation_flows")
-    .insert({
-      workspace_id: workspaceId,
-      nome,
-      fluxo: paraJson(fluxo),
-      repeticao: repeticaoJson,
-      ativa,
-      automation_id: dados.automationId,
-    })
+    .insert({ workspace_id: workspaceId, nome, fluxo: paraJson(fluxo), repeticao: repeticaoJson, ativa: true })
     .select("id")
     .single()
-  if (error?.code === "23505") {
-    return { erro: "Esta regra antiga já tem versão nova. Abra a versão nova pela lista." }
-  }
   if (error || !data) return { erro: "Não foi possível salvar a automação. Tente novamente." }
   revalidatePath(CAMINHO_LISTA)
   return { id: data.id }
@@ -445,38 +347,26 @@ export async function alternarRegra(id: string, ativa: boolean): Promise<{ erro?
   return {}
 }
 
-/** A cópia nasce pausada, com "(cópia)" no nome, e sem ligação com a regra antiga. */
-export async function duplicarRegra(id: string, versaoAntiga: boolean): Promise<{ erro?: string }> {
+/** A cópia nasce pausada, com "(cópia)" no nome. */
+export async function duplicarRegra(id: string): Promise<{ erro?: string }> {
   const admin = await adminDaSessao()
   if (!admin) return { erro: SEM_PERMISSAO }
   const { supabase, workspaceId } = admin
 
-  let original: { nome: string; fluxo: Fluxo; repeticao: Repeticao } | null = null
-  if (versaoAntiga) {
-    const { data } = await supabase
-      .from("automations")
-      .select("nome, gatilho_tipo, gatilho_config, acao_tipo, acao_config")
-      .eq("id", id)
-      .eq("workspace_id", workspaceId)
-      .maybeSingle()
-    if (data) original = { nome: data.nome, fluxo: fluxoDaRegraAntiga(data), repeticao: REPETICAO_DA_REGRA_ANTIGA }
-  } else {
-    const { data } = await supabase
-      .from("automation_flows")
-      .select("nome, fluxo, repeticao")
-      .eq("id", id)
-      .eq("workspace_id", workspaceId)
-      .maybeSingle()
-    const fluxo = data ? lerFluxo(data.fluxo) : null
-    if (data && fluxo) original = { nome: data.nome, fluxo, repeticao: lerRepeticao(data.repeticao) }
-  }
-  if (!original) return { erro: "Esta automação não existe mais." }
+  const { data } = await supabase
+    .from("automation_flows")
+    .select("nome, fluxo, repeticao")
+    .eq("id", id)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle()
+  const fluxo = data ? lerFluxo(data.fluxo) : null
+  if (!data || !fluxo) return { erro: "Esta automação não existe mais." }
 
   const { error } = await supabase.from("automation_flows").insert({
     workspace_id: workspaceId,
-    nome: `${original.nome} (cópia)`.slice(0, 120),
-    fluxo: paraJson(original.fluxo),
-    repeticao: original.repeticao as unknown as Json,
+    nome: `${data.nome} (cópia)`.slice(0, 120),
+    fluxo: paraJson(fluxo),
+    repeticao: lerRepeticao(data.repeticao) as unknown as Json,
     ativa: false,
   })
   if (error) return { erro: "Não foi possível duplicar a automação. Tente novamente." }
@@ -484,7 +374,6 @@ export async function duplicarRegra(id: string, versaoAntiga: boolean): Promise<
   return {}
 }
 
-/** Só regras em fluxo. Excluir a versão nova de uma regra antiga faz a antiga voltar a valer no branch. */
 export async function excluirRegra(id: string): Promise<{ erro?: string }> {
   const admin = await adminDaSessao()
   if (!admin) return { erro: SEM_PERMISSAO }
@@ -618,18 +507,11 @@ export async function listarExecucoes(filtros: FiltrosDoHistorico): Promise<Exec
   if (filtros.regraId) consulta = consulta.eq("regra_id", filtros.regraId)
   if (filtros.resultado) consulta = consulta.eq("resultado", filtros.resultado)
 
-  const [{ data }, { data: fluxos }, { data: antigas }] = await Promise.all([
+  const [{ data }, { data: fluxos }] = await Promise.all([
     consulta,
-    supabase.from("automation_flows").select("id, automation_id").eq("workspace_id", workspaceId),
-    supabase.from("automations").select("id").eq("workspace_id", workspaceId),
+    supabase.from("automation_flows").select("id").eq("workspace_id", workspaceId),
   ])
-
-  // Regra antiga trocada pela versão nova conta como "não existe mais" na lista de regras
-  const substituidas = new Set((fluxos ?? []).map((f) => f.automation_id).filter(Boolean))
-  const existentes = new Set([
-    ...(fluxos ?? []).map((f) => f.id),
-    ...(antigas ?? []).map((a) => a.id).filter((id) => !substituidas.has(id)),
-  ])
+  const existentes = new Set((fluxos ?? []).map((f) => f.id))
 
   return (data ?? []).map((e) => {
     const contato = e.contacts as unknown as { name: string | null; phone_number: string } | null

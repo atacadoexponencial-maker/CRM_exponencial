@@ -20,7 +20,6 @@ import {
   type ResultadoAcao,
   type Verificacao,
 } from "@/lib/fluxo-automacao"
-import { fluxoDaRegraAntiga } from "@/lib/automacoes/regra-antiga"
 
 const posicao = { x: 0, y: 0 }
 
@@ -297,35 +296,6 @@ describe("tag nas ações de tag (B11-11)", () => {
   it("recusa tag com espaço ou com mais de 50 caracteres", () => {
     expect(pendenciasDoFluxo(comTag("cliente vip")).porBloco.a).toContain(PENDENCIA)
     expect(pendenciasDoFluxo(comTag("x".repeat(51))).porBloco.a).toContain(PENDENCIA)
-  })
-})
-
-describe("fluxoDaRegraAntiga", () => {
-  it("regra da primeira versão vira gatilho → ação com os mesmos parâmetros", () => {
-    const fluxo = fluxoDaRegraAntiga({
-      gatilho_tipo: "card_movido",
-      gatilho_config: { funil: "entrada", etapa: "negociacao" },
-      acao_tipo: "mover_card",
-      acao_config: { funil: "recompra", etapa: "ativo", texto: null },
-    })
-
-    expect(fluxo.blocos).toMatchObject([
-      { id: "gatilho", tipo: "gatilho", gatilho: "card_movido", parametros: { funil: "entrada", etapa: "negociacao" } },
-      { id: "acao", tipo: "acao", acao: "mover_card", parametros: { funil: "recompra", etapa: "ativo" } },
-    ])
-    expect(fluxo.blocos[1]).not.toHaveProperty("parametros.texto")
-    expect(fluxo.ligacoes).toEqual([{ de: "gatilho", saida: "proximo", para: "acao" }])
-    expect(problemasDeEstrutura(fluxo)).toEqual([])
-  })
-
-  it("config vazia ou fora do formato vira parâmetros vazios", () => {
-    const fluxo = fluxoDaRegraAntiga({
-      gatilho_tipo: "conversa_criada",
-      gatilho_config: null,
-      acao_tipo: "aplicar_etiqueta",
-      acao_config: ["inesperado"],
-    })
-    expect(fluxo.blocos.map((b) => ("parametros" in b ? b.parametros : null))).toEqual([{}, {}])
   })
 })
 
