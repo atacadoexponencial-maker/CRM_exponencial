@@ -8,6 +8,9 @@
 
 ## 1. Onde retomar
 
+> **Atualização de 07/10/2026 (fim do dia):** para retomar, leia
+> `sessao-2026-10-07-b11-automacoes.md`.
+
 > **Atualização de 07/10/2026:** esta lista ficou para trás. A B11-02 (motor) e
 > a B11-10 (editor e lista gravando no banco) foram feitas, e o protótipo saiu.
 > Em `/configuracoes/automacoes` do branch está a tela nova, que grava de
