@@ -122,8 +122,8 @@ Nenhuma nova. Tópicos privados com policy em `realtime.messages`: padrão do Su
 - [x] `chat-layout` ouvindo `nova_mensagem` no tópico certo por papel
 - [x] `transferirConversa` (atendente) com checagem de dono e gravação por service role; `atribuirConversa` checando a empresa do alvo
 - [x] Alertas com última atividade por service client
-- [ ] Testes (escritos; rodam depois da migration 2): atendente não lê conversa/mensagem/etiqueta de colega no banco; não insere mensagem em conversa de colega; não troca `assigned_to` nem `contact_id`; actions recusam conversa alheia; transferência legítima funciona; admin/gerente veem tudo
+- [x] Testes (8 passando contra o banco em 08/10): atendente não lê conversa/mensagem/etiqueta de colega no banco; não insere mensagem em conversa de colega; não troca `assigned_to` nem `contact_id`; actions recusam conversa alheia; transferência legítima funciona; admin/gerente veem tudo
 - [x] Teste do tempo real: atendente recebe só da conversa dele; gerente recebe todas; outra empresa nada
 - [x] Build, lint e testes do chat passando
 - [x] Migration 1 (tempo real) aplicada em 08/10
-- [ ] Publicar código, depois `npx supabase db push --linked` da migration 2
+- [x] Código no ar (cec64d5), depois migration 2 aplicada em 08/10
