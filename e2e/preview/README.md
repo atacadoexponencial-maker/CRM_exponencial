@@ -83,7 +83,7 @@ código de saída 0 só se tudo passou.
 | `roteiro-b11-09.cjs` | Fila das automações: a função do banco que entrega um evento por vez por contato, e uma ação com falha que não desfaz o movimento do card. |
 | `roteiro-b11-04.cjs` | Gatilho "mensagem recebida" com as condições de texto e tipo, por mensagens simuladas no webhook do gateway, e o tempo de resposta do webhook com as regras ativas (B11-09). |
 | `roteiro-b11-05.cjs` | ⚠️ Envia 2 mensagens de verdade. Gatilho "mensagem enviada pelo time": a resposta do chat move o card e põe a tag; a mesma frase mandada por uma automação não dispara. |
-| `roteiro-b11-07.cjs` | ⚠️ Envia 5 mensagens de verdade. Texto com variáveis, mensagem rápida e PDF escolhido no editor (B11-07); condição de canal com mensagem (B11-02); mensagem de ausência fora do horário, e nada dentro dele (B11-08); a mensagem da regra entregue em até 30 segundos (B11-09). |
+| `roteiro-b11-07.cjs` | ⚠️ Envia 5 mensagens de verdade. Texto com variáveis, mensagem rápida e PDF escolhido no editor (B11-07); condição de canal com mensagem (B11-02); mensagem de ausência fora do horário, e nada dentro dele (B11-08); a mensagem da regra entregue ao gateway em até 30 segundos (B11-09). |
 | `roteiro-menus.cjs` | Itens de menu do chat, de etiquetas e de times fazendo o que prometem. Protege contra a volta do `onSelect` (decisões da B11, seção 9.4). |
 
 ## A empresa de teste
@@ -114,7 +114,11 @@ apaga.
 na empresa e de `B11_TESTE_TELEFONE_REAL` no `.env.local`. O roteiro cria, na
 primeira vez, o contato "Teste B11 Número real" com esse número, um card em Lead
 e uma conversa no chip, e o contato fica para os próximos. Sem chip ou sem o
-número, o roteiro para antes de enviar. ⚠️ Com o chip conectado, as regras que enviam mensagem passam a
+número, o roteiro para antes de enviar. O gateway põe toda mensagem numa fila,
+com 40 segundos entre envios. Um chip conectado há menos de 24 horas está no
+aquecimento e envia só 4 por hora. Os dois roteiros juntos mandam 7: as 3
+últimas esperam até uma hora na fila, e o roteiro não espera por elas (veja
+"Saúde do número" na tela do chip). ⚠️ Com o chip conectado, as regras que enviam mensagem passam a
 enviar de verdade. O `roteiro-b11-06.cjs` (regra A) manda uma mensagem para a
 Ana, que tem telefone falso. Não rode esse roteiro com o chip conectado sem
 trocar antes o telefone da Ana por um número de teste.

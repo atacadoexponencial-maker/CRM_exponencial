@@ -154,5 +154,46 @@ Nada novo. O arquivo fica no bucket `chat-attachments`, que já existe.
 - [x] Upload do arquivo no editor, e conferência ao salvar
 - [x] As duas ações na lista de disponíveis
 - [x] Testes automatizados e suíte unitária passando; build com código 0
-- [ ] Roteiro no preview passando (com o chip, combinado com o Luan)
-- [ ] Registro de decisões (seção 14)
+- [x] Roteiro no preview passando (com o chip, combinado com o Luan)
+- [x] Registro de decisões (seção 14)
+
+## Execução (08/10/2026)
+
+**Concluída.** O "Pronto quando" passou no preview com envio de verdade: o
+número pessoal do Luan conectado como chip da empresa de teste, mandando para o
+número de trabalho dele.
+
+**O que ficou diferente do plano:**
+
+- **A action do upload se chama `guardarArquivoDaAutomacao`**, e não
+  `enviarArquivoDaAutomacao`. Ela guarda o arquivo; quem envia é a regra.
+- **`chat-envio-automacoes.test.ts` não precisou mudar.** Ele já confere que o
+  envio das automações (`enviarTextoWhatsAppComMotivo`) não chama o motor, e
+  continua passando com o envio unificado por baixo.
+- **A verificação da B11-09 no roteiro mudou depois da rodada.** Ela esperava a
+  mensagem de ausência chegar ao celular em até 30 segundos. A fila do gateway
+  segurou a mensagem por quase uma hora, porque o número estava no primeiro dia
+  de aquecimento (4 mensagens por hora). Com o Luan, ficou decidido que os 30
+  segundos valem até o CRM entregar a mensagem ao gateway (decisões, seção 15).
+  O roteiro com a verificação nova não foi rodado de novo, para não mandar mais
+  5 mensagens. O número que ela mede saiu desta rodada: 1,4 segundo.
+
+**Como foi verificado:**
+
+- Suíte unitária com 49 arquivos e 615 testes passando. Os 14 testes de
+  `automacoes-envio.test.ts` cobrem as variáveis, a mensagem rápida, o arquivo e
+  a conversa por onde sai. Um teste novo em `fluxo-automacao.test.ts` confere
+  que todo gatilho e toda ação estão disponíveis. Lint com 0 erros e build com
+  código de saída 0.
+- **No preview, sem enviar** (commit `3c7c8ca`): o PDF subiu pelo editor para a
+  pasta da empresa, com nome e tipo gravados na regra; o seletor de mensagem
+  rápida aparece; o roteiro da B11-04 passou de novo em 14 de 14.
+- **No preview, com o chip** (mesmo commit), `e2e/preview/roteiro-b11-07.cjs`
+  passou em 14 de 15. O item que falhou foi o da B11-09, explicado acima.
+  - O histórico mostra as 3 regras como concluídas.
+  - "Oi {{primeiro_nome}}, aqui é {{nome_vendedor}}" saiu como "Oi Teste, aqui é
+    Admin Teste B11".
+  - A mensagem rápida saiu como "Segue nossa tabela, Teste".
+  - O PDF saiu como documento, com o nome `tabela-b11-07.pdf`.
+- **No celular de trabalho**, conferido pelo Luan, as 3 chegaram. O PDF chegou
+  às 18h30 como documento, com o nome original, quando a fila do gateway liberou.

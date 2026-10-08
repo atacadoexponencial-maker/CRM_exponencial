@@ -3,7 +3,8 @@
 // abertas na B11-02, na B11-08 e na B11-09. Rode o resetar antes.
 // ⚠️ ENVIA 5 MENSAGENS DE VERDADE para o número em B11_TESTE_TELEFONE_REAL
 // (.env.local), pelo chip conectado na empresa de teste. Só rode depois de
-// combinar com quem vai receber.
+// combinar com quem vai receber. Chip no aquecimento envia só 4 por hora: rodado
+// depois do roteiro da B11-05, as 3 últimas esperam até uma hora na fila do gateway.
 //
 // Regras montadas pelo editor:
 //  B11-07, as três com o gatilho tag "b11-07-envio":
@@ -88,7 +89,7 @@ function pdfDeTeste() {
   const enviadas = async () =>
     (await db
       .from("messages")
-      .select("type, content, media_filename, status, created_at")
+      .select("type, content, media_filename, status, wamid, created_at")
       .eq("conversation_id", conversaId)
       .eq("direction", "enviada")
       .order("created_at")).data ?? []
@@ -208,19 +209,33 @@ function pdfDeTeste() {
     r.confere("B11-08: dentro do horário, não responde", !(await enviadas()).some((m) => m.content === AUSENCIA))
     r.confere("B11-08: dentro do horário, o card fica sem atendente", (await atendenteDoCard()) === null)
 
-    // 5. B11-08 fora do horário: responde de verdade, e a B11-09 mede a chegada
+    // 5. B11-08 fora do horário: responde de verdade, e a B11-09 mede o tempo
     const hora = Number(new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", hour12: false, timeZone: "America/Sao_Paulo" }).format(new Date()))
     await (hora < 12 ? horario("13:00", "14:00") : horario("01:00", "02:00"))
     const inicio = Date.now()
     const resposta = await mensagemDoCliente("Boa noite, vocês estão aí?")
+    // Os 30 segundos da B11-09 valem até o CRM entregar a mensagem ao gateway (ganhar
+    // o wamid). Dali em diante quem manda é a fila do gateway, que segura de
+    // propósito: 40 s entre envios e, no aquecimento, 4 por hora (decisões, seção 15)
+    let noGateway = null
+    while (Date.now() - inicio < 30000) {
+      const m = (await enviadas()).find((x) => x.content === AUSENCIA)
+      if (m?.wamid) {
+        noGateway = Date.now() - inicio
+        break
+      }
+      await new Promise((res) => setTimeout(res, 500))
+    }
     await esperarAutomacoes(db, ws)
     const ausencia = (await enviadas()).find((m) => m.content === AUSENCIA)
     r.confere("B11-08: fora do horário, a mensagem de ausência sai", Boolean(ausencia), ausencia?.status)
     r.confere("B11-08: o card fica com um atendente do time Entrada", (await atendenteDoCard()) === admin.id)
+    r.confere("B11-09: a regra entrega a mensagem ao gateway em até 30 segundos", noGateway !== null, `${noGateway ?? "?"} ms`)
 
-    // O status volta pelo gateway para a produção, que grava no mesmo banco
+    // A chegada no celular só é registrada: o status volta pelo gateway para a
+    // produção, que grava no mesmo banco
     let entregue = null
-    while (Date.now() - inicio < 30000) {
+    while (noGateway !== null && Date.now() - inicio < 30000) {
       const m = (await enviadas()).find((x) => x.content === AUSENCIA)
       if (m && ["entregue", "lido"].includes(m.status)) {
         entregue = Date.now() - inicio
@@ -228,8 +243,10 @@ function pdfDeTeste() {
       }
       await new Promise((res) => setTimeout(res, 1000))
     }
-    console.log(`B11-09: resposta do webhook em ${resposta.ms} ms; mensagem da regra entregue em ${entregue ?? "mais de 30000"} ms`)
-    r.confere("B11-09: a mensagem da regra é entregue em até 30 segundos", entregue !== null, `${entregue ?? "?"} ms`)
+    console.log(
+      `B11-09: resposta do webhook em ${resposta.ms} ms; mensagem no gateway em ${noGateway ?? "?"} ms; ` +
+        (entregue !== null ? `entregue em ${entregue} ms` : "ainda na fila do gateway depois de 30 s (veja Saúde do número)")
+    )
 
     r.confere("sem erro no console", erros.length === 0, erros.join(" | "))
   } finally {

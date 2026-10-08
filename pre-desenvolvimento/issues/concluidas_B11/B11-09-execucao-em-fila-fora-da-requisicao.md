@@ -21,8 +21,14 @@ Cobre, no "Motor", executar fora da requisição.
 No preview do branch `b11-automacoes-v2` (o merge no `master` é um só, no fim da
 série), com uma regra que envia mensagem, o tempo de resposta do
 webhook medido no gateway ou na Meta não muda com a regra ativa; a mensagem da
-regra chega em até 30 segundos e aparece no histórico. Derrubar de propósito a
-ação (etiqueta apagada) não afeta o recebimento da mensagem.
+regra é entregue ao gateway em até 30 segundos e aparece no histórico. Derrubar
+de propósito a ação (etiqueta apagada) não afeta o recebimento da mensagem.
+
+> **Ajustado em 08/10/2026, com o Luan:** antes, a mensagem tinha que *chegar*
+> em até 30 segundos. A fila do gateway segura os envios de propósito (40
+> segundos entre um e outro e, no aquecimento do número, 4 por hora), então os
+> 30 segundos passaram a valer até o CRM entregar a mensagem ao gateway. A
+> chegada ao celular fica registrada à parte (decisões, seção 15).
 
 ## Plano (07/10/2026)
 
@@ -145,7 +151,7 @@ Migration só de acréscimo, `20261007000004_automation_queue.sql`:
 - [x] Roteiros antigos passando com a fila (B11-10, 11/12, 03, 06, 08)
 - [x] Roteiro da B11-09 passando no preview
 - [x] Registro de decisões (seção 11)
-- [ ] "Pronto quando" com o webhook e o envio de mensagem (espera a B11-04 e o chip)
+- [x] "Pronto quando" com o webhook e o envio de mensagem (espera a B11-04 e o chip)
 
 ## Execução (07/10/2026)
 
@@ -197,3 +203,25 @@ resposta do webhook e a mensagem da regra chegando dependem do gatilho
   - B11-10, B11-11/12, B11-03 e B11-06 sem nenhuma falha;
   - B11-08 em 9 de 9;
   - menus em 7 de 7.
+
+## Teste com envio de verdade (08/10/2026): passou
+
+**Concluída.** A parte de mensagem rodou no preview (commit `3c7c8ca`), no
+`e2e/preview/roteiro-b11-07.cjs`, com a regra de ausência da B11-08. Nesse
+teste, o número pessoal do Luan foi conectado como chip da empresa de teste e
+mandou para o número de trabalho dele.
+
+- **Tempo de resposta do webhook:** 810 ms com a regra ativa, igual à mediana
+  medida na B11-04 com as regras pausadas (801 ms).
+- **A mensagem da regra:** foi entregue ao gateway 1,4 segundo depois de a
+  mensagem do cliente chegar. Ela aparece no histórico.
+- **Chegada ao celular:** a mensagem esperou quase uma hora na fila do gateway,
+  porque o número estava no primeiro dia de aquecimento (4 mensagens por hora),
+  e chegou às 18h32. Com a fila livre, a mensagem de outra regra chegou cerca de
+  1 segundo depois de entregue ao gateway. Por isso o "Pronto quando" passou a
+  contar os 30 segundos até o gateway (ajuste no topo da issue, e decisões,
+  seção 15). O roteiro foi ajustado para medir assim.
+- **Ação derrubada de propósito:** a etiqueta apagada foi testada no gatilho
+  "card movido" (`roteiro-b11-09.cjs`, acima). No recebimento da mensagem, o
+  caminho é a mesma fila, rodada depois da resposta, e os testes da fila cobrem
+  que ela não lança erro.

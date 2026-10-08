@@ -155,7 +155,7 @@ service client.
 - [x] Testes automatizados e suíte unitária passando; build com código 0
 - [x] Roteiro no preview passando
 - [x] Registro de decisões (seção 10)
-- [ ] "Pronto quando" com "mensagem recebida" e a mensagem de ausência (espera a B11-04)
+- [x] "Pronto quando" com "mensagem recebida" e a mensagem de ausência (espera a B11-04)
 
 ## Execução (07/10/2026)
 
@@ -210,3 +210,20 @@ Entrada se não houver) vão para o atendente. No preview (commit `99ebe33`), o
 Bruno, com card nos dois funis, teve o da Recompra atribuído ao admin, e o da
 Entrada ficou como estava. O roteiro passou em **9 de 9**, e a suíte, com 553
 testes.
+
+## Teste com envio de verdade (08/10/2026): passou
+
+**Concluída.** O "Pronto quando" passou com o gatilho "mensagem recebida" (B11-04)
+e envio de verdade, no `e2e/preview/roteiro-b11-07.cjs`, no preview do commit
+`3c7c8ca`. Nesse teste, o número pessoal do Luan foi conectado como chip da
+empresa de teste e mandou para o número de trabalho dele. A mensagem do cliente
+é simulada no webhook do gateway do preview e vem do número de trabalho.
+
+- A regra "mensagem recebida → fora do horário comercial? → sim: mensagem de
+  ausência e atribuir ao time Entrada" foi montada pelo editor. Ao salvar, o
+  editor avisa que ela responde toda mensagem, e o roteiro confirma.
+- **Dentro do horário** (das 00:00 às 23:59), a regra não respondeu, e o card
+  continuou sem atendente.
+- **Fora do horário**, a mensagem de ausência saiu, e o card ficou com o admin,
+  o único do time Entrada. A mensagem chegou ao celular de trabalho às 18h32,
+  depois de esperar a fila do gateway (decisões, seção 15).

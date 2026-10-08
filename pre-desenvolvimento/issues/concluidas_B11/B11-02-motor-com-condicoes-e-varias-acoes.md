@@ -280,3 +280,20 @@ Automações B11", nos roteiros da B11-10 e da B11-11:
 **Falta:** a parte do "Pronto quando" com o canal e o envio de mensagem. A
 empresa de teste não tem número conectado. Depende de conectar um chip de teste
 nela, o que também é preciso para a B11-04. A issue fica aberta até lá.
+
+## Teste com envio de verdade (08/10/2026): passou
+
+**Concluída.** A parte que faltava do "Pronto quando" rodou no preview (commit
+`3c7c8ca`), no `e2e/preview/roteiro-b11-07.cjs`. Nesse teste, o número pessoal
+do Luan foi conectado como chip da empresa de teste e mandou para o número de
+trabalho dele.
+
+- A regra "tag `b11-02-canal` → canal da conversa é canal direto? → sim:
+  etiqueta Interessado e mensagem / não: outra mensagem" foi montada pelo editor,
+  e não por script, porque o editor já grava no banco.
+- No chip, o caminho seguiu pelo "sim". A etiqueta entrou, e saiu a mensagem do
+  sim, não a do não. A "Mensagem pelo canal direto" chegou ao celular de trabalho
+  às 18h31, depois de esperar a fila do gateway (decisões, seção 15).
+- O caminho "não" precisaria de um número da API Oficial, que a empresa de teste
+  não tem. Ele fica coberto pelo teste do motor "condição de canal: na API
+  Oficial segue pelo não e manda só a outra mensagem", em `automacoes.test.ts`.

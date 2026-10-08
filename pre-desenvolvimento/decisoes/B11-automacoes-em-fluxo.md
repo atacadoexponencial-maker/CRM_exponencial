@@ -772,7 +772,34 @@ continuam com a mesma assinatura, e as sequências não mudaram.
 
 O `roteiro-b11-07.cjs` envia as 3 mensagens desta issue e fecha as partes de
 mensagem da B11-02 (condição de canal), da B11-08 (ausência fora do horário e
-silêncio dentro dele) e da B11-09 (a mensagem da regra entregue em até 30
-segundos). São 5 mensagens, e o número fica conectado uma vez só. A entrega é
-lida no banco: o gateway manda o status para a produção, que grava no mesmo
-banco.
+silêncio dentro dele) e da B11-09 (a mensagem da regra entregue ao gateway em
+até 30 segundos, seção 15). São 5 mensagens, e o número fica conectado uma vez
+só. A entrega é lida no banco: o gateway manda o status para a produção, que
+grava no mesmo banco.
+
+## 15. Os 30 segundos da B11-09 e a fila do gateway (08/10/2026)
+
+O "Pronto quando" da B11-09 pedia a mensagem da regra chegando ao celular em até
+30 segundos. No primeiro teste com envio de verdade, a mensagem de ausência
+passou de meia hora sem sair, e o CRM não tinha culpa. O gateway enfileira toda
+mensagem (contrato, seção 4.3), com pelo menos 40 segundos entre um envio e
+outro. Durante o aquecimento do número, ele também limita quantas saem por
+hora: no dia 1, são 4 por hora e 30 por dia. Os roteiros da B11-05 e da B11-07
+mandam 7 mensagens seguidas. As 4 primeiras chegaram, e as 3 últimas (o PDF, a
+do canal direto e a de ausência) esperaram a janela de uma hora liberar.
+
+**Decidido com o Luan:** os 30 segundos valem até o CRM entregar a mensagem ao
+gateway, que é a parte que a B11 controla. O roteiro mede até a mensagem ganhar
+o `wamid`. No teste, a resposta da regra de ausência foi entregue ao gateway 1,4
+segundo depois de a mensagem do cliente chegar. A chegada ao celular fica
+registrada à parte. Com a fila do número livre, a mensagem de uma regra
+("Oi Teste, aqui é Admin Teste B11") chegou cerca de 1 segundo depois de
+entregue ao gateway.
+
+- **Descartado:** pular a fila só para o teste. O contrato não oferece esse
+  caminho, e é de propósito. O aquecimento só sairia mexendo na data da
+  primeira conexão, direto no banco do gateway em produção. Isso tiraria a
+  proteção do número para ganhar menos de uma hora.
+- **Descartado:** manter os 30 segundos até a chegada ao celular. Num número com
+  fila, a espera é a proteção funcionando, e o roteiro falharia em todo chip
+  novo.
