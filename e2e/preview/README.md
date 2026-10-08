@@ -55,6 +55,8 @@ node e2e/preview/roteiro-b11-04.cjs https://crm-exponencial-xxxx.vercel.app
 # quem recebe (veja "Envio de mensagem" abaixo)
 node e2e/preview/resetar-empresa-teste.cjs
 node e2e/preview/roteiro-b11-05.cjs https://crm-exponencial-xxxx.vercel.app
+node e2e/preview/resetar-empresa-teste.cjs
+node e2e/preview/roteiro-b11-07.cjs https://crm-exponencial-xxxx.vercel.app
 ```
 
 Desde a B11-09, as automações rodam depois da resposta da ação. Os roteiros
@@ -68,7 +70,7 @@ código de saída 0 só se tudo passou.
 
 | Arquivo | O que faz |
 |---|---|
-| `comum.cjs` | Lê os `.env`, abre o cliente com a chave de serviço, confere que o workspace é de teste, abre o preview logado. |
+| `comum.cjs` | Lê os `.env`, abre o cliente com a chave de serviço, confere que o workspace é de teste, abre o preview logado. Manda mensagem simulada ao webhook do gateway (`enviarEventoDoGateway`) e prepara o contato com o número real (`prepararNumeroReal`). |
 | `tela.cjs` | Passos de tela: escolher numa lista, adicionar bloco, criar regra, salvar, mover card pelo painel. |
 | `endereco-preview.cjs` | Endereço do preview de um commit, pela API do GitHub e com a credencial que o git já guarda. |
 | `criar-empresa-teste.cjs` | Cria a empresa pelo mesmo caminho do cadastro do site (`cadastrar_empresa`) e os dados dos roteiros. |
@@ -81,6 +83,7 @@ código de saída 0 só se tudo passou.
 | `roteiro-b11-09.cjs` | Fila das automações: a função do banco que entrega um evento por vez por contato, e uma ação com falha que não desfaz o movimento do card. |
 | `roteiro-b11-04.cjs` | Gatilho "mensagem recebida" com as condições de texto e tipo, por mensagens simuladas no webhook do gateway, e o tempo de resposta do webhook com as regras ativas (B11-09). |
 | `roteiro-b11-05.cjs` | ⚠️ Envia 2 mensagens de verdade. Gatilho "mensagem enviada pelo time": a resposta do chat move o card e põe a tag; a mesma frase mandada por uma automação não dispara. |
+| `roteiro-b11-07.cjs` | ⚠️ Envia 5 mensagens de verdade. Texto com variáveis, mensagem rápida e PDF escolhido no editor (B11-07); condição de canal com mensagem (B11-02); mensagem de ausência fora do horário, e nada dentro dele (B11-08); a mensagem da regra entregue em até 30 segundos (B11-09). |
 | `roteiro-menus.cjs` | Itens de menu do chat, de etiquetas e de times fazendo o que prometem. Protege contra a volta do `onSelect` (decisões da B11, seção 9.4). |
 
 ## A empresa de teste

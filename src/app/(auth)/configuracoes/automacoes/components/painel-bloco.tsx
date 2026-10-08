@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Plus, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -56,18 +57,33 @@ const ITENS_ACAO = (Object.keys(ACOES) as AcaoTipo[]).map((tipo) =>
   itemDisponivel(tipo, ACOES[tipo].rotulo, ACOES_DISPONIVEIS)
 )
 
+/** Sobe o arquivo escolhido para o armazenamento (B11-07). O tipo e o limite são conferidos no servidor. */
+export type GuardarArquivo = (
+  dados: FormData
+) => Promise<{ erro?: string; arquivo?: { url: string; nome: string; tipo: "imagem" | "documento" } }>
+
 interface PainelBlocoProps {
   bloco: Bloco
   /** Gatilho do fluxo: decide se as verificações de mensagem valem. */
   gatilho: GatilhoTipo | undefined
   opcoes: OpcoesEditor
   pendencias: string[]
+  guardarArquivo: GuardarArquivo
   onMudar: (bloco: Bloco) => void
   onRemover: () => void
   onFechar: () => void
 }
 
-export function PainelBloco({ bloco, gatilho, opcoes, pendencias, onMudar, onRemover, onFechar }: PainelBlocoProps) {
+export function PainelBloco({
+  bloco,
+  gatilho,
+  opcoes,
+  pendencias,
+  guardarArquivo,
+  onMudar,
+  onRemover,
+  onFechar,
+}: PainelBlocoProps) {
   return (
     <aside className="absolute inset-y-0 right-0 z-10 flex w-full flex-col border-l bg-background shadow-lg sm:w-80">
       <div className="flex items-center justify-between border-b px-4 py-3">
@@ -113,6 +129,7 @@ export function PainelBloco({ bloco, gatilho, opcoes, pendencias, onMudar, onRem
               campos={ACOES[bloco.acao].campos}
               parametros={bloco.parametros}
               opcoes={opcoes}
+              guardarArquivo={guardarArquivo}
               onMudar={(parametros) => onMudar({ ...bloco, parametros })}
             />
             {bloco.acao === "mover_card" && SEQUENCIA_DA_ETAPA[`${bloco.parametros.funil}:${bloco.parametros.etapa}`] && (
@@ -174,11 +191,14 @@ function CamposParametros({
   campos,
   parametros,
   opcoes,
+  guardarArquivo,
   onMudar,
 }: {
   campos: CampoTela[]
   parametros: Parametros
   opcoes: OpcoesEditor
+  /** Só as ações têm campo de arquivo. */
+  guardarArquivo?: GuardarArquivo
   onMudar: (parametros: Parametros) => void
 }) {
   function mudar(chave: string, valor: string) {
@@ -197,7 +217,16 @@ function CamposParametros({
         return (
           <div key={campo.chave} className="flex flex-col gap-1.5">
             <Label htmlFor={id}>{campo.rotulo}</Label>
-            <CampoParametro id={id} campo={campo} valor={valor} parametros={parametros} opcoes={opcoes} onMudar={mudar} />
+            {campo.tipo === "arquivo" ? (
+              <CampoArquivo
+                id={id}
+                parametros={parametros}
+                guardarArquivo={guardarArquivo}
+                onGuardado={(guardado) => onMudar({ ...parametros, ...guardado })}
+              />
+            ) : (
+              <CampoParametro id={id} campo={campo} valor={valor} parametros={parametros} opcoes={opcoes} onMudar={mudar} />
+            )}
           </div>
         )
       })}
@@ -289,19 +318,65 @@ function CampoParametro({
       )
 
     case "arquivo":
-      return (
-        <>
-          <input
-            id={id}
-            type="file"
-            accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx"
-            className="text-sm file:mr-2 file:rounded-md file:border file:bg-muted file:px-2 file:py-1 file:text-sm"
-            onChange={(e) => onMudar(campo.chave, e.target.files?.[0]?.name ?? "")}
-          />
-          {valor && <p className="text-xs text-muted-foreground">Escolhido: {valor}</p>}
-        </>
-      )
+      // Desenhado por `CampoArquivo`, que sobe o arquivo e grava três parâmetros de uma vez
+      return null
   }
+}
+
+/**
+ * Arquivo da ação "enviar imagem ou documento" (B11-07): sobe na hora em que o
+ * admin escolhe, e a ação guarda o endereço, o nome original e o tipo.
+ */
+function CampoArquivo({
+  id,
+  parametros,
+  guardarArquivo,
+  onGuardado,
+}: {
+  id: string
+  parametros: Parametros
+  guardarArquivo?: GuardarArquivo
+  onGuardado: (parametros: Parametros) => void
+}) {
+  const [enviando, setEnviando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  async function escolher(arquivo: File | undefined) {
+    if (!arquivo || !guardarArquivo) return
+    setErro(null)
+    setEnviando(true)
+    const dados = new FormData()
+    dados.set("arquivo", arquivo)
+    const resultado = await guardarArquivo(dados).catch(() => ({ erro: undefined, arquivo: undefined }))
+    setEnviando(false)
+    if (!resultado.arquivo) {
+      setErro(resultado.erro ?? "Não foi possível enviar o arquivo. Tente de novo.")
+      return
+    }
+    const { url, nome, tipo } = resultado.arquivo
+    onGuardado({ arquivo: url, arquivo_nome: nome, arquivo_tipo: tipo })
+  }
+
+  return (
+    <>
+      <input
+        id={id}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,application/pdf,.doc,.docx,.xls,.xlsx"
+        disabled={enviando}
+        className="text-sm file:mr-2 file:rounded-md file:border file:bg-muted file:px-2 file:py-1 file:text-sm"
+        onChange={(e) => escolher(e.target.files?.[0])}
+      />
+      {enviando && <p className="text-xs text-muted-foreground">Enviando o arquivo…</p>}
+      {erro && <p className="text-xs text-destructive">{erro}</p>}
+      {!enviando && parametros.arquivo && (
+        <p className="text-xs text-muted-foreground">
+          {parametros.arquivo_tipo === "imagem" ? "Imagem" : "Documento"}: {parametros.arquivo_nome}
+        </p>
+      )}
+      <p className="text-xs text-muted-foreground">JPG, PNG ou WebP, ou PDF, Word e Excel. Até 4 MB.</p>
+    </>
+  )
 }
 
 function EditorVerificacoes({

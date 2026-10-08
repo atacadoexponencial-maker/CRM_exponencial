@@ -35,11 +35,16 @@ async function novaRegra(page, url, nome, etapaDoGatilho) {
   await escolher(page, "#painel-campo-etapa", etapaDoGatilho)
 }
 
-/** Salva e espera o editor remontar no endereço da regra (`?salva=1` no primeiro salvamento). */
-async function salvarRegra(page) {
+/**
+ * Salva e espera o editor remontar no endereço da regra (`?salva=1` no primeiro
+ * salvamento). `aceitarAviso`: a regra responde toda mensagem do contato
+ * (mensagem recebida, envio e repetição "sempre"), e o editor pede confirmação.
+ */
+async function salvarRegra(page, { aceitarAviso = false } = {}) {
   const fechar = page.getByRole("button", { name: "Fechar painel" })
   if (await fechar.count()) await fechar.click()
-  await page.getByRole("button", { name: "Salvar" }).click()
+  await page.getByRole("button", { name: "Salvar", exact: true }).click()
+  if (aceitarAviso) await page.getByRole("button", { name: "Salvar assim mesmo" }).click()
   await page.waitForURL(/\/configuracoes\/automacoes\/[0-9a-f-]{36}/, { timeout: 20000 })
   await page.waitForLoadState("networkidle")
   await page.waitForSelector(".react-flow__node")

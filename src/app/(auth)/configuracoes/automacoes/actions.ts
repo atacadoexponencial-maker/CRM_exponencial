@@ -10,7 +10,9 @@
 // Histórico (B11-03): o motor grava cada execução em `automation_runs`; aqui a
 // lista conta as execuções e a página de histórico as lê.
 // Horário comercial (B11-08): gravado em `business_hours`, lido pela condição.
-// Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seções 5, 6, 8 e 10.
+// Arquivo da ação "enviar imagem ou documento" (B11-07): sobe na hora em que o
+// admin escolhe, e a ação guarda o endereço.
+// Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seções 5, 6, 8, 10 e 14.
 
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
@@ -18,10 +20,13 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import type { Json } from "@/integrations/supabase/types"
 import { lerFluxo } from "@/lib/automacoes/fluxo-recebido"
 import {
+  BUCKET_DOS_ARQUIVOS,
+  arquivoDaAutomacaoValido,
   classificacaoValida,
   dadoDoContatoValido,
   etapaValida,
   gatilhoDeDadoValido,
+  pastaDosArquivos,
   referenciasDoFluxo,
   tipoDeContatoValido,
 } from "@/lib/automacoes/referencias"
@@ -257,6 +262,8 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
     tiposDeContato,
     classificacoes,
     gatilhosDeDado,
+    mensagensRapidas,
+    arquivos,
   } = referenciasDoFluxo(fluxo)
   if (!etapas.every(etapaValida)) return "Uma etapa escolhida não existe no funil. Escolha de novo."
   if (!dadosDoContato.every(({ campo, valor }) => dadoDoContatoValido(campo, valor))) {
@@ -268,8 +275,14 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
   if (!gatilhosDeDado.every(({ campo, valor }) => gatilhoDeDadoValido(campo, valor))) {
     return "O campo ou o valor do gatilho não é válido. Escolha de novo."
   }
+  if (!arquivos.every((arquivo) => arquivoDaAutomacaoValido(arquivo, workspaceId))) {
+    return "O arquivo de uma ação não é válido. Escolha o arquivo de novo."
+  }
 
-  const contar = async (tabela: "labels" | "profiles" | "whatsapp_connections" | "teams" | "sequences", ids: string[]) => {
+  const contar = async (
+    tabela: "labels" | "profiles" | "whatsapp_connections" | "teams" | "sequences" | "quick_replies",
+    ids: string[]
+  ) => {
     if (ids.length === 0) return 0
     const { count } = await supabase
       .from(tabela)
@@ -278,19 +291,64 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
       .in("id", ids)
     return count ?? 0
   }
-  const [nEtiquetas, nAtendentes, nConexoes, nTimes, nSequencias] = await Promise.all([
+  const [nEtiquetas, nAtendentes, nConexoes, nTimes, nSequencias, nRapidas] = await Promise.all([
     contar("labels", etiquetas),
     contar("profiles", atendentes),
     contar("whatsapp_connections", conexoes),
     contar("teams", times),
     contar("sequences", sequencias),
+    contar("quick_replies", mensagensRapidas),
   ])
   if (nEtiquetas !== etiquetas.length) return "Uma etiqueta escolhida não existe mais. Escolha de novo."
   if (nAtendentes !== atendentes.length) return "Um atendente escolhido não existe mais. Escolha de novo."
   if (nConexoes !== conexoes.length) return "Um número escolhido não existe mais. Escolha de novo."
   if (nTimes !== times.length) return "Um time escolhido não existe mais. Escolha de novo."
   if (nSequencias !== sequencias.length) return "Uma sequência escolhida não existe mais. Escolha de novo."
+  if (nRapidas !== mensagensRapidas.length) return "Uma mensagem rápida escolhida não existe mais. Escolha de novo."
   return null
+}
+
+/** O tipo da ação pelo tipo do arquivo. JPEG, PNG e WebP saem como imagem; PDF, Word e Excel, como documento. */
+const TIPO_DO_ARQUIVO: Record<string, "imagem" | "documento"> = {
+  "image/jpeg": "imagem",
+  "image/png": "imagem",
+  "image/webp": "imagem",
+  "application/pdf": "documento",
+  "application/msword": "documento",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "documento",
+  "application/vnd.ms-excel": "documento",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "documento",
+}
+
+/** Mesmo teto do chat: o limite de uma requisição na Vercel, e não do WhatsApp. */
+const LIMITE_DO_ARQUIVO = 4 * 1024 * 1024
+
+/**
+ * Sobe o arquivo escolhido no editor para a pasta das automações da empresa
+ * (B11-07). A ação guarda o endereço, o nome original e o tipo.
+ */
+export async function guardarArquivoDaAutomacao(
+  formData: FormData
+): Promise<{ erro?: string; arquivo?: { url: string; nome: string; tipo: "imagem" | "documento" } }> {
+  const admin = await adminDaSessao()
+  if (!admin) return { erro: SEM_PERMISSAO }
+
+  const arquivo = formData.get("arquivo")
+  if (!(arquivo instanceof File) || arquivo.size === 0) return { erro: "Escolha um arquivo." }
+  const tipo = TIPO_DO_ARQUIVO[arquivo.type]
+  if (!tipo) return { erro: "Use uma imagem (JPG, PNG ou WebP) ou um documento (PDF, Word ou Excel)." }
+  if (arquivo.size > LIMITE_DO_ARQUIVO) return { erro: "Arquivo muito grande (máximo 4 MB)." }
+
+  const nomeSeguro = arquivo.name.replace(/[^a-zA-Z0-9._-]/g, "_")
+  const caminho = `${pastaDosArquivos(admin.workspaceId)}/${Date.now()}-${nomeSeguro}`
+  const service = createServiceClient()
+  const { error } = await service.storage.from(BUCKET_DOS_ARQUIVOS).upload(caminho, arquivo, { contentType: arquivo.type })
+  if (error) return { erro: "Não foi possível enviar o arquivo. Tente de novo." }
+
+  const {
+    data: { publicUrl },
+  } = service.storage.from(BUCKET_DOS_ARQUIVOS).getPublicUrl(caminho)
+  return { arquivo: { url: publicUrl, nome: arquivo.name, tipo } }
 }
 
 export async function salvarRegra(dados: {

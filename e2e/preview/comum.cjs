@@ -131,6 +131,74 @@ async function enviarEventoDoGateway(urlPreview, envelope, env = lerEnv()) {
   return { status: resposta.status, corpo: texto, ms: Date.now() - inicio }
 }
 
+const NOME_DO_CONTATO_REAL = "Teste B11 Número real"
+
+/**
+ * Para os roteiros que enviam de verdade (B11-05 em diante): o chip conectado na
+ * empresa de teste e o contato com o número que recebe (`B11_TESTE_TELEFONE_REAL`),
+ * com card em Lead no Funil de Entrada, sem atendente, e conversa aberta no chip.
+ * Cria o que faltar; o contato fica para os próximos roteiros. Para antes de
+ * qualquer envio se faltar o chip ou o número.
+ */
+async function prepararNumeroReal(db, workspaceId, env = lerEnv()) {
+  const telefone = (env.B11_TESTE_TELEFONE_REAL ?? "").replace(/\D/g, "")
+  if (!telefone) throw new Error("defina B11_TESTE_TELEFONE_REAL no .env.local (o número que vai receber as mensagens)")
+  const { data: chip } = await db
+    .from("whatsapp_connections")
+    .select("id, instance_id")
+    .eq("workspace_id", workspaceId)
+    .eq("canal", "gateway")
+    .eq("status", "connected")
+    .limit(1)
+    .maybeSingle()
+  if (!chip) throw new Error("a empresa de teste não tem chip conectado: nada foi enviado")
+
+  let { data: contato } = await db
+    .from("contacts")
+    .select("id")
+    .eq("workspace_id", workspaceId)
+    .eq("phone_number", telefone)
+    .maybeSingle()
+  if (!contato) {
+    const criado = await db
+      .from("contacts")
+      .insert({ workspace_id: workspaceId, phone_number: telefone, name: NOME_DO_CONTATO_REAL })
+      .select("id")
+      .single()
+    if (criado.error) throw new Error(`contato: ${criado.error.message}`)
+    contato = criado.data
+  } else {
+    // O número pode ter escrito para o chip e virado contato sem nome; os roteiros contam com o nome
+    await db.from("contacts").update({ name: NOME_DO_CONTATO_REAL }).eq("id", contato.id)
+  }
+
+  const { data: card } = await db.from("pipeline_cards").select("id").eq("contact_id", contato.id).eq("funil", "entrada").maybeSingle()
+  if (card) await db.from("pipeline_cards").update({ etapa: "lead", atendente_id: null }).eq("id", card.id)
+  else await db.from("pipeline_cards").insert({ workspace_id: workspaceId, contact_id: contato.id, funil: "entrada", etapa: "lead" })
+
+  const { data: aberta } = await db
+    .from("conversations")
+    .select("id")
+    .eq("contact_id", contato.id)
+    .in("status", ["em_espera", "em_atendimento"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  let conversaId = aberta?.id
+  if (conversaId) {
+    await db.from("conversations").update({ whatsapp_connection_id: chip.id, assigned_to: null }).eq("id", conversaId)
+  } else {
+    const nova = await db
+      .from("conversations")
+      .insert({ workspace_id: workspaceId, contact_id: contato.id, status: "em_atendimento", whatsapp_connection_id: chip.id })
+      .select("id")
+      .single()
+    if (nova.error) throw new Error(`conversa: ${nova.error.message}`)
+    conversaId = nova.data.id
+  }
+  return { contatoId: contato.id, conversaId, chip, telefone }
+}
+
 module.exports = {
   PROJETO,
   lerEnv,
@@ -140,4 +208,5 @@ module.exports = {
   criarRelatorio,
   esperarAutomacoes,
   enviarEventoDoGateway,
+  prepararNumeroReal,
 }

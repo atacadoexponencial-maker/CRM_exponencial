@@ -83,7 +83,7 @@ export function fraseAcao(bloco: BlocoAcao, opcoes: OpcoesEditor): string {
     case "enviar_mensagem_rapida":
       return p.mensagem_rapida_id ? `Enviar a mensagem rápida "${nomeEm(opcoes.mensagensRapidas, p.mensagem_rapida_id)}"` : rotulo
     case "enviar_midia":
-      return p.arquivo ? `Enviar o arquivo ${p.arquivo}` : rotulo
+      return p.arquivo ? `Enviar ${p.arquivo_tipo === "imagem" ? "a imagem" : "o documento"} "${p.arquivo_nome || "arquivo"}"` : rotulo
     case "adicionar_tag":
       return p.tag ? `Adicionar a tag "${nomeEm(opcoes.tags, p.tag)}"` : rotulo
     case "remover_tag":

@@ -12,8 +12,7 @@
 // mandada pela automação B não dispara. A sequência usa o mesmo envio da
 // automação (`enviarTextoWhatsApp`); o teste automatizado cobre os dois.
 //
-// O contato "Teste B11 Número real" é criado na primeira vez, com o número real,
-// um card em Lead e uma conversa no chip, e fica para os próximos roteiros.
+// O contato com o número real vem de `prepararNumeroReal` (comum.cjs).
 // Uso: node e2e/preview/roteiro-b11-05.cjs <endereço do preview>
 
 const {
@@ -23,67 +22,20 @@ const {
   criarRelatorio,
   esperarAutomacoes,
   lerEnv,
+  prepararNumeroReal,
 } = require("./comum.cjs")
 const { adicionarBloco, escolher, salvarRegra } = require("./tela.cjs")
 
 const URL_PREVIEW = process.argv[2]
-const NOME_CONTATO = "Teste B11 Número real"
 const TEXTO_DO_TIME = "Segue o catálogo 👇"
-
-/**
- * O contato com o número real, com card em Lead no Funil de Entrada e conversa
- * aberta no chip. Cria o que faltar.
- */
-async function contatoComNumeroReal(db, ws, telefone, conexaoId) {
-  let { data: contato } = await db.from("contacts").select("id").eq("workspace_id", ws).eq("phone_number", telefone).maybeSingle()
-  if (!contato) {
-    const criado = await db.from("contacts").insert({ workspace_id: ws, phone_number: telefone, name: NOME_CONTATO }).select("id").single()
-    if (criado.error) throw new Error(`contato: ${criado.error.message}`)
-    contato = criado.data
-  }
-  const { data: card } = await db.from("pipeline_cards").select("id").eq("contact_id", contato.id).eq("funil", "entrada").maybeSingle()
-  if (card) await db.from("pipeline_cards").update({ etapa: "lead" }).eq("id", card.id)
-  else await db.from("pipeline_cards").insert({ workspace_id: ws, contact_id: contato.id, funil: "entrada", etapa: "lead" })
-
-  const { data: conversa } = await db
-    .from("conversations")
-    .select("id")
-    .eq("contact_id", contato.id)
-    .in("status", ["em_espera", "em_atendimento"])
-    .maybeSingle()
-  if (conversa) {
-    await db.from("conversations").update({ whatsapp_connection_id: conexaoId }).eq("id", conversa.id)
-    return { contatoId: contato.id, conversaId: conversa.id }
-  }
-  const nova = await db
-    .from("conversations")
-    .insert({ workspace_id: ws, contact_id: contato.id, status: "em_atendimento", whatsapp_connection_id: conexaoId })
-    .select("id")
-    .single()
-  if (nova.error) throw new Error(`conversa: ${nova.error.message}`)
-  return { contatoId: contato.id, conversaId: nova.data.id }
-}
 
 ;(async () => {
   if (!URL_PREVIEW) throw new Error("passe o endereço do preview (veja endereco-preview.cjs)")
   const env = lerEnv()
-  const telefone = (env.B11_TESTE_TELEFONE_REAL ?? "").replace(/\D/g, "")
-  if (!telefone) throw new Error("defina B11_TESTE_TELEFONE_REAL no .env.local (o número que vai receber as mensagens)")
-
   const db = bancoDeServico(env)
   const ws = env.B11_TESTE_WORKSPACE_ID
   await conferirEmpresaDeTeste(db, ws)
-  const { data: chip } = await db
-    .from("whatsapp_connections")
-    .select("id")
-    .eq("workspace_id", ws)
-    .eq("canal", "gateway")
-    .eq("status", "connected")
-    .limit(1)
-    .maybeSingle()
-  if (!chip) throw new Error("a empresa de teste não tem chip conectado: nada foi enviado")
-
-  const { contatoId, conversaId } = await contatoComNumeroReal(db, ws, telefone, chip.id)
+  const { contatoId, conversaId } = await prepararNumeroReal(db, ws, env)
   const { browser, page, erros } = await abrirPreview(URL_PREVIEW)
   const r = criarRelatorio()
 

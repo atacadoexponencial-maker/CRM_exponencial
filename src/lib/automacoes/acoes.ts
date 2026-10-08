@@ -1,8 +1,8 @@
-// Ações que o motor já sabe executar: as 4 da primeira versão (enviar mensagem,
+// Ações que o motor sabe executar: as 4 da primeira versão (enviar mensagem,
 // aplicar etiqueta, atribuir atendente, mover card), com o mesmo comportamento,
-// as da B11-11 (tags, remover etiqueta, dado do contato, atribuir a um time) e
-// as da B11-08 (iniciar sequência, resolver e reabrir a conversa). As outras do
-// editor entram nas próximas issues; até lá, contam como falha.
+// as da B11-11 (tags, remover etiqueta, dado do contato, atribuir a um time), as
+// da B11-08 (iniciar sequência, resolver e reabrir a conversa) e as de envio da
+// B11-07 (variáveis, mensagem rápida e arquivo, em `envio.ts`).
 //
 // Cada ação devolve se deu certo e, se não, o motivo em português, que vai para
 // o histórico (B11-03). Falha não interrompe o caminho: quem percorre o fluxo
@@ -21,8 +21,8 @@ import {
   type ResultadoAcao,
 } from "@/lib/fluxo-automacao"
 import { SEQUENCIA_JA_EM_ANDAMENTO, iniciarExecucaoSequencia, processarGatilhoSequencia } from "@/lib/sequencias"
-import { enviarTextoWhatsAppComMotivo } from "@/lib/whatsapp-envio"
 import { conversaDoEvento, type ContextoDaExecucao } from "./contexto"
+import { enviarArquivo, enviarMensagemRapida, enviarTexto } from "./envio"
 import { dadoDoContatoValido } from "./referencias"
 
 const CONVERSA_ABERTA = ["em_espera", "em_atendimento"]
@@ -46,9 +46,22 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
   const parametros = bloco.parametros
 
   switch (bloco.acao) {
+    // B11-07: variáveis, mensagem rápida e arquivo, pela conversa do evento (`envio.ts`)
     case "enviar_mensagem": {
       if (!parametros.texto) return CONFIGURACAO_INCOMPLETA
-      return enviarTextoWhatsAppComMotivo(supabase, gatilho.workspaceId, contactId, parametros.texto)
+      return enviarTexto(contexto, contactId, parametros.texto)
+    }
+    case "enviar_mensagem_rapida": {
+      if (!parametros.mensagem_rapida_id) return CONFIGURACAO_INCOMPLETA
+      return enviarMensagemRapida(contexto, contactId, parametros.mensagem_rapida_id)
+    }
+    case "enviar_midia": {
+      if (!parametros.arquivo) return CONFIGURACAO_INCOMPLETA
+      return enviarArquivo(contexto, contactId, {
+        url: parametros.arquivo,
+        nome: parametros.arquivo_nome ?? "",
+        tipo: parametros.arquivo_tipo ?? "",
+      })
     }
     case "aplicar_etiqueta": {
       if (!parametros.label_id) return CONFIGURACAO_INCOMPLETA

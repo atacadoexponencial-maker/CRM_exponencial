@@ -9,6 +9,10 @@ import {
   pendenciasDoFluxo,
   percorrerFluxo,
   problemasDeEstrutura,
+  ACOES_DISPONIVEIS,
+  GATILHOS_DISPONIVEIS,
+  PARAMETROS_OBRIGATORIOS_ACAO,
+  PARAMETROS_OBRIGATORIOS_GATILHO,
   type Bloco,
   type BlocoAcao,
   type Fluxo,
@@ -223,17 +227,21 @@ describe("pendenciasDoFluxo: só o que o motor executa (B11-10)", () => {
     expect(Object.values(pendenciasDoFluxo(fluxo).porBloco).flat()).not.toContain(EM_BREVE)
   })
 
-  it("marca a ação que o motor ainda não executa", () => {
+  it("B11-07: com as ações de envio, todo gatilho e toda ação do editor estão disponíveis", () => {
+    expect([...GATILHOS_DISPONIVEIS].sort()).toEqual(Object.keys(PARAMETROS_OBRIGATORIOS_GATILHO).sort())
+    expect([...ACOES_DISPONIVEIS].sort()).toEqual(Object.keys(PARAMETROS_OBRIGATORIOS_ACAO).sort())
+  })
+
+  it("B11-07: mensagem rápida e arquivo podem ser salvos", () => {
     const fluxo: Fluxo = {
       blocos: [
         gatilho(),
-        { id: "a", tipo: "acao", acao: "enviar_mensagem_rapida", parametros: { mensagem_rapida_id: "r-1" }, posicao },
+        { id: "a1", tipo: "acao", acao: "enviar_mensagem_rapida", parametros: { mensagem_rapida_id: "r-1" }, posicao },
+        { id: "a2", tipo: "acao", acao: "enviar_midia", parametros: { arquivo: "https://x/y.pdf", arquivo_nome: "y.pdf", arquivo_tipo: "documento" }, posicao },
       ],
-      ligacoes: [liga("g", "a")],
+      ligacoes: [liga("g", "a1"), liga("a1", "a2")],
     }
-    const { porBloco } = pendenciasDoFluxo(fluxo)
-    expect(porBloco.g ?? []).not.toContain(EM_BREVE)
-    expect(porBloco.a).toContain(EM_BREVE)
+    expect(pendenciasDoFluxo(fluxo)).toEqual({ porBloco: {}, gerais: [] })
   })
 
   it("B11-05: mensagem enviada pelo time com texto da mensagem pode ser salva", () => {

@@ -44,7 +44,7 @@ import {
 } from "./blocos-fluxo"
 import { CampoSelecao, type ItemSelecao } from "./campo-selecao"
 import { MenuNovoBloco, type ItemNovoBloco } from "./menu-novo-bloco"
-import { PainelBloco } from "./painel-bloco"
+import { PainelBloco, type GuardarArquivo } from "./painel-bloco"
 
 export interface RegraEditada {
   nome: string
@@ -66,6 +66,8 @@ interface EditorFluxoProps {
   buscarContatos: (texto: string) => Promise<ContatoTeste[]>
   salvar: (regra: RegraEditada) => Promise<{ erro?: string; aviso?: string }>
   simular: (contatoId: string, fluxo: Fluxo) => Promise<{ erro?: string; resultado?: ResultadoSimulacao }>
+  /** Sobe o arquivo da ação "enviar imagem ou documento" (B11-07). */
+  guardarArquivo: GuardarArquivo
   onVoltar: () => void
   /** Aviso que o editor já mostra ao abrir, como "Automação salva" logo depois do primeiro salvamento. */
   avisoInicial?: string
@@ -147,6 +149,7 @@ function EditorFluxoInterno({
   buscarContatos,
   salvar,
   simular,
+  guardarArquivo,
   onVoltar,
   avisoInicial,
 }: EditorFluxoProps) {
@@ -432,6 +435,7 @@ function EditorFluxoInterno({
             gatilho={gatilhoDoFluxo(fluxo)?.gatilho}
             opcoes={opcoes}
             pendencias={pendencias.porBloco[selecionado.id] ?? []}
+            guardarArquivo={guardarArquivo}
             onMudar={mudarBloco}
             onRemover={() => deleteElements({ nodes: [{ id: selecionado.id }] })}
             onFechar={fecharPainel}

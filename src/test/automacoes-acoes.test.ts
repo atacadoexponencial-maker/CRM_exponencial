@@ -6,7 +6,7 @@ import { describe, it, expect, vi } from "vitest"
 
 vi.mock("@/lib/whatsapp-envio", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/whatsapp-envio")>()),
-  enviarTextoWhatsAppComMotivo: vi.fn().mockResolvedValue({ ok: true }),
+  enviarWhatsAppComMotivo: vi.fn().mockResolvedValue({ ok: true }),
 }))
 
 vi.mock("@/lib/sequencias", async (importOriginal) => ({
@@ -312,13 +312,13 @@ describe("motivos de falha que vão para o histórico (B11-03)", () => {
     })
   })
 
-  it("evento sem contato e ação ainda não disponível", async () => {
+  it("evento sem contato e ação que o motor não conhece (fluxo gravado por fora do editor)", async () => {
     const b = banco({})
     expect(await executarAcao(b.contexto({ ...cardMovido, contactId: null }), acao("adicionar_tag", { tag: "vip" }))).toEqual({
       ok: false,
       motivo: "O evento não tem contato",
     })
-    expect(await executarAcao(b.contexto(conversaCriada), acao("enviar_mensagem_rapida", { mensagem_rapida_id: "r" }))).toEqual({
+    expect(await executarAcao(b.contexto(conversaCriada), acao("acao_inexistente" as AcaoTipo, {}))).toEqual({
       ok: false,
       motivo: "Esta ação ainda não está disponível",
     })

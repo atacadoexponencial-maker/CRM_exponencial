@@ -716,3 +716,63 @@ antes de enviar se faltar algum. "Uma sequência que manda o mesmo texto não
 dispara" é conferido com uma automação que manda o texto: as duas usam o mesmo
 envio, e a sequência só roda no cron diário. Um teste automatizado confere que
 esse envio não chama o motor.
+
+## 14. Mensagem com variáveis, mensagem rápida e arquivo (B11-07, 08/10/2026)
+
+### 14.1 Achado: as variáveis saíam literalmente
+
+A ação "Enviar mensagem", disponível desde a B11-02, mandava o texto como
+estava. O editor anunciava `{{primeiro_nome}}` e as outras variáveis, mas elas
+chegavam ao cliente entre chaves. Corrigido aqui. As regras antigas que tinham
+variável no texto passam a sair com o nome.
+
+### 14.2 Variáveis
+
+- `{{nome_contato}}`: o nome do contato ou, sem nome, o telefone. É a regra das
+  sequências e das campanhas (`substituirVariaveis`, reaproveitada).
+- `{{primeiro_nome}}`: a primeira palavra do nome. Sem nome, fica vazio.
+  - **Descartado:** cair no telefone, como `{{nome_contato}}`. "Oi 5519…" soa pior
+    que "Oi ,", e os contatos do canal direto nascem sem nome.
+- `{{nome_vendedor}}`: o atendente da conversa. Sem atendente, o do card
+  principal (Recompra, senão Entrada, seção 10.5). Sem nenhum, vazio.
+- O banco só é consultado quando o texto tem `{{`. A mensagem rápida passa
+  pelas mesmas variáveis.
+
+### 14.3 Arquivo
+
+O admin escolhe o arquivo no editor, e ele sobe na hora
+(`guardarArquivoDaAutomacao`) para o bucket das campanhas, `chat-attachments`, na
+pasta `<empresa>/automacoes/`. A ação guarda `arquivo` (o endereço),
+`arquivo_nome` (o nome original, que o WhatsApp mostra no documento) e
+`arquivo_tipo` (`imagem` ou `documento`, decidido no servidor pelo tipo do
+arquivo). O limite é 4 MB, o de uma requisição na Vercel, como no chat. A spec
+não pede legenda, então não tem.
+
+**O servidor só aceita arquivo da própria empresa,** naquela pasta, ao salvar e
+ao enviar (`arquivoDaAutomacaoValido`). O motor entrega o endereço ao WhatsApp,
+que vai buscá-lo. Sem a conferência, um fluxo gravado por fora mandaria ao
+cliente o que estivesse em qualquer endereço.
+
+Se o número não envia mídia (`suporta("midia")`), a ação falha com o motivo.
+Hoje os dois canais enviam.
+
+### 14.4 Por qual número sai
+
+Pela conversa do evento, quando ele tem uma (mensagem recebida, conversa
+criada, etiqueta aplicada…), e a mensagem fica gravada nela. É o mesmo princípio
+da seção 12.3: com dois números, a resposta sai pelo número onde o cliente
+escreveu. Nos outros gatilhos, sai pela conversa aberta do contato e, sem ela,
+pelo número do workspace, e a conversa nasce, como antes.
+
+O envio virou um só em `whatsapp-envio.ts`, `enviarWhatsAppComMotivo`, com texto,
+imagem ou documento. `enviarTextoWhatsApp` e `enviarTextoWhatsAppComMotivo`
+continuam com a mesma assinatura, e as sequências não mudaram.
+
+### 14.5 Um roteiro só para o envio de verdade
+
+O `roteiro-b11-07.cjs` envia as 3 mensagens desta issue e fecha as partes de
+mensagem da B11-02 (condição de canal), da B11-08 (ausência fora do horário e
+silêncio dentro dele) e da B11-09 (a mensagem da regra entregue em até 30
+segundos). São 5 mensagens, e o número fica conectado uma vez só. A entrega é
+lida no banco: o gateway manda o status para a produção, que grava no mesmo
+banco.

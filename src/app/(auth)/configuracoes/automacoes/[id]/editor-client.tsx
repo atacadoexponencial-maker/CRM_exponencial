@@ -9,7 +9,7 @@
 
 import { useRef } from "react"
 import { useRouter } from "next/navigation"
-import { buscarContatosTeste, salvarRegra, simularRegra, type RegraDoEditor } from "../actions"
+import { buscarContatosTeste, guardarArquivoDaAutomacao, salvarRegra, simularRegra, type RegraDoEditor } from "../actions"
 import type { OpcoesEditor } from "../components/catalogo"
 import { EditorFluxo, type RegraEditada } from "../components/editor-fluxo"
 
@@ -53,6 +53,7 @@ export function EditorClient({
       buscarContatos={buscarContatosTeste}
       salvar={salvar}
       simular={simularRegra}
+      guardarArquivo={guardarArquivoDaAutomacao}
       onVoltar={() => router.push("/configuracoes/automacoes")}
     />
   )

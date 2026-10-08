@@ -204,6 +204,9 @@ export const ACOES_DISPONIVEIS: readonly AcaoTipo[] = [
   "iniciar_sequencia",
   "resolver_conversa",
   "reabrir_conversa",
+  // B11-07
+  "enviar_mensagem_rapida",
+  "enviar_midia",
 ]
 
 /**

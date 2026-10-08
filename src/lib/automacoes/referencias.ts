@@ -1,7 +1,8 @@
 // O que um fluxo cita de fora dele: etiquetas, atendentes, números de WhatsApp,
-// times, sequências e etapas de funil. O servidor confere tudo antes de gravar,
-// porque o motor roda com o service client, que passa por cima da RLS: uma
-// etiqueta de outra empresa gravada no fluxo seria aplicada sem ninguém barrar.
+// times, sequências, etapas de funil, mensagens rápidas e arquivos. O servidor
+// confere tudo antes de gravar, porque o motor roda com o service client, que
+// passa por cima da RLS: uma etiqueta de outra empresa gravada no fluxo seria
+// aplicada sem ninguém barrar.
 
 import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "@/app/(auth)/contatos/mock-contatos"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
@@ -21,6 +22,9 @@ export interface ReferenciasDoFluxo {
   classificacoes: string[]
   /** Campo e valor do gatilho "dado do contato alterado" (B11-06). */
   gatilhosDeDado: Array<{ campo: string; valor: string }>
+  /** B11-07 */
+  mensagensRapidas: string[]
+  arquivos: Array<{ url: string; tipo: string }>
 }
 
 const PREFIXO_NUMERO = "numero:"
@@ -36,6 +40,8 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
   const tiposDeContato: string[] = []
   const classificacoes: string[] = []
   const gatilhosDeDado: ReferenciasDoFluxo["gatilhosDeDado"] = []
+  const mensagensRapidas = new Set<string>()
+  const arquivos: ReferenciasDoFluxo["arquivos"] = []
 
   for (const bloco of fluxo.blocos) {
     if (bloco.tipo === "condicao") {
@@ -66,6 +72,8 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
     if (bloco.tipo === "gatilho" && bloco.gatilho === "dado_contato_alterado") {
       gatilhosDeDado.push({ campo: p.campo ?? "", valor: p.valor ?? "" })
     }
+    if (p.mensagem_rapida_id) mensagensRapidas.add(p.mensagem_rapida_id)
+    if (bloco.tipo === "acao" && bloco.acao === "enviar_midia") arquivos.push({ url: p.arquivo ?? "", tipo: p.arquivo_tipo ?? "" })
   }
 
   return {
@@ -79,7 +87,30 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
     tiposDeContato,
     classificacoes,
     gatilhosDeDado,
+    mensagensRapidas: [...mensagensRapidas],
+    arquivos,
   }
+}
+
+/** Onde os arquivos das automações ficam (B11-07): o bucket das campanhas, numa pasta por empresa. */
+export const BUCKET_DOS_ARQUIVOS = "chat-attachments"
+export const pastaDosArquivos = (workspaceId: string) => `${workspaceId}/automacoes`
+export const TIPOS_DE_ARQUIVO = ["imagem", "documento"] as const
+
+/**
+ * O arquivo de uma ação "enviar imagem ou documento" é um que o editor subiu
+ * para esta empresa? O motor roda com o service client e entrega o endereço ao
+ * WhatsApp, que vai buscá-lo: um endereço qualquer, gravado por fora do editor,
+ * mandaria para o cliente o que estivesse lá.
+ */
+export function arquivoDaAutomacaoValido(
+  { url, tipo }: { url: string; tipo: string },
+  workspaceId: string,
+  supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""
+): boolean {
+  if (!(TIPOS_DE_ARQUIVO as readonly string[]).includes(tipo) || !supabaseUrl) return false
+  const prefixo = `${supabaseUrl.replace(/\/$/, "")}/storage/v1/object/public/${BUCKET_DOS_ARQUIVOS}/${pastaDosArquivos(workspaceId)}/`
+  return url.startsWith(prefixo) && !url.slice(prefixo.length).includes("..") && url.length > prefixo.length
 }
 
 /** Valores que a tela do contato mostra como tipo e como classificação. */

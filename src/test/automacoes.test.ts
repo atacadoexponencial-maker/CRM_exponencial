@@ -7,18 +7,19 @@ vi.mock("@/integrations/supabase/service", () => ({
 }))
 
 // Só o envio é falso; buscarConversaAberta continua a de verdade, sobre o banco mockado.
+// Desde a B11-07, as automações enviam por `enviarWhatsAppComMotivo` (texto ou mídia).
 vi.mock("@/lib/whatsapp-envio", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/whatsapp-envio")>()),
-  enviarTextoWhatsAppComMotivo: vi.fn().mockResolvedValue({ ok: true }),
+  enviarWhatsAppComMotivo: vi.fn().mockResolvedValue({ ok: true }),
 }))
 
 import { createServiceClient } from "@/integrations/supabase/service"
 import { gatilhoCorresponde, processarAutomacoes } from "@/lib/automacoes"
 import type { Fluxo, GatilhoTipo } from "@/lib/fluxo-automacao"
-import { enviarTextoWhatsAppComMotivo } from "@/lib/whatsapp-envio"
+import { enviarWhatsAppComMotivo } from "@/lib/whatsapp-envio"
 
 const mockCreateServiceClient = vi.mocked(createServiceClient)
-const mockEnviarTexto = vi.mocked(enviarTextoWhatsAppComMotivo)
+const mockEnviar = vi.mocked(enviarWhatsAppComMotivo)
 
 type Resultado = { data?: unknown; error?: unknown }
 
@@ -249,8 +250,8 @@ describe("processarAutomacoes com fluxo de blocos (B11-02)", () => {
       { conversation_id: "conv-1", label_id: "label-direto" },
       { onConflict: "conversation_id,label_id" }
     )
-    expect(mockEnviarTexto).toHaveBeenCalledTimes(1)
-    expect(mockEnviarTexto).toHaveBeenCalledWith(expect.anything(), "ws-1", "contact-1", "Oi pelo canal direto")
+    expect(mockEnviar).toHaveBeenCalledTimes(1)
+    expect(mockEnviar).toHaveBeenCalledWith(expect.anything(), "ws-1", "contact-1", { tipo: "texto", texto: "Oi pelo canal direto" }, "conv-1")
   })
 
   it("condição de canal: na API Oficial segue pelo não e manda só a outra mensagem", async () => {
@@ -264,8 +265,8 @@ describe("processarAutomacoes com fluxo de blocos (B11-02)", () => {
     await processarAutomacoes(conversaCriada)
 
     expect(upsert).not.toHaveBeenCalled()
-    expect(mockEnviarTexto).toHaveBeenCalledTimes(1)
-    expect(mockEnviarTexto).toHaveBeenCalledWith(expect.anything(), "ws-1", "contact-1", "Oi pela API Oficial")
+    expect(mockEnviar).toHaveBeenCalledTimes(1)
+    expect(mockEnviar).toHaveBeenCalledWith(expect.anything(), "ws-1", "contact-1", { tipo: "texto", texto: "Oi pela API Oficial" }, "conv-1")
   })
 
   it("conversa sem número gravado: o canal não vale e o caminho vai pelo não", async () => {
@@ -276,7 +277,7 @@ describe("processarAutomacoes com fluxo de blocos (B11-02)", () => {
 
     await processarAutomacoes(conversaCriada)
 
-    expect(mockEnviarTexto).toHaveBeenCalledWith(expect.anything(), "ws-1", "contact-1", "Oi pela API Oficial")
+    expect(mockEnviar).toHaveBeenCalledWith(expect.anything(), "ws-1", "contact-1", { tipo: "texto", texto: "Oi pela API Oficial" }, "conv-1")
   })
 
   it("regras antigas e fluxos rodam juntos, na ordem de criação", async () => {
@@ -343,7 +344,7 @@ describe("processarAutomacoes com fluxo de blocos (B11-02)", () => {
 
     await processarAutomacoes(conversaCriada)
 
-    expect(mockEnviarTexto).not.toHaveBeenCalled()
+    expect(mockEnviar).not.toHaveBeenCalled()
     expect(upsert).toHaveBeenCalledTimes(1)
   })
 
@@ -392,7 +393,7 @@ describe("processarAutomacoes com fluxo de blocos (B11-02)", () => {
 
     await expect(processarAutomacoes(conversaCriada)).resolves.toBeUndefined()
     expect(upsert).not.toHaveBeenCalled()
-    expect(mockEnviarTexto).not.toHaveBeenCalled()
+    expect(mockEnviar).not.toHaveBeenCalled()
   })
 
   it("erro de banco numa condição encerra só aquela regra", async () => {
@@ -418,7 +419,7 @@ describe("processarAutomacoes com fluxo de blocos (B11-02)", () => {
     await processarAutomacoes(conversaCriada)
 
     // O fluxo parou na condição: nenhuma das duas mensagens saiu
-    expect(mockEnviarTexto).not.toHaveBeenCalled()
+    expect(mockEnviar).not.toHaveBeenCalled()
     expect(upsert).toHaveBeenCalledWith(
       { conversation_id: "conv-1", label_id: "label-da-antiga" },
       { onConflict: "conversation_id,label_id" }
@@ -520,7 +521,7 @@ describe("histórico e proteção de repetição (B11-03)", () => {
 
     await processarAutomacoes(conversaCriada)
 
-    expect(mockEnviarTexto).toHaveBeenCalledTimes(1)
+    expect(mockEnviar).toHaveBeenCalledTimes(1)
     expect(h.gravadas[0].resultado).toBe("falhou")
     const caminho = h.gravadas[0].caminho as Array<Record<string, unknown>>
     expect(caminho[1]).toMatchObject({ ok: false, motivo: "A etiqueta não existe mais" })
@@ -535,7 +536,7 @@ describe("histórico e proteção de repetição (B11-03)", () => {
     await processarAutomacoes(conversaCriada)
 
     expect(upsert).not.toHaveBeenCalled()
-    expect(mockEnviarTexto).not.toHaveBeenCalled()
+    expect(mockEnviar).not.toHaveBeenCalled()
     expect(h.gravadas[0]).toMatchObject({
       resultado: "ignorada",
       motivo: "Já rodou para este contato (proteção: uma vez por contato)",
@@ -556,7 +557,7 @@ describe("histórico e proteção de repetição (B11-03)", () => {
 
     await processarAutomacoes(conversaCriada)
 
-    expect(mockEnviarTexto).toHaveBeenCalledTimes(1)
+    expect(mockEnviar).toHaveBeenCalledTimes(1)
     expect(h.gravadas[0].resultado).toBe("concluida")
   })
 
@@ -581,7 +582,7 @@ describe("histórico e proteção de repetição (B11-03)", () => {
 
     await processarAutomacoes(conversaCriada)
 
-    expect(mockEnviarTexto).not.toHaveBeenCalled()
+    expect(mockEnviar).not.toHaveBeenCalled()
     expect(h.gravadas[0]).toMatchObject({ resultado: "falhou", motivo: "Não foi possível conferir a proteção de repetição" })
   })
 
