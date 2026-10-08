@@ -508,3 +508,72 @@ do contato, o que antes não fazia. É o que o Luan descreveu como certo.
 - Manter só a conversa e corrigir a frase do "Pronto quando". O card ficaria com
   um atendente diferente do da conversa.
 - Passar os dois cards. O da Entrada de um cliente ganho não é mais trabalhado.
+
+## 11. Regras em fila, depois da resposta (B11-09, 07/10/2026)
+
+### 11.1 Como ficou
+
+O ponto de disparo grava o evento em `automation_queue` e responde. São eles o
+webhook da Meta, o recebimento do gateway e as actions do funil, do contato e do
+chat. Logo depois da resposta, o `after()` do Next consome a fila do contato e
+roda as regras com o motor de sempre (`processarAutomacoes`). O evento que
+termina sai da fila, e o histórico continua em `automation_runs`.
+
+Os eventos de um mesmo contato rodam um de cada vez, na ordem em que chegaram.
+Contatos diferentes rodam em paralelo. Quem garante a ordem é a função
+`reivindicar_evento_de_automacao`, no banco:
+
+- trava a chave do contato (`pg_advisory_xact_lock`);
+- não entrega nada enquanto outro evento do contato está rodando;
+- quem termina um evento pede o próximo.
+
+**Por que a ordem por contato:** o cliente manda "oi", "tudo bem?" e "quanto
+custa?" em 3 segundos. Em paralelo, as 3 execuções conferem a proteção "uma vez
+por contato" ao mesmo tempo, nenhuma enxerga a outra, e a mensagem de ausência
+sai 3 vezes. Em fila, a segunda já vê a primeira e é ignorada.
+
+### 11.2 Alternativas descartadas
+
+- **Cron curto na Vercel:** os crons do projeto são diários, o máximo no plano
+  Hobby. No Pro, o mínimo é 1 por minuto, acima dos 30 segundos do "Pronto
+  quando".
+- **`pg_cron` e `pg_net` no Supabase chamando uma rota do CRM:** o banco é um só
+  para a produção e o preview. O cron chamaria um endereço fixo, e os eventos
+  do preview rodariam com o código da produção, ou o contrário. Também exigiria
+  guardar a chave da rota dentro do banco.
+- **Serviço de fila da plataforma (Vercel Queues):** mais uma dependência paga,
+  para um volume que o Postgres atende.
+- **Só `after()`, sem tabela:** resolve o tempo de resposta, mas deixa os
+  eventos de um mesmo contato em paralelo (o problema acima), e um evento
+  perdido numa queda não deixa rastro.
+
+### 11.3 Limites aceitos
+
+- **No máximo uma vez.** O evento que estava rodando quando a função caiu não é
+  repetido, porque repetir poderia mandar a mesma mensagem duas vezes. Depois de
+  5 minutos, o tempo máximo da função, ele é marcado como descartado e para de
+  travar a fila do contato.
+- **Evento esperando há mais de 10 minutos é descartado,** para a regra não
+  responder fora de hora. Só acontece se a função cair entre gravar o evento e
+  consumir a fila. Quem consome é o próximo evento do mesmo contato.
+- **Falha ao gravar na fila:** as regras rodam do mesmo jeito depois da
+  resposta, só que sem a ordem por contato.
+- **A tela não mostra na hora o que a automação fez.** Antes, mover o card
+  esperava as regras, e a tela recarregada já vinha com a tag que a automação
+  pôs. Agora a resposta volta antes, e o efeito aparece na próxima atualização.
+  É o que a spec pede: "as ações do chat respondem na hora, e as regras rodam
+  logo depois".
+- **No webhook, a ordem mudou.** Antes, as regras de "conversa criada" rodavam
+  antes de a mensagem recebida ser gravada. Agora rodam depois, com a mensagem
+  já no chat.
+
+### 11.4 O que o preview não conseguiu mostrar
+
+O roteiro tentou provar que a resposta volta antes das regras, conferindo se o
+evento ainda estava na fila quando a resposta chegava. Não deu: a regra leva
+uns 300 ms, porque a Vercel e o banco ficam perto, e acaba antes de o roteiro
+conseguir consultar. A verificação foi retirada, porque não provava nada nem num
+sentido nem no outro. Quem garante que as regras rodam depois da resposta é o
+`after()` do Next, coberto pelos testes de `src/test/automacoes-fila.test.ts`. A
+medição do "Pronto quando", o tempo de resposta do webhook, fica para quando a
+B11-04 trouxer a mensagem recebida.

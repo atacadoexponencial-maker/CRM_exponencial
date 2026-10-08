@@ -5,9 +5,11 @@
 //  1. A função do banco que entrega o próximo evento, chamada direto: dois
 //     pedidos ao mesmo tempo levam um evento só, nada sai enquanto um evento do
 //     contato roda, e evento interrompido ou esperando demais é descartado.
-//  2. Pela tela: o card movido responde antes de as regras rodarem (o evento
-//     ainda está na fila na resposta), a regra roda em até 30 segundos, e uma
-//     ação com etiqueta apagada falha sem desfazer o movimento do card.
+//  2. Pela tela: a regra roda em até 30 segundos depois da resposta, e uma ação
+//     com etiqueta apagada falha sem desfazer o movimento do card.
+// Que as regras rodam depois da resposta não dá para ver daqui: a regra leva uns
+// 300 ms, e acaba antes de o roteiro conseguir consultar a fila. Isso fica com os
+// testes de src/test/automacoes-fila.test.ts e com o after() do Next.
 // Uso: node e2e/preview/roteiro-b11-09.cjs <endereço do preview>
 
 const { randomUUID } = require("crypto")
@@ -44,8 +46,9 @@ const r = criarRelatorio()
 
   const a = await enfileirar("A", 2000)
   await enfileirar("B", 1000)
-  const juntos = (await Promise.all([pedir(), pedir()])).sort()
-  r.confere("fila: dois pedidos ao mesmo tempo levam um evento só, o mais antigo", juntos.join(",") === ",A", juntos.join(","))
+  const juntos = await Promise.all([pedir(), pedir()])
+  const entregues = juntos.filter(Boolean)
+  r.confere("fila: dois pedidos ao mesmo tempo levam um evento só, o mais antigo", entregues.join(",") === "A", juntos.join(" / "))
   r.confere("fila: com A rodando, nada sai para o mesmo contato", (await pedir()) === null)
   await db.from("automation_queue").delete().eq("id", a)
   r.confere("fila: A terminou, sai o B", (await pedir()) === "B")
@@ -94,12 +97,6 @@ const r = criarRelatorio()
     page.getByRole("button", { name: "Sondagem", exact: true }).last().click(),
   ])
   const respostaEm = Date.now() - inicio
-  const { count: naFila } = await db
-    .from("automation_queue")
-    .select("id", { count: "exact", head: true })
-    .eq("workspace_id", ws)
-    .in("status", ["pendente", "processando"])
-  r.confere("tela: a ação responde com o evento ainda na fila (as regras rodam depois)", naFila > 0, `${naFila} na fila`)
 
   const esperou = await esperarAutomacoes(db, ws)
   r.confere(

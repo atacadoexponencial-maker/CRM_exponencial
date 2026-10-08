@@ -138,11 +138,56 @@ Migration só de acréscimo, `20261007000004_automation_queue.sql`:
 
 ### Checklist
 
-- [ ] Migration `automation_queue` aplicada (depois de `supabase migration list --linked`)
-- [ ] `dispararAutomacoes` e o consumo em ordem por contato
-- [ ] Pontos de disparo trocados
-- [ ] Testes automatizados e suíte unitária passando; build com código 0
-- [ ] Roteiros antigos passando com a fila (B11-10, 11/12, 03, 06, 08)
-- [ ] Roteiro da B11-09 passando no preview
-- [ ] Registro de decisões (seção 11)
+- [x] Migration `automation_queue` aplicada (depois de `supabase migration list --linked`)
+- [x] `dispararAutomacoes` e o consumo em ordem por contato
+- [x] Pontos de disparo trocados
+- [x] Testes automatizados e suíte unitária passando; build com código 0
+- [x] Roteiros antigos passando com a fila (B11-10, 11/12, 03, 06, 08)
+- [x] Roteiro da B11-09 passando no preview
+- [x] Registro de decisões (seção 11)
 - [ ] "Pronto quando" com o webhook e o envio de mensagem (espera a B11-04 e o chip)
+
+## Execução (07/10/2026)
+
+**Aberta só pela parte de mensagem**, como a B11-02 e a B11-08. O tempo de
+resposta do webhook e a mensagem da regra chegando dependem do gatilho
+"mensagem recebida" (B11-04) e do chip. O resto passou.
+
+**O que ficou diferente do plano:**
+
+- **O roteiro não prova que a resposta volta antes das regras.** A ideia era
+  conferir se o evento ainda estava na fila quando a resposta chegava. A regra
+  leva uns 300 ms e acaba antes de o roteiro consultar, então a verificação não
+  dizia nada e saiu (decisões, seção 11.4). Isso fica com os testes da fila e
+  com o `after()` do Next.
+- **`tela.cjs` passou a esperar a fila esvaziar** depois de mover o card. Os
+  roteiros da B11-06 e da B11-08 esperam também depois de adicionar a tag, salvar
+  o perfil e aplicar a etiqueta pelo chat.
+- **O reset limpa a fila** da empresa de teste.
+
+**Como foi verificado:**
+
+- Suíte unitária com 46 arquivos e 561 testes passando, 8 deles novos, da fila:
+  - grava e não roda nada antes da resposta;
+  - roda os eventos na ordem que a fila entrega e tira cada um dela;
+  - para quando outro evento do contato está rodando;
+  - evento sem contato vai para a fila da empresa;
+  - sem gravar na fila, roda do mesmo jeito;
+  - fora de uma requisição, roda na hora;
+  - não lança erro.
+- `tsc` limpo e lint sem erros. O build da Vercel passou.
+- **No preview** (commit `d1dcd95`), `roteiro-b11-09.cjs` passou em **11 de
+  11**:
+  - Na função do banco, chamada direto, dois pedidos ao mesmo tempo levaram um
+    evento só, o mais antigo.
+  - Nada saiu enquanto um evento do contato rodava, e o próximo saiu quando ele
+    terminou.
+  - Um evento rodando havia mais de 5 minutos foi descartado sem travar a fila.
+    Um evento esperando havia mais de 10 minutos foi descartado sem rodar.
+  - Pela tela, o card movido respondeu em 1,9 s, e a fila esvaziou 0,5 s depois.
+    A etiqueta apagada falhou no histórico, as 4 tags seguintes entraram, e o
+    card ficou em Sondagem.
+- **Os roteiros antigos passaram com a fila:**
+  - B11-10, B11-11/12, B11-03 e B11-06 sem nenhuma falha;
+  - B11-08 em 9 de 9;
+  - menus em 7 de 7.

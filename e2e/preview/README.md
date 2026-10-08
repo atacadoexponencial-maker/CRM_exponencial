@@ -44,7 +44,13 @@ node e2e/preview/resetar-empresa-teste.cjs
 node e2e/preview/roteiro-menus.cjs https://crm-exponencial-xxxx.vercel.app
 node e2e/preview/resetar-empresa-teste.cjs
 node e2e/preview/roteiro-b11-08.cjs https://crm-exponencial-xxxx.vercel.app
+node e2e/preview/resetar-empresa-teste.cjs
+node e2e/preview/roteiro-b11-09.cjs https://crm-exponencial-xxxx.vercel.app
 ```
+
+Desde a B11-09, as automações rodam depois da resposta da ação. Os roteiros
+esperam a fila esvaziar (`esperarAutomacoes`, em `comum.cjs`) antes de conferir o
+banco.
 
 Cada roteiro imprime uma linha `OK` ou `FALHOU` por verificação e termina com
 código de saída 0 só se tudo passou.
@@ -63,6 +69,7 @@ código de saída 0 só se tudo passou.
 | `roteiro-b11-03.cjs` | Proteção de repetição, ação com etiqueta apagada e a página de histórico. |
 | `roteiro-b11-06.cjs` | Gatilhos de tag, etiqueta e dado do contato, e automação que não dispara automação. |
 | `roteiro-b11-08.cjs` | Horário comercial pelo diálogo, condição dentro e fora, atribuir ao time, resolver, reabrir e iniciar sequência. |
+| `roteiro-b11-09.cjs` | Fila das automações: a função do banco que entrega um evento por vez por contato, e uma ação com falha que não desfaz o movimento do card. |
 | `roteiro-menus.cjs` | Itens de menu do chat, de etiquetas e de times fazendo o que prometem. Protege contra a volta do `onSelect` (decisões da B11, seção 9.4). |
 
 ## A empresa de teste
