@@ -12,10 +12,18 @@ type Resultado = { data?: unknown; error?: unknown }
 /** Imita a chain do supabase-js e registra as gravações, que não podem acontecer. */
 function banco(tabelas: Record<string, Resultado>) {
   const gravacoes: string[] = []
+  /** Filtros pedidos, por tabela: `[tabela, método, coluna, valor]`. */
+  const filtros: Array<[string, string, ...unknown[]]> = []
   const from = vi.fn((tabela: string) => {
     const resultado = tabelas[tabela] ?? { data: null }
     const obj: Record<string, unknown> = {}
-    for (const m of ["select", "eq", "in", "is", "order", "limit"]) obj[m] = vi.fn(() => obj)
+    for (const m of ["select", "order", "limit"]) obj[m] = vi.fn(() => obj)
+    for (const m of ["eq", "neq", "in", "is"]) {
+      obj[m] = vi.fn((...args: unknown[]) => {
+        filtros.push([tabela, m, ...args])
+        return obj
+      })
+    }
     for (const m of ["insert", "update", "upsert", "delete"]) {
       obj[m] = vi.fn(() => {
         gravacoes.push(`${m} ${tabela}`)
@@ -27,7 +35,7 @@ function banco(tabelas: Record<string, Resultado>) {
     obj.then = (resolve: (v: Resultado) => void) => Promise.resolve(resultado).then(resolve)
     return obj
   })
-  return { supabase: { from } as unknown as ServiceClient, gravacoes }
+  return { supabase: { from } as unknown as ServiceClient, gravacoes, filtros }
 }
 
 const posicao = { x: 0, y: 0 }
@@ -82,13 +90,38 @@ describe("eventoDaSimulacao", () => {
     })
   })
 
-  it("gatilho que o motor ainda não executa não tem evento", async () => {
+  it("gatilho que o motor não conhece (fluxo gravado por fora do editor) não tem evento", async () => {
     const { supabase } = banco({})
+    const fluxo = {
+      blocos: [{ id: "g", tipo: "gatilho", gatilho: "gatilho_inexistente", parametros: {}, posicao }],
+      ligacoes: [],
+    } as unknown as Fluxo
+    expect(await eventoDaSimulacao(supabase, "ws-1", "contato-1", fluxo)).toBeNull()
+  })
+
+  it("B11-05: mensagem enviada pelo time usa a última mensagem enviada, sem as que falharam", async () => {
+    const { supabase, filtros } = banco({
+      conversations: { data: { id: "conv-3" } },
+      messages: { data: { id: "msg-9", type: "texto", content: "Segue o catálogo", media_caption: null } },
+    })
     const fluxo: Fluxo = {
       blocos: [{ id: "g", tipo: "gatilho", gatilho: "mensagem_enviada_time", parametros: {}, posicao }],
       ligacoes: [],
     }
-    expect(await eventoDaSimulacao(supabase, "ws-1", "contato-1", fluxo)).toBeNull()
+    expect(await eventoDaSimulacao(supabase, "ws-1", "contato-1", fluxo)).toEqual({
+      tipo: "mensagem_enviada_time",
+      workspaceId: "ws-1",
+      contactId: "contato-1",
+      conversationId: "conv-3",
+      messageId: "msg-9",
+      tipoMensagem: "texto",
+      texto: "Segue o catálogo",
+    })
+    expect(filtros.filter(([tabela]) => tabela === "messages")).toEqual([
+      ["messages", "eq", "conversation_id", "conv-3"],
+      ["messages", "eq", "direction", "enviada"],
+      ["messages", "neq", "status", "falhou"],
+    ])
   })
 
   describe("B11-04 — mensagem recebida: a última que o contato mandou", () => {

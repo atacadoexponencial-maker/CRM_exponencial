@@ -676,3 +676,43 @@ apaga no fim.
 O envio de verdade (B11-05 e B11-07) precisa de um chip conectado na empresa de
 teste. Com ele conectado, as regras que enviam passam a enviar. O roteiro da
 B11-06 manda mensagem para a Ana, que tem telefone falso (README dos roteiros).
+
+## 13. Gatilho "mensagem enviada pelo time" (B11-05, 08/10/2026)
+
+### 13.1 Onde dispara
+
+Nas cinco funções de envio do chat (`src/app/(auth)/chat/actions.ts`): texto,
+imagem, documento, vídeo e áudio. O disparo acontece depois que o WhatsApp
+aceitou a mensagem e ela foi gravada, por `dispararMensagemEnviadaPeloTime`
+(`gatilhos-do-crm.ts`). A tentativa que falhou continua gravada na conversa,
+como antes, mas não dispara, porque a mensagem não saiu. A mensagem rápida
+escolhida no chat sai pelo envio de texto e dispara: quem mandou foi uma pessoa.
+
+**Automação, sequência e campanha nunca disparam, por construção.** Elas enviam
+por `enviarTextoWhatsApp`/`enviarTextoWhatsAppComMotivo` (`whatsapp-envio.ts`) e
+por `campanhas.ts`, que não chamam o motor. É a regra da seção 9.1: só as telas
+do CRM disparam.
+
+- **Descartado:** marcar na mensagem quem enviou e filtrar no motor. Exigiria
+  uma coluna nova em `messages` e lembrar de preencher em todo envio. Disparar no
+  lugar certo não depende de ninguém lembrar.
+
+### 13.2 O evento
+
+O evento tem os mesmos campos da mensagem recebida (conversa, mensagem, tipo e
+texto, no tipo `MensagemDoEvento`), e as condições de texto e tipo valem nos dois
+gatilhos. O chat não manda legenda com a mídia, então imagem, documento, vídeo e
+áudio chegam com texto vazio. No histórico, a linha é `Mensagem do time: "…"`.
+
+**"Testar com um contato"** usa a última mensagem enviada na conversa mais
+recente, sem as que falharam. O CRM não grava quem enviou, então essa mensagem
+pode ser de uma automação. Para uma simulação, serve.
+
+### 13.3 Teste no preview
+
+O envio pelo chat sai de verdade. O roteiro precisa do chip conectado na empresa
+de teste e de um número real para receber (`B11_TESTE_TELEFONE_REAL`), e para
+antes de enviar se faltar algum. "Uma sequência que manda o mesmo texto não
+dispara" é conferido com uma automação que manda o texto: as duas usam o mesmo
+envio, e a sequência só roda no cron diário. Um teste automatizado confere que
+esse envio não chama o motor.

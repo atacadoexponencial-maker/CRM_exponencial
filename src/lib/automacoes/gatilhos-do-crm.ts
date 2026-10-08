@@ -1,12 +1,13 @@
-// Gatilhos que nascem em telas do CRM (B11-06): tag adicionada, etiqueta aplicada
-// e dado do contato alterado. As actions que mudam esses dados chamam estas
-// funções depois de gravar; o evento vai para a fila (`fila.ts`), e as regras
-// rodam logo depois da resposta (B11-09). As ações das automações gravam direto
-// no banco e não passam por elas: é assim que automação não dispara automação.
+// Gatilhos que nascem em telas do CRM: tag adicionada, etiqueta aplicada e dado
+// do contato alterado (B11-06); mensagem enviada pelo time no chat (B11-05). As
+// actions que mudam esses dados chamam estas funções depois de gravar; o evento
+// vai para a fila (`fila.ts`), e as regras rodam logo depois da resposta
+// (B11-09). As ações das automações gravam direto no banco e não passam por
+// elas: é assim que automação não dispara automação.
 //
 // Nada aqui lança erro: a tag que a pessoa adicionou fica salva mesmo se as
 // automações falharem.
-// Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seção 9.
+// Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seções 9 e 13.
 
 import { calcularClassificacao } from "@/app/(auth)/contatos/classificacao"
 import { createServiceClient } from "@/integrations/supabase/service"
@@ -65,6 +66,23 @@ export async function dispararEtiquetaAplicada(conversationId: string, labelId: 
   } catch {
     // Automação nunca derruba a ação de quem aplicou a etiqueta
   }
+}
+
+/**
+ * Mensagem que uma pessoa mandou pelo chat, depois de sair e ser gravada
+ * (B11-05). Só o envio do chat chama esta função. Automação, sequência e
+ * campanha enviam por `whatsapp-envio.ts` e `campanhas.ts`, que nunca chamam o
+ * motor: é assim que mensagem de automação não dispara automação.
+ */
+export async function dispararMensagemEnviadaPeloTime(mensagem: {
+  workspaceId: string
+  contactId: string
+  conversationId: string
+  messageId: string
+  tipoMensagem: string
+  texto: string
+}): Promise<void> {
+  await dispararAutomacoes({ tipo: "mensagem_enviada_time", ...mensagem })
 }
 
 /** Um evento por campo que mudou, na ordem tipo, nicho, cidade. */

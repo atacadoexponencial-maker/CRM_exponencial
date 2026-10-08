@@ -129,8 +129,12 @@ describe("horário comercial (B11-08)", () => {
 })
 
 describe("B11-04 — texto e tipo da mensagem", () => {
-  const mensagem = (texto: string, tipoMensagem = "texto"): GatilhoAutomacao => ({
-    tipo: "mensagem_recebida",
+  const mensagem = (
+    texto: string,
+    tipoMensagem = "texto",
+    tipo: "mensagem_recebida" | "mensagem_enviada_time" = "mensagem_recebida"
+  ): GatilhoAutomacao => ({
+    tipo,
     workspaceId: "ws-1",
     contactId: "contato-1",
     conversationId: "conversa-1",
@@ -185,6 +189,12 @@ describe("B11-04 — texto e tipo da mensagem", () => {
     expect(await verificacaoVale(b.contexto(evento), verificacao("texto_mensagem", "nao_contem", "x"))).toBe(false)
     expect(await verificacaoVale(b.contexto(evento), verificacao("tipo_mensagem", "nao_e", "texto"))).toBe(false)
     expect(b.chamadas).toEqual([])
+  })
+
+  it("B11-05: texto e tipo valem também na mensagem enviada pelo time", async () => {
+    const doTime = mensagem("Segue o CATÁLOGO 👇", "texto", "mensagem_enviada_time")
+    expect(await vale(doTime, "texto_mensagem", "contem", "segue o catálogo")).toBe(true)
+    expect(await vale(doTime, "tipo_mensagem", "e", "texto")).toBe(true)
   })
 
   it("operador desconhecido não vale", async () => {

@@ -171,6 +171,8 @@ export const GATILHOS_DISPONIVEIS: readonly GatilhoTipo[] = [
   "dado_contato_alterado",
   // B11-04
   "mensagem_recebida",
+  // B11-05
+  "mensagem_enviada_time",
 ]
 // A primeira serve de padrão para a verificação nova no editor
 export const VERIFICACOES_DISPONIVEIS: readonly VerificacaoTipo[] = [

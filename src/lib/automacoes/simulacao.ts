@@ -10,9 +10,9 @@ import { verificacaoVale } from "./verificacoes"
  * O evento que o gatilho do fluxo geraria para o contato. No "card movido", o
  * card do contato entra na etapa do gatilho (ou fica onde está, com "qualquer
  * etapa"). Na "conversa criada" e na "etiqueta aplicada", vale a conversa mais
- * recente dele. Na tag e no dado alterado, o que o gatilho espera. Na mensagem
- * recebida, a última que ele mandou. `null` para gatilho que o motor ainda não
- * executa.
+ * recente dele. Na tag e no dado alterado, o que o gatilho espera. Nos gatilhos
+ * de mensagem, a última que ele mandou ou que o time mandou para ele. `null`
+ * para gatilho que o motor não conhece.
  */
 export async function eventoDaSimulacao(
   supabase: ServiceClient,
@@ -69,13 +69,15 @@ export async function eventoDaSimulacao(
         campo: gatilho.parametros.campo ?? "",
         valor: gatilho.parametros.valor ?? "",
       }
-    // B11-04: a última mensagem que o contato mandou, na conversa mais recente
-    case "mensagem_recebida": {
+    // B11-04 e B11-05: a última mensagem do contato (recebida) ou para ele (enviada), na conversa mais recente
+    case "mensagem_recebida":
+    case "mensagem_enviada_time": {
       const conversa = await conversaMaisRecente(supabase, workspaceId, contactId)
-      const mensagem = conversa ? await ultimaMensagemRecebida(supabase, conversa) : null
+      const direcao = gatilho.gatilho === "mensagem_recebida" ? "recebida" : "enviada"
+      const mensagem = conversa ? await ultimaMensagem(supabase, conversa, direcao) : null
       const texto = mensagem ? textoDaMensagemGravada(mensagem) : ""
       return {
-        tipo: "mensagem_recebida",
+        tipo: gatilho.gatilho,
         workspaceId,
         contactId,
         conversationId: conversa ?? "",
@@ -92,22 +94,25 @@ export async function eventoDaSimulacao(
 /** Tipos gravados com o arquivo em `content` e a legenda em `media_caption` (`registrarMensagemRecebida`). */
 const TIPOS_COM_ARQUIVO = ["imagem", "video", "audio", "documento", "figurinha"]
 
-/** O que o cliente escreveu, como o recebimento entrega ao motor: o texto, ou a legenda da mídia. */
+/** O que foi escrito, como o envio e o recebimento entregam ao motor: o texto, ou a legenda da mídia. */
 function textoDaMensagemGravada(mensagem: { type: string; content: string | null; media_caption: string | null }): string {
   if (TIPOS_COM_ARQUIVO.includes(mensagem.type)) return mensagem.media_caption ?? ""
   // Localização e cartão de contato guardam em `content` um texto montado pelo CRM, e não o do cliente
   return mensagem.type === "texto" || mensagem.type === "desconhecido" ? (mensagem.content ?? "") : ""
 }
 
-async function ultimaMensagemRecebida(supabase: ServiceClient, conversationId: string) {
-  const { data, error } = await supabase
+/**
+ * A última mensagem da conversa na direção pedida. Na enviada, sem as que
+ * falharam. O CRM não grava quem enviou: a enviada pode ser de uma automação.
+ */
+async function ultimaMensagem(supabase: ServiceClient, conversationId: string, direcao: "recebida" | "enviada") {
+  let consulta = supabase
     .from("messages")
     .select("id, type, content, media_caption")
     .eq("conversation_id", conversationId)
-    .eq("direction", "recebida")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .eq("direction", direcao)
+  if (direcao === "enviada") consulta = consulta.neq("status", "falhou")
+  const { data, error } = await consulta.order("created_at", { ascending: false }).limit(1).maybeSingle()
   if (error) throw error
   return data
 }

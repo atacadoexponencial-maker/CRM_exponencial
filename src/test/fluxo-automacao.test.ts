@@ -223,17 +223,34 @@ describe("pendenciasDoFluxo: só o que o motor executa (B11-10)", () => {
     expect(Object.values(pendenciasDoFluxo(fluxo).porBloco).flat()).not.toContain(EM_BREVE)
   })
 
-  it("marca gatilho e ação que o motor ainda não executa", () => {
+  it("marca a ação que o motor ainda não executa", () => {
     const fluxo: Fluxo = {
       blocos: [
-        { id: "g", tipo: "gatilho", gatilho: "mensagem_enviada_time", parametros: {}, posicao },
+        gatilho(),
         { id: "a", tipo: "acao", acao: "enviar_mensagem_rapida", parametros: { mensagem_rapida_id: "r-1" }, posicao },
       ],
       ligacoes: [liga("g", "a")],
     }
     const { porBloco } = pendenciasDoFluxo(fluxo)
-    expect(porBloco.g).toContain(EM_BREVE)
+    expect(porBloco.g ?? []).not.toContain(EM_BREVE)
     expect(porBloco.a).toContain(EM_BREVE)
+  })
+
+  it("B11-05: mensagem enviada pelo time com texto da mensagem pode ser salva", () => {
+    const fluxo: Fluxo = {
+      blocos: [
+        { id: "g", tipo: "gatilho", gatilho: "mensagem_enviada_time", parametros: {}, posicao },
+        {
+          id: "c",
+          tipo: "condicao",
+          verificacoes: [{ id: "v1", tipo: "texto_mensagem", operador: "contem", valor: "segue o catálogo" }],
+          posicao,
+        },
+        acao("a1"),
+      ],
+      ligacoes: [liga("g", "c"), liga("c", "a1", "sim")],
+    }
+    expect(pendenciasDoFluxo(fluxo)).toEqual({ porBloco: {}, gerais: [] })
   })
 
   it("B11-04: mensagem recebida com texto e tipo da mensagem pode ser salva", () => {

@@ -13,6 +13,7 @@ import {
   cardsDepoisDoMovimento,
   dispararDadosAlterados,
   dispararEtiquetaAplicada,
+  dispararMensagemEnviadaPeloTime,
   dispararTagAdicionada,
   prepararGatilhoDeClassificacao,
 } from "@/lib/automacoes/gatilhos-do-crm"
@@ -135,5 +136,20 @@ describe("eventos que as telas mandam para o motor", () => {
       ["dado_contato_alterado", "tipo", "revendedor"],
       ["dado_contato_alterado", "cidade", "Natal"],
     ])
+  })
+})
+
+describe("B11-05 — mensagem enviada pelo time", () => {
+  it("manda para o motor o evento com a mensagem que saiu pelo chat", async () => {
+    const mensagem = {
+      workspaceId: "ws-1",
+      contactId: "contato-1",
+      conversationId: "conversa-1",
+      messageId: "msg-1",
+      tipoMensagem: "texto",
+      texto: "Segue o catálogo",
+    }
+    await dispararMensagemEnviadaPeloTime(mensagem)
+    expect(motor).toHaveBeenCalledWith({ tipo: "mensagem_enviada_time", ...mensagem })
   })
 })

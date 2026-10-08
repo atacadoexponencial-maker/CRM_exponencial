@@ -91,4 +91,18 @@ describe("eventoGravado", () => {
       texto: "a".repeat(200),
     })
   })
+
+  it("B11-05: a mensagem enviada pelo time guarda os mesmos campos", () => {
+    expect(
+      eventoGravado({
+        tipo: "mensagem_enviada_time",
+        workspaceId: "ws",
+        contactId: "c",
+        conversationId: "conv",
+        messageId: "msg",
+        tipoMensagem: "documento",
+        texto: "",
+      })
+    ).toEqual({ tipo: "mensagem_enviada_time", conversationId: "conv", messageId: "msg", tipoMensagem: "documento", texto: "" })
+  })
 })

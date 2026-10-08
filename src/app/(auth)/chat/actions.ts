@@ -11,21 +11,44 @@ import { listarConversas, TAMANHO_PAGINA_CONVERSAS } from "./conversas"
 /** Mesmo teto do painel: limite da requisição no Vercel, não do WhatsApp. */
 const LIMITE_ANEXO_BYTES = 4 * 1024 * 1024
 import { sessaoAtual } from "@/lib/sessao"
-import { dispararEtiquetaAplicada } from "@/lib/automacoes/gatilhos-do-crm"
+import { dispararEtiquetaAplicada, dispararMensagemEnviadaPeloTime } from "@/lib/automacoes/gatilhos-do-crm"
+
+/**
+ * B11-05: a mensagem saiu e foi gravada. As regras de "mensagem enviada pelo
+ * time" rodam depois da resposta, e nunca atrasam nem desfazem o envio. O chat
+ * não manda legenda com a mídia: só a mensagem de texto tem texto.
+ */
+async function dispararRegrasDoTime(
+  conversa: { workspace_id: string; contact_id: string },
+  conversaId: string,
+  gravada: { id: string } | null,
+  tipoMensagem: string,
+  texto = ""
+): Promise<void> {
+  if (!gravada) return
+  await dispararMensagemEnviadaPeloTime({
+    workspaceId: conversa.workspace_id,
+    contactId: conversa.contact_id,
+    conversationId: conversaId,
+    messageId: gravada.id,
+    tipoMensagem,
+    texto,
+  })
+}
 
 async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promise<void> {
   const supabase = await createClient()
 
   const { data: conversa, error: errConversa } = await supabase
     .from("conversations")
-    .select("workspace_id, contact:contacts(phone_number)")
+    .select("workspace_id, contact_id, contact:contacts(phone_number)")
     .eq("id", conversaId)
     .single()
 
   if (errConversa || !conversa) throw new Error("Conversa não encontrada")
 
-  type ConversaRow = { workspace_id: string; contact: { phone_number: string } | null }
-  const { workspace_id, contact } = conversa as unknown as ConversaRow
+  type ConversaRow = { workspace_id: string; contact_id: string; contact: { phone_number: string } | null }
+  const { workspace_id, contact_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
   const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
@@ -40,16 +63,20 @@ async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promi
 
   const agora = new Date().toISOString()
 
-  const { error: errMsg } = await supabase.from("messages").insert({
-    conversation_id: conversaId,
-    workspace_id,
-    direction: "enviada",
-    type: "texto",
-    content: texto,
-    status: "enviado",
-    wamid,
-    created_at: agora,
-  })
+  const { data: gravada, error: errMsg } = await supabase
+    .from("messages")
+    .insert({
+      conversation_id: conversaId,
+      workspace_id,
+      direction: "enviada",
+      type: "texto",
+      content: texto,
+      status: "enviado",
+      wamid,
+      created_at: agora,
+    })
+    .select("id")
+    .single()
 
   if (errMsg) throw new Error(errMsg.message)
 
@@ -57,6 +84,8 @@ async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promi
     .from("conversations")
     .update({ last_message_text: texto, last_message_at: agora })
     .eq("id", conversaId)
+
+  await dispararRegrasDoTime({ workspace_id, contact_id }, conversaId, gravada, "texto", texto)
 }
 
 async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Promise<void> {
@@ -71,14 +100,14 @@ async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Pr
 
   const { data: conversa, error: errConversa } = await supabase
     .from("conversations")
-    .select("workspace_id, contact:contacts(phone_number)")
+    .select("workspace_id, contact_id, contact:contacts(phone_number)")
     .eq("id", conversaId)
     .single()
 
   if (errConversa || !conversa) throw new Error("Conversa não encontrada")
 
-  type ConversaRow = { workspace_id: string; contact: { phone_number: string } | null }
-  const { workspace_id, contact } = conversa as unknown as ConversaRow
+  type ConversaRow = { workspace_id: string; contact_id: string; contact: { phone_number: string } | null }
+  const { workspace_id, contact_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
   const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
@@ -108,17 +137,21 @@ async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Pr
 
   const agora = new Date().toISOString()
 
-  const { error: errMsg } = await supabase.from("messages").insert({
-    conversation_id: conversaId,
-    workspace_id,
-    direction: "enviada",
-    type: "imagem",
-    content: publicUrl,
-    status: "enviado",
-    // Sem o wamid, o status que o gateway manda depois não encontra a mensagem.
-    wamid: resultado.mensagemId,
-    created_at: agora,
-  })
+  const { data: gravada, error: errMsg } = await supabase
+    .from("messages")
+    .insert({
+      conversation_id: conversaId,
+      workspace_id,
+      direction: "enviada",
+      type: "imagem",
+      content: publicUrl,
+      status: "enviado",
+      // Sem o wamid, o status que o gateway manda depois não encontra a mensagem.
+      wamid: resultado.mensagemId,
+      created_at: agora,
+    })
+    .select("id")
+    .single()
 
   if (errMsg) throw new Error(errMsg.message)
 
@@ -126,6 +159,8 @@ async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Pr
     .from("conversations")
     .update({ last_message_text: "📷 Imagem", last_message_at: agora })
     .eq("id", conversaId)
+
+  await dispararRegrasDoTime({ workspace_id, contact_id }, conversaId, gravada, "imagem")
 }
 
 const TIPOS_DOCUMENTO_VALIDOS = [
@@ -154,14 +189,14 @@ async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData):
 
   const { data: conversa, error: errConversa } = await supabase
     .from("conversations")
-    .select("workspace_id, contact:contacts(phone_number)")
+    .select("workspace_id, contact_id, contact:contacts(phone_number)")
     .eq("id", conversaId)
     .single()
 
   if (errConversa || !conversa) throw new Error("Conversa não encontrada")
 
-  type ConversaRow = { workspace_id: string; contact: { phone_number: string } | null }
-  const { workspace_id, contact } = conversa as unknown as ConversaRow
+  type ConversaRow = { workspace_id: string; contact_id: string; contact: { phone_number: string } | null }
+  const { workspace_id, contact_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
   const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
@@ -192,17 +227,21 @@ async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData):
 
   const agora = new Date().toISOString()
 
-  const { error: errMsg } = await supabase.from("messages").insert({
-    conversation_id: conversaId,
-    workspace_id,
-    direction: "enviada",
-    type: "documento",
-    content: publicUrl,
-    status: "enviado",
-    // Sem o wamid, o status que o gateway manda depois não encontra a mensagem.
-    wamid: resultado.mensagemId,
-    created_at: agora,
-  })
+  const { data: gravada, error: errMsg } = await supabase
+    .from("messages")
+    .insert({
+      conversation_id: conversaId,
+      workspace_id,
+      direction: "enviada",
+      type: "documento",
+      content: publicUrl,
+      status: "enviado",
+      // Sem o wamid, o status que o gateway manda depois não encontra a mensagem.
+      wamid: resultado.mensagemId,
+      created_at: agora,
+    })
+    .select("id")
+    .single()
 
   if (errMsg) throw new Error(errMsg.message)
 
@@ -210,6 +249,8 @@ async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData):
     .from("conversations")
     .update({ last_message_text: "📄 Documento", last_message_at: agora })
     .eq("id", conversaId)
+
+  await dispararRegrasDoTime({ workspace_id, contact_id }, conversaId, gravada, "documento")
 }
 
 async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Promise<void> {
@@ -224,14 +265,14 @@ async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Pro
 
   const { data: conversa, error: errConversa } = await supabase
     .from("conversations")
-    .select("workspace_id, contact:contacts(phone_number)")
+    .select("workspace_id, contact_id, contact:contacts(phone_number)")
     .eq("id", conversaId)
     .single()
 
   if (errConversa || !conversa) throw new Error("Conversa não encontrada")
 
-  type ConversaRow = { workspace_id: string; contact: { phone_number: string } | null }
-  const { workspace_id, contact } = conversa as unknown as ConversaRow
+  type ConversaRow = { workspace_id: string; contact_id: string; contact: { phone_number: string } | null }
+  const { workspace_id, contact_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
   const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
@@ -261,17 +302,21 @@ async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Pro
 
   const agora = new Date().toISOString()
 
-  const { error: errMsg } = await supabase.from("messages").insert({
-    conversation_id: conversaId,
-    workspace_id,
-    direction: "enviada",
-    type: "video",
-    content: publicUrl,
-    status: "enviado",
-    // Sem o wamid, o status que o gateway manda depois não encontra a mensagem.
-    wamid: resultado.mensagemId,
-    created_at: agora,
-  })
+  const { data: gravada, error: errMsg } = await supabase
+    .from("messages")
+    .insert({
+      conversation_id: conversaId,
+      workspace_id,
+      direction: "enviada",
+      type: "video",
+      content: publicUrl,
+      status: "enviado",
+      // Sem o wamid, o status que o gateway manda depois não encontra a mensagem.
+      wamid: resultado.mensagemId,
+      created_at: agora,
+    })
+    .select("id")
+    .single()
 
   if (errMsg) throw new Error(errMsg.message)
 
@@ -279,6 +324,8 @@ async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Pro
     .from("conversations")
     .update({ last_message_text: "🎥 Vídeo", last_message_at: agora })
     .eq("id", conversaId)
+
+  await dispararRegrasDoTime({ workspace_id, contact_id }, conversaId, gravada, "video")
 }
 
 async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Promise<void> {
@@ -293,14 +340,14 @@ async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Pro
 
   const { data: conversa, error: errConversa } = await supabase
     .from("conversations")
-    .select("workspace_id, contact:contacts(phone_number)")
+    .select("workspace_id, contact_id, contact:contacts(phone_number)")
     .eq("id", conversaId)
     .single()
 
   if (errConversa || !conversa) throw new Error("Conversa não encontrada")
 
-  type ConversaRow = { workspace_id: string; contact: { phone_number: string } | null }
-  const { workspace_id, contact } = conversa as unknown as ConversaRow
+  type ConversaRow = { workspace_id: string; contact_id: string; contact: { phone_number: string } | null }
+  const { workspace_id, contact_id, contact } = conversa as unknown as ConversaRow
   if (!contact) throw new Error("Contato não encontrado")
 
   const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
@@ -330,17 +377,21 @@ async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Pro
 
   const agora = new Date().toISOString()
 
-  const { error: errMsg } = await supabase.from("messages").insert({
-    conversation_id: conversaId,
-    workspace_id,
-    direction: "enviada",
-    type: "audio",
-    content: publicUrl,
-    status: "enviado",
-    // Sem o wamid, o status que o gateway manda depois não encontra a mensagem.
-    wamid: resultado.mensagemId,
-    created_at: agora,
-  })
+  const { data: gravada, error: errMsg } = await supabase
+    .from("messages")
+    .insert({
+      conversation_id: conversaId,
+      workspace_id,
+      direction: "enviada",
+      type: "audio",
+      content: publicUrl,
+      status: "enviado",
+      // Sem o wamid, o status que o gateway manda depois não encontra a mensagem.
+      wamid: resultado.mensagemId,
+      created_at: agora,
+    })
+    .select("id")
+    .single()
 
   if (errMsg) throw new Error(errMsg.message)
 
@@ -348,6 +399,8 @@ async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Pro
     .from("conversations")
     .update({ last_message_text: "🎤 Áudio", last_message_at: agora })
     .eq("id", conversaId)
+
+  await dispararRegrasDoTime({ workspace_id, contact_id }, conversaId, gravada, "audio")
 }
 
 /** Resultado dos envios: o motivo volta como valor, nunca como exceção. */

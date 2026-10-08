@@ -18,6 +18,7 @@ B11 (automações), em 07/10/2026.
 | `.env` | `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`, para preparar e conferir a empresa de teste. |
 | `.env` | `GATEWAY_WEBHOOK_SECRET`, para assinar as mensagens simuladas (B11-04). Na Vercel, o mesmo valor está numa `GATEWAY_WEBHOOK_SECRET` que vale **só para o Preview do branch `b11-automacoes-v2`**. A de "Production and Preview" guarda o segredo da produção: não troque o valor dela, ou a produção passa a recusar o gateway de verdade. |
 | `.env.local` | `B11_TESTE_EMAIL`, `B11_TESTE_SENHA`, `B11_TESTE_WORKSPACE_ID`. São gravados pelo `criar-empresa-teste.cjs`. |
+| `.env.local` | `B11_TESTE_TELEFONE_REAL`: o número que recebe as mensagens de verdade nos roteiros de envio (B11-05 em diante). Só com DDI e DDD, sem espaço. |
 | Máquina | Chromium do Playwright. Se a versão baixada não for a que o pacote espera, aponte `PLAYWRIGHT_CHROMIUM` para o `chrome.exe` instalado. |
 
 Os dois arquivos `.env*` ficam fora do git. Os scripts nunca mostram os segredos.
@@ -49,6 +50,11 @@ node e2e/preview/resetar-empresa-teste.cjs
 node e2e/preview/roteiro-b11-09.cjs https://crm-exponencial-xxxx.vercel.app
 node e2e/preview/resetar-empresa-teste.cjs
 node e2e/preview/roteiro-b11-04.cjs https://crm-exponencial-xxxx.vercel.app
+
+# Estes enviam mensagens de verdade: só com o chip conectado e combinado com
+# quem recebe (veja "Envio de mensagem" abaixo)
+node e2e/preview/resetar-empresa-teste.cjs
+node e2e/preview/roteiro-b11-05.cjs https://crm-exponencial-xxxx.vercel.app
 ```
 
 Desde a B11-09, as automações rodam depois da resposta da ação. Os roteiros
@@ -74,6 +80,7 @@ código de saída 0 só se tudo passou.
 | `roteiro-b11-08.cjs` | Horário comercial pelo diálogo, condição dentro e fora, atribuir ao time, resolver, reabrir e iniciar sequência. |
 | `roteiro-b11-09.cjs` | Fila das automações: a função do banco que entrega um evento por vez por contato, e uma ação com falha que não desfaz o movimento do card. |
 | `roteiro-b11-04.cjs` | Gatilho "mensagem recebida" com as condições de texto e tipo, por mensagens simuladas no webhook do gateway, e o tempo de resposta do webhook com as regras ativas (B11-09). |
+| `roteiro-b11-05.cjs` | ⚠️ Envia 2 mensagens de verdade. Gatilho "mensagem enviada pelo time": a resposta do chat move o card e põe a tag; a mesma frase mandada por uma automação não dispara. |
 | `roteiro-menus.cjs` | Itens de menu do chat, de etiquetas e de times fazendo o que prometem. Protege contra a volta do `onSelect` (decisões da B11, seção 9.4). |
 
 ## A empresa de teste
@@ -101,7 +108,10 @@ com status `removed`, que não aparece na tela e não é consultada. No fim, ele
 apaga.
 
 **Envio de mensagem (B11-05 e B11-07):** precisa de um chip de teste conectado
-na empresa. ⚠️ Com o chip conectado, as regras que enviam mensagem passam a
+na empresa e de `B11_TESTE_TELEFONE_REAL` no `.env.local`. O roteiro cria, na
+primeira vez, o contato "Teste B11 Número real" com esse número, um card em Lead
+e uma conversa no chip, e o contato fica para os próximos. Sem chip ou sem o
+número, o roteiro para antes de enviar. ⚠️ Com o chip conectado, as regras que enviam mensagem passam a
 enviar de verdade. O `roteiro-b11-06.cjs` (regra A) manda uma mensagem para a
 Ana, que tem telefone falso. Não rode esse roteiro com o chip conectado sem
 trocar antes o telefone da Ana por um número de teste.

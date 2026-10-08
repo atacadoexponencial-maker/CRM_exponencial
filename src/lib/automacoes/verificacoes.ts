@@ -1,7 +1,7 @@
 // Verificações do bloco de condição que o motor sabe avaliar: canal, etiqueta
 // e atendente da conversa, e etapa do card do contato (B11-02); tag, tipo e
 // classificação do contato (B11-11); horário comercial (B11-08); texto e tipo
-// da mensagem (B11-04).
+// da mensagem (B11-04), nos dois gatilhos de mensagem.
 //
 // Cada verificação consulta o banco na hora, para enxergar o que uma ação
 // anterior do mesmo caminho acabou de mudar (uma tag que o fluxo acabou de
@@ -42,10 +42,11 @@ export async function verificacaoVale(contexto: ContextoDaExecucao, verificacao:
       return classificacaoVale(contexto, verificacao)
     case "horario_comercial":
       return horarioVale(contexto, verificacao)
+    // Só os gatilhos de mensagem trazem a mensagem
     case "texto_mensagem":
-      return contexto.gatilho.tipo === "mensagem_recebida" && textoDaMensagemVale(verificacao, contexto.gatilho.texto)
+      return "texto" in contexto.gatilho && textoDaMensagemVale(verificacao, contexto.gatilho.texto)
     case "tipo_mensagem":
-      return contexto.gatilho.tipo === "mensagem_recebida" && tipoDaMensagemVale(verificacao, contexto.gatilho.tipoMensagem)
+      return "tipoMensagem" in contexto.gatilho && tipoDaMensagemVale(verificacao, contexto.gatilho.tipoMensagem)
     default:
       return false
   }

@@ -74,6 +74,7 @@ export function eventoGravado(gatilho: GatilhoAutomacao): Record<string, string>
     case "dado_contato_alterado":
       return { tipo: gatilho.tipo, campo: gatilho.campo, valor: gatilho.valor }
     case "mensagem_recebida":
+    case "mensagem_enviada_time":
       return {
         tipo: gatilho.tipo,
         conversationId: gatilho.conversationId,
