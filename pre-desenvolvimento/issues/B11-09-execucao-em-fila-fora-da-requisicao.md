@@ -149,6 +149,12 @@ Migration só de acréscimo, `20261007000004_automation_queue.sql`:
 
 ## Execução (07/10/2026)
 
+> **Atualização de 08/10/2026 (B11-04):** o tempo de resposta do webhook foi
+> medido no preview, com mensagens simuladas. A mediana ficou em 801 ms com as
+> regras pausadas e em 774 ms com elas ativas, ou seja, sem diferença (decisões,
+> seção 11.4). Falta só a mensagem da regra chegando, que precisa do chip
+> (B11-07).
+
 **Aberta só pela parte de mensagem**, como a B11-02 e a B11-08. O tempo de
 resposta do webhook e a mensagem da regra chegando dependem do gatilho
 "mensagem recebida" (B11-04) e do chip. O resto passou.

@@ -139,6 +139,9 @@ Nada novo. O evento vai em `automation_queue.evento` e em
     sem reação.
 - **Modificar:** `src/app/(auth)/configuracoes/automacoes/components/frases-fluxo.ts`,
   a frase do evento no histórico.
+- **Documentação:** a seção 12 de `pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md`
+  (e a medição no fim da 11.4), e a atualização da
+  `pre-desenvolvimento/issues/B11-09-execucao-em-fila-fora-da-requisicao.md`.
 - **Reutilizar:** `normalizarTexto` de `src/lib/catalogo/planilha.ts`;
   `TIPO_NO_CRM` de `src/lib/whatsapp/recebimento.ts`; `dispararAutomacoes` de
   `src/lib/automacoes/fila.ts`.
@@ -162,6 +165,55 @@ Nada novo. O evento vai em `automation_queue.evento` e em
 - [x] Histórico e simulação do evento novo
 - [x] Gatilho e verificações nas listas de disponíveis
 - [x] Testes automatizados e suíte unitária passando; build com código 0
-- [ ] Roteiro no preview passando
-- [ ] Medição do webhook com regra ativa (fecha a parte que falta da B11-09)
-- [ ] Registro de decisões (seção 12)
+- [x] Roteiro no preview passando
+- [x] Medição do webhook com regra ativa (fecha a parte que falta da B11-09)
+- [x] Registro de decisões (seção 12)
+
+## Execução (08/10/2026)
+
+**Concluída.** O "Pronto quando" passou no preview com mensagens simuladas no
+webhook do gateway (decisões, seção 12.5). Nenhuma mensagem foi enviada.
+
+**O que ficou diferente do plano:**
+
+- **`tipoDaMensagemParaRegras`**, em `contexto.ts`. A exceção do `desconhecido`
+  com texto ficou numa função só, usada pelos dois canais e pela simulação, para
+  o "Testar com um contato" ver o mesmo tipo que a regra veria.
+- **O histórico guarda também o id da mensagem**, além do tipo e do texto.
+- **Mais dois arquivos de teste:** `automacoes-acoes.test.ts` (a etiqueta e o
+  reabrir na conversa do evento) e `gateway-midia-recebida.test.ts` (reação e
+  edição não disparam).
+
+**Como foi verificado:**
+
+- Suíte unitária com 47 arquivos e 590 testes passando, sendo 29 novos:
+  - as condições de texto (os cinco operadores, acentos, maiúsculas, espaços,
+    lista com item vazio, mensagem sem texto) e de tipo;
+  - o disparo no canal direto: depois de gravar, na ordem certa com a conversa
+    criada, sem disparo quando o `insert` falha, e o texto e o tipo de foto,
+    áudio, localização, cartão de contato e resposta citada;
+  - o disparo na API Oficial (`webhook-whatsapp-automacoes.test.ts`): depois de
+    gravar, com o tipo da Meta, sem reação, e sem disparo quando o `insert`
+    falha;
+  - o evento no histórico, na simulação e nas ações.
+- `tsc` limpo. O lint de `src` e `e2e` ficou com 0 erros (os 3 avisos são
+  antigos). Build com código de saída 0.
+- **No preview** (commit `47416b4`), `e2e/preview/roteiro-b11-04.cjs` passou em
+  **14 de 14**, com 2 regras montadas pela tela:
+  - "oi" não aplica a etiqueta; "Quero o CATÁLOGO" aplica; "me manda o
+    catalogo", sem acento, também;
+  - a foto com a legenda "segue o catálogo" pega as duas regras (tipo e texto);
+  - a reação não gera execução;
+  - o histórico guarda o caminho ("não, sim, sim, sim"), o tipo e o texto, e a
+    página mostra `Mensagem recebida: "Quero o CATÁLOGO"`;
+  - o tempo de resposta do webhook não muda com as regras ativas (mediana de
+    801 ms pausadas e 774 ms ativas). É a parte que faltava da B11-09.
+  - O roteiro apagou a conexão temporária, as mensagens e os eventos que criou.
+- Os roteiros da B11-06 (9 de 9), da B11-08 (9 de 9) e da B11-09 (11 de 11)
+  passaram de novo no mesmo preview, porque a conversa do evento mudou de lugar
+  no motor.
+
+**Fica para as próximas:**
+
+- O envio de verdade, com o chip, fecha a B11-02, a B11-08 (mensagem de
+  ausência) e a B11-09 (a mensagem da regra chegando). Entra com a B11-07.

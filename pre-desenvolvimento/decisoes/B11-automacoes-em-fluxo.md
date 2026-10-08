@@ -577,3 +577,102 @@ sentido nem no outro. Quem garante que as regras rodam depois da resposta é o
 `after()` do Next, coberto pelos testes de `src/test/automacoes-fila.test.ts`. A
 medição do "Pronto quando", o tempo de resposta do webhook, fica para quando a
 B11-04 trouxer a mensagem recebida.
+
+**Medida em 08/10/2026 (B11-04):** com mensagens simuladas no webhook do gateway
+do preview, a mediana de 5 respostas ficou em 801 ms com as regras pausadas e em
+774 ms com duas regras ativas. A diferença está dentro da variação da rede. Os
+~800 ms são do próprio webhook (contato, conversa, mensagem e tempo real) e da
+distância até a Vercel. Não vêm das regras.
+
+## 12. Gatilho "mensagem recebida" (B11-04, 08/10/2026)
+
+### 12.1 Onde dispara
+
+No ponto em que cada canal grava a mensagem nova, logo depois do `insert` em
+`messages`, e só se a mensagem foi gravada:
+
+- **Canal direto:** em `registrarMensagemRecebida`
+  (`src/lib/whatsapp/recebimento.ts`). Reação e aviso de mensagem editada ou
+  apagada são desviados antes, em `receberMensagem`, e nunca chegam lá. Por isso
+  não disparam, sem filtro nenhum.
+- **API Oficial:** no laço de mensagens de `src/app/api/webhooks/whatsapp/route.ts`.
+  Esse webhook grava a reação como mensagem, e assim continua. O disparo pula
+  os tipos `reaction` e `system`.
+
+**Mensagem não gravada não dispara.** `messages.wamid` é único. Na reentrega de
+um evento que morreu no meio, o `insert` repetido falha, e as regras não rodam
+duas vezes.
+
+Quando a conversa nasce com a mensagem, o evento de "conversa criada" entra na
+fila antes do de "mensagem recebida". As regras de conversa criada rodam
+primeiro.
+
+### 12.2 O que as condições leem
+
+- **Texto:** o que o cliente escreveu. É o texto, ou a legenda da foto, do vídeo
+  ou do documento. Localização e cartão de contato têm texto vazio, porque o
+  conteúdo gravado deles é montado pelo CRM. Na API Oficial, só o `text.body`,
+  porque esse webhook ainda não lê mídia.
+- **Tipo:** o do vocabulário do CRM (`texto`, `imagem`, `audio`, `video`,
+  `documento`, e também `figurinha`, `localizacao`, `contato`). Na API Oficial,
+  o `type` da Meta passa pelo mesmo `TIPO_NO_CRM` do gateway. As regras veem o
+  tipo verdadeiro, mesmo com esse webhook gravando tudo como texto.
+- **Exceção:** `desconhecido` com texto conta como `texto`
+  (`tipoDaMensagemParaRegras`). O gateway manda tipo fora do mapa quando o
+  cliente responde citando outra mensagem ou manda link. Sem a exceção, "tipo é
+  texto" falharia em toda resposta citada.
+
+**Comparação:** reaproveita `normalizarTexto`, de `src/lib/catalogo/planilha.ts`,
+que tira maiúsculas, acentos e espaços repetidos dos dois lados. "Contém alguma
+das palavras" separa a lista por vírgula, como a spec pede. Itens vazios são
+ignorados, e cada item é procurado como trecho, igual ao "contém". Assim,
+"preço" acha "preços".
+
+- **Descartado:** comparar por palavra inteira. "Preço" deixaria de achar
+  "preços", e "catálogo" deixaria de achar "catálogo?" sem tratar a pontuação.
+  Quem precisar de exatidão tem o "é igual a".
+
+### 12.3 A conversa da regra
+
+Numa mensagem recebida, as ações agem na conversa onde a mensagem chegou, e não
+na conversa aberta mais recente do contato. É assim desde a "conversa criada".
+Com dois números, a etiqueta vai para a conversa certa. `conversaDoEvento` e o
+reabrir passaram a usar a conversa de qualquer evento que traga uma.
+
+### 12.4 "Testar com um contato" e histórico
+
+- **Testar com um contato** usa a última mensagem recebida do contato, na
+  conversa mais recente, com o mesmo texto e o mesmo tipo que o recebimento
+  entregaria. É o "com os dados de agora" do diálogo. Sem mensagem, o texto e o
+  tipo ficam vazios, e as condições de mensagem não valem.
+  - **Descartado:** pedir no diálogo uma mensagem de exemplo. Mudaria a tela, e
+    ninguém pediu.
+- **Histórico:** o evento gravado leva o tipo e até 200 caracteres do texto. A
+  linha mostra `Mensagem recebida: "Quero o CATÁLOGO"`. Sem texto, mostra o
+  tipo, por exemplo "Mensagem recebida (imagem)".
+
+### 12.5 Teste no preview
+
+O endereço de webhook de uma instância do chip é gravado na criação, a partir de
+`NEXT_PUBLIC_APP_URL` (ou da URL da produção). A mensagem de verdade vai para a
+produção, que roda o `master`, e não chega ao preview.
+
+**Decidido com o Luan:** o roteiro manda ao `/api/webhooks/gateway` do preview um
+`message.received` assinado como o gateway assina. O segredo é uma
+`GATEWAY_WEBHOOK_SECRET` só do Preview do branch `b11-automacoes-v2`, com o valor
+do `.env` local. A variável de "Production and Preview" guarda o segredo da
+produção e não foi tocada: trocar o valor dela faria a produção responder 401 ao
+gateway de verdade, e 401 faz o gateway parar de reenviar.
+
+O webhook acha a empresa pelo `instance_id`. O roteiro cria uma conexão
+temporária com status `removed`, que não aparece na tela e não é consultada, e a
+apaga no fim.
+
+- **Descartado:** apontar o webhook do chip para o preview. Exigiria mudar a
+  instância no gateway, e o preview tem a proteção de acesso da Vercel.
+- **API Oficial:** conferida só pelos testes automatizados. O CRM roda com chip
+  hoje (seção 6.3).
+
+O envio de verdade (B11-05 e B11-07) precisa de um chip conectado na empresa de
+teste. Com ele conectado, as regras que enviam passam a enviar. O roteiro da
+B11-06 manda mensagem para a Ana, que tem telefone falso (README dos roteiros).
