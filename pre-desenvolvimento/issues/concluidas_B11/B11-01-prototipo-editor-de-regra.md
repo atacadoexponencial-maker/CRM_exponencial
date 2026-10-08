@@ -300,3 +300,9 @@ sistema, fora do tema escuro.
   de repetição, atributo, valor, ação e etapa. Escolher um item mostra o
   rótulo no botão, e o item vazio aparece quando nada está escolhido. Não
   houve erro no console.
+
+## Aprovação (08/10/2026)
+
+**Concluída.** O Luan aprovou a forma na tela real de automações, onde vinha
+testando as regras no preview desde 07/10. Ele decidiu que a aprovação dele
+basta, sem esperar a da Marcelle, que o "Pronto quando" também pedia.
