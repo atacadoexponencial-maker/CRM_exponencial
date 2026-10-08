@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Módulo 2 — Pipeline** ✅ *concluído*: funis Entrada e Recompra
 - **Módulo 3 — Contatos** ✅ *concluído*
 - **Módulo 5 — Dashboard** ✅ *concluído*
-- **Automações v1** ✅ *concluído*: gatilho → ação estilo Kommo (`/configuracoes/automacoes`). **v2** 🔧 *em andamento*: gatilho → condições → ações (`pre-desenvolvimento/spec-automacoes-v2.md`, issues B11)
+- **Automações** ✅ *concluído*: fluxo de blocos, com gatilho, condições com saídas sim e não, e ações (`/configuracoes/automacoes`). É a v2, série B11, no ar desde 08/10/2026 (spec em `docs/specs-arquivadas/spec-automacoes-v2.md`). A v1 (gatilho → ação, estilo Kommo) foi substituída por ela.
 - **Módulo 4 — Sequências** ✅ *concluído*: sequências automáticas, agenda do vendedor, central de alertas
 - **Módulo 7 — Campanhas** ✅ *concluído*: disparos em massa segmentados com relatório de entrega
 - **Módulo 6 — Grupos** ❌ *bloqueado*: a API oficial da Meta não suporta grupos de WhatsApp (ver `pre-desenvolvimento/bloqueado/avaliacao-modulo-6-grupos.md`)
@@ -30,6 +30,20 @@ O app está deployado no Vercel. **Todas as variáveis de ambiente já estão co
 - `NEXT_PUBLIC_META_APP_ID` / `NEXT_PUBLIC_META_CONFIG_ID` / `META_APP_SECRET` — Meta WhatsApp API
 - `WHATSAPP_VERIFY_TOKEN` — validação do webhook Meta
 - `META_TEST_ACCESS_TOKEN` — token temporário do número de teste Meta (expira em 24h)
+
+### Empresa de teste
+
+Existe uma empresa só para testes: **"[TESTE] Automações B11"**. Ela fica no
+banco de produção, porque o Supabase é um só. Use-a para testar no preview ou na
+produção sem mexer em empresa de cliente. Ela fica de vez: não apague.
+
+- **Login:** `B11_TESTE_EMAIL`, `B11_TESTE_SENHA` e `B11_TESTE_WORKSPACE_ID`, no
+  `.env.local`, que fica fora do git. Quem não tiver deve pedir ao Luan.
+- **Dados:** contatos com telefone falso, nenhum número de WhatsApp conectado.
+- **Roteiros:** os testes automáticos pela tela ficam em `e2e/preview/` e só
+  gravam em empresa cujo nome começa com `[TESTE]`. `resetar-empresa-teste.cjs`
+  volta a empresa ao estado inicial. Como usar, o que ela tem e como testar
+  envio de verdade: `e2e/preview/README.md`.
 
 ## Commands
 
@@ -83,7 +97,7 @@ Rotas existentes:
 - `/(auth)/configuracoes/etiquetas` — gestão de etiquetas
 - `/(auth)/configuracoes/mensagens-rapidas` — gestão de mensagens rápidas
 - `/(auth)/configuracoes/templates` — templates de mensagem da Meta
-- `/(auth)/configuracoes/automacoes` — automações (gatilho → ação, estilo Kommo)
+- `/(auth)/configuracoes/automacoes` — automações em fluxo: lista, editor em `[id]` (`nova` para criar) e histórico em `historico`
 
 ### Domain Model
 

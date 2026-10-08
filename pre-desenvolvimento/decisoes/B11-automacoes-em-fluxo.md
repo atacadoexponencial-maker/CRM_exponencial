@@ -2,7 +2,7 @@
 
 **Data desta sessão:** 30/09/2026
 **Quem:** Luan
-**Spec:** `pre-desenvolvimento/spec-automacoes-v2.md`
+**Spec:** `docs/specs-arquivadas/spec-automacoes-v2.md` (arquivada em 08/10/2026, depois do merge)
 **Branch:** `b11-automacoes-v2`
 
 > Este documento registra o **caminho**, não só o resultado: o que foi decidido, o

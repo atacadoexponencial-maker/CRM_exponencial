@@ -89,7 +89,9 @@ código de saída 0 só se tudo passou.
 ## A empresa de teste
 
 "[TESTE] Automações B11", com admin `teste-automacoes-b11@example.com` (domínio
-reservado, que não recebe e-mail). Tem:
+reservado, que não recebe e-mail). **Fica de vez** (decidido em 08/10/2026,
+depois do merge da B11): serve para os próximos testes e não deve ser apagada.
+O nome com "B11" é só de onde ela nasceu. Tem:
 
 - **Contatos:** Ana, Bruno e Carla ("Teste B11 …"), com telefones falsos
   `55000000001xx` e card em Lead no Funil de Entrada.
@@ -97,6 +99,9 @@ reservado, que não recebe e-mail). Tem:
   etiqueta "Interessado".
 - **Time:** o admin é membro do time Entrada.
 - **Regra antiga:** uma, em `automations`.
+- **Número real:** o contato "Teste B11 Número real", com o número de
+  `B11_TESTE_TELEFONE_REAL`, e a conversa dele. Nasceram nos roteiros de envio
+  (B11-05 e B11-07) e ficam para os próximos.
 
 Ela fica isolada como qualquer empresa (RLS). As rotinas diárias (sequências,
 campanhas, lixeira) também passam por ela. Sem número conectado, nada é
