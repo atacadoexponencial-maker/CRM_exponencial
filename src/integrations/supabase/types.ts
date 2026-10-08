@@ -91,7 +91,6 @@ export type Database = {
       automation_flows: {
         Row: {
           ativa: boolean
-          automation_id: string | null
           created_at: string
           fluxo: Json
           gatilho_tipo: string
@@ -102,7 +101,6 @@ export type Database = {
         }
         Insert: {
           ativa?: boolean
-          automation_id?: string | null
           created_at?: string
           fluxo: Json
           gatilho_tipo?: string
@@ -113,7 +111,6 @@ export type Database = {
         }
         Update: {
           ativa?: boolean
-          automation_id?: string | null
           created_at?: string
           fluxo?: Json
           gatilho_tipo?: string
@@ -123,13 +120,6 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "automation_flows_automation_id_fkey"
-            columns: ["automation_id"]
-            isOneToOne: true
-            referencedRelation: "automations"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "automation_flows_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -230,50 +220,6 @@ export type Database = {
           },
           {
             foreignKeyName: "automation_runs_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      automations: {
-        Row: {
-          acao_config: Json
-          acao_tipo: string
-          ativa: boolean
-          created_at: string
-          gatilho_config: Json
-          gatilho_tipo: string
-          id: string
-          nome: string
-          workspace_id: string
-        }
-        Insert: {
-          acao_config?: Json
-          acao_tipo: string
-          ativa?: boolean
-          created_at?: string
-          gatilho_config?: Json
-          gatilho_tipo: string
-          id?: string
-          nome: string
-          workspace_id: string
-        }
-        Update: {
-          acao_config?: Json
-          acao_tipo?: string
-          ativa?: boolean
-          created_at?: string
-          gatilho_config?: Json
-          gatilho_tipo?: string
-          id?: string
-          nome?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "automations_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
