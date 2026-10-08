@@ -150,6 +150,12 @@ export function fraseDoEvento(evento: Record<string, string>, opcoes?: OpcoesEdi
       if (!evento.valor) return `${campo} apagado`
       return `${campo} mudou para "${opcoes ? valorDoCampo(evento.campo, evento.valor, opcoes) : evento.valor}"`
     }
+    case "mensagem_recebida": {
+      // Mídia sem legenda não tem texto: o tipo diz o que chegou
+      if (evento.texto) return `Mensagem recebida: "${trecho(evento.texto)}"`
+      const tipo = opcoes ? nomeEm(opcoesDaFonte("tiposMensagem", opcoes), evento.tipoMensagem) : evento.tipoMensagem
+      return tipo ? `Mensagem recebida (${tipo.toLowerCase()})` : "Mensagem recebida"
+    }
     default:
       return GATILHOS[evento.tipo as keyof typeof GATILHOS]?.rotulo ?? evento.tipo ?? "Evento"
   }

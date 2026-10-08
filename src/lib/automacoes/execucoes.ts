@@ -57,6 +57,9 @@ export function resultadoDoCaminho(caminho: CaminhoPercorrido): "concluida" | "f
   return caminho.falhas.length > 0 || caminho.erro ? "falhou" : "concluida"
 }
 
+/** Trecho da mensagem guardado no histórico: o bastante para reconhecer qual foi. */
+const TEXTO_MAXIMO_NO_HISTORICO = 200
+
 /** O evento sem a empresa e o contato, que ficam em colunas próprias. */
 export function eventoGravado(gatilho: GatilhoAutomacao): Record<string, string> {
   switch (gatilho.tipo) {
@@ -70,6 +73,14 @@ export function eventoGravado(gatilho: GatilhoAutomacao): Record<string, string>
       return { tipo: gatilho.tipo, conversationId: gatilho.conversationId, labelId: gatilho.labelId }
     case "dado_contato_alterado":
       return { tipo: gatilho.tipo, campo: gatilho.campo, valor: gatilho.valor }
+    case "mensagem_recebida":
+      return {
+        tipo: gatilho.tipo,
+        conversationId: gatilho.conversationId,
+        messageId: gatilho.messageId,
+        tipoMensagem: gatilho.tipoMensagem,
+        texto: gatilho.texto.slice(0, TEXTO_MAXIMO_NO_HISTORICO),
+      }
   }
 }
 

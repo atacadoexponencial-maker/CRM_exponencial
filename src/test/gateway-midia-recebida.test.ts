@@ -10,6 +10,7 @@ vi.mock("@/lib/automacoes/fila", () => ({
   dispararAutomacoes: vi.fn().mockResolvedValue(undefined),
 }))
 
+import { dispararAutomacoes } from "@/lib/automacoes/fila"
 import { guardarMidiaRecebida } from "@/lib/whatsapp/midia-recebida"
 import {
   aplicarAvisoDeSistema,
@@ -388,6 +389,8 @@ describe("reação", () => {
     expect(resultado).toEqual({ tratamento: "reacao", alvoEncontrado: true })
     expect(inserida(escritas)).toBeUndefined()
     expect(escritas.find((e) => e.tabela === "messages")?.linha).toEqual({ reaction_emoji: "👍" })
+    // B11-04: reação não é o cliente escrevendo
+    expect(dispararAutomacoes).not.toHaveBeenCalled()
   })
 
   it("emoji vazio remove a reação em vez de gravar vazio", async () => {
@@ -427,6 +430,20 @@ describe("mensagem editada e apagada", () => {
     expect(escritas[0].linha).toEqual({ content: "corrigido", edited_at: RECEBIDO_EM })
   })
 
+  it("B11-04: editada pela porta de entrada não dispara automação", async () => {
+    const { supabase } = supabaseFalso()
+
+    const resultado = await receberMensagem({
+      supabase,
+      workspaceId: WORKSPACE,
+      evento: eventoDe({ type: "text", system: { action: "edited", target_message_id: "3EB0ALVO", new_text: "quero o catálogo" } }),
+      recebidoEm: RECEBIDO_EM,
+    })
+
+    expect(resultado).toEqual({ tratamento: "edicao", alvoEncontrado: true })
+    expect(dispararAutomacoes).not.toHaveBeenCalled()
+  })
+
   it("apagada é marcada, e a linha do banco continua existindo", async () => {
     const { supabase, escritas } = supabaseFalso()
 
@@ -440,5 +457,7 @@ describe("mensagem editada e apagada", () => {
     expect(resultado).toEqual({ tratamento: "exclusao", alvoEncontrado: true })
     expect(escritas[0].linha).toEqual({ deleted_at: RECEBIDO_EM })
     expect(inserida(escritas)).toBeUndefined()
+    // B11-04: aviso de sistema não dispara automação
+    expect(dispararAutomacoes).not.toHaveBeenCalled()
   })
 })

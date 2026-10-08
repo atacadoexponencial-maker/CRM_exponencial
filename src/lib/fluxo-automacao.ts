@@ -169,6 +169,8 @@ export const GATILHOS_DISPONIVEIS: readonly GatilhoTipo[] = [
   "tag_adicionada",
   "etiqueta_aplicada",
   "dado_contato_alterado",
+  // B11-04
+  "mensagem_recebida",
 ]
 // A primeira serve de padrão para a verificação nova no editor
 export const VERIFICACOES_DISPONIVEIS: readonly VerificacaoTipo[] = [
@@ -181,6 +183,9 @@ export const VERIFICACOES_DISPONIVEIS: readonly VerificacaoTipo[] = [
   "card_etapa",
   // B11-08
   "horario_comercial",
+  // B11-04
+  "texto_mensagem",
+  "tipo_mensagem",
 ]
 export const ACOES_DISPONIVEIS: readonly AcaoTipo[] = [
   "enviar_mensagem",

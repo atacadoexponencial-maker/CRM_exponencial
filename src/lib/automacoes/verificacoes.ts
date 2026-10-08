@@ -1,15 +1,17 @@
-// Verificações do bloco de condição que o motor já sabe avaliar: canal, etiqueta
+// Verificações do bloco de condição que o motor sabe avaliar: canal, etiqueta
 // e atendente da conversa, e etapa do card do contato (B11-02); tag, tipo e
-// classificação do contato (B11-11); horário comercial (B11-08). As outras do
-// editor (texto e tipo da mensagem) entram nas próximas issues; até lá, não valem.
+// classificação do contato (B11-11); horário comercial (B11-08); texto e tipo
+// da mensagem (B11-04).
 //
 // Cada verificação consulta o banco na hora, para enxergar o que uma ação
 // anterior do mesmo caminho acabou de mudar (uma tag que o fluxo acabou de
 // adicionar, por exemplo). Sem conversa, as verificações sobre a conversa não
 // valem, inclusive "não tem a etiqueta": sem conversa, não há o que afirmar.
-// Erro de banco sobe e encerra a regra.
+// Erro de banco sobe e encerra a regra. As da mensagem não consultam nada: leem
+// o evento.
 
 import { calcularClassificacao } from "@/app/(auth)/contatos/classificacao"
+import { normalizarTexto } from "@/lib/catalogo/planilha"
 import { normalizarTag, type Verificacao } from "@/lib/fluxo-automacao"
 import { dentroDoHorario, horarioDoBanco } from "@/lib/horario-comercial"
 import { conversaDoEvento, type ContextoDaExecucao } from "./contexto"
@@ -40,9 +42,46 @@ export async function verificacaoVale(contexto: ContextoDaExecucao, verificacao:
       return classificacaoVale(contexto, verificacao)
     case "horario_comercial":
       return horarioVale(contexto, verificacao)
+    case "texto_mensagem":
+      return contexto.gatilho.tipo === "mensagem_recebida" && textoDaMensagemVale(verificacao, contexto.gatilho.texto)
+    case "tipo_mensagem":
+      return contexto.gatilho.tipo === "mensagem_recebida" && tipoDaMensagemVale(verificacao, contexto.gatilho.tipoMensagem)
     default:
       return false
   }
+}
+
+/**
+ * O texto que o cliente escreveu contra o valor da verificação, sem distinguir
+ * maiúsculas, acentos nem espaços repetidos. "Contém alguma das palavras" separa
+ * o valor por vírgula e procura cada item como trecho, igual ao "contém".
+ */
+export function textoDaMensagemVale({ operador, valor }: Verificacao, texto: string): boolean {
+  const mensagem = normalizarTexto(texto)
+  const procurado = normalizarTexto(valor)
+  switch (operador) {
+    case "contem":
+      return procurado !== "" && mensagem.includes(procurado)
+    case "nao_contem":
+      return procurado !== "" && !mensagem.includes(procurado)
+    case "comeca_com":
+      return procurado !== "" && mensagem.startsWith(procurado)
+    case "igual":
+      return procurado !== "" && mensagem === procurado
+    case "contem_alguma":
+      return valor
+        .split(",")
+        .map(normalizarTexto)
+        .some((palavra) => palavra !== "" && mensagem.includes(palavra))
+    default:
+      return false
+  }
+}
+
+export function tipoDaMensagemVale({ operador, valor }: Verificacao, tipoMensagem: string): boolean {
+  if (operador === "e") return tipoMensagem === valor
+  if (operador === "nao_e") return tipoMensagem !== valor
+  return false
 }
 
 /** A hora de agora, no fuso da operação, contra o horário que a empresa gravou (ou o padrão). */

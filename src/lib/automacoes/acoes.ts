@@ -213,14 +213,14 @@ async function iniciarSequencia(contexto: ContextoDaExecucao, contactId: string,
 }
 
 /**
- * A conversa do evento, nos gatilhos de conversa; nos outros, a mais recente do
+ * A conversa do evento, quando ele tem uma; nos outros, a mais recente do
  * contato, que pode estar resolvida (`conversaDoEvento` só acha a aberta). Volta
  * como o "Reabrir" do chat: com atendente, em atendimento; sem, em espera.
  */
 async function reabrirConversa({ supabase, gatilho }: ContextoDaExecucao, contactId: string): Promise<ResultadoAcao> {
   const colunas = "id, status, assigned_to"
   const { data: conversa, error } =
-    gatilho.tipo === "conversa_criada" || gatilho.tipo === "etiqueta_aplicada"
+    "conversationId" in gatilho
       ? await supabase.from("conversations").select(colunas).eq("id", gatilho.conversationId).maybeSingle()
       : await supabase
           .from("conversations")

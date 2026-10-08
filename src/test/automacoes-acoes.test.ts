@@ -431,6 +431,34 @@ describe("resolver e reabrir a conversa (B11-08)", () => {
   })
 })
 
+describe("B11-04 — na mensagem recebida, a regra age na conversa onde a mensagem chegou", () => {
+  const mensagemRecebida: GatilhoAutomacao = {
+    tipo: "mensagem_recebida",
+    workspaceId: "ws-1",
+    contactId: "contato-1",
+    conversationId: "conv-da-mensagem",
+    messageId: "msg-1",
+    tipoMensagem: "texto",
+    texto: "Quero o catálogo",
+  }
+
+  it("aplica a etiqueta na conversa do evento, sem procurar a aberta do contato", async () => {
+    const b = banco({})
+    expect(await executarAcao(b.contexto(mensagemRecebida), acao("aplicar_etiqueta", { label_id: "l-1" }))).toEqual({ ok: true })
+    expect(b.gravacoes("conversation_labels")[0].args[0]).toEqual({ conversation_id: "conv-da-mensagem", label_id: "l-1" })
+    expect(b.filtros("conversations")).toEqual([])
+  })
+
+  it("reabre a conversa do evento", async () => {
+    const b = banco({ conversations: { um: { id: "conv-da-mensagem", status: "resolvida", assigned_to: null } } })
+    expect(await executarAcao(b.contexto(mensagemRecebida), acao("reabrir_conversa", {}))).toEqual({ ok: true })
+    expect(b.filtros("conversations")).toEqual([
+      ["id", "conv-da-mensagem"],
+      ["id", "conv-da-mensagem"],
+    ])
+  })
+})
+
 describe("atribuir passa também o card principal do contato (B11-08)", () => {
   const tagAdicionada: GatilhoAutomacao = { tipo: "tag_adicionada", workspaceId: "ws-1", contactId: "contato-1", tag: "vip" }
   const cardAtualizado = (b: ReturnType<typeof banco>) =>

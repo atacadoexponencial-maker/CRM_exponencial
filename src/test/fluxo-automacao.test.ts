@@ -223,24 +223,37 @@ describe("pendenciasDoFluxo: só o que o motor executa (B11-10)", () => {
     expect(Object.values(pendenciasDoFluxo(fluxo).porBloco).flat()).not.toContain(EM_BREVE)
   })
 
-  it("marca gatilho, verificação e ação que o motor ainda não executa", () => {
+  it("marca gatilho e ação que o motor ainda não executa", () => {
+    const fluxo: Fluxo = {
+      blocos: [
+        { id: "g", tipo: "gatilho", gatilho: "mensagem_enviada_time", parametros: {}, posicao },
+        { id: "a", tipo: "acao", acao: "enviar_mensagem_rapida", parametros: { mensagem_rapida_id: "r-1" }, posicao },
+      ],
+      ligacoes: [liga("g", "a")],
+    }
+    const { porBloco } = pendenciasDoFluxo(fluxo)
+    expect(porBloco.g).toContain(EM_BREVE)
+    expect(porBloco.a).toContain(EM_BREVE)
+  })
+
+  it("B11-04: mensagem recebida com texto e tipo da mensagem pode ser salva", () => {
     const fluxo: Fluxo = {
       blocos: [
         { id: "g", tipo: "gatilho", gatilho: "mensagem_recebida", parametros: {}, posicao },
         {
           id: "c",
           tipo: "condicao",
-          verificacoes: [{ id: "v", tipo: "texto_mensagem", operador: "contem", valor: "oi" }],
+          verificacoes: [
+            { id: "v1", tipo: "texto_mensagem", operador: "contem", valor: "catálogo" },
+            { id: "v2", tipo: "tipo_mensagem", operador: "e", valor: "texto" },
+          ],
           posicao,
         },
-        { id: "a", tipo: "acao", acao: "enviar_mensagem_rapida", parametros: { mensagem_rapida_id: "r-1" }, posicao },
+        acao("a1"),
       ],
-      ligacoes: [liga("g", "c"), liga("c", "a", "sim")],
+      ligacoes: [liga("g", "c"), liga("c", "a1", "sim")],
     }
-    const { porBloco } = pendenciasDoFluxo(fluxo)
-    expect(porBloco.g).toContain(EM_BREVE)
-    expect(porBloco.c).toContain(EM_BREVE)
-    expect(porBloco.a).toContain(EM_BREVE)
+    expect(pendenciasDoFluxo(fluxo)).toEqual({ porBloco: {}, gerais: [] })
   })
 })
 

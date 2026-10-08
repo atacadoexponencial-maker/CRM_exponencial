@@ -13,6 +13,7 @@
 // existente, e os demais tipos criam mensagem nova.
 
 import type { createServiceClient } from "@/integrations/supabase/service"
+import { tipoDaMensagemParaRegras } from "@/lib/automacoes/contexto"
 import { dispararAutomacoes } from "@/lib/automacoes/fila"
 import { transmitirMensagem } from "./realtime"
 import { guardarMidiaRecebida, type MidiaDoEvento, type MidiaGuardada } from "./midia-recebida"
@@ -124,6 +125,9 @@ export const TIPO_NO_CRM: Record<string, string> = {
 
 /** Tipos que carregam arquivo, e portanto precisam do download. */
 export const TIPOS_COM_ARQUIVO = ["image", "video", "audio", "voice", "document", "sticker"]
+
+/** Localização e cartão de contato: o conteúdo é montado pelo CRM, e as regras não leem texto neles (B11-04). */
+const TIPOS_SEM_TEXTO_DO_CLIENTE = ["location", "contact"]
 
 const PREVIA_POR_TIPO: Record<string, string> = {
   imagem: "📷 Foto",
@@ -242,9 +246,8 @@ export async function registrarMensagemRecebida({
     connectionId,
   })
 
-  // Automação dispara ao ABRIR conversa, e só. É o comportamento do webhook da
-  // Meta hoje: não existe gatilho de "mensagem recebida" em `automacoes.ts`, e
-  // inventar um aqui mudaria o produto por conta própria.
+  // As regras de "conversa criada" entram na fila antes das de "mensagem
+  // recebida" (abaixo), e rodam primeiro. As duas rodam depois da resposta.
   if (conversaCriada) {
     await dispararAutomacoes({
       tipo: "conversa_criada",
@@ -289,6 +292,20 @@ export async function registrarMensagemRecebida({
       content: traduzido.conteudo,
       created_at: recebidoEm,
       status: null,
+    })
+
+    // B11-04: só a mensagem gravada dispara. Na reentrega de um evento que morreu
+    // no meio, o insert repetido falha e as regras não rodam duas vezes. Reação
+    // e aviso de edição não chegam aqui (`receberMensagem`).
+    const texto = TIPOS_SEM_TEXTO_DO_CLIENTE.includes(evento.type) ? "" : evento.text ?? ""
+    await dispararAutomacoes({
+      tipo: "mensagem_recebida",
+      workspaceId,
+      contactId,
+      conversationId,
+      messageId: inserida.id,
+      tipoMensagem: tipoDaMensagemParaRegras(traduzido.tipo, texto),
+      texto,
     })
   }
 

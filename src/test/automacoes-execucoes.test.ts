@@ -72,4 +72,23 @@ describe("eventoGravado", () => {
       conversationId: "conv",
     })
   })
+
+  it("B11-04: a mensagem recebida guarda a conversa, a mensagem, o tipo e até 200 caracteres do texto", () => {
+    const gravado = eventoGravado({
+      tipo: "mensagem_recebida",
+      workspaceId: "ws",
+      contactId: "c",
+      conversationId: "conv",
+      messageId: "msg",
+      tipoMensagem: "texto",
+      texto: "a".repeat(250),
+    })
+    expect(gravado).toEqual({
+      tipo: "mensagem_recebida",
+      conversationId: "conv",
+      messageId: "msg",
+      tipoMensagem: "texto",
+      texto: "a".repeat(200),
+    })
+  })
 })

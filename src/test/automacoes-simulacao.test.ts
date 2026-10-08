@@ -85,10 +85,96 @@ describe("eventoDaSimulacao", () => {
   it("gatilho que o motor ainda não executa não tem evento", async () => {
     const { supabase } = banco({})
     const fluxo: Fluxo = {
-      blocos: [{ id: "g", tipo: "gatilho", gatilho: "mensagem_recebida", parametros: {}, posicao }],
+      blocos: [{ id: "g", tipo: "gatilho", gatilho: "mensagem_enviada_time", parametros: {}, posicao }],
       ligacoes: [],
     }
     expect(await eventoDaSimulacao(supabase, "ws-1", "contato-1", fluxo)).toBeNull()
+  })
+
+  describe("B11-04 — mensagem recebida: a última que o contato mandou", () => {
+    const fluxo: Fluxo = {
+      blocos: [{ id: "g", tipo: "gatilho", gatilho: "mensagem_recebida", parametros: {}, posicao }],
+      ligacoes: [],
+    }
+
+    it("texto: o conteúdo da mensagem, na conversa mais recente", async () => {
+      const { supabase } = banco({
+        conversations: { data: { id: "conv-3" } },
+        messages: { data: { id: "msg-1", type: "texto", content: "Quero o catálogo", media_caption: null } },
+      })
+      expect(await eventoDaSimulacao(supabase, "ws-1", "contato-1", fluxo)).toEqual({
+        tipo: "mensagem_recebida",
+        workspaceId: "ws-1",
+        contactId: "contato-1",
+        conversationId: "conv-3",
+        messageId: "msg-1",
+        tipoMensagem: "texto",
+        texto: "Quero o catálogo",
+      })
+    })
+
+    it("mídia: a legenda, e não a URL do arquivo", async () => {
+      const { supabase } = banco({
+        conversations: { data: { id: "conv-3" } },
+        messages: { data: { id: "msg-2", type: "imagem", content: "https://storage/x.jpg", media_caption: "segue o catálogo" } },
+      })
+      expect(await eventoDaSimulacao(supabase, "ws-1", "contato-1", fluxo)).toMatchObject({
+        tipoMensagem: "imagem",
+        texto: "segue o catálogo",
+      })
+    })
+
+    it("resposta citada (desconhecido com texto) conta como texto; localização não tem texto do cliente", async () => {
+      const citada = banco({
+        conversations: { data: { id: "conv-3" } },
+        messages: { data: { id: "msg-3", type: "desconhecido", content: "sim, esse", media_caption: null } },
+      })
+      const local = banco({
+        conversations: { data: { id: "conv-3" } },
+        messages: { data: { id: "msg-4", type: "localizacao", content: "📍 https://maps", media_caption: null } },
+      })
+      expect(await eventoDaSimulacao(citada.supabase, "ws-1", "contato-1", fluxo)).toMatchObject({
+        tipoMensagem: "texto",
+        texto: "sim, esse",
+      })
+      expect(await eventoDaSimulacao(local.supabase, "ws-1", "contato-1", fluxo)).toMatchObject({
+        tipoMensagem: "localizacao",
+        texto: "",
+      })
+    })
+
+    it("sem conversa ou sem mensagem: texto e tipo vazios", async () => {
+      const { supabase } = banco({ conversations: { data: null } })
+      expect(await eventoDaSimulacao(supabase, "ws-1", "contato-1", fluxo)).toMatchObject({
+        conversationId: "",
+        messageId: "",
+        tipoMensagem: "",
+        texto: "",
+      })
+    })
+
+    it("o caminho segue pelo texto da mensagem, sem gravar nada", async () => {
+      const comCondicao: Fluxo = {
+        blocos: [
+          ...fluxo.blocos,
+          { id: "c", tipo: "condicao", verificacoes: [{ id: "v", tipo: "texto_mensagem", operador: "contem", valor: "catálogo" }], posicao },
+          { id: "a", tipo: "acao", acao: "aplicar_etiqueta", parametros: { label_id: "l-1" }, posicao },
+        ],
+        ligacoes: [
+          { de: "g", saida: "proximo", para: "c" },
+          { de: "c", saida: "sim", para: "a" },
+        ],
+      }
+      const { supabase, gravacoes } = banco({
+        conversations: { data: { id: "conv-3" } },
+        messages: { data: { id: "msg-1", type: "texto", content: "QUERO O CATALOGO", media_caption: null } },
+      })
+      expect(await simularFluxo(supabase, "ws-1", "contato-1", comCondicao)).toEqual({
+        blocos: ["g", "c", "a"],
+        saidas: { c: "sim" },
+      })
+      expect(gravacoes).toEqual([])
+    })
   })
 })
 

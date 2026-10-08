@@ -106,4 +106,38 @@ async function esperarAutomacoes(db, workspaceId, limiteMs = 30000) {
   throw new Error(`a fila de automações não esvaziou em ${limiteMs / 1000} s`)
 }
 
-module.exports = { PROJETO, lerEnv, bancoDeServico, conferirEmpresaDeTeste, abrirPreview, criarRelatorio, esperarAutomacoes }
+/**
+ * Manda ao webhook do gateway no preview um evento assinado como o gateway
+ * assina (B11-04). A mensagem real do chip vai para a produção, e não para o
+ * preview: o evento simulado é o jeito de testar a "mensagem recebida" no
+ * branch. O segredo é o `GATEWAY_WEBHOOK_SECRET` do .env, que na Vercel vale só
+ * para o Preview do branch. Devolve o status, o corpo e o tempo de resposta.
+ */
+async function enviarEventoDoGateway(urlPreview, envelope, env = lerEnv()) {
+  const { createHmac } = require("crypto")
+  const corpo = JSON.stringify(envelope)
+  const assinatura = "sha256=" + createHmac("sha256", env.GATEWAY_WEBHOOK_SECRET).update(corpo).digest("hex")
+  const inicio = Date.now()
+  const resposta = await fetch(`${urlPreview}/api/webhooks/gateway`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-gateway-signature-256": assinatura,
+      "x-vercel-protection-bypass": env.VERCEL_AUTOMATION_BYPASS_SECRET,
+    },
+    body: corpo,
+  })
+  const texto = await resposta.text()
+  return { status: resposta.status, corpo: texto, ms: Date.now() - inicio }
+}
+
+module.exports = {
+  PROJETO,
+  lerEnv,
+  bancoDeServico,
+  conferirEmpresaDeTeste,
+  abrirPreview,
+  criarRelatorio,
+  esperarAutomacoes,
+  enviarEventoDoGateway,
+}

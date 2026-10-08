@@ -1,6 +1,6 @@
 // Testes das verificações de contato no motor (B11-11): tag, tipo e
-// classificação; e a de horário comercial (B11-08). O banco é falso
-// (`automacoes-banco-falso.ts`).
+// classificação; a de horário comercial (B11-08); texto e tipo da mensagem
+// (B11-04). O banco é falso (`automacoes-banco-falso.ts`).
 
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest"
 import type { GatilhoAutomacao } from "@/lib/automacoes/contexto"
@@ -125,5 +125,70 @@ describe("horário comercial (B11-08)", () => {
   it("erro de banco sobe, para encerrar a regra", async () => {
     const b = banco({ business_hours: { erro: { message: "timeout" } } })
     await expect(verificacaoVale(b.contexto(evento), verificacao("horario_comercial", "dentro", ""))).rejects.toBeTruthy()
+  })
+})
+
+describe("B11-04 — texto e tipo da mensagem", () => {
+  const mensagem = (texto: string, tipoMensagem = "texto"): GatilhoAutomacao => ({
+    tipo: "mensagem_recebida",
+    workspaceId: "ws-1",
+    contactId: "contato-1",
+    conversationId: "conversa-1",
+    messageId: "mensagem-1",
+    tipoMensagem,
+    texto,
+  })
+  const vale = (evento: GatilhoAutomacao, tipo: VerificacaoTipo, operador: string, valor: string) =>
+    verificacaoVale(banco({}).contexto(evento), verificacao(tipo, operador, valor))
+
+  it("contém: sem distinguir maiúsculas nem acentos, nos dois lados", async () => {
+    expect(await vale(mensagem("Quero o CATÁLOGO"), "texto_mensagem", "contem", "catálogo")).toBe(true)
+    expect(await vale(mensagem("me manda o catalogo"), "texto_mensagem", "contem", "Catálogo")).toBe(true)
+    expect(await vale(mensagem("oi"), "texto_mensagem", "contem", "catálogo")).toBe(false)
+  })
+
+  it("não contém: o contrário do contém", async () => {
+    expect(await vale(mensagem("oi"), "texto_mensagem", "nao_contem", "catálogo")).toBe(true)
+    expect(await vale(mensagem("Quero o CATÁLOGO"), "texto_mensagem", "nao_contem", "catálogo")).toBe(false)
+  })
+
+  it("começa com e é igual a, ignorando espaços repetidos e nas pontas", async () => {
+    expect(await vale(mensagem("  Bom dia, tudo bem?"), "texto_mensagem", "comeca_com", "bom dia")).toBe(true)
+    expect(await vale(mensagem("Olá, bom dia"), "texto_mensagem", "comeca_com", "bom dia")).toBe(false)
+    expect(await vale(mensagem(" Quero   o catálogo "), "texto_mensagem", "igual", "quero o CATALOGO")).toBe(true)
+    expect(await vale(mensagem("Quero o catálogo agora"), "texto_mensagem", "igual", "quero o catálogo")).toBe(false)
+  })
+
+  it("contém alguma das palavras: lista por vírgula, cada item como trecho, itens vazios ignorados", async () => {
+    expect(await vale(mensagem("Qual o PREÇO do kit?"), "texto_mensagem", "contem_alguma", "valor, preço, tabela")).toBe(true)
+    expect(await vale(mensagem("quais os preços"), "texto_mensagem", "contem_alguma", "preço")).toBe(true)
+    expect(await vale(mensagem("oi"), "texto_mensagem", "contem_alguma", "preço, , valor")).toBe(false)
+    expect(await vale(mensagem("oi"), "texto_mensagem", "contem_alguma", " , ,")).toBe(false)
+  })
+
+  it("mensagem sem texto (foto sem legenda): contém não vale, não contém vale", async () => {
+    const foto = mensagem("", "imagem")
+    expect(await vale(foto, "texto_mensagem", "contem", "catálogo")).toBe(false)
+    expect(await vale(foto, "texto_mensagem", "nao_contem", "catálogo")).toBe(true)
+  })
+
+  it("tipo da mensagem: é e não é", async () => {
+    const foto = mensagem("segue o catálogo", "imagem")
+    expect(await vale(foto, "tipo_mensagem", "e", "imagem")).toBe(true)
+    expect(await vale(foto, "tipo_mensagem", "nao_e", "imagem")).toBe(false)
+    expect(await vale(foto, "tipo_mensagem", "nao_e", "texto")).toBe(true)
+    expect(await vale(foto, "texto_mensagem", "contem", "catálogo")).toBe(true)
+  })
+
+  it("fora dos gatilhos de mensagem, nenhuma das duas vale, e o banco não é consultado", async () => {
+    const b = banco({})
+    expect(await verificacaoVale(b.contexto(evento), verificacao("texto_mensagem", "nao_contem", "x"))).toBe(false)
+    expect(await verificacaoVale(b.contexto(evento), verificacao("tipo_mensagem", "nao_e", "texto"))).toBe(false)
+    expect(b.chamadas).toEqual([])
+  })
+
+  it("operador desconhecido não vale", async () => {
+    expect(await vale(mensagem("catálogo"), "texto_mensagem", "parecido", "catálogo")).toBe(false)
+    expect(await vale(mensagem("catálogo"), "tipo_mensagem", "parecido", "texto")).toBe(false)
   })
 })
