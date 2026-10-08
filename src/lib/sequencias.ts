@@ -39,6 +39,9 @@ export function calcularProximaExecucao(base: Date, prazoDias: number): Date {
 
 // ── Início de execução ───────────────────────────────────────────────
 
+/** Exportada para a ação de automação reconhecer o caso, que para ela conta como feito (B11-08). */
+export const SEQUENCIA_JA_EM_ANDAMENTO = "Esta sequência já está em andamento para este contato"
+
 export async function iniciarExecucaoSequencia(
   supabase: ServiceClient,
   params: {
@@ -61,7 +64,7 @@ export async function iniciarExecucaoSequencia(
     .eq("status", "em_andamento")
     .maybeSingle()
 
-  if (existente) return { erro: "Esta sequência já está em andamento para este contato" }
+  if (existente) return { erro: SEQUENCIA_JA_EM_ANDAMENTO }
 
   const { data: primeiraEtapa } = await supabase
     .from("sequence_steps")

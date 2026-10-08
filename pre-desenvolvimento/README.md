@@ -7,7 +7,7 @@ no ar sai daqui. Quem abre a pasta deve saber, sem ler nada, o que falta fazer.
 
 | Spec | Issues | Estado |
 |---|---|---|
-| `spec-automacoes-v2.md` — automações com gatilho, condições e ações (fase 1) | `issues/B11-01` a `B11-09` | Escrita em 29/09/2026. Nenhuma issue começada. Implementador: Luan. Ordem sugerida: 01 → 02 → 03 → 04 → 05 → 07 → 06 → 08 → 09. |
+| `spec-automacoes-v2.md` — automações em fluxo de blocos: gatilho, condições com sim/não e ações (fase 1) | `issues/B11-01` a `B11-12` | Escrita em 29/09/2026 e trocada para fluxo de blocos em 30/09 (`decisoes/B11-automacoes-em-fluxo.md`). Feita no branch `b11-automacoes-v2`, com merge único no fim, depois de testada no preview. Implementador: Luan. Ordem: 01 → 02 → 10 → 11 → 03 → 04 → 05 → 07 → 06 → 08 → 09. A B11-10 (editor e lista gravando no banco) saiu da B11-05, e a B11-11 (ações de tag, etiqueta, dado do contato e time) saiu da B11-06 e da B11-08, as duas em 07/10, para testar no preview mais cedo. A B11-12 (tags no painel do card) não é automação: entrou no branch porque o teste precisava dela. |
 | `spec-lixeira-contatos.md` — excluir lead e contato, com lixeira de 30 dias e restaurar | `issues/B13-01` a `B13-06` | Escrita e aprovada em 02/10/2026. Ordem: 01 (protótipo) → 02 → 03 → 04 → 05 → 06. A 06 depende do `CRON_SECRET` no Vercel. |
 | `spec-seguranca-rodada-1.md` — falhas críticas da auditoria de 06/10 (cadastro, perfil, credenciais do WhatsApp, tempo real, listagem de arquivos) | `issues/B19-01` a `B19-06` | 06/10/2026: todas no ar; 01, 02, 03, 05 e 06 em `concluidas_B19/`. Falta só o teste manual da Marcelle da **B19-04** (tempo real com mensagem real) para fechar a série e arquivar a spec. |
 | `spec-seguranca-rodada-2.md` — falhas altas da auditoria de 06/10 (Next.js, usuário desativado, campanhas entre empresas, SSRF nas fotos por link, freio no cadastro e login) | `issues/concluidas_B20/` | 06/10/2026: as cinco no ar. Falta o teste manual curto da Marcelle (critério de pronto da spec) para arquivar a spec. |
@@ -58,7 +58,9 @@ As issues da parte A (gateway) ficam no repositório `whatsapp-gateway`.
 | `referencia/avaliacao-whatsapp-nao-oficial.md` | Por que e como o canal direto foi escolhido. |
 | `referencia/pesquisa-inicial.md` | Pesquisa de produto do começo do projeto. |
 | `referencia/sessao-2026-06-02-whatsapp-api-e-meta-review.md` | Ata da sessão sobre API Oficial e revisão da Meta. |
-| `decisoes/` | Decisões de arquitetura registradas (hoje: B1-01, camada de provider). |
+| `referencia/sessao-2026-09-30-b11-automacoes.md` | Ata da sessão da B11 de 30/09: decisões, preview na Vercel e próximos passos. |
+| `referencia/sessao-2026-10-07-b11-automacoes.md` | Ata da sessão da B11 de 07/10: onde retomar, o que muda com o merge e a limpeza depois dele. |
+| `decisoes/` | Decisões de arquitetura registradas (hoje: B1-01, camada de provider; B11, automações em fluxo). |
 | `testes/` | Planos de teste por módulo e série; o skill `testes` lê daqui. |
 
 ## Como as séries se chamam

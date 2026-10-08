@@ -1,0 +1,151 @@
+// "Testar com um contato" (B11-10): o caminho que o contato faria, com os dados
+// reais dele, sem executar nada. As verificações são as mesmas do motor; as
+// ações são desligadas e contam como feitas, para o caminho seguir.
+
+import { gatilhoDoFluxo, normalizarTag, percorrerFluxo, type Fluxo, type ResultadoSimulacao } from "@/lib/fluxo-automacao"
+import { tipoDaMensagemParaRegras, type GatilhoAutomacao, type ServiceClient } from "./contexto"
+import { verificacaoVale } from "./verificacoes"
+
+/**
+ * O evento que o gatilho do fluxo geraria para o contato. No "card movido", o
+ * card do contato entra na etapa do gatilho (ou fica onde está, com "qualquer
+ * etapa"). Na "conversa criada" e na "etiqueta aplicada", vale a conversa mais
+ * recente dele. Na tag e no dado alterado, o que o gatilho espera. Nos gatilhos
+ * de mensagem, a última que ele mandou ou que o time mandou para ele. `null`
+ * para gatilho que o motor não conhece.
+ */
+export async function eventoDaSimulacao(
+  supabase: ServiceClient,
+  workspaceId: string,
+  contactId: string,
+  fluxo: Fluxo
+): Promise<GatilhoAutomacao | null> {
+  const gatilho = gatilhoDoFluxo(fluxo)
+  if (!gatilho) return null
+
+  switch (gatilho.gatilho) {
+    case "card_movido": {
+      const funil = gatilho.parametros.funil === "recompra" ? "recompra" : "entrada"
+      const { data: card, error } = await supabase
+        .from("pipeline_cards")
+        .select("id, etapa")
+        .eq("workspace_id", workspaceId)
+        .eq("contact_id", contactId)
+        .eq("funil", funil)
+        .maybeSingle()
+      if (error) throw error
+      return {
+        tipo: "card_movido",
+        workspaceId,
+        contactId,
+        cardId: card?.id ?? "",
+        funil,
+        etapa: gatilho.parametros.etapa || card?.etapa || "",
+      }
+    }
+    case "conversa_criada": {
+      // Sem conversa, as verificações sobre a conversa não valem, como no motor
+      const conversa = await conversaMaisRecente(supabase, workspaceId, contactId)
+      return { tipo: "conversa_criada", workspaceId, contactId, conversationId: conversa ?? "" }
+    }
+    // B11-06: o evento é o que o gatilho espera; sem parâmetro, um evento "qualquer"
+    case "tag_adicionada":
+      return { tipo: "tag_adicionada", workspaceId, contactId, tag: normalizarTag(gatilho.parametros.tag ?? "") }
+    case "etiqueta_aplicada": {
+      const conversa = await conversaMaisRecente(supabase, workspaceId, contactId)
+      return {
+        tipo: "etiqueta_aplicada",
+        workspaceId,
+        contactId,
+        conversationId: conversa ?? "",
+        labelId: gatilho.parametros.label_id ?? "",
+      }
+    }
+    case "dado_contato_alterado":
+      return {
+        tipo: "dado_contato_alterado",
+        workspaceId,
+        contactId,
+        campo: gatilho.parametros.campo ?? "",
+        valor: gatilho.parametros.valor ?? "",
+      }
+    // B11-04 e B11-05: a última mensagem do contato (recebida) ou para ele (enviada), na conversa mais recente
+    case "mensagem_recebida":
+    case "mensagem_enviada_time": {
+      const conversa = await conversaMaisRecente(supabase, workspaceId, contactId)
+      const direcao = gatilho.gatilho === "mensagem_recebida" ? "recebida" : "enviada"
+      const mensagem = conversa ? await ultimaMensagem(supabase, conversa, direcao) : null
+      const texto = mensagem ? textoDaMensagemGravada(mensagem) : ""
+      return {
+        tipo: gatilho.gatilho,
+        workspaceId,
+        contactId,
+        conversationId: conversa ?? "",
+        messageId: mensagem?.id ?? "",
+        tipoMensagem: mensagem ? tipoDaMensagemParaRegras(mensagem.type, texto) : "",
+        texto,
+      }
+    }
+    default:
+      return null
+  }
+}
+
+/** Tipos gravados com o arquivo em `content` e a legenda em `media_caption` (`registrarMensagemRecebida`). */
+const TIPOS_COM_ARQUIVO = ["imagem", "video", "audio", "documento", "figurinha"]
+
+/** O que foi escrito, como o envio e o recebimento entregam ao motor: o texto, ou a legenda da mídia. */
+function textoDaMensagemGravada(mensagem: { type: string; content: string | null; media_caption: string | null }): string {
+  if (TIPOS_COM_ARQUIVO.includes(mensagem.type)) return mensagem.media_caption ?? ""
+  // Localização e cartão de contato guardam em `content` um texto montado pelo CRM, e não o do cliente
+  return mensagem.type === "texto" || mensagem.type === "desconhecido" ? (mensagem.content ?? "") : ""
+}
+
+/**
+ * A última mensagem da conversa na direção pedida. Na enviada, sem as que
+ * falharam. O CRM não grava quem enviou: a enviada pode ser de uma automação.
+ */
+async function ultimaMensagem(supabase: ServiceClient, conversationId: string, direcao: "recebida" | "enviada") {
+  let consulta = supabase
+    .from("messages")
+    .select("id, type, content, media_caption")
+    .eq("conversation_id", conversationId)
+    .eq("direction", direcao)
+  if (direcao === "enviada") consulta = consulta.neq("status", "falhou")
+  const { data, error } = await consulta.order("created_at", { ascending: false }).limit(1).maybeSingle()
+  if (error) throw error
+  return data
+}
+
+async function conversaMaisRecente(supabase: ServiceClient, workspaceId: string, contactId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("workspace_id", workspaceId)
+    .eq("contact_id", contactId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data?.id ?? null
+}
+
+/** `null` quando o gatilho ainda não pode ser testado. Erro de banco (inclusive numa condição) sobe para quem chamou. */
+export async function simularFluxo(
+  supabase: ServiceClient,
+  workspaceId: string,
+  contactId: string,
+  fluxo: Fluxo
+): Promise<ResultadoSimulacao | null> {
+  const evento = await eventoDaSimulacao(supabase, workspaceId, contactId, fluxo)
+  if (!evento) return null
+
+  const contexto = { supabase, gatilho: evento }
+  const caminho = await percorrerFluxo(fluxo, {
+    avaliarVerificacao: (verificacao) => verificacaoVale(contexto, verificacao),
+    executarAcao: async () => ({ ok: true }),
+  })
+  // Uma condição que não conseguiu consultar o banco: o teste não tem resultado para mostrar
+  if (caminho.erro) throw new Error(caminho.erro.motivo)
+  return { blocos: caminho.blocos, saidas: caminho.saidas }
+}

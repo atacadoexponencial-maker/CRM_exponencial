@@ -88,6 +88,155 @@ export type Database = {
           },
         ]
       }
+      automation_flows: {
+        Row: {
+          ativa: boolean
+          automation_id: string | null
+          created_at: string
+          fluxo: Json
+          gatilho_tipo: string
+          id: string
+          nome: string
+          repeticao: Json
+          workspace_id: string
+        }
+        Insert: {
+          ativa?: boolean
+          automation_id?: string | null
+          created_at?: string
+          fluxo: Json
+          gatilho_tipo?: string
+          id?: string
+          nome: string
+          repeticao?: Json
+          workspace_id: string
+        }
+        Update: {
+          ativa?: boolean
+          automation_id?: string | null
+          created_at?: string
+          fluxo?: Json
+          gatilho_tipo?: string
+          id?: string
+          nome?: string
+          repeticao?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_flows_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: true
+            referencedRelation: "automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_flows_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_queue: {
+        Row: {
+          chave: string
+          created_at: string
+          evento: Json
+          id: string
+          iniciado_em: string | null
+          motivo: string | null
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          evento: Json
+          id?: string
+          iniciado_em?: string | null
+          motivo?: string | null
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          evento?: Json
+          id?: string
+          iniciado_em?: string | null
+          motivo?: string | null
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_queue_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_runs: {
+        Row: {
+          caminho: Json
+          contact_id: string | null
+          created_at: string
+          evento: Json
+          id: string
+          motivo: string | null
+          regra_id: string
+          regra_nome: string
+          regra_origem: string
+          resultado: string
+          workspace_id: string
+        }
+        Insert: {
+          caminho?: Json
+          contact_id?: string | null
+          created_at?: string
+          evento: Json
+          id?: string
+          motivo?: string | null
+          regra_id: string
+          regra_nome: string
+          regra_origem: string
+          resultado: string
+          workspace_id: string
+        }
+        Update: {
+          caminho?: Json
+          contact_id?: string | null
+          created_at?: string
+          evento?: Json
+          id?: string
+          motivo?: string | null
+          regra_id?: string
+          regra_nome?: string
+          regra_origem?: string
+          resultado?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_runs_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automations: {
         Row: {
           acao_config: Json
@@ -127,6 +276,38 @@ export type Database = {
             foreignKeyName: "automations_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_hours: {
+        Row: {
+          dias: number[]
+          fim: string
+          inicio: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          dias: number[]
+          fim: string
+          inicio: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          dias?: number[]
+          fim?: string
+          inicio?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_hours_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
@@ -1644,6 +1825,27 @@ export type Database = {
           },
         ]
       }
+      tentativas_de_acesso: {
+        Row: {
+          chave: string
+          criado_em: string
+          id: number
+          tipo: string
+        }
+        Insert: {
+          chave: string
+          criado_em?: string
+          id?: never
+          tipo: string
+        }
+        Update: {
+          chave?: string
+          criado_em?: string
+          id?: never
+          tipo?: string
+        }
+        Relationships: []
+      }
       user_teams: {
         Row: {
           team_id: string
@@ -1760,6 +1962,14 @@ export type Database = {
         Args: { p_contact_id: string }
         Returns: boolean
       }
+      cadastrar_empresa: {
+        Args: {
+          p_nome_empresa: string
+          p_nome_responsavel: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       contato_na_lixeira: { Args: { p_contact_id: string }; Returns: boolean }
       conversa_na_lixeira: {
         Args: { p_conversation_id: string }
@@ -1786,6 +1996,25 @@ export type Database = {
           numero: number
           pedido_id: string
         }[]
+      }
+      reivindicar_evento_de_automacao: {
+        Args: { p_chave: string }
+        Returns: {
+          chave: string
+          created_at: string
+          evento: Json
+          id: string
+          iniciado_em: string | null
+          motivo: string | null
+          status: string
+          workspace_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "automation_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       salvar_estoque_produto: {
         Args: { p_estoque: Json; p_produto: string; p_tipos: Json }

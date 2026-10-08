@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServiceClient } from "@/integrations/supabase/service"
-import { processarAutomacoes } from "@/lib/automacoes"
+import { tipoDaMensagemParaRegras } from "@/lib/automacoes/contexto"
+import { dispararAutomacoes } from "@/lib/automacoes/fila"
 import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"
 import { transmitirMensagem } from "@/lib/whatsapp/realtime"
-import { escolherConversaDoNumero } from "@/lib/whatsapp/recebimento"
+import { TIPO_NO_CRM, escolherConversaDoNumero } from "@/lib/whatsapp/recebimento"
 import { tirarDaLixeira } from "@/lib/lixeira"
 
 // Valida a assinatura X-Hub-Signature-256 que a Meta envia em todo webhook.
@@ -19,6 +20,9 @@ function assinaturaValida(rawBody: string, signature: string | null): boolean {
 
   return assinaturaHmacValida({ corpoBruto: rawBody, assinatura: signature, segredo: appSecret })
 }
+
+/** Tipos da Meta que não são o cliente escrevendo: reação e aviso de sistema (troca de número). */
+const TIPOS_QUE_NAO_DISPARAM = ["reaction", "system"]
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
@@ -46,7 +50,7 @@ export async function POST(request: NextRequest) {
   type WebhookValue = {
     metadata?: { phone_number_id?: string }
     statuses?: Array<{ status: string; id?: string }>
-    messages?: Array<{ from: string; id: string; timestamp: string; text?: { body?: string } }>
+    messages?: Array<{ from: string; id: string; timestamp: string; type?: string; text?: { body?: string } }>
   }
   type WebhookBody = { entry?: Array<{ changes?: Array<{ value?: WebhookValue }> }> }
 
@@ -172,7 +176,7 @@ export async function POST(request: NextRequest) {
       if (error || !novaConversa) return NextResponse.json({ error: "db error" }, { status: 500 })
       conversaId = novaConversa.id
 
-      await processarAutomacoes({
+      await dispararAutomacoes({
         tipo: "conversa_criada",
         workspaceId: workspace_id,
         contactId: contact.id,
@@ -204,6 +208,21 @@ export async function POST(request: NextRequest) {
         created_at: messageAt,
         status: null,
       })
+
+      // B11-04: depois de gravada, como no canal direto. A reação a uma mensagem
+      // chega aqui como mensagem, e não é o cliente escrevendo: não dispara.
+      if (!TIPOS_QUE_NAO_DISPARAM.includes(message.type ?? "")) {
+        await dispararAutomacoes({
+          tipo: "mensagem_recebida",
+          workspaceId: workspace_id,
+          contactId: contact.id,
+          conversationId: conversaId,
+          messageId: msgInserida.id,
+          // Este webhook grava tudo como texto, mas as regras veem o tipo que a Meta mandou
+          tipoMensagem: tipoDaMensagemParaRegras(TIPO_NO_CRM[message.type ?? "text"] ?? "desconhecido", messageText),
+          texto: messageText,
+        })
+      }
     }
   }
 

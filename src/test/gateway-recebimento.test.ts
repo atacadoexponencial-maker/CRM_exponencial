@@ -7,16 +7,17 @@ vi.mock("@/lib/whatsapp/realtime", () => ({
   transmitirMensagem: vi.fn().mockResolvedValue(undefined),
 }))
 
-vi.mock("@/lib/automacoes", () => ({
-  processarAutomacoes: vi.fn().mockResolvedValue(undefined),
+vi.mock("@/lib/automacoes/fila", () => ({
+  dispararAutomacoes: vi.fn().mockResolvedValue(undefined),
 }))
 
 import { transmitirMensagem } from "@/lib/whatsapp/realtime"
-import { processarAutomacoes } from "@/lib/automacoes"
+import { dispararAutomacoes } from "@/lib/automacoes/fila"
 import {
   identificadorDoContato,
   PREFIXO_LID,
   registrarMensagemRecebida,
+  traduzirConteudo,
   traduzirTexto,
   type EventoMensagemRecebida,
 } from "@/lib/whatsapp/recebimento"
@@ -37,6 +38,8 @@ type Estado = {
   contato?: { id: string } | null
   conversaAberta?: { id: string; unread_count: number; whatsapp_connection_id?: string | null } | null
   mensagemCitada?: { id: string } | null
+  /** B11-04: `false` faz o insert da mensagem falhar. */
+  mensagemGravada?: boolean
 }
 
 /**
@@ -44,7 +47,7 @@ type Estado = {
  * métodos que o módulo usa — se ele chamar outra coisa, o teste quebra, o que é
  * o comportamento desejado.
  */
-function supabaseFalso({ contato = null, conversaAberta = null, mensagemCitada = null }: Estado = {}) {
+function supabaseFalso({ contato = null, conversaAberta = null, mensagemCitada = null, mensagemGravada = true }: Estado = {}) {
   const escritas: Array<{ tabela: string; operacao: string; linha: unknown }> = []
 
   function registra(tabela: string, operacao: string, linha: unknown) {
@@ -104,7 +107,11 @@ function supabaseFalso({ contato = null, conversaAberta = null, mensagemCitada =
             registra("messages", "insert", linha)
             return {
               select: vi.fn().mockReturnThis(),
-              single: vi.fn().mockResolvedValue({ data: { id: "mensagem-nova" }, error: null }),
+              single: vi.fn().mockResolvedValue(
+                mensagemGravada
+                  ? { data: { id: "mensagem-nova" }, error: null }
+                  : { data: null, error: { code: "23505", message: "duplicate key" } }
+              ),
             }
           }),
         }
@@ -202,7 +209,7 @@ describe("automações", () => {
 
     await registrarMensagemRecebida({ supabase, workspaceId: WORKSPACE, evento: TEXTO, recebidoEm: RECEBIDO_EM })
 
-    expect(processarAutomacoes).toHaveBeenCalledWith({
+    expect(dispararAutomacoes).toHaveBeenCalledWith({
       tipo: "conversa_criada",
       workspaceId: WORKSPACE,
       contactId: "contato-novo",
@@ -210,7 +217,7 @@ describe("automações", () => {
     })
   })
 
-  it("mensagem em conversa já aberta não dispara automação, igual à Meta hoje", async () => {
+  it("B11-04: mensagem em conversa já aberta não dispara conversa_criada, só mensagem_recebida", async () => {
     const { supabase } = supabaseFalso({
       contato: { id: "contato-1" },
       conversaAberta: { id: "conversa-1", unread_count: 1 },
@@ -218,7 +225,83 @@ describe("automações", () => {
 
     await registrarMensagemRecebida({ supabase, workspaceId: WORKSPACE, evento: TEXTO, recebidoEm: RECEBIDO_EM })
 
-    expect(processarAutomacoes).not.toHaveBeenCalled()
+    expect(dispararAutomacoes).toHaveBeenCalledTimes(1)
+    expect(dispararAutomacoes).toHaveBeenCalledWith({
+      tipo: "mensagem_recebida",
+      workspaceId: WORKSPACE,
+      contactId: "contato-1",
+      conversationId: "conversa-1",
+      messageId: "mensagem-nova",
+      tipoMensagem: "texto",
+      texto: TEXTO.text,
+    })
+  })
+
+  it("B11-04: conversa nova: conversa_criada entra na fila antes, e mensagem_recebida depois de gravar", async () => {
+    const { supabase, escritas } = supabaseFalso()
+    const gravouAntesDoDisparo: boolean[] = []
+    vi.mocked(dispararAutomacoes).mockImplementation(async (gatilho) => {
+      if (gatilho.tipo === "mensagem_recebida") gravouAntesDoDisparo.push(Boolean(escritaDe(escritas, "messages", "insert")))
+    })
+
+    await registrarMensagemRecebida({ supabase, workspaceId: WORKSPACE, evento: TEXTO, recebidoEm: RECEBIDO_EM })
+    vi.mocked(dispararAutomacoes).mockResolvedValue(undefined)
+
+    expect(vi.mocked(dispararAutomacoes).mock.calls.map(([g]) => g.tipo)).toEqual(["conversa_criada", "mensagem_recebida"])
+    expect(gravouAntesDoDisparo).toEqual([true])
+  })
+
+  it("B11-04: mensagem que não foi gravada (reentrega) não dispara mensagem_recebida", async () => {
+    const { supabase } = supabaseFalso({
+      contato: { id: "contato-1" },
+      conversaAberta: { id: "conversa-1", unread_count: 1 },
+      mensagemGravada: false,
+    })
+
+    await registrarMensagemRecebida({ supabase, workspaceId: WORKSPACE, evento: TEXTO, recebidoEm: RECEBIDO_EM })
+
+    expect(dispararAutomacoes).not.toHaveBeenCalled()
+  })
+
+  describe("B11-04: o tipo e o texto que as regras leem", () => {
+    const disparoDe = async (evento: EventoMensagemRecebida) => {
+      const { supabase } = supabaseFalso({ contato: { id: "c" }, conversaAberta: { id: "v", unread_count: 0 } })
+      await registrarMensagemRecebida({
+        supabase,
+        workspaceId: WORKSPACE,
+        evento,
+        recebidoEm: RECEBIDO_EM,
+        conteudo: traduzirConteudo(evento, null),
+      })
+      return vi.mocked(dispararAutomacoes).mock.calls.at(-1)?.[0]
+    }
+
+    it("foto com legenda: tipo imagem, e a legenda como texto", async () => {
+      expect(await disparoDe({ ...TEXTO, type: "image", text: "segue o catálogo" })).toMatchObject({
+        tipoMensagem: "imagem",
+        texto: "segue o catálogo",
+      })
+    })
+
+    it("áudio sem legenda: texto vazio", async () => {
+      expect(await disparoDe({ ...TEXTO, type: "voice", text: null })).toMatchObject({ tipoMensagem: "audio", texto: "" })
+    })
+
+    it("localização e cartão de contato: o texto montado pelo CRM não conta", async () => {
+      expect(
+        await disparoDe({ ...TEXTO, type: "location", text: null, location: { latitude: -23.5, longitude: -46.6, name: "Loja" } })
+      ).toMatchObject({ tipoMensagem: "localizacao", texto: "" })
+      expect(
+        await disparoDe({ ...TEXTO, type: "contact", text: "x", contact: { display_name: "Ana", phones: ["5511"] } })
+      ).toMatchObject({ tipoMensagem: "contato", texto: "" })
+    })
+
+    it("resposta citada (tipo fora do mapa, com texto) conta como texto", async () => {
+      expect(await disparoDe({ ...TEXTO, type: "extendedText", text: "sim, esse" })).toMatchObject({
+        tipoMensagem: "texto",
+        texto: "sim, esse",
+      })
+    })
   })
 })
 

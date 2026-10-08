@@ -6,6 +6,7 @@ import type { Contato, ContatoPerfil, ClassificacaoContato, TipoContato, ICP } f
 import { calcularClassificacao } from "./classificacao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { tirarDaLixeira } from "@/lib/lixeira"
+import { dispararDadosAlterados, dispararTagAdicionada } from "@/lib/automacoes/gatilhos-do-crm"
 
 const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, nicho, cidade, created_at, profiles!contacts_atendente_id_fkey(name)"
 
@@ -373,18 +374,18 @@ export async function atualizarDadosContato(
   if (!profile) return { erro: "Perfil não encontrado" }
   if (profile.role === "atendente") return { erro: "Sem permissão para editar contatos" }
 
+  // B11-06: o antes, para o gatilho "dado do contato alterado" só disparar no que mudou
+  const { data: antes } = await supabase.from("contacts").select("workspace_id, tipo, nicho, cidade").eq("id", id).maybeSingle()
+
+  const depois = { tipo: dados.tipo ?? null, nicho: dados.nicho ?? null, cidade: dados.cidade ?? null }
   const { error } = await supabase
     .from("contacts")
-    .update({
-      name: dados.nome,
-      tipo: dados.tipo ?? null,
-      nicho: dados.nicho ?? null,
-      cidade: dados.cidade ?? null,
-      icp: dados.icp ?? null,
-    })
+    .update({ name: dados.nome, ...depois, icp: dados.icp ?? null })
     .eq("id", id)
 
   if (error) return { erro: "Erro ao salvar. Tente novamente." }
+
+  if (antes) await dispararDadosAlterados(antes.workspace_id, id, antes, depois)
 
   return {}
 }
@@ -496,9 +497,12 @@ export async function adicionarTagContato(
     .insert({ contact_id: contactId, workspace_id: profile.workspace_id, tag: tagNorm })
 
   if (error) {
+    // 23505: o contato já tinha a tag; não é tag nova, então não dispara automação
     if (error.code === "23505") return {}
     return { erro: "Erro ao adicionar tag. Tente novamente." }
   }
+
+  await dispararTagAdicionada(profile.workspace_id, contactId, tagNorm)
 
   return {}
 }
@@ -521,6 +525,23 @@ export async function removerTagContato(
   if (error) return { erro: "Erro ao remover tag. Tente novamente." }
 
   return {}
+}
+
+/** Tags do contato, na ordem em que entraram. Usado pelo painel do card no funil (B11-12). */
+export async function listarTagsContato(contactId: string): Promise<string[]> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  // A RLS de contact_tags limita à empresa de quem está logado
+  const { data } = await supabase
+    .from("contact_tags")
+    .select("tag")
+    .eq("contact_id", contactId)
+    .order("created_at")
+
+  return (data ?? []).map((t) => t.tag)
 }
 
 export async function atualizarObservacoesContato(

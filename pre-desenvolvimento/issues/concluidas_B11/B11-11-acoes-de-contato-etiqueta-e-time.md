@@ -1,0 +1,235 @@
+# B11-11: Ações de tag, etiqueta, dado do contato e time
+
+**Tipo:** Implementação
+**Página:** Motor; Editor de fluxo
+**Repositório:** `crm-exponencial`, branch `b11-automacoes-v2`
+**Spec:** `pre-desenvolvimento/spec-automacoes-v2.md`
+**Decisões:** `pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md`, seção 7
+**Depende de:** B11-10
+**Ordem:** logo depois da B11-10. Tirada da B11-06 (ações de tag, etiqueta e
+dado do contato) e da B11-08 (atribuir a um time) em 07/10/2026, a pedido do
+Luan, para testar no preview ações que não dependem do WhatsApp.
+
+## Descrição
+
+Entram no motor e no editor cinco ações:
+
+- **Adicionar tag ao contato** e **remover tag do contato.** Adicionar aceita uma
+  tag nova digitada, com as tags existentes como sugestão. As regras são as mesmas
+  da tela do contato: minúsculas, sem espaço, até 50 caracteres.
+- **Remover etiqueta da conversa:** o par do "aplicar etiqueta".
+- **Alterar dado do contato:** tipo, nicho, cidade, ou acrescentar uma linha às
+  observações. A classificação fica de fora (ver Decisões do plano).
+- **Atribuir a um time:** o CRM escolhe o atendente ativo do time com menos
+  conversas abertas e faz o mesmo que "atribuir atendente".
+
+Os gatilhos e as condições de tag, etiqueta e dados continuam na B11-06. Iniciar
+sequência, resolver e reabrir conversa e o horário comercial continuam na
+B11-08.
+
+## Pronto quando
+
+No preview, a regra "card movido para Sondagem → adicionar tag `interessado`,
+alterar o tipo para Lojista, acrescentar 'entrou em sondagem' às observações,
+atribuir ao time Entrada" faz tudo isso no contato de teste quando o card é
+movido. Uma segunda regra com "remover tag" e "remover etiqueta" desfaz as duas.
+
+## Plano (07/10/2026)
+
+### Decisões do plano
+
+- **Classificação fora do "alterar dado do contato".** O CRM calcula a
+  classificação pela etapa dos cards (`calcularClassificacao`), no perfil, na
+  lista e nas campanhas. A coluna `contacts.classificacao` nunca é gravada. Uma
+  automação que gravasse ali não mudaria nada visível. Quem muda a
+  classificação é a etapa do card, e "mover card" já faz isso.
+- **Tag nova pode ser digitada.** O editor só oferecia as tags que algum contato
+  já tem. Numa empresa sem tags, "adicionar tag" não teria o que escolher.
+- **Atribuir a um time:** entre os membros ativos do time, ganha o que tem menos
+  conversas abertas (`em_espera` e `em_atendimento`). No empate, o primeiro pelo
+  nome, para o resultado ser previsível. O atendente escolhido recebe a conversa
+  e o card, como em "atribuir atendente". Time sem membro ativo é falha.
+- **Validação no servidor:** o time precisa ser da empresa, o campo do contato
+  precisa ser um dos quatro, e o tipo precisa ser lojista, revendedor ou
+  empreendedor. O formato da tag vira pendência, que o editor e o servidor
+  conferem.
+
+### Cenários
+
+#### Happy Path
+
+O admin monta o fluxo com as ações novas, salva, e move o card do contato de
+teste. A tag entra (ou sai), a etiqueta sai da conversa, o dado muda e a
+conversa e o card passam para o atendente do time com menos conversas abertas.
+
+#### Edge Cases
+
+- **Adicionar uma tag que o contato já tem:** nada muda, e conta como feito.
+- **Remover uma tag ou etiqueta que não está lá:** nada muda, e conta como feito.
+- **Acrescentar às observações vazias:** a linha vira o texto inteiro.
+- **Contato sem conversa aberta:** remover etiqueta falha. Atribuir a um time
+  atualiza só o card, como "atribuir atendente".
+- **Time sem membro ativo:** a ação falha e o caminho segue.
+
+#### Cenário de Erro
+
+Erro de banco numa ação marca só ela como falha, e o caminho segue, como nas
+outras ações.
+
+### Banco de Dados
+
+Nenhuma mudança. As ações usam `contact_tags`, `conversation_labels`,
+`contacts`, `user_teams`, `profiles`, `conversations` e `pipeline_cards`.
+
+### Arquivos
+
+- **Modificar:** `src/lib/fluxo-automacao.ts`: as cinco ações em
+  `ACOES_DISPONIVEIS`, `normalizarTag` e a pendência de formato da tag.
+- **Modificar:** `src/lib/automacoes/acoes.ts`: as cinco ações. "Atribuir
+  atendente" e "atribuir a um time" passam a usar a mesma gravação.
+- **Modificar:** `src/lib/automacoes/referencias.ts`: times citados e
+  `dadoDoContatoValido`.
+- **Modificar:** `src/app/(auth)/configuracoes/automacoes/actions.ts`: confere
+  os times e o dado do contato antes de gravar.
+- **Modificar:** `src/app/(auth)/configuracoes/automacoes/components/catalogo.ts`:
+  campo de tag livre em "adicionar tag" e classificação fora dos campos da
+  ação.
+- **Modificar:** `src/app/(auth)/configuracoes/automacoes/components/painel-bloco.tsx`:
+  o campo de tag livre, com as sugestões.
+- **Criar:** `src/test/automacoes-acoes.test.ts`: as cinco ações no motor,
+  chamando `executarAcao` direto com um banco falso que registra as gravações.
+- **Modificar:** `src/test/fluxo-automacao.test.ts`: pendência de formato da tag.
+- **Modificar:** `src/test/automacoes-fluxo-recebido.test.ts`: times e dado do
+  contato em `referencias`.
+- **Modificar:** `pre-desenvolvimento/issues/B11-06-acoes-e-gatilhos-de-tag-etiqueta-e-dados.md`
+  e `pre-desenvolvimento/issues/B11-08-atribuir-time-sequencia-conversa-e-horario.md`:
+  saem as ações que vieram para cá.
+- **Modificar:** `pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md` (seção
+  7) e `pre-desenvolvimento/README.md` (ordem da série).
+
+**Reutilizar:** as regras de tag de `adicionarTagContato`
+(`src/app/(auth)/contatos/actions.ts`), `TIPO_LABEL` de
+`src/app/(auth)/contatos/mock-contatos.ts` e `conversaDoEvento`.
+
+### Checklist
+
+- [x] Cinco ações em `ACOES_DISPONIVEIS` e pendência de formato da tag
+- [x] Adicionar e remover tag no motor
+- [x] Remover etiqueta no motor
+- [x] Alterar dado do contato (tipo, nicho, cidade, observações) no motor
+- [x] Atribuir a um time no motor, com o atendente de menos conversas abertas
+- [x] Servidor confere time e dado do contato
+- [x] Campo de tag livre com sugestões; classificação fora dos campos da ação
+- [x] Testes novos e suíte unitária passando
+- [x] Build com código de saída 0 e lint limpo
+- [x] B11-06, B11-08, decisões e README atualizados
+
+## Execução (07/10/2026)
+
+**Fechada depois do teste no preview** (ver o fim do arquivo).
+
+**O que ficou diferente do plano:**
+
+- **Os testes das ações ficaram num arquivo próprio**
+  (`automacoes-acoes.test.ts`), e não em `automacoes.test.ts`. Assim chamam
+  `executarAcao` direto, sem passar pelo carregamento das regras.
+- **Um teste da B11-10 mudou de exemplo:** ele usava "adicionar tag" como ação
+  "em breve". Passou a usar "iniciar sequência", que continua em breve.
+- **`dadoDoContatoValido` confere o tipo com `Object.hasOwn`**, e não com `in`.
+  Com `in`, um valor como `toString` passaria, porque vem do protótipo do objeto.
+
+## Ajuste de 07/10/2026: condições de contato junto com as ações
+
+No primeiro teste, o Luan notou que as ações de tag e de dado do contato estavam
+liberadas, mas as condições ainda apareciam "em breve". Dava para adicionar uma
+tag e não dava para perguntar se o contato tinha ela. O bloco de condição foi
+conferido contra o que o motor faz, e três verificações entraram:
+
+- **Tag do contato tem / não tem.** O valor aceita tag digitada, como na ação,
+  para conferir uma tag que o próprio fluxo acabou de adicionar. O campo de tag
+  virou um componente (`CampoTag`), usado na ação e na condição.
+- **Tipo do contato é / não é.** Contato sem tipo "não é" nenhum tipo.
+- **Classificação do contato é / não é**, calculada pela etapa dos cards com
+  `calcularClassificacao`, igual ao que o CRM mostra (seção 7.1 das decisões).
+
+Continuam "em breve" e fazem sentido assim: texto e tipo da mensagem (só valem
+nos gatilhos de mensagem, que ainda não estão liberados) e horário comercial
+(precisa da configuração de horário, B11-08).
+
+**Arquivos do ajuste:** `src/lib/automacoes/verificacoes.ts` (as três
+verificações), `src/lib/fluxo-automacao.ts` (`VERIFICACOES_DISPONIVEIS`, com a
+tag primeiro, que vira o padrão da verificação nova), `src/lib/automacoes/referencias.ts`
+e `actions.ts` (o servidor confere tipo e classificação), `catalogo.ts` e
+`painel-bloco.tsx` (tag digitada na condição), `src/test/automacoes-verificacoes.test.ts`
+(novo), `src/test/automacoes-banco-falso.ts` (o banco falso, que saiu do teste
+das ações para servir aos dois) e ajustes nos testes de fluxo e de referências.
+Um teste da B11-10 trocou de novo de exemplo de verificação "em breve": de tag
+para horário.
+
+**Verificação do ajuste:** suíte unitária com 42 arquivos e 475 testes passando,
+`tsc` e lint limpos, build com código 0. No Playwright, numa rota temporária
+apagada antes do commit, o seletor de atributo mostrou 7 verificações
+disponíveis e 3 "em breve", e a tag digitada "Cliente VIP" virou `clientevip`.
+
+## Ajuste de 07/10/2026: "mover card" segue a regra do CRM
+
+**O que o Luan viu:** uma regra "card movido para Sondagem → tem a tag `tag`? sim:
+adicionar tag `tem-tag` e mover para Onboarding / não: mover para Reposição" não
+mudou nenhum card de lugar. O botão de teste mostrava o caminho certo.
+
+**O que o banco mostrou:** o motor e a condição funcionaram. O contato com a tag
+seguiu pelo "sim" e ganhou `tem-tag`. As duas ações de mover apontavam para
+etapas do Funil de Recompra, e os dois contatos só tinham card no Funil de
+Entrada. "Mover card" move o card que o contato já tem naquele funil. Sem card,
+a ação falha, e por enquanto sem aviso nenhum, porque o histórico é da B11-03.
+O teste não mostrou isso porque ele não executa as ações.
+
+**Decidido com o Luan: seguir a regra do CRM.**
+- A automação não cria card em funil onde o contato não tem. Na Recompra, o card
+  nasce quando o card da Entrada chega em Ganho.
+- Mover para Ganho no Funil de Entrada passa a criar o card na Recompra, em
+  Onboarding, como o arrastar manual (`moverCard`). Antes, a automação só
+  mudava a etapa. Isso vale também para as regras antigas no branch.
+- No editor, a ação "mover card" com o Funil de Recompra mostra um aviso
+  explicando isso.
+
+**Descartado:** criar o card em qualquer funil. Um lead viraria cliente na
+Recompra (e mudaria de classificação) sem passar por Ganho.
+
+**Sequências da etapa (decidido pelo Luan, seção 7.5 das decisões):** a ação
+"mover card" ganhou a opção "Iniciar a sequência desta etapa", que só aparece
+para Ganho, Catálogo Enviado e Inativos e começa desmarcada. As etapas e as
+sequências ficam em `SEQUENCIA_DA_ETAPA` (`src/lib/fluxo-automacao.ts`), e o
+motor chama `processarGatilhoSequencia`, a mesma função do arrastar manual. A
+sequência só começa quando o card entra na etapa, e em Ganho só quando o card
+da Recompra nasce. Testes: 5 casos em `automacoes-acoes.test.ts`. Suíte
+unitária com 484 testes passando e build com código 0.
+
+**Arquivos:** `src/lib/automacoes/acoes.ts` (`abrirCardDeRecompra`),
+`painel-bloco.tsx` (aviso), `src/test/automacoes-acoes.test.ts` (4 testes) e
+`src/test/automacoes-banco-falso.ts` (respostas em ordem para tabelas
+consultadas mais de uma vez).
+
+**Como foi verificado (primeira parte):** 19 testes novos. A suíte unitária inteira, sem os
+`*.integration.test.ts`, deu 41 arquivos e 465 testes passando. `tsc` sem erro,
+lint limpo nos arquivos da issue e `npm run build` com código de saída 0. As
+ações rodando de verdade ficam para o teste no preview.
+
+## Teste no preview (07/10/2026): passou
+
+No preview `crm-exponencial-gsp333zcs (commit b8a28a6)`, com a empresa "[TESTE] Automações B11", pela tela:
+
+- **"card movido para Catálogo Enviado → adicionar tag `interessado`, tipo
+  Lojista, observações 'entrou em catálogo', atribuir ao time Entrada":** a Ana
+  ficou com a tag, o tipo e a linha nas observações. A conversa e o card dela
+  foram para o admin, único membro do time.
+- **"card movido para Nutrição → tem a tag `interessado`? sim: mover para Ganho
+  / não: mover para Perdido":** a Ana (com a tag) foi para Ganho e ganhou o card
+  na Recompra, em Onboarding. O Bruno (sem a tag) foi para Perdido.
+- **"card movido para Negociação → remover a tag `interessado`, remover a
+  etiqueta Interessado":** as duas saíram da Ana.
+- Nenhum erro no console.
+
+**Não testado no preview:** a opção "iniciar a sequência da etapa". A empresa
+de teste não tem sequência cadastrada, e as sequências mandam mensagem. A opção
+está coberta pelos testes automatizados (5 casos).
