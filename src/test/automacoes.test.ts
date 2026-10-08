@@ -15,7 +15,7 @@ vi.mock("@/lib/whatsapp-envio", async (importOriginal) => ({
 
 import { createServiceClient } from "@/integrations/supabase/service"
 import { gatilhoCorresponde, processarAutomacoes } from "@/lib/automacoes"
-import type { Fluxo, GatilhoTipo } from "@/lib/fluxo-automacao"
+import type { AcaoTipo, Fluxo, GatilhoTipo } from "@/lib/fluxo-automacao"
 import { enviarWhatsAppComMotivo } from "@/lib/whatsapp-envio"
 
 const mockCreateServiceClient = vi.mocked(createServiceClient)
@@ -37,6 +37,25 @@ function chain(resultado: Resultado) {
   return obj
 }
 
+/** Linha de `automation_flows` com um fluxo de dois blocos: gatilho → ação. */
+function regraDeDoisBlocos(
+  gatilho: GatilhoTipo,
+  parametrosDoGatilho: Record<string, string>,
+  acao: AcaoTipo,
+  parametrosDaAcao: Record<string, string>,
+  linha: { id?: string; created_at?: string } = {}
+) {
+  const posicao = { x: 0, y: 0 }
+  const fluxo: Fluxo = {
+    blocos: [
+      { id: "g", tipo: "gatilho", gatilho, parametros: parametrosDoGatilho, posicao },
+      { id: "a", tipo: "acao", acao, parametros: parametrosDaAcao, posicao },
+    ],
+    ligacoes: [{ de: "g", saida: "proximo", para: "a" }],
+  }
+  return { id: "regra-1", nome: "Regra", created_at: "2026-10-01T10:00:00Z", fluxo, repeticao: { modo: "sempre" }, ...linha }
+}
+
 describe("processarAutomacoes", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -49,18 +68,8 @@ describe("processarAutomacoes", () => {
       // B13-03: o contato não está na lixeira.
       rpc: vi.fn().mockResolvedValue({ data: false }),
       from: vi.fn().mockImplementation((table: string) => {
-        if (table === "automations") {
-          return chain({
-            data: [
-              {
-                id: "auto-1",
-                gatilho_tipo: "conversa_criada",
-                gatilho_config: {},
-                acao_tipo: "aplicar_etiqueta",
-                acao_config: { label_id: "label-1" },
-              },
-            ],
-          })
+        if (table === "automation_flows") {
+          return chain({ data: [regraDeDoisBlocos("conversa_criada", {}, "aplicar_etiqueta", { label_id: "label-1" })] })
         }
         if (table === "conversation_labels") return { upsert }
         return chain({ data: null })
@@ -87,16 +96,12 @@ describe("processarAutomacoes", () => {
       // B13-03: o contato não está na lixeira.
       rpc: vi.fn().mockResolvedValue({ data: false }),
       from: vi.fn().mockImplementation((table: string) => {
-        if (table === "automations") {
+        if (table === "automation_flows") {
           return chain({
             data: [
-              {
-                id: "auto-1",
-                gatilho_tipo: "card_movido",
-                gatilho_config: { funil: "entrada", etapa: "negociacao" },
-                acao_tipo: "aplicar_etiqueta",
-                acao_config: { label_id: "label-1" },
-              },
+              regraDeDoisBlocos("card_movido", { funil: "entrada", etapa: "negociacao" }, "aplicar_etiqueta", {
+                label_id: "label-1",
+              }),
             ],
           })
         }
@@ -140,18 +145,8 @@ describe("processarAutomacoes", () => {
       // B13-03: o contato não está na lixeira.
       rpc: vi.fn().mockResolvedValue({ data: false }),
       from: vi.fn().mockImplementation((table: string) => {
-        if (table === "automations") {
-          return chain({
-            data: [
-              {
-                id: "auto-1",
-                gatilho_tipo: "card_movido",
-                gatilho_config: {},
-                acao_tipo: "atribuir_atendente",
-                acao_config: { atendente_id: "user-7" },
-              },
-            ],
-          })
+        if (table === "automation_flows") {
+          return chain({ data: [regraDeDoisBlocos("card_movido", {}, "atribuir_atendente", { atendente_id: "user-7" })] })
         }
         if (table === "conversations") {
           const c = chain({ data: { id: "conv-9" } })
@@ -280,35 +275,43 @@ describe("processarAutomacoes com fluxo de blocos (B11-02)", () => {
     expect(mockEnviar).toHaveBeenCalledWith(expect.anything(), "ws-1", "contact-1", { tipo: "texto", texto: "Oi pela API Oficial" }, "conv-1")
   })
 
-  it("regras antigas e fluxos rodam juntos, na ordem de criação", async () => {
+  it("as regras do evento rodam na ordem de criação", async () => {
     const upsert = vi.fn().mockResolvedValue({ error: null })
-    const fluxoEtiqueta: Fluxo = {
-      blocos: [
-        { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao },
-        { id: "a", tipo: "acao", acao: "aplicar_etiqueta", parametros: { label_id: "label-do-fluxo" }, posicao },
-      ],
-      ligacoes: [{ de: "g", saida: "proximo", para: "a" }],
-    }
     banco({
-      automations: chain({
+      automation_flows: chain({
         data: [
-          {
-            id: "antiga-1",
+          regraDeDoisBlocos("conversa_criada", {}, "aplicar_etiqueta", { label_id: "label-da-segunda" }, {
+            id: "fluxo-2",
             created_at: "2026-10-02T10:00:00Z",
-            gatilho_tipo: "conversa_criada",
-            gatilho_config: {},
-            acao_tipo: "aplicar_etiqueta",
-            acao_config: { label_id: "label-da-antiga" },
-          },
+          }),
+          regraDeDoisBlocos("conversa_criada", {}, "aplicar_etiqueta", { label_id: "label-da-primeira" }, {
+            id: "fluxo-1",
+            created_at: "2026-10-01T10:00:00Z",
+          }),
         ],
       }),
-      automation_flows: chain({ data: [{ id: "fluxo-1", created_at: "2026-10-01T10:00:00Z", fluxo: fluxoEtiqueta }] }),
       conversation_labels: { upsert },
     })
 
     await processarAutomacoes(conversaCriada)
 
-    expect(upsert.mock.calls.map(([vinculo]) => vinculo.label_id)).toEqual(["label-do-fluxo", "label-da-antiga"])
+    expect(upsert.mock.calls.map(([vinculo]) => vinculo.label_id)).toEqual(["label-da-primeira", "label-da-segunda"])
+  })
+
+  it("não consulta a tabela das regras da primeira versão (B11-13)", async () => {
+    const tabelas: string[] = []
+    mockCreateServiceClient.mockReturnValue({
+      rpc: vi.fn().mockResolvedValue({ data: false }),
+      from: vi.fn((tabela: string) => {
+        tabelas.push(tabela)
+        return chain({ data: null })
+      }),
+    } as unknown as ReturnType<typeof createServiceClient>)
+
+    await processarAutomacoes(conversaCriada)
+
+    expect(tabelas).toContain("automation_flows")
+    expect(tabelas).not.toContain("automations")
   })
 
   it("fluxo com laço não roda, e as outras regras do evento rodam", async () => {
@@ -326,19 +329,15 @@ describe("processarAutomacoes com fluxo de blocos (B11-02)", () => {
       ],
     }
     banco({
-      automations: chain({
+      automation_flows: chain({
         data: [
-          {
-            id: "antiga-1",
+          { id: "fluxo-1", created_at: "2026-10-01T10:00:00Z", fluxo: fluxoComLaco },
+          regraDeDoisBlocos("conversa_criada", {}, "aplicar_etiqueta", { label_id: "label-da-outra" }, {
+            id: "fluxo-2",
             created_at: "2026-10-02T10:00:00Z",
-            gatilho_tipo: "conversa_criada",
-            gatilho_config: {},
-            acao_tipo: "aplicar_etiqueta",
-            acao_config: { label_id: "label-da-antiga" },
-          },
+          }),
         ],
       }),
-      automation_flows: chain({ data: [{ id: "fluxo-1", created_at: "2026-10-01T10:00:00Z", fluxo: fluxoComLaco }] }),
       conversation_labels: { upsert },
     })
 
@@ -346,40 +345,6 @@ describe("processarAutomacoes com fluxo de blocos (B11-02)", () => {
 
     expect(mockEnviar).not.toHaveBeenCalled()
     expect(upsert).toHaveBeenCalledTimes(1)
-  })
-
-  it("regra antiga que já tem versão em fluxo não roda; a versão nova roda (B11-10)", async () => {
-    const upsert = vi.fn().mockResolvedValue({ error: null })
-    const fluxoEtiqueta: Fluxo = {
-      blocos: [
-        { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao },
-        { id: "a", tipo: "acao", acao: "aplicar_etiqueta", parametros: { label_id: "label-da-nova" }, posicao },
-      ],
-      ligacoes: [{ de: "g", saida: "proximo", para: "a" }],
-    }
-    banco({
-      automations: chain({
-        data: [
-          {
-            id: "antiga-1",
-            created_at: "2026-10-02T10:00:00Z",
-            gatilho_tipo: "conversa_criada",
-            gatilho_config: {},
-            acao_tipo: "aplicar_etiqueta",
-            acao_config: { label_id: "label-da-antiga" },
-          },
-        ],
-      }),
-      // As duas consultas de automation_flows (regras e convertidas) leem esta linha
-      automation_flows: chain({
-        data: [{ id: "fluxo-1", created_at: "2026-10-07T10:00:00Z", fluxo: fluxoEtiqueta, automation_id: "antiga-1" }],
-      }),
-      conversation_labels: { upsert },
-    })
-
-    await processarAutomacoes(conversaCriada)
-
-    expect(upsert.mock.calls.map(([vinculo]) => vinculo.label_id)).toEqual(["label-da-nova"])
   })
 
   it("fluxo gravado fora do formato não roda", async () => {
@@ -399,19 +364,15 @@ describe("processarAutomacoes com fluxo de blocos (B11-02)", () => {
   it("erro de banco numa condição encerra só aquela regra", async () => {
     const upsert = vi.fn().mockResolvedValue({ error: null })
     banco({
-      automations: chain({
+      automation_flows: chain({
         data: [
-          {
-            id: "antiga-1",
+          { id: "fluxo-1", created_at: "2026-10-07T10:00:00Z", fluxo: fluxoPorCanal },
+          regraDeDoisBlocos("conversa_criada", {}, "aplicar_etiqueta", { label_id: "label-da-outra" }, {
+            id: "fluxo-2",
             created_at: "2026-10-08T10:00:00Z",
-            gatilho_tipo: "conversa_criada",
-            gatilho_config: {},
-            acao_tipo: "aplicar_etiqueta",
-            acao_config: { label_id: "label-da-antiga" },
-          },
+          }),
         ],
       }),
-      automation_flows: chain({ data: [{ id: "fluxo-1", created_at: "2026-10-07T10:00:00Z", fluxo: fluxoPorCanal }] }),
       conversations: chain({ data: null, error: { message: "timeout" } }),
       conversation_labels: { upsert },
     })
@@ -421,7 +382,7 @@ describe("processarAutomacoes com fluxo de blocos (B11-02)", () => {
     // O fluxo parou na condição: nenhuma das duas mensagens saiu
     expect(mockEnviar).not.toHaveBeenCalled()
     expect(upsert).toHaveBeenCalledWith(
-      { conversation_id: "conv-1", label_id: "label-da-antiga" },
+      { conversation_id: "conv-1", label_id: "label-da-outra" },
       { onConflict: "conversation_id,label_id" }
     )
   })
@@ -503,6 +464,8 @@ describe("histórico e proteção de repetição (B11-03)", () => {
       resultado: "concluida",
       motivo: null,
     })
+    // "Sempre" nem consulta a execução anterior
+    expect(h.filtros.some((f) => f[0] === "neq")).toBe(false)
     const caminho = h.gravadas[0].caminho as Array<Record<string, unknown>>
     expect(caminho.map((p) => [(p.bloco as { id: string }).id, p.ok])).toEqual([
       ["g", undefined],
@@ -584,33 +547,6 @@ describe("histórico e proteção de repetição (B11-03)", () => {
 
     expect(mockEnviar).not.toHaveBeenCalled()
     expect(h.gravadas[0]).toMatchObject({ resultado: "falhou", motivo: "Não foi possível conferir a proteção de repetição" })
-  })
-
-  it("regra antiga roda sempre e é gravada como 'antiga'", async () => {
-    const h = historico({ id: "qualquer" })
-    banco({
-      automations: chain({
-        data: [
-          {
-            id: "antiga-1",
-            nome: "Etiqueta na conversa nova",
-            created_at: "2026-10-02T10:00:00Z",
-            gatilho_tipo: "conversa_criada",
-            gatilho_config: {},
-            acao_tipo: "aplicar_etiqueta",
-            acao_config: { label_id: "label-1" },
-          },
-        ],
-      }),
-      automation_runs: h.obj,
-      conversation_labels: { upsert: vi.fn().mockResolvedValue({ error: null }) },
-    })
-
-    await processarAutomacoes(conversaCriada)
-
-    expect(h.gravadas[0]).toMatchObject({ regra_id: "antiga-1", regra_origem: "antiga", resultado: "concluida" })
-    // Sem proteção, nem consulta a execução anterior
-    expect(h.filtros.some((f) => f[0] === "neq")).toBe(false)
   })
 })
 

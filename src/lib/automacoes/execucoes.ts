@@ -24,7 +24,6 @@ export interface PassoGravado {
 
 export interface RegraDaExecucao {
   id: string
-  origem: "fluxo" | "antiga"
   nome: string
   repeticao: Repeticao
 }
@@ -132,7 +131,9 @@ export async function registrarExecucao(
     await supabase.from("automation_runs").insert({
       workspace_id: dados.gatilho.workspaceId,
       regra_id: dados.regra.id,
-      regra_origem: dados.regra.origem,
+      // A coluna separava as regras da primeira versão (`'antiga'`), que saíram
+      // na B11-13; ela continua obrigatória
+      regra_origem: "fluxo",
       regra_nome: dados.regra.nome,
       contact_id: dados.gatilho.contactId,
       evento: eventoGravado(dados.gatilho),

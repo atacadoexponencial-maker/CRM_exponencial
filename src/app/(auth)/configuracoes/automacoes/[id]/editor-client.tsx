@@ -32,7 +32,6 @@ export function EditorClient({
   async function salvar(editada: RegraEditada) {
     const resultado = await salvarRegra({
       id: idSalvo.current,
-      automationId: regra.automationId,
       nome: editada.nome,
       fluxo: editada.fluxo,
       repeticao: editada.repeticao,

@@ -2,11 +2,8 @@
 // partir do gatilho. Condições seguem pelo "sim" ou pelo "não", ações executam
 // e seguem mesmo se falharem, e o caminho termina numa saída sem ligação.
 //
-// Até o merge do branch da B11, as regras vêm de duas tabelas:
-//  - `automations`, as da primeira versão (um gatilho, uma ação), que a
-//    produção continua editando. Viram fluxo na hora (`regra-antiga.ts`).
-//  - `automation_flows`, as regras em fluxo, que só o branch conhece.
-// As duas rodam juntas, na ordem de criação.
+// As regras ficam em `automation_flows` e rodam na ordem de criação. As da
+// primeira versão (`automations`, um gatilho e uma ação) saíram na B11-13.
 //
 // Antes de percorrer, a proteção de repetição da regra pode barrar o contato;
 // depois, a execução é gravada no histórico, com o caminho (B11-03, `execucoes.ts`).
@@ -39,7 +36,6 @@ import {
   type RegraDaExecucao,
 } from "./execucoes"
 import { lerFluxo } from "./fluxo-recebido"
-import { fluxoDaRegraAntiga } from "./regra-antiga"
 import { verificacaoVale } from "./verificacoes"
 
 export type { GatilhoAutomacao } from "./contexto"
@@ -111,56 +107,22 @@ async function executarRegra(contexto: ContextoDaExecucao, regra: RegraCarregada
   }
 }
 
-/**
- * Regras ativas do workspace para o gatilho, das duas tabelas, na ordem de
- * criação. As consultas são independentes: se uma falhar (por exemplo,
- * `automation_flows` ainda não existe no banco), as regras da outra rodam.
- *
- * Regra antiga que já tem versão em fluxo (B11-10) não roda, mesmo com a versão
- * nova pausada: o admin trocou uma pela outra.
- */
+/** Regras ativas do workspace para o gatilho, na ordem de criação. */
 async function carregarRegras(supabase: ServiceClient, gatilho: GatilhoAutomacao): Promise<RegraCarregada[]> {
-  const [antigas, fluxos, convertidas] = await Promise.all([
-    supabase
-      .from("automations")
-      .select("id, nome, created_at, gatilho_tipo, gatilho_config, acao_tipo, acao_config")
-      .eq("workspace_id", gatilho.workspaceId)
-      .eq("gatilho_tipo", gatilho.tipo)
-      .eq("ativa", true),
-    supabase
-      .from("automation_flows")
-      .select("id, nome, created_at, fluxo, repeticao")
-      .eq("workspace_id", gatilho.workspaceId)
-      .eq("gatilho_tipo", gatilho.tipo)
-      .eq("ativa", true),
-    supabase
-      .from("automation_flows")
-      .select("automation_id")
-      .eq("workspace_id", gatilho.workspaceId)
-      .not("automation_id", "is", null),
-  ])
+  const { data } = await supabase
+    .from("automation_flows")
+    .select("id, nome, created_at, fluxo, repeticao")
+    .eq("workspace_id", gatilho.workspaceId)
+    .eq("gatilho_tipo", gatilho.tipo)
+    .eq("ativa", true)
 
-  const substituidas = new Set((convertidas.data ?? []).map((r) => r.automation_id))
   const regras: RegraCarregada[] = []
-  for (const r of antigas.data ?? []) {
-    if (substituidas.has(r.id)) continue
-    // Regra antiga não tem proteção de repetição: roda sempre, como rodava
-    regras.push({
-      id: r.id,
-      origem: "antiga",
-      nome: r.nome,
-      repeticao: { modo: "sempre" },
-      criadaEm: r.created_at,
-      fluxo: fluxoDaRegraAntiga(r),
-    })
-  }
-  for (const r of fluxos.data ?? []) {
+  for (const r of data ?? []) {
     // Fluxo fora do formato (gravado por fora do editor) não roda
     const fluxo = lerFluxo(r.fluxo)
     if (!fluxo) continue
     regras.push({
       id: r.id,
-      origem: "fluxo",
       nome: r.nome,
       repeticao: lerRepeticao(r.repeticao),
       criadaEm: r.created_at,

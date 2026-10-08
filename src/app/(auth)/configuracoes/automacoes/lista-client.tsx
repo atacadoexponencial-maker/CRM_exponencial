@@ -15,8 +15,6 @@ export function ListaClient({ regras, opcoes }: { regras: RegraListada[]; opcoes
   const [erro, setErro] = useState<string | null>(null)
   const [horarioAberto, setHorarioAberto] = useState(false)
 
-  const porId = (id: string) => regras.find((r) => r.id === id)
-
   async function executar(acao: Promise<{ erro?: string }>) {
     setErro(null)
     const resultado = await acao
@@ -39,13 +37,9 @@ export function ListaClient({ regras, opcoes }: { regras: RegraListada[]; opcoes
         onNova={() => router.push("/configuracoes/automacoes/nova")}
         onAbrirHistorico={() => router.push("/configuracoes/automacoes/historico")}
         onAbrirHorario={() => setHorarioAberto(true)}
-        onEditar={(id) =>
-          router.push(
-            porId(id)?.versaoAntiga ? `/configuracoes/automacoes/nova?antiga=${id}` : `/configuracoes/automacoes/${id}`
-          )
-        }
+        onEditar={(id) => router.push(`/configuracoes/automacoes/${id}`)}
         onAlternar={(id, ativa) => executar(alternarRegra(id, ativa))}
-        onDuplicar={(id) => executar(duplicarRegra(id, porId(id)?.versaoAntiga ?? false))}
+        onDuplicar={(id) => executar(duplicarRegra(id))}
         onVerHistorico={(id) => router.push(`/configuracoes/automacoes/historico?regra=${id}`)}
         onExcluir={(id) => executar(excluirRegra(id))}
       />

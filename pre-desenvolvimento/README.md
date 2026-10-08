@@ -49,9 +49,8 @@ Quando a última issue de uma spec entrar no ar, mova a spec para
   `docs/specs-arquivadas/spec-automacoes-v2.md`, issues em
   `issues/concluidas_B11/`, decisões em `decisoes/B11-automacoes-em-fluxo.md`.
   Feita no branch `b11-automacoes-v2`, com merge único no `master` (75513a6).
-  - **Ainda falta:** apagar a estrutura antiga (`automations`), numa etapa
-    separada, quando nada mais a usar. Hoje só a empresa de teste tem uma regra
-    lá.
+  - **Em andamento:** `issues/B11-13-remover-regras-antigas.md`, que tira a
+    camada das regras da primeira versão e depois apaga a tabela `automations`.
 
 As issues da parte A (gateway) ficam no repositório `whatsapp-gateway`.
 
