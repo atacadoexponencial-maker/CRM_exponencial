@@ -97,6 +97,7 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
       conversas={conversasIniciais}
       temMaisConversas={conversas.length === TAMANHO_PAGINA_CONVERSAS}
       papel={perfil.role}
+      userId={user.id}
       nomeUsuario={perfil.name}
       workspaceId={perfil.workspace_id}
       atendentes={atendentes}

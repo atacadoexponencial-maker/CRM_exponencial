@@ -17,6 +17,8 @@ interface ChatLayoutProps {
   /** A primeira página veio cheia: há mais para carregar ao rolar. */
   temMaisConversas?: boolean
   papel: string
+  /** B21-01: o atendente ouve a mensagem nova no tópico dele, `usuario:<id>`. */
+  userId: string
   nomeUsuario: string
   workspaceId: string
   atendentes: Array<{ id: string; nome: string }>
@@ -28,7 +30,7 @@ interface ChatLayoutProps {
   caixaRecolhidaInicial?: boolean
 }
 
-export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsuario, workspaceId, atendentes, atendentesTransferir, etiquetasDisponiveis, mensagensRapidas, conversaInicialId, caixaRecolhidaInicial = false }: ChatLayoutProps) {
+export function ChatLayout({ conversas, temMaisConversas = false, papel, userId, nomeUsuario, workspaceId, atendentes, atendentesTransferir, etiquetasDisponiveis, mensagensRapidas, conversaInicialId, caixaRecolhidaInicial = false }: ChatLayoutProps) {
   const [conversasState, setConversasState] = useState<Conversa[]>(conversas)
   const [temMais, setTemMais] = useState(temMaisConversas)
   const [carregandoMais, setCarregandoMais] = useState(false)
@@ -126,6 +128,36 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsu
         }
       )
       .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `workspace_id=eq.${workspaceId}`,
+        },
+        (payload) => {
+          const row = payload.new as { id: string; status: string; conversation_id: string }
+          setMensagensLocais((prev) => {
+            const lista = prev[row.conversation_id]
+            if (!lista) return prev
+            return {
+              ...prev,
+              [row.conversation_id]: lista.map((m) =>
+                m.id === row.id ? { ...m, status: row.status as Mensagem["status"] } : m
+              ),
+            }
+          })
+        }
+      )
+
+    // B21-01: a mensagem nova leva o texto, então chega por um tópico só de quem
+    // pode lê-la — a gestão ouve a empresa toda; o atendente, só o que é dele.
+    const canalMensagens = supabase
+      .channel(
+        papel === "atendente" ? `usuario:${userId}` : `workspace:${workspaceId}:gestao`,
+        { config: { private: true } }
+      )
+      .on(
         "broadcast",
         { event: "nova_mensagem" },
         (payload) => {
@@ -157,28 +189,6 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsu
           })
         }
       )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "messages",
-          filter: `workspace_id=eq.${workspaceId}`,
-        },
-        (payload) => {
-          const row = payload.new as { id: string; status: string; conversation_id: string }
-          setMensagensLocais((prev) => {
-            const lista = prev[row.conversation_id]
-            if (!lista) return prev
-            return {
-              ...prev,
-              [row.conversation_id]: lista.map((m) =>
-                m.id === row.id ? { ...m, status: row.status as Mensagem["status"] } : m
-              ),
-            }
-          })
-        }
-      )
 
     // O canal precisa entrar com a credencial do usuário. Sem ela, entra como
     // anônimo: o RLS esconde todo `postgres_changes` de conversas e mensagens,
@@ -188,14 +198,18 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, nomeUsu
     let encerrado = false
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) await supabase.realtime.setAuth(session.access_token)
-      if (!encerrado) channel.subscribe()
+      if (!encerrado) {
+        channel.subscribe()
+        canalMensagens.subscribe()
+      }
     })
 
     return () => {
       encerrado = true
       supabase.removeChannel(channel)
+      supabase.removeChannel(canalMensagens)
     }
-  }, [workspaceId])
+  }, [workspaceId, papel, userId])
 
   useEffect(() => {
     if (!conversaInicialId) return

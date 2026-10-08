@@ -49,7 +49,8 @@ beforeAll(async () => {
     { id: atendente, workspace_id: empresa, name: "Atendente", role: "atendente" },
   ])
   contato = (await service.from("contacts").insert({ workspace_id: empresa, name: "Cliente", phone_number: `55219${String(ts).slice(-8)}` }).select("id").single()).data!.id
-  conversa = (await service.from("conversations").insert({ workspace_id: empresa, contact_id: contato }).select("id").single()).data!.id
+  // B21-01: atendente só lê a conversa em que é o responsável.
+  conversa = (await service.from("conversations").insert({ workspace_id: empresa, contact_id: contato, assigned_to: atendente }).select("id").single()).data!.id
   await service.from("messages").insert({ workspace_id: empresa, conversation_id: conversa, direction: "inbound", type: "text", content: "oi" })
 
   navegadorAdmin = novoCliente()

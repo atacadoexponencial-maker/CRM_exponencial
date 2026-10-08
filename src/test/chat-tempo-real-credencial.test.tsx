@@ -3,7 +3,7 @@
 // a lista só mudava com F5. Cliente Supabase falso; nenhuma rede.
 
 import { render, waitFor } from "@testing-library/react"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const ordem: string[] = []
 const canal = {
@@ -37,22 +37,47 @@ vi.mock("@/app/(auth)/chat/components/painel-conversa", () => ({ PainelConversa:
 
 import { ChatLayout } from "@/app/(auth)/chat/components/chat-layout"
 
-describe("tempo real da caixa de entrada", () => {
-  it("entrega a credencial do usuário ao canal antes de começar a escutar", async () => {
-    render(
-      <ChatLayout
-        conversas={[]}
-        papel="admin"
-        nomeUsuario="Admin"
-        workspaceId="ws-1"
-        atendentes={[]}
-        atendentesTransferir={[]}
-        etiquetasDisponiveis={[]}
-        mensagensRapidas={[]}
-      />
-    )
+function renderizar(papel: string) {
+  return render(
+    <ChatLayout
+      conversas={[]}
+      papel={papel}
+      userId="user-1"
+      nomeUsuario="Usuário"
+      workspaceId="ws-1"
+      atendentes={[]}
+      atendentesTransferir={[]}
+      etiquetasDisponiveis={[]}
+      mensagensRapidas={[]}
+    />
+  )
+}
 
-    await waitFor(() => expect(canal.subscribe).toHaveBeenCalledTimes(1))
-    expect(ordem).toEqual(["setAuth:token-do-usuario", "subscribe"])
+describe("tempo real da caixa de entrada", () => {
+  beforeEach(() => {
+    ordem.length = 0
+    vi.clearAllMocks()
+  })
+
+  it("entrega a credencial do usuário aos canais antes de começar a escutar", async () => {
+    renderizar("admin")
+
+    // B21-01: dois canais — o da empresa e o das mensagens novas.
+    await waitFor(() => expect(canal.subscribe).toHaveBeenCalledTimes(2))
+    expect(ordem).toEqual(["setAuth:token-do-usuario", "subscribe", "subscribe"])
+  })
+
+  it("should ouvir mensagens novas no tópico da gestão quando é admin ou gerente", async () => {
+    renderizar("gerente")
+    await waitFor(() => expect(canal.subscribe).toHaveBeenCalledTimes(2))
+    const topicos = supabaseFalso.channel.mock.calls.map((c) => (c as unknown as [string])[0])
+    expect(topicos).toEqual(["workspace:ws-1", "workspace:ws-1:gestao"])
+  })
+
+  it("should ouvir mensagens novas só no tópico dele quando é atendente", async () => {
+    renderizar("atendente")
+    await waitFor(() => expect(canal.subscribe).toHaveBeenCalledTimes(2))
+    const topicos = supabaseFalso.channel.mock.calls.map((c) => (c as unknown as [string])[0])
+    expect(topicos).toEqual(["workspace:ws-1", "usuario:user-1"])
   })
 })

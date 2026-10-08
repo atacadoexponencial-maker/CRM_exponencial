@@ -521,16 +521,18 @@ export async function atribuirConversa(conversaId: string, atendenteId: string):
 
   const { data: perfil } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, workspace_id")
     .eq("id", user.id)
     .single()
 
   if (!perfil || perfil.role === "atendente") throw new Error("Sem permissão para atribuir conversas")
 
+  // B21-01: o responsável é sempre alguém da mesma empresa.
   const { data: atendente } = await supabase
     .from("profiles")
     .select("name")
     .eq("id", atendenteId)
+    .eq("workspace_id", perfil.workspace_id)
     .single()
 
   if (!atendente) throw new Error("Atendente não encontrado")
@@ -553,13 +555,23 @@ export async function transferirConversa(conversaId: string, atendenteId: string
 
   const { data: perfil } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, workspace_id")
     .eq("id", user.id)
     .single()
 
   if (!perfil) throw new Error("Não autorizado")
 
   if (perfil.role === "atendente") {
+    // B21-01: atendente só passa adiante conversa que é dele.
+    const { data: conversa } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("id", conversaId)
+      .eq("assigned_to", user.id)
+      .maybeSingle()
+
+    if (!conversa) throw new Error("Sem permissão para transferir conversa")
+
     const { data: timesUsuario } = await supabase
       .from("user_teams")
       .select("team_id")
@@ -584,14 +596,24 @@ export async function transferirConversa(conversaId: string, atendenteId: string
     .from("profiles")
     .select("name")
     .eq("id", atendenteId)
+    .eq("workspace_id", perfil.workspace_id)
     .single()
 
   if (!atendente) throw new Error("Atendente não encontrado")
 
-  const { error } = await supabase
-    .from("conversations")
-    .update({ assigned_to: atendenteId })
-    .eq("id", conversaId)
+  // B21-01: o banco não deixa o atendente trocar o responsável; conferido acima que a
+  // conversa é dele e o colega é do time, a troca é gravada pelo servidor.
+  const { error } = perfil.role === "atendente"
+    ? await createServiceClient()
+        .from("conversations")
+        .update({ assigned_to: atendenteId })
+        .eq("id", conversaId)
+        .eq("workspace_id", perfil.workspace_id)
+        .eq("assigned_to", user.id)
+    : await supabase
+        .from("conversations")
+        .update({ assigned_to: atendenteId })
+        .eq("id", conversaId)
 
   if (error) throw new Error(error.message)
 

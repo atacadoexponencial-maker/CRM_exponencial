@@ -8,6 +8,8 @@
 // próximo carregamento da página; exceção aqui perderia a resposta ao webhook e
 // faria o gateway reenviar um evento já gravado.
 
+import { createServiceClient } from "@/integrations/supabase/service"
+
 export type MensagemTransmitida = {
   id: string
   conversation_id: string
@@ -19,7 +21,7 @@ export type MensagemTransmitida = {
   status: string | null
 }
 
-async function transmitir(workspaceId: string, event: string, payload: unknown): Promise<void> {
+async function enviarAoRealtime(mensagens: Array<{ topic: string; event: string; payload: unknown }>): Promise<void> {
   await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/realtime/v1/api/broadcast`, {
     method: "POST",
     headers: {
@@ -28,14 +30,33 @@ async function transmitir(workspaceId: string, event: string, payload: unknown):
       "Authorization": `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
     },
     body: JSON.stringify({
-      // B19-04: canal privado — só quem é da empresa entra (policy em realtime.messages).
-      messages: [{ topic: `workspace:${workspaceId}`, event, payload, private: true }],
+      // B19-04: canais privados — só entra quem passa na policy de realtime.messages.
+      messages: mensagens.map((m) => ({ ...m, private: true })),
     }),
   })
 }
 
+async function transmitir(workspaceId: string, event: string, payload: unknown): Promise<void> {
+  await enviarAoRealtime([{ topic: `workspace:${workspaceId}`, event, payload }])
+}
+
+/**
+ * B21-01: a mensagem leva o texto, então não vai mais para o tópico da empresa toda.
+ * Vai para `workspace:<id>:gestao` (Admin/Gerente) e para `usuario:<responsável>` —
+ * conversa sem responsável só a gestão vê, como na caixa de entrada.
+ */
 export async function transmitirMensagem(mensagem: MensagemTransmitida): Promise<void> {
-  await transmitir(mensagem.workspace_id, "nova_mensagem", mensagem)
+  const { data: conversa } = await createServiceClient()
+    .from("conversations")
+    .select("assigned_to")
+    .eq("id", mensagem.conversation_id)
+    .eq("workspace_id", mensagem.workspace_id)
+    .maybeSingle()
+
+  const topicos = [`workspace:${mensagem.workspace_id}:gestao`]
+  if (conversa?.assigned_to) topicos.push(`usuario:${conversa.assigned_to}`)
+
+  await enviarAoRealtime(topicos.map((topic) => ({ topic, event: "nova_mensagem", payload: mensagem })))
 }
 
 /**

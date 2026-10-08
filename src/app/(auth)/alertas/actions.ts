@@ -1,5 +1,6 @@
 "use server"
 
+import { createServiceClient } from "@/integrations/supabase/service"
 import { sessaoAtual } from "@/lib/sessao"
 import {
   calcularAlertas,
@@ -112,16 +113,28 @@ export async function listarAlertas(): Promise<{
   const ultimaAtividade: Record<string, string> = {}
   const conversaPorContato: Record<string, string> = {}
   if (contactIds.length > 0) {
-    const { data: conversas } = await supabase
-      .from("conversations")
-      .select("id, contact_id, last_message_at")
-      .in("contact_id", contactIds)
-      .order("last_message_at", { ascending: false })
+    // B21-01: o atendente só lê as conversas dele, mas o card dele pode ter conversa de
+    // outro ou sem responsável. A última atividade (só o horário) vem pelo servidor, para
+    // o alerta não mudar; o link para a conversa só aparece se ele puder abri-la.
+    const [{ data: atividades }, { data: conversas }] = await Promise.all([
+      createServiceClient()
+        .from("conversations")
+        .select("contact_id, last_message_at")
+        .eq("workspace_id", perfil.workspace_id)
+        .in("contact_id", contactIds)
+        .order("last_message_at", { ascending: false }),
+      supabase
+        .from("conversations")
+        .select("id, contact_id")
+        .in("contact_id", contactIds)
+        .order("last_message_at", { ascending: false }),
+    ])
 
+    for (const c of atividades ?? []) {
+      if (c.contact_id && c.last_message_at && !ultimaAtividade[c.contact_id]) ultimaAtividade[c.contact_id] = c.last_message_at
+    }
     for (const c of conversas ?? []) {
-      if (!c.contact_id) continue
-      if (!conversaPorContato[c.contact_id]) conversaPorContato[c.contact_id] = c.id
-      if (c.last_message_at && !ultimaAtividade[c.contact_id]) ultimaAtividade[c.contact_id] = c.last_message_at
+      if (c.contact_id && !conversaPorContato[c.contact_id]) conversaPorContato[c.contact_id] = c.id
     }
   }
 
