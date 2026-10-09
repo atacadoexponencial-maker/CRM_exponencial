@@ -592,6 +592,13 @@ describe("gatilhos de tag, etiqueta e dado do contato (B11-06)", () => {
     expect(gatilhoCorresponde(bloco("dado_contato_alterado", { campo: "tipo" }), dado("cidade", "Natal"))).toBe(false)
   })
 
+  it("B22-05: o valor do dado casa sem diferença de maiúscula, acento e espaço", () => {
+    const cidade = bloco("dado_contato_alterado", { campo: "cidade", valor: "são paulo" })
+    expect(gatilhoCorresponde(cidade, dado("cidade", "São Paulo"))).toBe(true)
+    expect(gatilhoCorresponde(cidade, dado("cidade", "SAO  PAULO"))).toBe(true)
+    expect(gatilhoCorresponde(cidade, dado("cidade", "São Paulo do Potengi"))).toBe(false)
+  })
+
   it("gatilho de outro tipo não casa", () => {
     expect(gatilhoCorresponde(bloco("tag_adicionada"), etiqueta("l1"))).toBe(false)
   })

@@ -17,6 +17,7 @@
 // Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seções 5, 8 e 11.
 
 import { createServiceClient } from "@/integrations/supabase/service"
+import { normalizarTexto } from "@/lib/catalogo/planilha"
 import {
   gatilhoDoFluxo,
   lerRepeticao,
@@ -144,8 +145,9 @@ export function gatilhoCorresponde(bloco: BlocoGatilho, gatilho: GatilhoAutomaca
     case "etiqueta_aplicada":
       return !p.label_id || p.label_id === gatilho.labelId
     case "dado_contato_alterado":
-      // O campo é obrigatório no gatilho; o valor, não
-      return p.campo === gatilho.campo && (!p.valor || p.valor.trim() === gatilho.valor)
+      // O campo é obrigatório no gatilho; o valor, não. Sem diferença de
+      // maiúscula, acento e espaço, como as verificações de texto (B22-05)
+      return p.campo === gatilho.campo && (!p.valor || normalizarTexto(p.valor) === normalizarTexto(gatilho.valor))
     default:
       return true
   }

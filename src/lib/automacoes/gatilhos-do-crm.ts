@@ -11,6 +11,7 @@
 
 import { calcularClassificacao } from "@/app/(auth)/contatos/classificacao"
 import { createServiceClient } from "@/integrations/supabase/service"
+import { normalizarTexto } from "@/lib/catalogo/planilha"
 import { normalizarTag } from "@/lib/fluxo-automacao"
 import { dispararAutomacoes } from "./fila"
 
@@ -23,11 +24,15 @@ type CardDoContato = { id?: string; funil: string; etapa: string }
 
 const limpo = (valor: string | null | undefined) => (valor ?? "").trim()
 
-/** Os campos que mudaram de fato, com o valor novo. Campo que não veio em `depois` não mudou. */
+/**
+ * Os campos que mudaram de fato, com o valor novo. Campo que não veio em `depois`
+ * não mudou. Trocar só maiúscula, acento ou espaço ("São Paulo" → "são paulo")
+ * também não conta (B22-05): o valor é gravado, mas o gatilho não dispara.
+ */
 export function camposQueMudaram(antes: DadosDoContato, depois: DadosDoContato): Array<{ campo: CampoEditavel; valor: string }> {
-  return CAMPOS_EDITAVEIS.filter((campo) => campo in depois && limpo(antes[campo]) !== limpo(depois[campo])).map(
-    (campo) => ({ campo, valor: limpo(depois[campo]) })
-  )
+  return CAMPOS_EDITAVEIS.filter(
+    (campo) => campo in depois && normalizarTexto(limpo(antes[campo])) !== normalizarTexto(limpo(depois[campo]))
+  ).map((campo) => ({ campo, valor: limpo(depois[campo]) }))
 }
 
 /**

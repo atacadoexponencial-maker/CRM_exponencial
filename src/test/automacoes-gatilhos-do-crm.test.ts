@@ -49,6 +49,12 @@ describe("camposQueMudaram", () => {
     expect(camposQueMudaram({ cidade: null }, { cidade: "" })).toEqual([])
   })
 
+  it("B22-05: trocar só maiúscula, acento ou espaço não conta como mudança", () => {
+    expect(camposQueMudaram({ cidade: "São Paulo" }, { cidade: "são paulo" })).toEqual([])
+    expect(camposQueMudaram({ cidade: "Sao Paulo" }, { cidade: "São  Paulo" })).toEqual([])
+    expect(camposQueMudaram({ cidade: "São Paulo" }, { cidade: "Santos" })).toEqual([{ campo: "cidade", valor: "Santos" }])
+  })
+
   it("campo que não veio no depois não conta como mudança", () => {
     expect(camposQueMudaram({ tipo: "lojista", nicho: "Moda" }, { tipo: "lojista" })).toEqual([])
   })

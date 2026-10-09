@@ -382,6 +382,11 @@ Não disparam: a tag que o contato já tinha (o banco recusa a repetida), a
 etiqueta que a conversa já tinha e o dado salvo com o mesmo valor. Um dado
 apagado dispara com valor vazio.
 
+*Atualizado em 09/10/2026 (B22-05, achado M1 do QA):* "mudar" ignora maiúscula,
+acento e espaços repetidos, com a mesma normalização das verificações de texto.
+Trocar "São Paulo" por "são paulo" grava o valor novo, mas não dispara. O valor do
+gatilho também casa normalizado: "são paulo" no gatilho casa com "São Paulo".
+
 ### 9.4 Achado: os menus do Base UI não usam `onSelect`
 
 Ao testar a "etiqueta aplicada" pelo chat no preview, clicar na etiqueta não
