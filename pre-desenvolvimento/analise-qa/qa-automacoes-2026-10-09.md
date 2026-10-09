@@ -36,7 +36,7 @@ Total: nenhum crítico de segurança. 1 grave de regra de negócio, 5 altos, ~20
 - [ ] M4. Falha de rede no envio aparece só como "Erro inesperado ao executar a ação". (motor)
 - [ ] M5. Fluxo inválido gravado direto no banco (o admin pode, pela RLS): laço/dois gatilhos → regra pulada sem registro; bloco sem tipo ou 201 blocos → regra some da lista mesmo ativa (não dá para pausar/excluir pela tela); condição vazia → roda. (bordas)
 - [ ] M6. Contato com dois cards no mesmo funil → mover card e condição de etapa falham com "erro no banco"; origem provável `criarNovoLead` sem conferir card existente (= A6 do QA de 06/10). (bordas)
-- [ ] M7. Envio usa o número gravado na conversa mesmo removido/desconectado (`whatsapp/index.ts:110`). (motor — suspeita)
+- [x] M7. Envio usa o número gravado na conversa mesmo removido/desconectado (`whatsapp/index.ts:110`). (motor — suspeita) → **Conferido em 09/10, sem mudança:** o envio falha com "O número de envio estava fora do ar"; decidido não trocar de número (decisões, seção 21).
 
 **Referências apagadas**
 - [ ] M8. Etiqueta/time/mensagem rápida apagados: bloco e painel mostram o UUID em vez do nome; erro só no topo ao salvar, não no bloco; lista não avisa; reativar não confere; para time apagado o motivo engana ("time não tem atendente ativo"). `frases-fluxo.ts:19`. (editor, bordas)

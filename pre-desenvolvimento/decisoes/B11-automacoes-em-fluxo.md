@@ -968,3 +968,22 @@ O QA de 09/10 (achado A6) apontou dois problemas na escolha por carga da seção
 - **Aceitar a corrida como limite conhecido.** Rajadas de leads são justamente
   campanha e anúncio, quando a divisão mais importa.
 
+## 21. Número da conversa fora do ar: falha, sem trocar de número (M7, 09/10/2026)
+
+O QA de 09/10 (achado M7, suspeita) apontou que o envio usa o número gravado na
+conversa mesmo quando ele foi desconectado ou removido
+(`resolverProviderDaConversa` e `resolverProviderDoContato`, em
+`src/lib/whatsapp/index.ts`).
+
+**Conferido:** é isso mesmo, e o envio falha. O gateway recusa número pausado
+("instância não conectada", spec da B9) e número que ele não conhece mais. A
+automação registra no histórico "O WhatsApp recusou o envio: O número de envio
+estava fora do ar.". Nenhuma mensagem sai por um número pausado.
+
+**Decidido pelo Luan:** fica assim. O cliente só recebe do número com que já
+conversa.
+
+**Descartado:** cair para outro número conectado da empresa. O cliente passaria a
+receber de um número que não conhece, no meio da conversa. E o caminho é o mesmo
+do chat e das sequências, então a mudança valeria para eles também.
+
