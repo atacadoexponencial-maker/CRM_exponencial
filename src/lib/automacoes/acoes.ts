@@ -288,14 +288,30 @@ async function abrirCardDeRecompra(
  * Passa a conversa do evento e o card do contato para o atendente (decisões,
  * seção 10.5). As duas gravações são tentadas, como na primeira versão: a
  * falha de uma não impede a outra.
+ *
+ * Como o "Atribuir" do chat, a conversa em espera passa a em atendimento
+ * (B22-03). Resolvida continua resolvida: reabrir é outra ação.
  */
 async function atribuir(contexto: ContextoDaExecucao, atendenteId: string): Promise<ResultadoAcao> {
   const { supabase } = contexto
   const erros: Array<{ code?: string } | null> = []
   const conversaId = await conversaDoEvento(contexto)
   if (conversaId) {
-    const { error } = await supabase.from("conversations").update({ assigned_to: atendenteId }).eq("id", conversaId)
-    erros.push(error)
+    const { data: conversa, error: erroAoLer } = await supabase
+      .from("conversations")
+      .select("status")
+      .eq("id", conversaId)
+      .maybeSingle()
+    if (erroAoLer) {
+      erros.push(erroAoLer)
+    } else {
+      const mudanca =
+        conversa?.status === "em_espera"
+          ? { assigned_to: atendenteId, status: "em_atendimento" }
+          : { assigned_to: atendenteId }
+      const { error } = await supabase.from("conversations").update(mudanca).eq("id", conversaId)
+      erros.push(error)
+    }
   }
   const card = await cardDoContato(contexto)
   if (card.erro) erros.push(card.erro)

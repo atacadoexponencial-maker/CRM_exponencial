@@ -553,3 +553,46 @@ describe("atribuir atendente só para quem está ativo (B22-02)", () => {
     expect(b.gravacoes("conversations")).toEqual([])
   })
 })
+
+describe("atribuir põe a conversa em espera em atendimento, como o chat (B22-03)", () => {
+  const atribuirU1 = acao("atribuir_atendente", { atendente_id: "u-1" })
+
+  it("conversa em espera: passa a em atendimento com o atendente", async () => {
+    const b = banco({ ...ATENDENTE_ATIVO, conversations: { um: { status: "em_espera" } } })
+    expect(await executarAcao(b.contexto(conversaCriada), atribuirU1)).toEqual({ ok: true })
+    expect(b.gravacoes("conversations")[0].args[0]).toEqual({ assigned_to: "u-1", status: "em_atendimento" })
+  })
+
+  it("conversa já em atendimento: só troca o atendente", async () => {
+    const b = banco({ ...ATENDENTE_ATIVO, conversations: { um: { status: "em_atendimento" } } })
+    await executarAcao(b.contexto(conversaCriada), atribuirU1)
+    expect(b.gravacoes("conversations")[0].args[0]).toEqual({ assigned_to: "u-1" })
+  })
+
+  it("conversa resolvida: continua resolvida, só troca o atendente", async () => {
+    const b = banco({ ...ATENDENTE_ATIVO, conversations: { um: { status: "resolvida" } } })
+    await executarAcao(b.contexto(conversaCriada), atribuirU1)
+    expect(b.gravacoes("conversations")[0].args[0]).toEqual({ assigned_to: "u-1" })
+  })
+
+  it("'atribuir ao time' também põe em atendimento", async () => {
+    const b = banco({
+      user_teams: { lista: [{ user_id: "u-1" }] },
+      profiles: { lista: [{ id: "u-1", name: "Ana" }] },
+      conversations: { lista: [], um: { status: "em_espera" } },
+    })
+    expect(await executarAcao(b.contexto(conversaCriada), acao("atribuir_time", { time_id: "time-1" }))).toEqual({ ok: true })
+    expect(b.gravacoes("conversations")[0].args[0]).toEqual({ assigned_to: "u-1", status: "em_atendimento" })
+  })
+
+  it("erro ao ler a conversa: não grava nela, passa o card e conta como erro", async () => {
+    const b = banco({
+      ...ATENDENTE_ATIVO,
+      conversations: { erro: { message: "timeout" } },
+      pipeline_cards: { lista: [{ id: "card-entrada", funil: "entrada" }] },
+    })
+    expect(await executarAcao(b.contexto(conversaCriada), atribuirU1)).toEqual({ ok: false, motivo: "Erro ao gravar no banco" })
+    expect(b.gravacoes("conversations")).toEqual([])
+    expect(b.gravacoes("pipeline_cards")[0].args[0]).toEqual({ atendente_id: "u-1" })
+  })
+})

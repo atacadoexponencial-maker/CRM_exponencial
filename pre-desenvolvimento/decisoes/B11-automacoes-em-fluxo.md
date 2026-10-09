@@ -904,3 +904,20 @@ conferir só ao salvar não basta.
 - **Conferir só ao executar.** O admin só descobriria pelo histórico um erro que
   dá para mostrar na hora de salvar.
 
+## 19. "Atribuir" põe a conversa em atendimento (B22-03, 09/10/2026)
+
+O QA de 09/10 (achado A4) viu que as ações de atribuir deixavam a conversa "Em
+espera" com atendente. Nesse estado o chat só oferece "Atribuir", sem Transferir
+nem Resolver, porque o "Atribuir" do chat sempre põe a conversa em atendimento.
+
+**Como ficou:** a ação segue o chat. Conversa em espera que ganha atendente passa
+a em atendimento. Em atendimento, só troca o responsável. Resolvida continua
+resolvida, com o responsável novo.
+
+- **Por que a resolvida não reabre:** a conversa do evento pode estar resolvida (uma
+  etiqueta aplicada numa conversa resolvida, por exemplo). Reabrir já é uma ação
+  própria ("reabrir conversa", seção 10.4), que segue a mesma regra do chat. Se
+  "atribuir" também reabrisse, a regra faria duas coisas sem o admin ter pedido.
+- **Descartado:** pôr em atendimento sempre, como o chat faz. O chat só atribui
+  conversa aberta; a automação pode chegar numa resolvida.
+
