@@ -921,3 +921,45 @@ resolvida, com o responsável novo.
 - **Descartado:** pôr em atendimento sempre, como o chat faz. O chat só atribui
   conversa aberta; a automação pode chegar numa resolvida.
 
+## 20. "Atribuir ao time" travado no banco (B22-04, 09/10/2026)
+
+O QA de 09/10 (achado A6) apontou dois problemas na escolha por carga da seção 7.3:
+
+1. A conversa do evento contava como carga de quem já estava com ela. Numa regra
+   que roda a cada mensagem, a conversa alternava entre dois atendentes.
+2. O motor lia a carga e gravava depois, em idas separadas ao banco. A fila (seção
+   11) põe em ordem os eventos de um mesmo contato, mas contatos diferentes rodam
+   em paralelo. Leads que chegavam juntos liam a mesma carga e caíam no mesmo
+   atendente.
+
+**Decidido pelo Luan:**
+
+- Conversa que já está com um membro ativo do time **fica com ele**: a ação não
+  mexe e conta como feita. O cliente não troca de vendedor no meio da conversa.
+- A escolha e a gravação da conversa passam a ser **uma operação só no banco**,
+  travada por time: a função `atribuir_conversa_ao_time`. A segunda chamada espera
+  a primeira gravar, e já conta a conversa nova na carga.
+
+**Detalhes:**
+
+- A carga não conta a própria conversa, e só conta conversas abertas da empresa.
+- O card continua no motor, depois da função, e só quando a conversa mudou de
+  mãos. O card não entra na carga, então não precisa da trava.
+- No empate, o primeiro pelo nome, agora na ordenação do banco. Antes era a do
+  navegador em português (`localeCompare`); a diferença só aparece com nomes que
+  começam com acento.
+- Só o service role executa a função, como a da fila.
+- A migration só acrescenta a função e foi aplicada antes do merge: o CRM
+  publicado não a chama.
+
+**Descartado:**
+
+- **Só tirar a própria conversa da carga, sem manter com quem está.** Para o
+  pingue-pongue, mas ainda troca o vendedor no meio da conversa sempre que outro
+  membro tiver menos carga.
+- **Pôr os eventos de toda a empresa numa fila só.** Resolveria a corrida, mas
+  todas as regras da empresa passariam a esperar umas pelas outras, inclusive as
+  que não atribuem nada.
+- **Aceitar a corrida como limite conhecido.** Rajadas de leads são justamente
+  campanha e anúncio, quando a divisão mais importa.
+

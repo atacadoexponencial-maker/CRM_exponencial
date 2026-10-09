@@ -144,57 +144,54 @@ describe("alterar dado do contato", () => {
   })
 })
 
-describe("atribuir a um time", () => {
-  const time = {
-    user_teams: { lista: [{ user_id: "bruno" }, { user_id: "ana" }, { user_id: "carla" }] },
-    profiles: {
-      lista: [
-        { id: "bruno", name: "Bruno" },
-        { id: "ana", name: "Ana" },
-        { id: "carla", name: "Carla" },
-      ],
-    },
-  }
+describe("atribuir a um time (B22-04: escolha e conversa gravadas pela função do banco)", () => {
+  const rpcDoTime = (b: ReturnType<typeof banco>) =>
+    b.chamadas.filter((c) => c.tabela === "rpc:atribuir_conversa_ao_time").map((c) => c.args[0])
+  const escolheu = (atendente_id: string, manteve = false) => ({ atribuir_conversa_ao_time: { data: [{ atendente_id, manteve }] } })
 
-  it("escolhe o membro com menos conversas abertas e passa a conversa e o card para ele", async () => {
-    const b = banco({
-      ...time,
-      // Bruno com 2 abertas, Ana com 1, Carla com nenhuma
-      conversations: { lista: [{ assigned_to: "bruno" }, { assigned_to: "bruno" }, { assigned_to: "ana" }], um: { id: "conv-9" } },
-    })
-    const ok = await executarAcao(b.contexto(cardMovido), acao("atribuir_time", { time_id: "time-1" }))
+  it("pede a escolha com a empresa, o time e a conversa do evento, e passa o card para o escolhido", async () => {
+    const b = banco({ pipeline_cards: { lista: [{ id: "card-entrada", funil: "entrada" }] } }, escolheu("carla"))
+    expect(await executarAcao(b.contexto(conversaCriada), acao("atribuir_time", { time_id: "time-1" }))).toEqual({ ok: true })
 
-    expect(ok).toEqual({ ok: true })
-    expect(b.gravacoes("conversations")[0].args[0]).toEqual({ assigned_to: "carla" })
+    expect(rpcDoTime(b)).toEqual([{ p_workspace_id: "ws-1", p_team_id: "time-1", p_conversation_id: "conv-1" }])
+    // A conversa é gravada pela função, travada por time; o motor não grava nela
+    expect(b.gravacoes("conversations")).toEqual([])
     expect(b.gravacoes("pipeline_cards")[0].args[0]).toEqual({ atendente_id: "carla" })
   })
 
-  it("no empate, fica com o primeiro pelo nome", async () => {
-    const b = banco({ ...time, conversations: { lista: [] } })
-    await executarAcao(b.contexto(conversaCriada), acao("atribuir_time", { time_id: "time-1" }))
-
-    expect(b.gravacoes("conversations")[0].args[0]).toEqual({ assigned_to: "ana" })
+  it("conversa já com um membro ativo do time: não mexe em nada e conta como feita", async () => {
+    const b = banco({ pipeline_cards: { lista: [{ id: "card-entrada", funil: "entrada" }] } }, escolheu("ana", true))
+    expect(await executarAcao(b.contexto(conversaCriada), acao("atribuir_time", { time_id: "time-1" }))).toEqual({ ok: true })
+    expect(b.gravacoes("pipeline_cards")).toEqual([])
   })
 
-  it("só conta conversas abertas dos membros, na empresa do evento", async () => {
-    const b = banco({ ...time, conversations: { lista: [] } })
-    await executarAcao(b.contexto(conversaCriada), acao("atribuir_time", { time_id: "time-1" }))
-
-    const filtrosEmIn = b.chamadas.filter((c) => c.tabela === "conversations" && c.metodo === "in").map((c) => c.args)
-    expect(filtrosEmIn).toContainEqual(["status", ["em_espera", "em_atendimento"]])
-    expect(b.filtros("profiles")).toEqual([
-      ["workspace_id", "ws-1"],
-      ["status", "active"],
-    ])
+  it("contato sem conversa aberta: pede a escolha sem conversa e passa só o card", async () => {
+    const tag: GatilhoAutomacao = { tipo: "tag_adicionada", workspaceId: "ws-1", contactId: "contato-1", tag: "vip" }
+    const b = banco(
+      { conversations: { um: null }, pipeline_cards: { lista: [{ id: "card-entrada", funil: "entrada" }] } },
+      escolheu("ana")
+    )
+    expect(await executarAcao(b.contexto(tag), acao("atribuir_time", { time_id: "time-1" }))).toEqual({ ok: true })
+    expect(rpcDoTime(b)[0]).toMatchObject({ p_conversation_id: null })
+    expect(b.gravacoes("pipeline_cards")[0].args[0]).toEqual({ atendente_id: "ana" })
   })
 
   it("time sem membro ativo falha e não grava nada", async () => {
-    const b = banco({ user_teams: { lista: [{ user_id: "bruno" }] }, profiles: { lista: [] } })
+    const b = banco({}, { atribuir_conversa_ao_time: { data: [] } })
     expect(await executarAcao(b.contexto(conversaCriada), acao("atribuir_time", { time_id: "time-1" }))).toEqual({
       ok: false,
       motivo: "O time não tem atendente ativo",
     })
-    expect(b.gravacoes("conversations")).toEqual([])
+    expect(b.gravacoes("pipeline_cards")).toEqual([])
+  })
+
+  it("erro na função: falha como erro de banco e não grava nada", async () => {
+    const b = banco({}, { atribuir_conversa_ao_time: { erro: { message: "timeout" } } })
+    expect(await executarAcao(b.contexto(conversaCriada), acao("atribuir_time", { time_id: "time-1" }))).toEqual({
+      ok: false,
+      motivo: "Erro ao gravar no banco",
+    })
+    expect(b.gravacoes("pipeline_cards")).toEqual([])
   })
 })
 
@@ -573,16 +570,6 @@ describe("atribuir põe a conversa em espera em atendimento, como o chat (B22-03
     const b = banco({ ...ATENDENTE_ATIVO, conversations: { um: { status: "resolvida" } } })
     await executarAcao(b.contexto(conversaCriada), atribuirU1)
     expect(b.gravacoes("conversations")[0].args[0]).toEqual({ assigned_to: "u-1" })
-  })
-
-  it("'atribuir ao time' também põe em atendimento", async () => {
-    const b = banco({
-      user_teams: { lista: [{ user_id: "u-1" }] },
-      profiles: { lista: [{ id: "u-1", name: "Ana" }] },
-      conversations: { lista: [], um: { status: "em_espera" } },
-    })
-    expect(await executarAcao(b.contexto(conversaCriada), acao("atribuir_time", { time_id: "time-1" }))).toEqual({ ok: true })
-    expect(b.gravacoes("conversations")[0].args[0]).toEqual({ assigned_to: "u-1", status: "em_atendimento" })
   })
 
   it("erro ao ler a conversa: não grava nela, passa o card e conta como erro", async () => {

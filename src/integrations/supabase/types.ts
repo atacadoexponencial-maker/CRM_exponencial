@@ -1908,6 +1908,17 @@ export type Database = {
         Args: { p_contact_id: string }
         Returns: boolean
       }
+      atribuir_conversa_ao_time: {
+        Args: {
+          p_conversation_id: string
+          p_team_id: string
+          p_workspace_id: string
+        }
+        Returns: {
+          atendente_id: string
+          manteve: boolean
+        }[]
+      }
       cadastrar_empresa: {
         Args: {
           p_nome_empresa: string
@@ -1929,6 +1940,11 @@ export type Database = {
       mudar_situacao_pedido_catalogo: {
         Args: { p_para: string; p_pedido: string }
         Returns: undefined
+      }
+      pode_ver_contato: { Args: { p_contact_id: string }; Returns: boolean }
+      pode_ver_conversa: {
+        Args: { p_conversation_id: string }
+        Returns: boolean
       }
       registrar_pedido_catalogo: {
         Args: {

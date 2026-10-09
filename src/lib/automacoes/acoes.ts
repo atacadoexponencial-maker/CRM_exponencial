@@ -92,9 +92,7 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
     }
     case "atribuir_time": {
       if (!parametros.time_id) return CONFIGURACAO_INCOMPLETA
-      const atendenteId = await atendenteDoTime(contexto, parametros.time_id)
-      if (!atendenteId) return falhou("O time não tem atendente ativo")
-      return atribuir(contexto, atendenteId)
+      return atribuirAoTime(contexto, parametros.time_id)
     }
     case "adicionar_tag": {
       if (!tagValida(parametros.tag ?? "")) return falhou("A tag não é válida")
@@ -313,10 +311,49 @@ async function atribuir(contexto: ContextoDaExecucao, atendenteId: string): Prom
       erros.push(error)
     }
   }
+  return passarCardEConcluir(contexto, atendenteId, conversaId, erros)
+}
+
+/**
+ * Escolhe e grava a conversa no banco, numa operação travada por time (B22-04):
+ * a função `atribuir_conversa_ao_time` mantém a conversa com quem já é do time
+ * e ativo; senão, passa para o membro ativo com menos conversas abertas. Leads
+ * que chegam juntos esperam um pelo outro e saem distribuídos. O card vem depois,
+ * só quando a conversa mudou de mãos.
+ */
+async function atribuirAoTime(contexto: ContextoDaExecucao, timeId: string): Promise<ResultadoAcao> {
+  const { supabase, gatilho } = contexto
+  const conversaId = await conversaDoEvento(contexto)
+  const { data, error } = await supabase.rpc("atribuir_conversa_ao_time", {
+    p_workspace_id: gatilho.workspaceId,
+    p_team_id: timeId,
+    // null quando o contato não tem conversa aberta; o gerador de tipos não marca argumento nulo
+    p_conversation_id: conversaId as string,
+  })
+  if (error) return ERRO_NO_BANCO
+  const escolha = data?.[0]
+  if (!escolha) return falhou("O time não tem atendente ativo")
+  if (escolha.manteve) return FEITO
+  return passarCardEConcluir(contexto, escolha.atendente_id, conversaId, [])
+}
+
+/**
+ * Segunda metade de uma atribuição: passa o card principal do contato e junta o
+ * resultado, com os erros que a conversa já teve.
+ */
+async function passarCardEConcluir(
+  contexto: ContextoDaExecucao,
+  atendenteId: string,
+  conversaId: string | null,
+  erros: Array<{ code?: string } | null>
+): Promise<ResultadoAcao> {
   const card = await cardDoContato(contexto)
   if (card.erro) erros.push(card.erro)
   if (card.id) {
-    const { error } = await supabase.from("pipeline_cards").update({ atendente_id: atendenteId }).eq("id", card.id)
+    const { error } = await contexto.supabase
+      .from("pipeline_cards")
+      .update({ atendente_id: atendenteId })
+      .eq("id", card.id)
     erros.push(error)
   }
   if (!conversaId && !card.id && !card.erro) return falhou("O contato não tem conversa aberta nem card")
@@ -364,41 +401,6 @@ async function cardDoContato({
 
   const principal = cards?.find((c) => c.funil === "recompra") ?? cards?.find((c) => c.funil === "entrada")
   return { id: principal?.id ?? null }
-}
-
-/**
- * O membro ativo do time com menos conversas abertas. No empate, o primeiro
- * pelo nome, para o resultado ser previsível. `null` quando o time não tem
- * ninguém ativo.
- */
-async function atendenteDoTime({ supabase, gatilho }: ContextoDaExecucao, timeId: string): Promise<string | null> {
-  const { data: membros } = await supabase.from("user_teams").select("user_id").eq("team_id", timeId)
-  const ids = (membros ?? []).map((m) => m.user_id)
-  if (ids.length === 0) return null
-
-  const [{ data: ativos }, { data: abertas }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, name")
-      .eq("workspace_id", gatilho.workspaceId)
-      .eq("status", "active")
-      .in("id", ids),
-    supabase
-      .from("conversations")
-      .select("assigned_to")
-      .eq("workspace_id", gatilho.workspaceId)
-      .in("assigned_to", ids)
-      .in("status", CONVERSA_ABERTA),
-  ])
-  if (!ativos || ativos.length === 0) return null
-
-  const carga = new Map<string, number>()
-  for (const c of abertas ?? []) carga.set(c.assigned_to, (carga.get(c.assigned_to) ?? 0) + 1)
-
-  const [escolhido] = [...ativos].sort(
-    (a, b) => (carga.get(a.id) ?? 0) - (carga.get(b.id) ?? 0) || (a.name ?? "").localeCompare(b.name ?? "", "pt-BR")
-  )
-  return escolhido.id
 }
 
 /** Tipo, nicho e cidade trocam o valor; observações ganham uma linha no fim. */
