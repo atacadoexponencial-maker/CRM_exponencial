@@ -158,6 +158,8 @@ describe("processarAutomacoes", () => {
           c.update = updateCard
           return c
         }
+        // B22-02: o atendente está ativo
+        if (table === "profiles") return chain({ data: { status: "active" } })
         return chain({ data: null })
       }),
     } as unknown as ReturnType<typeof createServiceClient>)

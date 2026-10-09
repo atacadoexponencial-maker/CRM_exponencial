@@ -874,3 +874,33 @@ de banco, gravada como "falhou", também gastava a vez.
 - **Mudar a repetição padrão da regra nova** (Marcelle sugeriu rever, por exemplo
   "sempre" nos gatilhos de mensagem). Ficou fora da B22-01: o seletor já existe no
   editor, e o padrão espera decisão do Luan e da Marcelle.
+
+## 18. "Atribuir atendente" só para quem está ativo (B22-02, 09/10/2026)
+
+O QA de 09/10 (achado A3) salvou uma regra que atribuía a um usuário desativado,
+e ela rodou como "concluída". O editor já lista só os ativos, mas o servidor não
+conferia. E um atendente pode ser desativado depois que a regra foi salva, então
+conferir só ao salvar não basta.
+
+**Como ficou:**
+
+- **Ao salvar**, a ação "atribuir atendente" precisa apontar para alguém ativo da
+  empresa. Senão: "Um atendente escolhido está desativado. Escolha outro."
+- **Ao executar**, o motor lê o perfil antes de gravar. Desativado: a ação falha
+  com "O atendente está desativado" e não mexe na conversa nem no card. Excluído
+  ou de outra empresa: "O atendente não existe mais".
+- **A condição "atendente é Fulano" continua aceitando desativado.** A conversa
+  pode continuar com quem foi desativado até alguém transferir, e a regra pode
+  querer tratar exatamente esse caso. Por isso as referências do fluxo separam
+  `atendentesAtribuidos` (ações) de `atendentes` (ações e condições).
+
+**Descartado:**
+
+- **Exigir ativo em toda referência a atendente.** Barraria a condição pelo motivo
+  errado.
+- **Desativar sozinhas as regras que apontam para o usuário, ao desativá-lo.**
+  Mexeria na tela de usuários, fora do módulo, e pararia a regra inteira por causa
+  de uma ação. Com o motivo no histórico, o admin vê e troca o atendente.
+- **Conferir só ao executar.** O admin só descobriria pelo histórico um erro que
+  dá para mostrar na hora de salvar.
+

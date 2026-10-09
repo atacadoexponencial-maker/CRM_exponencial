@@ -86,6 +86,8 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
     }
     case "atribuir_atendente": {
       if (!parametros.atendente_id) return CONFIGURACAO_INCOMPLETA
+      const impedimento = await impedimentoDoAtendente(contexto, parametros.atendente_id)
+      if (impedimento) return impedimento
       return atribuir(contexto, parametros.atendente_id)
     }
     case "atribuir_time": {
@@ -304,6 +306,25 @@ async function atribuir(contexto: ContextoDaExecucao, atendenteId: string): Prom
   if (!conversaId && !card.id && !card.erro) return falhou("O contato não tem conversa aberta nem card")
   if (erros.some(apontaParaApagado)) return falhou("O atendente não existe mais")
   return erros.some(Boolean) ? ERRO_NO_BANCO : FEITO
+}
+
+/**
+ * O atendente escolhido na regra pode ter sido desativado ou excluído depois que
+ * ela foi salva (B22-02). O "atribuir ao time" já escolhe só entre os ativos.
+ */
+async function impedimentoDoAtendente(
+  { supabase, gatilho }: ContextoDaExecucao,
+  atendenteId: string
+): Promise<ResultadoAcao | null> {
+  const { data: perfil, error } = await supabase
+    .from("profiles")
+    .select("status")
+    .eq("id", atendenteId)
+    .eq("workspace_id", gatilho.workspaceId)
+    .maybeSingle()
+  if (error) return ERRO_NO_BANCO
+  if (!perfil) return falhou("O atendente não existe mais")
+  return perfil.status === "active" ? null : falhou("O atendente está desativado")
 }
 
 /**
