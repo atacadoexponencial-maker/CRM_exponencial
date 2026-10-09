@@ -2,7 +2,6 @@
 // é conferido aqui, com dados do banco — preços, estoque e mínimo do navegador nunca valem.
 
 import { createServiceClient } from "@/integrations/supabase/service"
-import { tirarDaLixeira } from "@/lib/lixeira"
 import { chaveCombinacao, combinacoes, type TipoVariacao } from "./combinacoes"
 import { carregarLojaPublica } from "./loja-publica"
 import { faltaParaMinimo, linkWhatsapp, montarMensagemPedido, normalizarWhatsapp, type ItemPedido } from "@/app/loja/components/pedido"
@@ -41,16 +40,14 @@ async function acharOuCriarContato(workspaceId: string, whatsapp: string, nome: 
   const svc = createServiceClient()
   const { data: existentes } = await svc
     .from("contacts")
-    .select("id, name, excluido_em, phone_number")
+    .select("id, phone_number")
     .eq("workspace_id", workspaceId)
     .in("phone_number", formasDoNumero(whatsapp))
   // Com as duas formas cadastradas, fica a que a cliente digitou.
   const existente = existentes?.find((c) => c.phone_number === whatsapp) ?? existentes?.[0]
-  if (existente) {
-    if (existente.excluido_em) await tirarDaLixeira(svc, workspaceId, existente.id).catch(() => {})
-    if (!existente.name) await svc.from("contacts").update({ name: nome }).eq("id", existente.id).eq("workspace_id", workspaceId)
-    return existente.id
-  }
+  // B21-07: contato que já existe só recebe o pedido. Quem pede pela loja não tira o
+  // contato da lixeira (a empresa vê o pedido e decide se restaura) nem escreve o nome dele.
+  if (existente) return existente.id
   const { data: criado, error } = await svc.from("contacts").insert({ workspace_id: workspaceId, phone_number: whatsapp, name: nome }).select("id").single()
   if (error || !criado) throw new Error(`Não foi possível criar o contato: ${error?.message ?? "sem detalhe"}`)
   return criado.id

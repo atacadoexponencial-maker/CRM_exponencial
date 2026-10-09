@@ -1,4 +1,5 @@
 // B20-05: freio de tentativas no cadastro e no login, contado no servidor.
+// B21-07: também nos pedidos da loja.
 //
 // A contagem fica numa tabela (`tentativas_de_acesso`) porque o servidor roda em várias
 // instâncias: memória local não seria compartilhada. A chave é um hash — a tabela não
@@ -11,7 +12,7 @@ import { createHash } from "node:crypto"
 import { headers } from "next/headers"
 import { createServiceClient } from "@/integrations/supabase/service"
 
-export type TipoDeTentativa = "cadastro" | "login"
+export type TipoDeTentativa = "cadastro" | "login" | "pedido_loja"
 export type RegraDeLimite = { chave: string; limite: number }
 
 /** Endereço de quem chamou. Na Vercel, `x-forwarded-for` é escrito pela própria plataforma. */
@@ -23,6 +24,8 @@ export async function ipDaRequisicao(): Promise<string> {
 
 export const chaveDoIp = (ip: string) => hash(`ip:${ip}`)
 export const chaveDoEmail = (email: string) => hash(`email:${email.trim().toLowerCase()}`)
+/** B21-07: o limite de pedidos é por endereço de internet e por loja. */
+export const chaveDoPedidoNaLoja = (ip: string, endereco: string) => hash(`pedido:${endereco}:${ip}`)
 
 function hash(texto: string): string {
   return createHash("sha256").update(texto).digest("hex")

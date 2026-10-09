@@ -71,14 +71,16 @@ describe("B16-09 — Carrinho e pedido pelo WhatsApp", { timeout: 30_000 }, () =
     expect(r).toMatchObject({ ok: false, erro: expect.stringMatching(/2 minutos/) })
   })
 
-  it("acha o contato que chegou sem o nono dígito, e tira da lixeira", async () => {
+  // B21-07: o pedido só é ligado ao contato — não tira da lixeira nem escreve o nome.
+  it("acha o contato que chegou sem o nono dígito, sem tirar da lixeira nem mudar o nome", async () => {
     const { data: antigo } = await service.from("contacts").insert({ workspace_id: ws, phone_number: "551177776666", name: null, excluido_em: new Date().toISOString() }).select("id").single()
     const r = await registrarPedido(slug, { nome: "Bia", whatsapp: "11 97777-6666" }, [{ produtoId: camisa, combinacao: "", quantidade: 3 }])
     expect(r.ok).toBe(true)
     const { data: pedido } = await service.from("catalog_orders").select("contact_id").eq("workspace_id", ws).eq("customer_name", "Bia").single()
     expect(pedido!.contact_id).toBe(antigo!.id)
     const { data: contato } = await service.from("contacts").select("name, excluido_em").eq("id", antigo!.id).single()
-    expect(contato).toMatchObject({ name: "Bia", excluido_em: null })
+    expect(contato!.name).toBeNull()
+    expect(contato!.excluido_em).not.toBeNull()
   })
 
   it("recusa estoque insuficiente dizendo qual item", async () => {
