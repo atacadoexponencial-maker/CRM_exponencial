@@ -11,6 +11,72 @@ Legenda: [ ] aberto · (N agentes) = achado independente por mais de um agente �
 
 Total: nenhum crítico de segurança. 1 grave de regra de negócio, 5 altos, ~20 médios, vários baixos.
 
+## Andamento das correções (série B22)
+
+Atualizado em 09/10/2026, fim do dia. As correções vão em **lotes por área**, um
+branch por lote, que entra no `master` ao fim do lote, depois dos roteiros do
+preview (decidido pelo Luan em 09/10). Cada achado vira uma issue `B22-NN` em
+`issues/concluidas_B22/`, e a decisão vai para `decisoes/B11-automacoes-em-fluxo.md`
+(seções 17 a 23).
+
+### Feito: lote 1, motor (no ar desde 09/10/2026)
+
+Branch `b22-lote-motor`, juntado no `master`.
+
+| Issue | Achado | O que mudou |
+|---|---|---|
+| B22-01 | G1 | Proteção de repetição só gasta a vez quando alguma ação deu certo |
+| B22-02 | A3 | "Atribuir atendente" recusa desativado ao salvar e falha com motivo ao rodar |
+| B22-03 | A4 | Atribuir põe em atendimento a conversa em espera; resolvida continua resolvida |
+| B22-04 | A6 | "Atribuir ao time": fica com quem já é do time; escolha travada no banco (migration `20261009000001`, aplicada) |
+| B22-05 | M1 | Gatilho de dado do contato sem diferença de maiúscula e acento |
+| B22-06 | A1, A2 | Fila com orçamento de tempo; o que não roda vai para o histórico |
+| B22-07 | M2 | Evento que não entra na fila não roda e vai para o histórico |
+| — | M7 | Conferido, sem mudança: número fora do ar falha, sem trocar de número (seção 21) |
+
+Verificado: 648 testes unitários, testes de integração no banco real, lint e
+build com código 0, e 7 roteiros do preview (72 verificações) passando.
+
+### A fazer
+
+**Lote 2, editor** (próximo):
+- A5 + U2: aviso ao sair sem salvar, e rascunho automático.
+- Seletor de repetição dentro do bloco do gatilho, com rótulo visível (pedido do
+  Luan em 09/10), e tirar o seletor da barra do topo. Ajustar os roteiros do
+  preview que procuram o seletor no topo (pelo menos o `roteiro-b11-03.cjs`).
+- M9, M10, M11.
+- U1 (duplicar blocos) e U3 (botões de variável): são melhorias fora da spec;
+  confirmar com Luan e Marcelle se entram.
+
+**Lote 3, histórico e lista:** M12 a M18.
+
+**Lote 4, o resto:** A7 (card de Recompra que o atendente não consegue criar
+ao arrastar para Ganho), M3, M4, M5, M6, M8, segurança (M19, M20, M21) e os baixos.
+
+### Decisões pendentes
+
+- **Repetição padrão da regra nova** (hoje "uma vez por contato"; a Marcelle
+  sugeriu rever, por exemplo "sempre" nos gatilhos de mensagem). Decidir junto
+  com o seletor no bloco do gatilho, no lote 2.
+- **M21:** gerente e atendente podem ler as regras pela API? A spec diz só admin.
+- **U1 e U3:** entram agora ou depois.
+- Se incomodar: atribuir numa conversa **resolvida** troca o atendente e a
+  mantém resolvida (decidido na B22-03, seção 19).
+
+### Aviso sobre a empresa de teste
+
+Em 09/10, a "[TESTE] Automações B11" estava sem contatos, conversas, cards e
+etiquetas, e os roteiros do preview paravam no começo. Os scripts de `e2e/preview/`
+não apagam esses dados; o mais provável é a limpeza das empresas `[TESTE] QA
+Automações …` ter pegado essa junto. Os dados-base foram repostos com os mesmos
+passos do `criar-empresa-teste.cjs`. **Limpeza de empresas de teste não deve
+filtrar só pelo prefixo `[TESTE]`.**
+
+### Onde retomar
+
+Abrir este arquivo e começar o lote 2 num branch novo (`b22-lote-editor`), a
+partir do `master`.
+
 ---
 
 ## 🔴 Grave
