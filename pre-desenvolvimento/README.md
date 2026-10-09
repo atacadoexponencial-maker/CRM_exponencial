@@ -7,6 +7,7 @@ no ar sai daqui. Quem abre a pasta deve saber, sem ler nada, o que falta fazer.
 
 | Spec | Issues | Estado |
 |---|---|---|
+| `spec-landing-atacado-exp.md` — landing do Atacado Exp em `/` e revisão da política e dos termos, exigidas pela Meta (verificação de acesso até 17/11/2026) | `issues/B22-01` a `B22-03` | Escrita e aprovada em 09/10/2026. As três são independentes; a 01 vem primeiro porque o link do site trava a verificação. |
 | `spec-lixeira-contatos.md` — excluir lead e contato, com lixeira de 30 dias e restaurar | `issues/B13-01` a `B13-06` | Escrita e aprovada em 02/10/2026. Ordem: 01 (protótipo) → 02 → 03 → 04 → 05 → 06. A 06 depende do `CRON_SECRET` no Vercel. |
 | `spec-seguranca-rodada-1.md` — falhas críticas da auditoria de 06/10 (cadastro, perfil, credenciais do WhatsApp, tempo real, listagem de arquivos) | `issues/B19-01` a `B19-06` | 06/10/2026: todas no ar; 01, 02, 03, 05 e 06 em `concluidas_B19/`. Falta só o teste manual da Marcelle da **B19-04** (tempo real com mensagem real) para fechar a série e arquivar a spec. |
 | `spec-seguranca-rodada-3.md` — falhas médias da auditoria de 06/10 (atendente só no que é dele, times só Admin, referências entre empresas, número de teste da Meta, crons/webhook sem segredo, pedidos da loja, cabeçalhos) | `issues/concluidas_B21/` | 08/10/2026: as oito no ar. Falta o teste manual curto da Marcelle (critério de pronto da spec) para arquivar a spec. |

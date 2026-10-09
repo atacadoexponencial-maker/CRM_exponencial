@@ -8,7 +8,7 @@ Tudo o que falta para o app **CRM Exponencial** sair do modo "não publicado" e 
 
 **Legenda:** ✅ feito · ⏳ pendente · 🔒 bloqueado, esperando outro item · ➖ opcional, não exigido pela Meta
 
-> **O que destrava tudo agora:** decidir o **nome público do produto** e passar os **dados legais da empresa**. Sem isso não sai a landing, e sem a landing não dá para enviar a verificação de acesso (prazo **17/11/2026**). O **teste de conexão** não depende de nenhum dos dois e pode ser feito em paralelo.
+> **O que destrava tudo agora:** o nome saiu (**Atacado Exp**); os dados legais também (09/10). A landing está liberada. Sem isso não sai a landing, e sem a landing não dá para enviar a verificação de acesso (prazo **17/11/2026**). O **teste de conexão** não depende de nenhum dos dois e pode ser feito em paralelo.
 
 ---
 
@@ -28,15 +28,15 @@ A base técnica: o app conversa com o CRM e a Meta sabe onde entregar as mensage
 
 A Meta compara o nome do app, o site e a empresa verificada. Os três precisam contar a mesma história.
 
-- [ ] ⏳ **Nome público do produto** (com você e os sócios). Vai aparecer no nome do app (na janela que o cliente vê ao conectar), na landing, nos vídeos e nos textos da Meta. Trocar depois de publicado passa por análise da Meta.
+- [x] ✅ **Nome público do produto: Atacado Exp** (decidido em 09/10/2026, "por enquanto"). Falta trocar o nome do app no painel da Meta, hoje "CRM Exponencial". Vai aparecer no nome do app (na janela que o cliente vê ao conectar), na landing, nos vídeos e nos textos da Meta. Trocar depois de publicado passa por análise da Meta.
   - Não pode conter "WhatsApp", "Facebook", "Meta" ou "Instagram".
   - Não pode parecer outra empresa ou produto.
-- [ ] ⏳ **Dados legais para a landing** (com você):
-  - razão social e CNPJ, iguais aos da verificação da Meta;
-  - cidade e UF, ou o endereço completo;
-  - e-mail de contato (os termos usam `atacadoexponencial@gmail.com`);
-  - telefone ou WhatsApp de contato, se for mostrar;
-  - relação entre as marcas: Sete - Performance Marketing, Atacado Exponencial e o produto.
+- [x] ✅ **Dados legais para a landing** (09/10):
+  - ✅ razão social e CNPJ (09/10): **SETE ADS LTDA**, nome fantasia SETE ADS, CNPJ **22.987.352/0001-15**, ativa desde 04/08/2015. Conferir no painel se a verificação da Meta foi feita com essa razão social, porque o portfólio aparece como "Sete - Performance Marketing";
+  - ✅ endereço: Rua Carlos Roberto de Melo, 475, Pavimento 11, Sala 05, Parque Gabriel, Hortolândia/SP, CEP 13186-604;
+  - ✅ e-mail de contato: `atacadoexponencial@gmail.com`;
+  - ✅ telefone ou WhatsApp de contato: não mostrar na landing, só o e-mail;
+  - ✅ relação entre as marcas: o produto é da Sete Ads Ltda.
 
 ## 3. Landing do CRM
 
@@ -51,7 +51,7 @@ Confirma que a Sete é Provedora de Tecnologia. A Meta responde em cerca de 5 di
 
 - [x] ✅ **Tipo de empresa:** Plataforma de SaaS (decidido).
 - [x] ✅ **Gerencia vários portfólios empresariais:** Não (decidido).
-- [ ] ⏳ **Texto sobre o uso dos dados** (rascunho pronto, você revisa; trocar "CRM Exponencial" pelo nome definitivo):
+- [ ] ⏳ **Texto sobre o uso dos dados** (rascunho pronto, você revisa; trocar "CRM Exponencial" por "Atacado Exp"):
 
   > O CRM Exponencial é uma plataforma de SaaS (CRM) para empresas atacadistas que vendem pelo WhatsApp. Cada cliente conecta o próprio número do WhatsApp Business ao CRM pelo Cadastro Incorporado da Meta. Usamos os dados da plataforma apenas para operar esse atendimento em nome do cliente: receber as mensagens enviadas pelos compradores dele, exibi-las na caixa de entrada do CRM, permitir que a equipe do cliente responda, enviar modelos de mensagem aprovados pela Meta e mostrar o status de entrega. Os dados de cada cliente ficam isolados na conta dele e não são vendidos, compartilhados nem usados para outra finalidade. O cliente pode desconectar o número a qualquer momento e pedir a exclusão dos dados.
 
@@ -62,7 +62,7 @@ Confirma que a Sete é Provedora de Tecnologia. A Meta responde em cerca de 5 di
 
 Obrigatório para a análise do app: a Meta exige chamadas de API já feitas com cada permissão (hoje: 0) e um vídeo do uso real. Não depende do nome, então pode ser feito já.
 
-- [ ] ⏳ **Separar um número para o teste** (com você). O mais seguro é um número dedicado: um número em uso no aplicativo do WhatsApp pode deixar de funcionar nele ao ser conectado à API. Não use o chip principal.
+- [x] ✅ **Separar um número para o teste** (09/10: ela tem um número). O mais seguro é um número dedicado: um número em uso no aplicativo do WhatsApp pode deixar de funcionar nele ao ser conectado à API. Não use o chip principal.
 - [ ] ⏳ **Conectar pelo CRM** (juntos), em *Configurações → WhatsApp*, com a conta do Felipe. Enquanto o app não é publicado, só quem tem função no app consegue conectar.
 - [ ] ⏳ **Enviar e receber mensagens** (juntos). Mandar do celular para o número, responder pelo CRM e listar os modelos de mensagem. Isso gera chamadas para `whatsapp_business_messaging` e `whatsapp_business_management`.
 - [ ] ⏳ **Forma de pagamento na conta do WhatsApp** (com você). A Meta exige para enviar mensagens iniciadas pela empresa (modelos). Sem ela, só dá para responder dentro de 24 horas.
