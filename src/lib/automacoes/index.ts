@@ -13,8 +13,10 @@
 //
 // Quem dispara não chama este arquivo direto (B11-09): grava o evento na fila
 // (`fila.ts`), que chama `processarAutomacoes` logo depois da resposta, um evento
-// de cada vez por contato.
-// Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seções 5, 8 e 11.
+// de cada vez por contato. A fila passa um prazo (B22-06): depois dele nenhuma
+// regra começa, e as que sobram ficam no histórico como falha, em vez de sumir
+// quando a Vercel corta a função.
+// Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seções 5, 8, 11 e 22.
 
 import { createServiceClient } from "@/integrations/supabase/service"
 import { normalizarTexto } from "@/lib/catalogo/planilha"
@@ -46,7 +48,15 @@ interface RegraCarregada extends RegraDaExecucao {
   fluxo: Fluxo
 }
 
-export async function processarAutomacoes(gatilho: GatilhoAutomacao): Promise<void> {
+/** Motivo das regras que o prazo da fila não deixou começar (B22-06). */
+export const SEM_TEMPO = "Não rodou: o tempo desta execução acabou antes de chegar nesta regra"
+
+export interface OpcoesDoProcessamento {
+  /** Hora (em ms, como `Date.now()`) depois da qual nenhuma regra começa. */
+  prazo?: number
+}
+
+export async function processarAutomacoes(gatilho: GatilhoAutomacao, opcoes: OpcoesDoProcessamento = {}): Promise<void> {
   try {
     const supabase = createServiceClient()
 
@@ -62,6 +72,10 @@ export async function processarAutomacoes(gatilho: GatilhoAutomacao): Promise<vo
       const blocoGatilho = gatilhoDoFluxo(regra.fluxo)
       if (!blocoGatilho || problemasDeEstrutura(regra.fluxo).length > 0) continue
       if (!gatilhoCorresponde(blocoGatilho, gatilho)) continue
+      if (opcoes.prazo !== undefined && Date.now() >= opcoes.prazo) {
+        await registrarExecucao(supabase, { gatilho, regra, resultado: "falhou", motivo: SEM_TEMPO })
+        continue
+      }
       await executarRegra(contexto, regra)
     }
   } catch {

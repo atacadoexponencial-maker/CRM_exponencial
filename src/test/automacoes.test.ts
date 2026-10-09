@@ -14,7 +14,7 @@ vi.mock("@/lib/whatsapp-envio", async (importOriginal) => ({
 }))
 
 import { createServiceClient } from "@/integrations/supabase/service"
-import { gatilhoCorresponde, processarAutomacoes } from "@/lib/automacoes"
+import { SEM_TEMPO, gatilhoCorresponde, processarAutomacoes } from "@/lib/automacoes"
 import type { AcaoTipo, Fluxo, GatilhoTipo } from "@/lib/fluxo-automacao"
 import { enviarWhatsAppComMotivo } from "@/lib/whatsapp-envio"
 
@@ -540,6 +540,33 @@ describe("histórico e proteção de repetição (B11-03)", () => {
     expect(antes - desde).toBeGreaterThanOrEqual(6 * 3_600_000 - 1000)
     expect(antes - desde).toBeLessThanOrEqual(6 * 3_600_000 + 1000)
     expect(h.gravadas[0]).toMatchObject({ resultado: "ignorada", motivo: expect.stringContaining("6 horas") })
+  })
+
+  it("B22-06: depois do prazo, a regra não começa e fica no histórico como 'falhou'", async () => {
+    const h = historico()
+    const upsert = vi.fn().mockResolvedValue({ error: null })
+    banco({ automation_flows: regra({ modo: "sempre" }), automation_runs: h.obj, conversation_labels: { upsert } })
+
+    await processarAutomacoes(conversaCriada, { prazo: Date.now() - 1 })
+
+    expect(upsert).not.toHaveBeenCalled()
+    expect(mockEnviar).not.toHaveBeenCalled()
+    expect(h.gravadas).toHaveLength(1)
+    expect(h.gravadas[0]).toMatchObject({ resultado: "falhou", motivo: SEM_TEMPO, regra_nome: "Boas-vindas" })
+  })
+
+  it("B22-06: antes do prazo, roda normalmente", async () => {
+    const h = historico()
+    banco({
+      automation_flows: regra({ modo: "sempre" }),
+      automation_runs: h.obj,
+      conversation_labels: { upsert: vi.fn().mockResolvedValue({ error: null }) },
+    })
+
+    await processarAutomacoes(conversaCriada, { prazo: Date.now() + 60_000 })
+
+    expect(mockEnviar).toHaveBeenCalledTimes(1)
+    expect(h.gravadas[0].resultado).toBe("concluida")
   })
 
   it("erro ao conferir a proteção: não roda e grava 'falhou'", async () => {

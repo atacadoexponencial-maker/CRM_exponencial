@@ -559,6 +559,8 @@ sai 3 vezes. Em fila, a segunda já vê a primeira e é ignorada.
   repetido, porque repetir poderia mandar a mesma mensagem duas vezes. Depois de
   5 minutos, o tempo máximo da função, ele é marcado como descartado e para de
   travar a fila do contato.
+  *Desde 09/10/2026 (B22-06), o consumo tem orçamento de tempo e termina antes
+  disso: seção 22.*
 - **Evento esperando há mais de 10 minutos é descartado,** para a regra não
   responder fora de hora. Só acontece se a função cair entre gravar o evento e
   consumir a fila. Quem consome é o próximo evento do mesmo contato.
@@ -986,4 +988,46 @@ conversa.
 **Descartado:** cair para outro número conectado da empresa. O cliente passaria a
 receber de um número que não conhece, no meio da conversa. E o caminho é o mesmo
 do chat e das sequências, então a mudança valeria para eles também.
+
+## 22. Fila com orçamento de tempo (B22-06, 09/10/2026)
+
+O QA de 09/10 mostrou dois jeitos de a fila perder regras sem deixar rastro:
+
+- **A1.** O consumo parava em 50 eventos do contato. Com 62 eventos, 12 ficaram
+  esperando o próximo evento do contato e foram descartados ("esperou demais").
+- **A2.** Com 100 regras, um evento levou ~73 s. Um evento que passa de 5 minutos
+  é marcado como descartado pelo banco enquanto ainda roda, e o próximo do contato
+  roda junto. Na Vercel, a função é cortada em ~300 s, e o que faltava sumia.
+
+**Decidido pelo Luan:** orçamento de tempo.
+
+**Como ficou:**
+
+- O consumo conta o tempo desde o começo, sem limite de quantidade.
+- Até 240 s, as regras rodam.
+- De 240 s a 270 s, os eventos que a fila ainda entrega só registram as regras
+  deles como "falhou: o tempo acabou". O motor recebe o prazo e não começa regra
+  depois dele.
+- Depois de 270 s, o consumo para. O que sobrar espera o próximo evento do
+  contato, como antes.
+- O banco não muda. Os 5 minutos de `reivindicar_evento_de_automacao` passam a
+  valer só para função que caiu de verdade, porque o consumo termina antes.
+
+**Por que 240 e 270:** a Vercel corta em ~300 s, contados da requisição, e o
+consumo começa depois da resposta. Uma regra que começa aos 239 s ainda tem tempo
+de terminar, e registrar "não rodou" leva milissegundos.
+
+**Limite aceito:** se sobrar evento depois dos 270 s e o contato não mandar mais
+nada em 10 minutos, o banco descarta sem histórico, como antes. Para isso, o
+contato precisa acumular mais de 4 minutos e meio de eventos seguidos.
+
+**Descartado:**
+
+- **Só registrar o que se perde, mantendo os 50 eventos.** Volume alto continuaria
+  perdendo eventos, agora visíveis.
+- **Rodar as regras de um evento em paralelo, para ganhar tempo.** As regras rodam
+  na ordem de criação, e uma pode depender do que a anterior fez (atribuir antes de
+  enviar, por exemplo).
+- **Um novo consumo quando o tempo acaba.** Exigiria chamar uma rota do próprio CRM,
+  com endereço e segredo, para um caso que pede minutos de eventos seguidos.
 
