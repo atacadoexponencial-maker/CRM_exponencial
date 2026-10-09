@@ -12,10 +12,11 @@ function hrefs(): string[] {
 }
 
 describe("B22-01 — Landing do Atacado Exp", () => {
-  it("should levar os dois botões Entrar para o login", () => {
+  it("should levar todos os botões Entrar para o login", () => {
     render(<LandingPage />)
-    const entrar = screen.getAllByRole("link", { name: "Entrar" })
-    expect(entrar).toHaveLength(2)
+    // Cabeçalho, abertura e chamada final
+    const entrar = screen.getAllByRole("link", { name: /^Entrar/ })
+    expect(entrar).toHaveLength(3)
     for (const link of entrar) expect(link.getAttribute("href")).toBe("/login")
   })
 

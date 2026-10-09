@@ -11,7 +11,8 @@ A página padrão do Next.js em `/` dá lugar à landing do Atacado Exp, com tod
 do módulo 1 da spec: cabeçalho com o cubo e o botão Entrar, abertura com o botão Entrar
 (sem Criar conta), para quem é, os oito recursos, como funciona a conexão com o WhatsApp, seus dados,
 rodapé com SETE ADS LTDA, CNPJ, endereço e e-mail, e título e descrição da aba. A
-aparência segue a do CRM (tema escuro). Todos os links funcionam.
+aparência segue a do `atacadoexponencial.com` (Satoshi, creme e faixas escuras,
+pílulas). Mudou em 09/10, depois que a Marcelle viu a primeira versão. Todos os links funcionam.
 
 > **Nota:** a landing é uma página estática, sem banco nem lógica. Um protótipo
 > separado seria a própria página com outro nome. Por isso protótipo e entrega são uma

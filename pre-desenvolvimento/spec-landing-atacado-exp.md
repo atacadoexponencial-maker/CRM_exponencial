@@ -58,8 +58,9 @@ Esta mudança:
 ### 1. Página inicial — landing (`/`)
 
 **Descrição:** página pública de apresentação do Atacado Exp. Abre sem login, inclusive
-para quem já está logado. Ela segue a aparência do CRM (tema escuro, mesmas cores e
-fontes) para que o visitante reconheça o produto ao entrar.
+para quem já está logado. A aparência segue a do site `atacadoexponencial.com` (mudado em
+09/10, a pedido da Marcelle): fonte Satoshi, fundo creme alternando com faixas escuras,
+rótulos em caixa alta, botões em pílula e o cubo com a marca "atacado exp".
 
 **Componentes:**
 - **Cabeçalho:** símbolo (o cubo) e nome "Atacado Exp" à esquerda, e o botão **Entrar** à direita. No celular, o botão
