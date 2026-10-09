@@ -4,6 +4,9 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { NextRequest } from "next/server"
+import { createHmac } from "node:crypto"
+
+const SEGREDO_DE_TESTE = "segredo-da-meta-de-teste"
 
 vi.mock("@/integrations/supabase/service", () => ({ createServiceClient: vi.fn() }))
 vi.mock("@/lib/automacoes/fila", () => ({ dispararAutomacoes: vi.fn().mockResolvedValue(undefined) }))
@@ -67,7 +70,14 @@ function requisicao(mensagem: Record<string, unknown>) {
       },
     ],
   }
-  return new NextRequest("http://localhost/api/webhooks/whatsapp", { method: "POST", body: JSON.stringify(corpo) })
+  // B21-06: o webhook só aceita o que vem assinado como a Meta assina.
+  const corpoTexto = JSON.stringify(corpo)
+  const assinatura = "sha256=" + createHmac("sha256", SEGREDO_DE_TESTE).update(corpoTexto).digest("hex")
+  return new NextRequest("http://localhost/api/webhooks/whatsapp", {
+    method: "POST",
+    body: corpoTexto,
+    headers: { "x-hub-signature-256": assinatura },
+  })
 }
 
 const ABERTA = { id: "conversa-1", unread_count: 0, whatsapp_connection_id: "conexao-1" }
@@ -75,8 +85,7 @@ const ABERTA = { id: "conversa-1", unread_count: 0, whatsapp_connection_id: "con
 describe("B11-04 — mensagem recebida pela API Oficial", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // Sem o segredo da Meta, o webhook não confere a assinatura
-    delete process.env.META_APP_SECRET
+    process.env.META_APP_SECRET = SEGREDO_DE_TESTE
   })
 
   it("texto em conversa aberta dispara mensagem_recebida, depois de gravar", async () => {

@@ -8,15 +8,14 @@ import { TIPO_NO_CRM, escolherConversaDoNumero } from "@/lib/whatsapp/recebiment
 import { tirarDaLixeira } from "@/lib/lixeira"
 
 // Valida a assinatura X-Hub-Signature-256 que a Meta envia em todo webhook.
-// Sem META_APP_SECRET configurado (ex.: ambiente de teste) a validação é pulada.
+// B21-06: sem META_APP_SECRET configurado, recusa (antes, a validação era pulada e
+// qualquer um gravava mensagens falsas) — como no webhook do gateway.
 //
 // O HMAC em si mora em @/lib/webhooks/assinatura (B6-01), compartilhado com o
-// webhook do gateway. Comportamento daqui inalterado, incluindo o "sem segredo,
-// aceita" — que no gateway NÃO vale, e é por isso que a permissão fica aqui, no
-// chamador, e não na função compartilhada.
+// webhook do gateway.
 function assinaturaValida(rawBody: string, signature: string | null): boolean {
   const appSecret = process.env.META_APP_SECRET
-  if (!appSecret) return true
+  if (!appSecret) return false
 
   return assinaturaHmacValida({ corpoBruto: rawBody, assinatura: signature, segredo: appSecret })
 }
