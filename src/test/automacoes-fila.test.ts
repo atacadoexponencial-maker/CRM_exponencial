@@ -11,7 +11,10 @@ const after = vi.fn((trabalho: () => Promise<void>) => {
 })
 vi.mock("next/server", () => ({ after: (trabalho: () => Promise<void>) => after(trabalho) }))
 
-vi.mock("@/lib/automacoes/index", () => ({ processarAutomacoes: vi.fn().mockResolvedValue(undefined) }))
+vi.mock("@/lib/automacoes/index", () => ({
+  processarAutomacoes: vi.fn().mockResolvedValue(undefined),
+  SEM_FILA: "motivo-sem-fila",
+}))
 
 const insert = vi.fn()
 const apagar = vi.fn()
@@ -84,14 +87,14 @@ describe("dispararAutomacoes", () => {
     ).toBe("workspace:ws-1")
   })
 
-  it("sem conseguir gravar na fila, as regras rodam do mesmo jeito depois da resposta", async () => {
+  it("B22-07: sem conseguir gravar na fila, as regras não rodam e vão para o histórico, depois da resposta", async () => {
     insert.mockResolvedValue({ error: { message: "timeout" } })
 
     await dispararAutomacoes(tag("vip"))
     expect(motor).not.toHaveBeenCalled()
     await rodarAgendados()
 
-    expect(motor).toHaveBeenCalledWith(tag("vip"))
+    expect(motor).toHaveBeenCalledWith(tag("vip"), { naoRodarPorque: "motivo-sem-fila" })
     expect(rpc).not.toHaveBeenCalled()
   })
 

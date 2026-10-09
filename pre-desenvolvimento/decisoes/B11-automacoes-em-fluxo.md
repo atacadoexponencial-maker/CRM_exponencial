@@ -566,6 +566,8 @@ sai 3 vezes. Em fila, a segunda já vê a primeira e é ignorada.
   consumir a fila. Quem consome é o próximo evento do mesmo contato.
 - **Falha ao gravar na fila:** as regras rodam do mesmo jeito depois da
   resposta, só que sem a ordem por contato.
+  *Mudou em 09/10/2026 (B22-07): sem a fila, as regras não rodam e ficam no
+  histórico como falha. Seção 23.*
 - **A tela não mostra na hora o que a automação fez.** Antes, mover o card
   esperava as regras, e a tela recarregada já vinha com a tag que a automação
   pôs. Agora a resposta volta antes, e o efeito aparece na próxima atualização.
@@ -1030,4 +1032,29 @@ contato precisa acumular mais de 4 minutos e meio de eventos seguidos.
   enviar, por exemplo).
 - **Um novo consumo quando o tempo acaba.** Exigiria chamar uma rota do próprio CRM,
   com endereço e segredo, para um caso que pede minutos de eventos seguidos.
+
+## 23. Evento fora da fila não roda (B22-07, 09/10/2026)
+
+Até aqui, se gravar o evento na fila falhava, as regras rodavam do mesmo jeito,
+fora da fila (seção 11.3). O QA de 09/10 (achado M2) lembrou o efeito: sem a
+ordem por contato, mensagens seguidas podem disparar a mesma resposta em dobro,
+que é exatamente o que a fila evita (seção 11.1).
+
+**Decidido pelo Luan:** não rodar e registrar. É o mesmo princípio de quando a
+proteção de repetição não consegue consultar o banco (seção 8.3): melhor não
+disparar do que disparar em dobro.
+
+**Como ficou:** o motor ganha a opção `naoRodarPorque`. Com ela, ele carrega as
+regras que o evento dispararia e grava cada uma no histórico como "falhou", com o
+motivo, sem executar nada. É o mesmo caminho das regras que o prazo da fila não
+deixa começar (seção 22).
+
+**Limite aceito:** se o banco estiver fora do ar, o histórico também não grava.
+
+**Descartado:**
+
+- **Rodar sem a fila, como antes.** Garante a regra, com risco de mensagem repetida.
+- **Tentar gravar na fila de novo.** Um erro passageiro passaria na segunda vez,
+  mas a resposta de quem disparou (webhook, tela do CRM) esperaria a nova
+  tentativa. E, se o banco estiver com problema, a segunda tentativa falha igual.
 

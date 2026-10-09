@@ -14,7 +14,7 @@ vi.mock("@/lib/whatsapp-envio", async (importOriginal) => ({
 }))
 
 import { createServiceClient } from "@/integrations/supabase/service"
-import { SEM_TEMPO, gatilhoCorresponde, processarAutomacoes } from "@/lib/automacoes"
+import { SEM_FILA, SEM_TEMPO, gatilhoCorresponde, processarAutomacoes } from "@/lib/automacoes"
 import type { AcaoTipo, Fluxo, GatilhoTipo } from "@/lib/fluxo-automacao"
 import { enviarWhatsAppComMotivo } from "@/lib/whatsapp-envio"
 
@@ -553,6 +553,20 @@ describe("histórico e proteção de repetição (B11-03)", () => {
     expect(mockEnviar).not.toHaveBeenCalled()
     expect(h.gravadas).toHaveLength(1)
     expect(h.gravadas[0]).toMatchObject({ resultado: "falhou", motivo: SEM_TEMPO, regra_nome: "Boas-vindas" })
+  })
+
+  it("B22-07: evento fora da fila não roda nenhuma regra e grava cada uma como 'falhou'", async () => {
+    const h = historico()
+    const upsert = vi.fn().mockResolvedValue({ error: null })
+    banco({ automation_flows: regra({ modo: "uma_vez_por_contato" }), automation_runs: h.obj, conversation_labels: { upsert } })
+
+    await processarAutomacoes(conversaCriada, { naoRodarPorque: SEM_FILA })
+
+    expect(upsert).not.toHaveBeenCalled()
+    expect(mockEnviar).not.toHaveBeenCalled()
+    expect(h.gravadas).toEqual([expect.objectContaining({ resultado: "falhou", motivo: SEM_FILA, caminho: [] })])
+    // Nem consulta a proteção: não vai rodar de qualquer jeito
+    expect(h.filtros.some((f) => f[0] === "neq")).toBe(false)
   })
 
   it("B22-06: antes do prazo, roda normalmente", async () => {

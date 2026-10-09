@@ -50,10 +50,14 @@ interface RegraCarregada extends RegraDaExecucao {
 
 /** Motivo das regras que o prazo da fila não deixou começar (B22-06). */
 export const SEM_TEMPO = "Não rodou: o tempo desta execução acabou antes de chegar nesta regra"
+/** Motivo das regras de um evento que não entrou na fila (B22-07). */
+export const SEM_FILA = "Não rodou: o evento não entrou na fila de automações (erro no banco)"
 
 export interface OpcoesDoProcessamento {
   /** Hora (em ms, como `Date.now()`) depois da qual nenhuma regra começa. */
   prazo?: number
+  /** Nenhuma regra roda: cada uma que o evento dispararia vai para o histórico como falha, com este motivo. */
+  naoRodarPorque?: string
 }
 
 export async function processarAutomacoes(gatilho: GatilhoAutomacao, opcoes: OpcoesDoProcessamento = {}): Promise<void> {
@@ -72,8 +76,10 @@ export async function processarAutomacoes(gatilho: GatilhoAutomacao, opcoes: Opc
       const blocoGatilho = gatilhoDoFluxo(regra.fluxo)
       if (!blocoGatilho || problemasDeEstrutura(regra.fluxo).length > 0) continue
       if (!gatilhoCorresponde(blocoGatilho, gatilho)) continue
-      if (opcoes.prazo !== undefined && Date.now() >= opcoes.prazo) {
-        await registrarExecucao(supabase, { gatilho, regra, resultado: "falhou", motivo: SEM_TEMPO })
+      const semRodar =
+        opcoes.naoRodarPorque ?? (opcoes.prazo !== undefined && Date.now() >= opcoes.prazo ? SEM_TEMPO : null)
+      if (semRodar) {
+        await registrarExecucao(supabase, { gatilho, regra, resultado: "falhou", motivo: semRodar })
         continue
       }
       await executarRegra(contexto, regra)

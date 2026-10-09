@@ -21,7 +21,7 @@ import { after } from "next/server"
 import { createServiceClient } from "@/integrations/supabase/service"
 import type { Json } from "@/integrations/supabase/types"
 import type { GatilhoAutomacao } from "./contexto"
-import { processarAutomacoes } from "./index"
+import { SEM_FILA, processarAutomacoes } from "./index"
 
 /**
  * Até aqui, desde o começo do consumo, as regras rodam. Depois, os eventos que a
@@ -40,8 +40,12 @@ export async function dispararAutomacoes(gatilho: GatilhoAutomacao): Promise<voi
     const { error } = await createServiceClient()
       .from("automation_queue")
       .insert({ workspace_id: gatilho.workspaceId, chave, evento: gatilho as unknown as Json })
-    // Sem a fila, as regras rodam do mesmo jeito depois da resposta, só sem a ordem por contato
-    await depoisDaResposta(error ? () => processarAutomacoes(gatilho) : () => consumirFila(chave))
+    // Sem a fila, as regras não rodam (B22-07): sem a ordem por contato, mensagens
+    // seguidas poderiam disparar a mesma resposta em dobro. Cada regra que o evento
+    // dispararia fica no histórico como falha.
+    await depoisDaResposta(
+      error ? () => processarAutomacoes(gatilho, { naoRodarPorque: SEM_FILA }) : () => consumirFila(chave)
+    )
   } catch {
     // Automação nunca derruba quem disparou
   }
