@@ -415,7 +415,7 @@ describe("histórico e proteção de repetição (B11-03)", () => {
     const gravadas: Array<Record<string, unknown>> = []
     const filtros: unknown[][] = []
     const obj: Record<string, unknown> = {}
-    for (const m of ["select", "eq", "neq", "gte", "limit"]) {
+    for (const m of ["select", "eq", "neq", "contains", "gte", "limit"]) {
       obj[m] = vi.fn((...args: unknown[]) => {
         filtros.push([m, ...args])
         return obj
@@ -505,8 +505,9 @@ describe("histórico e proteção de repetição (B11-03)", () => {
       motivo: "Já rodou para este contato (proteção: uma vez por contato)",
       caminho: [],
     })
-    // Procura só execuções que contaram: ignorada não gasta a vez
+    // Procura só execuções que gastaram a vez: com alguma ação que deu certo (B22-01)
     expect(h.filtros).toContainEqual(["neq", "resultado", "ignorada"])
+    expect(h.filtros).toContainEqual(["contains", "caminho", JSON.stringify([{ bloco: { tipo: "acao" }, ok: true }])])
     expect(h.filtros).toContainEqual(["eq", "contact_id", "contact-1"])
   })
 

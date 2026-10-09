@@ -85,10 +85,18 @@ export function eventoGravado(gatilho: GatilhoAutomacao): Record<string, string>
 }
 
 /**
+ * Caminho com pelo menos uma ação que deu certo, no formato do `contains` do
+ * PostgREST para jsonb (`caminho @> ...`). Ação que não mudou nada porque o
+ * contato já estava como ela deixaria conta como feita (ver `acoes.ts`).
+ */
+const CAMINHO_COM_ACAO_FEITA = JSON.stringify([{ bloco: { tipo: "acao" }, ok: true }])
+
+/**
  * Por que a regra não deve rodar agora para o contato, ou `null` para rodar.
- * Conta as execuções concluídas e com falha: uma ignorada não "gasta" a vez.
- * Sem contato no evento, não há o que proteger. Erro de banco sobe: quem chama
- * prefere não disparar a disparar em dobro.
+ * Só gasta a vez a execução em que alguma ação deu certo (B22-01, achado G1 do
+ * QA de 09/10): sair pelo "não" sem ação, ou ter todas as ações falhando, não
+ * conta. Sem contato no evento, não há o que proteger. Erro de banco sobe: quem
+ * chama prefere não disparar a disparar em dobro.
  */
 export async function motivoParaIgnorar(
   supabase: ServiceClient,
@@ -103,7 +111,10 @@ export async function motivoParaIgnorar(
     .select("id")
     .eq("regra_id", regra.id)
     .eq("contact_id", contactId)
+    // Ignorada não tem caminho, então não mudaria o resultado; fica porque é a
+    // condição do índice parcial automation_runs_protecao
     .neq("resultado", "ignorada")
+    .contains("caminho", CAMINHO_COM_ACAO_FEITA)
   if (repeticao.modo === "a_cada_horas") {
     consulta = consulta.gte("created_at", new Date(Date.now() - repeticao.horas * 3_600_000).toISOString())
   }

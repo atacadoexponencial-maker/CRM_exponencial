@@ -313,7 +313,8 @@ execução fica `falhou`, com o caminho até a condição.
 ### 8.3 Proteção de repetição
 
 - **"Uma vez por contato":** barra se já houve uma execução concluída ou com
-  falha da regra para o contato. A ignorada não gasta a vez.
+  falha da regra para o contato. A ignorada não gasta a vez. *Mudou em
+  09/10/2026: só gasta a vez a execução em que alguma ação deu certo (seção 17).*
 - **"No máximo a cada N horas":** barra se houve uma nas últimas N horas, de 1 a
   8760 (um ano).
 - **"Sempre":** não barra.
@@ -829,3 +830,47 @@ Na ordem inversa, a produção ainda leria uma tabela que não existe mais.
 - **Fica:** `automation_runs.regra_origem`, sempre com `'fluxo'`. A coluna é
   obrigatória. Tirá-la pediria uma terceira etapa, com código depois da
   migration, para uma coluna que não atrapalha.
+
+## 17. A proteção só gasta a vez quando alguma ação rodou (B22-01, 09/10/2026)
+
+O QA das automações de 09/10 (`analise-qa/qa-automacoes-2026-10-09.md`, achado
+G1) mostrou o efeito da regra da seção 8.3 ao pé da letra. Toda execução
+concluída ou com falha gastava a vez, inclusive a que só passou por condições e
+saiu pelo "não". Na regra "texto contém catálogo → tag", o cliente que mandava
+"oi" antes nunca mais era atendido quando pedia o catálogo. Uma falha passageira
+de banco, gravada como "falhou", também gastava a vez.
+
+**Decidido pela Marcelle:** só gasta a vez a execução em que alguma ação rodou.
+
+**Como ficou:**
+
+- **"Rodou" é deu certo:** a ação tem `ok: true` no caminho gravado. Ação que não
+  mudou nada porque o contato já estava como ela deixaria (tag que ele já tem)
+  conta como feita desde a B11-03, então gasta a vez. Ação que falhou não gasta:
+  a mensagem não chegou, e a próxima vez tenta de novo. Basta uma ação certa no
+  caminho, mesmo com outras falhando, porque algo já chegou ao contato.
+- **Sem migration:** o caminho de cada execução já guarda o resultado de cada
+  ação (seção 8.1). A consulta da proteção pede que o caminho contenha uma ação
+  com `ok: true` (`caminho @> '[{"bloco":{"tipo":"acao"},"ok":true}]'`).
+- **O filtro `resultado <> 'ignorada'` ficou**, mesmo sem mudar o resultado
+  (execução ignorada não tem caminho). É a condição do índice parcial
+  `automation_runs_protecao`; sem ela, a consulta deixaria de usar o índice.
+- **Vale para o histórico que já existe:** contato que teve a vez gasta por uma
+  execução sem ação volta a ser atendido na próxima vez. No dia da mudança, o
+  histórico de produção estava vazio.
+- **Teste contra o banco real** (`automacoes-protecao.integration.test.ts`): o
+  filtro é do PostgREST, e um banco falso não o confere. Sem o filtro novo, os
+  quatro casos do bug falham no teste.
+
+**Descartado:**
+
+- **Coluna nova `gastou_vez` em `automation_runs`, preenchida ao gravar.** Pediria
+  migration no banco único e preenchimento das linhas antigas, para guardar uma
+  informação que o caminho já tem.
+- **Contar só as execuções "concluída".** Uma execução com uma ação certa e outra
+  com falha fica "falhou" e teria de gastar a vez. Uma concluída que só saiu pelo
+  "não" não deveria gastar. O resultado da execução não responde à pergunta; o
+  resultado das ações, sim.
+- **Mudar a repetição padrão da regra nova** (Marcelle sugeriu rever, por exemplo
+  "sempre" nos gatilhos de mensagem). Ficou fora da B22-01: o seletor já existe no
+  editor, e o padrão espera decisão do Luan e da Marcelle.
