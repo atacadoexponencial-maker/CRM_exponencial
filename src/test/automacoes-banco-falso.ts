@@ -12,8 +12,10 @@ import type { ContextoDaExecucao, GatilhoAutomacao, ServiceClient } from "@/lib/
  */
 type Tabela = { lista?: unknown; um?: unknown; umEmOrdem?: unknown[]; erro?: { code?: string; message?: string } }
 type Chamada = { tabela: string; metodo: string; args: unknown[] }
+/** O que uma função do banco (`rpc`) devolve. A chamada fica em `chamadas` com tabela `rpc:<nome>`. */
+type Funcao = { data?: unknown; erro?: { code?: string; message?: string } }
 
-export function banco(tabelas: Record<string, Tabela>) {
+export function banco(tabelas: Record<string, Tabela>, funcoes: Record<string, Funcao> = {}) {
   const chamadas: Chamada[] = []
   const usadas: Record<string, number> = {}
   const from = vi.fn((tabela: string) => {
@@ -37,8 +39,12 @@ export function banco(tabelas: Record<string, Tabela>) {
     obj.then = (resolve: (v: unknown) => void) => Promise.resolve({ data: config.lista ?? null, error: erro }).then(resolve)
     return obj
   })
+  const rpc = vi.fn((nome: string, args: unknown) => {
+    chamadas.push({ tabela: `rpc:${nome}`, metodo: "rpc", args: [args] })
+    return Promise.resolve({ data: funcoes[nome]?.data ?? null, error: funcoes[nome]?.erro ?? null })
+  })
   const contexto = (gatilho: GatilhoAutomacao): ContextoDaExecucao => ({
-    supabase: { from } as unknown as ServiceClient,
+    supabase: { from, rpc } as unknown as ServiceClient,
     gatilho,
   })
   const gravacoes = (tabela: string) =>

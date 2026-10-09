@@ -180,6 +180,7 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
   const {
     etiquetas,
     atendentes,
+    atendentesAtribuidos,
     conexoes,
     times,
     sequencias,
@@ -217,9 +218,22 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
       .in("id", ids)
     return count ?? 0
   }
-  const [nEtiquetas, nAtendentes, nConexoes, nTimes, nSequencias, nRapidas] = await Promise.all([
+  // B22-02: quem uma ação vai receber a conversa precisa estar ativo. Numa condição
+  // ("atendente é"), basta existir: a conversa pode continuar com quem foi desativado.
+  const contarAtivos = async (ids: string[]) => {
+    if (ids.length === 0) return 0
+    const { count } = await supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .eq("status", "active")
+      .in("id", ids)
+    return count ?? 0
+  }
+  const [nEtiquetas, nAtendentes, nAtribuidos, nConexoes, nTimes, nSequencias, nRapidas] = await Promise.all([
     contar("labels", etiquetas),
     contar("profiles", atendentes),
+    contarAtivos(atendentesAtribuidos),
     contar("whatsapp_connections", conexoes),
     contar("teams", times),
     contar("sequences", sequencias),
@@ -227,6 +241,7 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
   ])
   if (nEtiquetas !== etiquetas.length) return "Uma etiqueta escolhida não existe mais. Escolha de novo."
   if (nAtendentes !== atendentes.length) return "Um atendente escolhido não existe mais. Escolha de novo."
+  if (nAtribuidos !== atendentesAtribuidos.length) return "Um atendente escolhido está desativado. Escolha outro."
   if (nConexoes !== conexoes.length) return "Um número escolhido não existe mais. Escolha de novo."
   if (nTimes !== times.length) return "Um time escolhido não existe mais. Escolha de novo."
   if (nSequencias !== sequencias.length) return "Uma sequência escolhida não existe mais. Escolha de novo."

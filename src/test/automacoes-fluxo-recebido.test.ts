@@ -89,6 +89,8 @@ describe("referenciasDoFluxo", () => {
     const refs = referenciasDoFluxo(fluxoValido)
     expect(refs.etiquetas).toEqual(["label-1"])
     expect(refs.atendentes.sort()).toEqual(["user-1", "user-2"])
+    // B22-02: só o da ação precisa estar ativo; o da condição ("atendente é") não
+    expect(refs.atendentesAtribuidos).toEqual(["user-2"])
     expect(refs.conexoes).toEqual(["conn-1"])
     // Na ordem dos blocos: gatilho, verificação da condição, ação "mover card"
     expect(refs.etapas).toEqual([

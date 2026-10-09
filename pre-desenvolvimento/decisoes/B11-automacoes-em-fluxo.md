@@ -313,7 +313,8 @@ execução fica `falhou`, com o caminho até a condição.
 ### 8.3 Proteção de repetição
 
 - **"Uma vez por contato":** barra se já houve uma execução concluída ou com
-  falha da regra para o contato. A ignorada não gasta a vez.
+  falha da regra para o contato. A ignorada não gasta a vez. *Mudou em
+  09/10/2026: só gasta a vez a execução em que alguma ação deu certo (seção 17).*
 - **"No máximo a cada N horas":** barra se houve uma nas últimas N horas, de 1 a
   8760 (um ano).
 - **"Sempre":** não barra.
@@ -380,6 +381,11 @@ no card. Isso pode virar um gatilho próprio na fase 2.
 Não disparam: a tag que o contato já tinha (o banco recusa a repetida), a
 etiqueta que a conversa já tinha e o dado salvo com o mesmo valor. Um dado
 apagado dispara com valor vazio.
+
+*Atualizado em 09/10/2026 (B22-05, achado M1 do QA):* "mudar" ignora maiúscula,
+acento e espaços repetidos, com a mesma normalização das verificações de texto.
+Trocar "São Paulo" por "são paulo" grava o valor novo, mas não dispara. O valor do
+gatilho também casa normalizado: "são paulo" no gatilho casa com "São Paulo".
 
 ### 9.4 Achado: os menus do Base UI não usam `onSelect`
 
@@ -553,11 +559,15 @@ sai 3 vezes. Em fila, a segunda já vê a primeira e é ignorada.
   repetido, porque repetir poderia mandar a mesma mensagem duas vezes. Depois de
   5 minutos, o tempo máximo da função, ele é marcado como descartado e para de
   travar a fila do contato.
+  *Desde 09/10/2026 (B22-06), o consumo tem orçamento de tempo e termina antes
+  disso: seção 22.*
 - **Evento esperando há mais de 10 minutos é descartado,** para a regra não
   responder fora de hora. Só acontece se a função cair entre gravar o evento e
   consumir a fila. Quem consome é o próximo evento do mesmo contato.
 - **Falha ao gravar na fila:** as regras rodam do mesmo jeito depois da
   resposta, só que sem a ordem por contato.
+  *Mudou em 09/10/2026 (B22-07): sem a fila, as regras não rodam e ficam no
+  histórico como falha. Seção 23.*
 - **A tela não mostra na hora o que a automação fez.** Antes, mover o card
   esperava as regras, e a tela recarregada já vinha com a tag que a automação
   pôs. Agora a resposta volta antes, e o efeito aparece na próxima atualização.
@@ -829,3 +839,222 @@ Na ordem inversa, a produção ainda leria uma tabela que não existe mais.
 - **Fica:** `automation_runs.regra_origem`, sempre com `'fluxo'`. A coluna é
   obrigatória. Tirá-la pediria uma terceira etapa, com código depois da
   migration, para uma coluna que não atrapalha.
+
+## 17. A proteção só gasta a vez quando alguma ação rodou (B22-01, 09/10/2026)
+
+O QA das automações de 09/10 (`analise-qa/qa-automacoes-2026-10-09.md`, achado
+G1) mostrou o efeito da regra da seção 8.3 ao pé da letra. Toda execução
+concluída ou com falha gastava a vez, inclusive a que só passou por condições e
+saiu pelo "não". Na regra "texto contém catálogo → tag", o cliente que mandava
+"oi" antes nunca mais era atendido quando pedia o catálogo. Uma falha passageira
+de banco, gravada como "falhou", também gastava a vez.
+
+**Decidido pela Marcelle:** só gasta a vez a execução em que alguma ação rodou.
+
+**Como ficou:**
+
+- **"Rodou" é deu certo:** a ação tem `ok: true` no caminho gravado. Ação que não
+  mudou nada porque o contato já estava como ela deixaria (tag que ele já tem)
+  conta como feita desde a B11-03, então gasta a vez. Ação que falhou não gasta:
+  a mensagem não chegou, e a próxima vez tenta de novo. Basta uma ação certa no
+  caminho, mesmo com outras falhando, porque algo já chegou ao contato.
+- **Sem migration:** o caminho de cada execução já guarda o resultado de cada
+  ação (seção 8.1). A consulta da proteção pede que o caminho contenha uma ação
+  com `ok: true` (`caminho @> '[{"bloco":{"tipo":"acao"},"ok":true}]'`).
+- **O filtro `resultado <> 'ignorada'` ficou**, mesmo sem mudar o resultado
+  (execução ignorada não tem caminho). É a condição do índice parcial
+  `automation_runs_protecao`; sem ela, a consulta deixaria de usar o índice.
+- **Vale para o histórico que já existe:** contato que teve a vez gasta por uma
+  execução sem ação volta a ser atendido na próxima vez. No dia da mudança, o
+  histórico de produção estava vazio.
+- **Teste contra o banco real** (`automacoes-protecao.integration.test.ts`): o
+  filtro é do PostgREST, e um banco falso não o confere. Sem o filtro novo, os
+  quatro casos do bug falham no teste.
+
+**Descartado:**
+
+- **Coluna nova `gastou_vez` em `automation_runs`, preenchida ao gravar.** Pediria
+  migration no banco único e preenchimento das linhas antigas, para guardar uma
+  informação que o caminho já tem.
+- **Contar só as execuções "concluída".** Uma execução com uma ação certa e outra
+  com falha fica "falhou" e teria de gastar a vez. Uma concluída que só saiu pelo
+  "não" não deveria gastar. O resultado da execução não responde à pergunta; o
+  resultado das ações, sim.
+- **Mudar a repetição padrão da regra nova** (Marcelle sugeriu rever, por exemplo
+  "sempre" nos gatilhos de mensagem). Ficou fora da B22-01: o seletor já existe no
+  editor, e o padrão espera decisão do Luan e da Marcelle.
+
+## 18. "Atribuir atendente" só para quem está ativo (B22-02, 09/10/2026)
+
+O QA de 09/10 (achado A3) salvou uma regra que atribuía a um usuário desativado,
+e ela rodou como "concluída". O editor já lista só os ativos, mas o servidor não
+conferia. E um atendente pode ser desativado depois que a regra foi salva, então
+conferir só ao salvar não basta.
+
+**Como ficou:**
+
+- **Ao salvar**, a ação "atribuir atendente" precisa apontar para alguém ativo da
+  empresa. Senão: "Um atendente escolhido está desativado. Escolha outro."
+- **Ao executar**, o motor lê o perfil antes de gravar. Desativado: a ação falha
+  com "O atendente está desativado" e não mexe na conversa nem no card. Excluído
+  ou de outra empresa: "O atendente não existe mais".
+- **A condição "atendente é Fulano" continua aceitando desativado.** A conversa
+  pode continuar com quem foi desativado até alguém transferir, e a regra pode
+  querer tratar exatamente esse caso. Por isso as referências do fluxo separam
+  `atendentesAtribuidos` (ações) de `atendentes` (ações e condições).
+
+**Descartado:**
+
+- **Exigir ativo em toda referência a atendente.** Barraria a condição pelo motivo
+  errado.
+- **Desativar sozinhas as regras que apontam para o usuário, ao desativá-lo.**
+  Mexeria na tela de usuários, fora do módulo, e pararia a regra inteira por causa
+  de uma ação. Com o motivo no histórico, o admin vê e troca o atendente.
+- **Conferir só ao executar.** O admin só descobriria pelo histórico um erro que
+  dá para mostrar na hora de salvar.
+
+## 19. "Atribuir" põe a conversa em atendimento (B22-03, 09/10/2026)
+
+O QA de 09/10 (achado A4) viu que as ações de atribuir deixavam a conversa "Em
+espera" com atendente. Nesse estado o chat só oferece "Atribuir", sem Transferir
+nem Resolver, porque o "Atribuir" do chat sempre põe a conversa em atendimento.
+
+**Como ficou:** a ação segue o chat. Conversa em espera que ganha atendente passa
+a em atendimento. Em atendimento, só troca o responsável. Resolvida continua
+resolvida, com o responsável novo.
+
+- **Por que a resolvida não reabre:** a conversa do evento pode estar resolvida (uma
+  etiqueta aplicada numa conversa resolvida, por exemplo). Reabrir já é uma ação
+  própria ("reabrir conversa", seção 10.4), que segue a mesma regra do chat. Se
+  "atribuir" também reabrisse, a regra faria duas coisas sem o admin ter pedido.
+- **Descartado:** pôr em atendimento sempre, como o chat faz. O chat só atribui
+  conversa aberta; a automação pode chegar numa resolvida.
+
+## 20. "Atribuir ao time" travado no banco (B22-04, 09/10/2026)
+
+O QA de 09/10 (achado A6) apontou dois problemas na escolha por carga da seção 7.3:
+
+1. A conversa do evento contava como carga de quem já estava com ela. Numa regra
+   que roda a cada mensagem, a conversa alternava entre dois atendentes.
+2. O motor lia a carga e gravava depois, em idas separadas ao banco. A fila (seção
+   11) põe em ordem os eventos de um mesmo contato, mas contatos diferentes rodam
+   em paralelo. Leads que chegavam juntos liam a mesma carga e caíam no mesmo
+   atendente.
+
+**Decidido pelo Luan:**
+
+- Conversa que já está com um membro ativo do time **fica com ele**: a ação não
+  mexe e conta como feita. O cliente não troca de vendedor no meio da conversa.
+- A escolha e a gravação da conversa passam a ser **uma operação só no banco**,
+  travada por time: a função `atribuir_conversa_ao_time`. A segunda chamada espera
+  a primeira gravar, e já conta a conversa nova na carga.
+
+**Detalhes:**
+
+- A carga não conta a própria conversa, e só conta conversas abertas da empresa.
+- O card continua no motor, depois da função, e só quando a conversa mudou de
+  mãos. O card não entra na carga, então não precisa da trava.
+- No empate, o primeiro pelo nome, agora na ordenação do banco. Antes era a do
+  navegador em português (`localeCompare`); a diferença só aparece com nomes que
+  começam com acento.
+- Só o service role executa a função, como a da fila.
+- A migration só acrescenta a função e foi aplicada antes do merge: o CRM
+  publicado não a chama.
+
+**Descartado:**
+
+- **Só tirar a própria conversa da carga, sem manter com quem está.** Para o
+  pingue-pongue, mas ainda troca o vendedor no meio da conversa sempre que outro
+  membro tiver menos carga.
+- **Pôr os eventos de toda a empresa numa fila só.** Resolveria a corrida, mas
+  todas as regras da empresa passariam a esperar umas pelas outras, inclusive as
+  que não atribuem nada.
+- **Aceitar a corrida como limite conhecido.** Rajadas de leads são justamente
+  campanha e anúncio, quando a divisão mais importa.
+
+## 21. Número da conversa fora do ar: falha, sem trocar de número (M7, 09/10/2026)
+
+O QA de 09/10 (achado M7, suspeita) apontou que o envio usa o número gravado na
+conversa mesmo quando ele foi desconectado ou removido
+(`resolverProviderDaConversa` e `resolverProviderDoContato`, em
+`src/lib/whatsapp/index.ts`).
+
+**Conferido:** é isso mesmo, e o envio falha. O gateway recusa número pausado
+("instância não conectada", spec da B9) e número que ele não conhece mais. A
+automação registra no histórico "O WhatsApp recusou o envio: O número de envio
+estava fora do ar.". Nenhuma mensagem sai por um número pausado.
+
+**Decidido pelo Luan:** fica assim. O cliente só recebe do número com que já
+conversa.
+
+**Descartado:** cair para outro número conectado da empresa. O cliente passaria a
+receber de um número que não conhece, no meio da conversa. E o caminho é o mesmo
+do chat e das sequências, então a mudança valeria para eles também.
+
+## 22. Fila com orçamento de tempo (B22-06, 09/10/2026)
+
+O QA de 09/10 mostrou dois jeitos de a fila perder regras sem deixar rastro:
+
+- **A1.** O consumo parava em 50 eventos do contato. Com 62 eventos, 12 ficaram
+  esperando o próximo evento do contato e foram descartados ("esperou demais").
+- **A2.** Com 100 regras, um evento levou ~73 s. Um evento que passa de 5 minutos
+  é marcado como descartado pelo banco enquanto ainda roda, e o próximo do contato
+  roda junto. Na Vercel, a função é cortada em ~300 s, e o que faltava sumia.
+
+**Decidido pelo Luan:** orçamento de tempo.
+
+**Como ficou:**
+
+- O consumo conta o tempo desde o começo, sem limite de quantidade.
+- Até 240 s, as regras rodam.
+- De 240 s a 270 s, os eventos que a fila ainda entrega só registram as regras
+  deles como "falhou: o tempo acabou". O motor recebe o prazo e não começa regra
+  depois dele.
+- Depois de 270 s, o consumo para. O que sobrar espera o próximo evento do
+  contato, como antes.
+- O banco não muda. Os 5 minutos de `reivindicar_evento_de_automacao` passam a
+  valer só para função que caiu de verdade, porque o consumo termina antes.
+
+**Por que 240 e 270:** a Vercel corta em ~300 s, contados da requisição, e o
+consumo começa depois da resposta. Uma regra que começa aos 239 s ainda tem tempo
+de terminar, e registrar "não rodou" leva milissegundos.
+
+**Limite aceito:** se sobrar evento depois dos 270 s e o contato não mandar mais
+nada em 10 minutos, o banco descarta sem histórico, como antes. Para isso, o
+contato precisa acumular mais de 4 minutos e meio de eventos seguidos.
+
+**Descartado:**
+
+- **Só registrar o que se perde, mantendo os 50 eventos.** Volume alto continuaria
+  perdendo eventos, agora visíveis.
+- **Rodar as regras de um evento em paralelo, para ganhar tempo.** As regras rodam
+  na ordem de criação, e uma pode depender do que a anterior fez (atribuir antes de
+  enviar, por exemplo).
+- **Um novo consumo quando o tempo acaba.** Exigiria chamar uma rota do próprio CRM,
+  com endereço e segredo, para um caso que pede minutos de eventos seguidos.
+
+## 23. Evento fora da fila não roda (B22-07, 09/10/2026)
+
+Até aqui, se gravar o evento na fila falhava, as regras rodavam do mesmo jeito,
+fora da fila (seção 11.3). O QA de 09/10 (achado M2) lembrou o efeito: sem a
+ordem por contato, mensagens seguidas podem disparar a mesma resposta em dobro,
+que é exatamente o que a fila evita (seção 11.1).
+
+**Decidido pelo Luan:** não rodar e registrar. É o mesmo princípio de quando a
+proteção de repetição não consegue consultar o banco (seção 8.3): melhor não
+disparar do que disparar em dobro.
+
+**Como ficou:** o motor ganha a opção `naoRodarPorque`. Com ela, ele carrega as
+regras que o evento dispararia e grava cada uma no histórico como "falhou", com o
+motivo, sem executar nada. É o mesmo caminho das regras que o prazo da fila não
+deixa começar (seção 22).
+
+**Limite aceito:** se o banco estiver fora do ar, o histórico também não grava.
+
+**Descartado:**
+
+- **Rodar sem a fila, como antes.** Garante a regra, com risco de mensagem repetida.
+- **Tentar gravar na fila de novo.** Um erro passageiro passaria na segunda vez,
+  mas a resposta de quem disparou (webhook, tela do CRM) esperaria a nova
+  tentativa. E, se o banco estiver com problema, a segunda tentativa falha igual.
+

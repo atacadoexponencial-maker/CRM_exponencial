@@ -14,7 +14,7 @@ vi.mock("@/lib/whatsapp-envio", async (importOriginal) => ({
 }))
 
 import { createServiceClient } from "@/integrations/supabase/service"
-import { gatilhoCorresponde, processarAutomacoes } from "@/lib/automacoes"
+import { SEM_FILA, SEM_TEMPO, gatilhoCorresponde, processarAutomacoes } from "@/lib/automacoes"
 import type { AcaoTipo, Fluxo, GatilhoTipo } from "@/lib/fluxo-automacao"
 import { enviarWhatsAppComMotivo } from "@/lib/whatsapp-envio"
 
@@ -158,6 +158,8 @@ describe("processarAutomacoes", () => {
           c.update = updateCard
           return c
         }
+        // B22-02: o atendente está ativo
+        if (table === "profiles") return chain({ data: { status: "active" } })
         return chain({ data: null })
       }),
     } as unknown as ReturnType<typeof createServiceClient>)
@@ -415,7 +417,7 @@ describe("histórico e proteção de repetição (B11-03)", () => {
     const gravadas: Array<Record<string, unknown>> = []
     const filtros: unknown[][] = []
     const obj: Record<string, unknown> = {}
-    for (const m of ["select", "eq", "neq", "gte", "limit"]) {
+    for (const m of ["select", "eq", "neq", "contains", "gte", "limit"]) {
       obj[m] = vi.fn((...args: unknown[]) => {
         filtros.push([m, ...args])
         return obj
@@ -505,8 +507,9 @@ describe("histórico e proteção de repetição (B11-03)", () => {
       motivo: "Já rodou para este contato (proteção: uma vez por contato)",
       caminho: [],
     })
-    // Procura só execuções que contaram: ignorada não gasta a vez
+    // Procura só execuções que gastaram a vez: com alguma ação que deu certo (B22-01)
     expect(h.filtros).toContainEqual(["neq", "resultado", "ignorada"])
+    expect(h.filtros).toContainEqual(["contains", "caminho", JSON.stringify([{ bloco: { tipo: "acao" }, ok: true }])])
     expect(h.filtros).toContainEqual(["eq", "contact_id", "contact-1"])
   })
 
@@ -537,6 +540,47 @@ describe("histórico e proteção de repetição (B11-03)", () => {
     expect(antes - desde).toBeGreaterThanOrEqual(6 * 3_600_000 - 1000)
     expect(antes - desde).toBeLessThanOrEqual(6 * 3_600_000 + 1000)
     expect(h.gravadas[0]).toMatchObject({ resultado: "ignorada", motivo: expect.stringContaining("6 horas") })
+  })
+
+  it("B22-06: depois do prazo, a regra não começa e fica no histórico como 'falhou'", async () => {
+    const h = historico()
+    const upsert = vi.fn().mockResolvedValue({ error: null })
+    banco({ automation_flows: regra({ modo: "sempre" }), automation_runs: h.obj, conversation_labels: { upsert } })
+
+    await processarAutomacoes(conversaCriada, { prazo: Date.now() - 1 })
+
+    expect(upsert).not.toHaveBeenCalled()
+    expect(mockEnviar).not.toHaveBeenCalled()
+    expect(h.gravadas).toHaveLength(1)
+    expect(h.gravadas[0]).toMatchObject({ resultado: "falhou", motivo: SEM_TEMPO, regra_nome: "Boas-vindas" })
+  })
+
+  it("B22-07: evento fora da fila não roda nenhuma regra e grava cada uma como 'falhou'", async () => {
+    const h = historico()
+    const upsert = vi.fn().mockResolvedValue({ error: null })
+    banco({ automation_flows: regra({ modo: "uma_vez_por_contato" }), automation_runs: h.obj, conversation_labels: { upsert } })
+
+    await processarAutomacoes(conversaCriada, { naoRodarPorque: SEM_FILA })
+
+    expect(upsert).not.toHaveBeenCalled()
+    expect(mockEnviar).not.toHaveBeenCalled()
+    expect(h.gravadas).toEqual([expect.objectContaining({ resultado: "falhou", motivo: SEM_FILA, caminho: [] })])
+    // Nem consulta a proteção: não vai rodar de qualquer jeito
+    expect(h.filtros.some((f) => f[0] === "neq")).toBe(false)
+  })
+
+  it("B22-06: antes do prazo, roda normalmente", async () => {
+    const h = historico()
+    banco({
+      automation_flows: regra({ modo: "sempre" }),
+      automation_runs: h.obj,
+      conversation_labels: { upsert: vi.fn().mockResolvedValue({ error: null }) },
+    })
+
+    await processarAutomacoes(conversaCriada, { prazo: Date.now() + 60_000 })
+
+    expect(mockEnviar).toHaveBeenCalledTimes(1)
+    expect(h.gravadas[0].resultado).toBe("concluida")
   })
 
   it("erro ao conferir a proteção: não roda e grava 'falhou'", async () => {
@@ -587,6 +631,13 @@ describe("gatilhos de tag, etiqueta e dado do contato (B11-06)", () => {
     expect(gatilhoCorresponde(bloco("dado_contato_alterado", { campo: "tipo", valor: "lojista" }), dado("tipo", "lojista"))).toBe(true)
     expect(gatilhoCorresponde(bloco("dado_contato_alterado", { campo: "tipo", valor: "lojista" }), dado("tipo", "revendedor"))).toBe(false)
     expect(gatilhoCorresponde(bloco("dado_contato_alterado", { campo: "tipo" }), dado("cidade", "Natal"))).toBe(false)
+  })
+
+  it("B22-05: o valor do dado casa sem diferença de maiúscula, acento e espaço", () => {
+    const cidade = bloco("dado_contato_alterado", { campo: "cidade", valor: "são paulo" })
+    expect(gatilhoCorresponde(cidade, dado("cidade", "São Paulo"))).toBe(true)
+    expect(gatilhoCorresponde(cidade, dado("cidade", "SAO  PAULO"))).toBe(true)
+    expect(gatilhoCorresponde(cidade, dado("cidade", "São Paulo do Potengi"))).toBe(false)
   })
 
   it("gatilho de outro tipo não casa", () => {

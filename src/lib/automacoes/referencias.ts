@@ -11,6 +11,8 @@ import type { Fluxo } from "@/lib/fluxo-automacao"
 export interface ReferenciasDoFluxo {
   etiquetas: string[]
   atendentes: string[]
+  /** Os que uma ação "atribuir atendente" vai pôr na conversa: estes precisam estar ativos (B22-02). */
+  atendentesAtribuidos: string[]
   conexoes: string[]
   times: string[]
   sequencias: string[]
@@ -32,6 +34,7 @@ const PREFIXO_NUMERO = "numero:"
 export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
   const etiquetas = new Set<string>()
   const atendentes = new Set<string>()
+  const atendentesAtribuidos = new Set<string>()
   const conexoes = new Set<string>()
   const times = new Set<string>()
   const sequencias = new Set<string>()
@@ -61,7 +64,10 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
 
     const p = bloco.parametros
     if (p.label_id) etiquetas.add(p.label_id)
-    if (p.atendente_id) atendentes.add(p.atendente_id)
+    if (p.atendente_id) {
+      atendentes.add(p.atendente_id)
+      atendentesAtribuidos.add(p.atendente_id)
+    }
     if (p.time_id) times.add(p.time_id)
     if (p.sequencia_id) sequencias.add(p.sequencia_id)
     // Funil sozinho também é conferido: o gatilho "card movido" aceita "qualquer etapa"
@@ -79,6 +85,7 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
   return {
     etiquetas: [...etiquetas],
     atendentes: [...atendentes],
+    atendentesAtribuidos: [...atendentesAtribuidos],
     conexoes: [...conexoes],
     times: [...times],
     sequencias: [...sequencias],

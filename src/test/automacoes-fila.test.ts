@@ -11,7 +11,10 @@ const after = vi.fn((trabalho: () => Promise<void>) => {
 })
 vi.mock("next/server", () => ({ after: (trabalho: () => Promise<void>) => after(trabalho) }))
 
-vi.mock("@/lib/automacoes/index", () => ({ processarAutomacoes: vi.fn().mockResolvedValue(undefined) }))
+vi.mock("@/lib/automacoes/index", () => ({
+  processarAutomacoes: vi.fn().mockResolvedValue(undefined),
+  SEM_FILA: "motivo-sem-fila",
+}))
 
 const insert = vi.fn()
 const apagar = vi.fn()
@@ -27,7 +30,7 @@ vi.mock("@/integrations/supabase/service", () => ({
 }))
 
 import type { GatilhoAutomacao } from "@/lib/automacoes/contexto"
-import { chaveDaFila, dispararAutomacoes } from "@/lib/automacoes/fila"
+import { PRAZO_DA_FILA_MS, PRAZO_DAS_REGRAS_MS, chaveDaFila, consumirFila, dispararAutomacoes } from "@/lib/automacoes/fila"
 import { processarAutomacoes } from "@/lib/automacoes/index"
 
 const motor = vi.mocked(processarAutomacoes)
@@ -40,6 +43,7 @@ async function rodarAgendados() {
 
 beforeEach(() => {
   agendados.length = 0
+  vi.restoreAllMocks()
   vi.clearAllMocks()
   insert.mockResolvedValue({ error: null })
   apagar.mockResolvedValue({ error: null })
@@ -83,14 +87,14 @@ describe("dispararAutomacoes", () => {
     ).toBe("workspace:ws-1")
   })
 
-  it("sem conseguir gravar na fila, as regras rodam do mesmo jeito depois da resposta", async () => {
+  it("B22-07: sem conseguir gravar na fila, as regras não rodam e vão para o histórico, depois da resposta", async () => {
     insert.mockResolvedValue({ error: { message: "timeout" } })
 
     await dispararAutomacoes(tag("vip"))
     expect(motor).not.toHaveBeenCalled()
     await rodarAgendados()
 
-    expect(motor).toHaveBeenCalledWith(tag("vip"))
+    expect(motor).toHaveBeenCalledWith(tag("vip"), { naoRodarPorque: "motivo-sem-fila" })
     expect(rpc).not.toHaveBeenCalled()
   })
 
@@ -102,7 +106,7 @@ describe("dispararAutomacoes", () => {
 
     await dispararAutomacoes(tag("vip"))
 
-    expect(motor).toHaveBeenCalledWith(tag("vip"))
+    expect(motor).toHaveBeenCalledWith(tag("vip"), { prazo: expect.any(Number) })
   })
 
   it("erro ao pedir o próximo evento encerra o consumo sem lançar", async () => {
@@ -116,5 +120,47 @@ describe("dispararAutomacoes", () => {
   it("nada lança erro para quem disparou", async () => {
     insert.mockRejectedValue(new Error("rede caiu"))
     await expect(dispararAutomacoes(tag("vip"))).resolves.toBeUndefined()
+  })
+})
+
+describe("orçamento de tempo do consumo (B22-06)", () => {
+  /** Relógio falso: começa em `inicio` e cada evento que o motor roda leva `porEvento` ms. */
+  function relogio(inicio: number, porEvento: number) {
+    let agora = inicio
+    vi.spyOn(Date, "now").mockImplementation(() => agora)
+    motor.mockImplementation(async () => {
+      agora += porEvento
+    })
+  }
+  const fila = (n: number) => {
+    for (let i = 0; i < n; i++) rpc.mockResolvedValueOnce({ data: [{ id: `q${i}`, evento: tag(`t${i}`) }], error: null })
+  }
+
+  it("sem limite de quantidade: 60 eventos rápidos rodam todos no mesmo consumo", async () => {
+    relogio(1_000_000, 100)
+    fila(60)
+    await consumirFila("contato-1")
+    expect(motor).toHaveBeenCalledTimes(60)
+    expect(apagar).toHaveBeenCalledTimes(60)
+  })
+
+  it("passa ao motor o prazo das regras, contado do começo do consumo", async () => {
+    relogio(1_000_000, 100)
+    fila(2)
+    await consumirFila("contato-1")
+    expect(motor.mock.calls.map(([, opcoes]) => opcoes)).toEqual([
+      { prazo: 1_000_000 + PRAZO_DAS_REGRAS_MS },
+      { prazo: 1_000_000 + PRAZO_DAS_REGRAS_MS },
+    ])
+  })
+
+  it("depois do prazo da fila, para de pegar eventos: o que sobrar espera o próximo evento do contato", async () => {
+    relogio(0, 100_000)
+    fila(10)
+    await consumirFila("contato-1")
+    // Eventos em 0, 100 e 200 s; aos 300 s o prazo da fila (270 s) já passou
+    expect(PRAZO_DA_FILA_MS).toBe(270_000)
+    expect(motor).toHaveBeenCalledTimes(3)
+    expect(rpc).toHaveBeenCalledTimes(3)
   })
 })

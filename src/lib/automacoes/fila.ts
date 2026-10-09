@@ -9,17 +9,27 @@
 // nada enquanto outro evento do contato está rodando. Quem termina um evento pega
 // o próximo, então nenhum fica para trás.
 //
+// Cada consumo tem um orçamento de tempo (B22-06), abaixo dos ~300 s em que a
+// Vercel corta a função: assim o que não deu tempo de rodar fica no histórico, e
+// um evento ainda rodando nunca chega aos 5 minutos em que o banco o considera
+// perdido.
+//
 // Nada aqui lança erro para quem disparou.
-// Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seção 11.
+// Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seções 11 e 22.
 
 import { after } from "next/server"
 import { createServiceClient } from "@/integrations/supabase/service"
 import type { Json } from "@/integrations/supabase/types"
 import type { GatilhoAutomacao } from "./contexto"
-import { processarAutomacoes } from "./index"
+import { SEM_FILA, processarAutomacoes } from "./index"
 
-/** Freio de um consumo. O que sobrar fica para o próximo evento do contato. */
-const LIMITE_POR_CONSUMO = 50
+/**
+ * Até aqui, desde o começo do consumo, as regras rodam. Depois, os eventos que a
+ * fila ainda entregar só registram as regras deles como "não rodou", o que é rápido.
+ */
+export const PRAZO_DAS_REGRAS_MS = 240_000
+/** Daqui em diante o consumo não pega mais eventos: os que sobrarem esperam o próximo evento do contato. */
+export const PRAZO_DA_FILA_MS = 270_000
 
 /** O contato do evento, ou a empresa quando ele não tem contato. */
 export const chaveDaFila = (gatilho: GatilhoAutomacao) => gatilho.contactId ?? `workspace:${gatilho.workspaceId}`
@@ -30,8 +40,12 @@ export async function dispararAutomacoes(gatilho: GatilhoAutomacao): Promise<voi
     const { error } = await createServiceClient()
       .from("automation_queue")
       .insert({ workspace_id: gatilho.workspaceId, chave, evento: gatilho as unknown as Json })
-    // Sem a fila, as regras rodam do mesmo jeito depois da resposta, só sem a ordem por contato
-    await depoisDaResposta(error ? () => processarAutomacoes(gatilho) : () => consumirFila(chave))
+    // Sem a fila, as regras não rodam (B22-07): sem a ordem por contato, mensagens
+    // seguidas poderiam disparar a mesma resposta em dobro. Cada regra que o evento
+    // dispararia fica no histórico como falha.
+    await depoisDaResposta(
+      error ? () => processarAutomacoes(gatilho, { naoRodarPorque: SEM_FILA }) : () => consumirFila(chave)
+    )
   } catch {
     // Automação nunca derruba quem disparou
   }
@@ -49,16 +63,17 @@ async function depoisDaResposta(trabalho: () => Promise<void>): Promise<void> {
   }
 }
 
-/** Roda os eventos pendentes da chave, um de cada vez, até a fila dela esvaziar. */
+/** Roda os eventos pendentes da chave, um de cada vez, até a fila dela esvaziar ou o tempo acabar. */
 export async function consumirFila(chave: string): Promise<void> {
+  const inicio = Date.now()
   try {
     const supabase = createServiceClient()
-    for (let i = 0; i < LIMITE_POR_CONSUMO; i++) {
+    while (Date.now() - inicio < PRAZO_DA_FILA_MS) {
       const { data, error } = await supabase.rpc("reivindicar_evento_de_automacao", { p_chave: chave })
       const item = data?.[0]
       if (error || !item) return
       // O motor não lança erro: cada regra registra no histórico o que deu certo ou não
-      await processarAutomacoes(item.evento as unknown as GatilhoAutomacao)
+      await processarAutomacoes(item.evento as unknown as GatilhoAutomacao, { prazo: inicio + PRAZO_DAS_REGRAS_MS })
       await supabase.from("automation_queue").delete().eq("id", item.id)
     }
   } catch {

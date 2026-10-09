@@ -86,13 +86,13 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
     }
     case "atribuir_atendente": {
       if (!parametros.atendente_id) return CONFIGURACAO_INCOMPLETA
+      const impedimento = await impedimentoDoAtendente(contexto, parametros.atendente_id)
+      if (impedimento) return impedimento
       return atribuir(contexto, parametros.atendente_id)
     }
     case "atribuir_time": {
       if (!parametros.time_id) return CONFIGURACAO_INCOMPLETA
-      const atendenteId = await atendenteDoTime(contexto, parametros.time_id)
-      if (!atendenteId) return falhou("O time não tem atendente ativo")
-      return atribuir(contexto, atendenteId)
+      return atribuirAoTime(contexto, parametros.time_id)
     }
     case "adicionar_tag": {
       if (!tagValida(parametros.tag ?? "")) return falhou("A tag não é válida")
@@ -286,24 +286,98 @@ async function abrirCardDeRecompra(
  * Passa a conversa do evento e o card do contato para o atendente (decisões,
  * seção 10.5). As duas gravações são tentadas, como na primeira versão: a
  * falha de uma não impede a outra.
+ *
+ * Como o "Atribuir" do chat, a conversa em espera passa a em atendimento
+ * (B22-03). Resolvida continua resolvida: reabrir é outra ação.
  */
 async function atribuir(contexto: ContextoDaExecucao, atendenteId: string): Promise<ResultadoAcao> {
   const { supabase } = contexto
   const erros: Array<{ code?: string } | null> = []
   const conversaId = await conversaDoEvento(contexto)
   if (conversaId) {
-    const { error } = await supabase.from("conversations").update({ assigned_to: atendenteId }).eq("id", conversaId)
-    erros.push(error)
+    const { data: conversa, error: erroAoLer } = await supabase
+      .from("conversations")
+      .select("status")
+      .eq("id", conversaId)
+      .maybeSingle()
+    if (erroAoLer) {
+      erros.push(erroAoLer)
+    } else {
+      const mudanca =
+        conversa?.status === "em_espera"
+          ? { assigned_to: atendenteId, status: "em_atendimento" }
+          : { assigned_to: atendenteId }
+      const { error } = await supabase.from("conversations").update(mudanca).eq("id", conversaId)
+      erros.push(error)
+    }
   }
+  return passarCardEConcluir(contexto, atendenteId, conversaId, erros)
+}
+
+/**
+ * Escolhe e grava a conversa no banco, numa operação travada por time (B22-04):
+ * a função `atribuir_conversa_ao_time` mantém a conversa com quem já é do time
+ * e ativo; senão, passa para o membro ativo com menos conversas abertas. Leads
+ * que chegam juntos esperam um pelo outro e saem distribuídos. O card vem depois,
+ * só quando a conversa mudou de mãos.
+ */
+async function atribuirAoTime(contexto: ContextoDaExecucao, timeId: string): Promise<ResultadoAcao> {
+  const { supabase, gatilho } = contexto
+  const conversaId = await conversaDoEvento(contexto)
+  const { data, error } = await supabase.rpc("atribuir_conversa_ao_time", {
+    p_workspace_id: gatilho.workspaceId,
+    p_team_id: timeId,
+    // null quando o contato não tem conversa aberta; o gerador de tipos não marca argumento nulo
+    p_conversation_id: conversaId as string,
+  })
+  if (error) return ERRO_NO_BANCO
+  const escolha = data?.[0]
+  if (!escolha) return falhou("O time não tem atendente ativo")
+  if (escolha.manteve) return FEITO
+  return passarCardEConcluir(contexto, escolha.atendente_id, conversaId, [])
+}
+
+/**
+ * Segunda metade de uma atribuição: passa o card principal do contato e junta o
+ * resultado, com os erros que a conversa já teve.
+ */
+async function passarCardEConcluir(
+  contexto: ContextoDaExecucao,
+  atendenteId: string,
+  conversaId: string | null,
+  erros: Array<{ code?: string } | null>
+): Promise<ResultadoAcao> {
   const card = await cardDoContato(contexto)
   if (card.erro) erros.push(card.erro)
   if (card.id) {
-    const { error } = await supabase.from("pipeline_cards").update({ atendente_id: atendenteId }).eq("id", card.id)
+    const { error } = await contexto.supabase
+      .from("pipeline_cards")
+      .update({ atendente_id: atendenteId })
+      .eq("id", card.id)
     erros.push(error)
   }
   if (!conversaId && !card.id && !card.erro) return falhou("O contato não tem conversa aberta nem card")
   if (erros.some(apontaParaApagado)) return falhou("O atendente não existe mais")
   return erros.some(Boolean) ? ERRO_NO_BANCO : FEITO
+}
+
+/**
+ * O atendente escolhido na regra pode ter sido desativado ou excluído depois que
+ * ela foi salva (B22-02). O "atribuir ao time" já escolhe só entre os ativos.
+ */
+async function impedimentoDoAtendente(
+  { supabase, gatilho }: ContextoDaExecucao,
+  atendenteId: string
+): Promise<ResultadoAcao | null> {
+  const { data: perfil, error } = await supabase
+    .from("profiles")
+    .select("status")
+    .eq("id", atendenteId)
+    .eq("workspace_id", gatilho.workspaceId)
+    .maybeSingle()
+  if (error) return ERRO_NO_BANCO
+  if (!perfil) return falhou("O atendente não existe mais")
+  return perfil.status === "active" ? null : falhou("O atendente está desativado")
 }
 
 /**
@@ -327,41 +401,6 @@ async function cardDoContato({
 
   const principal = cards?.find((c) => c.funil === "recompra") ?? cards?.find((c) => c.funil === "entrada")
   return { id: principal?.id ?? null }
-}
-
-/**
- * O membro ativo do time com menos conversas abertas. No empate, o primeiro
- * pelo nome, para o resultado ser previsível. `null` quando o time não tem
- * ninguém ativo.
- */
-async function atendenteDoTime({ supabase, gatilho }: ContextoDaExecucao, timeId: string): Promise<string | null> {
-  const { data: membros } = await supabase.from("user_teams").select("user_id").eq("team_id", timeId)
-  const ids = (membros ?? []).map((m) => m.user_id)
-  if (ids.length === 0) return null
-
-  const [{ data: ativos }, { data: abertas }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, name")
-      .eq("workspace_id", gatilho.workspaceId)
-      .eq("status", "active")
-      .in("id", ids),
-    supabase
-      .from("conversations")
-      .select("assigned_to")
-      .eq("workspace_id", gatilho.workspaceId)
-      .in("assigned_to", ids)
-      .in("status", CONVERSA_ABERTA),
-  ])
-  if (!ativos || ativos.length === 0) return null
-
-  const carga = new Map<string, number>()
-  for (const c of abertas ?? []) carga.set(c.assigned_to, (carga.get(c.assigned_to) ?? 0) + 1)
-
-  const [escolhido] = [...ativos].sort(
-    (a, b) => (carga.get(a.id) ?? 0) - (carga.get(b.id) ?? 0) || (a.name ?? "").localeCompare(b.name ?? "", "pt-BR")
-  )
-  return escolhido.id
 }
 
 /** Tipo, nicho e cidade trocam o valor; observações ganham uma linha no fim. */
