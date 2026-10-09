@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
+import { numeroTesteHabilitado } from "./numero-teste"
 import { clienteGatewayDoAmbiente } from "@/lib/whatsapp/gateway/cliente"
 import {
   criarConexaoDoGateway,
@@ -640,6 +641,8 @@ export async function completarConexaoWhatsApp(params: {
 
 // TEMPORÁRIO — remover após aprovação da Meta
 export async function conectarNumeroTeste(): Promise<{ erro?: string }> {
+  if (!numeroTesteHabilitado()) return { erro: "O número de teste não está disponível neste ambiente." }
+
   const ssrClient = await createSsrClient()
   const { data: { user } } = await ssrClient.auth.getUser()
   if (!user) return { erro: "Não autorizado" }

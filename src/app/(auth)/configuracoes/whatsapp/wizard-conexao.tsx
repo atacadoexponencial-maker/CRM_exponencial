@@ -30,7 +30,8 @@ function FacebookIcon() {
   )
 }
 
-export function WizardConexao() {
+/** B21-05: o bloco do número de teste da Meta só aparece onde a variável o libera. */
+export function WizardConexao({ mostrarNumeroTeste = false }: { mostrarNumeroTeste?: boolean }) {
   const router = useRouter()
   const [step, setStep] = useState<Step>("intro")
   const [erro, setErro] = useState<string | null>(null)
@@ -211,21 +212,23 @@ export function WizardConexao() {
           {step === "finalizando" ? "Finalizando configuração..." : "Continuar com o Facebook"}
         </Button>
 
-        <div className="flex flex-col items-center gap-1">
-          <p className="text-xs text-muted-foreground">
-            Ambiente de teste (aguardando aprovação da Meta)
-          </p>
-          {erroTeste && (
-            <p className="text-xs text-destructive">{erroTeste}</p>
-          )}
-          <button
-            onClick={handleConectarTeste}
-            disabled={conectandoTeste || step !== "intro"}
-            className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
-          >
-            {conectandoTeste ? "Conectando..." : "Usar número de teste"}
-          </button>
-        </div>
+        {mostrarNumeroTeste && (
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-xs text-muted-foreground">
+              Ambiente de teste (aguardando aprovação da Meta)
+            </p>
+            {erroTeste && (
+              <p className="text-xs text-destructive">{erroTeste}</p>
+            )}
+            <button
+              onClick={handleConectarTeste}
+              disabled={conectandoTeste || step !== "intro"}
+              className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
+            >
+              {conectandoTeste ? "Conectando..." : "Usar número de teste"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
