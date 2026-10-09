@@ -61,6 +61,7 @@ afterAll(async () => {
   await service.from("catalog_settings").delete().in("workspace_id", criados.workspaceIds)
   await service.from("catalog_products").delete().in("workspace_id", criados.workspaceIds)
   await service.from("whatsapp_connections").delete().in("id", criados.conexaoIds)
+  await service.from("pipeline_cards").delete().in("workspace_id", criados.workspaceIds)
   await service.from("contacts").delete().in("workspace_id", criados.workspaceIds)
   if (criados.userIds.length) {
     await service.from("profiles").delete().in("id", criados.userIds)
@@ -104,6 +105,9 @@ describe("B16-10 — Pedidos no CRM e no perfil do contato", { timeout: 30_000 }
   })
 
   it("o perfil do contato traz os pedidos e o evento na linha do tempo", async () => {
+    // B21-02: o atendente só abre o perfil de contato dele — aqui, pelo card.
+    const atendenteId = criados.userIds[0]
+    await service.from("pipeline_cards").insert({ workspace_id: ws, contact_id: contatoId, etapa: "lead", atendente_id: atendenteId })
     await entrarComo(emailAtend)
     const perfil = await buscarDadosContato(contatoId)
     expect(perfil?.pedidosCatalogo).toEqual([expect.objectContaining({ numero: 1001, situacao: "em_atendimento" })])

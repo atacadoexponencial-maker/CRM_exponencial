@@ -52,12 +52,21 @@ export async function atribuirAtendente(cardId: string, atendenteId: string): Pr
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, workspace_id")
     .eq("id", user.id)
     .single()
 
   if (profileError || !profile) throw new Error("Perfil não encontrado")
   if (!["admin", "gerente"].includes(profile.role)) throw new Error("Sem permissão para atribuir atendente")
+
+  // B21-02: o atendente do card é sempre alguém da mesma empresa.
+  const { data: alvo } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", atendenteId)
+    .eq("workspace_id", profile.workspace_id)
+    .maybeSingle()
+  if (!alvo) throw new Error("Atendente não encontrado")
 
   const { error } = await supabase
     .from("pipeline_cards")
