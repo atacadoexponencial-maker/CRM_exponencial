@@ -3,5 +3,6 @@
   "pastaSpecs": "pre-desenvolvimento",
   "pastaSpecsArquivadas": "docs/specs-arquivadas",
   "pastasTestes": ["src/test"],
-  "aprovadores": ["Marcelle", "Luan"]
+  "aprovadores": ["Marcelle", "Luan"],
+  "foraDoEscopo": ["pre-desenvolvimento/**", ".impeccable/**", "TESTES-PENDENTES.md"]
 }

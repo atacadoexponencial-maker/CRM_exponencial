@@ -27,6 +27,8 @@ export const CONFIG_PADRAO = {
   comandoTeste: 'npx vitest run {arquivos} --reporter=json --outputFile={saida}',
   // Quem pode aprovar exceção. Lista vazia = qualquer nome preenchido.
   aprovadores: [],
+  // Arquivos que nunca contam como "fora da issue" (documentos do próprio fluxo).
+  foraDoEscopo: ['pre-desenvolvimento/**'],
 }
 
 export const SAIDA = { ALINHADA: 0, NAO_ALINHADA: 1, USO: 2, MANUAL_PENDENTE: 10, NAO_RODADO: 11 }
@@ -46,6 +48,13 @@ const NOMES = {
   TESTE_MANUAL_PENDENTE: 'teste manual pendente',
   FORMATO_ANTIGO: 'issue no formato antigo',
   PROVA_NAO_CONFERIDA: 'prova não conferida',
+  ARQUIVO_FORA_DA_ISSUE: 'arquivo fora da issue',
+  ARQUIVO_NAO_TOCADO: 'arquivo não tocado',
+  CHECKLIST_INCOMPLETO: 'checklist incompleto',
+  REGRA_VIOLADA: 'regra violada',
+  REGRA_DESLIGADA_SEM_MOTIVO: 'regra desligada sem motivo',
+  REGRA_SEM_ARQUIVOS: 'regra que não confere nenhum arquivo',
+  ESCOPO_NAO_CONFERIDO: 'escopo não conferido',
 }
 
 const RE_CODIGO_CA = /CA-[A-Z0-9]+-\d+/g
@@ -136,6 +145,12 @@ export function lerIssue(caminho) {
     perguntas: registros(secao(texto, 'Perguntas em aberto'), 'PER'),
     temSuposicoes: secao(texto, 'Suposições') !== null,
     temPerguntas: secao(texto, 'Perguntas em aberto') !== null,
+    // null = a issue ainda não passou pelo /plan (sem a seção Arquivos).
+    arquivos:
+      secao(texto, 'Arquivos') === null
+        ? null
+        : [...secao(texto, 'Arquivos').matchAll(/^- \*\*[^*]+:\*\*\s*`([^`]+)`/gm)].map((m) => m[1]),
+    checklistAbertos: [...(secao(texto, 'Checklist') || '').matchAll(/^- \[ \]\s*(.+)$/gm)].map((m) => m[1]),
     manuais: linhasDaTabela(secao(texto, 'Testes manuais')).map(([codigo, por, dia]) => ({ codigo, por, dia })),
     excecoes: linhasDaTabela(secao(texto, 'Exceções')).map(([problema, alvo, motivo, por, dia]) => ({
       problema,
@@ -281,6 +296,183 @@ export function rodarTestes(raiz, cfg, arquivos) {
   return { resultados: resultadosDoJson(JSON.parse(ler(saida))) }
 }
 
+// ------------------------------------------------- escopo e regras por script
+
+// Glob simples (`**`, `*`, `{a,b}`) → expressão regular.
+export function globParaRegex(glob) {
+  let re = ''
+  for (let i = 0; i < glob.length; i++) {
+    const c = glob[i]
+    if (c === '*' && glob[i + 1] === '*') {
+      re += '.*'
+      i += glob[i + 2] === '/' ? 2 : 1
+    } else if (c === '*') re += '[^/]*'
+    else if (c === '{') re += '(?:'
+    else if (c === '}') re += ')'
+    else if (c === ',') re += '|'
+    else re += c.replace(/[.+?^$()|[\]\\]/g, '\\$&')
+  }
+  return new RegExp(`^${re}$`)
+}
+
+function casa(globs, arquivo) {
+  return (globs || []).some((g) => globParaRegex(g).test(arquivo))
+}
+
+function git(raiz, args) {
+  const proc = spawnSync('git', args, { cwd: raiz, encoding: 'utf8' })
+  return proc.status === 0 ? proc.stdout : null
+}
+
+// O que mudou desde o último commit: [{ arquivo, estado: 'A' | 'M' | 'D', linhas }].
+// `linhas` são as linhas acrescentadas (null = o arquivo inteiro é novo).
+// Devolve null fora de um repositório git.
+export function mudancasDoGit(raiz) {
+  const status = git(raiz, ['status', '--porcelain=v1', '-uall'])
+  if (status === null) return null
+  return status
+    .split('\n')
+    .filter(Boolean)
+    .map((linha) => {
+      const xy = linha.slice(0, 2)
+      const arquivo = linha.slice(3).split(' -> ').pop().replace(/^"|"$/g, '')
+      const estado = xy.includes('D') ? 'D' : xy === '??' || xy.includes('A') ? 'A' : 'M'
+      return { arquivo, estado, linhas: estado === 'M' ? linhasAcrescentadas(raiz, arquivo) : null }
+    })
+}
+
+function linhasAcrescentadas(raiz, arquivo) {
+  const diff = git(raiz, ['diff', '-U0', 'HEAD', '--', arquivo]) || ''
+  const linhas = new Set()
+  for (const m of diff.matchAll(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/gm)) {
+    const inicio = Number(m[1])
+    const quantas = m[2] === undefined ? 1 : Number(m[2])
+    for (let i = 0; i < quantas; i++) linhas.add(inicio + i)
+  }
+  return linhas
+}
+
+// Regras do projeto: `regras.json` ao lado desta skill e `.claude/auditor-regras.json`.
+export function carregarRegras(raiz) {
+  const daSkill = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'regras.json')
+  const doProjeto = path.join(raiz, '.claude', 'auditor-regras.json')
+  return [daSkill, doProjeto].filter((a) => fs.existsSync(a)).flatMap((a) => JSON.parse(ler(a)))
+}
+
+// Confere as regras nos arquivos mudados. Regra de conteúdo olha só as linhas
+// acrescentadas; regra "intocavel" acusa arquivo modificado ou apagado.
+export function conferirRegras({ raiz, regras, mudancas }) {
+  const problemas = []
+  const desligadas = []
+  const mudados = mudancas.map((m) => m.arquivo)
+  for (const regra of regras) {
+    for (const m of mudancas) {
+      if (!casa(regra.arquivos, m.arquivo) || casa(regra.excluir, m.arquivo)) continue
+      const local = path.join(raiz, m.arquivo)
+      const texto = m.estado !== 'D' && fs.existsSync(local) ? ler(local) : ''
+
+      const desliga = new RegExp(`auditor-desligar\\s+${regra.id}\\b[ \\t]*:?[ \\t]*(.*)`).exec(texto)
+      if (desliga) {
+        const motivo = desliga[1].replace(/\*\/|-->/g, '').trim()
+        if (motivo) desligadas.push({ regra: regra.id, arquivo: m.arquivo, motivo })
+        else {
+          problemas.push(
+            problema(
+              'REGRA_DESLIGADA_SEM_MOTIVO',
+              m.arquivo,
+              `a regra "${regra.nome}" foi desligada neste arquivo sem dizer por quê`,
+              `escreva o motivo: auditor-desligar ${regra.id}: <motivo>`
+            )
+          )
+        }
+        continue
+      }
+
+      if (regra.tipo === 'intocavel') {
+        if (m.estado === 'A') continue
+        if (regra.salvoSeMudar && mudados.some((a) => casa(regra.salvoSeMudar, a))) continue
+        problemas.push(
+          problema('REGRA_VIOLADA', m.arquivo, `${regra.nome} (regra ${regra.id}; vem de: ${regra.origem})`, regra.oQueFazer)
+        )
+        continue
+      }
+
+      if (m.estado === 'D') continue
+      if (regra.somenteSe && !new RegExp(regra.somenteSe, 'm').test(texto)) continue
+      const padrao = new RegExp(regra.padrao)
+      texto.split('\n').forEach((linha, i) => {
+        if (m.linhas && !m.linhas.has(i + 1)) return
+        if (!padrao.test(linha)) return
+        problemas.push(
+          problema(
+            'REGRA_VIOLADA',
+            m.arquivo,
+            `linha ${i + 1}: ${regra.nome} (regra ${regra.id}; vem de: ${regra.origem})\n${linha.trim().slice(0, 160)}`,
+            regra.oQueFazer
+          )
+        )
+      })
+    }
+  }
+  return { problemas, desligadas }
+}
+
+// Roda todas as regras no projeto inteiro, para ver o que cada uma acha hoje
+// e avisar a que não confere nenhum arquivo.
+export function conferirProjetoInteiro(raiz, regras) {
+  const lista = git(raiz, ['ls-files'])
+  const arquivos = (lista || '').split('\n').filter(Boolean)
+  return regras.map((regra) => {
+    const alvos = arquivos.filter((a) => casa(regra.arquivos, a) && !casa(regra.excluir, a))
+    const mudancas = alvos.map((arquivo) => ({ arquivo, estado: 'A', linhas: null }))
+    const { problemas, desligadas } =
+      regra.tipo === 'intocavel' ? { problemas: [], desligadas: [] } : conferirRegras({ raiz, regras: [regra], mudancas })
+    return { regra, arquivos: alvos.length, problemas, desligadas }
+  })
+}
+
+function conferirEscopo({ issue, rel, cfg, mudancas, problemas }) {
+  for (const item of issue.checklistAbertos) {
+    problemas.push(problema('CHECKLIST_INCOMPLETO', rel, item, 'conclua o item e marque [x]'))
+  }
+  if (issue.arquivos === null) return
+  const mexidos = (mudancas || []).filter((m) => m.arquivo !== rel && !casa(cfg.foraDoEscopo, m.arquivo))
+  if (mexidos.length === 0) {
+    problemas.push(
+      problema(
+        'ESCOPO_NAO_CONFERIDO',
+        rel,
+        'nada mudou desde o último commit; não dá para comparar com a seção Arquivos',
+        'rode o auditor antes de commitar para conferir o escopo',
+        false
+      )
+    )
+    return
+  }
+  for (const m of mexidos) {
+    if (issue.arquivos.includes(m.arquivo)) continue
+    problemas.push(
+      problema(
+        'ARQUIVO_FORA_DA_ISSUE',
+        m.arquivo,
+        'foi mexido e não está na seção Arquivos da issue',
+        'desfaça a mudança, ou pare e pergunte antes de incluir o arquivo na issue'
+      )
+    )
+  }
+  for (const declarado of issue.arquivos) {
+    if (mexidos.some((m) => m.arquivo === declarado)) continue
+    problemas.push(
+      problema(
+        'ARQUIVO_NAO_TOCADO',
+        declarado,
+        'está na seção Arquivos e não foi mexido',
+        'implemente o que falta ou tire o arquivo da issue'
+      )
+    )
+  }
+}
+
 // ---------------------------------------------------------------- auditoria
 
 function problema(codigo, alvo, detalhe, oQueFazer, trava = true) {
@@ -334,10 +526,12 @@ function validarExcecao(e, cfg) {
 
 // Audita uma issue. `resultados` é o mapa código → [status] dos testes já
 // rodados, ou null quando os testes não foram rodados.
-export function auditarIssue({ raiz, cfg, caminho, testes, resultados, erroDosTestes }) {
+// `mudancas` é o que mudou desde o último commit (veja mudancasDoGit); sem ele,
+// escopo e regras não são conferidos.
+export function auditarIssue({ raiz, cfg, caminho, testes, resultados, erroDosTestes, mudancas, regras = [] }) {
   const issue = lerIssue(caminho)
   const rel = path.relative(raiz, caminho).split(path.sep).join('/')
-  const base = { issue: rel, titulo: issue.titulo, problemas: [], excecoes: [], manuaisPendentes: [] }
+  const base = { issue: rel, titulo: issue.titulo, problemas: [], excecoes: [], manuaisPendentes: [], regrasDesligadas: [] }
 
   if (issue.formatoAntigo) {
     base.problemas.push(
@@ -456,6 +650,14 @@ export function auditarIssue({ raiz, cfg, caminho, testes, resultados, erroDosTe
     )
   }
 
+  if (mudancas !== undefined) {
+    conferirEscopo({ issue, rel, cfg, mudancas, problemas })
+    const mexidos = (mudancas || []).filter((m) => !casa(cfg.foraDoEscopo, m.arquivo))
+    const conferidas = conferirRegras({ raiz, regras, mudancas: mexidos })
+    problemas.push(...conferidas.problemas)
+    base.regrasDesligadas = conferidas.desligadas
+  }
+
   // Exceções: inválida trava; válida tira o problema correspondente da conta.
   for (const e of issue.excecoes) {
     const erro = validarExcecao(e, cfg)
@@ -463,14 +665,17 @@ export function auditarIssue({ raiz, cfg, caminho, testes, resultados, erroDosTe
       problemas.push(problema('EXCECAO_INVALIDA', e.alvo || rel, erro, 'complete a linha da exceção ou remova-a'))
       continue
     }
-    const i = problemas.findIndex((p) => p.codigo === e.problema && p.alvo === e.alvo)
-    if (i !== -1) {
-      const [aceito] = problemas.splice(i, 1)
-      if (aceito.codigo === 'TESTE_MANUAL_PENDENTE') {
-        base.manuaisPendentes = base.manuaisPendentes.filter((m) => m.codigo !== aceito.alvo)
-      }
+    // Uma exceção cobre todas as ocorrências do problema naquele alvo.
+    let usada = false
+    for (let i = problemas.length - 1; i >= 0; i--) {
+      if (problemas[i].codigo !== e.problema || problemas[i].alvo !== e.alvo) continue
+      problemas.splice(i, 1)
+      usada = true
     }
-    base.excecoes.push({ ...e, usada: i !== -1 })
+    if (usada && e.problema === 'TESTE_MANUAL_PENDENTE') {
+      base.manuaisPendentes = base.manuaisPendentes.filter((m) => m.codigo !== e.alvo)
+    }
+    base.excecoes.push({ ...e, usada })
   }
 
   return { ...base, ...veredito(problemas, base.manuaisPendentes, naoRodado) }
@@ -500,7 +705,16 @@ export function executarIssue(raiz, cfg, caminho, { semRodar = false } = {}) {
   const execucao = semRodar
     ? { resultados: null }
     : rodarTestes(raiz, cfg, arquivosDosCodigos(raiz, testes, automaticos).map((a) => path.relative(raiz, a)))
-  return auditarIssue({ raiz, cfg, caminho, testes, resultados: execucao.resultados, erroDosTestes: execucao.erro })
+  return auditarIssue({
+    raiz,
+    cfg,
+    caminho,
+    testes,
+    resultados: execucao.resultados,
+    erroDosTestes: execucao.erro,
+    mudancas: mudancasDoGit(raiz),
+    regras: carregarRegras(raiz),
+  })
 }
 
 export function executarSerie(raiz, cfg, serie, { semRodar = false } = {}) {
@@ -629,12 +843,15 @@ export function imprimirIssue(rel, escrever = console.log) {
     const uso = e.usada ? '' : ' (não usada: o problema não existe mais)'
     escrever(`  ⚑ exceção: ${e.problema} em ${e.alvo} — ${e.motivo}. Aprovada por ${e.por} em ${e.dia}${uso}`)
   }
+  for (const d of rel.regrasDesligadas || []) {
+    escrever(`  ⚑ regra desligada: ${d.regra} em ${d.arquivo} — ${d.motivo}`)
+  }
   escrever(`Veredito: ${rel.veredito}`)
 }
 
 function erroDeUso(mensagem) {
   console.error(`erro: ${mensagem}`)
-  console.error('uso: auditor.mjs issue <id|caminho> | serie <série> | suposicoes | confirmar <id> <CA-...> --por <nome>')
+  console.error('uso: auditor.mjs issue <id|caminho> | serie <série> | suposicoes | regras | confirmar <id> <CA-...> --por <nome>')
   return SAIDA.USO
 }
 
@@ -684,6 +901,26 @@ export function principal(args, raiz = process.cwd()) {
     else if (abertas.length === 0) console.log('Nenhuma suposição ou pergunta em aberto.')
     else abertas.forEach((a) => console.log(`${a.nome} — ${a.alvo}: ${a.detalhe}\n    em ${a.onde}`))
     return SAIDA.ALINHADA
+  }
+
+  if (comando === 'regras') {
+    const resultado = conferirProjetoInteiro(raiz, carregarRegras(raiz))
+    if (json) {
+      console.log(JSON.stringify(resultado, null, 2))
+      return SAIDA.ALINHADA
+    }
+    if (resultado.length === 0) console.log('Nenhuma regra por script neste projeto.')
+    for (const r of resultado) {
+      const achados = r.regra.tipo === 'intocavel' ? 'só confere arquivo modificado' : `${r.problemas.length} ocorrência(s) hoje`
+      console.log(`${r.regra.id} — ${r.regra.nome}`)
+      console.log(`    vem de: ${r.regra.origem}`)
+      console.log(`    confere ${r.arquivos} arquivo(s); ${achados}`)
+      if (r.arquivos === 0) console.log(`    ✘ ${NOMES.REGRA_SEM_ARQUIVOS}: provavelmente o caminho da regra está escrito errado`)
+      r.problemas.slice(0, 5).forEach((p) => console.log(`      ${p.alvo} — ${p.detalhe.split('\n')[0]}`))
+      if (r.problemas.length > 5) console.log(`      ... e mais ${r.problemas.length - 5}`)
+      r.desligadas.forEach((d) => console.log(`      ⚑ desligada em ${d.arquivo} — ${d.motivo}`))
+    }
+    return resultado.some((r) => r.arquivos === 0) ? SAIDA.NAO_ALINHADA : SAIDA.ALINHADA
   }
 
   if (comando === 'confirmar') {

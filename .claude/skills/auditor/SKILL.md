@@ -16,6 +16,7 @@ projeto**, só com o Node do ambiente:
 node .claude/skills/auditor/scripts/auditor.mjs issue <id|caminho> [--sem-rodar] [--json]
 node .claude/skills/auditor/scripts/auditor.mjs serie <série> [--sem-rodar] [--json]
 node .claude/skills/auditor/scripts/auditor.mjs suposicoes
+node .claude/skills/auditor/scripts/auditor.mjs regras
 node .claude/skills/auditor/scripts/auditor.mjs confirmar <id> <CA-...> --por <nome> [--dia dd/mm/aaaa]
 ```
 
@@ -25,6 +26,7 @@ node .claude/skills/auditor/scripts/auditor.mjs confirmar <id> <CA-...> --por <n
 | Qual critério não tem teste? | `issue B23-02` ou `serie B23` |
 | Posso arquivar a spec? | `serie B23` (tem que dar **alinhada**) |
 | O que estamos assumindo? | `suposicoes` |
+| O que cada regra acha no projeto hoje? | `regras` |
 | A Marcelle fez o teste com o chip | `confirmar B23-03 CA-B23-04 --por Marcelle` |
 
 `--sem-rodar` confere só a estrutura, sem executar os testes. Serve para uma olhada
@@ -55,6 +57,12 @@ rápida; nunca libera commit.
 | seção ausente (`SECAO_AUSENTE`) | falta Suposições ou Perguntas em aberto | acrescente; sem nenhuma, escreva `Nenhuma.` |
 | spec não encontrada (`SPEC_NAO_ENCONTRADA`) | nenhuma spec com a série da issue | confira `> série:` no topo da spec |
 | exceção inválida (`EXCECAO_INVALIDA`) | exceção sem motivo, aprovador ou dia | complete ou remova |
+| arquivo fora da issue (`ARQUIVO_FORA_DA_ISSUE`) | arquivo mexido que não está na seção Arquivos | desfaça, ou pare e pergunte antes de incluir na issue |
+| arquivo não tocado (`ARQUIVO_NAO_TOCADO`) | arquivo listado que não foi mexido | implemente o que falta ou tire da issue |
+| checklist incompleto (`CHECKLIST_INCOMPLETO`) | item do Checklist ainda `[ ]` | conclua e marque |
+| regra violada (`REGRA_VIOLADA`) | uma regra por script foi quebrada, com arquivo e linha | siga o "o que fazer" da regra |
+| regra desligada sem motivo (`REGRA_DESLIGADA_SEM_MOTIVO`) | `auditor-desligar` sem o porquê | escreva o motivo |
+| escopo não conferido (`ESCOPO_NAO_CONFERIDO`) | nada mudou desde o último commit | **não trava**; para conferir o escopo, rode antes de commitar |
 | teste manual pendente (`TESTE_MANUAL_PENDENTE`) | critério manual sem confirmação | **não trava**; faça o teste e use `confirmar` |
 | issue no formato antigo (`FORMATO_ANTIGO`) | issue sem critérios com código | **não trava**; revise do jeito antigo |
 
@@ -102,6 +110,35 @@ nesta skill):
 
 A coluna **Problema** leva o código do problema; **Alvo**, o código do critério ou da
 suposição. Toda exceção aceita aparece no relatório com `⚑`, para nunca ficar escondida.
+
+## Escopo e regras por script
+
+O auditor compara o que mudou **desde o último commit** com a seção Arquivos da issue.
+Por isso ele confere o escopo antes do commit; depois do commit, só avisa que não
+conferiu. Documentos do fluxo (`pre-desenvolvimento/`) nunca contam como fora da issue;
+a lista está em `foraDoEscopo`, no `auditor.json` desta skill.
+
+As regras do projeto ficam em `regras.json`, nesta skill. Cada uma diz de qual regra do
+`CLAUDE.md` ela vem. Há dois tipos:
+
+- `conteudo`: procura um padrão nas **linhas acrescentadas** dos arquivos mexidos (o que
+  já existia antes não é cobrado). `somenteSe` restringe a arquivos com certo conteúdo,
+  como `'use client'`.
+- `intocavel`: acusa quando um arquivo que já existia foi modificado ou apagado.
+  `salvoSeMudar` libera quando outro arquivo mudou junto (os tipos do banco podem mudar
+  se houver migration nova).
+
+Para **acrescentar uma regra**, inclua um item em `regras.json` e rode `regras`: ele
+mostra quantos arquivos a regra confere e o que ela acha hoje. Regra que confere zero
+arquivos está com o caminho errado.
+
+Para **desligar uma regra em um arquivo**, escreva um comentário no próprio arquivo, com
+o motivo: `// auditor-desligar variante-dark: componente de terceiros, mantém o original`.
+Sem motivo, o auditor recusa. Toda regra desligada aparece no relatório com `⚑`. Só
+desligue uma regra com a aprovação da pessoa.
+
+O que script não enxerga continua sendo lido pelo `/revisildo`: lógica de negócio no
+frontend e autorização só no cliente.
 
 ## Limites
 

@@ -10,8 +10,10 @@ import {
   SAIDA,
   auditarIssue,
   codigosNosTestes,
+  conferirRegras,
   confirmarManual,
   executarSerie,
+  globParaRegex,
   listarAbertas,
   resultadosDoJson,
 } from '../../.claude/skills/auditor/scripts/auditor.mjs'
@@ -288,5 +290,153 @@ describe('auditor — formato antigo, exceções e série', () => {
       expect.arrayContaining(['CRITERIO_FORA_DE_ISSUE:CA-EX1-04', 'CRITERIO_EM_DUAS_ISSUES:CA-EX1-03'])
     )
     expect(rel.saida).toBe(SAIDA.NAO_ALINHADA)
+  })
+})
+
+describe('auditor — escopo, checklist e regras por script (F1-03)', () => {
+  const PLANEJADA = `${ISSUE}
+## Arquivos
+
+- **Modificar:** \`src/app/contatos/actions.ts\` — recusa número repetido.
+- **Criar:** \`src/test/exemplo.test.ts\` — testes dos critérios.
+
+## Checklist
+
+- [x] Recusa no servidor
+`
+  const REGRAS = [
+    {
+      id: 'segredo-no-frontend',
+      nome: 'segredo no navegador',
+      origem: 'CLAUDE.md',
+      tipo: 'conteudo',
+      arquivos: ['src/**/*.{ts,tsx}'],
+      excluir: ['src/test/**'],
+      somenteSe: '^\s*[\'"]use client[\'"]',
+      padrao: 'SUPABASE_SERVICE_ROLE_KEY',
+      oQueFazer: 'leve para o servidor',
+    },
+    {
+      id: 'componentes-prontos',
+      nome: 'componente pronto modificado',
+      origem: 'CLAUDE.md',
+      tipo: 'intocavel',
+      arquivos: ['src/components/ui/**'],
+      oQueFazer: 'desfaça',
+    },
+    {
+      id: 'tipos-gerados',
+      nome: 'tipos gerados mudaram sem migration',
+      origem: 'CLAUDE.md',
+      tipo: 'intocavel',
+      arquivos: ['src/integrations/supabase/types.ts'],
+      salvoSeMudar: ['supabase/migrations/**'],
+      oQueFazer: 'desfaça',
+    },
+  ]
+  const mudou = (arquivo, estado = 'M', linhas = null) => ({ arquivo, estado, linhas })
+  const DENTRO = [mudou('src/app/contatos/actions.ts'), mudou('src/test/exemplo.test.ts', 'A')]
+
+  function auditarComMudancas(mudancas, regras = REGRAS) {
+    return auditarIssue({
+      raiz,
+      cfg,
+      caminho: caminhoIssue,
+      testes: codigosNosTestes(raiz, cfg),
+      resultados: new Map(Object.entries({ 'CA-EX1-01': ['passed'], 'CA-EX1-02': ['passed'] })),
+      mudancas,
+      regras,
+    })
+  }
+
+  beforeEach(() => {
+    escrever('pre-desenvolvimento/issues/EX1-01-aviso.md', PLANEJADA)
+    escrever('src/app/contatos/actions.ts', `'use server'\nexport async function criar() {}\n`)
+  })
+
+  it('should entender os globs das regras', () => {
+    expect(globParaRegex('src/**/*.{ts,tsx}').test('src/app/(auth)/chat/page.tsx')).toBe(true)
+    expect(globParaRegex('src/**/*.{ts,tsx}').test('src/x.mjs')).toBe(false)
+    expect(globParaRegex('src/components/ui/**').test('src/components/ui/button.tsx')).toBe(true)
+    expect(globParaRegex('src/*.ts').test('src/a/b.ts')).toBe(false)
+  })
+
+  it('should não acusar nada quando só os arquivos da issue foram mexidos', () => {
+    const rel = auditarComMudancas([...DENTRO, mudou('pre-desenvolvimento/issues/EX1-01-aviso.md')])
+    expect(codigos(rel)).toEqual(['TESTE_MANUAL_PENDENTE:CA-EX1-03'])
+  })
+
+  it('should acusar arquivo fora da issue', () => {
+    const rel = auditarComMudancas([...DENTRO, mudou('src/lib/utils.ts')])
+    expect(codigos(rel)).toContain('ARQUIVO_FORA_DA_ISSUE:src/lib/utils.ts')
+    expect(rel.saida).toBe(SAIDA.NAO_ALINHADA)
+  })
+
+  it('should acusar arquivo listado que não foi tocado', () => {
+    expect(codigos(auditarComMudancas([mudou('src/test/exemplo.test.ts', 'A')]))).toContain(
+      'ARQUIVO_NAO_TOCADO:src/app/contatos/actions.ts'
+    )
+  })
+
+  it('should avisar, sem travar, quando nada mudou desde o último commit', () => {
+    const rel = auditarComMudancas([])
+    expect(codigos(rel)).toContain('ESCOPO_NAO_CONFERIDO:pre-desenvolvimento/issues/EX1-01-aviso.md')
+    expect(rel.saida).toBe(SAIDA.MANUAL_PENDENTE)
+  })
+
+  it('should acusar checklist incompleto', () => {
+    escrever('pre-desenvolvimento/issues/EX1-01-aviso.md', PLANEJADA.replace('- [x] Recusa', '- [ ] Recusa'))
+    const rel = auditarComMudancas(DENTRO)
+    expect(rel.problemas.find((p) => p.codigo === 'CHECKLIST_INCOMPLETO').detalhe).toBe('Recusa no servidor')
+  })
+
+  it('should acusar segredo em arquivo que roda no navegador, com a linha', () => {
+    escrever('src/app/contatos/actions.ts', `'use client'\nconst a = 1\nconst k = process.env.SUPABASE_SERVICE_ROLE_KEY\n`)
+    const rel = auditarComMudancas(DENTRO)
+    const achado = rel.problemas.find((p) => p.codigo === 'REGRA_VIOLADA')
+    expect(achado.alvo).toBe('src/app/contatos/actions.ts')
+    expect(achado.detalhe).toContain('linha 3')
+  })
+
+  it('should não acusar o mesmo texto em arquivo de servidor nem em linha que já existia', () => {
+    escrever('src/app/contatos/actions.ts', `'use server'\nconst k = process.env.SUPABASE_SERVICE_ROLE_KEY\n`)
+    expect(codigos(auditarComMudancas(DENTRO))).not.toContain('REGRA_VIOLADA:src/app/contatos/actions.ts')
+
+    escrever('src/app/contatos/actions.ts', `'use client'\nconst k = process.env.SUPABASE_SERVICE_ROLE_KEY\nconst novo = 1\n`)
+    const soLinhaTres = [mudou('src/app/contatos/actions.ts', 'M', new Set([3])), DENTRO[1]]
+    expect(codigos(auditarComMudancas(soLinhaTres))).not.toContain('REGRA_VIOLADA:src/app/contatos/actions.ts')
+  })
+
+  it('should acusar componente pronto modificado, mas não componente novo', () => {
+    const { problemas } = conferirRegras({
+      raiz,
+      regras: REGRAS,
+      mudancas: [mudou('src/components/ui/button.tsx', 'M'), mudou('src/components/ui/novo.tsx', 'A')],
+    })
+    expect(problemas.map((p) => p.alvo)).toEqual(['src/components/ui/button.tsx'])
+  })
+
+  it('should aceitar tipos gerados mudando junto com uma migration', () => {
+    const tipos = mudou('src/integrations/supabase/types.ts', 'M')
+    expect(conferirRegras({ raiz, regras: REGRAS, mudancas: [tipos] }).problemas).toHaveLength(1)
+    const comMigration = [tipos, mudou('supabase/migrations/20261010_x.sql', 'A')]
+    expect(conferirRegras({ raiz, regras: REGRAS, mudancas: comMigration }).problemas).toHaveLength(0)
+  })
+
+  it('should desligar a regra no arquivo quando há motivo, e mostrar no relatório', () => {
+    escrever(
+      'src/app/contatos/actions.ts',
+      `'use client'\n// auditor-desligar segredo-no-frontend: é só o nome da variável num texto de ajuda\nconst t = 'SUPABASE_SERVICE_ROLE_KEY'\n`
+    )
+    const rel = auditarComMudancas(DENTRO)
+    expect(codigos(rel)).not.toContain('REGRA_VIOLADA:src/app/contatos/actions.ts')
+    expect(rel.regrasDesligadas).toEqual([
+      expect.objectContaining({ regra: 'segredo-no-frontend', motivo: 'é só o nome da variável num texto de ajuda' }),
+    ])
+  })
+
+  it('should recusar regra desligada sem motivo', () => {
+    escrever('src/app/contatos/actions.ts', `'use client'\n// auditor-desligar segredo-no-frontend\nconst t = 'SUPABASE_SERVICE_ROLE_KEY'\n`)
+    expect(codigos(auditarComMudancas(DENTRO))).toContain('REGRA_DESLIGADA_SEM_MOTIVO:src/app/contatos/actions.ts')
   })
 })
