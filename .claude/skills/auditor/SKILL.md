@@ -17,6 +17,10 @@ node .claude/skills/auditor/scripts/auditor.mjs issue <id|caminho> [--sem-rodar]
 node .claude/skills/auditor/scripts/auditor.mjs serie <série> [--sem-rodar] [--json]
 node .claude/skills/auditor/scripts/auditor.mjs suposicoes
 node .claude/skills/auditor/scripts/auditor.mjs regras
+node .claude/skills/auditor/scripts/auditor.mjs licao listar
+node .claude/skills/auditor/scripts/auditor.mjs licao adicionar <issue> --falha <código|revisildo|teste-manual> --texto "..." [--evidencia "..."]
+node .claude/skills/auditor/scripts/auditor.mjs licao recorreu <L-nn> <issue>
+node .claude/skills/auditor/scripts/auditor.mjs licao remover <L-nn>
 node .claude/skills/auditor/scripts/auditor.mjs confirmar <id> <CA-...> --por <nome> [--dia dd/mm/aaaa]
 ```
 
@@ -139,6 +143,23 @@ desligue uma regra com a aprovação da pessoa.
 
 O que script não enxerga continua sendo lido pelo `/revisildo`: lógica de negócio no
 frontend e autorização só no cliente.
+
+## Lições aprendidas
+
+O arquivo `pre-desenvolvimento/licoes.md` guarda regras que nasceram de falhas reais. Ele
+é versionado, para todo mundo do projeto receber, e **só o auditor escreve nele**.
+
+- Toda vez que o auditor acusa um problema que trava, ele guarda um sinal em
+  `.claude/auditor-sinais.json` (fora do git). É o lastro: `licao adicionar --falha
+  <CÓDIGO>` só aceita um código que o auditor de fato acusou naquela issue.
+- Falha que o auditor não vê (achada pelo `/revisildo` por leitura ou em teste manual)
+  entra com `--falha revisildo` ou `--falha teste-manual` e a `--evidencia` por escrito.
+- No máximo duas lições por issue. Caminho limpo não gera lição.
+- `licao recorreu` marca que a mesma falha voltou em **outra série**. Lição recorrente é
+  lida primeiro.
+- `licao listar` entrega no máximo dez: as recorrentes na frente, depois as mais novas.
+  É o que o `/spec` e o `/plan` leem.
+- `licao remover` só por decisão da pessoa.
 
 ## Limites
 

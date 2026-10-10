@@ -9,6 +9,8 @@
 //   node .claude/skills/auditor/scripts/auditor.mjs serie <série> [--sem-rodar] [--json]
 //   node .claude/skills/auditor/scripts/auditor.mjs suposicoes
 //   node .claude/skills/auditor/scripts/auditor.mjs confirmar <id> <CA-...> --por <nome> [--dia dd/mm/aaaa]
+//   node .claude/skills/auditor/scripts/auditor.mjs regras
+//   node .claude/skills/auditor/scripts/auditor.mjs licao listar | adicionar | recorreu | remover
 //
 // Sem dependências: só o Node do ambiente.
 import fs from 'node:fs'
@@ -28,6 +30,7 @@ export const CONFIG_PADRAO = {
   aprovadores: [],
   // Arquivos que nunca contam como "fora da issue" (documentos do próprio fluxo).
   foraDoEscopo: ['pre-desenvolvimento/**'],
+  arquivoLicoes: 'pre-desenvolvimento/licoes.md',
 }
 
 export const SAIDA = { ALINHADA: 0, NAO_ALINHADA: 1, USO: 2, MANUAL_PENDENTE: 10, NAO_RODADO: 11 }
@@ -819,6 +822,145 @@ export function confirmarManual(caminho, codigo, por, dia = hoje()) {
   return null
 }
 
+// ------------------------------------------------------------------- lições
+
+const MAX_LICOES_POR_ISSUE = 2
+const MAX_LICOES_LIDAS = 10
+// Falhas que o auditor não registra sozinho; pedem a evidência por escrito.
+const FALHAS_SEM_SINAL = ['revisildo', 'teste-manual']
+
+function idDaIssue(caminhoOuId) {
+  const m = /^([A-Za-z]+\d+-\d+)/.exec(path.basename(caminhoOuId))
+  return m ? m[1].toUpperCase() : null
+}
+
+function arquivoDeSinais(raiz) {
+  return path.join(raiz, '.claude', 'auditor-sinais.json')
+}
+
+export function lerSinais(raiz) {
+  const arquivo = arquivoDeSinais(raiz)
+  return fs.existsSync(arquivo) ? JSON.parse(ler(arquivo)) : []
+}
+
+// Guarda os problemas que travaram uma issue. É o lastro das lições: só vira
+// lição o que o auditor de fato acusou. Fica fora do git (.claude/ é ignorado).
+export function registrarSinais(raiz, relatorio) {
+  const issue = idDaIssue(relatorio.issue)
+  const travas = relatorio.problemas.filter((p) => p.trava)
+  if (!issue || travas.length === 0) return
+  const sinais = lerSinais(raiz)
+  for (const p of travas) {
+    if (sinais.some((s) => s.issue === issue && s.codigo === p.codigo && s.alvo === p.alvo)) continue
+    sinais.push({ issue, codigo: p.codigo, alvo: p.alvo, dia: hoje() })
+  }
+  fs.mkdirSync(path.dirname(arquivoDeSinais(raiz)), { recursive: true })
+  fs.writeFileSync(arquivoDeSinais(raiz), `${JSON.stringify(sinais, null, 2)}\n`)
+}
+
+export function lerLicoes(raiz, cfg) {
+  const arquivo = path.join(raiz, cfg.arquivoLicoes)
+  if (!fs.existsSync(arquivo)) return []
+  return linhasDaTabela(ler(arquivo))
+    .filter(([id]) => /^L-\d+$/.test(id || ''))
+    .map(([id, texto, origem, falha, recorrencias]) => ({
+      id,
+      texto,
+      origem,
+      falha,
+      recorrencias: recorrencias && recorrencias !== '—' ? recorrencias.split(',').map((r) => r.trim()) : [],
+    }))
+}
+
+function gravarLicoes(raiz, cfg, licoes) {
+  const linhas = licoes.map(
+    (l) => `| ${l.id} | ${l.texto} | ${l.origem} | ${l.falha} | ${l.recorrencias.length ? l.recorrencias.join(', ') : '—'} |`
+  )
+  const texto = [
+    '# Lições aprendidas',
+    '',
+    'Regras que nasceram de uma falha real em uma issue. O `/spec` e o `/plan` leem as dez',
+    'primeiras, as recorrentes na frente. Este arquivo é escrito pelo auditor',
+    '(`auditor.mjs licao ...`); não edite à mão.',
+    '',
+    '| ID | Lição | Origem | Falha | Voltou a acontecer em |',
+    '|---|---|---|---|---|',
+    ...linhas,
+    '',
+  ].join('\n')
+  const arquivo = path.join(raiz, cfg.arquivoLicoes)
+  fs.mkdirSync(path.dirname(arquivo), { recursive: true })
+  fs.writeFileSync(arquivo, texto)
+}
+
+// Recorrentes primeiro, depois as mais novas; no máximo dez.
+export function licoesParaLer(raiz, cfg) {
+  return lerLicoes(raiz, cfg)
+    .map((l, i) => ({ ...l, ordem: i }))
+    .sort((a, b) => b.recorrencias.length - a.recorrencias.length || b.ordem - a.ordem)
+    .slice(0, MAX_LICOES_LIDAS)
+}
+
+// Devolve { erro } ou { licao }. `sinais` é injetável para teste.
+export function adicionarLicao(raiz, cfg, { issue, falha, texto, evidencia }, sinais = lerSinais(raiz)) {
+  const id = idDaIssue(issue || '')
+  if (!id) return { erro: 'diga a issue de origem (ex.: B23-02)' }
+  if (vazio(texto)) return { erro: 'escreva a lição em uma frase: --texto "..."' }
+  if (vazio(falha)) {
+    return { erro: 'lição sem falha de origem é recusada: diga --falha <código do auditor | revisildo | teste-manual>' }
+  }
+  let origemDaFalha
+  if (FALHAS_SEM_SINAL.includes(falha)) {
+    if (vazio(evidencia)) return { erro: `falha "${falha}" precisa da evidência: --evidencia "o que deu errado"` }
+    origemDaFalha = `${falha}: ${evidencia}`
+  } else {
+    const sinal = sinais.find((s) => s.issue === id && s.codigo === falha)
+    if (!sinal) {
+      return {
+        erro: `o auditor não registrou "${falha}" na issue ${id}; lição sem falha real é recusada. Caminho limpo não gera lição.`,
+      }
+    }
+    origemDaFalha = `${NOMES[falha] || falha} em ${sinal.alvo}`
+  }
+  const licoes = lerLicoes(raiz, cfg)
+  if (licoes.filter((l) => l.origem === id).length >= MAX_LICOES_POR_ISSUE) {
+    return { erro: `a issue ${id} já tem ${MAX_LICOES_POR_ISSUE} lições, que é o máximo` }
+  }
+  const numero = Math.max(0, ...licoes.map((l) => Number(l.id.slice(2)))) + 1
+  const licao = {
+    id: `L-${String(numero).padStart(2, '0')}`,
+    texto: texto.replace(/\|/g, '/').trim(),
+    origem: id,
+    falha: origemDaFalha.replace(/\|/g, '/'),
+    recorrencias: [],
+  }
+  gravarLicoes(raiz, cfg, [...licoes, licao])
+  return { licao }
+}
+
+// Marca que a falha de uma lição voltou a acontecer, em outra série.
+export function marcarRecorrencia(raiz, cfg, idLicao, issue) {
+  const licoes = lerLicoes(raiz, cfg)
+  const licao = licoes.find((l) => l.id === idLicao)
+  const id = idDaIssue(issue || '')
+  if (!licao) return { erro: `lição ${idLicao} não existe` }
+  if (!id) return { erro: 'diga a issue em que a falha voltou (ex.: B24-01)' }
+  const serie = (x) => x.split('-')[0]
+  if ([licao.origem, ...licao.recorrencias].some((x) => serie(x) === serie(id))) {
+    return { erro: `a série ${serie(id)} já está contada nesta lição; recorrência é a mesma falha em outra série` }
+  }
+  licao.recorrencias.push(id)
+  gravarLicoes(raiz, cfg, licoes)
+  return { licao }
+}
+
+export function removerLicao(raiz, cfg, idLicao) {
+  const licoes = lerLicoes(raiz, cfg)
+  if (!licoes.some((l) => l.id === idLicao)) return { erro: `lição ${idLicao} não existe` }
+  gravarLicoes(raiz, cfg, licoes.filter((l) => l.id !== idLicao))
+  return {}
+}
+
 // ---------------------------------------------------------------- relatório
 
 function imprimirProblemas(problemas, escrever) {
@@ -850,7 +992,7 @@ export function imprimirIssue(rel, escrever = console.log) {
 
 function erroDeUso(mensagem) {
   console.error(`erro: ${mensagem}`)
-  console.error('uso: auditor.mjs issue <id|caminho> | serie <série> | suposicoes | regras | confirmar <id> <CA-...> --por <nome>')
+  console.error('uso: auditor.mjs issue <id|caminho> | serie <série> | suposicoes | regras | licao ... | confirmar <id> <CA-...> --por <nome>')
   return SAIDA.USO
 }
 
@@ -864,13 +1006,15 @@ export function principal(args, raiz = process.cwd()) {
   const [comando, ...resto] = args
   const semRodar = resto.includes('--sem-rodar')
   const json = resto.includes('--json')
-  const posicionais = resto.filter((a, i) => !a.startsWith('--') && !['--por', '--dia'].includes(resto[i - 1]))
+  const comValor = ['--por', '--dia', '--falha', '--texto', '--evidencia']
+  const posicionais = resto.filter((a, i) => !a.startsWith('--') && !comValor.includes(resto[i - 1]))
 
   if (comando === 'issue') {
     if (!posicionais[0]) return erroDeUso('diga qual issue')
     const caminho = acharIssue(raiz, cfg, posicionais[0])
     if (!caminho) return erroDeUso(`issue "${posicionais[0]}" não encontrada em ${cfg.pastaIssues}`)
     const rel = executarIssue(raiz, cfg, caminho, { semRodar })
+    registrarSinais(raiz, rel)
     if (json) console.log(JSON.stringify(rel, null, 2))
     else imprimirIssue(rel)
     return rel.saida
@@ -920,6 +1064,36 @@ export function principal(args, raiz = process.cwd()) {
       r.desligadas.forEach((d) => console.log(`      ⚑ desligada em ${d.arquivo} — ${d.motivo}`))
     }
     return resultado.some((r) => r.arquivos === 0) ? SAIDA.NAO_ALINHADA : SAIDA.ALINHADA
+  }
+
+  if (comando === 'licao') {
+    const [acao, alvo, alvo2] = posicionais
+    if (acao === 'listar') {
+      const licoes = licoesParaLer(raiz, cfg)
+      if (json) console.log(JSON.stringify(licoes, null, 2))
+      else if (licoes.length === 0) console.log('Nenhuma lição registrada.')
+      else {
+        licoes.forEach((l) => {
+          const voltou = l.recorrencias.length ? ` — RECORRENTE (voltou em ${l.recorrencias.join(', ')})` : ''
+          console.log(`${l.id}: ${l.texto}\n    origem: ${l.origem}, ${l.falha}${voltou}`)
+        })
+      }
+      return SAIDA.ALINHADA
+    }
+    let resultado
+    if (acao === 'adicionar') {
+      resultado = adicionarLicao(raiz, cfg, {
+        issue: alvo,
+        falha: opcao(resto, '--falha'),
+        texto: opcao(resto, '--texto'),
+        evidencia: opcao(resto, '--evidencia'),
+      })
+    } else if (acao === 'recorreu') resultado = marcarRecorrencia(raiz, cfg, alvo, alvo2)
+    else if (acao === 'remover') resultado = removerLicao(raiz, cfg, alvo)
+    else return erroDeUso('use: licao listar | adicionar <issue> --falha <...> --texto "..." | recorreu <L-nn> <issue> | remover <L-nn>')
+    if (resultado.erro) return erroDeUso(resultado.erro)
+    console.log(resultado.licao ? `Lição ${resultado.licao.id} gravada em ${cfg.arquivoLicoes}.` : `Lição ${alvo} removida.`)
+    return SAIDA.ALINHADA
   }
 
   if (comando === 'confirmar') {

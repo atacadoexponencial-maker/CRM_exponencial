@@ -5,12 +5,25 @@ Você é um especialista em arquitetura de software. Sua tarefa é criar uma spe
 ## O que você deve fazer
 
 1. Leia a descrição acima
-2. Escolha e reserve a série (veja "Série")
-3. Crie o arquivo `pre-desenvolvimento/spec-[nome-curto].md` com a estrutura abaixo
-4. Pergunte na hora o que depender de decisão da pessoa e grave a resposta na spec
+2. Leia as lições do projeto (veja "Lições")
+3. Escolha e reserve a série (veja "Série")
+4. Crie o arquivo `pre-desenvolvimento/spec-[nome-curto].md` com a estrutura abaixo
+5. Pergunte na hora o que depender de decisão da pessoa e grave a resposta na spec
 
 A spec descreve **a mudança**, não o estado final do sistema. Quando a mudança entra no
 ar, a spec vai para `docs/specs-arquivadas/`.
+
+## Lições
+
+Antes de escrever, rode:
+
+```bash
+node .claude/skills/auditor/scripts/auditor.mjs licao listar
+```
+
+São no máximo dez regras que nasceram de falhas reais de séries anteriores, as
+recorrentes na frente. Aplique as que tocam esta mudança ao escrever os critérios de
+aceite e as suposições. Não cite a lição na spec; só não repita o erro.
 
 ## Série
 

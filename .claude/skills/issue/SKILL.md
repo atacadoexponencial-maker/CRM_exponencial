@@ -47,11 +47,18 @@ Aguarde a conclusão antes de continuar.
 ### Passo 6 — /revisildo
 
 Invoque o skill `revisildo` passando o mesmo caminho completo do arquivo da issue.
-Reporte o resultado ao usuário.
+Ele roda o auditor e lê o código. Reporte o resultado ao usuário.
+
+Guarde o **veredito do auditor**, porque os próximos passos dependem dele:
+
+- **alinhada**: a issue pode ser fechada.
+- **alinhada com teste manual pendente**: o código pode ser commitado e publicado, mas
+  **a issue fica aberta** até a pessoa confirmar o teste manual.
+- **formato antigo**: vale o resultado do `/revisildo` por leitura, como sempre.
 
 ### Passo 7 — Atualizar ClickUp para "concluído" (opcional)
 
-Somente se o `/revisildo` não encontrou problemas, e nas mesmas condições do Passo 2, execute:
+Somente se o `/revisildo` não encontrou problemas **e não há teste manual pendente**, e nas mesmas condições do Passo 2, execute:
 ```
 pwsh scripts/clickup-issue-status.ps1 -issueFile "<caminho_do_arquivo>" -status "concluído"
 ```
@@ -59,7 +66,17 @@ Se o revisildo encontrou problemas, **não atualize o ClickUp** — corrija os p
 
 ### Passo 8 — Mover a issue para a pasta de concluídas
 
-Somente se o `/revisildo` não encontrou problemas, mova o arquivo da issue para a pasta de concluídas correspondente, dentro de `pre-desenvolvimento/issues/`:
+Somente se o `/revisildo` não encontrou problemas **e o veredito do auditor é "alinhada"** (ou a issue é do formato antigo), mova o arquivo da issue para a pasta de concluídas correspondente, dentro de `pre-desenvolvimento/issues/`.
+
+Com **teste manual pendente, não mova**: a issue continua solta na pasta, mesmo com o código no ar. Diga à pessoa quais testes faltam, com o roteiro de cada um, e como registrar depois:
+
+```bash
+node .claude/skills/auditor/scripts/auditor.mjs confirmar <id> <CA-...> --por <nome de quem conferiu>
+```
+
+Quando a pessoa disser que fez o teste, registre com o nome dela, rode o auditor de novo e, com "alinhada", mova a issue.
+
+Pastas de destino:
 
 - Issues numéricas dos módulos 0 a 7: `concluidas_moduloX/`, onde `X` é o número do módulo
 - Issues com prefixo de letra (ex.: `B1-01`): `concluidas_B1/` — o módulo sai do prefixo do nome do arquivo
@@ -72,9 +89,34 @@ mv "<caminho_do_arquivo>" "pre-desenvolvimento/issues/<pasta_de_concluidas>/"
 Se a pasta de destino não existir, crie-a antes de mover.
 Se não for possível determinar o módulo, informe o usuário e peça confirmação antes de mover.
 
+### Passo 9 — Lições (só se algo deu errado no caminho)
+
+Uma lição é uma regra geral, em uma frase, que teria evitado uma falha **que aconteceu de verdade** nesta issue. O auditor guarda sozinho os problemas que acusou; é esse o lastro.
+
+1. Olhe o que aconteceu no caminho: o auditor acusou algum problema antes de dar "alinhada"? O `/revisildo` achou algo por leitura? Um teste manual revelou erro?
+2. **Caminho limpo → nenhuma lição.** Isso é o certo, não é esquecimento.
+3. Se a falha é a mesma de uma lição que já existe (`licao listar`) e esta issue é de outra série, marque a recorrência em vez de criar outra:
+   ```bash
+   node .claude/skills/auditor/scripts/auditor.mjs licao recorreu <L-nn> <id da issue>
+   ```
+4. Senão, registre **no máximo duas** lições:
+   ```bash
+   # falha que o auditor acusou nesta issue
+   node .claude/skills/auditor/scripts/auditor.mjs licao adicionar <id> --falha <CODIGO_DO_PROBLEMA> --texto "regra geral em uma frase"
+   # falha achada pelo /revisildo por leitura, ou em teste manual
+   node .claude/skills/auditor/scripts/auditor.mjs licao adicionar <id> --falha revisildo --evidencia "o que deu errado" --texto "regra geral em uma frase"
+   node .claude/skills/auditor/scripts/auditor.mjs licao adicionar <id> --falha teste-manual --evidencia "o que deu errado" --texto "regra geral em uma frase"
+   ```
+5. Se o auditor recusar a lição (sem falha real, ou a issue já tem duas), **a lição não existe**. Não force nem edite o arquivo de lições à mão.
+6. Mostre à pessoa as lições gravadas. Ela pode mandar remover uma que considere errada: `licao remover <L-nn>`.
+
+A lição descreve a regra, não o caso: "Confira o valor gravado no banco, não só o retorno da ação", e não "o teste da B23-02 estava errado".
+
 ## Regras
 
-- Issues de protótipo nunca têm testes — não invente testes para elas.
+- Issues de protótipo nunca têm testes automáticos — não invente testes para elas.
+- Nunca mova para concluídas uma issue com teste manual pendente.
+- Nunca registre um teste manual como confirmado sem a pessoa ter dito que o fez.
 - Se o `/revisildo` encontrar problemas, corrija-os antes de encerrar — não encerre o fluxo com problemas em aberto.
 - Não peça confirmação entre os passos — execute tudo em sequência.
 - Se qualquer passo falhar ou encontrar algo inesperado, pare e informe o usuário.

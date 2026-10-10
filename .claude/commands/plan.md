@@ -4,9 +4,15 @@ Você vai planejar em detalhe a implementação da issue fornecida.
 
 ## O que você deve fazer
 
-### Etapa 1: Pesquisa interna na base de código
+### Etapa 1: Lições e pesquisa interna na base de código
 
-Antes de planejar qualquer coisa, pesquise no projeto atual:
+Primeiro, leia as lições do projeto e aplique as que tocam esta issue:
+
+```bash
+node .claude/skills/auditor/scripts/auditor.mjs licao listar
+```
+
+Depois, antes de planejar qualquer coisa, pesquise no projeto atual:
 - Componentes e funções que podem ser reutilizados
 - Padrões de código já estabelecidos no projeto
 - Arquivos que provavelmente precisarão ser modificados

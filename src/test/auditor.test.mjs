@@ -8,12 +8,19 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   CONFIG_PADRAO,
   SAIDA,
+  adicionarLicao,
   auditarIssue,
   codigosNosTestes,
   conferirRegras,
   confirmarManual,
   executarSerie,
   globParaRegex,
+  lerLicoes,
+  licoesParaLer,
+  marcarRecorrencia,
+  registrarSinais,
+  lerSinais,
+  removerLicao,
   listarAbertas,
   resultadosDoJson,
 } from '../../.claude/skills/auditor/scripts/auditor.mjs'
@@ -438,5 +445,83 @@ describe('auditor — escopo, checklist e regras por script (F1-03)', () => {
   it('should recusar regra desligada sem motivo', () => {
     escrever('src/app/contatos/actions.ts', `'use client'\n// auditor-desligar segredo-no-frontend\nconst t = 'SUPABASE_SERVICE_ROLE_KEY'\n`)
     expect(codigos(auditarComMudancas(DENTRO))).toContain('REGRA_DESLIGADA_SEM_MOTIVO:src/app/contatos/actions.ts')
+  })
+})
+
+describe('auditor — lições aprendidas (F1-05)', () => {
+  const SINAIS = [{ issue: 'EX1-01', codigo: 'CRITERIO_SEM_PROVA', alvo: 'CA-EX1-02', dia: '10/10/2026' }]
+  const nova = (extra = {}, sinais = SINAIS) =>
+    adicionarLicao(
+      raiz,
+      cfg,
+      { issue: 'EX1-01', falha: 'CRITERIO_SEM_PROVA', texto: 'Confira o valor gravado, não só o retorno', ...extra },
+      sinais
+    )
+
+  it('should aceitar lição que cita uma falha que o auditor registrou na issue', () => {
+    const { licao } = nova()
+    expect(licao.id).toBe('L-01')
+    expect(lerLicoes(raiz, cfg)).toEqual([
+      expect.objectContaining({ id: 'L-01', origem: 'EX1-01', falha: 'critério sem prova em CA-EX1-02', recorrencias: [] }),
+    ])
+  })
+
+  it('should recusar lição sem falha de origem ou com falha que não aconteceu naquela issue', () => {
+    expect(nova({ falha: undefined }).erro).toContain('sem falha de origem')
+    expect(nova({ falha: 'TESTE_ORFAO' }).erro).toContain('não registrou')
+    expect(nova({ issue: 'EX1-02' }).erro).toContain('não registrou')
+    expect(lerLicoes(raiz, cfg)).toEqual([])
+  })
+
+  it('should aceitar falha do /revisildo ou de teste manual só com a evidência escrita', () => {
+    expect(nova({ falha: 'teste-manual' }).erro).toContain('--evidencia')
+    const { licao } = nova({ falha: 'teste-manual', evidencia: 'com o chip, a mensagem chegou duplicada' })
+    expect(licao.falha).toBe('teste-manual: com o chip, a mensagem chegou duplicada')
+  })
+
+  it('should recusar a terceira lição da mesma issue', () => {
+    expect(nova().licao.id).toBe('L-01')
+    expect(nova({ texto: 'Outra regra' }).licao.id).toBe('L-02')
+    expect(nova({ texto: 'Mais uma' }).erro).toContain('máximo')
+    expect(lerLicoes(raiz, cfg)).toHaveLength(2)
+  })
+
+  it('should marcar recorrência só quando a falha volta em outra série', () => {
+    nova()
+    expect(marcarRecorrencia(raiz, cfg, 'L-01', 'EX1-05').erro).toContain('outra série')
+    expect(marcarRecorrencia(raiz, cfg, 'L-01', 'B24-02').licao.recorrencias).toEqual(['B24-02'])
+    expect(marcarRecorrencia(raiz, cfg, 'L-01', 'B24-03').erro).toContain('já está contada')
+    expect(marcarRecorrencia(raiz, cfg, 'L-99', 'B25-01').erro).toContain('não existe')
+  })
+
+  it('should entregar no máximo dez lições, as recorrentes primeiro e depois as mais novas', () => {
+    for (let i = 1; i <= 12; i++) {
+      const id = `S${i}-01`
+      adicionarLicao(raiz, cfg, { issue: id, falha: 'TESTE_ORFAO', texto: `Regra ${i}` }, [{ issue: id, codigo: 'TESTE_ORFAO', alvo: 'x' }])
+    }
+    marcarRecorrencia(raiz, cfg, 'L-02', 'Z9-01')
+    const lidas = licoesParaLer(raiz, cfg)
+    expect(lidas).toHaveLength(10)
+    expect(lidas.map((l) => l.id).slice(0, 3)).toEqual(['L-02', 'L-12', 'L-11'])
+  })
+
+  it('should remover uma lição por decisão da pessoa', () => {
+    nova()
+    expect(removerLicao(raiz, cfg, 'L-01')).toEqual({})
+    expect(lerLicoes(raiz, cfg)).toEqual([])
+    expect(removerLicao(raiz, cfg, 'L-01').erro).toContain('não existe')
+  })
+
+  it('should guardar como sinal só os problemas que travam, sem repetir', () => {
+    const relatorio = {
+      issue: 'pre-desenvolvimento/issues/EX1-01-aviso.md',
+      problemas: [
+        { codigo: 'CRITERIO_SEM_TESTE', alvo: 'CA-EX1-02', trava: true },
+        { codigo: 'TESTE_MANUAL_PENDENTE', alvo: 'CA-EX1-03', trava: false },
+      ],
+    }
+    registrarSinais(raiz, relatorio)
+    registrarSinais(raiz, relatorio)
+    expect(lerSinais(raiz)).toEqual([expect.objectContaining({ issue: 'EX1-01', codigo: 'CRITERIO_SEM_TESTE', alvo: 'CA-EX1-02' })])
   })
 })
