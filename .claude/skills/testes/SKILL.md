@@ -1,15 +1,47 @@
 ---
 name: testes
-description: Implementa e executa os testes automatizados de uma issue a partir do plano de testes do projeto. Use quando o usuário disser "testes da issue X", "escrever testes para issue X", "implementar testes X", ou quando o fluxo execute → testes → revisildo chegar nesta etapa. Recebe o identificador da issue como argumento.
+description: Implementa e executa os testes automatizados de uma issue a partir da tabela Prova da issue (formato novo, com o código do critério de aceite no nome do teste) ou do plano de testes do projeto (formato antigo). Use quando o usuário disser "testes da issue X", "escrever testes para issue X", "implementar testes X", ou quando o fluxo execute → testes → revisildo chegar nesta etapa. Recebe o identificador da issue como argumento.
 ---
 
 # Implementador de Testes — CRM Exponencial
 
-Você vai implementar os testes automatizados correspondentes à issue informada, seguindo exatamente o que está descrito no plano de testes do projeto.
+Você vai implementar os testes automatizados correspondentes à issue informada, seguindo exatamente o que está mapeado para ela: a tabela Prova da issue, no formato novo, ou o plano de testes do projeto, no formato antigo.
 
 ## O que fazer
 
 O usuário passou o identificador (ou caminho) da issue como argumento: **ARGUMENTS**
+
+### Passo 0 — Descobrir o formato da issue
+
+Abra o arquivo da issue.
+
+- **Tem a seção `## Critérios de aceite`** (formato novo): siga a seção "Formato novo"
+  abaixo e **ignore os Passos 1 a 3**. Depois faça os Passos 4 e 5.
+- **Não tem** (formato antigo): siga os Passos 1 a 5 como sempre.
+
+### Formato novo — testes a partir da tabela Prova
+
+A fonte dos testes é a tabela `## Prova` da issue, escrita pelo `/plan`. Não existe
+plano de testes por módulo para as séries novas.
+
+1. Para cada linha de prova `automática`, escreva ao menos um teste no arquivo indicado
+   na coluna **Onde**. Arquivo existe: acrescente, sem mexer nos testes de outras issues.
+2. **O código do critério vai no nome do `it`/`test`**, no começo:
+   ```typescript
+   it('CA-B23-01: should avisar quando o telefone já existe', async () => { ... })
+   ```
+   Código só no `describe` não conta: o auditor lê o nome do teste.
+3. O teste confere **o resultado descrito no critério** (o "Então"), não o formato do
+   código.
+4. Linha de prova `manual` não vira teste. Se a issue só tem critérios manuais, ou é de
+   protótipo, informe que não há teste a escrever e encerre.
+5. Sem linha na tabela Prova para um critério automático: pare e avise. A issue deveria
+   ter passado pelo `/plan`.
+6. **Nunca pule (`skip`, `todo`), enfraqueça ou apague um teste para a issue passar.**
+   Teste pulado não é prova e o auditor acusa.
+
+As regras de implementação do Passo 3 (unit, integration, limpeza de dados) valem
+igual. No relatório do Passo 5, liste cada critério com o teste que o prova.
 
 ### Passo 1 — Ler o plano de testes
 
@@ -100,7 +132,7 @@ Casos cobertos:
 
 ## Regras
 
-- Nunca invente testes além do que está no plano — implemente exatamente o que está mapeado para a issue
+- Nunca invente testes além do que está mapeado para a issue — na tabela Prova (formato novo) ou no plano de testes (formato antigo)
 - Nunca modifique testes existentes de outras issues no mesmo arquivo
 - Se o plano descrever um teste como `❌ Rejeita X`, o test deve assertar que a operação falha (não que passa)
 - Integration tests sempre limpam após si mesmos — sem dados residuais entre tests

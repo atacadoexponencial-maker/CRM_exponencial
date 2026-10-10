@@ -1,0 +1,7 @@
+{
+  "pastaIssues": "pre-desenvolvimento/issues",
+  "pastaSpecs": "pre-desenvolvimento",
+  "pastaSpecsArquivadas": "docs/specs-arquivadas",
+  "pastasTestes": ["src/test"],
+  "aprovadores": ["Marcelle", "Luan"]
+}
