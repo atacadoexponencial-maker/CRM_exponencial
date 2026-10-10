@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // Auditor do fluxo com prova.
 //
 // Confere, sem julgamento do agente, se uma issue (ou uma série inteira) está
