@@ -10,6 +10,8 @@ import {
   SAIDA,
   adicionarLicao,
   auditarIssue,
+  carregarConfig,
+  carregarRegras,
   codigosNosTestes,
   conferirRegras,
   confirmarManual,
@@ -523,5 +525,31 @@ describe('auditor — lições aprendidas (F1-05)', () => {
     registrarSinais(raiz, relatorio)
     registrarSinais(raiz, relatorio)
     expect(lerSinais(raiz)).toEqual([expect.objectContaining({ issue: 'EX1-01', codigo: 'CRITERIO_SEM_TESTE', alvo: 'CA-EX1-02' })])
+  })
+})
+
+describe('auditor — configuração quando o script roda da pasta pessoal (F1-06)', () => {
+  it('should deixar a configuração do projeto vencer a da skill pessoal', () => {
+    const pessoal = path.join(raiz, 'pessoal')
+    escrever('pessoal/auditor.json', JSON.stringify({ pastaIssues: 'issues', aprovadores: [] }))
+    escrever('.claude/skills/auditor/auditor.json', JSON.stringify({ pastaIssues: 'pre-desenvolvimento/issues', aprovadores: ['Marcelle'] }))
+    expect(carregarConfig(raiz, pessoal)).toEqual(
+      expect.objectContaining({ pastaIssues: 'pre-desenvolvimento/issues', aprovadores: ['Marcelle'], pastasTestes: ['src/test'] })
+    )
+    fs.rmSync(path.join(raiz, '.claude'), { recursive: true })
+    expect(carregarConfig(raiz, pessoal).pastaIssues).toBe('issues')
+  })
+
+  it('should juntar as regras sem repetir, com a do projeto substituindo a de mesmo id', () => {
+    const pessoal = path.join(raiz, 'pessoal')
+    escrever('pessoal/regras.json', JSON.stringify([{ id: 'segredo-no-frontend', padrao: 'GERAL' }]))
+    escrever(
+      '.claude/skills/auditor/regras.json',
+      JSON.stringify([{ id: 'segredo-no-frontend', padrao: 'DO_PROJETO' }, { id: 'variante-dark', padrao: 'dark:' }])
+    )
+    expect(carregarRegras(raiz, pessoal)).toEqual([
+      { id: 'segredo-no-frontend', padrao: 'DO_PROJETO' },
+      { id: 'variante-dark', padrao: 'dark:' },
+    ])
   })
 })

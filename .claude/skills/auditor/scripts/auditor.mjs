@@ -72,15 +72,27 @@ function semAcento(texto) {
   return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
 }
 
-// A configuração vem, nesta ordem: do padrão acima, do `auditor.json` ao lado
-// desta skill e do `.claude/auditor.json` do projeto (quando a skill é a da
-// pasta pessoal e o projeto quer pastas ou aprovadores próprios).
-export function carregarConfig(raiz) {
-  const daSkill = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'auditor.json')
-  const doProjeto = path.join(raiz, '.claude', 'auditor.json')
-  return [daSkill, doProjeto]
-    .filter((arquivo) => fs.existsSync(arquivo))
-    .reduce((cfg, arquivo) => ({ ...cfg, ...JSON.parse(ler(arquivo)) }), { ...CONFIG_PADRAO })
+function pastaDestaSkill() {
+  return path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
+}
+
+// Onde procurar um arquivo de configuração, do mais geral ao mais específico:
+// a skill onde este script mora (pode ser a da pasta pessoal), a skill
+// versionada no projeto e o `.claude/` do projeto. O mais específico vence.
+function arquivosDeConfig(raiz, pastaDaSkill, nomeNaSkill, nomeNoProjeto) {
+  const candidatos = [
+    path.join(pastaDaSkill, nomeNaSkill),
+    path.join(raiz, '.claude', 'skills', 'auditor', nomeNaSkill),
+    path.join(raiz, '.claude', nomeNoProjeto),
+  ].map((a) => path.resolve(a))
+  return [...new Set(candidatos)].filter((a) => fs.existsSync(a))
+}
+
+export function carregarConfig(raiz, pastaDaSkill = pastaDestaSkill()) {
+  return arquivosDeConfig(raiz, pastaDaSkill, 'auditor.json', 'auditor.json').reduce(
+    (cfg, arquivo) => ({ ...cfg, ...JSON.parse(ler(arquivo)) }),
+    { ...CONFIG_PADRAO }
+  )
 }
 
 // Conteúdo de uma seção `## Título`, até a próxima `## `. null se não existe.
@@ -354,11 +366,14 @@ function linhasAcrescentadas(raiz, arquivo) {
   return linhas
 }
 
-// Regras do projeto: `regras.json` ao lado desta skill e `.claude/auditor-regras.json`.
-export function carregarRegras(raiz) {
-  const daSkill = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'regras.json')
-  const doProjeto = path.join(raiz, '.claude', 'auditor-regras.json')
-  return [daSkill, doProjeto].filter((a) => fs.existsSync(a)).flatMap((a) => JSON.parse(ler(a)))
+// Regras por script, nos mesmos lugares da configuração. Regra com o mesmo
+// `id` em um lugar mais específico substitui a mais geral.
+export function carregarRegras(raiz, pastaDaSkill = pastaDestaSkill()) {
+  const porId = new Map()
+  for (const arquivo of arquivosDeConfig(raiz, pastaDaSkill, 'regras.json', 'auditor-regras.json')) {
+    for (const regra of JSON.parse(ler(arquivo))) porId.set(regra.id, regra)
+  }
+  return [...porId.values()]
 }
 
 // Confere as regras nos arquivos mudados. Regra de conteúdo olha só as linhas
@@ -834,8 +849,13 @@ function idDaIssue(caminhoOuId) {
   return m ? m[1].toUpperCase() : null
 }
 
+// Dentro da pasta do git, onde nunca é versionado nem aparece como arquivo
+// mexido. Fora de um repositório, cai em `.claude/`.
 function arquivoDeSinais(raiz) {
-  return path.join(raiz, '.claude', 'auditor-sinais.json')
+  const pastaDoGit = (git(raiz, ['rev-parse', '--git-dir']) || '').trim()
+  return pastaDoGit
+    ? path.resolve(raiz, pastaDoGit, 'auditor-sinais.json')
+    : path.join(raiz, '.claude', 'auditor-sinais.json')
 }
 
 export function lerSinais(raiz) {
@@ -844,7 +864,7 @@ export function lerSinais(raiz) {
 }
 
 // Guarda os problemas que travaram uma issue. É o lastro das lições: só vira
-// lição o que o auditor de fato acusou. Fica fora do git (.claude/ é ignorado).
+// lição o que o auditor de fato acusou. Fica fora do versionamento.
 export function registrarSinais(raiz, relatorio) {
   const issue = idDaIssue(relatorio.issue)
   const travas = relatorio.problemas.filter((p) => p.trava)

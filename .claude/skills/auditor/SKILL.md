@@ -150,7 +150,7 @@ O arquivo `pre-desenvolvimento/licoes.md` guarda regras que nasceram de falhas r
 é versionado, para todo mundo do projeto receber, e **só o auditor escreve nele**.
 
 - Toda vez que o auditor acusa um problema que trava, ele guarda um sinal em
-  `.claude/auditor-sinais.json` (fora do git). É o lastro: `licao adicionar --falha
+  `auditor-sinais.json`, dentro da pasta `.git` do projeto (nunca é versionado). É o lastro: `licao adicionar --falha
   <CÓDIGO>` só aceita um código que o auditor de fato acusou naquela issue.
 - Falha que o auditor não vê (achada pelo `/revisildo` por leitura ou em teste manual)
   entra com `--falha revisildo` ou `--falha teste-manual` e a `--evidencia` por escrito.

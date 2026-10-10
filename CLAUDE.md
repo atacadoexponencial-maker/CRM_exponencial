@@ -163,22 +163,40 @@ Para dependências externas: verifique a documentação oficial antes de impleme
 
 ## Workflow (Anti-Vibe Coding)
 
-Use sempre nesta ordem: `/spec` → `/break` → `/plan` → `/execute` → testes → `/revisildo`
+Comece sempre por `/triagem`. Ela classifica a tarefa em **sonda** (pergunta de viabilidade), **delimitada** (mudança em fluxo que já existe: desenha no chat, aprova, implementa, sem spec nem issue) ou **arquitetural**. Só a arquitetural segue o fluxo completo:
+
+`/spec` → `/break` → `/plan` → `/execute` → testes → `/revisildo`
 
 Os comandos e skills do fluxo são versionados no repo, em `.claude/commands/` e `.claude/skills/` — quem clona o projeto já os tem.
 
 | Etapa | O que faz | Onde grava |
 |-------|-----------|------------|
-| `/spec <descrição>` | Transforma uma descrição em spec com páginas, componentes e comportamentos (o QUE, não o COMO) | `spec.md` na raiz ou `pre-desenvolvimento/spec-*.md` |
-| `/break <spec>` | Divide a spec em issues pequenas: uma de protótipo por página, uma de implementação por comportamento | `pre-desenvolvimento/issues/` |
-| `/plan <issue>` | Pesquisa código reutilizável e enriquece a issue com cenários, banco, arquivos exatos e checklist | o próprio arquivo da issue |
+| `/spec <descrição>` | Reserva a série e escreve a spec da mudança: comportamentos, **critérios de aceite com código** (`CA-<série>-<nn>`, de prova automática ou manual), suposições e perguntas em aberto (o QUE, não o COMO) | `pre-desenvolvimento/spec-*.md` |
+| `/break <spec>` | Divide a spec em issues, uma por **entrega que dá para ver funcionando**; cada issue leva os critérios que entrega | `pre-desenvolvimento/issues/` |
+| `/plan <issue>` | Pesquisa código reutilizável e enriquece a issue com cenários, a **tabela Prova** (qual teste prova cada critério), banco, arquivos exatos e checklist | o próprio arquivo da issue |
 | `/execute <issue>` | Implementa **só** o que a issue lista, marcando o checklist | código |
-| `testes <issue>` | Implementa os testes mapeados em `pre-desenvolvimento/testes/plano-testes-modulo-X.md` | `src/test/`, `e2e/` |
-| `/revisildo <issue>` | Audita escopo, checklist, spec e arquitetura; só fala se houver problema | — |
+| `testes <issue>` | Escreve os testes da tabela Prova, com o código do critério no nome de cada teste | `src/test/` |
+| `/revisildo <issue>` | Roda o **auditor** e depois lê o código para o que script não enxerga | — |
+
+### Pronto é veredito do auditor
+
+O auditor (`.claude/skills/auditor/`) é um script: confere se cada critério de aceite tem teste com o código dele e se o teste passou, se não há suposição ou pergunta em aberto, se só os arquivos da issue foram mexidos e se as regras por script foram respeitadas. Ninguém declara uma issue pronta por leitura.
+
+```bash
+node .claude/skills/auditor/scripts/auditor.mjs issue <id>     # esta issue está alinhada?
+node .claude/skills/auditor/scripts/auditor.mjs serie <série>  # a série pode ser arquivada?
+node .claude/skills/auditor/scripts/auditor.mjs suposicoes     # o que estamos assumindo?
+node .claude/skills/auditor/scripts/auditor.mjs regras         # o que cada regra acha hoje?
+```
+
+- **Teste manual** (chip real, aprovação visual) é critério de prova `manual`. Pendente, ele não trava commit nem deploy, mas a issue fica aberta e a spec não é arquivada até alguém confirmar.
+- **Exceção** ao auditor só escrita na issue, com motivo, quem aprovou (Marcelle ou Luan) e o dia.
+- **Issue no formato antigo** (sem critérios com código) nunca trava: o auditor avisa e a revisão é por leitura.
+- **Lições** (`pre-desenvolvimento/licoes.md`) só nascem de falha real e são lidas pelo `/spec` e pelo `/plan`.
 
 ### Uma issue por vez
 
-No dia a dia, use `/issue <identificador>` — ex.: `/issue 08` ou `/issue B1-01`. Ele roda `/plan` → `/execute` → testes → `/revisildo` em sequência e, se a revisão passar, move a issue para `pre-desenvolvimento/issues/concluidas_*/`.
+No dia a dia, use `/issue <identificador>` — ex.: `/issue 08` ou `/issue B1-01`. Ele roda `/plan` → `/execute` → testes → `/revisildo` em sequência e, se o auditor disser "alinhada", move a issue para `pre-desenvolvimento/issues/concluidas_*/`.
 
 - Se o `/execute` encontrar algo fora do que a issue lista, ele **para e pergunta** — não expanda o escopo por conta própria.
 - Só commite depois do `/revisildo` responder "✅ Tudo certo".
