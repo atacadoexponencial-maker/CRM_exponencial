@@ -553,3 +553,46 @@ describe('auditor — configuração quando o script roda da pasta pessoal (F1-0
     ])
   })
 })
+
+describe('auditor — exemplos dentro de bloco de código e série antiga', () => {
+  it('should ignorar critério, suposição e pergunta que estão só num bloco de código', () => {
+    const cerca = '```'
+    escrever(
+      'pre-desenvolvimento/issues/EX1-01-aviso.md',
+      `# EX1-01: issue antiga que mostra o formato novo
+
+${cerca}markdown
+## Critérios de aceite
+
+- **CA-EX1-01** (automática) — exemplo.
+
+## Suposições
+
+| ID | Suposição | Status | Resolução |
+|---|---|---|---|
+| SUP-EX1-09 | exemplo | aberta | — |
+${cerca}
+
+## Checklist
+
+- [x] feito
+`
+    )
+    const rel = auditar()
+    expect(rel.veredito).toBe('formato antigo')
+    expect(listarAbertas(raiz, cfg)).toEqual([])
+  })
+
+  it('should dizer formato antigo para a série em que nenhuma issue tem critérios com código', () => {
+    fs.rmSync(path.join(raiz, 'pre-desenvolvimento/spec-exemplo.md'))
+    escrever('pre-desenvolvimento/issues/EX1-01-aviso.md', '# EX1-01: antiga
+
+## Checklist
+- [x] x
+')
+    const rel = executarSerie(raiz, cfg, 'EX1', { semRodar: true })
+    expect(rel.veredito).toBe('formato antigo')
+    expect(rel.saida).toBe(SAIDA.ALINHADA)
+    expect(rel.problemas).toEqual([])
+  })
+})

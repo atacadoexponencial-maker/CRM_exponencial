@@ -130,8 +130,25 @@ function serieDaIssue(caminho) {
   return m ? m[1].toUpperCase() : null
 }
 
+// Apaga o conteúdo dos blocos de código (``` ... ```), mantendo as linhas. Um
+// exemplo de formato dentro de um bloco não é critério nem suposição de verdade.
+export function semBlocosDeCodigo(texto) {
+  let dentro = false
+  return texto
+    .split('
+')
+    .map((linha) => {
+      const cerca = /^s*(```|~~~)/.test(linha)
+      if (cerca) dentro = !dentro
+      return cerca || dentro ? '' : linha
+    })
+    .join('
+')
+}
+
 export function lerIssue(caminho) {
-  const texto = ler(caminho)
+  const bruto = ler(caminho)
+  const texto = semBlocosDeCodigo(bruto)
   const titulo = (/^#\s+(.+)$/m.exec(texto) || [])[1] || path.basename(caminho)
   const secCriterios = secao(texto, 'Critérios de aceite')
   const criterios = []
@@ -149,7 +166,7 @@ export function lerIssue(caminho) {
 
   return {
     caminho,
-    texto,
+    texto: bruto,
     titulo,
     serie: serieDaIssue(caminho),
     formatoAntigo: secCriterios === null,
@@ -183,7 +200,7 @@ function registros(sec, prefixo) {
 }
 
 export function lerSpec(caminho) {
-  const texto = ler(caminho)
+  const texto = semBlocosDeCodigo(ler(caminho))
   const criterios = []
   const re = /^#{3,5}\s+(CA-[A-Z0-9]+-\d+)\b(.*)$/gm
   let m
@@ -750,6 +767,11 @@ export function executarSerie(raiz, cfg, serie, { semRodar = false } = {}) {
 
   const problemas = []
   const spec = acharSpec(raiz, cfg, serie)
+  // Série inteira no formato antigo: a spec não tem a linha da série, e tudo bem.
+  const serieAntiga = !spec && issues.length > 0 && issues.every((i) => i.formatoAntigo)
+  if (serieAntiga) {
+    return { serie, problemas, issues: relatorios, veredito: 'formato antigo', saida: SAIDA.ALINHADA }
+  }
   if (!spec) {
     problemas.push(
       problema('SPEC_NAO_ENCONTRADA', serie, 'nenhuma spec com esta série foi encontrada', 'confira a linha "> série:" da spec')
