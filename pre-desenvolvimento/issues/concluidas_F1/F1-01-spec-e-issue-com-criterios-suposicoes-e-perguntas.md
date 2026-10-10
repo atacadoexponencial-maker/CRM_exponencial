@@ -3,7 +3,7 @@
 **Tipo:** Implementação
 **Página:** Fluxo de desenvolvimento (`/spec`, `/break`, `/plan`, `/execute`)
 **Repositório:** `crm-exponencial`
-**Spec:** `pre-desenvolvimento/spec-fluxo-com-prova.md`
+**Spec:** `docs/specs-arquivadas/spec-fluxo-com-prova.md`
 
 ## Descrição
 

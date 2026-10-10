@@ -47,6 +47,9 @@ Quando a última issue de uma spec entrar no ar, mova a spec para
   `issues/concluidas_B15/`.
 - **Catálogo da loja** (B16, 03/10/2026): spec `docs/specs-arquivadas/spec-catalogo.md`,
   issues em `issues/concluidas_B16/`.
+- **Fluxo com prova** (F1, 10/10/2026): critérios de aceite com código, auditor, regras por
+  script e lições no fluxo de desenvolvimento. Spec
+  `docs/specs-arquivadas/spec-fluxo-com-prova.md`, issues em `issues/concluidas_F1/`.
 - **Automações em fluxo** (B11, 08/10/2026): spec
   `docs/specs-arquivadas/spec-automacoes-v2.md`, issues em
   `issues/concluidas_B11/`, decisões em `decisoes/B11-automacoes-em-fluxo.md`.

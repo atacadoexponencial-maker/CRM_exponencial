@@ -3,7 +3,7 @@
 **Tipo:** Implementação
 **Página:** Fluxo de desenvolvimento (repositório do CRM e pasta pessoal da Marcelle)
 **Repositório:** `crm-exponencial`
-**Spec:** `pre-desenvolvimento/spec-fluxo-com-prova.md`
+**Spec:** `docs/specs-arquivadas/spec-fluxo-com-prova.md`
 
 ## Descrição
 
