@@ -25,6 +25,17 @@ Pare a implementação e informe o usuário:
 - Explique por que é um problema
 - Sugira como resolver (mas não implemente sem confirmação)
 
+## Se tomar uma decisão que a issue não previa
+
+Nem todo imprevisto justifica parar. Quando você decidir algo pequeno que a issue não
+dizia (um texto de mensagem, um valor padrão, a ordem de uma lista), **registre**:
+acrescente uma linha na seção **Suposições** da issue, com o próximo código livre da
+série e status `aberta`, e a mesma linha na spec. A pessoa confirma ou invalida depois.
+
+Isso não vale para arquivo fora da lista nem para funcionalidade nova: nesses casos,
+pare e pergunte. Em issue no formato antigo (sem a seção Suposições), informe a decisão
+no resumo final.
+
 ## Ao finalizar
 
 Informe:

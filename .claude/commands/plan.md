@@ -4,12 +4,19 @@ Você vai planejar em detalhe a implementação da issue fornecida.
 
 ## O que você deve fazer
 
-### Etapa 1: Pesquisa interna na base de código
+### Etapa 1: Lições e pesquisa interna na base de código
 
-Antes de planejar qualquer coisa, pesquise no projeto atual:
+Primeiro, leia as lições do projeto e aplique as que tocam esta issue:
+
+```bash
+node .claude/skills/auditor/scripts/auditor.mjs licao listar
+```
+
+Depois, antes de planejar qualquer coisa, pesquise no projeto atual:
 - Componentes e funções que podem ser reutilizados
 - Padrões de código já estabelecidos no projeto
 - Arquivos que provavelmente precisarão ser modificados
+- Arquivos de teste que já cobrem a área, para acrescentar neles em vez de criar outro
 
 Anote o que encontrou — você usará isso no planejamento.
 
@@ -20,7 +27,13 @@ Se a issue envolver uma biblioteca ou serviço externo:
 - Identifique o padrão de implementação recomendado
 - Não invente — use o que já está documentado
 
-### Etapa 3: Enriquecer a issue
+### Etapa 3: Perguntas em aberto
+
+Leia a seção **Perguntas em aberto** da issue. Se houver pergunta `aberta` cuja resposta
+muda a implementação, **pare e pergunte** antes de planejar. Grave a resposta na issue
+(status `respondida`, quem respondeu e o dia) e na spec.
+
+### Etapa 4: Enriquecer a issue
 
 Atualize o arquivo da issue adicionando as seguintes seções:
 
@@ -35,6 +48,17 @@ Atualize o arquivo da issue adicionando as seguintes seções:
 
 ### Cenário de Erro
 [O que acontece quando algo falha — mensagens de erro, fallbacks]
+
+## Prova
+
+| Critério | Prova | Onde | O que confere |
+|---|---|---|---|
+| CA-[série]-01 | automática | `[caminho/exato/do/arquivo.test.ts]` | [resultado conferido] |
+| CA-[série]-02 | manual | roteiro abaixo | [o que a pessoa confere] |
+
+### Roteiro manual — CA-[série]-02
+1. [passo que a pessoa faz]
+2. [o que ela deve ver]
 
 ## Banco de Dados (se aplicável)
 
@@ -58,6 +82,29 @@ Atualize o arquivo da issue adicionando as seguintes seções:
 - [ ] [Tarefa específica 2]
 - [ ] [Tarefa específica 3]
 ```
+
+## A tabela Prova
+
+- Uma linha para **cada** critério da seção Critérios de aceite da issue. Nenhum fica
+  de fora.
+- Critério de prova `automática`: a coluna **Onde** traz o caminho exato do arquivo de
+  teste, e **O que confere** descreve o resultado do critério, não o formato do código.
+- Critério de prova `manual`: a coluna **Onde** diz `roteiro abaixo`, e a issue ganha
+  um `### Roteiro manual — [código]` com os passos e o que a pessoa deve ver.
+- Não mude o tipo de prova de um critério por conta própria. Se um critério automático
+  não dá para testar sozinho, pare e pergunte.
+- Todo arquivo de teste da tabela Prova entra também na seção **Arquivos**.
+
+## Suposições
+
+Tudo o que a pesquisa no código não confirmou e você precisou assumir para planejar vira
+uma linha na seção **Suposições** da issue, com o próximo código livre da série e status
+`aberta`. Acrescente a mesma linha na spec, para o código não ser usado duas vezes.
+
+## Issue no formato antigo
+
+Se a issue não tem a seção **Critérios de aceite**, ela é do formato antigo. Planeje
+como sempre, sem a tabela Prova, e **não invente códigos** para ela.
 
 ## Regras
 

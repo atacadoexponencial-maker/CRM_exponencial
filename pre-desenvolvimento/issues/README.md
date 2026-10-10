@@ -17,3 +17,4 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B12 | `docs/specs-arquivadas/spec-renomear-funis.md` | `concluidas_B12/` |
 | B13 | `../spec-lixeira-contatos.md` (em andamento) | `concluidas_B13/` (quando houver) |
 | B22 | `../analise-qa/qa-automacoes-2026-10-09.md` (correções do QA das automações v2) | `concluidas_B22/` |
+| F1 | `../spec-fluxo-com-prova.md` (melhoria do fluxo de desenvolvimento: critérios de aceite com código, auditor, lições) | `concluidas_F1/` |
