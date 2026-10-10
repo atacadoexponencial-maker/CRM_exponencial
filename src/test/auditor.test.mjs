@@ -585,11 +585,7 @@ ${cerca}
 
   it('should dizer formato antigo para a série em que nenhuma issue tem critérios com código', () => {
     fs.rmSync(path.join(raiz, 'pre-desenvolvimento/spec-exemplo.md'))
-    escrever('pre-desenvolvimento/issues/EX1-01-aviso.md', '# EX1-01: antiga
-
-## Checklist
-- [x] x
-')
+    escrever('pre-desenvolvimento/issues/EX1-01-aviso.md', '# EX1-01: antiga\n\n## Checklist\n- [x] x\n')
     const rel = executarSerie(raiz, cfg, 'EX1', { semRodar: true })
     expect(rel.veredito).toBe('formato antigo')
     expect(rel.saida).toBe(SAIDA.ALINHADA)

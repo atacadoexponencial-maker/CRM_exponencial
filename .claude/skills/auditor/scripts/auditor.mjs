@@ -135,15 +135,13 @@ function serieDaIssue(caminho) {
 export function semBlocosDeCodigo(texto) {
   let dentro = false
   return texto
-    .split('
-')
+    .split('\n')
     .map((linha) => {
-      const cerca = /^s*(```|~~~)/.test(linha)
+      const cerca = /^\s*(```|~~~)/.test(linha)
       if (cerca) dentro = !dentro
       return cerca || dentro ? '' : linha
     })
-    .join('
-')
+    .join('\n')
 }
 
 export function lerIssue(caminho) {
