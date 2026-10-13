@@ -48,6 +48,13 @@ decisões.
 |---|---|---|
 | B22-08 | A5, U2 | "Alterações não salvas", confirmação ao sair pelo "Automações", aviso do navegador ao fechar a aba e rascunho no navegador (seção 24) |
 
+Verificado na B22-08: 704 testes unitários, lint de `src` e `e2e` e build com
+código 0. No preview, o `roteiro-b22-08.cjs` (28 verificações) e os 7 roteiros
+do lote 1 (72 verificações) passaram. O `roteiro-b11-04.cjs` para no webhook
+simulado: o segredo do gateway só existe no preview do branch
+`b11-automacoes-v2` (README de `e2e/preview/`), e por isso ele também ficou de
+fora no lote 1.
+
 ### A fazer
 
 **Lote 2, editor** (continua):
