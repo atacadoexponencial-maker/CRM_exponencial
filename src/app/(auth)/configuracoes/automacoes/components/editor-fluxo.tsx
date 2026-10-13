@@ -3,6 +3,7 @@
 // Editor de fluxo de uma automação: canvas com os blocos ligados, painel do
 // bloco selecionado, simulação com um contato e salvar. Quem grava, quem busca
 // contatos e quem simula vêm por parâmetro: as actions do servidor (B11-10).
+// O que não foi salvo vira rascunho no navegador e pede confirmação para sair (B22-08).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -45,6 +46,7 @@ import {
 import { CampoSelecao, type ItemSelecao } from "./campo-selecao"
 import { MenuNovoBloco, type ItemNovoBloco } from "./menu-novo-bloco"
 import { PainelBloco, type GuardarArquivo } from "./painel-bloco"
+import { apagarRascunho, assinatura, guardarRascunho, useRascunhoDaAbertura } from "./rascunho-editor"
 
 export interface RegraEditada {
   nome: string
@@ -69,6 +71,8 @@ interface EditorFluxoProps {
   /** Sobe o arquivo da ação "enviar imagem ou documento" (B11-07). */
   guardarArquivo: GuardarArquivo
   onVoltar: () => void
+  /** Onde fica o rascunho desta regra no navegador (`chaveDoRascunho`). */
+  chaveRascunho: string
   /** Aviso que o editor já mostra ao abrir, como "Automação salva" logo depois do primeiro salvamento. */
   avisoInicial?: string
 }
@@ -82,6 +86,9 @@ const ITENS_REPETICAO: ItemSelecao[] = [
 // Distância do bloco novo até o bloco de onde ele sai
 const ESPACO_VERTICAL = 90
 const DESVIO_LATERAL = 170
+
+// Espera depois da última edição antes de guardar o rascunho
+const ESPERA_RASCUNHO_MS = 1000
 
 // Tamanho usado para achar espaço livre antes de o bloco novo ser medido
 const LARGURA_BLOCO = 256
@@ -128,6 +135,10 @@ function paraNos(fluxo: Fluxo): NoFluxo[] {
   }))
 }
 
+function paraLigacoes(fluxo: Fluxo): LigacaoFluxo[] {
+  return fluxo.ligacoes.map((l) => novaLigacao(l.de, l.saida, l.para))
+}
+
 function paraFluxo(nos: NoFluxo[], ligacoes: LigacaoFluxo[]): Fluxo {
   return {
     blocos: nos.map((n) => ({ ...n.data.bloco, posicao: n.position })),
@@ -151,12 +162,11 @@ function EditorFluxoInterno({
   simular,
   guardarArquivo,
   onVoltar,
+  chaveRascunho,
   avisoInicial,
 }: EditorFluxoProps) {
   const [nos, setNos, onNodesChange] = useNodesState<NoFluxo>(paraNos(regraInicial.fluxo))
-  const [ligacoes, setLigacoes, onEdgesChange] = useEdgesState<LigacaoFluxo>(
-    regraInicial.fluxo.ligacoes.map((l) => novaLigacao(l.de, l.saida, l.para))
-  )
+  const [ligacoes, setLigacoes, onEdgesChange] = useEdgesState<LigacaoFluxo>(paraLigacoes(regraInicial.fluxo))
   const [nome, setNome] = useState(regraInicial.nome)
   const [repeticao, setRepeticao] = useState<Repeticao>(regraInicial.repeticao)
 
@@ -170,11 +180,24 @@ function EditorFluxoInterno({
     avisoInicial ? { tipo: "ok", texto: avisoInicial } : null
   )
   const [salvando, setSalvando] = useState(false)
+  const [confirmarSaida, setConfirmarSaida] = useState(false)
+  // Assinatura do que está gravado no banco: a da abertura e, depois, a de cada salvamento
+  const [salvo, setSalvo] = useState(() => assinatura(regraInicial))
+  const rascunhoDaAbertura = useRascunhoDaAbertura(chaveRascunho)
+  const [rascunhoResolvido, setRascunhoResolvido] = useState(false)
 
   const areaRef = useRef<HTMLDivElement>(null)
-  const { screenToFlowPosition, deleteElements } = useReactFlow<NoFluxo, LigacaoFluxo>()
+  const { screenToFlowPosition, deleteElements, fitView } = useReactFlow<NoFluxo, LigacaoFluxo>()
 
   const fluxo = useMemo(() => paraFluxo(nos, ligacoes), [nos, ligacoes])
+  const alterado = useMemo(() => assinatura({ nome, repeticao, fluxo }), [nome, repeticao, fluxo]) !== salvo
+  // Rascunho de outra visita esperando "Recuperar" ou "Descartar". Igual ao salvo não conta.
+  const assinaturaDoRascunho = useMemo(
+    () => (rascunhoDaAbertura ? assinatura(rascunhoDaAbertura.regra) : null),
+    [rascunhoDaAbertura]
+  )
+  const rascunhoAchado =
+    !rascunhoResolvido && rascunhoDaAbertura && assinaturaDoRascunho !== salvo ? rascunhoDaAbertura : null
   const pendencias = useMemo(() => pendenciasDoFluxo(fluxo), [fluxo])
   const selecionado = nos.find((n) => n.selected)
 
@@ -188,6 +211,66 @@ function EditorFluxoInterno({
     }),
     [opcoes, pendencias, destacarErros, simulacao]
   )
+
+  // Guarda o que não foi salvo um instante depois da última edição; sem alteração,
+  // não há rascunho. Enquanto o rascunho de outra visita espera decisão, ele não é tocado.
+  useEffect(() => {
+    if (rascunhoDaAbertura === undefined || rascunhoAchado) return
+    if (!alterado) {
+      apagarRascunho(chaveRascunho)
+      return
+    }
+    const espera = setTimeout(
+      () =>
+        guardarRascunho(chaveRascunho, {
+          regra: { nome, repeticao, fluxo },
+          base: salvo,
+          guardadoEm: new Date().toISOString(),
+        }),
+      ESPERA_RASCUNHO_MS
+    )
+    return () => clearTimeout(espera)
+  }, [rascunhoDaAbertura, rascunhoAchado, alterado, chaveRascunho, nome, repeticao, fluxo, salvo])
+
+  // Fechar a aba, recarregar ou digitar outro endereço com algo não salvo: o navegador pergunta
+  useEffect(() => {
+    if (!alterado) return
+    const segurar = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ""
+    }
+    window.addEventListener("beforeunload", segurar)
+    return () => window.removeEventListener("beforeunload", segurar)
+  }, [alterado])
+
+  function recuperarRascunho() {
+    if (!rascunhoAchado) return
+    const { regra } = rascunhoAchado
+    setNos(paraNos(regra.fluxo))
+    setLigacoes(paraLigacoes(regra.fluxo))
+    setNome(regra.nome)
+    setRepeticao(regra.repeticao)
+    setSimulacao(null)
+    setRascunhoResolvido(true)
+    // Espera os blocos recuperados aparecerem para enquadrar o desenho
+    requestAnimationFrame(() => fitView({ padding: 0.2, maxZoom: 1 }))
+  }
+
+  function descartarRascunho() {
+    apagarRascunho(chaveRascunho)
+    setRascunhoResolvido(true)
+  }
+
+  function voltar() {
+    if (alterado) setConfirmarSaida(true)
+    else onVoltar()
+  }
+
+  function sairSemSalvar() {
+    apagarRascunho(chaveRascunho)
+    setConfirmarSaida(false)
+    onVoltar()
+  }
 
   // Ligar uma saída que já tinha seta troca a ligação antiga pela nova
   const onConnect = useCallback(
@@ -294,12 +377,21 @@ function EditorFluxoInterno({
     setAvisoRepeticao(false)
 
     setSalvando(true)
-    const resultado = await salvar({ nome: nome.trim(), repeticao, fluxo })
+    const enviada = { nome: nome.trim(), repeticao, fluxo }
+    const resultado = await salvar(enviada)
     setSalvando(false)
-    setMensagem(
-      resultado.erro ? { tipo: "erro", texto: resultado.erro } : { tipo: "ok", texto: resultado.aviso ?? "Automação salva" }
-    )
+    if (resultado.erro) {
+      setMensagem({ tipo: "erro", texto: resultado.erro })
+      return
+    }
+    // O que for editado enquanto salva continua contando como alteração
+    setSalvo(assinatura(enviada))
+    apagarRascunho(chaveRascunho)
+    setMensagem({ tipo: "ok", texto: resultado.aviso ?? "Automação salva" })
   }
+
+  // "Automação salva" deixa de valer na edição seguinte
+  const aviso = mensagem?.tipo === "ok" && alterado ? null : mensagem
 
   const acoesNoCaminho = simulacao
     ? simulacao.resultado.blocos.filter((id) => fluxo.blocos.find((b) => b.id === id)?.tipo === "acao").length
@@ -309,7 +401,7 @@ function EditorFluxoInterno({
     <div className="flex min-h-[560px] flex-1 flex-col">
       {/* Barra do topo */}
       <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2.5 sm:px-4">
-        <Button variant="ghost" size="sm" onClick={onVoltar}>
+        <Button variant="ghost" size="sm" onClick={voltar}>
           <ArrowLeft />
           Automações
         </Button>
@@ -355,7 +447,8 @@ function EditorFluxoInterno({
             </>
           )}
         </div>
-        <div className="flex gap-2 sm:ml-auto">
+        <div className="flex items-center gap-2 sm:ml-auto">
+          {alterado && <span className="text-xs text-muted-foreground">Alterações não salvas</span>}
           <Button variant="outline" size="sm" onClick={() => setMenu("solto")}>
             <Plus />
             <span className="hidden md:inline">Adicionar bloco</span>
@@ -391,19 +484,39 @@ function EditorFluxoInterno({
           >
             <Background gap={20} />
             <Controls showInteractive={false} />
-            {(mensagem || simulacao) && (
+            {(aviso || simulacao || rascunhoAchado) && (
               <Panel position="top-center" className="flex max-w-[90vw] flex-col items-center gap-2">
-                {mensagem && (
+                {rascunhoAchado && (
                   <div
-                    role={mensagem.tipo === "erro" ? "alert" : "status"}
+                    role="status"
+                    className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-amber-500/40 bg-background px-3 py-2 text-sm text-amber-200 shadow-sm"
+                  >
+                    <span>
+                      Há alterações não salvas de {quandoFoiGuardado(rascunhoAchado.guardadoEm)}.
+                      {rascunhoAchado.base !== salvo &&
+                        " A automação foi salva depois disso: recuperar troca o que está salvo pelo rascunho."}
+                    </span>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="xs" onClick={recuperarRascunho}>
+                        Recuperar
+                      </Button>
+                      <Button variant="ghost" size="xs" onClick={descartarRascunho}>
+                        Descartar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {aviso && (
+                  <div
+                    role={aviso.tipo === "erro" ? "alert" : "status"}
                     className={cn(
                       "flex items-center gap-3 rounded-lg border px-3 py-2 text-sm shadow-sm",
-                      mensagem.tipo === "erro"
+                      aviso.tipo === "erro"
                         ? "border-destructive/50 bg-background text-destructive"
                         : "border-emerald-500/40 bg-background text-emerald-300"
                     )}
                   >
-                    <span>{mensagem.texto}</span>
+                    <span>{aviso.texto}</span>
                     <Button variant="ghost" size="icon-xs" aria-label="Fechar aviso" onClick={() => setMensagem(null)}>
                       <X />
                     </Button>
@@ -461,6 +574,22 @@ function EditorFluxoInterno({
         </DialogPopup>
       </Dialog>
 
+      {/* Sair com alterações não salvas */}
+      <Dialog open={confirmarSaida} onOpenChange={setConfirmarSaida}>
+        <DialogPopup className="max-w-md">
+          <DialogTitle className="mb-2">Sair sem salvar?</DialogTitle>
+          <DialogDescription className="mb-4">
+            As alterações desta automação ainda não foram salvas e serão perdidas.
+          </DialogDescription>
+          <div className="flex justify-end gap-2">
+            <DialogClose render={<Button variant="outline" />}>Continuar editando</DialogClose>
+            <Button variant="destructive" onClick={sairSemSalvar}>
+              Sair sem salvar
+            </Button>
+          </div>
+        </DialogPopup>
+      </Dialog>
+
       {/* Aviso: regra que responde toda mensagem */}
       <Dialog open={avisoRepeticao} onOpenChange={setAvisoRepeticao}>
         <DialogPopup className="max-w-md">
@@ -480,6 +609,14 @@ function EditorFluxoInterno({
       </Dialog>
     </div>
   )
+}
+
+/** "13/10 às 14:32", no horário de quem está vendo. */
+function quandoFoiGuardado(iso: string): string {
+  const data = new Date(iso)
+  const dia = data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
+  const hora = data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+  return `${dia} às ${hora}`
 }
 
 /** Busca e lista de contatos do "Testar com um contato". */

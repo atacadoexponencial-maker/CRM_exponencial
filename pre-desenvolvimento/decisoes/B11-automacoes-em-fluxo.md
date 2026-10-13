@@ -1058,3 +1058,55 @@ deixa começar (seção 22).
   mas a resposta de quem disparou (webhook, tela do CRM) esperaria a nova
   tentativa. E, se o banco estiver com problema, a segunda tentativa falha igual.
 
+
+## 24. Aviso ao sair do editor e rascunho no navegador (B22-08, 13/10/2026)
+
+O QA de 09/10 (achados A5 e U2) mostrou que sair do editor sem salvar perdia tudo
+sem aviso: pelo botão "Automações", pelo voltar do navegador ou fechando a aba. E
+o "Automação salva" continuava na tela depois de novas edições. A Marcelle pediu
+também rascunho automático.
+
+**Decidido pelo Luan:** aviso ao sair e rascunho guardado no navegador.
+
+**Como ficou:**
+
+- O editor compara o que está na tela com o que está salvo (nome, repetição e
+  fluxo, inclusive a posição dos blocos). Com diferença, o topo mostra
+  "Alterações não salvas", e o "Automação salva" some.
+- **"Automações" com alteração** abre "Sair sem salvar?", com "Continuar
+  editando" e "Sair sem salvar". Sair apaga o rascunho.
+- **Fechar a aba, recarregar ou digitar outro endereço** passa pelo aviso do
+  próprio navegador (`beforeunload`), que não aceita texto próprio.
+- **Rascunho:** um instante (1 s) depois da última edição, o que não foi salvo vai
+  para o `localStorage`, com a chave formada pela pessoa e pela regra
+  (`automacoes:rascunho:<usuário>:<regra ou "nova">`). Salvar com sucesso ou
+  sair sem salvar apaga o rascunho.
+- **Ao abrir o editor com um rascunho diferente do salvo**, ele não é aplicado
+  sozinho: uma faixa oferece "Recuperar" ou "Descartar". Enquanto a pessoa não
+  decide, o editor não sobrescreve esse rascunho.
+- O rascunho guarda a assinatura da versão salva de onde partiu. Se a regra foi
+  salva depois (outra aba, outro admin), a faixa avisa que recuperar troca o que
+  está salvo pelo rascunho.
+
+**Limites aceitos:**
+
+- **O voltar do navegador e o menu lateral não são barrados.** O App Router não
+  deixa barrar o voltar do navegador, e barrar o menu exigiria mexer no menu
+  lateral, que é de todo o CRM (o `onNavigate` do `Link`). Nos dois casos, quem
+  volta ao editor recupera o rascunho.
+- O rascunho só volta no mesmo navegador. Em aba anônima ou com o armazenamento
+  bloqueado, só o aviso funciona.
+
+**Descartado:**
+
+- **Rascunho no banco.** Voltaria em qualquer aparelho, mas pede migration,
+  action e RLS, e cria um rascunho que outro admin pode encontrar.
+- **Aplicar o rascunho sozinho ao abrir.** Um rascunho antigo passaria por cima,
+  sem aviso, de uma versão que outro admin salvou depois.
+- **Coluna `updated_at` para saber se a regra mudou depois do rascunho.** A
+  tabela não tem essa coluna, e a assinatura da versão salva guardada no rascunho
+  resolve sem mexer no banco.
+- **Ler o rascunho num efeito ao abrir.** A regra de lint do React barra
+  `setState` dentro de efeito. A leitura vai por `useSyncExternalStore`, como o
+  carrinho da loja, e fica presa ao que existia na abertura, para o rascunho que
+  o próprio editor grava não virar "rascunho achado".

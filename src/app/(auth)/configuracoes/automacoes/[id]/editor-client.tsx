@@ -12,16 +12,20 @@ import { useRouter } from "next/navigation"
 import { buscarContatosTeste, guardarArquivoDaAutomacao, salvarRegra, simularRegra, type RegraDoEditor } from "../actions"
 import type { OpcoesEditor } from "../components/catalogo"
 import { EditorFluxo, type RegraEditada } from "../components/editor-fluxo"
+import { chaveDoRascunho } from "../components/rascunho-editor"
 
 const AVISO_SALVA = "Automação salva"
 
 export function EditorClient({
   regra,
   opcoes,
+  usuarioId,
   acabouDeSalvar,
 }: {
   regra: RegraDoEditor
   opcoes: OpcoesEditor
+  /** Separa o rascunho de cada pessoa que usa o mesmo navegador. */
+  usuarioId: string
   /** A página veio do primeiro salvamento de uma regra nova (`?salva=1`). */
   acabouDeSalvar: boolean
 }) {
@@ -54,6 +58,7 @@ export function EditorClient({
       simular={simularRegra}
       guardarArquivo={guardarArquivoDaAutomacao}
       onVoltar={() => router.push("/configuracoes/automacoes")}
+      chaveRascunho={chaveDoRascunho(usuarioId, regra.id)}
     />
   )
 }

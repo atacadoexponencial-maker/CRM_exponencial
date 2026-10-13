@@ -13,7 +13,7 @@ Total: nenhum crítico de segurança. 1 grave de regra de negócio, 5 altos, ~20
 
 ## Andamento das correções (série B22)
 
-Atualizado em 09/10/2026, fim do dia. As correções vão em **lotes por área**, um
+Atualizado em 13/10/2026. As correções vão em **lotes por área**, um
 branch por lote, que entra no `master` ao fim do lote, depois dos roteiros do
 preview (decidido pelo Luan em 09/10). Cada achado vira uma issue `B22-NN` em
 `issues/concluidas_B22/`, e a decisão vai para `decisoes/B11-automacoes-em-fluxo.md`
@@ -37,10 +37,20 @@ Branch `b22-lote-motor`, juntado no `master`.
 Verificado: 648 testes unitários, testes de integração no banco real, lint e
 build com código 0, e 7 roteiros do preview (72 verificações) passando.
 
+### Em andamento: lote 2, editor
+
+Branch `b22-lote-editor`, aberto em 13/10/2026 a partir do `master`. Pela
+`/triagem`, os itens do lote são **delimitados**: o desenho é aprovado no chat e
+não há arquivo de issue. Cada item continua com commit `B22-NN` e seção nas
+decisões.
+
+| Issue | Achado | O que mudou |
+|---|---|---|
+| B22-08 | A5, U2 | "Alterações não salvas", confirmação ao sair pelo "Automações", aviso do navegador ao fechar a aba e rascunho no navegador (seção 24) |
+
 ### A fazer
 
-**Lote 2, editor** (próximo):
-- A5 + U2: aviso ao sair sem salvar, e rascunho automático.
+**Lote 2, editor** (continua):
 - Seletor de repetição dentro do bloco do gatilho, com rótulo visível (pedido do
   Luan em 09/10), e tirar o seletor da barra do topo. Ajustar os roteiros do
   preview que procuram o seletor no topo (pelo menos o `roteiro-b11-03.cjs`).
@@ -74,8 +84,8 @@ filtrar só pelo prefixo `[TESTE]`.**
 
 ### Onde retomar
 
-Abrir este arquivo e começar o lote 2 num branch novo (`b22-lote-editor`), a
-partir do `master`.
+Continuar o lote 2 no branch `b22-lote-editor`, pelo seletor de repetição no
+bloco do gatilho.
 
 ---
 
@@ -89,7 +99,7 @@ partir do `master`.
 - [x] **A2. Evento com mais de 5 min vira "descartado" enquanto ainda roda** → o próximo do mesmo contato roda junto (quebra ordem e proteção de repetição); na Vercel a função morre em ~300 s e o que faltava some sem registro. Com 100 regras, um evento leva ~73 s local (~0,7 s por regra, em série). Migration `:55-56`. ✔ (bordas) → **Resolvido na B22-06 (09/10):** orçamento de tempo; o que não roda fica no histórico.
 - [x] **A3. Atribuir atendente aceita usuário desativado** (salva a regra e executa "concluída"). `acoes.ts:290-307`, `actions.ts:222`. "Atribuir ao time" já filtra ativos. ✔ (3 agentes) → **Resolvido na B22-02 (09/10):** recusado ao salvar e, se desativado depois, a ação falha com o motivo.
 - [x] **A4. Atribuir (atendente/time) deixa a conversa em "Em espera" com atendente** — o "Atribuir" do chat muda para "em atendimento"; nesse estado o chat só oferece "Atribuir" (sem Transferir/Resolver). `acoes.ts:295`. (motor, código) → **Resolvido na B22-03 (09/10):** em espera passa a em atendimento; resolvida continua resolvida.
-- [ ] **A5. Sair do editor sem salvar perde tudo sem aviso** (botão voltar, voltar do navegador, fechar aba); e "Automação salva" continua visível após novas edições. `editor-fluxo.tsx:312`. (editor)
+- [x] **A5. Sair do editor sem salvar perde tudo sem aviso** (botão voltar, voltar do navegador, fechar aba); e "Automação salva" continua visível após novas edições. `editor-fluxo.tsx:312`. (editor) → **Resolvido na B22-08 (13/10):** "Alterações não salvas" no topo, confirmação no "Automações", aviso do navegador ao fechar a aba e rascunho no navegador para o voltar e o menu lateral.
 - [x] **A6. "Atribuir ao time" conta a própria conversa como carga** → com "sempre" em mensagem recebida, a conversa alterna Ana/Bruno/Ana a cada mensagem. E leads simultâneos de contatos diferentes caem todos no mesmo atendente (rodam em paralelo). `acoes.ts:337-364`. (código — suspeita forte, não reproduzido na tela) → **Resolvido na B22-04 (09/10):** conversa com membro ativo do time fica com ele; escolha e gravação travadas por time numa função do banco.
 - [ ] **A7. Atendente que arrasta card para Ganho:** o banco recusa em silêncio o card de Recompra (só admin/gerente cria) → não nasce card, gatilho "card movido Onboarding" nem sequência de onboarding. `pipeline/actions.ts:165-221`. Fora do módulo, mas afeta gatilhos. (código)
 
@@ -159,5 +169,5 @@ o efeito certo, histórico com caminho e motivos em português, menus "⋯" func
 ## 🙋 Achados da Marcelle (teste manual, 09/10)
 
 - [ ] **U1. Não dá para duplicar blocos do fluxo** (copiar uma ação de mensagem para montar a versão "tem tag X" / "não tem"). Melhoria — não está na spec.
-- [ ] **U2. Sair do editor sem salvar perde tudo e não há rascunho.** Mesmo problema do A5, com o pedido extra de rascunho automático.
+- [x] **U2. Sair do editor sem salvar perde tudo e não há rascunho.** Mesmo problema do A5, com o pedido extra de rascunho automático. → **Resolvido na B22-08 (13/10)**, junto com o A5.
 - [ ] **U3. Variáveis da mensagem precisam ser copiadas à mão** — pedido: botões que inserem a variável no cursor (como no Manychat). Melhoria.

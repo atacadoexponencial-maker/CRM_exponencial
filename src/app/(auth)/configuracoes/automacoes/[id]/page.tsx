@@ -30,6 +30,7 @@ export default async function EditorAutomacaoPage({
       key={resultado.regra.id ?? "nova"}
       regra={resultado.regra}
       opcoes={opcoes}
+      usuarioId={user.id}
       acabouDeSalvar={salva === "1"}
     />
   )
