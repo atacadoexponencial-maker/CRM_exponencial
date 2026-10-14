@@ -105,6 +105,7 @@ seção 32; roteiro do preview `roteiro-b22-resto.cjs`.
 | B22-32 | baixo | Arquivo acima de 4 MB avisa na tela, sem erro 500 |
 | B22-33 | baixo | Regra nova sem vermelho antes de tentar salvar; blocos soltos conferidos no preview |
 | B22-34 | baixo | Lista vazia diz onde criar; "alterar dado" sem `= ""`; aviso do espaço na tag |
+| B22-35 | baixo | Busca de contato do "Testar" sem acento |
 
 Falta: os baixos.
 

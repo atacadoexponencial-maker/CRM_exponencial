@@ -39,6 +39,7 @@ import {
   type Repeticao,
   type ResultadoSimulacao,
 } from "@/lib/fluxo-automacao"
+import { normalizarTexto } from "@/lib/catalogo/planilha"
 import { problemaDoHorario } from "@/lib/horario-comercial"
 import { chaveDoUsuario, passouDoLimite, registrarTentativa } from "@/lib/limite-de-tentativas"
 import { sessaoAtual } from "@/lib/sessao"
@@ -78,6 +79,15 @@ export interface FiltrosDoHistorico {
 }
 
 const DIA_EM_MS = 86_400_000
+
+/**
+ * Padrão do `ilike` que acha o nome com ou sem acento: vogal, "c" e "n" (com ou sem
+ * acento) viram `_`, que casa com uma letra qualquer. O resultado passa depois por
+ * `normalizarTexto` (B22-35).
+ */
+function padraoSemAcento(texto: string): string {
+  return texto.replace(/[aeioucnáàâãäéèêëíìîïóòôõöúùûüçñ]/giu, "_")
+}
 
 const NOME_MAXIMO = 120
 const SUFIXO_DA_COPIA = " (cópia)"
@@ -492,13 +502,13 @@ export async function buscarContatosTeste(texto: string): Promise<ContatoTeste[]
     .select("id, name, phone_number")
     .eq("workspace_id", workspaceId)
     .is("excluido_em", null)
-    .limit(10)
+    .limit(50)
 
   // Só letras, números, espaço, "+" e "-": o texto entra no filtro `or` do PostgREST,
   // onde vírgula, ponto e parênteses mudam o sentido da consulta
   const busca = texto.replace(/[^\p{L}\p{N} +-]/gu, "").trim().slice(0, 60)
   if (busca) {
-    consulta = consulta.or(`name.ilike.%${busca}%,phone_number.ilike.%${busca.replace(/\D/g, "") || busca}%`)
+    consulta = consulta.or(`name.ilike.%${padraoSemAcento(busca)}%,phone_number.ilike.%${busca.replace(/\D/g, "") || busca}%`)
   } else {
     const { data: conversas } = await supabase
       .from("conversations")
@@ -512,7 +522,14 @@ export async function buscarContatosTeste(texto: string): Promise<ContatoTeste[]
   }
 
   const { data } = await consulta
-  return (data ?? []).map((c) => ({ id: c.id, nome: c.name || c.phone_number, descricao: c.phone_number }))
+  // B22-35: o padrão do banco pega também outras letras na posição das vogais; aqui
+  // fica só quem casa sem acento e sem maiúscula ("jose" acha "José")
+  const procurado = normalizarTexto(busca)
+  const digitos = busca.replace(/\D/g, "")
+  return (data ?? [])
+    .filter((c) => !busca || normalizarTexto(c.name ?? "").includes(procurado) || (!!digitos && c.phone_number.includes(digitos)))
+    .slice(0, 10)
+    .map((c) => ({ id: c.id, nome: c.name || c.phone_number, descricao: c.phone_number }))
 }
 
 export async function simularRegra(

@@ -1462,3 +1462,8 @@ porque mudam o que já existe.
   sem valor mostra "Alterar cidade do contato", e não `= ""`. Tag digitada com
   espaço continua sem o espaço, como a tela do contato grava, mas agora o painel
   avisa e sugere hífen.
+- **B22-35:** a busca de contato do "Testar" não ignorava acento ("jose" não
+  achava "José"). Sem extensão nova no banco: no `ilike`, vogal, "c" e "n" viram
+  `_` (uma letra qualquer), a consulta traz até 50, e o servidor fica só com quem
+  casa por `normalizarTexto`, a mesma das verificações de texto. Descartado: a
+  extensão `unaccent`, que pediria migration para um campo de busca.
