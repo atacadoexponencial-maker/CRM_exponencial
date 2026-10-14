@@ -117,7 +117,8 @@ seção 32; roteiro do preview `roteiro-b22-resto.cjs`.
 | B22-44 | baixo | Entrada malformada nas actions responde "Pedido inválido", sem erro 500 |
 | B22-45 | baixo | Reentrega da Meta conferida no começo: não soma "não lida" nem cria conversa de novo |
 
-Falta: os baixos.
+Todos os achados do QA estão resolvidos. **No merge:** aplicar as três migrations
+do lote (`20261014000001`, `…02` e `…03`) e rodar `conferir-b22-30-rls.cjs`.
 
 Decisões do Luan para o lote 4 (14/10): seção 32 das decisões (A7, M6, M20, M21,
 "contém" por palavra inteira, confirmação ao apagar 2 ou mais blocos e limpeza dos
@@ -139,9 +140,8 @@ filtrar só pelo prefixo `[TESTE]`.**
 
 ### Onde retomar
 
-Lote 4 (A7, M3 a M6, M8, M19 a M21 e os baixos), num branch `b22-lote-resto` a
-partir do `master`. Antes, perguntar ao Luan: "contém" por palavra inteira e os
-limites do M20.
+Lote 4 pronto no branch `b22-lote-resto`: falta o merge, com aprovação do Luan, e,
+junto dele, as três migrations e o `conferir-b22-30-rls.cjs`.
 
 ---
 
