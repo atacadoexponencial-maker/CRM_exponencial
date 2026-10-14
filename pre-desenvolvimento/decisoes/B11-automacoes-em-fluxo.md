@@ -1527,3 +1527,7 @@ porque mudam o que já existe.
   entrada malformada (nome que não é texto, período que não é número) quebrava com
   erro 500. Cada action confere o tipo do que recebe e responde "Pedido inválido.
   Recarregue a página."; o histórico com período estranho volta a 30 dias.
+- **B22-45:** o webhook da API Oficial só percebia a reentrega da Meta no fim, ao
+  gravar a mensagem (o `wamid` é único). Até ali, já tinha somado "não lida" e, se
+  a conversa tivesse sido resolvida no meio, criado outra, com "conversa criada".
+  Agora ele confere o `wamid` antes de qualquer coisa e pula a mensagem já gravada.

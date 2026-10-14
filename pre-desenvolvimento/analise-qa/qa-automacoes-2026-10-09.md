@@ -115,6 +115,7 @@ seção 32; roteiro do preview `roteiro-b22-resto.cjs`.
 | B22-42 | baixo | Regra já apagada: "não existe mais"; nome longo sem espaço cabe no celular |
 | B22-43 | baixo | No Ganho, as regras do card da Entrada rodam antes das do card da Recompra |
 | B22-44 | baixo | Entrada malformada nas actions responde "Pedido inválido", sem erro 500 |
+| B22-45 | baixo | Reentrega da Meta conferida no começo: não soma "não lida" nem cria conversa de novo |
 
 Falta: os baixos.
 
@@ -204,7 +205,7 @@ limites do M20.
 - [x] Agir em regra já apagada mostra "Tente novamente"; nome longo sem espaço estoura a lista no celular. → **B22-42 (14/10).**
 - [x] Ganho: regras do card novo da Recompra rodam antes das do card da Entrada. → **B22-43 (14/10).**
 - [x] Entrada malformada nas actions dá 500 (`actions.ts:504`, `:290`). → **B22-44 (14/10).**
-- Webhook da Meta sem registro de evento: reentrega pode disparar "conversa criada" de novo (suspeita).
+- [x] Webhook da Meta sem registro de evento: reentrega pode disparar "conversa criada" de novo (suspeita). → **B22-45 (14/10).**
 
 ## ✅ O que aguentou
 

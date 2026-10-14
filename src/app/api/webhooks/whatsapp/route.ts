@@ -103,6 +103,14 @@ export async function POST(request: NextRequest) {
   const { id: connectionId, workspace_id } = connection
 
   for (const message of messages) {
+    // B22-45: a Meta reentrega o mesmo evento quando não recebe resposta a tempo. O
+    // id dela já gravado é tentativa repetida: sem isso, a conversa somava "não lida"
+    // de novo e, se tivesse sido resolvida no meio, nascia outra, com "conversa criada"
+    if (message.id) {
+      const { data: jaGravada } = await supabase.from("messages").select("id").eq("wamid", message.id).maybeSingle()
+      if (jaGravada) continue
+    }
+
     const phoneNumber: string = message.from
     // B22-23: botão, lista, cartão de contato e localização também têm texto
     const lida = lerMensagemMeta(message)

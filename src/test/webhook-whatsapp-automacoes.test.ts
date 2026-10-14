@@ -28,6 +28,8 @@ type Resposta = { data: unknown; error?: unknown }
 function bancoFalso({
   abertas = [] as Array<{ id: string; unread_count: number; whatsapp_connection_id: string | null }>,
   mensagemGravada = true,
+  /** B22-45: o id da Meta já está gravado (reentrega). */
+  jaGravada = false,
 } = {}) {
   const gravacoes: string[] = []
   const from = vi.fn((tabela: string) => {
@@ -48,6 +50,7 @@ function bancoFalso({
     }
     obj.limit = vi.fn(() => ({ then: (r: (v: Resposta) => void) => Promise.resolve({ data: abertas }).then(r) }))
     obj.single = vi.fn(() => Promise.resolve(resposta))
+    obj.maybeSingle = vi.fn(() => Promise.resolve({ data: tabela === "messages" && jaGravada ? { id: "msg-0" } : null, error: null }))
     obj.then = (r: (v: Resposta) => void) => Promise.resolve({ data: null, error: null }).then(r)
     return obj
   })
@@ -161,5 +164,22 @@ describe("B22-23 — resposta de botão pela API Oficial", () => {
     expect(dispararAutomacoes).toHaveBeenCalledWith(
       expect.objectContaining({ tipo: "mensagem_recebida", tipoMensagem: "texto", texto: "Quero o catálogo" })
     )
+  })
+})
+
+describe("B22-45 — reentrega da Meta", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    process.env.META_APP_SECRET = SEGREDO_DE_TESTE
+  })
+
+  it("mensagem com o id da Meta já gravado: não grava, não cria conversa, não dispara", async () => {
+    const { gravacoes } = bancoFalso({ jaGravada: true })
+
+    const resposta = await POST(requisicao({ type: "text", text: { body: "oi" } }))
+
+    expect(resposta.status).toBe(200)
+    expect(gravacoes).toEqual([])
+    expect(dispararAutomacoes).not.toHaveBeenCalled()
   })
 })
