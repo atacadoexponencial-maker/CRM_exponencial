@@ -102,7 +102,7 @@ function pdfDeTeste() {
     await page.getByRole("textbox", { name: "Nome da automação" }).fill(nome)
     await page.locator(".react-flow__node").first().click()
     await escolher(page, "#painel-gatilho", gatilho)
-    await escolher(page, '[aria-label="Proteção de repetição"]', "Sempre (a cada disparo)")
+    await escolher(page, "#painel-repeticao", "Sempre (a cada disparo)")
     await configurar()
   }
   const comTag = (tag) => async () => {

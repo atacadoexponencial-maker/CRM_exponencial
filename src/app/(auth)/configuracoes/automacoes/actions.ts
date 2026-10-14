@@ -31,6 +31,8 @@ import type { PassoGravado, ResultadoExecucao } from "@/lib/automacoes/execucoes
 import {
   lerRepeticao,
   pendenciasDoFluxo,
+  repeticaoPadrao,
+  type BlocoGatilho,
   type Fluxo,
   type Repeticao,
   type ResultadoSimulacao,
@@ -71,9 +73,6 @@ export interface FiltrosDoHistorico {
   resultado?: ResultadoExecucao
   dias: 7 | 30
 }
-
-/** Regra nova nasce protegida, como no protótipo aprovado (B11-01): uma vez por contato. */
-const REPETICAO_DA_REGRA_NOVA: Repeticao = { modo: "uma_vez_por_contato" }
 
 const DIA_EM_MS = 86_400_000
 
@@ -151,16 +150,9 @@ export async function buscarRegraParaEditor(id: string): Promise<{ regra: RegraD
   const { supabase, workspaceId } = admin
 
   if (id === "nova") {
+    const gatilho: BlocoGatilho = { id: "gatilho", tipo: "gatilho", gatilho: "card_movido", parametros: {}, posicao: { x: 0, y: 0 } }
     return {
-      regra: {
-        id: null,
-        nome: "",
-        fluxo: {
-          blocos: [{ id: "gatilho", tipo: "gatilho", gatilho: "card_movido", parametros: {}, posicao: { x: 0, y: 0 } }],
-          ligacoes: [],
-        },
-        repeticao: REPETICAO_DA_REGRA_NOVA,
-      },
+      regra: { id: null, nome: "", fluxo: { blocos: [gatilho], ligacoes: [] }, repeticao: repeticaoPadrao(gatilho.gatilho) },
     }
   }
 

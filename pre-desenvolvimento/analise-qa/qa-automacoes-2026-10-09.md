@@ -13,11 +13,11 @@ Total: nenhum crítico de segurança. 1 grave de regra de negócio, 5 altos, ~20
 
 ## Andamento das correções (série B22)
 
-Atualizado em 13/10/2026. As correções vão em **lotes por área**, um
+Atualizado em 14/10/2026. As correções vão em **lotes por área**, um
 branch por lote, que entra no `master` ao fim do lote, depois dos roteiros do
 preview (decidido pelo Luan em 09/10). Cada achado vira uma issue `B22-NN` em
 `issues/concluidas_B22/`, e a decisão vai para `decisoes/B11-automacoes-em-fluxo.md`
-(seções 17 a 23).
+(seções 17 em diante).
 
 ### Feito: lote 1, motor (no ar desde 09/10/2026)
 
@@ -47,6 +47,7 @@ decisões.
 | Issue | Achado | O que mudou |
 |---|---|---|
 | B22-08 | A5, U2 | "Alterações não salvas", confirmação ao sair pelo "Automações", aviso do navegador ao fechar a aba e rascunho no navegador (seção 24) |
+| B22-09 | G1 (padrão) | Repetição no painel do gatilho, com rótulo, e frase no bloco; regra nova em "sempre" nos gatilhos de mensagem (seção 25) |
 
 Verificado na B22-08: 704 testes unitários, lint de `src` e `e2e` e build com
 código 0. No preview, o `roteiro-b22-08.cjs` (28 verificações) e os 7 roteiros
@@ -58,9 +59,6 @@ fora no lote 1.
 ### A fazer
 
 **Lote 2, editor** (continua):
-- Seletor de repetição dentro do bloco do gatilho, com rótulo visível (pedido do
-  Luan em 09/10), e tirar o seletor da barra do topo. Ajustar os roteiros do
-  preview que procuram o seletor no topo (pelo menos o `roteiro-b11-03.cjs`).
 - M9, M10, M11.
 - U1 (duplicar blocos) e U3 (botões de variável): são melhorias fora da spec;
   confirmar com Luan e Marcelle se entram.
@@ -72,9 +70,6 @@ ao arrastar para Ganho), M3, M4, M5, M6, M8, segurança (M19, M20, M21) e os bai
 
 ### Decisões pendentes
 
-- **Repetição padrão da regra nova** (hoje "uma vez por contato"; a Marcelle
-  sugeriu rever, por exemplo "sempre" nos gatilhos de mensagem). Decidir junto
-  com o seletor no bloco do gatilho, no lote 2.
 - **M21:** gerente e atendente podem ler as regras pela API? A spec diz só admin.
 - **U1 e U3:** entram agora ou depois.
 - Se incomodar: atribuir numa conversa **resolvida** troca o atendente e a
@@ -91,14 +86,13 @@ filtrar só pelo prefixo `[TESTE]`.**
 
 ### Onde retomar
 
-Continuar o lote 2 no branch `b22-lote-editor`, pelo seletor de repetição no
-bloco do gatilho.
+Continuar o lote 2 no branch `b22-lote-editor`, pelo M9.
 
 ---
 
 ## 🔴 Grave
 
-- [x] **G1. "Uma vez por contato" (padrão de regra nova) e "a cada N horas" gastam a vez quando a regra não fez nada.** Regra "texto contém catálogo → tag": cliente manda "oi", sai pelo "não", gravado "concluída"; depois manda "catálogo" → ignorada para sempre. Mesmo efeito com falha passageira (erro de banco grava `falhou`, que também conta). Ex.: "fora do horário → ausência" com cliente que escreveu às 10h nunca recebe ausência. `execucoes.ts:101-106` conta tudo que não é `ignorada`. Segue a decisão 8.3 ao pé da letra. **Decidido pela Marcelle (09/10): só gastar a vez quando alguma ação rodou; rever o padrão da regra nova (ex.: "sempre" nos gatilhos de mensagem).** ✔ (3 agentes: motor, código, bordas) → **Resolvido na B22-01 (09/10):** só gasta a vez execução com ação que deu certo. O padrão da regra nova ficou para decidir.
+- [x] **G1. "Uma vez por contato" (padrão de regra nova) e "a cada N horas" gastam a vez quando a regra não fez nada.** Regra "texto contém catálogo → tag": cliente manda "oi", sai pelo "não", gravado "concluída"; depois manda "catálogo" → ignorada para sempre. Mesmo efeito com falha passageira (erro de banco grava `falhou`, que também conta). Ex.: "fora do horário → ausência" com cliente que escreveu às 10h nunca recebe ausência. `execucoes.ts:101-106` conta tudo que não é `ignorada`. Segue a decisão 8.3 ao pé da letra. **Decidido pela Marcelle (09/10): só gastar a vez quando alguma ação rodou; rever o padrão da regra nova (ex.: "sempre" nos gatilhos de mensagem).** ✔ (3 agentes: motor, código, bordas) → **Resolvido na B22-01 (09/10):** só gasta a vez execução com ação que deu certo. O padrão da regra nova ficou para decidir. → **Decidido na B22-09 (14/10):** "sempre" nos gatilhos de mensagem, "uma vez por contato" nos outros.
 
 ## 🟠 Altos
 

@@ -123,6 +123,15 @@ export interface ResultadoSimulacao {
 
 export const GATILHOS_DE_MENSAGEM: readonly GatilhoTipo[] = ["mensagem_recebida", "mensagem_enviada_time"]
 
+/**
+ * Repetição com que a regra nova nasce: "sempre" nos gatilhos de mensagem, em que
+ * a condição costuma escolher a mensagem ("texto contém catálogo"), e "uma vez por
+ * contato" nos outros, como no protótipo aprovado (B11-01). Decidido em 14/10 (B22-09).
+ */
+export function repeticaoPadrao(gatilho: GatilhoTipo): Repeticao {
+  return GATILHOS_DE_MENSAGEM.includes(gatilho) ? { modo: "sempre" } : { modo: "uma_vez_por_contato" }
+}
+
 /** Verificações sobre a mensagem que disparou: só fazem sentido nos gatilhos de mensagem. */
 export const VERIFICACOES_DE_MENSAGEM: readonly VerificacaoTipo[] = ["texto_mensagem", "tipo_mensagem"]
 

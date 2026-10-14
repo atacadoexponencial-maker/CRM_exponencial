@@ -59,6 +59,7 @@ export function EditorClient({
       guardarArquivo={guardarArquivoDaAutomacao}
       onVoltar={() => router.push("/configuracoes/automacoes")}
       chaveRascunho={chaveDoRascunho(usuarioId, regra.id)}
+      regraNova={regra.id === null}
     />
   )
 }

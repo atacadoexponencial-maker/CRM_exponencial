@@ -34,7 +34,7 @@ const URL_PREVIEW = process.argv[2]
   await novaRegra(page, URL_PREVIEW, "B11-03 Uma vez", "Sondagem")
   r.confere(
     "regra nova nasce com 'Uma vez por contato'",
-    (await page.getByRole("combobox", { name: "Proteção de repetição" }).innerText()).includes("Uma vez por contato")
+    (await page.locator("#painel-repeticao").innerText()).includes("Uma vez por contato")
   )
   await adicionarBloco(page, "Atribuir atendente")
   await escolher(page, "#painel-campo-atendente_id", "Admin Teste B11")
@@ -42,7 +42,7 @@ const URL_PREVIEW = process.argv[2]
 
   // Regra 2: "sempre", etiqueta que será apagada e uma ação depois dela
   await novaRegra(page, URL_PREVIEW, "B11-03 Etiqueta apagada", "Negociação")
-  await escolher(page, '[aria-label="Proteção de repetição"]', "Sempre (a cada disparo)")
+  await escolher(page, "#painel-repeticao", "Sempre (a cada disparo)")
   await adicionarBloco(page, "Aplicar etiqueta à conversa")
   await escolher(page, "#painel-campo-label_id", "Temporária")
   await adicionarBloco(page, "Atribuir atendente")

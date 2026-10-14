@@ -328,6 +328,8 @@ aprovado. Regra antiga, e a versão nova criada a partir dela, ficam em "sempre"
 que é como rodavam. Uma regra de "card movido" com "uma vez por contato" só roda
 na primeira vez que o card entra na etapa. Quem quiser que rode toda vez escolhe
 "sempre".
+*Mudou em 14/10/2026: a regra nova nasce em "sempre" nos gatilhos de mensagem, e
+a repetição se escolhe no painel do gatilho (seção 25).*
 
 ### 8.4 Envio com motivo
 
@@ -1110,3 +1112,52 @@ também rascunho automático.
   `setState` dentro de efeito. A leitura vai por `useSyncExternalStore`, como o
   carrinho da loja, e fica presa ao que existia na abertura, para o rascunho que
   o próprio editor grava não virar "rascunho achado".
+
+## 25. Repetição no painel do gatilho e padrão por gatilho (B22-09, 14/10/2026)
+
+O seletor de repetição ficava na barra do topo, sem rótulo, longe do gatilho a
+que ele se refere. O Luan pediu, em 09/10, que ele fosse para o bloco do gatilho,
+com rótulo visível. A repetição padrão da regra nova, que tinha ficado em aberto
+na B22-01 (seção 17), foi decidida junto.
+
+**Decidido pelo Luan:** o seletor fica no gatilho, e a regra nova nasce em
+"sempre" nos gatilhos de mensagem.
+
+**Como ficou:**
+
+- **Painel do gatilho:** abaixo de "Quando" e dos campos do gatilho, o campo
+  "Repetição para o mesmo contato", com as três opções de antes e as horas quando
+  é "no máximo a cada N horas". A barra do topo não tem mais o seletor.
+- **Bloco do gatilho no canvas:** uma linha embaixo da frase mostra a repetição
+  ("Repetição: uma vez por contato", "Repetição: sempre", "Repetição: no máximo a
+  cada 24 horas").
+- **Padrão da regra nova** (`repeticaoPadrao`, em `src/lib/fluxo-automacao.ts`):
+  "sempre" com "mensagem recebida" e "mensagem enviada pelo time"; "uma vez por
+  contato" com os outros gatilhos. A regra nova abre com "card movido" e por isso
+  nasce em "uma vez por contato", que a action do editor tira da mesma função.
+- **A repetição acompanha o gatilho só na regra nova**, enquanto ela não foi
+  salva e a pessoa não mexeu no seletor. Escolhida à mão, ou com a regra já
+  salva, trocar o gatilho não mexe nela. Um rascunho recuperado cuja repetição
+  difere do padrão do gatilho dele conta como escolhida.
+- **Regras que já existem não mudam.**
+- O aviso "Esta regra vai responder toda mensagem deste contato" ficou igual e
+  passou a dizer que a repetição se escolhe no gatilho.
+
+**Limites aceitos:**
+
+- Com o padrão novo, o aviso aparece em toda regra de "mensagem recebida" que
+  envia mensagem, inclusive quando uma condição escolhe a mensagem ("texto contém
+  catálogo"), em que a frase "vai responder toda mensagem" não é verdade. Fica
+  para rever se incomodar.
+- O campo de horas só mudou de lugar; o defeito dele (achado M11) tem conserto
+  próprio.
+
+**Descartado:**
+
+- **Seletor dentro do bloco, no canvas.** Todos os outros parâmetros se editam no
+  painel, e uma lista dentro do bloco disputa o clique com arrastar o bloco.
+- **Repetição dentro do fluxo (`BlocoGatilho.parametros`).** Pediria mudar o
+  formato gravado, o motor e as regras que já existem, para algo que a coluna
+  `repeticao` já guarda.
+- **Trocar a repetição ao trocar o gatilho também nas regras salvas.** Mudaria,
+  sem a pessoa perceber, uma proteção que ela já tinha gravado.

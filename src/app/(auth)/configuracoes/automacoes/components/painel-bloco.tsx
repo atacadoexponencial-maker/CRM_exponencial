@@ -11,6 +11,7 @@ import {
   GATILHOS_DE_MENSAGEM,
   GATILHOS_DISPONIVEIS,
   OPERADORES_SEM_VALOR,
+  REPETICAO_DISPONIVEL,
   SEQUENCIA_DA_ETAPA,
   VERIFICACOES_DE_MENSAGEM,
   VERIFICACOES_DISPONIVEIS,
@@ -19,6 +20,7 @@ import {
   type BlocoCondicao,
   type GatilhoTipo,
   type Parametros,
+  type Repeticao,
   type Verificacao,
   type VerificacaoTipo,
 } from "@/lib/fluxo-automacao"
@@ -57,6 +59,12 @@ const ITENS_ACAO = (Object.keys(ACOES) as AcaoTipo[]).map((tipo) =>
   itemDisponivel(tipo, ACOES[tipo].rotulo, ACOES_DISPONIVEIS)
 )
 
+const ITENS_REPETICAO: ItemSelecao[] = [
+  { valor: "uma_vez_por_contato", rotulo: "Uma vez por contato" },
+  { valor: "a_cada_horas", rotulo: "No máximo a cada N horas por contato" },
+  { valor: "sempre", rotulo: "Sempre (a cada disparo)" },
+]
+
 /** Sobe o arquivo escolhido para o armazenamento (B11-07). O tipo e o limite são conferidos no servidor. */
 export type GuardarArquivo = (
   dados: FormData
@@ -66,6 +74,9 @@ interface PainelBlocoProps {
   bloco: Bloco
   /** Gatilho do fluxo: decide se as verificações de mensagem valem. */
   gatilho: GatilhoTipo | undefined
+  /** Proteção de repetição da regra: fica no painel do gatilho (B22-09). */
+  repeticao: Repeticao
+  onMudarRepeticao: (repeticao: Repeticao) => void
   opcoes: OpcoesEditor
   pendencias: string[]
   guardarArquivo: GuardarArquivo
@@ -77,6 +88,8 @@ interface PainelBlocoProps {
 export function PainelBloco({
   bloco,
   gatilho,
+  repeticao,
+  onMudarRepeticao,
   opcoes,
   pendencias,
   guardarArquivo,
@@ -111,6 +124,35 @@ export function PainelBloco({
               opcoes={opcoes}
               onMudar={(parametros) => onMudar({ ...bloco, parametros })}
             />
+            {REPETICAO_DISPONIVEL && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="painel-repeticao">Repetição para o mesmo contato</Label>
+                <CampoSelecao
+                  id="painel-repeticao"
+                  valor={repeticao.modo}
+                  itens={ITENS_REPETICAO}
+                  onMudar={(valor) => {
+                    const modo = valor as Repeticao["modo"]
+                    onMudarRepeticao(modo === "a_cada_horas" ? { modo, horas: 24 } : { modo })
+                  }}
+                />
+                {repeticao.modo === "a_cada_horas" && (
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      aria-label="Horas entre execuções"
+                      type="number"
+                      min={1}
+                      className="w-24"
+                      value={repeticao.horas}
+                      onChange={(e) =>
+                        onMudarRepeticao({ modo: "a_cada_horas", horas: Math.max(1, Number(e.target.value) || 1) })
+                      }
+                    />
+                    <span className="text-sm text-muted-foreground">horas</span>
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
 

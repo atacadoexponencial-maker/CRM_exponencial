@@ -4,6 +4,7 @@
 // bloco selecionado, simulação com um contato e salvar. Quem grava, quem busca
 // contatos e quem simula vêm por parâmetro: as actions do servidor (B11-10).
 // O que não foi salvo vira rascunho no navegador e pede confirmação para sair (B22-08).
+// A proteção de repetição é escolhida no painel do gatilho (B22-09).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -24,10 +25,10 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import {
-  REPETICAO_DISPONIVEL,
   formaLaco,
   gatilhoDoFluxo,
   pendenciasDoFluxo,
+  repeticaoPadrao,
   respondeTodaMensagem,
   type Bloco,
   type Fluxo,
@@ -43,7 +44,6 @@ import {
   type LigacaoFluxo,
   type NoFluxo,
 } from "./blocos-fluxo"
-import { CampoSelecao, type ItemSelecao } from "./campo-selecao"
 import { MenuNovoBloco, type ItemNovoBloco } from "./menu-novo-bloco"
 import { PainelBloco, type GuardarArquivo } from "./painel-bloco"
 import { apagarRascunho, assinatura, guardarRascunho, useRascunhoDaAbertura } from "./rascunho-editor"
@@ -73,15 +73,11 @@ interface EditorFluxoProps {
   onVoltar: () => void
   /** Onde fica o rascunho desta regra no navegador (`chaveDoRascunho`). */
   chaveRascunho: string
+  /** Regra ainda não salva: a repetição acompanha o gatilho até ser escolhida (B22-09). */
+  regraNova: boolean
   /** Aviso que o editor já mostra ao abrir, como "Automação salva" logo depois do primeiro salvamento. */
   avisoInicial?: string
 }
-
-const ITENS_REPETICAO: ItemSelecao[] = [
-  { valor: "uma_vez_por_contato", rotulo: "Uma vez por contato" },
-  { valor: "a_cada_horas", rotulo: "No máximo a cada N horas por contato" },
-  { valor: "sempre", rotulo: "Sempre (a cada disparo)" },
-]
 
 // Distância do bloco novo até o bloco de onde ele sai
 const ESPACO_VERTICAL = 90
@@ -163,12 +159,15 @@ function EditorFluxoInterno({
   guardarArquivo,
   onVoltar,
   chaveRascunho,
+  regraNova,
   avisoInicial,
 }: EditorFluxoProps) {
   const [nos, setNos, onNodesChange] = useNodesState<NoFluxo>(paraNos(regraInicial.fluxo))
   const [ligacoes, setLigacoes, onEdgesChange] = useEdgesState<LigacaoFluxo>(paraLigacoes(regraInicial.fluxo))
   const [nome, setNome] = useState(regraInicial.nome)
   const [repeticao, setRepeticao] = useState<Repeticao>(regraInicial.repeticao)
+  // A pessoa escolheu a repetição: trocar o gatilho deixa de trocá-la
+  const [repeticaoEscolhida, setRepeticaoEscolhida] = useState(false)
 
   const [menu, setMenu] = useState<{ de: string; saida: Saida } | "solto" | null>(null)
   const [dialogTeste, setDialogTeste] = useState(false)
@@ -207,9 +206,10 @@ function EditorFluxoInterno({
       pendencias: pendencias.porBloco,
       destacarErros,
       simulacao: simulacao?.resultado ?? null,
+      repeticao,
       aoAdicionar: (de: string, saida: Saida) => setMenu({ de, saida }),
     }),
-    [opcoes, pendencias, destacarErros, simulacao]
+    [opcoes, pendencias, destacarErros, simulacao, repeticao]
   )
 
   // Guarda o que não foi salvo um instante depois da última edição; sem alteração,
@@ -250,6 +250,9 @@ function EditorFluxoInterno({
     setLigacoes(paraLigacoes(regra.fluxo))
     setNome(regra.nome)
     setRepeticao(regra.repeticao)
+    // Repetição do rascunho fora do padrão do gatilho dele foi escolhida pela pessoa
+    const gatilhoDoRascunho = gatilhoDoFluxo(regra.fluxo)?.gatilho
+    setRepeticaoEscolhida(!gatilhoDoRascunho || regra.repeticao.modo !== repeticaoPadrao(gatilhoDoRascunho).modo)
     setSimulacao(null)
     setRascunhoResolvido(true)
     // Espera os blocos recuperados aparecerem para enquadrar o desenho
@@ -334,6 +337,12 @@ function EditorFluxoInterno({
 
   function mudarBloco(bloco: Bloco) {
     setNos((atuais) => atuais.map((n) => (n.id === bloco.id ? { ...n, data: { bloco } } : n)))
+    if (bloco.tipo === "gatilho" && regraNova && !repeticaoEscolhida) setRepeticao(repeticaoPadrao(bloco.gatilho))
+  }
+
+  function mudarRepeticao(nova: Repeticao) {
+    setRepeticao(nova)
+    setRepeticaoEscolhida(true)
   }
 
   function fecharPainel() {
@@ -416,37 +425,6 @@ function EditorFluxoInterno({
             if (e.target.value.trim()) setErroNome(false)
           }}
         />
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-          {REPETICAO_DISPONIVEL ? (
-            <CampoSelecao
-              aria-label="Proteção de repetição"
-              className="w-auto min-w-0 max-w-full"
-              valor={repeticao.modo}
-              itens={ITENS_REPETICAO}
-              onMudar={(valor) => {
-                const modo = valor as Repeticao["modo"]
-                setRepeticao(modo === "a_cada_horas" ? { modo, horas: 24 } : { modo })
-              }}
-            />
-          ) : (
-            <span className="text-xs text-muted-foreground" title="Chega com o histórico de execuções">
-              Proteção de repetição: em breve
-            </span>
-          )}
-          {REPETICAO_DISPONIVEL && repeticao.modo === "a_cada_horas" && (
-            <>
-              <Input
-                aria-label="Horas entre execuções"
-                type="number"
-                min={1}
-                className="h-8 w-20"
-                value={repeticao.horas}
-                onChange={(e) => setRepeticao({ modo: "a_cada_horas", horas: Math.max(1, Number(e.target.value) || 1) })}
-              />
-              <span className="text-sm text-muted-foreground">horas</span>
-            </>
-          )}
-        </div>
         <div className="flex items-center gap-2 sm:ml-auto">
           {alterado && <span className="text-xs text-muted-foreground">Alterações não salvas</span>}
           <Button variant="outline" size="sm" onClick={() => setMenu("solto")}>
@@ -546,6 +524,8 @@ function EditorFluxoInterno({
             key={selecionado.id}
             bloco={selecionado.data.bloco}
             gatilho={gatilhoDoFluxo(fluxo)?.gatilho}
+            repeticao={repeticao}
+            onMudarRepeticao={mudarRepeticao}
             opcoes={opcoes}
             pendencias={pendencias.porBloco[selecionado.id] ?? []}
             guardarArquivo={guardarArquivo}
@@ -596,8 +576,8 @@ function EditorFluxoInterno({
           <DialogTitle className="mb-2">Esta regra vai responder toda mensagem deste contato</DialogTitle>
           <DialogDescription className="mb-4">
             O gatilho é &quot;mensagem recebida&quot;, o caminho envia mensagem e a repetição está em
-            &quot;sempre&quot;. Cada mensagem do cliente gera uma resposta nova. Para evitar, escolha &quot;uma
-            vez por contato&quot; ou &quot;no máximo a cada N horas&quot;.
+            &quot;sempre&quot;. Cada mensagem do cliente gera uma resposta nova. Para evitar, escolha no gatilho
+            &quot;uma vez por contato&quot; ou &quot;no máximo a cada N horas&quot;.
           </DialogDescription>
           <div className="flex justify-end gap-2">
             <DialogClose render={<Button variant="outline" />}>Voltar</DialogClose>
