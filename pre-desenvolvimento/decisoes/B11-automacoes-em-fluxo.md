@@ -1352,3 +1352,12 @@ porque mudam o que já existe.
   card para quem não pôde mover. Agora isso recusa com "Sem permissão para mover
   este card". O roteiro cria um atendente temporário, marca Ganho por ele e o apaga
   no fim (`abrirPreview` aceita outro login).
+- **B22-23 (M3):** o webhook da API Oficial só lia `text.body`. Agora
+  `lerMensagemMeta` (`src/lib/whatsapp/mensagem-meta.ts`) tira o texto de cada
+  tipo: resposta a botão de modelo (`button`), a botão interativo e a lista
+  (`interactive`) contam como texto, com o título escolhido; cartão de contato
+  (`contacts`, no plural na Meta) e localização ganham o texto montado pelo CRM,
+  como no canal do gateway, e as regras não leem texto neles; foto, vídeo e
+  documento passam a legenda. Sem roteiro do preview: o webhook só aceita o que
+  vem assinado com o segredo da Meta, que só existe na Vercel. O teste do webhook
+  confere a resposta de botão chegando às regras.

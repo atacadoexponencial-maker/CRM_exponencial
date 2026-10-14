@@ -145,3 +145,21 @@ describe("B11-04 — mensagem recebida pela API Oficial", () => {
     expect(dispararAutomacoes).not.toHaveBeenCalled()
   })
 })
+
+describe("B22-23 — resposta de botão pela API Oficial", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    process.env.META_APP_SECRET = SEGREDO_DE_TESTE
+  })
+
+  it("as regras recebem o texto do botão escolhido, como texto", async () => {
+    const { gravacoes } = bancoFalso({ abertas: [ABERTA] })
+
+    await POST(requisicao({ type: "interactive", interactive: { type: "button_reply", button_reply: { id: "b1", title: "Quero o catálogo" } } }))
+
+    expect(gravacoes).toContain("insert messages")
+    expect(dispararAutomacoes).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: "mensagem_recebida", tipoMensagem: "texto", texto: "Quero o catálogo" })
+    )
+  })
+})

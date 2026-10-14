@@ -4,7 +4,8 @@ import { tipoDaMensagemParaRegras } from "@/lib/automacoes/contexto"
 import { dispararAutomacoes } from "@/lib/automacoes/fila"
 import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"
 import { transmitirMensagem } from "@/lib/whatsapp/realtime"
-import { TIPO_NO_CRM, escolherConversaDoNumero } from "@/lib/whatsapp/recebimento"
+import { lerMensagemMeta } from "@/lib/whatsapp/mensagem-meta"
+import { escolherConversaDoNumero } from "@/lib/whatsapp/recebimento"
 import { tirarDaLixeira } from "@/lib/lixeira"
 
 // Valida a assinatura X-Hub-Signature-256 que a Meta envia em todo webhook.
@@ -103,7 +104,9 @@ export async function POST(request: NextRequest) {
 
   for (const message of messages) {
     const phoneNumber: string = message.from
-    const messageText: string = message.text?.body ?? ""
+    // B22-23: botão, lista, cartão de contato e localização também têm texto
+    const lida = lerMensagemMeta(message)
+    const messageText = lida.conteudo
     const messageAt = new Date(Number(message.timestamp) * 1000).toISOString()
 
     let { data: contact } = await supabase
@@ -218,8 +221,8 @@ export async function POST(request: NextRequest) {
           conversationId: conversaId,
           messageId: msgInserida.id,
           // Este webhook grava tudo como texto, mas as regras veem o tipo que a Meta mandou
-          tipoMensagem: tipoDaMensagemParaRegras(TIPO_NO_CRM[message.type ?? "text"] ?? "desconhecido", messageText),
-          texto: messageText,
+          tipoMensagem: tipoDaMensagemParaRegras(lida.tipo, lida.textoDoCliente),
+          texto: lida.textoDoCliente,
         })
       }
     }

@@ -93,8 +93,9 @@ seção 32; roteiro do preview `roteiro-b22-resto.cjs`.
 | Issue | Achado | O que mudou |
 |---|---|---|
 | B22-22 | A7 | Card de Recompra do Ganho criado pela chave de serviço; movimento barrado pela RLS recusa |
+| B22-23 | M3 | API Oficial: botão, lista, cartão de contato e localização chegam com texto e tipo certos |
 
-Falta: M3, M4, M5, M6, M8, M19, M20, M21 e os baixos.
+Falta: M4, M5, M6, M8, M19, M20, M21 e os baixos.
 
 Decisões do Luan para o lote 4 (14/10): seção 32 das decisões (A7, M6, M20, M21,
 "contém" por palavra inteira, confirmação ao apagar 2 ou mais blocos e limpeza dos
@@ -141,7 +142,7 @@ limites do M20.
 **Motor e regras**
 - [x] M1. Gatilho "dado do contato alterado" com valor diferencia maiúsculas/acentos ("são paulo" ≠ "São Paulo"; trocar só a caixa conta como alteração). `index.ts:148`, `gatilhos-do-crm.ts:28`. (3 agentes) → **Resolvido na B22-05 (09/10).**
 - [x] M2. Se a gravação na fila falha, as regras rodam sem fila → some a proteção contra envio em dobro. `fila.ts:33-35`. (código) → **Resolvido na B22-07 (09/10):** sem fila, não roda; cada regra vai para o histórico como falha.
-- [ ] M3. API Oficial: resposta de botão, lista e cartão de contato chegam sem texto e como tipo "desconhecido". (código)
+- [x] M3. API Oficial: resposta de botão, lista e cartão de contato chegam sem texto e como tipo "desconhecido". (código) → **Resolvido na B22-23 (14/10).**
 - [ ] M4. Falha de rede no envio aparece só como "Erro inesperado ao executar a ação". (motor)
 - [ ] M5. Fluxo inválido gravado direto no banco (o admin pode, pela RLS): laço/dois gatilhos → regra pulada sem registro; bloco sem tipo ou 201 blocos → regra some da lista mesmo ativa (não dá para pausar/excluir pela tela); condição vazia → roda. (bordas)
 - [ ] M6. Contato com dois cards no mesmo funil → mover card e condição de etapa falham com "erro no banco"; origem provável `criarNovoLead` sem conferir card existente (= A6 do QA de 06/10). (bordas)
