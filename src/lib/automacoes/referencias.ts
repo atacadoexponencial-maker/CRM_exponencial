@@ -112,6 +112,31 @@ export const TIPOS_DE_ARQUIVO = ["imagem", "documento"] as const
 export const LIMITE_DO_ARQUIVO = 4 * 1024 * 1024 - 16 * 1024
 export const ARQUIVO_GRANDE_DEMAIS = "Arquivo muito grande (máximo 4 MB)."
 
+// Primeiros bytes de cada formato aceito. Word e Excel novos são ZIP; os antigos, OLE.
+const ZIP = [0x50, 0x4b, 0x03, 0x04]
+const OLE = [0xd0, 0xcf, 0x11, 0xe0]
+const ASSINATURAS: Record<string, number[][]> = {
+  "image/jpeg": [[0xff, 0xd8, 0xff]],
+  "image/png": [[0x89, 0x50, 0x4e, 0x47]],
+  "image/webp": [[0x52, 0x49, 0x46, 0x46]],
+  "application/pdf": [[0x25, 0x50, 0x44, 0x46]],
+  "application/msword": [OLE],
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [ZIP],
+  "application/vnd.ms-excel": [OLE],
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [ZIP],
+}
+
+/**
+ * O conteúdo é mesmo do tipo declarado? O navegador declara o tipo pela extensão,
+ * e um arquivo renomeado passaria (B22-38). WebP confere também o "WEBP" do byte 8.
+ */
+export function conteudoDoTipo(tipo: string, inicio: Uint8Array): boolean {
+  const comeca = (assinatura: number[]) => assinatura.every((byte, i) => inicio[i] === byte)
+  if (!(ASSINATURAS[tipo] ?? []).some(comeca)) return false
+  if (tipo === "image/webp") return String.fromCharCode(...inicio.slice(8, 12)) === "WEBP"
+  return true
+}
+
 
 /**
  * O arquivo de uma ação "enviar imagem ou documento" é um que o editor subiu

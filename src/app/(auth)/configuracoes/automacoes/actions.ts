@@ -19,6 +19,7 @@ import {
   ARQUIVO_GRANDE_DEMAIS,
   BUCKET_DOS_ARQUIVOS,
   LIMITE_DO_ARQUIVO,
+  conteudoDoTipo,
   arquivoDaAutomacaoValido,
   classificacaoValida,
   dadoDoContatoValido,
@@ -311,6 +312,10 @@ export async function guardarArquivoDaAutomacao(
   const tipo = TIPO_DO_ARQUIVO[arquivo.type]
   if (!tipo) return { erro: "Use uma imagem (JPG, PNG ou WebP) ou um documento (PDF, Word ou Excel)." }
   if (arquivo.size > LIMITE_DO_ARQUIVO) return { erro: ARQUIVO_GRANDE_DEMAIS }
+  // B22-38: o tipo vem do navegador, pela extensão; o conteúdo tem de bater
+  if (!conteudoDoTipo(arquivo.type, new Uint8Array(await arquivo.slice(0, 12).arrayBuffer()))) {
+    return { erro: "O conteúdo do arquivo não é do tipo que a extensão diz. Escolha o arquivo original." }
+  }
 
   const nomeSeguro = arquivo.name.replace(/[^a-zA-Z0-9._-]/g, "_")
   const caminho = `${pastaDosArquivos(admin.workspaceId)}/${Date.now()}-${nomeSeguro}`

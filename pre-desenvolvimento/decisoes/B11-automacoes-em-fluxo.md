@@ -1482,3 +1482,8 @@ porque mudam o que já existe.
   na limpeza não atrapalha o salvar. **Limite aceito:** um rascunho do navegador
   com arquivo subido há mais de 1 dia e nunca salvo perde o arquivo, se alguém
   salvar outra regra antes; o envio dessa ação falha com motivo.
+- **B22-38:** o upload confiava no tipo declarado pelo navegador, que vem da
+  extensão: um arquivo renomeado para `.pdf` subia e ia para o cliente.
+  `conteudoDoTipo` (`referencias.ts`) confere os primeiros bytes de cada formato
+  aceito (JPEG, PNG, WebP com o "WEBP", PDF, Word e Excel, novos em ZIP e antigos
+  em OLE) antes de subir.
