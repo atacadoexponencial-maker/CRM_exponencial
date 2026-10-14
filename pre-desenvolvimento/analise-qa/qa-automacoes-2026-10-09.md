@@ -76,8 +76,9 @@ na seção 31; roteiro do preview `roteiro-b22-historico.cjs`.
 | B22-16 | M13 | Histórico no celular: contato embaixo da automação, data e hora em duas linhas |
 | B22-17 | M14 | Contato da linha com link para o perfil |
 | B22-18 | M15 | Cópia de regra com nome longo mantém o "(cópia)" |
+| B22-19 | M16 | Filtro mostra o nome da regra excluída; `?regra=` desconhecida é ignorada com aviso; erro do banco aparece |
 
-Falta: M16 a M18.
+Falta: M17 e M18.
 
 **Lote 4, o resto:** A7 (card de Recompra que o atendente não consegue criar
 ao arrastar para Ganho), M3, M4, M5, M6, M8, segurança (M19, M20, M21) e os baixos.
@@ -144,7 +145,7 @@ Lote 3 (M12 a M18), num branch `b22-lote-historico` a partir do `master`.
 - [x] M13. Celular 390px: coluna Resultado cortada; coluna Contato some. `historico-client.tsx:177`. → **Resolvido na B22-16 (14/10).**
 - [x] M14. Tabela do histórico sem link para o contato (spec pede). `historico-client.tsx:184`. → **Resolvido na B22-17 (14/10).**
 - [x] M15. Duplicar regra com nome de 120 caracteres perde o "(cópia)". `actions.ts:367`. → **Resolvido na B22-18 (14/10).**
-- [ ] M16. Filtro mostra UUID da regra excluída; `?regra=` inválido engole o erro e lista vazio. `historico/page.tsx:36-41`.
+- [x] M16. Filtro mostra UUID da regra excluída; `?regra=` inválido engole o erro e lista vazio. `historico/page.tsx:36-41`. → **Resolvido na B22-19 (14/10).**
 - [ ] M17. Estado vazio sempre diz "Nenhuma execução nos últimos 30 dias", mesmo quando é o filtro.
 - [ ] M18. Interruptor leva 2,4–3,7 s sem nenhum estado de "salvando".
 

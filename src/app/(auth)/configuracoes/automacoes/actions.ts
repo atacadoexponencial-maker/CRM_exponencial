@@ -508,12 +508,46 @@ export async function simularRegra(
 }
 
 /**
- * Execuções do histórico, mais recentes primeiro, com os filtros da página. Até
- * 300 por consulta: para ver mais antigas, o admin estreita o filtro.
+ * As regras que o filtro do histórico oferece: as de agora, na ordem de criação,
+ * e as excluídas que ainda têm execução nos últimos 30 dias, com o último nome
+ * gravado. Não depende dos filtros, para o nome aparecer mesmo com a lista vazia (B22-19).
  */
-export async function listarExecucoes(filtros: FiltrosDoHistorico): Promise<ExecucaoListada[]> {
+export async function regrasDoFiltroDoHistorico(): Promise<Array<{ id: string; nome: string }>> {
   const admin = await adminDaSessao()
   if (!admin) return []
+  const { supabase, workspaceId } = admin
+
+  const [{ data: fluxos }, { data: execucoes }] = await Promise.all([
+    supabase.from("automation_flows").select("id, nome").eq("workspace_id", workspaceId).order("created_at"),
+    supabase
+      .from("automation_runs")
+      .select("regra_id, regra_nome")
+      .eq("workspace_id", workspaceId)
+      .gte("created_at", new Date(Date.now() - 30 * DIA_EM_MS).toISOString())
+      .order("created_at", { ascending: false })
+      .limit(5000),
+  ])
+
+  const regras = (fluxos ?? []).map((f) => ({ id: f.id, nome: f.nome }))
+  const vistas = new Set(regras.map((r) => r.id))
+  for (const e of execucoes ?? []) {
+    if (vistas.has(e.regra_id)) continue
+    vistas.add(e.regra_id)
+    regras.push({ id: e.regra_id, nome: `${e.regra_nome} (excluída)` })
+  }
+  return regras
+}
+
+/**
+ * Execuções do histórico, mais recentes primeiro, com os filtros da página. Até
+ * 300 por consulta: para ver mais antigas, o admin estreita o filtro. Erro do
+ * banco volta como erro, e não como lista vazia (B22-19).
+ */
+export async function listarExecucoes(
+  filtros: FiltrosDoHistorico
+): Promise<{ execucoes: ExecucaoListada[]; erro?: string }> {
+  const admin = await adminDaSessao()
+  if (!admin) return { execucoes: [], erro: SEM_PERMISSAO }
   const { supabase, workspaceId } = admin
 
   let consulta = supabase
@@ -526,13 +560,14 @@ export async function listarExecucoes(filtros: FiltrosDoHistorico): Promise<Exec
   if (filtros.regraId) consulta = consulta.eq("regra_id", filtros.regraId)
   if (filtros.resultado) consulta = consulta.eq("resultado", filtros.resultado)
 
-  const [{ data }, { data: fluxos }] = await Promise.all([
+  const [{ data, error }, { data: fluxos }] = await Promise.all([
     consulta,
     supabase.from("automation_flows").select("id").eq("workspace_id", workspaceId),
   ])
+  if (error) return { execucoes: [], erro: "Não foi possível carregar o histórico. Tente novamente." }
   const existentes = new Set((fluxos ?? []).map((f) => f.id))
 
-  return (data ?? []).map((e) => {
+  const execucoes = (data ?? []).map((e) => {
     const contato = e.contacts as unknown as { name: string | null; phone_number: string } | null
     return {
       id: e.id,
@@ -547,4 +582,5 @@ export async function listarExecucoes(filtros: FiltrosDoHistorico): Promise<Exec
       caminho: (Array.isArray(e.caminho) ? e.caminho : []) as unknown as PassoGravado[],
     }
   })
+  return { execucoes }
 }

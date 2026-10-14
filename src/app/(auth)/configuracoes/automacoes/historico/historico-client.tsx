@@ -61,9 +61,11 @@ interface HistoricoClientProps {
   regras: Array<{ id: string; nome: string }>
   filtros: FiltrosDoHistorico
   opcoes: OpcoesEditor
+  /** Erro ao carregar ou filtro do endereço ignorado (B22-19). */
+  aviso?: string
 }
 
-export function HistoricoClient({ execucoes, regras, filtros, opcoes }: HistoricoClientProps) {
+export function HistoricoClient({ execucoes, regras, filtros, opcoes, aviso }: HistoricoClientProps) {
   const router = useRouter()
   const [aberta, setAberta] = useState<ExecucaoListada | null>(null)
 
@@ -115,6 +117,12 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes }: Historic
           onMudar={(dias) => filtrar({ dias })}
         />
       </div>
+
+      {aviso && (
+        <p role="alert" className="mb-4 rounded-lg border border-amber-500/40 px-3 py-2 text-sm text-amber-200">
+          {aviso}
+        </p>
+      )}
 
       {execucoes.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-12 text-center">

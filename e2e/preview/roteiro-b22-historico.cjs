@@ -94,6 +94,20 @@ const HISTORICO = "/configuracoes/automacoes/historico"
   r.confere("B22-18: a cópia termina em '(cópia)' e cabe em 120", copia?.nome.endsWith(" (cópia)") && copia.nome.length <= 120, copia?.nome)
   await db.from("automation_flows").delete().eq("workspace_id", ws).in("id", [longa.id, copia?.id].filter(Boolean))
 
+  // B22-19 (M16): filtro por regra excluída sem execução na lista mostra o nome, não o id
+  await page.goto(`${URL_PREVIEW}${HISTORICO}?regra=${regraExcluida}&resultado=ignorada`, { waitUntil: "networkidle" })
+  const filtroRegra = (await page.locator('[aria-label="Filtrar por automação"]').innerText()).trim()
+  r.confere("B22-19: o filtro mostra o nome da regra excluída", filtroRegra.includes("B22 Regra excluída"), filtroRegra)
+  r.confere("B22-19: e não o id", !filtroRegra.includes(regraExcluida))
+
+  // ?regra= que não é de nenhuma automação: ignora e avisa
+  await page.goto(`${URL_PREVIEW}${HISTORICO}?regra=nao-existe`, { waitUntil: "networkidle" })
+  r.confere(
+    "B22-19: ?regra= desconhecida avisa",
+    await page.getByRole("alert").filter({ hasText: "A automação do endereço não foi encontrada" }).isVisible()
+  )
+  r.confere("B22-19: e mostra todas as execuções", (await page.locator("tbody tr").count()) === 2, String(await page.locator("tbody tr").count()))
+
   r.confere("sem erro no console", erros.length === 0, erros.join(" | "))
   await browser.close()
   process.exit(r.imprimir() ? 1 : 0)

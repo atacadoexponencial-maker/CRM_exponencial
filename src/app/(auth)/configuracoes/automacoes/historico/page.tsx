@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import type { ResultadoExecucao } from "@/lib/automacoes/execucoes"
 import { sessaoAtual } from "@/lib/sessao"
-import { listarExecucoes, listarRegras, type FiltrosDoHistorico } from "../actions"
+import { listarExecucoes, regrasDoFiltroDoHistorico, type FiltrosDoHistorico } from "../actions"
 import { carregarOpcoesEditor } from "../opcoes-editor"
 import { HistoricoClient } from "./historico-client"
 
@@ -9,6 +9,7 @@ const RESULTADOS: readonly ResultadoExecucao[] = ["concluida", "falhou", "ignora
 
 // Histórico de execuções (B11-03). Os filtros ficam no endereço (?regra, ?resultado,
 // ?dias), para o "Ver histórico" da lista abrir já filtrado e o link ser compartilhável.
+// Uma ?regra que não é de nenhuma automação conhecida é ignorada, com aviso (B22-19).
 export default async function HistoricoAutomacoesPage({
   searchParams,
 }: {
@@ -20,29 +21,25 @@ export default async function HistoricoAutomacoesPage({
   if (perfil?.role !== "admin") redirect("/perfil")
 
   const { regra, resultado, dias } = await searchParams
+  const [regras, opcoes] = await Promise.all([regrasDoFiltroDoHistorico(), carregarOpcoesEditor(supabase, perfil.workspace_id)])
+
+  const regraConhecida = !regra || regras.some((r) => r.id === regra)
   const filtros: FiltrosDoHistorico = {
-    regraId: regra || undefined,
+    regraId: regra && regraConhecida ? regra : undefined,
     resultado: RESULTADOS.find((r) => r === resultado),
     dias: dias === "7" ? 7 : 30,
   }
-
-  const [execucoes, regras, opcoes] = await Promise.all([
-    listarExecucoes(filtros),
-    listarRegras(),
-    carregarOpcoesEditor(supabase, perfil.workspace_id),
-  ])
-
-  // No filtro de regra: as regras de agora e as que só existem mais no histórico
-  const regrasDoFiltro = regras.map((r) => ({ id: r.id, nome: r.nome }))
-  for (const e of execucoes) {
-    if (e.regraExcluida && !regrasDoFiltro.some((r) => r.id === e.regraId)) {
-      regrasDoFiltro.push({ id: e.regraId, nome: `${e.regraNome} (excluída)` })
-    }
-  }
+  const { execucoes, erro } = await listarExecucoes(filtros)
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-8">
-      <HistoricoClient execucoes={execucoes} regras={regrasDoFiltro} filtros={filtros} opcoes={opcoes} />
+      <HistoricoClient
+        execucoes={execucoes}
+        regras={regras}
+        filtros={filtros}
+        opcoes={opcoes}
+        aviso={erro ?? (regraConhecida ? undefined : "A automação do endereço não foi encontrada. Mostrando todas.")}
+      />
     </div>
   )
 }

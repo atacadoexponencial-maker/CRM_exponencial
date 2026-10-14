@@ -1300,3 +1300,13 @@ teste em vez de disparar regras.
 - **B22-18 (M15):** duplicar uma regra com nome de 120 caracteres cortava o
   "(cópia)", e a cópia ficava com o mesmo nome do original. Agora o original
   encurta para o "(cópia)" caber no limite de 120, sem espaço sobrando antes dele.
+- **B22-19 (M16):** o filtro de automação montava a lista das regras excluídas a
+  partir das execuções já filtradas; com o filtro deixando a lista vazia, o nome
+  sumia e o campo mostrava o id. E um `?regra=` inválido no endereço quebrava a
+  consulta, que devolvia lista vazia sem erro. Agora:
+  - `regrasDoFiltroDoHistorico` monta o filtro com as regras de agora e as
+    excluídas que têm execução nos últimos 30 dias, sem depender dos filtros.
+  - `?regra=` que não é de nenhuma dessas é ignorada, e a página avisa "A
+    automação do endereço não foi encontrada. Mostrando todas."
+  - `listarExecucoes` devolve o erro do banco, e a página mostra "Não foi possível
+    carregar o histórico" em vez da lista vazia.
