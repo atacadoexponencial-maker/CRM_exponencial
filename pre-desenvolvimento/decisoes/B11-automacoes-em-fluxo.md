@@ -1294,3 +1294,6 @@ teste em vez de disparar regras.
   automação, "Quando" quebra em data e hora, as margens das células diminuem e o
   detalhe ganha margem nas laterais. A tabela não vira cartões: no computador ela
   continua igual.
+- **B22-17 (M14):** a spec pede o contato da execução com link, e só o detalhe
+  tinha. Na tabela, o nome do contato (na coluna e na linha do celular) leva ao
+  perfil dele; o clique no link não abre o detalhe da linha.

@@ -5,7 +5,8 @@
 // da cópia gravada na execução, então continua legível mesmo se a regra mudou ou
 // foi excluída. O detalhe fecha pelo X, além de Esc e de tocar fora (B22-15).
 // No celular, o contato vai embaixo do nome da automação e "Quando" quebra em
-// data e hora, para o Resultado caber na tela (B22-16).
+// data e hora, para o Resultado caber na tela (B22-16). O contato abre o perfil
+// dele, sem abrir o detalhe da linha (B22-17).
 
 import { useState } from "react"
 import Link from "next/link"
@@ -34,6 +35,20 @@ function acoesFeitas(caminho: PassoGravado[]): string {
   const acoes = caminho.filter((p) => p.bloco.tipo === "acao")
   if (acoes.length === 0) return "—"
   return `${acoes.filter((p) => p.ok).length} de ${acoes.length}`
+}
+
+/** Nome do contato com link para o perfil; o clique não abre o detalhe da linha. */
+function ContatoDaLinha({ contato }: { contato: ExecucaoListada["contato"] }) {
+  if (!contato) return <>Sem contato</>
+  return (
+    <Link
+      href={`/contatos/${contato.id}`}
+      onClick={(e) => e.stopPropagation()}
+      className="underline-offset-2 hover:underline"
+    >
+      {contato.nome}
+    </Link>
+  )
 }
 
 function SeloResultado({ resultado }: { resultado: ResultadoExecucao }) {
@@ -139,9 +154,13 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes }: Historic
                       {e.regraNome}
                     </button>
                     {e.regraExcluida && <span className="ml-1.5 text-xs text-muted-foreground">(excluída)</span>}
-                    <span className="block text-xs text-muted-foreground md:hidden">{e.contato?.nome ?? "Sem contato"}</span>
+                    <span className="block text-xs text-muted-foreground md:hidden">
+                      <ContatoDaLinha contato={e.contato} />
+                    </span>
                   </td>
-                  <td className="hidden px-4 py-3 md:table-cell">{e.contato?.nome ?? "—"}</td>
+                  <td className="hidden px-4 py-3 md:table-cell">
+                    <ContatoDaLinha contato={e.contato} />
+                  </td>
                   <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">{fraseDoEvento(e.evento, opcoes)}</td>
                   <td className="px-3 py-3 sm:px-4">
                     <SeloResultado resultado={e.resultado} />

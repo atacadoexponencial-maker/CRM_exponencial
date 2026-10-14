@@ -56,6 +56,13 @@ const HISTORICO = "/configuracoes/automacoes/historico"
   r.confere("B22-16: a página não rola para o lado", largura <= 390, String(largura))
   await page.setViewportSize({ width: 1280, height: 800 })
 
+  // B22-17 (M14): o contato da linha leva ao perfil, sem abrir o detalhe
+  await page.goto(`${URL_PREVIEW}${HISTORICO}`, { waitUntil: "networkidle" })
+  // No computador, a coluna Contato (a linha de baixo do nome é só do celular)
+  await page.locator("tbody tr").first().locator("td").nth(2).getByRole("link", { name: "Teste B11 Ana" }).click()
+  await page.waitForURL(new RegExp(`/contatos/${ana.id}`), { timeout: 20000 })
+  r.confere("B22-17: o contato da linha abre o perfil dele", true)
+
   r.confere("sem erro no console", erros.length === 0, erros.join(" | "))
   await browser.close()
   process.exit(r.imprimir() ? 1 : 0)

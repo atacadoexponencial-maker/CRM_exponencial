@@ -71,3 +71,23 @@ describe("B22-16 — histórico no celular (M13)", () => {
     expect(celulaDaAutomacao.textContent).toContain("Sem contato")
   })
 })
+
+describe("B22-17 — contato com link no histórico (M14)", () => {
+  it("o nome do contato leva ao perfil dele", () => {
+    abrir()
+    const links = screen.getAllByRole("link", { name: "Ana Souza" })
+    expect(links.length).toBeGreaterThan(0)
+    for (const link of links) expect(link.getAttribute("href")).toBe("/contatos/c1")
+  })
+
+  it("clicar no contato não abre o detalhe da execução", () => {
+    abrir()
+    fireEvent.click(screen.getAllByRole("link", { name: "Ana Souza" })[0])
+    expect(screen.queryByRole("dialog")).toBeNull()
+  })
+
+  it("sem contato, não há link", () => {
+    abrir([execucao({ contato: null })])
+    expect(screen.queryAllByRole("link", { name: "Ana Souza" })).toHaveLength(0)
+  })
+})
