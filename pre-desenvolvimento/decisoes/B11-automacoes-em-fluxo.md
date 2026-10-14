@@ -1207,3 +1207,23 @@ nenhuma regra salva faria.
 - **Conferir também as referências (etiqueta, atendente) ao testar.** O Salvar
   confere; para o teste, uma referência apagada já aparece como pendência ou falha
   da ação no resultado, e a conferência custaria mais consultas a cada teste.
+
+## 28. Campo de horas da repetição (B22-12, 14/10/2026)
+
+O QA de 09/10 (achado M11) mostrou que o campo de "no máximo a cada N horas" não
+deixava apagar: o campo vazio virava "1" na hora, e digitar 48 dava 148. E ele
+aceitava 1,5 e 99999 até o servidor recusar no Salvar, com uma mensagem no topo.
+
+**Como ficou:**
+
+- O campo guarda o texto como foi digitado (`inputMode="numeric"`, em vez de
+  `type="number"`, que no navegador em português trata "1,5" de jeito próprio).
+  Vazio vale 0 para a regra, sem mexer no que está escrito.
+- A regra das horas ficou numa função só, `horasValidas` (inteiro de 1 a 8760),
+  usada pelo painel, pelo Salvar do editor e pelo `lerRepeticao` do servidor.
+- Fora disso, o painel mostra "Use um número inteiro de 1 a 8760 horas." embaixo
+  do campo, e o Salvar recusa com "Corrija as horas da repetição, no gatilho".
+
+**Limite aceito:** um rascunho guardado com horas inválidas volta como "sempre",
+porque o rascunho passa pelo `lerRepeticao`, que troca o que está fora do formato
+por "sempre". Só acontece com rascunho de horas inválidas, que não foi salvo.

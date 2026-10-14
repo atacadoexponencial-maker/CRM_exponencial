@@ -10,11 +10,13 @@ import {
   ACOES_DISPONIVEIS,
   GATILHOS_DE_MENSAGEM,
   GATILHOS_DISPONIVEIS,
+  HORAS_MAXIMAS,
   OPERADORES_SEM_VALOR,
   REPETICAO_DISPONIVEL,
   SEQUENCIA_DA_ETAPA,
   VERIFICACOES_DE_MENSAGEM,
   VERIFICACOES_DISPONIVEIS,
+  horasValidas,
   type AcaoTipo,
   type Bloco,
   type BlocoCondicao,
@@ -64,6 +66,38 @@ const ITENS_REPETICAO: ItemSelecao[] = [
   { valor: "a_cada_horas", rotulo: "No máximo a cada N horas por contato" },
   { valor: "sempre", rotulo: "Sempre (a cada disparo)" },
 ]
+
+/**
+ * Horas de "no máximo a cada N horas" (B22-12). O texto fica como foi digitado,
+ * para dar para apagar e escrever outro número; vazio vale 0. Fora de 1 a 8760,
+ * ou com fração, o aviso aparece aqui e o Salvar recusa.
+ */
+function CampoHoras({ horas, onMudar }: { horas: number; onMudar: (horas: number) => void }) {
+  const [texto, setTexto] = useState(String(horas))
+  return (
+    <>
+      <div className="flex items-center gap-1.5">
+        <Input
+          aria-label="Horas entre execuções"
+          aria-invalid={!horasValidas(horas)}
+          inputMode="numeric"
+          className="w-24"
+          value={texto}
+          onChange={(e) => {
+            setTexto(e.target.value)
+            const limpo = e.target.value.trim().replace(",", ".")
+            const numero = Number(limpo)
+            onMudar(limpo === "" || Number.isNaN(numero) ? 0 : numero)
+          }}
+        />
+        <span className="text-sm text-muted-foreground">horas</span>
+      </div>
+      {!horasValidas(horas) && (
+        <p className="text-xs text-destructive">Use um número inteiro de 1 a {HORAS_MAXIMAS} horas.</p>
+      )}
+    </>
+  )
+}
 
 /** Sobe o arquivo escolhido para o armazenamento (B11-07). O tipo e o limite são conferidos no servidor. */
 export type GuardarArquivo = (
@@ -137,19 +171,10 @@ export function PainelBloco({
                   }}
                 />
                 {repeticao.modo === "a_cada_horas" && (
-                  <div className="flex items-center gap-1.5">
-                    <Input
-                      aria-label="Horas entre execuções"
-                      type="number"
-                      min={1}
-                      className="w-24"
-                      value={repeticao.horas}
-                      onChange={(e) =>
-                        onMudarRepeticao({ modo: "a_cada_horas", horas: Math.max(1, Number(e.target.value) || 1) })
-                      }
-                    />
-                    <span className="text-sm text-muted-foreground">horas</span>
-                  </div>
+                  <CampoHoras
+                    horas={repeticao.horas}
+                    onMudar={(horas) => onMudarRepeticao({ modo: "a_cada_horas", horas })}
+                  />
                 )}
               </div>
             )}

@@ -98,7 +98,12 @@ export type Repeticao =
   | { modo: "sempre" }
 
 /** Até um ano entre execuções para o mesmo contato. */
-const HORAS_MAXIMAS = 24 * 365
+export const HORAS_MAXIMAS = 24 * 365
+
+/** Horas de "no máximo a cada N horas": número inteiro de 1 a um ano. */
+export function horasValidas(horas: unknown): horas is number {
+  return Number.isInteger(horas) && (horas as number) >= 1 && (horas as number) <= HORAS_MAXIMAS
+}
 
 /**
  * Proteção de repetição lida do banco ou recebida do editor. Fora do formato
@@ -107,9 +112,7 @@ const HORAS_MAXIMAS = 24 * 365
 export function lerRepeticao(valor: unknown): Repeticao {
   const r = (valor ?? {}) as { modo?: unknown; horas?: unknown }
   if (r.modo === "uma_vez_por_contato") return { modo: "uma_vez_por_contato" }
-  if (r.modo === "a_cada_horas" && Number.isInteger(r.horas) && (r.horas as number) >= 1 && (r.horas as number) <= HORAS_MAXIMAS) {
-    return { modo: "a_cada_horas", horas: r.horas as number }
-  }
+  if (r.modo === "a_cada_horas" && horasValidas(r.horas)) return { modo: "a_cada_horas", horas: r.horas }
   return { modo: "sempre" }
 }
 

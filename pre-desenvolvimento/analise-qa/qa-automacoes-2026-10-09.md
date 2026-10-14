@@ -50,6 +50,7 @@ decisões.
 | B22-09 | G1 (padrão) | Repetição no painel do gatilho, com rótulo, e frase no bloco; regra nova em "sempre" nos gatilhos de mensagem (seção 25) |
 | B22-10 | M9 | Resultado do teste sai do canvas quando o fluxo muda, com "Testar de novo" (seção 26) |
 | B22-11 | M10 | Testar só com o fluxo completo, conferido no servidor e marcado na tela (seção 27) |
+| B22-12 | M11 | Campo de horas deixa apagar; fração e acima de um ano avisam no painel e o Salvar recusa (seção 28) |
 
 Verificado na B22-08: 704 testes unitários, lint de `src` e `e2e` e build com
 código 0. No preview, o `roteiro-b22-08.cjs` (28 verificações) e os 7 roteiros
@@ -61,19 +62,20 @@ fora no lote 1.
 ### A fazer
 
 **Lote 2, editor** (continua):
-- M11.
-- U1 (duplicar blocos) e U3 (botões de variável): são melhorias fora da spec;
-  confirmar com Luan e Marcelle se entram.
+- U1 (duplicar blocos) e U3 (botões de variável): melhorias fora da spec,
+  aprovadas pelo Luan em 14/10 para este lote.
 
 **Lote 3, histórico e lista:** M12 a M18.
 
 **Lote 4, o resto:** A7 (card de Recompra que o atendente não consegue criar
 ao arrastar para Ganho), M3, M4, M5, M6, M8, segurança (M19, M20, M21) e os baixos.
 
+Decidido pelo Luan em 14/10: no A7, a action de mover cria o card de Recompra com
+a chave de serviço, sem mudar a RLS; no M21, só o admin lê as regras, com a
+migration que troca a política aplicada no merge do lote 4.
+
 ### Decisões pendentes
 
-- **M21:** gerente e atendente podem ler as regras pela API? A spec diz só admin.
-- **U1 e U3:** entram agora ou depois.
 - Se incomodar: atribuir numa conversa **resolvida** troca o atendente e a
   mantém resolvida (decidido na B22-03, seção 19).
 
@@ -88,7 +90,7 @@ filtrar só pelo prefixo `[TESTE]`.**
 
 ### Onde retomar
 
-Continuar o lote 2 no branch `b22-lote-editor`, pelo M11.
+Continuar o lote 2 no branch `b22-lote-editor`, pelo U1 e pelo U3 (aprovados pelo Luan em 14/10).
 
 ---
 
@@ -123,7 +125,7 @@ Continuar o lote 2 no branch `b22-lote-editor`, pelo M11.
 **Editor**
 - [x] M9. Resultado de "Testar com um contato" fica velho após editar o fluxo (só some em "Limpar"). (editor) → **Resolvido na B22-10 (14/10):** com o fluxo diferente, o caminho sai do canvas e a faixa oferece "Testar de novo".
 - [x] M10. Simulação roda em fluxo que não poderia ser salvo (condição vazia = "sim"). `actions.ts:462`. (editor) → **Resolvido na B22-11 (14/10):** o servidor recusa e a tela marca o que falta antes de testar.
-- [ ] M11. Campo "N horas" não deixa apagar (vira "1" → digitar 48 dá 148); aceita 1,5 e 99999 até o servidor recusar. `editor-fluxo.tsx:352`. (editor)
+- [x] M11. Campo "N horas" não deixa apagar (vira "1" → digitar 48 dá 148); aceita 1,5 e 99999 até o servidor recusar. `editor-fluxo.tsx:352`. (editor) → **Resolvido na B22-12 (14/10):** o campo deixa apagar, e o inválido avisa no painel e trava o Salvar.
 
 **Lista e histórico**
 - [ ] M12. Detalhe da execução sem botão de fechar (só Esc/tocar fora). `historico-client.tsx:200`.

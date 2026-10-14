@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils"
 import {
   formaLaco,
   gatilhoDoFluxo,
+  horasValidas,
   pendenciasDoFluxo,
   repeticaoPadrao,
   respondeTodaMensagem,
@@ -400,7 +401,12 @@ function EditorFluxoInterno({
     setMensagem(null)
     const nomeOk = nome.trim() !== ""
     setErroNome(!nomeOk)
-    const partes = [...(nomeOk ? [] : ["Dê um nome à automação"]), ...frasesDasPendencias()]
+    const horasOk = repeticao.modo !== "a_cada_horas" || horasValidas(repeticao.horas)
+    const partes = [
+      ...(nomeOk ? [] : ["Dê um nome à automação"]),
+      ...(horasOk ? [] : ["Corrija as horas da repetição, no gatilho"]),
+      ...frasesDasPendencias(),
+    ]
 
     if (partes.length > 0) {
       setDestacarErros(true)
