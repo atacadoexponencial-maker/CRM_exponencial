@@ -11,7 +11,6 @@
 // Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seção 14.
 
 import type { ResultadoAcao } from "@/lib/fluxo-automacao"
-import { substituirVariaveis } from "@/lib/sequencias"
 import { GatewayIndisponivel } from "@/lib/whatsapp/gateway/cliente"
 import { enviarWhatsAppComMotivo, type ConteudoDoEnvio } from "@/lib/whatsapp-envio"
 import { conversaDoEvento, type ContextoDaExecucao } from "./contexto"
@@ -25,9 +24,18 @@ export interface VariaveisDaMensagem {
   nomeVendedor: string
 }
 
-/** {{nome_contato}}, {{primeiro_nome}} e {{nome_vendedor}}. As duas de fora são as das sequências. */
+/**
+ * {{nome_contato}}, {{primeiro_nome}} e {{nome_vendedor}}, com ou sem espaço dentro
+ * das chaves. Uma troca só (B22-39): o que entra no lugar de uma variável não é lido
+ * de novo, então um contato chamado "{{nome_vendedor}}" continua com esse nome.
+ */
 export function textoComVariaveis(texto: string, variaveis: VariaveisDaMensagem): string {
-  return substituirVariaveis(texto.replaceAll("{{primeiro_nome}}", variaveis.primeiroNome), variaveis)
+  const valores: Record<string, string> = {
+    nome_contato: variaveis.nomeContato,
+    primeiro_nome: variaveis.primeiroNome,
+    nome_vendedor: variaveis.nomeVendedor,
+  }
+  return texto.replace(/\{\{\s*(nome_contato|primeiro_nome|nome_vendedor)\s*\}\}/g, (_, nome: string) => valores[nome])
 }
 
 export async function enviarTexto(contexto: ContextoDaExecucao, contactId: string, texto: string): Promise<ResultadoAcao> {

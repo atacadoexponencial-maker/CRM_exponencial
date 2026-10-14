@@ -109,6 +109,7 @@ seção 32; roteiro do preview `roteiro-b22-resto.cjs`.
 | B22-36 | baixo | Delete de 2 ou mais blocos pede confirmação |
 | B22-37 | baixo | Arquivos sem uso há mais de 1 dia saem do armazenamento ao salvar ou excluir regra |
 | B22-38 | baixo | Upload confere o conteúdo do arquivo, não só a extensão |
+| B22-39 | baixo | Variáveis com espaço nas chaves; nome do contato não é trocado de novo |
 
 Falta: os baixos.
 
@@ -192,7 +193,7 @@ limites do M20.
 - [x] Regra nova abre com "Complete a configuração" em vermelho; bloco solto nasce em cima de outros. → **B22-33 (14/10).**
 - [x] "Iniciar sequência" com lista vazia sem orientação; "Alterar dado" vazio mostra `= ""`; tag com espaço vira "tagcomespaço" sem aviso; busca de contato não ignora acento; Delete com tudo selecionado apaga todos os blocos sem desfazer. → **B22-34, B22-35 e B22-36 (14/10).**
 - [x] Arquivos escolhidos e trocados ficam no armazenamento para sempre; upload confia no tipo declarado. → **B22-37 e B22-38 (14/10).**
-- `{{ nome_contato }}` com espaço vai literal; contato chamado `{{nome_vendedor}}` vira o nome do vendedor.
+- [x] `{{ nome_contato }}` com espaço vai literal; contato chamado `{{nome_vendedor}}` vira o nome do vendedor. → **B22-39 (14/10).**
 - "contém oi" casa com "Boituva" (é substring, como a spec diz — vale considerar palavra inteira).
 - Motivo "últimas 1 horas"; não dá para configurar horário 24 h; linhas descartadas ficam na fila para sempre.
 - Agir em regra já apagada mostra "Tente novamente"; nome longo sem espaço estoura a lista no celular.

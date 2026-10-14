@@ -1490,3 +1490,8 @@ porque mudam o que já existe.
   `conteudoDoTipo` (`referencias.ts`) confere os primeiros bytes de cada formato
   aceito (JPEG, PNG, WebP com o "WEBP", PDF, Word e Excel, novos em ZIP e antigos
   em OLE) antes de subir.
+- **B22-39:** `{{ nome_contato }}`, com espaço dentro das chaves, saía literal, e
+  um contato chamado `{{nome_vendedor}}` virava o nome do vendedor, porque as
+  variáveis eram trocadas uma depois da outra. `textoComVariaveis` faz uma troca
+  só, por expressão regular que aceita espaço, e o que entra não é lido de novo.
+  As sequências, que têm a própria troca, não mudam.

@@ -78,6 +78,22 @@ describe("textoComVariaveis", () => {
       })
     ).toBe("Oi Ana! Ana Paula, aqui é Bruna. Até, Ana")
   })
+
+  it("B22-39: aceita espaço dentro das chaves", () => {
+    expect(textoComVariaveis("Oi {{ primeiro_nome }}, sou {{nome_vendedor }}", { nomeContato: "Ana Paula", primeiroNome: "Ana", nomeVendedor: "Bruna" })).toBe(
+      "Oi Ana, sou Bruna"
+    )
+  })
+
+  it("B22-39: o que entra no lugar de uma variável não é trocado de novo", () => {
+    expect(
+      textoComVariaveis("Oi {{nome_contato}}, aqui é {{nome_vendedor}}", {
+        nomeContato: "{{nome_vendedor}}",
+        primeiroNome: "{{nome_vendedor}}",
+        nomeVendedor: "Bruna",
+      })
+    ).toBe("Oi {{nome_vendedor}}, aqui é Bruna")
+  })
 })
 
 describe("enviar mensagem com variáveis", () => {
