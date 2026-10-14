@@ -1361,3 +1361,10 @@ porque mudam o que já existe.
   documento passam a legenda. Sem roteiro do preview: o webhook só aceita o que
   vem assinado com o segredo da Meta, que só existe na Vercel. O teste do webhook
   confere a resposta de botão chegando às regras.
+- **B22-24 (M4):** falha de rede no envio aparecia como "Erro inesperado ao
+  executar a ação". Os providers deixam a exceção de rede subir de propósito; o
+  envio das automações (`envio.ts`) passou a trocá-la pelo motivo "Sem conexão com
+  o WhatsApp: o envio não foi confirmado" (TypeError do fetch da Meta,
+  `GatewayIndisponivel` do gateway e timeout). "Não confirmado", e não "não
+  enviado": num timeout, a mensagem pode ter saído. As sequências, que usam o
+  mesmo envio, não mudam.
