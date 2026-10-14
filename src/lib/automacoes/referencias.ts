@@ -105,6 +105,15 @@ export const pastaDosArquivos = (workspaceId: string) => `${workspaceId}/automac
 export const TIPOS_DE_ARQUIVO = ["imagem", "documento"] as const
 
 /**
+ * Teto do arquivo da ação. A requisição inteira tem até 4 MB (`bodySizeLimit` do
+ * next.config); acima disso o próprio Next recusa com erro 500, antes da action.
+ * A folga de 16 KB cobre o resto do formulário, e a tela confere antes de subir (B22-32).
+ */
+export const LIMITE_DO_ARQUIVO = 4 * 1024 * 1024 - 16 * 1024
+export const ARQUIVO_GRANDE_DEMAIS = "Arquivo muito grande (máximo 4 MB)."
+
+
+/**
  * O arquivo de uma ação "enviar imagem ou documento" é um que o editor subiu
  * para esta empresa? O motor roda com o service client e entrega o endereço ao
  * WhatsApp, que vai buscá-lo: um endereço qualquer, gravado por fora do editor,

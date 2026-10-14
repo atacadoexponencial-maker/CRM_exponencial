@@ -1444,3 +1444,8 @@ porque mudam o que já existe.
 - **B22-31:** três cliques seguidos em Salvar criavam três regras: o botão só fica
   desabilitado depois de a tela atualizar. Uma referência (`salvandoAgora`) muda na
   hora e deixa um salvamento por vez. O teste de tela falha sem a correção.
+- **B22-32:** arquivo acima de 4 MB dava erro 500: a requisição inteira tem até
+  4 MB (`bodySizeLimit`), e o Next recusa antes de a action rodar. O teto passou
+  para `referencias.ts` (`LIMITE_DO_ARQUIVO`, 4 MB menos 16 KB de folga para o
+  resto do formulário), e a tela confere antes de subir, com a mesma mensagem do
+  servidor.

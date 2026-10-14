@@ -26,6 +26,7 @@ import {
   type Verificacao,
   type VerificacaoTipo,
 } from "@/lib/fluxo-automacao"
+import { ARQUIVO_GRANDE_DEMAIS, LIMITE_DO_ARQUIVO } from "@/lib/automacoes/referencias"
 import { descreverHorario } from "@/lib/horario-comercial"
 import {
   ACOES,
@@ -484,6 +485,11 @@ function CampoArquivo({
 
   async function escolher(arquivo: File | undefined) {
     if (!arquivo || !guardarArquivo) return
+    // B22-32: acima do limite, o Next recusa a requisição antes da action, com erro 500
+    if (arquivo.size > LIMITE_DO_ARQUIVO) {
+      setErro(ARQUIVO_GRANDE_DEMAIS)
+      return
+    }
     setErro(null)
     setEnviando(true)
     const dados = new FormData()

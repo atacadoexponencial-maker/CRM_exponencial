@@ -16,7 +16,9 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import type { Json } from "@/integrations/supabase/types"
 import { lerFluxo } from "@/lib/automacoes/fluxo-recebido"
 import {
+  ARQUIVO_GRANDE_DEMAIS,
   BUCKET_DOS_ARQUIVOS,
+  LIMITE_DO_ARQUIVO,
   arquivoDaAutomacaoValido,
   classificacaoValida,
   dadoDoContatoValido,
@@ -283,8 +285,6 @@ const TIPO_DO_ARQUIVO: Record<string, "imagem" | "documento"> = {
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "documento",
 }
 
-/** Mesmo teto do chat: o limite de uma requisição na Vercel, e não do WhatsApp. */
-const LIMITE_DO_ARQUIVO = 4 * 1024 * 1024
 
 /**
  * Sobe o arquivo escolhido no editor para a pasta das automações da empresa
@@ -300,7 +300,7 @@ export async function guardarArquivoDaAutomacao(
   if (!(arquivo instanceof File) || arquivo.size === 0) return { erro: "Escolha um arquivo." }
   const tipo = TIPO_DO_ARQUIVO[arquivo.type]
   if (!tipo) return { erro: "Use uma imagem (JPG, PNG ou WebP) ou um documento (PDF, Word ou Excel)." }
-  if (arquivo.size > LIMITE_DO_ARQUIVO) return { erro: "Arquivo muito grande (máximo 4 MB)." }
+  if (arquivo.size > LIMITE_DO_ARQUIVO) return { erro: ARQUIVO_GRANDE_DEMAIS }
 
   const nomeSeguro = arquivo.name.replace(/[^a-zA-Z0-9._-]/g, "_")
   const caminho = `${pastaDosArquivos(admin.workspaceId)}/${Date.now()}-${nomeSeguro}`
