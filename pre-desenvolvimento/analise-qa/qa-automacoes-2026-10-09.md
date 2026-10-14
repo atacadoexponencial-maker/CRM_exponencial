@@ -65,7 +65,25 @@ fora no lote 1.
 
 ### A fazer
 
-**Lote 3, histórico e lista:** M12 a M18.
+### Feito: lote 3, histórico e lista (no ar desde 14/10/2026)
+
+Branch `b22-lote-historico`, aberto em 14/10/2026 a partir do `master` e juntado
+nele no mesmo dia, com aprovação do Luan. Decisões
+na seção 31; roteiro do preview `roteiro-b22-historico.cjs`.
+
+| Issue | Achado | O que mudou |
+|---|---|---|
+| B22-15 | M12 | Detalhe da execução com botão "Fechar" |
+| B22-16 | M13 | Histórico no celular: contato embaixo da automação, data e hora em duas linhas |
+| B22-17 | M14 | Contato da linha com link para o perfil |
+| B22-18 | M15 | Cópia de regra com nome longo mantém o "(cópia)" |
+| B22-19 | M16 | Filtro mostra o nome da regra excluída; `?regra=` desconhecida é ignorada com aviso; erro do banco aparece |
+| B22-20 | M17 | Lista vazia pelo filtro diz isso e oferece "Limpar filtros" |
+| B22-21 | M18 | Interruptor muda na hora e mostra "Salvando…" até o servidor responder |
+
+Verificado no fim do lote: 748 testes unitários, lint de `src` e `e2e` e build
+com código 0. No preview, o `roteiro-b22-historico.cjs` (16 verificações) e os 7
+roteiros do lote 1 (72 verificações) passaram.
 
 **Lote 4, o resto:** A7 (card de Recompra que o atendente não consegue criar
 ao arrastar para Ganho), M3, M4, M5, M6, M8, segurança (M19, M20, M21) e os baixos.
@@ -90,7 +108,9 @@ filtrar só pelo prefixo `[TESTE]`.**
 
 ### Onde retomar
 
-Lote 3 (M12 a M18), num branch `b22-lote-historico` a partir do `master`.
+Lote 4 (A7, M3 a M6, M8, M19 a M21 e os baixos), num branch `b22-lote-resto` a
+partir do `master`. Antes, perguntar ao Luan: "contém" por palavra inteira e os
+limites do M20.
 
 ---
 
@@ -128,13 +148,13 @@ Lote 3 (M12 a M18), num branch `b22-lote-historico` a partir do `master`.
 - [x] M11. Campo "N horas" não deixa apagar (vira "1" → digitar 48 dá 148); aceita 1,5 e 99999 até o servidor recusar. `editor-fluxo.tsx:352`. (editor) → **Resolvido na B22-12 (14/10):** o campo deixa apagar, e o inválido avisa no painel e trava o Salvar.
 
 **Lista e histórico**
-- [ ] M12. Detalhe da execução sem botão de fechar (só Esc/tocar fora). `historico-client.tsx:200`.
-- [ ] M13. Celular 390px: coluna Resultado cortada; coluna Contato some. `historico-client.tsx:177`.
-- [ ] M14. Tabela do histórico sem link para o contato (spec pede). `historico-client.tsx:184`.
-- [ ] M15. Duplicar regra com nome de 120 caracteres perde o "(cópia)". `actions.ts:367`.
-- [ ] M16. Filtro mostra UUID da regra excluída; `?regra=` inválido engole o erro e lista vazio. `historico/page.tsx:36-41`.
-- [ ] M17. Estado vazio sempre diz "Nenhuma execução nos últimos 30 dias", mesmo quando é o filtro.
-- [ ] M18. Interruptor leva 2,4–3,7 s sem nenhum estado de "salvando".
+- [x] M12. Detalhe da execução sem botão de fechar (só Esc/tocar fora). `historico-client.tsx:200`. → **Resolvido na B22-15 (14/10).**
+- [x] M13. Celular 390px: coluna Resultado cortada; coluna Contato some. `historico-client.tsx:177`. → **Resolvido na B22-16 (14/10).**
+- [x] M14. Tabela do histórico sem link para o contato (spec pede). `historico-client.tsx:184`. → **Resolvido na B22-17 (14/10).**
+- [x] M15. Duplicar regra com nome de 120 caracteres perde o "(cópia)". `actions.ts:367`. → **Resolvido na B22-18 (14/10).**
+- [x] M16. Filtro mostra UUID da regra excluída; `?regra=` inválido engole o erro e lista vazio. `historico/page.tsx:36-41`. → **Resolvido na B22-19 (14/10).**
+- [x] M17. Estado vazio sempre diz "Nenhuma execução nos últimos 30 dias", mesmo quando é o filtro. → **Resolvido na B22-20 (14/10).**
+- [x] M18. Interruptor leva 2,4–3,7 s sem nenhum estado de "salvando". → **Resolvido na B22-21 (14/10).**
 
 **Segurança (nenhum crítico/alto)**
 - [ ] M19. Trava de caminho do arquivo da ação contornada com `%2e%2e` → ação aponta para arquivo de outra empresa (precisa saber o caminho; bucket já é público por link). `referencias.ts:113`. (provado)

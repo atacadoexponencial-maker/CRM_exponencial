@@ -1278,3 +1278,44 @@ Era melhoria fora da spec; o Luan aprovou em 14/10.
 - **Mostrar a variável como etiqueta dentro do texto (chip).** Pediria trocar o
   `textarea` por um editor rico, e o texto salvo continuaria sendo
   `{{primeiro_nome}}`.
+
+## 31. Lote 3: histórico e lista (B22-15 em diante, 14/10/2026)
+
+Os achados M12 a M18 do QA de 09/10 são da página de histórico e da lista de
+automações. Nenhum pediu decisão do Luan; cada um tem commit próprio, e os
+detalhes ficam abaixo. O roteiro do preview é um só para o lote,
+`roteiro-b22-historico.cjs`, que grava execuções direto no banco da empresa de
+teste em vez de disparar regras.
+
+- **B22-15 (M12):** o detalhe da execução só fechava com Esc ou tocando fora.
+  Ganhou o X "Fechar" no canto, como os outros diálogos com conteúdo longo.
+- **B22-16 (M13):** no celular (390 px), a coluna Resultado saía cortada e a de
+  Contato sumia. No celular, o contato vai numa linha menor embaixo do nome da
+  automação, "Quando" quebra em data e hora, as margens das células diminuem e o
+  detalhe ganha margem nas laterais. A tabela não vira cartões: no computador ela
+  continua igual.
+- **B22-17 (M14):** a spec pede o contato da execução com link, e só o detalhe
+  tinha. Na tabela, o nome do contato (na coluna e na linha do celular) leva ao
+  perfil dele; o clique no link não abre o detalhe da linha.
+- **B22-18 (M15):** duplicar uma regra com nome de 120 caracteres cortava o
+  "(cópia)", e a cópia ficava com o mesmo nome do original. Agora o original
+  encurta para o "(cópia)" caber no limite de 120, sem espaço sobrando antes dele.
+- **B22-19 (M16):** o filtro de automação montava a lista das regras excluídas a
+  partir das execuções já filtradas; com o filtro deixando a lista vazia, o nome
+  sumia e o campo mostrava o id. E um `?regra=` inválido no endereço quebrava a
+  consulta, que devolvia lista vazia sem erro. Agora:
+  - `regrasDoFiltroDoHistorico` monta o filtro com as regras de agora e as
+    excluídas que têm execução nos últimos 30 dias, sem depender dos filtros.
+  - `?regra=` que não é de nenhuma dessas é ignorada, e a página avisa "A
+    automação do endereço não foi encontrada. Mostrando todas."
+  - `listarExecucoes` devolve o erro do banco, e a página mostra "Não foi possível
+    carregar o histórico" em vez da lista vazia.
+- **B22-20 (M17):** a lista vazia dizia "Nenhuma execução nos últimos 30 dias"
+  também quando o vazio era do filtro. Com filtro de automação ou de resultado,
+  ela diz "Nenhuma execução com esses filtros nos últimos N dias" e oferece
+  "Limpar filtros", que tira os dois e mantém o período.
+- **B22-21 (M18):** o interruptor de ativar e pausar levava de 2,4 a 3,7 s para
+  mudar, sem nenhum sinal. Agora ele muda na hora (`useOptimistic`) e fica meio
+  apagado, desabilitado e com "Salvando…" até o servidor responder. Se a
+  gravação falhar, ele volta ao estado do servidor e o erro aparece no topo, como
+  antes.

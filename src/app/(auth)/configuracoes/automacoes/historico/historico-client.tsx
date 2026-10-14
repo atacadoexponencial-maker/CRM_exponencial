@@ -3,13 +3,17 @@
 // Histórico de execuções das automações (B11-03): o que cada regra fez, quando,
 // para quem e se deu certo. O detalhe mostra o caminho bloco a bloco, a partir
 // da cópia gravada na execução, então continua legível mesmo se a regra mudou ou
-// foi excluída.
+// foi excluída. O detalhe fecha pelo X, além de Esc e de tocar fora (B22-15).
+// No celular, o contato vai embaixo do nome da automação e "Quando" quebra em
+// data e hora, para o Resultado caber na tela (B22-16). O contato abre o perfil
+// dele, sem abrir o detalhe da linha (B22-17).
 
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Check, History, X } from "lucide-react"
-import { Dialog, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import type { PassoGravado, ResultadoExecucao } from "@/lib/automacoes/execucoes"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
 import { cn } from "@/lib/utils"
@@ -33,6 +37,20 @@ function acoesFeitas(caminho: PassoGravado[]): string {
   return `${acoes.filter((p) => p.ok).length} de ${acoes.length}`
 }
 
+/** Nome do contato com link para o perfil; o clique não abre o detalhe da linha. */
+function ContatoDaLinha({ contato }: { contato: ExecucaoListada["contato"] }) {
+  if (!contato) return <>Sem contato</>
+  return (
+    <Link
+      href={`/contatos/${contato.id}`}
+      onClick={(e) => e.stopPropagation()}
+      className="underline-offset-2 hover:underline"
+    >
+      {contato.nome}
+    </Link>
+  )
+}
+
 function SeloResultado({ resultado }: { resultado: ResultadoExecucao }) {
   const { rotulo, classe } = RESULTADO[resultado]
   return <span className={cn("inline-flex rounded-md px-1.5 py-0.5 text-xs font-medium", classe)}>{rotulo}</span>
@@ -43,9 +61,11 @@ interface HistoricoClientProps {
   regras: Array<{ id: string; nome: string }>
   filtros: FiltrosDoHistorico
   opcoes: OpcoesEditor
+  /** Erro ao carregar ou filtro do endereço ignorado (B22-19). */
+  aviso?: string
 }
 
-export function HistoricoClient({ execucoes, regras, filtros, opcoes }: HistoricoClientProps) {
+export function HistoricoClient({ execucoes, regras, filtros, opcoes, aviso }: HistoricoClientProps) {
   const router = useRouter()
   const [aberta, setAberta] = useState<ExecucaoListada | null>(null)
 
@@ -98,24 +118,42 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes }: Historic
         />
       </div>
 
+      {aviso && (
+        <p role="alert" className="mb-4 rounded-lg border border-amber-500/40 px-3 py-2 text-sm text-amber-200">
+          {aviso}
+        </p>
+      )}
+
       {execucoes.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-12 text-center">
           <History className="size-8 text-muted-foreground/50" />
-          <p className="font-medium">Nenhuma execução nos últimos {filtros.dias} dias</p>
-          <p className="text-sm text-muted-foreground">
-            Cada vez que um gatilho dispara uma automação, ela aparece aqui.
-          </p>
+          {/* Com filtro de automação ou de resultado, o vazio é do filtro (B22-20) */}
+          {filtros.regraId || filtros.resultado ? (
+            <>
+              <p className="font-medium">Nenhuma execução com esses filtros nos últimos {filtros.dias} dias</p>
+              <Button variant="outline" size="sm" onClick={() => filtrar({ regra: "", resultado: "" })}>
+                Limpar filtros
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="font-medium">Nenhuma execução nos últimos {filtros.dias} dias</p>
+              <p className="text-sm text-muted-foreground">
+                Cada vez que um gatilho dispara uma automação, ela aparece aqui.
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50 text-left text-muted-foreground">
-                <th className="px-4 py-3 font-medium">Quando</th>
-                <th className="px-4 py-3 font-medium">Automação</th>
+                <th className="px-3 py-3 font-medium sm:px-4">Quando</th>
+                <th className="px-3 py-3 font-medium sm:px-4">Automação</th>
                 <th className="hidden px-4 py-3 font-medium md:table-cell">Contato</th>
                 <th className="hidden px-4 py-3 font-medium lg:table-cell">Gatilho</th>
-                <th className="px-4 py-3 font-medium">Resultado</th>
+                <th className="px-3 py-3 font-medium sm:px-4">Resultado</th>
                 <th className="hidden px-4 py-3 font-medium sm:table-cell">Ações</th>
               </tr>
             </thead>
@@ -126,16 +164,25 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes }: Historic
                   onClick={() => setAberta(e)}
                   className="cursor-pointer border-b transition-colors last:border-0 hover:bg-muted/30"
                 >
-                  <td className="whitespace-nowrap px-4 py-3 tabular-nums text-muted-foreground">{quando(e.quando)}</td>
-                  <td className="px-4 py-3">
-                    <button type="button" className="text-left font-medium hover:underline">
+                  <td className="px-3 py-3 tabular-nums text-muted-foreground sm:px-4">
+                    <span className="block whitespace-nowrap sm:inline">{formatarDataCurta(e.quando)}</span>
+                    <span className="hidden sm:inline">, </span>
+                    <span className="block whitespace-nowrap sm:inline">{formatarHoraDoDia(e.quando)}</span>
+                  </td>
+                  <td className="min-w-0 px-3 py-3 sm:px-4">
+                    <button type="button" className="text-left font-medium [overflow-wrap:anywhere] hover:underline">
                       {e.regraNome}
                     </button>
                     {e.regraExcluida && <span className="ml-1.5 text-xs text-muted-foreground">(excluída)</span>}
+                    <span className="block text-xs text-muted-foreground md:hidden">
+                      <ContatoDaLinha contato={e.contato} />
+                    </span>
                   </td>
-                  <td className="hidden px-4 py-3 md:table-cell">{e.contato?.nome ?? "—"}</td>
+                  <td className="hidden px-4 py-3 md:table-cell">
+                    <ContatoDaLinha contato={e.contato} />
+                  </td>
                   <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">{fraseDoEvento(e.evento, opcoes)}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-3 sm:px-4">
                     <SeloResultado resultado={e.resultado} />
                   </td>
                   <td className="hidden px-4 py-3 tabular-nums sm:table-cell">{acoesFeitas(e.caminho)}</td>
@@ -150,7 +197,13 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes }: Historic
       )}
 
       <Dialog open={aberta !== null} onOpenChange={(open) => !open && setAberta(null)}>
-        <DialogPopup className="max-h-[85dvh] max-w-lg overflow-y-auto">
+        <DialogPopup className="max-h-[85dvh] max-w-[calc(100vw-2rem)] overflow-y-auto sm:max-w-lg">
+          <DialogClose
+            render={<Button variant="ghost" size="icon-sm" className="absolute top-3 right-3" />}
+            aria-label="Fechar"
+          >
+            <X />
+          </DialogClose>
           {aberta && <DetalheDaExecucao execucao={aberta} opcoes={opcoes} />}
         </DialogPopup>
       </Dialog>
@@ -161,7 +214,7 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes }: Historic
 function DetalheDaExecucao({ execucao, opcoes }: { execucao: ExecucaoListada; opcoes: OpcoesEditor }) {
   return (
     <>
-      <DialogTitle className="flex flex-wrap items-center gap-2">
+      <DialogTitle className="flex flex-wrap items-center gap-2 pr-8">
         {execucao.regraNome}
         <SeloResultado resultado={execucao.resultado} />
       </DialogTitle>
