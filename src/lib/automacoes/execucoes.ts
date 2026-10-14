@@ -122,9 +122,10 @@ export async function motivoParaIgnorar(
   if (error) throw error
   if (!data) return null
 
-  return repeticao.modo === "uma_vez_por_contato"
-    ? "Já rodou para este contato (proteção: uma vez por contato)"
-    : `Já rodou para este contato nas últimas ${repeticao.horas} horas (proteção de repetição)`
+  if (repeticao.modo === "uma_vez_por_contato") return "Já rodou para este contato (proteção: uma vez por contato)"
+  // B22-41: "na última hora", e não "nas últimas 1 horas"
+  const quando = repeticao.horas === 1 ? "na última hora" : `nas últimas ${repeticao.horas} horas`
+  return `Já rodou para este contato ${quando} (proteção de repetição)`
 }
 
 /** Grava a execução. Nunca lança: o histórico falhar não pode derrubar o motor. */

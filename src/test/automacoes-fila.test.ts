@@ -18,12 +18,17 @@ vi.mock("@/lib/automacoes/index", () => ({
 
 const insert = vi.fn()
 const apagar = vi.fn()
+// B22-41: a limpeza dos descartados antigos, no fim do consumo
+const limparDescartados = vi.fn()
 const rpc = vi.fn()
 vi.mock("@/integrations/supabase/service", () => ({
   createServiceClient: () => ({
     from: () => ({
       insert: (linha: unknown) => insert(linha),
-      delete: () => ({ eq: (_coluna: string, id: string) => apagar(id) }),
+      delete: () => ({
+        eq: (coluna: string, valor: string) =>
+          coluna === "id" ? apagar(valor) : { lt: (campo: string, antes: string) => limparDescartados(valor, campo, antes) },
+      }),
     }),
     rpc: (nome: string, args: unknown) => rpc(nome, args),
   }),
@@ -135,6 +140,13 @@ describe("orçamento de tempo do consumo (B22-06)", () => {
   const fila = (n: number) => {
     for (let i = 0; i < n; i++) rpc.mockResolvedValueOnce({ data: [{ id: `q${i}`, evento: tag(`t${i}`) }], error: null })
   }
+
+  it("B22-41: no fim do consumo, tira da fila os descartados com mais de 7 dias", async () => {
+    relogio(1_000_000_000_000, 100)
+    fila(1)
+    await consumirFila("contato-1")
+    expect(limparDescartados).toHaveBeenCalledWith("descartado", "created_at", new Date(1_000_000_000_100 - 7 * 86_400_000).toISOString())
+  })
 
   it("sem limite de quantidade: 60 eventos rápidos rodam todos no mesmo consumo", async () => {
     relogio(1_000_000, 100)

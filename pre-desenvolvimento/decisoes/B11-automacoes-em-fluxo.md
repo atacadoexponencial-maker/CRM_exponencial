@@ -1507,3 +1507,10 @@ porque mudam o que já existe.
   número ("??") continua valendo como trecho. Em 14/10 nenhuma regra da produção
   usava essas verificações, então nada em uso mudou de comportamento.
 *Muda a seção 12.2 (texto por trecho).*
+- **B22-41:** três pequenos. O motivo da proteção diz "na última hora", e não "nas
+  últimas 1 horas". O horário comercial ganhou "O dia inteiro (24 horas)", que
+  grava das 00:00 às 24:00: o campo de hora não deixa digitar 24:00, e 23:59 no fim
+  deixava o último minuto de fora; o `time` do banco aceita 24:00, e o fim continua
+  excluído. E as linhas descartadas da fila, que ficavam para sempre, saem de
+  passagem depois de 7 dias, no fim de cada consumo (o histórico das regras já
+  guarda o que não rodou, desde a B22-06). Sem migration.

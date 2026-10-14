@@ -10,7 +10,7 @@ import { Dialog, DialogClose, DialogPopup, DialogTitle } from "@/components/ui/d
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
-import { NOMES_DOS_DIAS, type HorarioComercial } from "@/lib/horario-comercial"
+import { FIM_DO_DIA, NOMES_DOS_DIAS, type HorarioComercial } from "@/lib/horario-comercial"
 
 /** A semana como o Brasil lê: de segunda a domingo. */
 const ORDEM_DOS_DIAS = [1, 2, 3, 4, 5, 6, 0]
@@ -47,8 +47,10 @@ function Formulario({
   onFechar: () => void
 }) {
   const [dias, setDias] = useState(horario.dias)
+  // B22-41: "dia inteiro" grava das 00:00 às 24:00, que o campo de hora não deixa digitar
+  const [diaInteiro, setDiaInteiro] = useState(horario.inicio === "00:00" && horario.fim === FIM_DO_DIA)
   const [inicio, setInicio] = useState(horario.inicio)
-  const [fim, setFim] = useState(horario.fim)
+  const [fim, setFim] = useState(horario.fim === FIM_DO_DIA ? "23:59" : horario.fim)
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
 
@@ -59,7 +61,7 @@ function Formulario({
   async function salvar() {
     setErro(null)
     setSalvando(true)
-    const resultado = await onSalvar({ dias, inicio, fim })
+    const resultado = await onSalvar(diaInteiro ? { dias, inicio: "00:00", fim: FIM_DO_DIA } : { dias, inicio, fim })
     setSalvando(false)
     if (resultado.erro) {
       setErro(resultado.erro)
@@ -100,16 +102,28 @@ function Formulario({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="horario-inicio">Início</Label>
-          <Input id="horario-inicio" type="time" value={inicio} onChange={(e) => setInicio(e.target.value)} />
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="size-4 accent-primary"
+          checked={diaInteiro}
+          onChange={(e) => setDiaInteiro(e.target.checked)}
+        />
+        O dia inteiro (24 horas)
+      </label>
+
+      {!diaInteiro && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="horario-inicio">Início</Label>
+            <Input id="horario-inicio" type="time" value={inicio} onChange={(e) => setInicio(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="horario-fim">Fim</Label>
+            <Input id="horario-fim" type="time" value={fim} onChange={(e) => setFim(e.target.value)} />
+          </div>
         </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="horario-fim">Fim</Label>
-          <Input id="horario-fim" type="time" value={fim} onChange={(e) => setFim(e.target.value)} />
-        </div>
-      </div>
+      )}
 
       {erro && <p className="text-sm text-destructive">{erro}</p>}
 
