@@ -308,12 +308,22 @@ function EditorFluxoInterno({
     onVoltar()
   }
 
-  // Apagar um bloco continua direto; 2 ou mais pedem confirmação (decidido pelo Luan em 14/10)
-  const antesDeApagar = useCallback(({ nodes }: { nodes: NoFluxo[]; edges: LigacaoFluxo[] }) => {
-    const quantos = nodes.filter((n) => n.type !== "gatilho").length
-    if (quantos < 2) return Promise.resolve(true)
-    return new Promise<boolean>((responder) => setConfirmarApagar({ quantos, responder }))
-  }, [])
+  // Apagar um bloco continua direto; 2 ou mais pedem confirmação (decidido pelo Luan em 14/10).
+  // A tecla é tratada aqui, e não pelo atalho do React Flow: com o diálogo aberto ao
+  // descer a tecla, ele não via a tecla subir e deixava de apagar depois de um "Cancelar".
+  function teclaNoCanvas(e: React.KeyboardEvent) {
+    if (e.key !== "Delete" && e.key !== "Backspace") return
+    const alvo = e.target as HTMLElement
+    if (!alvo.closest(".react-flow") || alvo.closest("input, textarea, [contenteditable='true']")) return
+    const blocos = nos.filter((n) => n.selected && n.deletable !== false)
+    const setas = ligacoes.filter((l) => l.selected)
+    if (blocos.length === 0 && setas.length === 0) return
+    e.preventDefault()
+    const apagar = () =>
+      deleteElements({ nodes: blocos.map((n) => ({ id: n.id })), edges: setas.map((l) => ({ id: l.id })) })
+    if (blocos.length >= 2) setConfirmarApagar({ quantos: blocos.length, responder: (sim) => sim && apagar() })
+    else apagar()
+  }
 
   function responderApagar(sim: boolean) {
     confirmarApagar?.responder(sim)
@@ -530,7 +540,7 @@ function EditorFluxoInterno({
       </div>
 
       {/* Canvas. Os avisos ficam por cima dele, para o desenho não pular quando aparecem. */}
-      <div ref={areaRef} className="relative min-h-0 flex-1">
+      <div ref={areaRef} className="relative min-h-0 flex-1" onKeyDown={teclaNoCanvas}>
         <ContextoEditorFluxo.Provider value={contexto}>
           <ReactFlow
             nodes={nos}
@@ -541,8 +551,7 @@ function EditorFluxoInterno({
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             isValidConnection={ligacaoValida}
-            deleteKeyCode={["Backspace", "Delete"]}
-            onBeforeDelete={antesDeApagar}
+            deleteKeyCode={null}
             colorMode="dark"
             fitView
             fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
