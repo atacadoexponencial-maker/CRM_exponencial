@@ -163,10 +163,22 @@ describe("B11-04 — texto e tipo da mensagem", () => {
     expect(await vale(mensagem("Quero o catálogo agora"), "texto_mensagem", "igual", "quero o catálogo")).toBe(false)
   })
 
-  it("contém alguma das palavras: lista por vírgula, cada item como trecho, itens vazios ignorados", async () => {
+  it("B22-40: contém procura palavra inteira, com plural na última palavra", async () => {
+    expect(await vale(mensagem("Moro em Boituva"), "texto_mensagem", "contem", "oi")).toBe(false)
+    expect(await vale(mensagem("tenho oito filhos"), "texto_mensagem", "contem", "oi")).toBe(false)
+    expect(await vale(mensagem("Oi, tudo bem?"), "texto_mensagem", "contem", "oi")).toBe(true)
+    expect(await vale(mensagem("me manda os catálogos"), "texto_mensagem", "contem", "catálogo")).toBe(true)
+    expect(await vale(mensagem("quero ver o catálogo novo"), "texto_mensagem", "contem", "ver o catálogo")).toBe(true)
+    expect(await vale(mensagem("quero ver o novo catálogo"), "texto_mensagem", "contem", "ver o catálogo")).toBe(false)
+    expect(await vale(mensagem("Moro em Boituva"), "texto_mensagem", "nao_contem", "oi")).toBe(true)
+    expect(await vale(mensagem("e aí??"), "texto_mensagem", "contem", "??")).toBe(true)
+  })
+
+  it("contém alguma das palavras: lista por vírgula, cada item como palavra inteira, itens vazios ignorados", async () => {
     expect(await vale(mensagem("Qual o PREÇO do kit?"), "texto_mensagem", "contem_alguma", "valor, preço, tabela")).toBe(true)
     expect(await vale(mensagem("quais os preços"), "texto_mensagem", "contem_alguma", "preço")).toBe(true)
     expect(await vale(mensagem("oi"), "texto_mensagem", "contem_alguma", "preço, , valor")).toBe(false)
+    expect(await vale(mensagem("valorizar"), "texto_mensagem", "contem_alguma", "valor, preço")).toBe(false)
     expect(await vale(mensagem("oi"), "texto_mensagem", "contem_alguma", " , ,")).toBe(false)
   })
 

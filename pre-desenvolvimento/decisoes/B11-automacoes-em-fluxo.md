@@ -1495,3 +1495,12 @@ porque mudam o que já existe.
   variáveis eram trocadas uma depois da outra. `textoComVariaveis` faz uma troca
   só, por expressão regular que aceita espaço, e o que entra não é lido de novo.
   As sequências, que têm a própria troca, não mudam.
+- **B22-40:** "contém oi" casava com "Boituva" e "oito" (trecho, como a spec
+  dizia). Decidido pelo Luan: palavra inteira. "Contém", "não contém" e "contém
+  alguma das palavras" procuram as palavras do valor em sequência, inteiras.
+  **Refinamento:** só palavra inteira faria "contém preço" não casar com "quais os
+  preços", e "catálogo" com "catálogos"; por isso a última palavra aceita o plural
+  com "s" ou "es". "Começa com" e "é igual a" não mudaram. Valor sem letra nem
+  número ("??") continua valendo como trecho. Em 14/10 nenhuma regra da produção
+  usava essas verificações, então nada em uso mudou de comportamento.
+*Muda a seção 12.2 (texto por trecho).*
