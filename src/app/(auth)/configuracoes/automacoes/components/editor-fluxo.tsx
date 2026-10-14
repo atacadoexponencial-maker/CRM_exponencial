@@ -40,7 +40,7 @@ import {
   type ResultadoSimulacao,
   type Saida,
 } from "@/lib/fluxo-automacao"
-import type { OpcoesEditor } from "./catalogo"
+import { referenciasQueSumiram, type OpcoesEditor } from "./catalogo"
 import {
   ContextoEditorFluxo,
   TIPOS_DE_BLOCO,
@@ -215,7 +215,15 @@ function EditorFluxoInterno({
   )
   const rascunhoAchado =
     !rascunhoResolvido && rascunhoDaAbertura && assinaturaDoRascunho !== salvo ? rascunhoDaAbertura : null
-  const pendencias = useMemo(() => pendenciasDoFluxo(fluxo), [fluxo])
+  // B22-27: escolha apagada (etiqueta, time, mensagem rápida…) marca o bloco, como as outras pendências
+  const pendencias = useMemo(() => {
+    const doFluxo = pendenciasDoFluxo(fluxo)
+    const porBloco = { ...doFluxo.porBloco }
+    for (const [id, motivos] of Object.entries(referenciasQueSumiram(fluxo, opcoes))) {
+      porBloco[id] = [...(porBloco[id] ?? []), ...motivos]
+    }
+    return { ...doFluxo, porBloco }
+  }, [fluxo, opcoes])
   const caminhoAtual = useMemo(() => assinaturaDoCaminho(fluxo), [fluxo])
   const simulacaoVelha = simulacao !== null && simulacao.caminho !== caminhoAtual
   const selecionado = nos.find((n) => n.selected)

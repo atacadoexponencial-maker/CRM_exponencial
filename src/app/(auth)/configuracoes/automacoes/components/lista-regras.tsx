@@ -13,7 +13,7 @@ import {
 import { formatarHorarioDaLista } from "@/lib/datas"
 import type { Fluxo } from "@/lib/fluxo-automacao"
 import { cn } from "@/lib/utils"
-import type { OpcoesEditor } from "./catalogo"
+import { referenciasQueSumiram, type OpcoesEditor } from "./catalogo"
 import { resumoRegra } from "./frases-fluxo"
 
 export interface RegraListada {
@@ -57,6 +57,13 @@ const EXEMPLOS = [
     texto: "Quando o cliente enviar mensagem fora do horário comercial → avisar quando o time volta",
   },
 ]
+
+/** Escolha apagada (etiqueta, time, mensagem rápida…): a regra roda, mas aquela ação falha (B22-27). */
+function AvisoDeReferencia({ fluxo, opcoes }: { fluxo: Fluxo; opcoes: OpcoesEditor }) {
+  const [primeiro] = Object.values(referenciasQueSumiram(fluxo, opcoes)).flat()
+  if (!primeiro) return null
+  return <span className="mt-0.5 block text-xs text-amber-300">Atenção: {primeiro}</span>
+}
 
 export function ListaRegras({
   regras,
@@ -187,6 +194,7 @@ export function ListaRegras({
                     {r.problema && (
                       <span className="mt-0.5 block text-xs text-amber-300">Não roda: {r.problema}</span>
                     )}
+                    {!r.problema && r.fluxo && <AvisoDeReferencia fluxo={r.fluxo} opcoes={opcoes} />}
                   </td>
                   {historicoDisponivel && (
                     <>

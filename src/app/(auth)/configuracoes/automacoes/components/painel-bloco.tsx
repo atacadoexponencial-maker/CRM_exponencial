@@ -31,6 +31,7 @@ import {
   ACOES,
   FUNIS,
   GATILHOS,
+  NAO_EXISTE_MAIS,
   VERIFICACOES,
   etapasDoFunil,
   opcoesDaFonte,
@@ -48,6 +49,12 @@ const textareaClass =
 const TITULO = { gatilho: "Gatilho", condicao: "Condição", acao: "Ação" } as const
 
 const paraItens = (opcoes: Opcao[]): ItemSelecao[] => opcoes.map((o) => ({ valor: o.id, rotulo: o.nome }))
+
+/** A escolha que saiu da lista continua no campo, como "(não existe mais)", e não pelo id (B22-27). */
+function comEscolhaApagada(itens: ItemSelecao[], valor: string): ItemSelecao[] {
+  if (!valor || itens.some((i) => i.valor === valor)) return itens
+  return [...itens, { valor, rotulo: NAO_EXISTE_MAIS, desabilitado: true }]
+}
 
 /** O que o motor ainda não executa aparece desabilitado, com "(em breve)". */
 function itemDisponivel<T extends string>(valor: T, rotulo: string, disponiveis: readonly T[]): ItemSelecao {
@@ -407,7 +414,7 @@ function CampoParametro({
           id={id}
           valor={valor}
           vazio={campo.vazio}
-          itens={paraItens(opcoesDaFonte(campo.fonte, opcoes))}
+          itens={comEscolhaApagada(paraItens(opcoesDaFonte(campo.fonte, opcoes)), valor)}
           onMudar={(novo) => onMudar(campo.chave, novo)}
         />
       )
@@ -616,7 +623,7 @@ function EditorVerificacoes({
                 aria-label="Valor"
                 valor={v.valor}
                 vazio="Escolha…"
-                itens={paraItens(opcoesDaFonte(item.valor.fonte, opcoes))}
+                itens={comEscolhaApagada(paraItens(opcoesDaFonte(item.valor.fonte, opcoes)), v.valor)}
                 onMudar={(valor) => mudar(v.id, { valor })}
               />
             )}

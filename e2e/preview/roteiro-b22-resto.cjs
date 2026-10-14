@@ -102,6 +102,41 @@ async function apagarAtendente(db, ws, id) {
   const { data: cardsDaAna } = await db.from("pipeline_cards").select("id").eq("workspace_id", ws).eq("contact_id", ana.id).eq("funil", "entrada")
   r.confere("B22-26: e não cria o segundo card", cardsDaAna?.length === 1, String(cardsDaAna?.length))
 
+  // B22-27 (M8): etiqueta apagada depois de a regra existir
+  const { data: temporaria } = await db.from("labels").insert({ workspace_id: ws, name: "B22-27 Temporária", color: "#f97316" }).select("id").single()
+  const { data: comEtiqueta } = await db
+    .from("automation_flows")
+    .insert({
+      workspace_id: ws,
+      nome: "B22-27 Etiqueta apagada",
+      ativa: false,
+      repeticao: { modo: "sempre" },
+      fluxo: {
+        blocos: [
+          { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao: { x: 0, y: 0 } },
+          { id: "a", tipo: "acao", acao: "aplicar_etiqueta", parametros: { label_id: temporaria.id }, posicao: { x: 0, y: 150 } },
+        ],
+        ligacoes: [{ de: "g", saida: "proximo", para: "a" }],
+      },
+    })
+    .select("id")
+    .single()
+  await db.from("labels").delete().eq("id", temporaria.id)
+  await page.goto(`${URL_PREVIEW}/configuracoes/automacoes`, { waitUntil: "networkidle" })
+  const linhaApagada = page.locator("tbody tr").filter({ hasText: "B22-27 Etiqueta apagada" })
+  r.confere("B22-27: a lista avisa da etiqueta apagada", (await linhaApagada.innerText()).includes("Atenção: Etiqueta"))
+  r.confere("B22-27: o resumo não mostra o id", !(await linhaApagada.innerText()).includes(temporaria.id))
+  await linhaApagada.getByRole("switch", { name: "Ativar B22-27 Etiqueta apagada" }).click()
+  await page.getByRole("alert").filter({ hasText: "Não dá para ativar" }).waitFor({ timeout: 20000 })
+  const { data: continuaPausada } = await db.from("automation_flows").select("ativa").eq("id", comEtiqueta.id).single()
+  r.confere("B22-27: ativar com etiqueta apagada recusa", continuaPausada?.ativa === false)
+  await page.goto(`${URL_PREVIEW}/configuracoes/automacoes/${comEtiqueta.id}`, { waitUntil: "networkidle" })
+  await page.waitForSelector(".react-flow__node")
+  const blocoEtiqueta = page.locator(".react-flow__node").nth(1)
+  r.confere("B22-27: no editor, o bloco diz '(não existe mais)'", (await blocoEtiqueta.innerText()).includes("(não existe mais)"))
+  r.confere("B22-27: e fica marcado com o problema", (await blocoEtiqueta.innerText()).includes("foi apagada ou desativada"))
+  await db.from("automation_flows").delete().eq("workspace_id", ws).eq("id", comEtiqueta.id)
+
   r.confere("sem erro no console", erros.length === 0, erros.join(" | "))
   await browser.close()
   process.exit(r.imprimir() ? 1 : 0)

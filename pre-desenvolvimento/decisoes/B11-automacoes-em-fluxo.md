@@ -1392,3 +1392,17 @@ porque mudam o que já existe.
   (23505) vira a mesma mensagem. **Só é aplicada no merge do lote 4.** Visto e
   deixado de fora: o "novo lead" para um contato que já existe troca o nome dele
   pelo digitado, e apaga o nome se o campo vier vazio (o `upsert` do contato).
+- **B22-27 (M8):** etiqueta, time, mensagem rápida, sequência ou número apagados
+  (ou atendente desativado) depois de a regra existir apareciam pelo id no bloco e
+  no painel, o erro só vinha no topo ao salvar, a lista não avisava, reativar não
+  conferia e, para time apagado, o motivo dizia "o time não tem atendente ativo".
+  Agora:
+  - `referenciasQueSumiram` (`catalogo.ts`) acha as escolhas que não estão mais
+    nas listas da empresa. O editor junta isso às pendências do bloco, que fica
+    marcado; a lista mostra "Atenção: …" (a regra roda, mas aquela ação falha).
+  - Bloco, painel e histórico mostram "(não existe mais)" no lugar do id. Tags
+    são texto livre e ficam de fora; na condição "atendente é", atendente
+    desativado continua valendo (B22-02).
+  - Ativar confere as escolhas no servidor (`conferirReferencias`, a mesma do
+    Salvar) e recusa com "Não dá para ativar: …". Pausar não confere.
+  - Time apagado falha com "O time não existe mais".

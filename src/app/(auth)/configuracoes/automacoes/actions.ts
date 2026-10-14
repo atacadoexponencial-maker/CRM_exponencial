@@ -351,6 +351,22 @@ export async function alternarRegra(id: string, ativa: boolean): Promise<{ erro?
   const admin = await adminDaSessao()
   if (!admin) return { erro: SEM_PERMISSAO }
 
+  // B22-27: ativar confere as escolhas como o Salvar (etiqueta, time, mensagem
+  // rápida… apagados depois). Pausar não confere: tem de funcionar sempre.
+  if (ativa) {
+    const { data: regra } = await admin.supabase
+      .from("automation_flows")
+      .select("fluxo")
+      .eq("id", id)
+      .eq("workspace_id", admin.workspaceId)
+      .maybeSingle()
+    const fluxo = regra ? lerFluxo(regra.fluxo) : null
+    if (fluxo) {
+      const erroReferencia = await conferirReferencias(admin, fluxo)
+      if (erroReferencia) return { erro: `Não dá para ativar: ${erroReferencia}` }
+    }
+  }
+
   const { data, error } = await admin.supabase
     .from("automation_flows")
     .update({ ativa })

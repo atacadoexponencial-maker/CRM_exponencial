@@ -22,7 +22,7 @@ import {
   UserPen,
   Users,
 } from "lucide-react"
-import type { AcaoTipo, GatilhoTipo, VerificacaoTipo } from "@/lib/fluxo-automacao"
+import type { AcaoTipo, Fluxo, GatilhoTipo, VerificacaoTipo } from "@/lib/fluxo-automacao"
 import type { HorarioComercial } from "@/lib/horario-comercial"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "../../../pipeline/mock-pipeline"
 import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "../../../contatos/mock-contatos"
@@ -368,6 +368,45 @@ export const ACOES: Record<AcaoTipo, { rotulo: string; icone: LucideIcon; campos
   },
   resolver_conversa: { rotulo: "Resolver a conversa", icone: CircleCheck, campos: [] },
   reabrir_conversa: { rotulo: "Reabrir a conversa", icone: RotateCcw, campos: [] },
+}
+
+/** Rótulo da escolha que não existe mais, no bloco e no painel (B22-27). */
+export const NAO_EXISTE_MAIS = "(não existe mais)"
+
+// Listas que vêm do banco da empresa: o escolhido pode ter sido apagado ou desativado
+const FONTES_DA_EMPRESA: readonly FonteOpcoes[] = ["etiquetas", "atendentes", "times", "sequencias", "mensagensRapidas", "canais"]
+
+/**
+ * Escolhas do fluxo que não estão mais nas listas da empresa (etiqueta, time,
+ * mensagem rápida, sequência ou número apagados, atendente desativado), por bloco.
+ * O editor marca o bloco e a lista avisa; o Salvar e o Ativar conferem de novo no
+ * servidor (B22-27). Na condição "atendente é", atendente desativado continua
+ * valendo (B22-02).
+ */
+export function referenciasQueSumiram(fluxo: Fluxo, opcoes: OpcoesEditor): Record<string, string[]> {
+  const porBloco: Record<string, string[]> = {}
+  const sumiu = (fonte: FonteOpcoes, valor: string | undefined) =>
+    !!valor && FONTES_DA_EMPRESA.includes(fonte) && !opcoesDaFonte(fonte, opcoes).some((o) => o.id === valor)
+  const anotar = (id: string, rotulo: string) => {
+    ;(porBloco[id] ??= []).push(`${rotulo}: a opção escolhida foi apagada ou desativada`)
+  }
+
+  for (const bloco of fluxo.blocos) {
+    if (bloco.tipo === "condicao") {
+      for (const v of bloco.verificacoes) {
+        const item = VERIFICACOES[v.tipo]
+        if (item?.valor.tipo === "opcoes" && item.valor.fonte !== "atendentes" && sumiu(item.valor.fonte, v.valor)) {
+          anotar(bloco.id, item.rotulo)
+        }
+      }
+      continue
+    }
+    const campos = bloco.tipo === "gatilho" ? GATILHOS[bloco.gatilho]?.campos : ACOES[bloco.acao]?.campos
+    for (const campo of campos ?? []) {
+      if (campo.tipo === "opcoes" && sumiu(campo.fonte, bloco.parametros[campo.chave])) anotar(bloco.id, campo.rotulo)
+    }
+  }
+  return porBloco
 }
 
 /** O que o menu de novo bloco oferece, em grupos. */

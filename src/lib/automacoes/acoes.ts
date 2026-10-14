@@ -332,7 +332,16 @@ async function atribuirAoTime(contexto: ContextoDaExecucao, timeId: string): Pro
   })
   if (error) return ERRO_NO_BANCO
   const escolha = data?.[0]
-  if (!escolha) return falhou("O time não tem atendente ativo")
+  if (!escolha) {
+    // B22-27: time apagado não é "time sem atendente"
+    const { data: time } = await supabase
+      .from("teams")
+      .select("id")
+      .eq("id", timeId)
+      .eq("workspace_id", gatilho.workspaceId)
+      .maybeSingle()
+    return falhou(time ? "O time não tem atendente ativo" : "O time não existe mais")
+  }
   if (escolha.manteve) return FEITO
   return passarCardEConcluir(contexto, escolha.atendente_id, conversaId, [])
 }
