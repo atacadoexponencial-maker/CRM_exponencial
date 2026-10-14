@@ -1289,3 +1289,8 @@ teste em vez de disparar regras.
 
 - **B22-15 (M12):** o detalhe da execução só fechava com Esc ou tocando fora.
   Ganhou o X "Fechar" no canto, como os outros diálogos com conteúdo longo.
+- **B22-16 (M13):** no celular (390 px), a coluna Resultado saía cortada e a de
+  Contato sumia. No celular, o contato vai numa linha menor embaixo do nome da
+  automação, "Quando" quebra em data e hora, as margens das células diminuem e o
+  detalhe ganha margem nas laterais. A tabela não vira cartões: no computador ela
+  continua igual.

@@ -45,6 +45,17 @@ const HISTORICO = "/configuracoes/automacoes/historico"
   await detalhe.waitFor({ state: "hidden" })
   r.confere("B22-15: o detalhe da execução fecha pelo botão 'Fechar'", true)
 
+  // B22-16 (M13): no celular (390 px), o Resultado cabe na tela e o contato aparece
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(`${URL_PREVIEW}${HISTORICO}`, { waitUntil: "networkidle" })
+  const primeira = page.locator("tbody tr").first()
+  const selo = await primeira.locator("td").nth(4).boundingBox()
+  r.confere("B22-16: no celular, o Resultado cabe na tela", selo !== null && selo.x + selo.width <= 390, JSON.stringify(selo))
+  r.confere("B22-16: no celular, o contato aparece na linha", await primeira.getByText("Teste B11 Ana").first().isVisible())
+  const largura = await page.evaluate(() => document.documentElement.scrollWidth)
+  r.confere("B22-16: a página não rola para o lado", largura <= 390, String(largura))
+  await page.setViewportSize({ width: 1280, height: 800 })
+
   r.confere("sem erro no console", erros.length === 0, erros.join(" | "))
   await browser.close()
   process.exit(r.imprimir() ? 1 : 0)

@@ -57,3 +57,17 @@ describe("B22-15 — detalhe da execução com botão de fechar (M12)", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
   })
 })
+
+describe("B22-16 — histórico no celular (M13)", () => {
+  it("o contato aparece também embaixo do nome da automação, para o celular", () => {
+    abrir()
+    const celulaDaAutomacao = screen.getByText("Boas-vindas", { selector: "button" }).closest("td")!
+    expect(celulaDaAutomacao.textContent).toContain("Ana Souza")
+  })
+
+  it("sem contato, a linha diz 'Sem contato'", () => {
+    abrir([execucao({ contato: null })])
+    const celulaDaAutomacao = screen.getByText("Boas-vindas", { selector: "button" }).closest("td")!
+    expect(celulaDaAutomacao.textContent).toContain("Sem contato")
+  })
+})
