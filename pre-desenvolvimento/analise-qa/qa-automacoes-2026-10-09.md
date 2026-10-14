@@ -37,9 +37,10 @@ Branch `b22-lote-motor`, juntado no `master`.
 Verificado: 648 testes unitários, testes de integração no banco real, lint e
 build com código 0, e 7 roteiros do preview (72 verificações) passando.
 
-### Em andamento: lote 2, editor
+### Feito: lote 2, editor (no ar desde 14/10/2026)
 
-Branch `b22-lote-editor`, aberto em 13/10/2026 a partir do `master`. Pela
+Branch `b22-lote-editor`, aberto em 13/10/2026 a partir do `master` e juntado
+nele em 14/10, com aprovação do Luan. Pela
 `/triagem`, os itens do lote são **delimitados**: o desenho é aprovado no chat e
 não há arquivo de issue. Cada item continua com commit `B22-NN` e seção nas
 decisões.
@@ -51,20 +52,18 @@ decisões.
 | B22-10 | M9 | Resultado do teste sai do canvas quando o fluxo muda, com "Testar de novo" (seção 26) |
 | B22-11 | M10 | Testar só com o fluxo completo, conferido no servidor e marcado na tela (seção 27) |
 | B22-12 | M11 | Campo de horas deixa apagar; fração e acima de um ano avisam no painel e o Salvar recusa (seção 28) |
-| B22-13 | U1 | "Duplicar" no painel da condição e da ação; a cópia nasce solta e selecionada (seção 29) |
+| B22-13 | U1 | "Duplicar" no painel da condição e da ação; a cópia nasce solta, à direita do original, e selecionada (seção 29) |
 | B22-14 | U3 | Botões de variável no campo "Mensagem", que inserem no cursor (seção 30) |
 
-Verificado na B22-08: 704 testes unitários, lint de `src` e `e2e` e build com
-código 0. No preview, o `roteiro-b22-08.cjs` (28 verificações) e os 7 roteiros
-do lote 1 (72 verificações) passaram. O `roteiro-b11-04.cjs` para no webhook
+Verificado no fim do lote: 730 testes unitários, lint de `src` e `e2e` e build
+com código 0. No preview, os roteiros `roteiro-b22-08.cjs` a `roteiro-b22-14.cjs`
+(86 verificações) e os 7 roteiros do lote 1 (72 verificações) passaram. O
+`roteiro-b11-04.cjs` para no webhook
 simulado: o segredo do gateway só existe no preview do branch
 `b11-automacoes-v2` (README de `e2e/preview/`), e por isso ele também ficou de
 fora no lote 1.
 
 ### A fazer
-
-**Lote 2, editor:** itens feitos; falta rodar os roteiros do preview e o merge,
-com a aprovação do Luan.
 
 **Lote 3, histórico e lista:** M12 a M18.
 
@@ -91,7 +90,7 @@ filtrar só pelo prefixo `[TESTE]`.**
 
 ### Onde retomar
 
-Lote 2 pronto no branch `b22-lote-editor`, esperando os roteiros e o merge. Depois, lote 3 (M12 a M18).
+Lote 3 (M12 a M18), num branch `b22-lote-historico` a partir do `master`.
 
 ---
 
