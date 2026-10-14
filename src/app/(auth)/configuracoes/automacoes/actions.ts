@@ -442,7 +442,9 @@ export async function alternarRegra(id: string, ativa: boolean): Promise<{ erro?
     .eq("workspace_id", admin.workspaceId)
     .select("id")
     .maybeSingle()
-  if (error || !data) return { erro: "Não foi possível alterar a automação. Tente novamente." }
+  if (error) return { erro: "Não foi possível alterar a automação. Tente novamente." }
+  // B22-42: regra apagada (outra aba, outro admin) não é erro passageiro
+  if (!data) return { erro: "Esta automação não existe mais." }
   revalidatePath(CAMINHO_LISTA)
   return {}
 }
@@ -487,7 +489,8 @@ export async function excluirRegra(id: string): Promise<{ erro?: string }> {
     .eq("workspace_id", admin.workspaceId)
     .select("id")
     .maybeSingle()
-  if (error || !data) return { erro: "Não foi possível excluir a automação. Tente novamente." }
+  if (error) return { erro: "Não foi possível excluir a automação. Tente novamente." }
+  if (!data) return { erro: "Esta automação não existe mais." }
   await limparArquivosSemUso(admin)
   revalidatePath(CAMINHO_LISTA)
   return {}

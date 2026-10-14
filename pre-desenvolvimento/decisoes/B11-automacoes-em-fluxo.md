@@ -1514,3 +1514,8 @@ porque mudam o que já existe.
   excluído. E as linhas descartadas da fila, que ficavam para sempre, saem de
   passagem depois de 7 dias, no fim de cada consumo (o histórico das regras já
   guarda o que não rodou, desde a B22-06). Sem migration.
+- **B22-42:** pausar, ativar ou excluir uma regra que outra aba ou outro admin já
+  tinha apagado dizia "Tente novamente"; agora diz "Esta automação não existe
+  mais." (o erro do banco continua com "Tente novamente"). E o nome longo sem
+  espaço, que empurrava o interruptor para fora da tela no celular, quebra em
+  qualquer ponto (`overflow-wrap: anywhere`).

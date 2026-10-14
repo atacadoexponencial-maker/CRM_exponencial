@@ -112,6 +112,7 @@ seção 32; roteiro do preview `roteiro-b22-resto.cjs`.
 | B22-39 | baixo | Variáveis com espaço nas chaves; nome do contato não é trocado de novo |
 | B22-40 | baixo | "Contém" por palavra inteira, com plural na última palavra |
 | B22-41 | baixo | "Na última hora"; horário comercial o dia inteiro; descartados saem da fila em 7 dias |
+| B22-42 | baixo | Regra já apagada: "não existe mais"; nome longo sem espaço cabe no celular |
 
 Falta: os baixos.
 
@@ -198,7 +199,7 @@ limites do M20.
 - [x] `{{ nome_contato }}` com espaço vai literal; contato chamado `{{nome_vendedor}}` vira o nome do vendedor. → **B22-39 (14/10).**
 - [x] "contém oi" casa com "Boituva" (é substring, como a spec diz — vale considerar palavra inteira). → **B22-40 (14/10):** palavra inteira, decidido pelo Luan.
 - [x] Motivo "últimas 1 horas"; não dá para configurar horário 24 h; linhas descartadas ficam na fila para sempre. → **B22-41 (14/10).**
-- Agir em regra já apagada mostra "Tente novamente"; nome longo sem espaço estoura a lista no celular.
+- [x] Agir em regra já apagada mostra "Tente novamente"; nome longo sem espaço estoura a lista no celular. → **B22-42 (14/10).**
 - Ganho: regras do card novo da Recompra rodam antes das do card da Entrada.
 - Entrada malformada nas actions dá 500 (`actions.ts:504`, `:290`).
 - Webhook da Meta sem registro de evento: reentrega pode disparar "conversa criada" de novo (suspeita).

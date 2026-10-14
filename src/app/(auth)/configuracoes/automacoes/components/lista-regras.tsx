@@ -188,7 +188,10 @@ export function ListaRegras({
                       disabled={!r.fluxo}
                       className="text-left disabled:cursor-default"
                     >
-                      <span className={cn("block font-medium", r.fluxo && "hover:underline")}>{r.nome}</span>
+                      {/* Nome longo sem espaço quebra em qualquer ponto, para não estourar no celular (B22-42) */}
+                      <span className={cn("block font-medium [overflow-wrap:anywhere]", r.fluxo && "hover:underline")}>
+                        {r.nome}
+                      </span>
                       {r.fluxo && <span className="block text-muted-foreground">{resumoRegra(r.fluxo, opcoes)}</span>}
                     </button>
                     {r.problema && (

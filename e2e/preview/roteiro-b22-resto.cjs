@@ -137,6 +137,33 @@ async function apagarAtendente(db, ws, id) {
   r.confere("B22-27: e fica marcado com o problema", (await blocoEtiqueta.innerText()).includes("foi apagada ou desativada"))
   await db.from("automation_flows").delete().eq("workspace_id", ws).eq("id", comEtiqueta.id)
 
+  // B22-42 (baixo): nome longo sem espaço não estoura a lista no celular
+  const nomeLongo42 = `B22-42-${"x".repeat(80)}`
+  const { data: longa42 } = await db
+    .from("automation_flows")
+    .insert({
+      workspace_id: ws,
+      nome: nomeLongo42,
+      ativa: false,
+      repeticao: { modo: "sempre" },
+      fluxo: {
+        blocos: [
+          { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao: { x: 0, y: 0 } },
+          { id: "a", tipo: "acao", acao: "resolver_conversa", parametros: {}, posicao: { x: 0, y: 150 } },
+        ],
+        ligacoes: [{ de: "g", saida: "proximo", para: "a" }],
+      },
+    })
+    .select("id")
+    .single()
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(`${URL_PREVIEW}/configuracoes/automacoes`, { waitUntil: "networkidle" })
+  const linha42 = page.locator("tbody tr").filter({ hasText: "B22-42-" })
+  const interruptor42 = await linha42.getByRole("switch").boundingBox()
+  r.confere("B22-42: no celular, o interruptor da regra de nome longo cabe na tela", interruptor42 !== null && interruptor42.x + interruptor42.width <= 390, JSON.stringify(interruptor42))
+  await page.setViewportSize({ width: 1400, height: 860 })
+  await db.from("automation_flows").delete().eq("workspace_id", ws).eq("id", longa42.id)
+
   // B22-33 (baixo): regra nova sem pendência em vermelho; blocos soltos não se cobrem
   await page.goto(`${URL_PREVIEW}/configuracoes/automacoes/nova`, { waitUntil: "networkidle" })
   await page.waitForSelector(".react-flow__node")
