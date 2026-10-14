@@ -1227,3 +1227,29 @@ aceitava 1,5 e 99999 até o servidor recusar no Salvar, com uma mensagem no topo
 **Limite aceito:** um rascunho guardado com horas inválidas volta como "sempre",
 porque o rascunho passa pelo `lerRepeticao`, que troca o que está fora do formato
 por "sempre". Só acontece com rascunho de horas inválidas, que não foi salvo.
+
+## 29. Duplicar bloco (B22-13, 14/10/2026)
+
+A Marcelle pediu, no teste manual de 09/10 (U1), para duplicar blocos: montar a
+versão "tem tag X" e a "não tem" da mesma mensagem sem escrever tudo de novo. Era
+melhoria fora da spec; o Luan aprovou em 14/10.
+
+**Como ficou:**
+
+- O painel de uma condição ou de uma ação tem "Duplicar", ao lado de "Remover
+  bloco". O gatilho não tem: a regra só tem um.
+- A cópia leva os mesmos parâmetros e verificações (`copiaDoBloco`, em
+  `src/lib/fluxo-automacao.ts`), com id novo para o bloco e para cada
+  verificação. Nasce solta, um pouco abaixo e ao lado do original, e
+  selecionada, para a pessoa ligar onde quiser.
+- Na ação de imagem ou documento, a cópia aponta para o mesmo arquivo.
+
+**Descartado:**
+
+- **Copiar e colar (Ctrl+C / Ctrl+V).** Pede área de transferência própria,
+  escolha de onde colar e cuidado com o foco dos campos do painel; o botão
+  resolve o pedido.
+- **Duplicar o ramo inteiro (o bloco e tudo o que vem depois).** O pedido é um
+  bloco; ramos copiados trariam ligações para decidir.
+- **A cópia já ligada na saída livre do original.** Na maioria das vezes ela vai
+  para o outro lado de uma condição, que o editor não tem como adivinhar.

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Trash2, X } from "lucide-react"
+import { Copy, Plus, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -116,6 +116,8 @@ interface PainelBlocoProps {
   guardarArquivo: GuardarArquivo
   onMudar: (bloco: Bloco) => void
   onRemover: () => void
+  /** Cria uma cópia solta do bloco (B22-13). */
+  onDuplicar: () => void
   onFechar: () => void
 }
 
@@ -129,6 +131,7 @@ export function PainelBloco({
   guardarArquivo,
   onMudar,
   onRemover,
+  onDuplicar,
   onFechar,
 }: PainelBlocoProps) {
   return (
@@ -243,8 +246,12 @@ export function PainelBloco({
       </div>
 
       {bloco.tipo !== "gatilho" && (
-        <div className="border-t p-4">
-          <Button variant="destructive" className="w-full" onClick={onRemover}>
+        <div className="grid grid-cols-2 gap-2 border-t p-4">
+          <Button variant="outline" onClick={onDuplicar}>
+            <Copy />
+            Duplicar
+          </Button>
+          <Button variant="destructive" onClick={onRemover}>
             <Trash2 />
             Remover bloco
           </Button>

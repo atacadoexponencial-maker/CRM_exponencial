@@ -253,6 +253,22 @@ export function saidasDoBloco(bloco: Bloco): Saida[] {
   return bloco.tipo === "condicao" ? ["sim", "nao"] : ["proximo"]
 }
 
+/**
+ * Cópia de uma condição ou ação, para o "Duplicar" do editor (B22-13): os mesmos
+ * parâmetros e verificações, com id novo para o bloco e para cada verificação.
+ */
+export function copiaDoBloco(
+  bloco: BlocoCondicao | BlocoAcao,
+  id: string,
+  posicao: Posicao,
+  novoId: () => string
+): BlocoCondicao | BlocoAcao {
+  if (bloco.tipo === "condicao") {
+    return { ...bloco, id, posicao, verificacoes: bloco.verificacoes.map((v) => ({ ...v, id: novoId() })) }
+  }
+  return { ...bloco, id, posicao, parametros: { ...bloco.parametros } }
+}
+
 export function gatilhoDoFluxo(fluxo: Fluxo): BlocoGatilho | undefined {
   return fluxo.blocos.find((b): b is BlocoGatilho => b.tipo === "gatilho")
 }

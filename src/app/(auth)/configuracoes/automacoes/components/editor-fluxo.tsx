@@ -33,6 +33,7 @@ import {
   pendenciasDoFluxo,
   repeticaoPadrao,
   respondeTodaMensagem,
+  copiaDoBloco,
   type Bloco,
   type Fluxo,
   type Repeticao,
@@ -91,6 +92,9 @@ interface EditorFluxoProps {
 // Distância do bloco novo até o bloco de onde ele sai
 const ESPACO_VERTICAL = 90
 const DESVIO_LATERAL = 170
+
+// A cópia nasce um pouco abaixo e ao lado do original (e desce até achar espaço livre)
+const DESLOCAMENTO_COPIA = 40
 
 // Espera depois da última edição antes de guardar o rascunho
 const ESPERA_RASCUNHO_MS = 1000
@@ -351,6 +355,22 @@ function EditorFluxoInterno({
     setMenu(null)
   }
 
+  /** "Duplicar" do painel: a cópia fica solta e selecionada, para ligar onde quiser (B22-13). */
+  function duplicarBloco(original: NoFluxo) {
+    const bloco = original.data.bloco
+    if (bloco.tipo === "gatilho") return
+    const id = crypto.randomUUID()
+    const posicao = posicaoLivre(
+      { x: original.position.x + DESLOCAMENTO_COPIA, y: original.position.y + DESLOCAMENTO_COPIA },
+      nos
+    )
+    const copia = copiaDoBloco(bloco, id, posicao, () => crypto.randomUUID())
+    setNos((atuais) => [
+      ...atuais.map((n) => ({ ...n, selected: false })),
+      { id, type: copia.tipo, position: posicao, data: { bloco: copia }, selected: true },
+    ])
+  }
+
   function mudarBloco(bloco: Bloco) {
     setNos((atuais) => atuais.map((n) => (n.id === bloco.id ? { ...n, data: { bloco } } : n)))
     if (bloco.tipo === "gatilho" && regraNova && !repeticaoEscolhida) setRepeticao(repeticaoPadrao(bloco.gatilho))
@@ -581,6 +601,7 @@ function EditorFluxoInterno({
             guardarArquivo={guardarArquivo}
             onMudar={mudarBloco}
             onRemover={() => deleteElements({ nodes: [{ id: selecionado.id }] })}
+            onDuplicar={() => duplicarBloco(selecionado)}
             onFechar={fecharPainel}
           />
         )}

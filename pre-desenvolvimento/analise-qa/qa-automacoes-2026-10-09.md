@@ -51,6 +51,7 @@ decisões.
 | B22-10 | M9 | Resultado do teste sai do canvas quando o fluxo muda, com "Testar de novo" (seção 26) |
 | B22-11 | M10 | Testar só com o fluxo completo, conferido no servidor e marcado na tela (seção 27) |
 | B22-12 | M11 | Campo de horas deixa apagar; fração e acima de um ano avisam no painel e o Salvar recusa (seção 28) |
+| B22-13 | U1 | "Duplicar" no painel da condição e da ação; a cópia nasce solta e selecionada (seção 29) |
 
 Verificado na B22-08: 704 testes unitários, lint de `src` e `e2e` e build com
 código 0. No preview, o `roteiro-b22-08.cjs` (28 verificações) e os 7 roteiros
@@ -62,8 +63,8 @@ fora no lote 1.
 ### A fazer
 
 **Lote 2, editor** (continua):
-- U1 (duplicar blocos) e U3 (botões de variável): melhorias fora da spec,
-  aprovadas pelo Luan em 14/10 para este lote.
+- U3 (botões de variável): melhoria fora da spec, aprovada pelo Luan em 14/10
+  para este lote.
 
 **Lote 3, histórico e lista:** M12 a M18.
 
@@ -90,7 +91,7 @@ filtrar só pelo prefixo `[TESTE]`.**
 
 ### Onde retomar
 
-Continuar o lote 2 no branch `b22-lote-editor`, pelo U1 e pelo U3 (aprovados pelo Luan em 14/10).
+Continuar o lote 2 no branch `b22-lote-editor`, pelo U3 (aprovado pelo Luan em 14/10).
 
 ---
 
@@ -173,6 +174,6 @@ o efeito certo, histórico com caminho e motivos em português, menus "⋯" func
 
 ## 🙋 Achados da Marcelle (teste manual, 09/10)
 
-- [ ] **U1. Não dá para duplicar blocos do fluxo** (copiar uma ação de mensagem para montar a versão "tem tag X" / "não tem"). Melhoria — não está na spec.
+- [x] **U1. Não dá para duplicar blocos do fluxo** (copiar uma ação de mensagem para montar a versão "tem tag X" / "não tem"). Melhoria — não está na spec. → **Feito na B22-13 (14/10)**, aprovado pelo Luan: "Duplicar" no painel do bloco.
 - [x] **U2. Sair do editor sem salvar perde tudo e não há rascunho.** Mesmo problema do A5, com o pedido extra de rascunho automático. → **Resolvido na B22-08 (13/10)**, junto com o A5.
 - [ ] **U3. Variáveis da mensagem precisam ser copiadas à mão** — pedido: botões que inserem a variável no cursor (como no Manychat). Melhoria.

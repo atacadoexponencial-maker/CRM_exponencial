@@ -60,6 +60,8 @@ node e2e/preview/resetar-empresa-teste.cjs
 node e2e/preview/roteiro-b22-11.cjs https://crm-exponencial-xxxx.vercel.app
 node e2e/preview/resetar-empresa-teste.cjs
 node e2e/preview/roteiro-b22-12.cjs https://crm-exponencial-xxxx.vercel.app
+node e2e/preview/resetar-empresa-teste.cjs
+node e2e/preview/roteiro-b22-13.cjs https://crm-exponencial-xxxx.vercel.app
 
 # Estes enviam mensagens de verdade: só com o chip conectado e combinado com
 # quem recebe (veja "Envio de mensagem" abaixo)
@@ -93,6 +95,7 @@ código de saída 0 só se tudo passou.
 | `roteiro-b22-10.cjs` | Editor: o resultado de "Testar com um contato" deixa de valer quando o fluxo muda; arrastar um bloco não conta. |
 | `roteiro-b22-11.cjs` | Editor: "Testar com um contato" só roda com o fluxo completo. |
 | `roteiro-b22-12.cjs` | Editor: campo de horas da repetição (apagar, fração, acima de um ano, salvar). |
+| `roteiro-b22-13.cjs` | Editor: "Duplicar" no painel de uma ação e de uma condição. |
 | `roteiro-b11-06.cjs` | Gatilhos de tag, etiqueta e dado do contato, e automação que não dispara automação. |
 | `roteiro-b11-08.cjs` | Horário comercial pelo diálogo, condição dentro e fora, atribuir ao time, resolver, reabrir e iniciar sequência. |
 | `roteiro-b11-09.cjs` | Fila das automações: a função do banco que entrega um evento por vez por contato, e uma ação com falha que não desfaz o movimento do card. |
