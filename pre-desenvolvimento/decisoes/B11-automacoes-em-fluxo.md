@@ -1382,3 +1382,13 @@ porque mudam o que já existe.
   - Antes de ligar a recusa no motor, as 4 regras da produção foram conferidas:
     nenhuma tinha pendência. Uma regra de exemplo de um teste antigo tinha
     (gatilho "card movido" sem funil) e foi corrigida.
+- **B22-26 (M6):** o "novo lead" não conferia se o contato já tinha card no Funil
+  de Entrada, e o contato com dois cards no mesmo funil quebrava "mover card" e a
+  condição de etapa ("erro no banco"). A action passou a conferir e devolve "Este
+  contato já está no Funil de Entrada.", que o modal mostra (antes, qualquer erro
+  virava "Não foi possível criar o lead"). A migration
+  `20261014000001_um_card_por_funil.sql` cria o índice único (empresa, contato,
+  funil), que segura dois pedidos juntos e qualquer outro caminho; o erro dele
+  (23505) vira a mesma mensagem. **Só é aplicada no merge do lote 4.** Visto e
+  deixado de fora: o "novo lead" para um contato que já existe troca o nome dele
+  pelo digitado, e apaga o nome se o campo vier vazio (o `upsert` do contato).

@@ -96,8 +96,9 @@ seção 32; roteiro do preview `roteiro-b22-resto.cjs`.
 | B22-23 | M3 | API Oficial: botão, lista, cartão de contato e localização chegam com texto e tipo certos |
 | B22-24 | M4 | Falha de rede no envio vira "Sem conexão com o WhatsApp: o envio não foi confirmado" |
 | B22-25 | M5 | Fluxo inválido gravado direto no banco: não roda, vai para o histórico com motivo e aparece na lista |
+| B22-26 | M6 | "Novo lead" confere o card existente; índice único por funil (migration `20261014000001`, aplicar no merge) |
 
-Falta: M6, M8, M19, M20, M21 e os baixos.
+Falta: M8, M19, M20, M21 e os baixos.
 
 Decisões do Luan para o lote 4 (14/10): seção 32 das decisões (A7, M6, M20, M21,
 "contém" por palavra inteira, confirmação ao apagar 2 ou mais blocos e limpeza dos
@@ -147,7 +148,7 @@ limites do M20.
 - [x] M3. API Oficial: resposta de botão, lista e cartão de contato chegam sem texto e como tipo "desconhecido". (código) → **Resolvido na B22-23 (14/10).**
 - [x] M4. Falha de rede no envio aparece só como "Erro inesperado ao executar a ação". (motor) → **Resolvido na B22-24 (14/10).**
 - [x] M5. Fluxo inválido gravado direto no banco (o admin pode, pela RLS): laço/dois gatilhos → regra pulada sem registro; bloco sem tipo ou 201 blocos → regra some da lista mesmo ativa (não dá para pausar/excluir pela tela); condição vazia → roda. (bordas) → **Resolvido na B22-25 (14/10).**
-- [ ] M6. Contato com dois cards no mesmo funil → mover card e condição de etapa falham com "erro no banco"; origem provável `criarNovoLead` sem conferir card existente (= A6 do QA de 06/10). (bordas)
+- [x] M6. Contato com dois cards no mesmo funil → mover card e condição de etapa falham com "erro no banco"; origem provável `criarNovoLead` sem conferir card existente (= A6 do QA de 06/10). (bordas) → **Resolvido na B22-26 (14/10).**
 - [x] M7. Envio usa o número gravado na conversa mesmo removido/desconectado (`whatsapp/index.ts:110`). (motor — suspeita) → **Conferido em 09/10, sem mudança:** o envio falha com "O número de envio estava fora do ar"; decidido não trocar de número (decisões, seção 21).
 
 **Referências apagadas**

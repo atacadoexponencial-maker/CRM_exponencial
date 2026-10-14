@@ -90,6 +90,18 @@ async function apagarAtendente(db, ws, id) {
   r.confere("B22-25: dá para pausar pela tela", pausada?.ativa === false)
   await db.from("automation_flows").delete().eq("workspace_id", ws).eq("id", quebrada.id)
 
+  // B22-26 (M6): "Novo lead" para quem já está no Funil de Entrada não cria outro card
+  const { data: ana } = await db.from("contacts").select("id, phone_number").eq("workspace_id", ws).eq("name", "Teste B11 Ana").single()
+  await page.goto(`${URL_PREVIEW}/pipeline`, { waitUntil: "networkidle" })
+  await page.getByRole("button", { name: "Novo lead" }).click()
+  await page.locator("#telefone").fill(ana.phone_number)
+  await page.locator("#nome").fill("Teste B11 Ana")
+  await page.getByRole("button", { name: "Criar lead" }).click()
+  await page.getByText("Este contato já está no Funil de Entrada.").waitFor({ timeout: 20000 })
+  r.confere("B22-26: 'Novo lead' de quem já está no funil avisa", true)
+  const { data: cardsDaAna } = await db.from("pipeline_cards").select("id").eq("workspace_id", ws).eq("contact_id", ana.id).eq("funil", "entrada")
+  r.confere("B22-26: e não cria o segundo card", cardsDaAna?.length === 1, String(cardsDaAna?.length))
+
   r.confere("sem erro no console", erros.length === 0, erros.join(" | "))
   await browser.close()
   process.exit(r.imprimir() ? 1 : 0)

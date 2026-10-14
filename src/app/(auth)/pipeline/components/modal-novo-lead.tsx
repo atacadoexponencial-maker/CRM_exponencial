@@ -34,7 +34,11 @@ export function ModalNovoLead({ onSucesso, onFechar }: ModalNovoLeadProps) {
   async function onSubmit(data: FormData) {
     setErroGeral(null)
     try {
-      await criarNovoLead(data.telefone, data.nome ?? null)
+      const { erro } = await criarNovoLead(data.telefone, data.nome ?? null)
+      if (erro) {
+        setErroGeral(erro)
+        return
+      }
       onSucesso()
     } catch {
       setErroGeral("Não foi possível criar o lead. Tente novamente.")
