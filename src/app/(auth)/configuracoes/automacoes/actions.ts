@@ -31,6 +31,8 @@ import type { PassoGravado, ResultadoExecucao } from "@/lib/automacoes/execucoes
 import {
   lerRepeticao,
   pendenciasDoFluxo,
+  repeticaoPadrao,
+  type BlocoGatilho,
   type Fluxo,
   type Repeticao,
   type ResultadoSimulacao,
@@ -71,9 +73,6 @@ export interface FiltrosDoHistorico {
   resultado?: ResultadoExecucao
   dias: 7 | 30
 }
-
-/** Regra nova nasce protegida, como no protótipo aprovado (B11-01): uma vez por contato. */
-const REPETICAO_DA_REGRA_NOVA: Repeticao = { modo: "uma_vez_por_contato" }
 
 const DIA_EM_MS = 86_400_000
 
@@ -151,16 +150,9 @@ export async function buscarRegraParaEditor(id: string): Promise<{ regra: RegraD
   const { supabase, workspaceId } = admin
 
   if (id === "nova") {
+    const gatilho: BlocoGatilho = { id: "gatilho", tipo: "gatilho", gatilho: "card_movido", parametros: {}, posicao: { x: 0, y: 0 } }
     return {
-      regra: {
-        id: null,
-        nome: "",
-        fluxo: {
-          blocos: [{ id: "gatilho", tipo: "gatilho", gatilho: "card_movido", parametros: {}, posicao: { x: 0, y: 0 } }],
-          ligacoes: [],
-        },
-        repeticao: REPETICAO_DA_REGRA_NOVA,
-      },
+      regra: { id: null, nome: "", fluxo: { blocos: [gatilho], ligacoes: [] }, repeticao: repeticaoPadrao(gatilho.gatilho) },
     }
   }
 
@@ -483,6 +475,10 @@ export async function simularRegra(
 
   const fluxo = lerFluxo(fluxoRecebido)
   if (!fluxo) return { erro: "O desenho da automação veio num formato inválido. Recarregue a página." }
+  // O que não pode ser salvo também não é testado: uma condição vazia, por exemplo, daria "sim" (B22-11)
+  const pendencias = pendenciasDoFluxo(fluxo)
+  const problemas = [...pendencias.gerais, ...Object.values(pendencias.porBloco).flat()]
+  if (problemas.length > 0) return { erro: `Complete o fluxo antes de testar: ${[...new Set(problemas)].join(". ")}` }
 
   const { data: contato } = await admin.supabase
     .from("contacts")

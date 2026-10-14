@@ -328,6 +328,8 @@ aprovado. Regra antiga, e a versão nova criada a partir dela, ficam em "sempre"
 que é como rodavam. Uma regra de "card movido" com "uma vez por contato" só roda
 na primeira vez que o card entra na etapa. Quem quiser que rode toda vez escolhe
 "sempre".
+*Mudou em 14/10/2026: a regra nova nasce em "sempre" nos gatilhos de mensagem, e
+a repetição se escolhe no painel do gatilho (seção 25).*
 
 ### 8.4 Envio com motivo
 
@@ -1058,3 +1060,221 @@ deixa começar (seção 22).
   mas a resposta de quem disparou (webhook, tela do CRM) esperaria a nova
   tentativa. E, se o banco estiver com problema, a segunda tentativa falha igual.
 
+
+## 24. Aviso ao sair do editor e rascunho no navegador (B22-08, 13/10/2026)
+
+O QA de 09/10 (achados A5 e U2) mostrou que sair do editor sem salvar perdia tudo
+sem aviso: pelo botão "Automações", pelo voltar do navegador ou fechando a aba. E
+o "Automação salva" continuava na tela depois de novas edições. A Marcelle pediu
+também rascunho automático.
+
+**Decidido pelo Luan:** aviso ao sair e rascunho guardado no navegador.
+
+**Como ficou:**
+
+- O editor compara o que está na tela com o que está salvo (nome, repetição e
+  fluxo, inclusive a posição dos blocos). Com diferença, o topo mostra
+  "Alterações não salvas", e o "Automação salva" some.
+- **"Automações" com alteração** abre "Sair sem salvar?", com "Continuar
+  editando" e "Sair sem salvar". Sair apaga o rascunho.
+- **Fechar a aba, recarregar ou digitar outro endereço** passa pelo aviso do
+  próprio navegador (`beforeunload`), que não aceita texto próprio.
+- **Rascunho:** um instante (1 s) depois da última edição, o que não foi salvo vai
+  para o `localStorage`, com a chave formada pela pessoa e pela regra
+  (`automacoes:rascunho:<usuário>:<regra ou "nova">`). Salvar com sucesso ou
+  sair sem salvar apaga o rascunho.
+- **Ao abrir o editor com um rascunho diferente do salvo**, ele não é aplicado
+  sozinho: uma faixa oferece "Recuperar" ou "Descartar". Enquanto a pessoa não
+  decide, o editor não sobrescreve esse rascunho.
+- O rascunho guarda a assinatura da versão salva de onde partiu. Se a regra foi
+  salva depois (outra aba, outro admin), a faixa avisa que recuperar troca o que
+  está salvo pelo rascunho.
+
+**Limites aceitos:**
+
+- **O voltar do navegador e o menu lateral não são barrados.** O App Router não
+  deixa barrar o voltar do navegador, e barrar o menu exigiria mexer no menu
+  lateral, que é de todo o CRM (o `onNavigate` do `Link`). Nos dois casos, quem
+  volta ao editor recupera o rascunho.
+- O rascunho só volta no mesmo navegador. Em aba anônima ou com o armazenamento
+  bloqueado, só o aviso funciona.
+
+**Descartado:**
+
+- **Rascunho no banco.** Voltaria em qualquer aparelho, mas pede migration,
+  action e RLS, e cria um rascunho que outro admin pode encontrar.
+- **Aplicar o rascunho sozinho ao abrir.** Um rascunho antigo passaria por cima,
+  sem aviso, de uma versão que outro admin salvou depois.
+- **Coluna `updated_at` para saber se a regra mudou depois do rascunho.** A
+  tabela não tem essa coluna, e a assinatura da versão salva guardada no rascunho
+  resolve sem mexer no banco.
+- **Ler o rascunho num efeito ao abrir.** A regra de lint do React barra
+  `setState` dentro de efeito. A leitura vai por `useSyncExternalStore`, como o
+  carrinho da loja, e fica presa ao que existia na abertura, para o rascunho que
+  o próprio editor grava não virar "rascunho achado".
+
+## 25. Repetição no painel do gatilho e padrão por gatilho (B22-09, 14/10/2026)
+
+O seletor de repetição ficava na barra do topo, sem rótulo, longe do gatilho a
+que ele se refere. O Luan pediu, em 09/10, que ele fosse para o bloco do gatilho,
+com rótulo visível. A repetição padrão da regra nova, que tinha ficado em aberto
+na B22-01 (seção 17), foi decidida junto.
+
+**Decidido pelo Luan:** o seletor fica no gatilho, e a regra nova nasce em
+"sempre" nos gatilhos de mensagem.
+
+**Como ficou:**
+
+- **Painel do gatilho:** abaixo de "Quando" e dos campos do gatilho, o campo
+  "Repetição para o mesmo contato", com as três opções de antes e as horas quando
+  é "no máximo a cada N horas". A barra do topo não tem mais o seletor.
+- **Bloco do gatilho no canvas:** uma linha embaixo da frase mostra a repetição
+  ("Repetição: uma vez por contato", "Repetição: sempre", "Repetição: no máximo a
+  cada 24 horas").
+- **Padrão da regra nova** (`repeticaoPadrao`, em `src/lib/fluxo-automacao.ts`):
+  "sempre" com "mensagem recebida" e "mensagem enviada pelo time"; "uma vez por
+  contato" com os outros gatilhos. A regra nova abre com "card movido" e por isso
+  nasce em "uma vez por contato", que a action do editor tira da mesma função.
+- **A repetição acompanha o gatilho só na regra nova**, enquanto ela não foi
+  salva e a pessoa não mexeu no seletor. Escolhida à mão, ou com a regra já
+  salva, trocar o gatilho não mexe nela. Um rascunho recuperado cuja repetição
+  difere do padrão do gatilho dele conta como escolhida.
+- **Regras que já existem não mudam.**
+- O aviso "Esta regra vai responder toda mensagem deste contato" ficou igual e
+  passou a dizer que a repetição se escolhe no gatilho.
+
+**Limites aceitos:**
+
+- Com o padrão novo, o aviso aparece em toda regra de "mensagem recebida" que
+  envia mensagem, inclusive quando uma condição escolhe a mensagem ("texto contém
+  catálogo"), em que a frase "vai responder toda mensagem" não é verdade. Fica
+  para rever se incomodar.
+- O campo de horas só mudou de lugar; o defeito dele (achado M11) tem conserto
+  próprio.
+
+**Descartado:**
+
+- **Seletor dentro do bloco, no canvas.** Todos os outros parâmetros se editam no
+  painel, e uma lista dentro do bloco disputa o clique com arrastar o bloco.
+- **Repetição dentro do fluxo (`BlocoGatilho.parametros`).** Pediria mudar o
+  formato gravado, o motor e as regras que já existem, para algo que a coluna
+  `repeticao` já guarda.
+- **Trocar a repetição ao trocar o gatilho também nas regras salvas.** Mudaria,
+  sem a pessoa perceber, uma proteção que ela já tinha gravado.
+
+## 26. Resultado do teste vale só para o fluxo testado (B22-10, 14/10/2026)
+
+O QA de 09/10 (achado M9) mostrou que o resultado de "Testar com um contato"
+continuava no canvas depois de o fluxo mudar, e só saía em "Limpar". O caminho
+verde passava a mentir sobre o fluxo da tela.
+
+**Como ficou:**
+
+- O editor guarda, com o resultado, a assinatura do fluxo testado: blocos com os
+  parâmetros e ligações, sem a posição (`assinaturaDoCaminho`). Arrastar um bloco
+  não muda o caminho e não invalida o teste.
+- Com o fluxo diferente, o caminho sai do canvas, e a faixa diz "o fluxo mudou
+  depois do teste", com "Testar de novo" (o mesmo contato, com o fluxo de agora) e
+  "Limpar".
+
+**Descartado:**
+
+- **Apagar o resultado na primeira edição.** Quem ajusta uma condição e quer
+  conferir de novo teria de procurar o contato outra vez.
+- **Testar de novo sozinho a cada edição.** Cada teste consulta o banco; com
+  edições seguidas, viraria uma consulta por tecla.
+
+## 27. Testar só o fluxo completo (B22-11, 14/10/2026)
+
+O QA de 09/10 (achado M10) testou um fluxo que não poderia ser salvo: uma
+condição sem verificação contava como "sim", e o resultado mostrava um caminho que
+nenhuma regra salva faria.
+
+**Como ficou:**
+
+- **No servidor**, `simularRegra` confere as mesmas pendências do Salvar
+  (`pendenciasDoFluxo`) antes de consultar o banco, e recusa com "Complete o fluxo
+  antes de testar: …".
+- **Na tela**, "Testar com um contato" e "Testar de novo" marcam os blocos com
+  pendência e dizem o que falta ("Corrija o bloco marcado antes de testar"), sem
+  abrir a busca de contato. O Salvar e o Testar usam as mesmas frases.
+- O nome da automação não conta para testar.
+
+**Descartado:**
+
+- **Testar mesmo assim, com um aviso.** O caminho mostrado seria o de um fluxo que
+  o motor nunca roda, que é o defeito do achado.
+- **Conferir também as referências (etiqueta, atendente) ao testar.** O Salvar
+  confere; para o teste, uma referência apagada já aparece como pendência ou falha
+  da ação no resultado, e a conferência custaria mais consultas a cada teste.
+
+## 28. Campo de horas da repetição (B22-12, 14/10/2026)
+
+O QA de 09/10 (achado M11) mostrou que o campo de "no máximo a cada N horas" não
+deixava apagar: o campo vazio virava "1" na hora, e digitar 48 dava 148. E ele
+aceitava 1,5 e 99999 até o servidor recusar no Salvar, com uma mensagem no topo.
+
+**Como ficou:**
+
+- O campo guarda o texto como foi digitado (`inputMode="numeric"`, em vez de
+  `type="number"`, que no navegador em português trata "1,5" de jeito próprio).
+  Vazio vale 0 para a regra, sem mexer no que está escrito.
+- A regra das horas ficou numa função só, `horasValidas` (inteiro de 1 a 8760),
+  usada pelo painel, pelo Salvar do editor e pelo `lerRepeticao` do servidor.
+- Fora disso, o painel mostra "Use um número inteiro de 1 a 8760 horas." embaixo
+  do campo, e o Salvar recusa com "Corrija as horas da repetição, no gatilho".
+
+**Limite aceito:** um rascunho guardado com horas inválidas volta como "sempre",
+porque o rascunho passa pelo `lerRepeticao`, que troca o que está fora do formato
+por "sempre". Só acontece com rascunho de horas inválidas, que não foi salvo.
+
+## 29. Duplicar bloco (B22-13, 14/10/2026)
+
+A Marcelle pediu, no teste manual de 09/10 (U1), para duplicar blocos: montar a
+versão "tem tag X" e a "não tem" da mesma mensagem sem escrever tudo de novo. Era
+melhoria fora da spec; o Luan aprovou em 14/10.
+
+**Como ficou:**
+
+- O painel de uma condição ou de uma ação tem "Duplicar", ao lado de "Remover
+  bloco". O gatilho não tem: a regra só tem um.
+- A cópia leva os mesmos parâmetros e verificações (`copiaDoBloco`, em
+  `src/lib/fluxo-automacao.ts`), com id novo para o bloco e para cada
+  verificação. Nasce solta, à direita do original, e selecionada, para a pessoa
+  ligar onde quiser. Embaixo do original ela cobriria o "+" da saída dele (visto
+  no roteiro do preview).
+- Na ação de imagem ou documento, a cópia aponta para o mesmo arquivo.
+
+**Descartado:**
+
+- **Copiar e colar (Ctrl+C / Ctrl+V).** Pede área de transferência própria,
+  escolha de onde colar e cuidado com o foco dos campos do painel; o botão
+  resolve o pedido.
+- **Duplicar o ramo inteiro (o bloco e tudo o que vem depois).** O pedido é um
+  bloco; ramos copiados trariam ligações para decidir.
+- **A cópia já ligada na saída livre do original.** Na maioria das vezes ela vai
+  para o outro lado de uma condição, que o editor não tem como adivinhar.
+
+## 30. Botões de variável na mensagem (B22-14, 14/10/2026)
+
+A Marcelle pediu, no teste manual de 09/10 (U3), botões que inserem a variável no
+texto da mensagem, como no Manychat, em vez de copiar `{{primeiro_nome}}` à mão.
+Era melhoria fora da spec; o Luan aprovou em 14/10.
+
+**Como ficou:**
+
+- No campo "Mensagem" da ação "Enviar mensagem", a linha "Variáveis: …" virou
+  "Inserir:" com três botões: "Nome do contato", "Primeiro nome" e "Nome do
+  vendedor". Cada um insere a variável onde está o cursor, ou no lugar do trecho
+  selecionado, e devolve o cursor para logo depois dela.
+- A lista fica em `variaveis-mensagem.ts`, ao lado do editor. Um teste confere
+  que toda variável dos botões é preenchida pelo envio (`textoComVariaveis`).
+- O campo do catálogo ganhou `variaveis: true`; os outros textos longos não mudam.
+
+**Descartado:**
+
+- **Botões também nas sequências e nas campanhas.** O pedido é das automações, e
+  as sequências e campanhas têm as próprias telas e variáveis.
+- **Mostrar a variável como etiqueta dentro do texto (chip).** Pediria trocar o
+  `textarea` por um editor rico, e o texto salvo continuaria sendo
+  `{{primeiro_nome}}`.

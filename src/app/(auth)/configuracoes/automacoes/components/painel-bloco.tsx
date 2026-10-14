@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Plus, Trash2, X } from "lucide-react"
+import { useRef, useState } from "react"
+import { Copy, Plus, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,15 +10,19 @@ import {
   ACOES_DISPONIVEIS,
   GATILHOS_DE_MENSAGEM,
   GATILHOS_DISPONIVEIS,
+  HORAS_MAXIMAS,
   OPERADORES_SEM_VALOR,
+  REPETICAO_DISPONIVEL,
   SEQUENCIA_DA_ETAPA,
   VERIFICACOES_DE_MENSAGEM,
   VERIFICACOES_DISPONIVEIS,
+  horasValidas,
   type AcaoTipo,
   type Bloco,
   type BlocoCondicao,
   type GatilhoTipo,
   type Parametros,
+  type Repeticao,
   type Verificacao,
   type VerificacaoTipo,
 } from "@/lib/fluxo-automacao"
@@ -36,6 +40,7 @@ import {
   type OpcoesEditor,
 } from "./catalogo"
 import { CampoSelecao, type ItemSelecao } from "./campo-selecao"
+import { VARIAVEIS_DA_MENSAGEM, inserirNoCursor } from "./variaveis-mensagem"
 
 const textareaClass =
   "w-full min-h-24 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 resize-y"
@@ -57,6 +62,44 @@ const ITENS_ACAO = (Object.keys(ACOES) as AcaoTipo[]).map((tipo) =>
   itemDisponivel(tipo, ACOES[tipo].rotulo, ACOES_DISPONIVEIS)
 )
 
+const ITENS_REPETICAO: ItemSelecao[] = [
+  { valor: "uma_vez_por_contato", rotulo: "Uma vez por contato" },
+  { valor: "a_cada_horas", rotulo: "No máximo a cada N horas por contato" },
+  { valor: "sempre", rotulo: "Sempre (a cada disparo)" },
+]
+
+/**
+ * Horas de "no máximo a cada N horas" (B22-12). O texto fica como foi digitado,
+ * para dar para apagar e escrever outro número; vazio vale 0. Fora de 1 a 8760,
+ * ou com fração, o aviso aparece aqui e o Salvar recusa.
+ */
+function CampoHoras({ horas, onMudar }: { horas: number; onMudar: (horas: number) => void }) {
+  const [texto, setTexto] = useState(String(horas))
+  return (
+    <>
+      <div className="flex items-center gap-1.5">
+        <Input
+          aria-label="Horas entre execuções"
+          aria-invalid={!horasValidas(horas)}
+          inputMode="numeric"
+          className="w-24"
+          value={texto}
+          onChange={(e) => {
+            setTexto(e.target.value)
+            const limpo = e.target.value.trim().replace(",", ".")
+            const numero = Number(limpo)
+            onMudar(limpo === "" || Number.isNaN(numero) ? 0 : numero)
+          }}
+        />
+        <span className="text-sm text-muted-foreground">horas</span>
+      </div>
+      {!horasValidas(horas) && (
+        <p className="text-xs text-destructive">Use um número inteiro de 1 a {HORAS_MAXIMAS} horas.</p>
+      )}
+    </>
+  )
+}
+
 /** Sobe o arquivo escolhido para o armazenamento (B11-07). O tipo e o limite são conferidos no servidor. */
 export type GuardarArquivo = (
   dados: FormData
@@ -66,22 +109,30 @@ interface PainelBlocoProps {
   bloco: Bloco
   /** Gatilho do fluxo: decide se as verificações de mensagem valem. */
   gatilho: GatilhoTipo | undefined
+  /** Proteção de repetição da regra: fica no painel do gatilho (B22-09). */
+  repeticao: Repeticao
+  onMudarRepeticao: (repeticao: Repeticao) => void
   opcoes: OpcoesEditor
   pendencias: string[]
   guardarArquivo: GuardarArquivo
   onMudar: (bloco: Bloco) => void
   onRemover: () => void
+  /** Cria uma cópia solta do bloco (B22-13). */
+  onDuplicar: () => void
   onFechar: () => void
 }
 
 export function PainelBloco({
   bloco,
   gatilho,
+  repeticao,
+  onMudarRepeticao,
   opcoes,
   pendencias,
   guardarArquivo,
   onMudar,
   onRemover,
+  onDuplicar,
   onFechar,
 }: PainelBlocoProps) {
   return (
@@ -111,6 +162,26 @@ export function PainelBloco({
               opcoes={opcoes}
               onMudar={(parametros) => onMudar({ ...bloco, parametros })}
             />
+            {REPETICAO_DISPONIVEL && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="painel-repeticao">Repetição para o mesmo contato</Label>
+                <CampoSelecao
+                  id="painel-repeticao"
+                  valor={repeticao.modo}
+                  itens={ITENS_REPETICAO}
+                  onMudar={(valor) => {
+                    const modo = valor as Repeticao["modo"]
+                    onMudarRepeticao(modo === "a_cada_horas" ? { modo, horas: 24 } : { modo })
+                  }}
+                />
+                {repeticao.modo === "a_cada_horas" && (
+                  <CampoHoras
+                    horas={repeticao.horas}
+                    onMudar={(horas) => onMudarRepeticao({ modo: "a_cada_horas", horas })}
+                  />
+                )}
+              </div>
+            )}
           </>
         )}
 
@@ -176,8 +247,12 @@ export function PainelBloco({
       </div>
 
       {bloco.tipo !== "gatilho" && (
-        <div className="border-t p-4">
-          <Button variant="destructive" className="w-full" onClick={onRemover}>
+        <div className="grid grid-cols-2 gap-2 border-t p-4">
+          <Button variant="outline" onClick={onDuplicar}>
+            <Copy />
+            Duplicar
+          </Button>
+          <Button variant="destructive" onClick={onRemover}>
             <Trash2 />
             Remover bloco
           </Button>
@@ -234,6 +309,55 @@ function CamposParametros({
   )
 }
 
+/** Texto da mensagem com botões que inserem cada variável onde está o cursor (B22-14). */
+function TextoComVariaveis({
+  id,
+  valor,
+  placeholder,
+  onMudar,
+}: {
+  id: string
+  valor: string
+  placeholder?: string
+  onMudar: (valor: string) => void
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+
+  function inserir(variavel: string) {
+    const campo = ref.current
+    const inicio = campo?.selectionStart ?? valor.length
+    const fim = campo?.selectionEnd ?? valor.length
+    const { texto, cursor } = inserirNoCursor(valor, inicio, fim, variavel)
+    onMudar(texto)
+    requestAnimationFrame(() => {
+      campo?.focus()
+      campo?.setSelectionRange(cursor, cursor)
+    })
+  }
+
+  return (
+    <>
+      <textarea
+        ref={ref}
+        id={id}
+        className={textareaClass}
+        value={valor}
+        placeholder={placeholder}
+        onChange={(e) => onMudar(e.target.value)}
+      />
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-xs text-muted-foreground">Inserir:</span>
+        {VARIAVEIS_DA_MENSAGEM.map(({ variavel, rotulo }) => (
+          <Button key={variavel} variant="outline" size="xs" title={variavel} onClick={() => inserir(variavel)}>
+            <Plus />
+            {rotulo}
+          </Button>
+        ))}
+      </div>
+    </>
+  )
+}
+
 function CampoParametro({
   id,
   campo,
@@ -255,6 +379,16 @@ function CampoParametro({
         <Input id={id} value={valor} placeholder={campo.placeholder} onChange={(e) => onMudar(campo.chave, e.target.value)} />
       )
     case "texto_longo":
+      if (campo.variaveis) {
+        return (
+          <TextoComVariaveis
+            id={id}
+            valor={valor}
+            placeholder={campo.placeholder}
+            onMudar={(novo) => onMudar(campo.chave, novo)}
+          />
+        )
+      }
       return (
         <>
           <textarea

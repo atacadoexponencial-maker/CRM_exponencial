@@ -13,11 +13,11 @@ Total: nenhum crítico de segurança. 1 grave de regra de negócio, 5 altos, ~20
 
 ## Andamento das correções (série B22)
 
-Atualizado em 09/10/2026, fim do dia. As correções vão em **lotes por área**, um
+Atualizado em 14/10/2026. As correções vão em **lotes por área**, um
 branch por lote, que entra no `master` ao fim do lote, depois dos roteiros do
 preview (decidido pelo Luan em 09/10). Cada achado vira uma issue `B22-NN` em
 `issues/concluidas_B22/`, e a decisão vai para `decisoes/B11-automacoes-em-fluxo.md`
-(seções 17 a 23).
+(seções 17 em diante).
 
 ### Feito: lote 1, motor (no ar desde 09/10/2026)
 
@@ -37,29 +37,45 @@ Branch `b22-lote-motor`, juntado no `master`.
 Verificado: 648 testes unitários, testes de integração no banco real, lint e
 build com código 0, e 7 roteiros do preview (72 verificações) passando.
 
-### A fazer
+### Feito: lote 2, editor (no ar desde 14/10/2026)
 
-**Lote 2, editor** (próximo):
-- A5 + U2: aviso ao sair sem salvar, e rascunho automático.
-- Seletor de repetição dentro do bloco do gatilho, com rótulo visível (pedido do
-  Luan em 09/10), e tirar o seletor da barra do topo. Ajustar os roteiros do
-  preview que procuram o seletor no topo (pelo menos o `roteiro-b11-03.cjs`).
-- M9, M10, M11.
-- U1 (duplicar blocos) e U3 (botões de variável): são melhorias fora da spec;
-  confirmar com Luan e Marcelle se entram.
+Branch `b22-lote-editor`, aberto em 13/10/2026 a partir do `master` e juntado
+nele em 14/10, com aprovação do Luan. Pela
+`/triagem`, os itens do lote são **delimitados**: o desenho é aprovado no chat e
+não há arquivo de issue. Cada item continua com commit `B22-NN` e seção nas
+decisões.
+
+| Issue | Achado | O que mudou |
+|---|---|---|
+| B22-08 | A5, U2 | "Alterações não salvas", confirmação ao sair pelo "Automações", aviso do navegador ao fechar a aba e rascunho no navegador (seção 24) |
+| B22-09 | G1 (padrão) | Repetição no painel do gatilho, com rótulo, e frase no bloco; regra nova em "sempre" nos gatilhos de mensagem (seção 25) |
+| B22-10 | M9 | Resultado do teste sai do canvas quando o fluxo muda, com "Testar de novo" (seção 26) |
+| B22-11 | M10 | Testar só com o fluxo completo, conferido no servidor e marcado na tela (seção 27) |
+| B22-12 | M11 | Campo de horas deixa apagar; fração e acima de um ano avisam no painel e o Salvar recusa (seção 28) |
+| B22-13 | U1 | "Duplicar" no painel da condição e da ação; a cópia nasce solta, à direita do original, e selecionada (seção 29) |
+| B22-14 | U3 | Botões de variável no campo "Mensagem", que inserem no cursor (seção 30) |
+
+Verificado no fim do lote: 730 testes unitários, lint de `src` e `e2e` e build
+com código 0. No preview, os roteiros `roteiro-b22-08.cjs` a `roteiro-b22-14.cjs`
+(86 verificações) e os 7 roteiros do lote 1 (72 verificações) passaram. O
+`roteiro-b11-04.cjs` para no webhook
+simulado: o segredo do gateway só existe no preview do branch
+`b11-automacoes-v2` (README de `e2e/preview/`), e por isso ele também ficou de
+fora no lote 1.
+
+### A fazer
 
 **Lote 3, histórico e lista:** M12 a M18.
 
 **Lote 4, o resto:** A7 (card de Recompra que o atendente não consegue criar
 ao arrastar para Ganho), M3, M4, M5, M6, M8, segurança (M19, M20, M21) e os baixos.
 
+Decidido pelo Luan em 14/10: no A7, a action de mover cria o card de Recompra com
+a chave de serviço, sem mudar a RLS; no M21, só o admin lê as regras, com a
+migration que troca a política aplicada no merge do lote 4.
+
 ### Decisões pendentes
 
-- **Repetição padrão da regra nova** (hoje "uma vez por contato"; a Marcelle
-  sugeriu rever, por exemplo "sempre" nos gatilhos de mensagem). Decidir junto
-  com o seletor no bloco do gatilho, no lote 2.
-- **M21:** gerente e atendente podem ler as regras pela API? A spec diz só admin.
-- **U1 e U3:** entram agora ou depois.
 - Se incomodar: atribuir numa conversa **resolvida** troca o atendente e a
   mantém resolvida (decidido na B22-03, seção 19).
 
@@ -74,14 +90,13 @@ filtrar só pelo prefixo `[TESTE]`.**
 
 ### Onde retomar
 
-Abrir este arquivo e começar o lote 2 num branch novo (`b22-lote-editor`), a
-partir do `master`.
+Lote 3 (M12 a M18), num branch `b22-lote-historico` a partir do `master`.
 
 ---
 
 ## 🔴 Grave
 
-- [x] **G1. "Uma vez por contato" (padrão de regra nova) e "a cada N horas" gastam a vez quando a regra não fez nada.** Regra "texto contém catálogo → tag": cliente manda "oi", sai pelo "não", gravado "concluída"; depois manda "catálogo" → ignorada para sempre. Mesmo efeito com falha passageira (erro de banco grava `falhou`, que também conta). Ex.: "fora do horário → ausência" com cliente que escreveu às 10h nunca recebe ausência. `execucoes.ts:101-106` conta tudo que não é `ignorada`. Segue a decisão 8.3 ao pé da letra. **Decidido pela Marcelle (09/10): só gastar a vez quando alguma ação rodou; rever o padrão da regra nova (ex.: "sempre" nos gatilhos de mensagem).** ✔ (3 agentes: motor, código, bordas) → **Resolvido na B22-01 (09/10):** só gasta a vez execução com ação que deu certo. O padrão da regra nova ficou para decidir.
+- [x] **G1. "Uma vez por contato" (padrão de regra nova) e "a cada N horas" gastam a vez quando a regra não fez nada.** Regra "texto contém catálogo → tag": cliente manda "oi", sai pelo "não", gravado "concluída"; depois manda "catálogo" → ignorada para sempre. Mesmo efeito com falha passageira (erro de banco grava `falhou`, que também conta). Ex.: "fora do horário → ausência" com cliente que escreveu às 10h nunca recebe ausência. `execucoes.ts:101-106` conta tudo que não é `ignorada`. Segue a decisão 8.3 ao pé da letra. **Decidido pela Marcelle (09/10): só gastar a vez quando alguma ação rodou; rever o padrão da regra nova (ex.: "sempre" nos gatilhos de mensagem).** ✔ (3 agentes: motor, código, bordas) → **Resolvido na B22-01 (09/10):** só gasta a vez execução com ação que deu certo. O padrão da regra nova ficou para decidir. → **Decidido na B22-09 (14/10):** "sempre" nos gatilhos de mensagem, "uma vez por contato" nos outros.
 
 ## 🟠 Altos
 
@@ -89,7 +104,7 @@ partir do `master`.
 - [x] **A2. Evento com mais de 5 min vira "descartado" enquanto ainda roda** → o próximo do mesmo contato roda junto (quebra ordem e proteção de repetição); na Vercel a função morre em ~300 s e o que faltava some sem registro. Com 100 regras, um evento leva ~73 s local (~0,7 s por regra, em série). Migration `:55-56`. ✔ (bordas) → **Resolvido na B22-06 (09/10):** orçamento de tempo; o que não roda fica no histórico.
 - [x] **A3. Atribuir atendente aceita usuário desativado** (salva a regra e executa "concluída"). `acoes.ts:290-307`, `actions.ts:222`. "Atribuir ao time" já filtra ativos. ✔ (3 agentes) → **Resolvido na B22-02 (09/10):** recusado ao salvar e, se desativado depois, a ação falha com o motivo.
 - [x] **A4. Atribuir (atendente/time) deixa a conversa em "Em espera" com atendente** — o "Atribuir" do chat muda para "em atendimento"; nesse estado o chat só oferece "Atribuir" (sem Transferir/Resolver). `acoes.ts:295`. (motor, código) → **Resolvido na B22-03 (09/10):** em espera passa a em atendimento; resolvida continua resolvida.
-- [ ] **A5. Sair do editor sem salvar perde tudo sem aviso** (botão voltar, voltar do navegador, fechar aba); e "Automação salva" continua visível após novas edições. `editor-fluxo.tsx:312`. (editor)
+- [x] **A5. Sair do editor sem salvar perde tudo sem aviso** (botão voltar, voltar do navegador, fechar aba); e "Automação salva" continua visível após novas edições. `editor-fluxo.tsx:312`. (editor) → **Resolvido na B22-08 (13/10):** "Alterações não salvas" no topo, confirmação no "Automações", aviso do navegador ao fechar a aba e rascunho no navegador para o voltar e o menu lateral.
 - [x] **A6. "Atribuir ao time" conta a própria conversa como carga** → com "sempre" em mensagem recebida, a conversa alterna Ana/Bruno/Ana a cada mensagem. E leads simultâneos de contatos diferentes caem todos no mesmo atendente (rodam em paralelo). `acoes.ts:337-364`. (código — suspeita forte, não reproduzido na tela) → **Resolvido na B22-04 (09/10):** conversa com membro ativo do time fica com ele; escolha e gravação travadas por time numa função do banco.
 - [ ] **A7. Atendente que arrasta card para Ganho:** o banco recusa em silêncio o card de Recompra (só admin/gerente cria) → não nasce card, gatilho "card movido Onboarding" nem sequência de onboarding. `pipeline/actions.ts:165-221`. Fora do módulo, mas afeta gatilhos. (código)
 
@@ -108,9 +123,9 @@ partir do `master`.
 - [ ] M8. Etiqueta/time/mensagem rápida apagados: bloco e painel mostram o UUID em vez do nome; erro só no topo ao salvar, não no bloco; lista não avisa; reativar não confere; para time apagado o motivo engana ("time não tem atendente ativo"). `frases-fluxo.ts:19`. (editor, bordas)
 
 **Editor**
-- [ ] M9. Resultado de "Testar com um contato" fica velho após editar o fluxo (só some em "Limpar"). (editor)
-- [ ] M10. Simulação roda em fluxo que não poderia ser salvo (condição vazia = "sim"). `actions.ts:462`. (editor)
-- [ ] M11. Campo "N horas" não deixa apagar (vira "1" → digitar 48 dá 148); aceita 1,5 e 99999 até o servidor recusar. `editor-fluxo.tsx:352`. (editor)
+- [x] M9. Resultado de "Testar com um contato" fica velho após editar o fluxo (só some em "Limpar"). (editor) → **Resolvido na B22-10 (14/10):** com o fluxo diferente, o caminho sai do canvas e a faixa oferece "Testar de novo".
+- [x] M10. Simulação roda em fluxo que não poderia ser salvo (condição vazia = "sim"). `actions.ts:462`. (editor) → **Resolvido na B22-11 (14/10):** o servidor recusa e a tela marca o que falta antes de testar.
+- [x] M11. Campo "N horas" não deixa apagar (vira "1" → digitar 48 dá 148); aceita 1,5 e 99999 até o servidor recusar. `editor-fluxo.tsx:352`. (editor) → **Resolvido na B22-12 (14/10):** o campo deixa apagar, e o inválido avisa no painel e trava o Salvar.
 
 **Lista e histórico**
 - [ ] M12. Detalhe da execução sem botão de fechar (só Esc/tocar fora). `historico-client.tsx:200`.
@@ -158,6 +173,6 @@ o efeito certo, histórico com caminho e motivos em português, menus "⋯" func
 
 ## 🙋 Achados da Marcelle (teste manual, 09/10)
 
-- [ ] **U1. Não dá para duplicar blocos do fluxo** (copiar uma ação de mensagem para montar a versão "tem tag X" / "não tem"). Melhoria — não está na spec.
-- [ ] **U2. Sair do editor sem salvar perde tudo e não há rascunho.** Mesmo problema do A5, com o pedido extra de rascunho automático.
-- [ ] **U3. Variáveis da mensagem precisam ser copiadas à mão** — pedido: botões que inserem a variável no cursor (como no Manychat). Melhoria.
+- [x] **U1. Não dá para duplicar blocos do fluxo** (copiar uma ação de mensagem para montar a versão "tem tag X" / "não tem"). Melhoria — não está na spec. → **Feito na B22-13 (14/10)**, aprovado pelo Luan: "Duplicar" no painel do bloco.
+- [x] **U2. Sair do editor sem salvar perde tudo e não há rascunho.** Mesmo problema do A5, com o pedido extra de rascunho automático. → **Resolvido na B22-08 (13/10)**, junto com o A5.
+- [x] **U3. Variáveis da mensagem precisam ser copiadas à mão** — pedido: botões que inserem a variável no cursor (como no Manychat). Melhoria. → **Feito na B22-14 (14/10)**, aprovado pelo Luan.

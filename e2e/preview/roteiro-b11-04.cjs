@@ -50,7 +50,7 @@ async function regraDeMensagem(page, nome, atributo, operador, preencherValor) {
   await page.getByRole("textbox", { name: "Nome da automação" }).fill(nome)
   await page.locator(".react-flow__node").first().click()
   await escolher(page, "#painel-gatilho", "Mensagem recebida do cliente")
-  await escolher(page, '[aria-label="Proteção de repetição"]', "Sempre (a cada disparo)")
+  await escolher(page, "#painel-repeticao", "Sempre (a cada disparo)")
   await adicionarBloco(page, "Condição (sim / não)")
   await page.getByRole("button", { name: "Adicionar verificação" }).click()
   await escolher(page, '[aria-label="Atributo"]', atributo)

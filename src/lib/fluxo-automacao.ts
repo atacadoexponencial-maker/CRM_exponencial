@@ -98,7 +98,12 @@ export type Repeticao =
   | { modo: "sempre" }
 
 /** Até um ano entre execuções para o mesmo contato. */
-const HORAS_MAXIMAS = 24 * 365
+export const HORAS_MAXIMAS = 24 * 365
+
+/** Horas de "no máximo a cada N horas": número inteiro de 1 a um ano. */
+export function horasValidas(horas: unknown): horas is number {
+  return Number.isInteger(horas) && (horas as number) >= 1 && (horas as number) <= HORAS_MAXIMAS
+}
 
 /**
  * Proteção de repetição lida do banco ou recebida do editor. Fora do formato
@@ -107,9 +112,7 @@ const HORAS_MAXIMAS = 24 * 365
 export function lerRepeticao(valor: unknown): Repeticao {
   const r = (valor ?? {}) as { modo?: unknown; horas?: unknown }
   if (r.modo === "uma_vez_por_contato") return { modo: "uma_vez_por_contato" }
-  if (r.modo === "a_cada_horas" && Number.isInteger(r.horas) && (r.horas as number) >= 1 && (r.horas as number) <= HORAS_MAXIMAS) {
-    return { modo: "a_cada_horas", horas: r.horas as number }
-  }
+  if (r.modo === "a_cada_horas" && horasValidas(r.horas)) return { modo: "a_cada_horas", horas: r.horas }
   return { modo: "sempre" }
 }
 
@@ -122,6 +125,15 @@ export interface ResultadoSimulacao {
 }
 
 export const GATILHOS_DE_MENSAGEM: readonly GatilhoTipo[] = ["mensagem_recebida", "mensagem_enviada_time"]
+
+/**
+ * Repetição com que a regra nova nasce: "sempre" nos gatilhos de mensagem, em que
+ * a condição costuma escolher a mensagem ("texto contém catálogo"), e "uma vez por
+ * contato" nos outros, como no protótipo aprovado (B11-01). Decidido em 14/10 (B22-09).
+ */
+export function repeticaoPadrao(gatilho: GatilhoTipo): Repeticao {
+  return GATILHOS_DE_MENSAGEM.includes(gatilho) ? { modo: "sempre" } : { modo: "uma_vez_por_contato" }
+}
 
 /** Verificações sobre a mensagem que disparou: só fazem sentido nos gatilhos de mensagem. */
 export const VERIFICACOES_DE_MENSAGEM: readonly VerificacaoTipo[] = ["texto_mensagem", "tipo_mensagem"]
@@ -239,6 +251,22 @@ const EM_BREVE = "Ainda não disponível: escolha outra opção"
 
 export function saidasDoBloco(bloco: Bloco): Saida[] {
   return bloco.tipo === "condicao" ? ["sim", "nao"] : ["proximo"]
+}
+
+/**
+ * Cópia de uma condição ou ação, para o "Duplicar" do editor (B22-13): os mesmos
+ * parâmetros e verificações, com id novo para o bloco e para cada verificação.
+ */
+export function copiaDoBloco(
+  bloco: BlocoCondicao | BlocoAcao,
+  id: string,
+  posicao: Posicao,
+  novoId: () => string
+): BlocoCondicao | BlocoAcao {
+  if (bloco.tipo === "condicao") {
+    return { ...bloco, id, posicao, verificacoes: bloco.verificacoes.map((v) => ({ ...v, id: novoId() })) }
+  }
+  return { ...bloco, id, posicao, parametros: { ...bloco.parametros } }
 }
 
 export function gatilhoDoFluxo(fluxo: Fluxo): BlocoGatilho | undefined {

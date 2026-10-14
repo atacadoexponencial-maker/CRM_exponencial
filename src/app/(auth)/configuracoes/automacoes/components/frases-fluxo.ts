@@ -1,7 +1,7 @@
 // Frases em português para o que o fluxo faz: uma por bloco, no canvas, e um
 // resumo da regra inteira, na lista.
 
-import type { Bloco, BlocoAcao, BlocoGatilho, Fluxo, Verificacao } from "@/lib/fluxo-automacao"
+import type { Bloco, BlocoAcao, BlocoGatilho, Fluxo, Repeticao, Verificacao } from "@/lib/fluxo-automacao"
 import { SEQUENCIA_DA_ETAPA, gatilhoDoFluxo } from "@/lib/fluxo-automacao"
 import {
   ACOES,
@@ -25,6 +25,18 @@ const plural = (n: number, singular: string, varios: string) => `${n} ${n === 1 
 function valorDoCampo(campo: string | undefined, valor: string | undefined, opcoes: OpcoesEditor): string {
   const lista = opcoesDoCampoContato(campo, opcoes)
   return lista ? nomeEm(lista, valor) : (valor ?? "")
+}
+
+/** A proteção de repetição, na linha de baixo do bloco do gatilho (B22-09). */
+export function fraseRepeticao(repeticao: Repeticao): string {
+  switch (repeticao.modo) {
+    case "uma_vez_por_contato":
+      return "Repetição: uma vez por contato"
+    case "a_cada_horas":
+      return `Repetição: no máximo a cada ${plural(repeticao.horas, "hora", "horas")}`
+    case "sempre":
+      return "Repetição: sempre"
+  }
 }
 
 export function fraseGatilho(bloco: BlocoGatilho, opcoes: OpcoesEditor): string {

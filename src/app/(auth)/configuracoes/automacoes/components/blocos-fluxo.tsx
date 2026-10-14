@@ -20,9 +20,9 @@ import {
 } from "@xyflow/react"
 import { Plus, Split, X, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { Bloco, ResultadoSimulacao, Saida } from "@/lib/fluxo-automacao"
+import type { Bloco, Repeticao, ResultadoSimulacao, Saida } from "@/lib/fluxo-automacao"
 import { ACOES, GATILHOS, type OpcoesEditor } from "./catalogo"
-import { fraseBloco } from "./frases-fluxo"
+import { fraseBloco, fraseRepeticao } from "./frases-fluxo"
 
 export type DadosBloco = { bloco: Bloco }
 export type NoFluxo = Node<DadosBloco, Bloco["tipo"]>
@@ -34,6 +34,8 @@ interface ContextoEditor {
   /** Depois de uma tentativa de salvar, os blocos com pendência ganham borda vermelha. */
   destacarErros: boolean
   simulacao: ResultadoSimulacao | null
+  /** Aparece no bloco do gatilho, onde ela é escolhida. */
+  repeticao: Repeticao
   aoAdicionar: (de: string, saida: Saida) => void
 }
 
@@ -75,7 +77,7 @@ function BotaoAdicionar({ de, saida, esquerda }: { de: string; saida: Saida; esq
 }
 
 function BlocoDoFluxo({ id, data, selected }: NodeProps<NoFluxo>) {
-  const { opcoes, pendencias, destacarErros, simulacao } = useEditor()
+  const { opcoes, pendencias, destacarErros, simulacao, repeticao } = useEditor()
   const conexoes = useNodeConnections({ handleType: "source" })
   const saidasOcupadas = new Set(conexoes.map((c) => c.sourceHandle ?? "proximo"))
 
@@ -122,6 +124,10 @@ function BlocoDoFluxo({ id, data, selected }: NodeProps<NoFluxo>) {
       </div>
 
       <p className="px-3 py-2.5 text-sm leading-snug">{fraseBloco(bloco, opcoes)}</p>
+
+      {bloco.tipo === "gatilho" && (
+        <p className="-mt-1.5 px-3 pb-2.5 text-xs text-muted-foreground">{fraseRepeticao(repeticao)}</p>
+      )}
 
       {problemas.length > 0 && (
         <ul className="space-y-0.5 px-3 pb-2.5 text-xs text-destructive">

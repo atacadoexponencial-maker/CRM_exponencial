@@ -59,7 +59,15 @@ export type FonteOpcoes =
 
 export type CampoTela =
   | { chave: string; rotulo: string; tipo: "texto"; placeholder?: string }
-  | { chave: string; rotulo: string; tipo: "texto_longo"; placeholder?: string; ajuda?: string }
+  | {
+      chave: string
+      rotulo: string
+      tipo: "texto_longo"
+      placeholder?: string
+      ajuda?: string
+      /** Botões que inserem as variáveis da mensagem no cursor (B22-14). */
+      variaveis?: boolean
+    }
   /** `vazio` é o rótulo da opção sem valor: "Escolha…" quando obrigatório, "Qualquer tag" quando opcional. */
   | { chave: string; rotulo: string; tipo: "opcoes"; fonte: FonteOpcoes; vazio: string }
   /** Etapa do funil escolhido no parâmetro `funil`. */
@@ -281,7 +289,7 @@ export const ACOES: Record<AcaoTipo, { rotulo: string; icone: LucideIcon; campos
         rotulo: "Mensagem",
         tipo: "texto_longo",
         placeholder: "Oi {{primeiro_nome}}, aqui é {{nome_vendedor}}…",
-        ajuda: "Variáveis: {{nome_contato}}, {{primeiro_nome}}, {{nome_vendedor}}",
+        variaveis: true,
       },
     ],
   },
