@@ -1319,3 +1319,36 @@ teste em vez de disparar regras.
   apagado, desabilitado e com "Salvando…" até o servidor responder. Se a
   gravação falhar, ele volta ao estado do servidor e o erro aparece no topo, como
   antes.
+
+## 32. Lote 4: o resto do QA (B22-22 em diante, 14/10/2026)
+
+O último lote junta o alto A7, os médios M3 a M6, M8 e M19 a M21, e os baixos.
+Cada item tem commit próprio; o roteiro do preview é um só,
+`roteiro-b22-resto.cjs`. Migrations do lote (M6 e M21) só são aplicadas no merge,
+porque mudam o que já existe.
+
+**Decidido pelo Luan em 14/10/2026:**
+
+- **A7:** a action de mover cria o card de Recompra com a chave de serviço, sem
+  mudar a RLS. Descartados: liberar o atendente na RLS (ele poderia criar card de
+  Recompra por fora da tela) e só avisar (o onboarding esperaria um gerente).
+- **M21:** só o admin lê as regras (`automation_flows`), como a spec diz.
+- **M6:** o "novo lead" confere o card existente, e um índice único (empresa,
+  contato, funil) trava no banco. Em 14/10 a produção não tinha nenhum caso.
+- **M20:** fluxo até 200 KB e 100 blocos; até 100 automações por empresa;
+  "Testar com um contato" até 10 vezes por minuto por pessoa.
+- **"Contém" por palavra inteira:** "contém oi" deixa de casar com "Boituva". Muda
+  as regras que já existem; frases continuam valendo como sequência de palavras.
+- **Delete de 2 ou mais blocos** no editor pede confirmação; desfazer (Ctrl+Z)
+  ficou de fora.
+- **Arquivos sem uso:** ao salvar ou excluir uma regra, os arquivos da pasta da
+  empresa que nenhuma regra usa e que têm mais de 1 dia são apagados.
+
+**Como ficou, item a item:**
+
+- **B22-22 (A7):** o card de Recompra do Ganho é criado pela chave de serviço. A
+  mudança de etapa passou a pedir a linha alterada de volta (`select`): sem ela, a
+  RLS que barrasse o movimento passaria sem erro, e a chave de serviço criaria o
+  card para quem não pôde mover. Agora isso recusa com "Sem permissão para mover
+  este card". O roteiro cria um atendente temporário, marca Ganho por ele e o apaga
+  no fim (`abrirPreview` aceita outro login).

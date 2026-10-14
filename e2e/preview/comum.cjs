@@ -40,11 +40,12 @@ async function conferirEmpresaDeTeste(db, workspaceId) {
 }
 
 /**
- * Abre o preview e entra como o admin da empresa de teste. A primeira página
- * passa pela proteção da Vercel com o segredo de bypass e grava um cookie; as
- * seguintes já entram com ele. Chromium: PLAYWRIGHT_CHROMIUM, se definido.
+ * Abre o preview e entra como o admin da empresa de teste, ou com o `login`
+ * passado (`{ email, senha }`, por exemplo de um atendente criado pelo roteiro).
+ * A primeira página passa pela proteção da Vercel com o segredo de bypass e grava
+ * um cookie; as seguintes já entram com ele. Chromium: PLAYWRIGHT_CHROMIUM, se definido.
  */
-async function abrirPreview(urlPreview) {
+async function abrirPreview(urlPreview, login) {
   const env = lerEnv()
   const { chromium } = require("playwright")
   const browser = await chromium.launch(
@@ -59,8 +60,8 @@ async function abrirPreview(urlPreview) {
     "x-vercel-set-bypass-cookie": "true",
   })
   await page.goto(`${urlPreview}/login?${bypass}`, { waitUntil: "networkidle", timeout: 120000 })
-  await page.locator("#email").fill(env.B11_TESTE_EMAIL)
-  await page.locator("#senha").fill(env.B11_TESTE_SENHA)
+  await page.locator("#email").fill(login?.email ?? env.B11_TESTE_EMAIL)
+  await page.locator("#senha").fill(login?.senha ?? env.B11_TESTE_SENHA)
   await Promise.all([
     page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 60000 }),
     page.locator("#senha").press("Enter"),

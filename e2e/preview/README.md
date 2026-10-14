@@ -66,6 +66,8 @@ node e2e/preview/resetar-empresa-teste.cjs
 node e2e/preview/roteiro-b22-14.cjs https://crm-exponencial-xxxx.vercel.app
 node e2e/preview/resetar-empresa-teste.cjs
 node e2e/preview/roteiro-b22-historico.cjs https://crm-exponencial-xxxx.vercel.app
+node e2e/preview/resetar-empresa-teste.cjs
+node e2e/preview/roteiro-b22-resto.cjs https://crm-exponencial-xxxx.vercel.app
 
 # Estes enviam mensagens de verdade: só com o chip conectado e combinado com
 # quem recebe (veja "Envio de mensagem" abaixo)
@@ -102,6 +104,7 @@ código de saída 0 só se tudo passou.
 | `roteiro-b22-13.cjs` | Editor: "Duplicar" no painel de uma ação e de uma condição. |
 | `roteiro-b22-14.cjs` | Editor: botões de variável no campo "Mensagem" (no cursor e no lugar da seleção). |
 | `roteiro-b22-historico.cjs` | Lote 3 (B22-15 em diante): página de histórico e lista de automações, com execuções gravadas direto no banco. |
+| `roteiro-b22-resto.cjs` | Lote 4 (B22-22 em diante): o resto do QA. Cria um atendente temporário na empresa de teste e o apaga no fim. |
 | `roteiro-b11-06.cjs` | Gatilhos de tag, etiqueta e dado do contato, e automação que não dispara automação. |
 | `roteiro-b11-08.cjs` | Horário comercial pelo diálogo, condição dentro e fora, atribuir ao time, resolver, reabrir e iniciar sequência. |
 | `roteiro-b11-09.cjs` | Fila das automações: a função do banco que entrega um evento por vez por contato, e uma ação com falha que não desfaz o movimento do card. |

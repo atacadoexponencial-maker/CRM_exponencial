@@ -85,12 +85,20 @@ Verificado no fim do lote: 748 testes unitários, lint de `src` e `e2e` e build
 com código 0. No preview, o `roteiro-b22-historico.cjs` (16 verificações) e os 7
 roteiros do lote 1 (72 verificações) passaram.
 
-**Lote 4, o resto:** A7 (card de Recompra que o atendente não consegue criar
-ao arrastar para Ganho), M3, M4, M5, M6, M8, segurança (M19, M20, M21) e os baixos.
+### Em andamento: lote 4, o resto
 
-Decidido pelo Luan em 14/10: no A7, a action de mover cria o card de Recompra com
-a chave de serviço, sem mudar a RLS; no M21, só o admin lê as regras, com a
-migration que troca a política aplicada no merge do lote 4.
+Branch `b22-lote-resto`, aberto em 14/10/2026 a partir do `master`. Decisões na
+seção 32; roteiro do preview `roteiro-b22-resto.cjs`.
+
+| Issue | Achado | O que mudou |
+|---|---|---|
+| B22-22 | A7 | Card de Recompra do Ganho criado pela chave de serviço; movimento barrado pela RLS recusa |
+
+Falta: M3, M4, M5, M6, M8, M19, M20, M21 e os baixos.
+
+Decisões do Luan para o lote 4 (14/10): seção 32 das decisões (A7, M6, M20, M21,
+"contém" por palavra inteira, confirmação ao apagar 2 ou mais blocos e limpeza dos
+arquivos sem uso).
 
 ### Decisões pendentes
 
@@ -126,7 +134,7 @@ limites do M20.
 - [x] **A4. Atribuir (atendente/time) deixa a conversa em "Em espera" com atendente** — o "Atribuir" do chat muda para "em atendimento"; nesse estado o chat só oferece "Atribuir" (sem Transferir/Resolver). `acoes.ts:295`. (motor, código) → **Resolvido na B22-03 (09/10):** em espera passa a em atendimento; resolvida continua resolvida.
 - [x] **A5. Sair do editor sem salvar perde tudo sem aviso** (botão voltar, voltar do navegador, fechar aba); e "Automação salva" continua visível após novas edições. `editor-fluxo.tsx:312`. (editor) → **Resolvido na B22-08 (13/10):** "Alterações não salvas" no topo, confirmação no "Automações", aviso do navegador ao fechar a aba e rascunho no navegador para o voltar e o menu lateral.
 - [x] **A6. "Atribuir ao time" conta a própria conversa como carga** → com "sempre" em mensagem recebida, a conversa alterna Ana/Bruno/Ana a cada mensagem. E leads simultâneos de contatos diferentes caem todos no mesmo atendente (rodam em paralelo). `acoes.ts:337-364`. (código — suspeita forte, não reproduzido na tela) → **Resolvido na B22-04 (09/10):** conversa com membro ativo do time fica com ele; escolha e gravação travadas por time numa função do banco.
-- [ ] **A7. Atendente que arrasta card para Ganho:** o banco recusa em silêncio o card de Recompra (só admin/gerente cria) → não nasce card, gatilho "card movido Onboarding" nem sequência de onboarding. `pipeline/actions.ts:165-221`. Fora do módulo, mas afeta gatilhos. (código)
+- [x] **A7. Atendente que arrasta card para Ganho:** o banco recusa em silêncio o card de Recompra (só admin/gerente cria) → não nasce card, gatilho "card movido Onboarding" nem sequência de onboarding. `pipeline/actions.ts:165-221`. Fora do módulo, mas afeta gatilhos. (código) → **Resolvido na B22-22 (14/10):** o servidor cria o card de Recompra com a chave de serviço.
 
 ## 🟡 Médios
 

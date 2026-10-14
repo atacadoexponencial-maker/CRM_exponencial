@@ -166,12 +166,16 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
     cardsDepoisDoMovimento(cards, cardId, novaEtapa)
   )
 
-  const { error: updateError } = await supabase
+  // `select` devolve a linha alterada: sem ela, a RLS barrou sem erro (B22-22)
+  const { data: movido, error: updateError } = await supabase
     .from("pipeline_cards")
     .update({ etapa: novaEtapa, etapa_changed_at: new Date().toISOString() })
     .eq("id", cardId)
+    .select("id")
+    .maybeSingle()
 
   if (updateError) throw new Error("Erro ao mover card")
+  if (!movido) throw new Error("Sem permissão para mover este card")
 
   await supabase
     .from("pipeline_card_history")
@@ -183,7 +187,12 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
     })
 
   if (novaEtapa === "ganho" && card.contact_id && card.workspace_id) {
-    const { data: existente } = await supabase
+    // B22-22: o card de Recompra é criado pelo servidor. Pela RLS, só admin e gerente
+    // criam card, e o atendente que marcava Ganho ficava sem card, sem gatilho e sem
+    // onboarding, em silêncio. Quem pode mover este card já foi conferido acima (o
+    // card veio pela RLS e a etapa mudou de fato); a chave de serviço só cria o par dele.
+    const servico = createServiceClient()
+    const { data: existente } = await servico
       .from("pipeline_cards")
       .select("id")
       .eq("funil", "recompra")
@@ -192,7 +201,7 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
       .maybeSingle()
 
     if (!existente) {
-      const { data: cardRecompra } = await supabase
+      const { data: cardRecompra } = await servico
         .from("pipeline_cards")
         .insert({
           funil: "recompra",
