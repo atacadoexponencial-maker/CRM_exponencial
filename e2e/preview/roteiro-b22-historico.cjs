@@ -108,6 +108,14 @@ const HISTORICO = "/configuracoes/automacoes/historico"
   )
   r.confere("B22-19: e mostra todas as execuções", (await page.locator("tbody tr").count()) === 2, String(await page.locator("tbody tr").count()))
 
+  // B22-20 (M17): vazio por causa do filtro diz isso e oferece "Limpar filtros"
+  await page.goto(`${URL_PREVIEW}${HISTORICO}?resultado=ignorada`, { waitUntil: "networkidle" })
+  r.confere("B22-20: vazio pelo filtro diz que é o filtro", await page.getByText("Nenhuma execução com esses filtros").isVisible())
+  await page.getByRole("button", { name: "Limpar filtros" }).click()
+  await page.waitForURL(new RegExp(`${HISTORICO}$`))
+  await page.waitForLoadState("networkidle")
+  r.confere("B22-20: 'Limpar filtros' volta a mostrar tudo", (await page.locator("tbody tr").count()) === 2)
+
   r.confere("sem erro no console", erros.length === 0, erros.join(" | "))
   await browser.close()
   process.exit(r.imprimir() ? 1 : 0)

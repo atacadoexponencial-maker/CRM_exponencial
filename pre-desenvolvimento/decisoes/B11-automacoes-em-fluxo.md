@@ -1310,3 +1310,7 @@ teste em vez de disparar regras.
     automação do endereço não foi encontrada. Mostrando todas."
   - `listarExecucoes` devolve o erro do banco, e a página mostra "Não foi possível
     carregar o histórico" em vez da lista vazia.
+- **B22-20 (M17):** a lista vazia dizia "Nenhuma execução nos últimos 30 dias"
+  também quando o vazio era do filtro. Com filtro de automação ou de resultado,
+  ela diz "Nenhuma execução com esses filtros nos últimos N dias" e oferece
+  "Limpar filtros", que tira os dois e mantém o período.

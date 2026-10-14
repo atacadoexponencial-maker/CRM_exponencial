@@ -127,10 +127,22 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes, aviso }: H
       {execucoes.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-12 text-center">
           <History className="size-8 text-muted-foreground/50" />
-          <p className="font-medium">Nenhuma execução nos últimos {filtros.dias} dias</p>
-          <p className="text-sm text-muted-foreground">
-            Cada vez que um gatilho dispara uma automação, ela aparece aqui.
-          </p>
+          {/* Com filtro de automação ou de resultado, o vazio é do filtro (B22-20) */}
+          {filtros.regraId || filtros.resultado ? (
+            <>
+              <p className="font-medium">Nenhuma execução com esses filtros nos últimos {filtros.dias} dias</p>
+              <Button variant="outline" size="sm" onClick={() => filtrar({ regra: "", resultado: "" })}>
+                Limpar filtros
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="font-medium">Nenhuma execução nos últimos {filtros.dias} dias</p>
+              <p className="text-sm text-muted-foreground">
+                Cada vez que um gatilho dispara uma automação, ela aparece aqui.
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border">

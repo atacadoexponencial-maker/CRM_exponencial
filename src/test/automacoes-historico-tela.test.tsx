@@ -91,3 +91,19 @@ describe("B22-17 — contato com link no histórico (M14)", () => {
     expect(screen.queryAllByRole("link", { name: "Ana Souza" })).toHaveLength(0)
   })
 })
+
+describe("B22-20 — lista vazia por causa do filtro (M17)", () => {
+  it("sem filtro: diz que não houve execução", () => {
+    abrir([])
+    expect(screen.getByText("Nenhuma execução nos últimos 30 dias")).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Limpar filtros" })).toBeNull()
+  })
+
+  it("com filtro: diz que é o filtro, e 'Limpar filtros' tira automação e resultado e mantém o período", () => {
+    push.mockClear()
+    abrir([], { dias: 7, regraId: "r1", resultado: "falhou" })
+    expect(screen.getByText("Nenhuma execução com esses filtros nos últimos 7 dias")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Limpar filtros" }))
+    expect(push).toHaveBeenCalledWith("/configuracoes/automacoes/historico?dias=7")
+  })
+})
