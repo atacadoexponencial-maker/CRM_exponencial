@@ -1314,3 +1314,8 @@ teste em vez de disparar regras.
   também quando o vazio era do filtro. Com filtro de automação ou de resultado,
   ela diz "Nenhuma execução com esses filtros nos últimos N dias" e oferece
   "Limpar filtros", que tira os dois e mantém o período.
+- **B22-21 (M18):** o interruptor de ativar e pausar levava de 2,4 a 3,7 s para
+  mudar, sem nenhum sinal. Agora ele muda na hora (`useOptimistic`) e fica meio
+  apagado, desabilitado e com "Salvando…" até o servidor responder. Se a
+  gravação falhar, ele volta ao estado do servidor e o erro aparece no topo, como
+  antes.

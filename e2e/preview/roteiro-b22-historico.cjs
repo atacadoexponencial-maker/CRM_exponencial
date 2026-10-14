@@ -116,6 +116,38 @@ const HISTORICO = "/configuracoes/automacoes/historico"
   await page.waitForLoadState("networkidle")
   r.confere("B22-20: 'Limpar filtros' volta a mostrar tudo", (await page.locator("tbody tr").count()) === 2)
 
+  // B22-21 (M18): o interruptor muda na hora e grava
+  const { data: interruptor } = await db
+    .from("automation_flows")
+    .insert({
+      workspace_id: ws,
+      nome: "B22-21 Interruptor",
+      ativa: false,
+      repeticao: { modo: "sempre" },
+      fluxo: {
+        blocos: [
+          { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao: { x: 0, y: 0 } },
+          { id: "a", tipo: "acao", acao: "resolver_conversa", parametros: {}, posicao: { x: 0, y: 150 } },
+        ],
+        ligacoes: [{ de: "g", saida: "proximo", para: "a" }],
+      },
+    })
+    .select("id")
+    .single()
+  await page.goto(`${URL_PREVIEW}/configuracoes/automacoes`, { waitUntil: "networkidle" })
+  const inicio = Date.now()
+  await page.getByRole("switch", { name: "Ativar B22-21 Interruptor" }).click()
+  await page.getByRole("switch", { name: "Pausar B22-21 Interruptor" }).waitFor({ timeout: 1000 })
+  r.confere("B22-21: o interruptor muda na hora", Date.now() - inicio < 1000, `${Date.now() - inicio} ms`)
+  await page.getByText("Salvando…").waitFor({ state: "hidden", timeout: 20000 })
+  const { data: gravada } = await db.from("automation_flows").select("ativa").eq("id", interruptor.id).single()
+  r.confere("B22-21: e grava no banco", gravada?.ativa === true)
+  r.confere(
+    "B22-21: depois de salvar, continua ligado",
+    (await page.getByRole("switch", { name: "Pausar B22-21 Interruptor" }).getAttribute("aria-checked")) === "true"
+  )
+  await db.from("automation_flows").delete().eq("workspace_id", ws).eq("id", interruptor.id)
+
   r.confere("sem erro no console", erros.length === 0, erros.join(" | "))
   await browser.close()
   process.exit(r.imprimir() ? 1 : 0)

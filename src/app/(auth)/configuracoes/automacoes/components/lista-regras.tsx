@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useOptimistic, useState, useTransition } from "react"
 import { Clock, History, MoreHorizontal, Plus, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogPopup, DialogTitle } from "@/components/ui/dialog"
@@ -36,7 +36,8 @@ interface ListaRegrasProps {
   /** Botão "Horário comercial" no topo, que a condição de horário usa (B11-08). */
   onAbrirHorario?: () => void
   onEditar: (id: string) => void
-  onAlternar: (id: string, ativa: boolean) => void
+  /** Termina quando o servidor respondeu; até lá, o interruptor mostra "Salvando…" (B22-21). */
+  onAlternar: (id: string, ativa: boolean) => Promise<unknown>
   onDuplicar: (id: string) => void
   onVerHistorico: (id: string) => void
   onExcluir: (id: string) => Promise<{ erro?: string }>
@@ -67,9 +68,23 @@ export function ListaRegras({
   onVerHistorico,
   onExcluir,
 }: ListaRegrasProps) {
+  // O interruptor muda na hora e fica "salvando" até a resposta do servidor (B22-21)
+  const [regrasNaTela, marcarAlternando] = useOptimistic(
+    regras as Array<RegraListada & { salvando?: boolean }>,
+    (atuais, { id, ativa }: { id: string; ativa: boolean }) =>
+      atuais.map((r) => (r.id === id ? { ...r, ativa, salvando: true } : r))
+  )
+  const [, iniciarTransicao] = useTransition()
   const [excluindo, setExcluindo] = useState<RegraListada | null>(null)
   const [aguardando, setAguardando] = useState(false)
   const [erroExcluir, setErroExcluir] = useState<string | null>(null)
+
+  function alternar(id: string, ativa: boolean) {
+    iniciarTransicao(async () => {
+      marcarAlternando({ id, ativa })
+      await onAlternar(id, ativa)
+    })
+  }
 
   async function confirmarExclusao() {
     if (!excluindo) return
@@ -154,7 +169,7 @@ export function ListaRegras({
               </tr>
             </thead>
             <tbody>
-              {regras.map((r) => (
+              {regrasNaTela.map((r) => (
                 <tr key={r.id} className="border-b transition-colors last:border-0 hover:bg-muted/30">
                   <td className="px-4 py-3">
                     <button type="button" onClick={() => onEditar(r.id)} className="text-left">
@@ -175,13 +190,16 @@ export function ListaRegras({
                       type="button"
                       role="switch"
                       aria-checked={r.ativa}
+                      aria-busy={r.salvando || undefined}
                       aria-label={r.ativa ? `Pausar ${r.nome}` : `Ativar ${r.nome}`}
-                      onClick={() => onAlternar(r.id, !r.ativa)}
+                      disabled={r.salvando}
+                      onClick={() => alternar(r.id, !r.ativa)}
                       className={cn(
                         "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
-                        r.ativa ? "bg-primary" : "bg-muted-foreground/30"
+                        r.ativa ? "bg-primary" : "bg-muted-foreground/30",
+                        r.salvando && "cursor-wait opacity-60"
                       )}
-                      title={r.ativa ? "Pausar" : "Ativar"}
+                      title={r.salvando ? "Salvando…" : r.ativa ? "Pausar" : "Ativar"}
                     >
                       <span
                         className={cn(
@@ -191,6 +209,7 @@ export function ListaRegras({
                         )}
                       />
                     </button>
+                    {r.salvando && <span className="ml-2 text-xs text-muted-foreground">Salvando…</span>}
                   </td>
                   <td className="px-2 py-3">
                     <DropdownMenu>
