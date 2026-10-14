@@ -117,7 +117,12 @@ export function arquivoDaAutomacaoValido(
 ): boolean {
   if (!(TIPOS_DE_ARQUIVO as readonly string[]).includes(tipo) || !supabaseUrl) return false
   const prefixo = `${supabaseUrl.replace(/\/$/, "")}/storage/v1/object/public/${BUCKET_DOS_ARQUIVOS}/${pastaDosArquivos(workspaceId)}/`
-  return url.startsWith(prefixo) && !url.slice(prefixo.length).includes("..") && url.length > prefixo.length
+  if (!url.startsWith(prefixo)) return false
+  // B22-28: depois da pasta, só um nome como o que o upload gera (`<hora>-<nome>`, com
+  // letras, números, ponto, hífen e sublinhado). Barrar ".." não bastava: "%2e%2e/"
+  // passava e o Storage decodificava, apontando para a pasta de outra empresa.
+  const nome = url.slice(prefixo.length)
+  return /^[A-Za-z0-9._-]+$/.test(nome) && !/^\.+$/.test(nome)
 }
 
 /** Valores que a tela do contato mostra como tipo e como classificação. */

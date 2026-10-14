@@ -1406,3 +1406,10 @@ porque mudam o que já existe.
   - Ativar confere as escolhas no servidor (`conferirReferencias`, a mesma do
     Salvar) e recusa com "Não dá para ativar: …". Pausar não confere.
   - Time apagado falha com "O time não existe mais".
+- **B22-28 (M19):** a trava do arquivo da ação barrava `..` no endereço, mas
+  `%2e%2e/` passava, e o Storage decodificava: a ação podia apontar para um arquivo
+  de outra empresa (precisava saber o caminho, e o bucket já é público por link).
+  `arquivoDaAutomacaoValido` passou a aceitar, depois da pasta da empresa, só um
+  nome como o que o upload gera: letras, números, ponto, hífen e sublinhado, sem
+  barra, sem `%` e sem ser só pontos. Em 14/10 nenhuma regra da produção tinha
+  arquivo, então nada salvo deixou de valer.

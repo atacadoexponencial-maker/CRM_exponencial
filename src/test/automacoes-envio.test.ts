@@ -260,6 +260,15 @@ describe("arquivoDaAutomacaoValido", () => {
     expect(valido(`${PASTA}video.mp4`, "video")).toBe(false)
     expect(valido(`${PASTA}tabela.pdf`, "documento")).toBe(true)
   })
+
+  it("B22-28 (M19): '..' codificado, subpasta e caracteres fora do nome gerado são recusados", () => {
+    expect(valido(`${PASTA}%2e%2e/%2e%2e/ws-2/automacoes/foto.jpg`)).toBe(false)
+    expect(valido(`${PASTA}%2E%2E%2Fws-2%2Fautomacoes%2Ffoto.jpg`)).toBe(false)
+    expect(valido(`${PASTA}sub/foto.jpg`)).toBe(false)
+    expect(valido(`${PASTA}foto.jpg?x=1`)).toBe(false)
+    expect(valido(`${PASTA}..`)).toBe(false)
+    expect(valido(`${PASTA}1760000000-Tabela_de_precos-2026.pdf`, "documento")).toBe(true)
+  })
 })
 
 describe("B22-24 — falha de rede no envio (M4)", () => {
