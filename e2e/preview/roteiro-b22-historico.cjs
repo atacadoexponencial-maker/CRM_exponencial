@@ -63,6 +63,37 @@ const HISTORICO = "/configuracoes/automacoes/historico"
   await page.waitForURL(new RegExp(`/contatos/${ana.id}`), { timeout: 20000 })
   r.confere("B22-17: o contato da linha abre o perfil dele", true)
 
+  // B22-18 (M15): duplicar uma regra de nome com 120 caracteres mantém o "(cópia)"
+  const nomeLongo = `B22-18 ${"x".repeat(113)}`
+  const { data: longa } = await db
+    .from("automation_flows")
+    .insert({
+      workspace_id: ws,
+      nome: nomeLongo,
+      ativa: false,
+      repeticao: { modo: "sempre" },
+      fluxo: {
+        blocos: [
+          { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao: { x: 0, y: 0 } },
+          { id: "a", tipo: "acao", acao: "resolver_conversa", parametros: {}, posicao: { x: 0, y: 150 } },
+        ],
+        ligacoes: [{ de: "g", saida: "proximo", para: "a" }],
+      },
+    })
+    .select("id")
+    .single()
+  await page.goto(`${URL_PREVIEW}/configuracoes/automacoes`, { waitUntil: "networkidle" })
+  await page.getByRole("button", { name: `Abrir menu de ${nomeLongo}` }).click()
+  await page.getByRole("menuitem", { name: "Duplicar" }).click()
+  let copia = null
+  for (let i = 0; i < 20 && !copia; i++) {
+    await page.waitForTimeout(500)
+    const { data } = await db.from("automation_flows").select("id, nome").eq("workspace_id", ws).like("nome", "B22-18 %(cópia)")
+    copia = data?.[0] ?? null
+  }
+  r.confere("B22-18: a cópia termina em '(cópia)' e cabe em 120", copia?.nome.endsWith(" (cópia)") && copia.nome.length <= 120, copia?.nome)
+  await db.from("automation_flows").delete().eq("workspace_id", ws).in("id", [longa.id, copia?.id].filter(Boolean))
+
   r.confere("sem erro no console", erros.length === 0, erros.join(" | "))
   await browser.close()
   process.exit(r.imprimir() ? 1 : 0)

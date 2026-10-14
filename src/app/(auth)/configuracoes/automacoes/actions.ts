@@ -76,6 +76,14 @@ export interface FiltrosDoHistorico {
 
 const DIA_EM_MS = 86_400_000
 
+const NOME_MAXIMO = 120
+const SUFIXO_DA_COPIA = " (cópia)"
+
+/** O nome da cópia sempre termina em "(cópia)": o original encurta para caber (B22-18). */
+function nomeDaCopia(nome: string): string {
+  return `${nome.slice(0, NOME_MAXIMO - SUFIXO_DA_COPIA.length).trimEnd()}${SUFIXO_DA_COPIA}`
+}
+
 async function adminDaSessao() {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user || perfil?.role !== "admin") return null
@@ -296,7 +304,7 @@ export async function salvarRegra(dados: {
 
   const nome = dados.nome.trim()
   if (!nome) return { erro: "Dê um nome à automação" }
-  if (nome.length > 120) return { erro: "O nome pode ter até 120 caracteres" }
+  if (nome.length > NOME_MAXIMO) return { erro: `O nome pode ter até ${NOME_MAXIMO} caracteres` }
 
   const fluxo = lerFluxo(dados.fluxo)
   if (!fluxo) return { erro: "O desenho da automação veio num formato inválido. Recarregue a página." }
@@ -371,7 +379,7 @@ export async function duplicarRegra(id: string): Promise<{ erro?: string }> {
 
   const { error } = await supabase.from("automation_flows").insert({
     workspace_id: workspaceId,
-    nome: `${data.nome} (cópia)`.slice(0, 120),
+    nome: nomeDaCopia(data.nome),
     fluxo: paraJson(fluxo),
     repeticao: lerRepeticao(data.repeticao) as unknown as Json,
     ativa: false,
