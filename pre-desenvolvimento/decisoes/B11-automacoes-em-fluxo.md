@@ -1473,7 +1473,10 @@ porque mudam o que já existe.
   `onBeforeDelete` do React Flow, e o roteiro do preview pegou um defeito: com o
   diálogo aberto quando a tecla desce, o React Flow não via a tecla subir e, depois
   de um "Cancelar", deixava de apagar. Agora o atalho do React Flow está desligado
-  (`deleteKeyCode={null}`) e o editor trata Delete e Backspace no canvas. Desfazer (Ctrl+Z) ficou de fora, como o Luan decidiu. Conferido no
+  (`deleteKeyCode={null}`) e o editor trata Delete e Backspace na página, como o
+  atalho dele fazia: com o foco em qualquer lugar, menos em campo de texto e com
+  diálogo aberto. (Uma versão intermediária ouvia só o canvas e falhava quando o
+  foco ia para o fundo da página.) Desfazer (Ctrl+Z) ficou de fora, como o Luan decidiu. Conferido no
   roteiro do preview (seleção com Ctrl e Delete), porque o jsdom não roda o
   teclado do React Flow.
 - **B22-37:** o arquivo escolhido no editor sobe na hora, e os trocados ou de

@@ -311,19 +311,26 @@ function EditorFluxoInterno({
   // Apagar um bloco continua direto; 2 ou mais pedem confirmação (decidido pelo Luan em 14/10).
   // A tecla é tratada aqui, e não pelo atalho do React Flow: com o diálogo aberto ao
   // descer a tecla, ele não via a tecla subir e deixava de apagar depois de um "Cancelar".
-  function teclaNoCanvas(e: React.KeyboardEvent) {
-    if (e.key !== "Delete" && e.key !== "Backspace") return
-    const alvo = e.target as HTMLElement
-    if (!alvo.closest(".react-flow") || alvo.closest("input, textarea, [contenteditable='true']")) return
-    const blocos = nos.filter((n) => n.selected && n.deletable !== false)
-    const setas = ligacoes.filter((l) => l.selected)
-    if (blocos.length === 0 && setas.length === 0) return
-    e.preventDefault()
-    const apagar = () =>
-      deleteElements({ nodes: blocos.map((n) => ({ id: n.id })), edges: setas.map((l) => ({ id: l.id })) })
-    if (blocos.length >= 2) setConfirmarApagar({ quantos: blocos.length, responder: (sim) => sim && apagar() })
-    else apagar()
-  }
+  // Como o atalho dele, vale com o foco em qualquer lugar da página, menos em campo de
+  // texto e com diálogo aberto.
+  useEffect(() => {
+    function aoApertar(e: KeyboardEvent) {
+      if (e.key !== "Delete" && e.key !== "Backspace") return
+      const alvo = e.target as HTMLElement | null
+      if (alvo?.closest("input, textarea, select, [contenteditable='true']")) return
+      if (document.querySelector("[role='dialog']")) return
+      const blocos = nos.filter((n) => n.selected && n.deletable !== false)
+      const setas = ligacoes.filter((l) => l.selected)
+      if (blocos.length === 0 && setas.length === 0) return
+      e.preventDefault()
+      const apagar = () =>
+        deleteElements({ nodes: blocos.map((n) => ({ id: n.id })), edges: setas.map((l) => ({ id: l.id })) })
+      if (blocos.length >= 2) setConfirmarApagar({ quantos: blocos.length, responder: (sim) => sim && apagar() })
+      else apagar()
+    }
+    document.addEventListener("keydown", aoApertar)
+    return () => document.removeEventListener("keydown", aoApertar)
+  }, [nos, ligacoes, deleteElements])
 
   function responderApagar(sim: boolean) {
     confirmarApagar?.responder(sim)
@@ -540,7 +547,7 @@ function EditorFluxoInterno({
       </div>
 
       {/* Canvas. Os avisos ficam por cima dele, para o desenho não pular quando aparecem. */}
-      <div ref={areaRef} className="relative min-h-0 flex-1" onKeyDown={teclaNoCanvas}>
+      <div ref={areaRef} className="relative min-h-0 flex-1">
         <ContextoEditorFluxo.Provider value={contexto}>
           <ReactFlow
             nodes={nos}

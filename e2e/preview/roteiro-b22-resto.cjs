@@ -158,6 +158,8 @@ async function apagarAtendente(db, ws, id) {
   // B22-36 (baixo): Delete com 2 ou mais blocos selecionados pede confirmação
   const soltos = page.locator(".react-flow__node").filter({ hasText: "Resolver a conversa" })
   const selecionarDois = async () => {
+    // Clicar num bloco já selecionado mantém a seleção: o fundo do canvas limpa antes
+    await page.locator(".react-flow__pane").click({ position: { x: 20, y: 20 } })
     await soltos.nth(0).click()
     await soltos.nth(1).click({ modifiers: ["Control"] })
     await page.keyboard.press("Delete")
