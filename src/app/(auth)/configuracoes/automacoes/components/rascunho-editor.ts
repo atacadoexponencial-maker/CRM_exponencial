@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useSyncExternalStore } from "react"
 import { lerFluxo } from "@/lib/automacoes/fluxo-recebido"
-import { lerRepeticao } from "@/lib/fluxo-automacao"
+import { lerRepeticao, type Fluxo } from "@/lib/fluxo-automacao"
 import type { RegraEditada } from "./editor-fluxo"
 
 export interface RascunhoEditor {
@@ -40,6 +40,16 @@ function ordenarChaves(valor: unknown): unknown {
  */
 export function assinatura(regra: RegraEditada): string {
   return JSON.stringify(ordenarChaves({ nome: regra.nome.trim(), repeticao: regra.repeticao, fluxo: regra.fluxo }))
+}
+
+/**
+ * Texto que muda só quando muda o que "Testar com um contato" percorre: arrastar
+ * um bloco não conta. Diz se o resultado do teste ainda vale (B22-10).
+ */
+export function assinaturaDoCaminho(fluxo: Fluxo): string {
+  return JSON.stringify(
+    ordenarChaves({ blocos: fluxo.blocos.map((b) => ({ ...b, posicao: null })), ligacoes: fluxo.ligacoes })
+  )
 }
 
 function lerBruto(chave: string): string | null {

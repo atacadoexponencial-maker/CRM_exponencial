@@ -1161,3 +1161,25 @@ na B22-01 (seção 17), foi decidida junto.
   `repeticao` já guarda.
 - **Trocar a repetição ao trocar o gatilho também nas regras salvas.** Mudaria,
   sem a pessoa perceber, uma proteção que ela já tinha gravado.
+
+## 26. Resultado do teste vale só para o fluxo testado (B22-10, 14/10/2026)
+
+O QA de 09/10 (achado M9) mostrou que o resultado de "Testar com um contato"
+continuava no canvas depois de o fluxo mudar, e só saía em "Limpar". O caminho
+verde passava a mentir sobre o fluxo da tela.
+
+**Como ficou:**
+
+- O editor guarda, com o resultado, a assinatura do fluxo testado: blocos com os
+  parâmetros e ligações, sem a posição (`assinaturaDoCaminho`). Arrastar um bloco
+  não muda o caminho e não invalida o teste.
+- Com o fluxo diferente, o caminho sai do canvas, e a faixa diz "o fluxo mudou
+  depois do teste", com "Testar de novo" (o mesmo contato, com o fluxo de agora) e
+  "Limpar".
+
+**Descartado:**
+
+- **Apagar o resultado na primeira edição.** Quem ajusta uma condição e quer
+  conferir de novo teria de procurar o contato outra vez.
+- **Testar de novo sozinho a cada edição.** Cada teste consulta o banco; com
+  edições seguidas, viraria uma consulta por tecla.

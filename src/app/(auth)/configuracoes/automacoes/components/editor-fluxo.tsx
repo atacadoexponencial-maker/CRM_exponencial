@@ -5,6 +5,7 @@
 // contatos e quem simula vêm por parâmetro: as actions do servidor (B11-10).
 // O que não foi salvo vira rascunho no navegador e pede confirmação para sair (B22-08).
 // A proteção de repetição é escolhida no painel do gatilho (B22-09).
+// O resultado do "Testar com um contato" deixa de valer quando o fluxo muda (B22-10).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -46,7 +47,13 @@ import {
 } from "./blocos-fluxo"
 import { MenuNovoBloco, type ItemNovoBloco } from "./menu-novo-bloco"
 import { PainelBloco, type GuardarArquivo } from "./painel-bloco"
-import { apagarRascunho, assinatura, guardarRascunho, useRascunhoDaAbertura } from "./rascunho-editor"
+import {
+  apagarRascunho,
+  assinatura,
+  assinaturaDoCaminho,
+  guardarRascunho,
+  useRascunhoDaAbertura,
+} from "./rascunho-editor"
 
 export interface RegraEditada {
   nome: string
@@ -171,7 +178,12 @@ function EditorFluxoInterno({
 
   const [menu, setMenu] = useState<{ de: string; saida: Saida } | "solto" | null>(null)
   const [dialogTeste, setDialogTeste] = useState(false)
-  const [simulacao, setSimulacao] = useState<{ contato: ContatoTeste; resultado: ResultadoSimulacao } | null>(null)
+  // `caminho`: assinatura do fluxo testado, para saber se o resultado ainda vale
+  const [simulacao, setSimulacao] = useState<{
+    contato: ContatoTeste
+    resultado: ResultadoSimulacao
+    caminho: string
+  } | null>(null)
   const [avisoRepeticao, setAvisoRepeticao] = useState(false)
   const [destacarErros, setDestacarErros] = useState(false)
   const [erroNome, setErroNome] = useState(false)
@@ -198,6 +210,8 @@ function EditorFluxoInterno({
   const rascunhoAchado =
     !rascunhoResolvido && rascunhoDaAbertura && assinaturaDoRascunho !== salvo ? rascunhoDaAbertura : null
   const pendencias = useMemo(() => pendenciasDoFluxo(fluxo), [fluxo])
+  const caminhoAtual = useMemo(() => assinaturaDoCaminho(fluxo), [fluxo])
+  const simulacaoVelha = simulacao !== null && simulacao.caminho !== caminhoAtual
   const selecionado = nos.find((n) => n.selected)
 
   const contexto = useMemo(
@@ -205,11 +219,11 @@ function EditorFluxoInterno({
       opcoes,
       pendencias: pendencias.porBloco,
       destacarErros,
-      simulacao: simulacao?.resultado ?? null,
+      simulacao: simulacao && !simulacaoVelha ? simulacao.resultado : null,
       repeticao,
       aoAdicionar: (de: string, saida: Saida) => setMenu({ de, saida }),
     }),
-    [opcoes, pendencias, destacarErros, simulacao, repeticao]
+    [opcoes, pendencias, destacarErros, simulacao, simulacaoVelha, repeticao]
   )
 
   // Guarda o que não foi salvo um instante depois da última edição; sem alteração,
@@ -352,13 +366,14 @@ function EditorFluxoInterno({
   async function testar(contato: ContatoTeste) {
     setDialogTeste(false)
     setMensagem(null)
-    const { erro, resultado } = await simular(contato.id, fluxo)
+    const testado = fluxo
+    const { erro, resultado } = await simular(contato.id, testado)
     if (erro || !resultado) {
       setSimulacao(null)
       setMensagem({ tipo: "erro", texto: erro ?? "Não foi possível testar agora." })
       return
     }
-    setSimulacao({ contato, resultado })
+    setSimulacao({ contato, resultado, caminho: assinaturaDoCaminho(testado) })
   }
 
   async function tentarSalvar(aceitouAviso = false) {
@@ -500,7 +515,22 @@ function EditorFluxoInterno({
                     </Button>
                   </div>
                 )}
-                {simulacao && (
+                {simulacao && simulacaoVelha && (
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-amber-500/40 bg-background px-3 py-2 text-sm text-amber-200 shadow-sm">
+                    <span>
+                      <strong>Simulação para {simulacao.contato.nome}:</strong> o fluxo mudou depois do teste.
+                    </span>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="xs" onClick={() => testar(simulacao.contato)}>
+                        Testar de novo
+                      </Button>
+                      <Button variant="ghost" size="xs" onClick={() => setSimulacao(null)}>
+                        Limpar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {simulacao && !simulacaoVelha && (
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-emerald-500/40 bg-background px-3 py-2 text-sm text-emerald-300 shadow-sm">
                     <span>
                       <strong>Simulação para {simulacao.contato.nome}:</strong>{" "}
