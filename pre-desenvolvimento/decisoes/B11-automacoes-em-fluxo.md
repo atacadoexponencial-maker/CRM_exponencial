@@ -1438,3 +1438,9 @@ porque mudam o que já existe.
   O `conferir-b22-30-rls.cjs` fala direto com o banco como um atendente
   temporário: antes da migration, em 14/10, ele leu a regra (furo confirmado);
   depois, tem de não ler, com o admin ainda lendo.
+
+**Baixos do QA** (um commit por linha da lista):
+
+- **B22-31:** três cliques seguidos em Salvar criavam três regras: o botão só fica
+  desabilitado depois de a tela atualizar. Uma referência (`salvandoAgora`) muda na
+  hora e deixa um salvamento por vez. O teste de tela falha sem a correção.

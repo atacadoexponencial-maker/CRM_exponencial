@@ -197,6 +197,7 @@ function EditorFluxoInterno({
     avisoInicial ? { tipo: "ok", texto: avisoInicial } : null
   )
   const [salvando, setSalvando] = useState(false)
+  const salvandoAgora = useRef(false)
   const [confirmarSaida, setConfirmarSaida] = useState(false)
   // Assinatura do que está gravado no banco: a da abertura e, depois, a de cada salvamento
   const [salvo, setSalvo] = useState(() => assinatura(regraInicial))
@@ -449,9 +450,15 @@ function EditorFluxoInterno({
     }
     setAvisoRepeticao(false)
 
+    // B22-31: cliques seguidos chegam antes de o botão ficar desabilitado na tela;
+    // a referência muda na hora, e só um salvamento roda por vez
+    if (salvandoAgora.current) return
+    salvandoAgora.current = true
     setSalvando(true)
     const enviada = { nome: nome.trim(), repeticao, fluxo }
-    const resultado = await salvar(enviada)
+    const resultado = await salvar(enviada).finally(() => {
+      salvandoAgora.current = false
+    })
     setSalvando(false)
     if (resultado.erro) {
       setMensagem({ tipo: "erro", texto: resultado.erro })

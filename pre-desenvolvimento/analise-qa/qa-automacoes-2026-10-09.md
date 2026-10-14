@@ -101,6 +101,7 @@ seção 32; roteiro do preview `roteiro-b22-resto.cjs`.
 | B22-28 | M19 | Arquivo da ação: depois da pasta da empresa, só o nome que o upload gera (`%2e%2e` não passa mais) |
 | B22-29 | M20 | Até 100 blocos, 200 KB, 100 automações por empresa e 10 testes por minuto (migration `20261014000002`, aplicar no merge) |
 | B22-30 | M21 | Só o admin lê as regras (migration `20261014000003`, aplicar no merge; conferir com `conferir-b22-30-rls.cjs`) |
+| B22-31 | baixo | Cliques seguidos em Salvar criam uma regra só |
 
 Falta: os baixos.
 
@@ -179,7 +180,7 @@ limites do M20.
 
 ## ⚪ Baixos
 
-- Três cliques simultâneos em Salvar criaram 3 regras (duplo clique real cria 1).
+- [x] Três cliques simultâneos em Salvar criaram 3 regras (duplo clique real cria 1). → **B22-31 (14/10).**
 - Arquivo > 4 MB dá 500 em vez da mensagem de limite que já existe.
 - Regra nova abre com "Complete a configuração" em vermelho; bloco solto nasce em cima de outros.
 - "Iniciar sequência" com lista vazia sem orientação; "Alterar dado" vazio mostra `= ""`; tag com espaço vira "tagcomespaço" sem aviso; busca de contato não ignora acento; Delete com tudo selecionado apaga todos os blocos sem desfazer.
