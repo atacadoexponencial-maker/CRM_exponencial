@@ -1278,3 +1278,14 @@ Era melhoria fora da spec; o Luan aprovou em 14/10.
 - **Mostrar a variável como etiqueta dentro do texto (chip).** Pediria trocar o
   `textarea` por um editor rico, e o texto salvo continuaria sendo
   `{{primeiro_nome}}`.
+
+## 31. Lote 3: histórico e lista (B22-15 em diante, 14/10/2026)
+
+Os achados M12 a M18 do QA de 09/10 são da página de histórico e da lista de
+automações. Nenhum pediu decisão do Luan; cada um tem commit próprio, e os
+detalhes ficam abaixo. O roteiro do preview é um só para o lote,
+`roteiro-b22-historico.cjs`, que grava execuções direto no banco da empresa de
+teste em vez de disparar regras.
+
+- **B22-15 (M12):** o detalhe da execução só fechava com Esc ou tocando fora.
+  Ganhou o X "Fechar" no canto, como os outros diálogos com conteúdo longo.

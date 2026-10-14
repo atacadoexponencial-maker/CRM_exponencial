@@ -3,13 +3,14 @@
 // Histórico de execuções das automações (B11-03): o que cada regra fez, quando,
 // para quem e se deu certo. O detalhe mostra o caminho bloco a bloco, a partir
 // da cópia gravada na execução, então continua legível mesmo se a regra mudou ou
-// foi excluída.
+// foi excluída. O detalhe fecha pelo X, além de Esc e de tocar fora (B22-15).
 
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Check, History, X } from "lucide-react"
-import { Dialog, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import type { PassoGravado, ResultadoExecucao } from "@/lib/automacoes/execucoes"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
 import { cn } from "@/lib/utils"
@@ -151,6 +152,12 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes }: Historic
 
       <Dialog open={aberta !== null} onOpenChange={(open) => !open && setAberta(null)}>
         <DialogPopup className="max-h-[85dvh] max-w-lg overflow-y-auto">
+          <DialogClose
+            render={<Button variant="ghost" size="icon-sm" className="absolute top-3 right-3" />}
+            aria-label="Fechar"
+          >
+            <X />
+          </DialogClose>
           {aberta && <DetalheDaExecucao execucao={aberta} opcoes={opcoes} />}
         </DialogPopup>
       </Dialog>
@@ -161,7 +168,7 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes }: Historic
 function DetalheDaExecucao({ execucao, opcoes }: { execucao: ExecucaoListada; opcoes: OpcoesEditor }) {
   return (
     <>
-      <DialogTitle className="flex flex-wrap items-center gap-2">
+      <DialogTitle className="flex flex-wrap items-center gap-2 pr-8">
         {execucao.regraNome}
         <SeloResultado resultado={execucao.resultado} />
       </DialogTitle>
