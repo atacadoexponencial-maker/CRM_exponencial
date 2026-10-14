@@ -100,8 +100,9 @@ seção 32; roteiro do preview `roteiro-b22-resto.cjs`.
 | B22-27 | M8 | Escolha apagada aparece como "(não existe mais)", marca o bloco, avisa na lista e trava o "Ativar"; time apagado com motivo certo |
 | B22-28 | M19 | Arquivo da ação: depois da pasta da empresa, só o nome que o upload gera (`%2e%2e` não passa mais) |
 | B22-29 | M20 | Até 100 blocos, 200 KB, 100 automações por empresa e 10 testes por minuto (migration `20261014000002`, aplicar no merge) |
+| B22-30 | M21 | Só o admin lê as regras (migration `20261014000003`, aplicar no merge; conferir com `conferir-b22-30-rls.cjs`) |
 
-Falta: M21 e os baixos.
+Falta: os baixos.
 
 Decisões do Luan para o lote 4 (14/10): seção 32 das decisões (A7, M6, M20, M21,
 "contém" por palavra inteira, confirmação ao apagar 2 ou mais blocos e limpeza dos
@@ -174,7 +175,7 @@ limites do M20.
 **Segurança (nenhum crítico/alto)**
 - [x] M19. Trava de caminho do arquivo da ação contornada com `%2e%2e` → ação aponta para arquivo de outra empresa (precisa saber o caminho; bucket já é público por link). `referencias.ts:113`. (provado) → **Resolvido na B22-28 (14/10).**
 - [x] M20. Sem teto de tamanho/custo: fluxo de 3,5 MB salvo; simulação com 200 condições = 24 s, sem limite de frequência; sem limite de regras. (provado) → **Resolvido na B22-29 (14/10).**
-- [ ] M21. **Decisão:** gerente e atendente leem todas as regras (textos e links de arquivos) direto pela API do Supabase — RLS "membros leem" em `20261007000000_automation_flows.sql:48` x spec "só admin". (seguranca, lista)
+- [x] M21. **Decisão:** gerente e atendente leem todas as regras (textos e links de arquivos) direto pela API do Supabase — RLS "membros leem" em `20261007000000_automation_flows.sql:48` x spec "só admin". (seguranca, lista) → **Resolvido na B22-30 (14/10):** só o admin lê; a migration entra no merge do lote 4.
 
 ## ⚪ Baixos
 

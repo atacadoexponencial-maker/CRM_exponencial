@@ -1429,3 +1429,12 @@ porque mudam o que já existe.
     silêncio, sem bloquear ninguém, como já fazia.
   - Sem roteiro do preview: os limites são números altos para chegar pela tela; os
     testes unitários conferem cada um.
+- **B22-30 (M21):** a política "membros leem" de `automation_flows`, copiada das
+  regras da primeira versão, deixava gerente e atendente lerem todas as regras
+  (textos das mensagens e links dos arquivos) pela API do Supabase. A migration
+  `20261014000003_regras_so_admin_le.sql` tira essa política; o admin continua
+  lendo pela "Admin gerencia…", e o motor usa a chave de serviço. O histórico
+  (`automation_runs`) já era só do admin. **Só é aplicada no merge do lote 4.**
+  O `conferir-b22-30-rls.cjs` fala direto com o banco como um atendente
+  temporário: antes da migration, em 14/10, ele leu a regra (furo confirmado);
+  depois, tem de não ler, com o admin ainda lendo.
