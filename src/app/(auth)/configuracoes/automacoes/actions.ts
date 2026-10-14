@@ -38,6 +38,7 @@ import {
   type ResultadoSimulacao,
 } from "@/lib/fluxo-automacao"
 import { problemaDoHorario } from "@/lib/horario-comercial"
+import { chaveDoUsuario, passouDoLimite, registrarTentativa } from "@/lib/limite-de-tentativas"
 import { sessaoAtual } from "@/lib/sessao"
 import type { ContatoTeste } from "./components/editor-fluxo"
 import type { RegraListada } from "./components/lista-regras"
@@ -87,7 +88,26 @@ function nomeDaCopia(nome: string): string {
 async function adminDaSessao() {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user || perfil?.role !== "admin") return null
-  return { supabase, workspaceId: perfil.workspace_id }
+  return { supabase, workspaceId: perfil.workspace_id, usuarioId: user.id }
+}
+
+// B22-29: limites para uma automação não pesar o sistema (decididos pelo Luan em 14/10)
+const TAMANHO_MAXIMO_DO_FLUXO = 200 * 1024
+const AUTOMACOES_POR_EMPRESA = 100
+const TESTES_POR_MINUTO = 10
+
+const FLUXO_GRANDE_DEMAIS = "A automação passou do tamanho máximo (200 KB). Encurte os textos ou divida em duas."
+const LIMITE_DE_AUTOMACOES = `A empresa chegou ao limite de ${AUTOMACOES_POR_EMPRESA} automações. Exclua uma para criar outra.`
+
+/** Tamanho do fluxo como chega do editor, antes de qualquer conferência. */
+const grandeDemais = (fluxo: unknown) => (JSON.stringify(fluxo ?? null)?.length ?? 0) > TAMANHO_MAXIMO_DO_FLUXO
+
+async function chegouAoLimiteDeAutomacoes({ supabase, workspaceId }: Admin): Promise<boolean> {
+  const { count } = await supabase
+    .from("automation_flows")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId)
+  return (count ?? 0) >= AUTOMACOES_POR_EMPRESA
 }
 
 type Admin = NonNullable<Awaited<ReturnType<typeof adminDaSessao>>>
@@ -304,6 +324,7 @@ export async function salvarRegra(dados: {
   if (!admin) return { erro: SEM_PERMISSAO }
   const { supabase, workspaceId } = admin
 
+  if (grandeDemais(dados.fluxo)) return { erro: FLUXO_GRANDE_DEMAIS }
   const nome = dados.nome.trim()
   if (!nome) return { erro: "Dê um nome à automação" }
   if (nome.length > NOME_MAXIMO) return { erro: `O nome pode ter até ${NOME_MAXIMO} caracteres` }
@@ -337,6 +358,7 @@ export async function salvarRegra(dados: {
     return { id: data.id }
   }
 
+  if (await chegouAoLimiteDeAutomacoes(admin)) return { erro: LIMITE_DE_AUTOMACOES }
   const { data, error } = await supabase
     .from("automation_flows")
     .insert({ workspace_id: workspaceId, nome, fluxo: paraJson(fluxo), repeticao: repeticaoJson, ativa: true })
@@ -394,6 +416,7 @@ export async function duplicarRegra(id: string): Promise<{ erro?: string }> {
   if (!data) return { erro: "Esta automação não existe mais." }
   const fluxo = lerFluxo(data.fluxo)
   if (!fluxo) return { erro: "O fluxo desta automação está fora do formato e não pode ser duplicado." }
+  if (await chegouAoLimiteDeAutomacoes(admin)) return { erro: LIMITE_DE_AUTOMACOES }
 
   const { error } = await supabase.from("automation_flows").insert({
     workspace_id: workspaceId,
@@ -498,6 +521,14 @@ export async function simularRegra(
 ): Promise<{ erro?: string; resultado?: ResultadoSimulacao }> {
   const admin = await adminDaSessao()
   if (!admin) return { erro: SEM_PERMISSAO }
+  if (grandeDemais(fluxoRecebido)) return { erro: FLUXO_GRANDE_DEMAIS }
+
+  // B22-29: cada teste consulta o banco a cada condição; até 10 por minuto por pessoa
+  const chave = chaveDoUsuario(admin.usuarioId)
+  if (await passouDoLimite("teste_automacao", [{ chave, limite: TESTES_POR_MINUTO }], 1)) {
+    return { erro: "Muitos testes seguidos. Espere um minuto e teste de novo." }
+  }
+  await registrarTentativa("teste_automacao", [chave])
 
   const fluxo = lerFluxo(fluxoRecebido)
   if (!fluxo) return { erro: "O desenho da automação veio num formato inválido. Recarregue a página." }

@@ -1413,3 +1413,19 @@ porque mudam o que já existe.
   nome como o que o upload gera: letras, números, ponto, hífen e sublinhado, sem
   barra, sem `%` e sem ser só pontos. Em 14/10 nenhuma regra da produção tinha
   arquivo, então nada salvo deixou de valer.
+- **B22-29 (M20):** não havia teto: o QA salvou um fluxo de 3,5 MB, testou 200
+  condições em 24 s, sem limite de frequência, e não havia limite de regras. Com
+  os valores do Luan:
+  - **Até 100 blocos:** virou pendência do fluxo (`BLOCOS_POR_AUTOMACAO`), então
+    o editor avisa, o Salvar recusa e o motor não roda. O formato aceito pelo
+    `lerFluxo` continua em 200, para uma regra grande não sumir da lista.
+  - **Até 200 KB:** o Salvar e o Testar medem o fluxo como chega, antes de
+    qualquer conferência.
+  - **Até 100 automações por empresa:** conferido ao criar e ao duplicar.
+  - **Até 10 testes por minuto por pessoa:** pelo contador de tentativas da B20-05
+    (`teste_automacao`, chave pelo id da pessoa). A migration
+    `20261014000002_limite_de_testes_da_automacao.sql` acrescenta o tipo à regra
+    da tabela; **só é aplicada no merge do lote 4**, e até lá o contador falha em
+    silêncio, sem bloquear ninguém, como já fazia.
+  - Sem roteiro do preview: os limites são números altos para chegar pela tela; os
+    testes unitários conferem cada um.
