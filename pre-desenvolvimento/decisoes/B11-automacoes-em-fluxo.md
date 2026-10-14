@@ -1183,3 +1183,27 @@ verde passava a mentir sobre o fluxo da tela.
   conferir de novo teria de procurar o contato outra vez.
 - **Testar de novo sozinho a cada edição.** Cada teste consulta o banco; com
   edições seguidas, viraria uma consulta por tecla.
+
+## 27. Testar só o fluxo completo (B22-11, 14/10/2026)
+
+O QA de 09/10 (achado M10) testou um fluxo que não poderia ser salvo: uma
+condição sem verificação contava como "sim", e o resultado mostrava um caminho que
+nenhuma regra salva faria.
+
+**Como ficou:**
+
+- **No servidor**, `simularRegra` confere as mesmas pendências do Salvar
+  (`pendenciasDoFluxo`) antes de consultar o banco, e recusa com "Complete o fluxo
+  antes de testar: …".
+- **Na tela**, "Testar com um contato" e "Testar de novo" marcam os blocos com
+  pendência e dizem o que falta ("Corrija o bloco marcado antes de testar"), sem
+  abrir a busca de contato. O Salvar e o Testar usam as mesmas frases.
+- O nome da automação não conta para testar.
+
+**Descartado:**
+
+- **Testar mesmo assim, com um aviso.** O caminho mostrado seria o de um fluxo que
+  o motor nunca roda, que é o defeito do achado.
+- **Conferir também as referências (etiqueta, atendente) ao testar.** O Salvar
+  confere; para o teste, uma referência apagada já aparece como pendência ou falha
+  da ação no resultado, e a conferência custaria mais consultas a cada teste.

@@ -49,6 +49,7 @@ decisões.
 | B22-08 | A5, U2 | "Alterações não salvas", confirmação ao sair pelo "Automações", aviso do navegador ao fechar a aba e rascunho no navegador (seção 24) |
 | B22-09 | G1 (padrão) | Repetição no painel do gatilho, com rótulo, e frase no bloco; regra nova em "sempre" nos gatilhos de mensagem (seção 25) |
 | B22-10 | M9 | Resultado do teste sai do canvas quando o fluxo muda, com "Testar de novo" (seção 26) |
+| B22-11 | M10 | Testar só com o fluxo completo, conferido no servidor e marcado na tela (seção 27) |
 
 Verificado na B22-08: 704 testes unitários, lint de `src` e `e2e` e build com
 código 0. No preview, o `roteiro-b22-08.cjs` (28 verificações) e os 7 roteiros
@@ -60,7 +61,7 @@ fora no lote 1.
 ### A fazer
 
 **Lote 2, editor** (continua):
-- M10, M11.
+- M11.
 - U1 (duplicar blocos) e U3 (botões de variável): são melhorias fora da spec;
   confirmar com Luan e Marcelle se entram.
 
@@ -87,7 +88,7 @@ filtrar só pelo prefixo `[TESTE]`.**
 
 ### Onde retomar
 
-Continuar o lote 2 no branch `b22-lote-editor`, pelo M10.
+Continuar o lote 2 no branch `b22-lote-editor`, pelo M11.
 
 ---
 
@@ -121,7 +122,7 @@ Continuar o lote 2 no branch `b22-lote-editor`, pelo M10.
 
 **Editor**
 - [x] M9. Resultado de "Testar com um contato" fica velho após editar o fluxo (só some em "Limpar"). (editor) → **Resolvido na B22-10 (14/10):** com o fluxo diferente, o caminho sai do canvas e a faixa oferece "Testar de novo".
-- [ ] M10. Simulação roda em fluxo que não poderia ser salvo (condição vazia = "sim"). `actions.ts:462`. (editor)
+- [x] M10. Simulação roda em fluxo que não poderia ser salvo (condição vazia = "sim"). `actions.ts:462`. (editor) → **Resolvido na B22-11 (14/10):** o servidor recusa e a tela marca o que falta antes de testar.
 - [ ] M11. Campo "N horas" não deixa apagar (vira "1" → digitar 48 dá 148); aceita 1,5 e 99999 até o servidor recusar. `editor-fluxo.tsx:352`. (editor)
 
 **Lista e histórico**

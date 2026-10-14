@@ -5,7 +5,8 @@
 // contatos e quem simula vêm por parâmetro: as actions do servidor (B11-10).
 // O que não foi salvo vira rascunho no navegador e pede confirmação para sair (B22-08).
 // A proteção de repetição é escolhida no painel do gatilho (B22-09).
-// O resultado do "Testar com um contato" deixa de valer quando o fluxo muda (B22-10).
+// O resultado do "Testar com um contato" deixa de valer quando o fluxo muda (B22-10),
+// e o teste só roda com o fluxo completo, como o Salvar (B22-11).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -376,20 +377,33 @@ function EditorFluxoInterno({
     setSimulacao({ contato, resultado, caminho: assinaturaDoCaminho(testado) })
   }
 
+  /** O que falta no fluxo, em frases, para o Salvar e o Testar. */
+  function frasesDasPendencias(): string[] {
+    const blocosComProblema = Object.keys(pendencias.porBloco).length
+    const partes: string[] = []
+    if (blocosComProblema > 0) {
+      partes.push(blocosComProblema === 1 ? "Corrija o bloco marcado" : `Corrija os ${blocosComProblema} blocos marcados`)
+    }
+    return [...partes, ...pendencias.gerais]
+  }
+
+  /** Fluxo incompleto não é testado: marca os blocos e diz o que falta. */
+  function podeTestar(): boolean {
+    const partes = frasesDasPendencias()
+    if (partes.length === 0) return true
+    setDestacarErros(true)
+    setMensagem({ tipo: "erro", texto: `${partes.join(". ")} antes de testar` })
+    return false
+  }
+
   async function tentarSalvar(aceitouAviso = false) {
     setMensagem(null)
     const nomeOk = nome.trim() !== ""
-    const blocosComProblema = Object.keys(pendencias.porBloco).length
     setErroNome(!nomeOk)
+    const partes = [...(nomeOk ? [] : ["Dê um nome à automação"]), ...frasesDasPendencias()]
 
-    if (!nomeOk || blocosComProblema > 0 || pendencias.gerais.length > 0) {
+    if (partes.length > 0) {
       setDestacarErros(true)
-      const partes: string[] = []
-      if (!nomeOk) partes.push("Dê um nome à automação")
-      if (blocosComProblema > 0) {
-        partes.push(blocosComProblema === 1 ? "Corrija o bloco marcado" : `Corrija os ${blocosComProblema} blocos marcados`)
-      }
-      partes.push(...pendencias.gerais)
       setMensagem({ tipo: "erro", texto: partes.join(". ") })
       return
     }
@@ -446,7 +460,7 @@ function EditorFluxoInterno({
             <Plus />
             <span className="hidden md:inline">Adicionar bloco</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setDialogTeste(true)}>
+          <Button variant="outline" size="sm" onClick={() => podeTestar() && setDialogTeste(true)}>
             <FlaskConical />
             <span className="hidden md:inline">Testar com um contato</span>
             <span className="md:hidden">Testar</span>
@@ -521,7 +535,7 @@ function EditorFluxoInterno({
                       <strong>Simulação para {simulacao.contato.nome}:</strong> o fluxo mudou depois do teste.
                     </span>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="xs" onClick={() => testar(simulacao.contato)}>
+                      <Button variant="outline" size="xs" onClick={() => podeTestar() && testar(simulacao.contato)}>
                         Testar de novo
                       </Button>
                       <Button variant="ghost" size="xs" onClick={() => setSimulacao(null)}>

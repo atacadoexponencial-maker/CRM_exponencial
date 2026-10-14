@@ -475,6 +475,10 @@ export async function simularRegra(
 
   const fluxo = lerFluxo(fluxoRecebido)
   if (!fluxo) return { erro: "O desenho da automação veio num formato inválido. Recarregue a página." }
+  // O que não pode ser salvo também não é testado: uma condição vazia, por exemplo, daria "sim" (B22-11)
+  const pendencias = pendenciasDoFluxo(fluxo)
+  const problemas = [...pendencias.gerais, ...Object.values(pendencias.porBloco).flat()]
+  if (problemas.length > 0) return { erro: `Complete o fluxo antes de testar: ${[...new Set(problemas)].join(". ")}` }
 
   const { data: contato } = await admin.supabase
     .from("contacts")
