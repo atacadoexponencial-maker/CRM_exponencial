@@ -114,6 +114,7 @@ seção 32; roteiro do preview `roteiro-b22-resto.cjs`.
 | B22-41 | baixo | "Na última hora"; horário comercial o dia inteiro; descartados saem da fila em 7 dias |
 | B22-42 | baixo | Regra já apagada: "não existe mais"; nome longo sem espaço cabe no celular |
 | B22-43 | baixo | No Ganho, as regras do card da Entrada rodam antes das do card da Recompra |
+| B22-44 | baixo | Entrada malformada nas actions responde "Pedido inválido", sem erro 500 |
 
 Falta: os baixos.
 
@@ -202,7 +203,7 @@ limites do M20.
 - [x] Motivo "últimas 1 horas"; não dá para configurar horário 24 h; linhas descartadas ficam na fila para sempre. → **B22-41 (14/10).**
 - [x] Agir em regra já apagada mostra "Tente novamente"; nome longo sem espaço estoura a lista no celular. → **B22-42 (14/10).**
 - [x] Ganho: regras do card novo da Recompra rodam antes das do card da Entrada. → **B22-43 (14/10).**
-- Entrada malformada nas actions dá 500 (`actions.ts:504`, `:290`).
+- [x] Entrada malformada nas actions dá 500 (`actions.ts:504`, `:290`). → **B22-44 (14/10).**
 - Webhook da Meta sem registro de evento: reentrega pode disparar "conversa criada" de novo (suspeita).
 
 ## ✅ O que aguentou

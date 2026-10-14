@@ -1523,3 +1523,7 @@ porque mudam o que já existe.
   card da Entrada, porque o evento dele entrava na fila primeiro. O `moverCard`
   passou a disparar o card movido antes de criar o da Recompra; a fila roda os
   eventos do contato na ordem em que entram.
+- **B22-44:** as actions das automações podem ser chamadas por fora da tela, e uma
+  entrada malformada (nome que não é texto, período que não é número) quebrava com
+  erro 500. Cada action confere o tipo do que recebe e responde "Pedido inválido.
+  Recarregue a página."; o histórico com período estranho volta a 30 dias.

@@ -90,6 +90,11 @@ function padraoSemAcento(texto: string): string {
   return texto.replace(/[aeioucnáàâãäéèêëíìîïóòôõöúùûüçñ]/giu, "_")
 }
 
+// B22-44: as actions podem ser chamadas por fora da tela, com qualquer coisa; o que
+// não tem o formato esperado volta com esta mensagem, e não com erro 500
+const PEDIDO_INVALIDO = "Pedido inválido. Recarregue a página."
+const ehTexto = (valor: unknown): valor is string => typeof valor === "string"
+
 const NOME_MAXIMO = 120
 const SUFIXO_DA_COPIA = " (cópia)"
 
@@ -306,6 +311,7 @@ export async function guardarArquivoDaAutomacao(
 ): Promise<{ erro?: string; arquivo?: { url: string; nome: string; tipo: "imagem" | "documento" } }> {
   const admin = await adminDaSessao()
   if (!admin) return { erro: SEM_PERMISSAO }
+  if (!(formData instanceof FormData)) return { erro: PEDIDO_INVALIDO }
 
   const arquivo = formData.get("arquivo")
   if (!(arquivo instanceof File) || arquivo.size === 0) return { erro: "Escolha um arquivo." }
@@ -339,6 +345,9 @@ export async function salvarRegra(dados: {
   if (!admin) return { erro: SEM_PERMISSAO }
   const { supabase, workspaceId } = admin
 
+  if (!dados || typeof dados !== "object" || !ehTexto(dados.nome) || (dados.id !== null && !ehTexto(dados.id))) {
+    return { erro: PEDIDO_INVALIDO }
+  }
   if (grandeDemais(dados.fluxo)) return { erro: FLUXO_GRANDE_DEMAIS }
   const nome = dados.nome.trim()
   if (!nome) return { erro: "Dê um nome à automação" }
@@ -418,6 +427,7 @@ async function limparArquivosSemUso({ supabase, workspaceId }: Admin): Promise<v
 export async function alternarRegra(id: string, ativa: boolean): Promise<{ erro?: string }> {
   const admin = await adminDaSessao()
   if (!admin) return { erro: SEM_PERMISSAO }
+  if (!ehTexto(id) || typeof ativa !== "boolean") return { erro: PEDIDO_INVALIDO }
 
   // B22-27: ativar confere as escolhas como o Salvar (etiqueta, time, mensagem
   // rápida… apagados depois). Pausar não confere: tem de funcionar sempre.
@@ -453,6 +463,7 @@ export async function alternarRegra(id: string, ativa: boolean): Promise<{ erro?
 export async function duplicarRegra(id: string): Promise<{ erro?: string }> {
   const admin = await adminDaSessao()
   if (!admin) return { erro: SEM_PERMISSAO }
+  if (!ehTexto(id)) return { erro: PEDIDO_INVALIDO }
   const { supabase, workspaceId } = admin
 
   const { data } = await supabase
@@ -481,6 +492,7 @@ export async function duplicarRegra(id: string): Promise<{ erro?: string }> {
 export async function excluirRegra(id: string): Promise<{ erro?: string }> {
   const admin = await adminDaSessao()
   if (!admin) return { erro: SEM_PERMISSAO }
+  if (!ehTexto(id)) return { erro: PEDIDO_INVALIDO }
 
   const { data, error } = await admin.supabase
     .from("automation_flows")
@@ -534,7 +546,7 @@ export async function salvarHorarioComercial(dados: unknown): Promise<{ erro?: s
  */
 export async function buscarContatosTeste(texto: string): Promise<ContatoTeste[]> {
   const admin = await adminDaSessao()
-  if (!admin) return []
+  if (!admin || !ehTexto(texto)) return []
   const { supabase, workspaceId } = admin
 
   let consulta = supabase
@@ -578,6 +590,7 @@ export async function simularRegra(
 ): Promise<{ erro?: string; resultado?: ResultadoSimulacao }> {
   const admin = await adminDaSessao()
   if (!admin) return { erro: SEM_PERMISSAO }
+  if (!ehTexto(contatoId)) return { erro: PEDIDO_INVALIDO }
   if (grandeDemais(fluxoRecebido)) return { erro: FLUXO_GRANDE_DEMAIS }
 
   // B22-29: cada teste consulta o banco a cada condição; até 10 por minuto por pessoa
@@ -654,6 +667,13 @@ export async function listarExecucoes(
   const admin = await adminDaSessao()
   if (!admin) return { execucoes: [], erro: SEM_PERMISSAO }
   const { supabase, workspaceId } = admin
+  // Período fora de 7 ou 30 dias quebrava a data da consulta (B22-44)
+  if (!filtros || typeof filtros !== "object") return { execucoes: [], erro: PEDIDO_INVALIDO }
+  filtros = {
+    dias: filtros.dias === 7 ? 7 : 30,
+    regraId: ehTexto(filtros.regraId) ? filtros.regraId : undefined,
+    resultado: (["concluida", "falhou", "ignorada"] as const).find((r) => r === filtros.resultado),
+  }
 
   let consulta = supabase
     .from("automation_runs")
