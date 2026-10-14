@@ -111,7 +111,9 @@ export function fraseAcao(bloco: BlocoAcao, opcoes: OpcoesEditor): string {
       return p.label_id ? `Remover a etiqueta "${nomeOuApagado(opcoes.etiquetas, p.label_id)}"` : rotulo
     case "alterar_dado_contato":
       if (!p.campo) return rotulo
-      if (p.campo === "observacoes") return `Acrescentar às observações: "${trecho(p.valor ?? "", 40)}"`
+      // B22-34: sem valor ainda, a frase diz o que falta, e não `= ""`
+      if (!p.valor) return `Alterar ${rotuloCampoContato(p.campo).toLowerCase()} do contato`
+      if (p.campo === "observacoes") return `Acrescentar às observações: "${trecho(p.valor, 40)}"`
       return `${rotuloCampoContato(p.campo)} do contato = "${valorDoCampo(p.campo, p.valor, opcoes)}"`
     case "atribuir_atendente":
       return p.atendente_id ? `Atribuir a ${nomeOuApagado(opcoes.atendentes, p.atendente_id)}` : rotulo

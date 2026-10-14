@@ -1456,3 +1456,9 @@ porque mudam o que já existe.
   reproduziu pelo código (a posição livre já é procurada desde a B11-01); o
   roteiro do lote 4 adiciona três blocos soltos seguidos e confere que nenhum
   cobre outro.
+- **B22-34:** três orientações no painel. Lista da empresa vazia (sequências,
+  mensagens rápidas, etiquetas, times) diz que não há nenhuma e leva para onde
+  criar, em vez de um seletor sem opção. "Alterar dado" com o campo escolhido e
+  sem valor mostra "Alterar cidade do contato", e não `= ""`. Tag digitada com
+  espaço continua sem o espaço, como a tela do contato grava, mas agora o painel
+  avisa e sugere hífen.
