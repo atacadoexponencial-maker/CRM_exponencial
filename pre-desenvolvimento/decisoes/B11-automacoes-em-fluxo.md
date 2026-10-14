@@ -1449,3 +1449,10 @@ porque mudam o que já existe.
   para `referencias.ts` (`LIMITE_DO_ARQUIVO`, 4 MB menos 16 KB de folga para o
   resto do formulário), e a tela confere antes de subir, com a mesma mensagem do
   servidor.
+- **B22-33:** a regra nova abria com "Complete a configuração" em vermelho no
+  gatilho, antes de a pessoa fazer qualquer coisa. Até a primeira tentativa de
+  salvar, o que falta no bloco aparece em cinza, como orientação; depois, em
+  vermelho, como antes. O bloco solto "nascendo em cima de outros" não se
+  reproduziu pelo código (a posição livre já é procurada desde a B11-01); o
+  roteiro do lote 4 adiciona três blocos soltos seguidos e confere que nenhum
+  cobre outro.

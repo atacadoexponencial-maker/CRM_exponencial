@@ -103,6 +103,7 @@ seção 32; roteiro do preview `roteiro-b22-resto.cjs`.
 | B22-30 | M21 | Só o admin lê as regras (migration `20261014000003`, aplicar no merge; conferir com `conferir-b22-30-rls.cjs`) |
 | B22-31 | baixo | Cliques seguidos em Salvar criam uma regra só |
 | B22-32 | baixo | Arquivo acima de 4 MB avisa na tela, sem erro 500 |
+| B22-33 | baixo | Regra nova sem vermelho antes de tentar salvar; blocos soltos conferidos no preview |
 
 Falta: os baixos.
 
@@ -183,7 +184,7 @@ limites do M20.
 
 - [x] Três cliques simultâneos em Salvar criaram 3 regras (duplo clique real cria 1). → **B22-31 (14/10).**
 - [x] Arquivo > 4 MB dá 500 em vez da mensagem de limite que já existe. → **B22-32 (14/10).**
-- Regra nova abre com "Complete a configuração" em vermelho; bloco solto nasce em cima de outros.
+- [x] Regra nova abre com "Complete a configuração" em vermelho; bloco solto nasce em cima de outros. → **B22-33 (14/10).**
 - "Iniciar sequência" com lista vazia sem orientação; "Alterar dado" vazio mostra `= ""`; tag com espaço vira "tagcomespaço" sem aviso; busca de contato não ignora acento; Delete com tudo selecionado apaga todos os blocos sem desfazer.
 - Arquivos escolhidos e trocados ficam no armazenamento para sempre; upload confia no tipo declarado.
 - `{{ nome_contato }}` com espaço vai literal; contato chamado `{{nome_vendedor}}` vira o nome do vendedor.

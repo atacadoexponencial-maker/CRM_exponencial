@@ -137,6 +137,24 @@ async function apagarAtendente(db, ws, id) {
   r.confere("B22-27: e fica marcado com o problema", (await blocoEtiqueta.innerText()).includes("foi apagada ou desativada"))
   await db.from("automation_flows").delete().eq("workspace_id", ws).eq("id", comEtiqueta.id)
 
+  // B22-33 (baixo): regra nova sem pendência em vermelho; blocos soltos não se cobrem
+  await page.goto(`${URL_PREVIEW}/configuracoes/automacoes/nova`, { waitUntil: "networkidle" })
+  await page.waitForSelector(".react-flow__node")
+  r.confere("B22-33: regra nova abre sem texto em vermelho", (await page.locator(".react-flow__node .text-destructive").count()) === 0)
+  for (let i = 0; i < 3; i++) {
+    await page.getByRole("button", { name: "Adicionar bloco" }).click()
+    await page.getByRole("dialog").getByRole("button", { name: "Resolver a conversa", exact: true }).click()
+    await page.waitForTimeout(400)
+    const fechar = page.getByRole("button", { name: "Fechar painel" })
+    if (await fechar.count()) await fechar.click()
+  }
+  const caixas = await page.locator(".react-flow__node").evaluateAll((nos) => nos.map((n) => n.getBoundingClientRect().toJSON()))
+  const cobre = (a, b) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
+  const sobrepostos = caixas.flatMap((a, i) => caixas.slice(i + 1).filter((b) => cobre(a, b)).map(() => i))
+  r.confere("B22-33: blocos soltos não nascem em cima de outros", caixas.length === 4 && sobrepostos.length === 0, JSON.stringify(caixas.map((c) => [Math.round(c.x), Math.round(c.y)])))
+  await page.getByRole("button", { name: "Salvar", exact: true }).click()
+  r.confere("B22-33: depois de tentar salvar, a pendência fica vermelha", (await page.locator(".react-flow__node .text-destructive").count()) > 0)
+
   r.confere("sem erro no console", erros.length === 0, erros.join(" | "))
   await browser.close()
   process.exit(r.imprimir() ? 1 : 0)
