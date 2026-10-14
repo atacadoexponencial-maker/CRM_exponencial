@@ -65,9 +65,10 @@ fora no lote 1.
 
 ### A fazer
 
-### Em andamento: lote 3, histórico e lista
+### Feito: lote 3, histórico e lista (no ar desde 14/10/2026)
 
-Branch `b22-lote-historico`, aberto em 14/10/2026 a partir do `master`. Decisões
+Branch `b22-lote-historico`, aberto em 14/10/2026 a partir do `master` e juntado
+nele no mesmo dia, com aprovação do Luan. Decisões
 na seção 31; roteiro do preview `roteiro-b22-historico.cjs`.
 
 | Issue | Achado | O que mudou |
@@ -79,6 +80,10 @@ na seção 31; roteiro do preview `roteiro-b22-historico.cjs`.
 | B22-19 | M16 | Filtro mostra o nome da regra excluída; `?regra=` desconhecida é ignorada com aviso; erro do banco aparece |
 | B22-20 | M17 | Lista vazia pelo filtro diz isso e oferece "Limpar filtros" |
 | B22-21 | M18 | Interruptor muda na hora e mostra "Salvando…" até o servidor responder |
+
+Verificado no fim do lote: 748 testes unitários, lint de `src` e `e2e` e build
+com código 0. No preview, o `roteiro-b22-historico.cjs` (16 verificações) e os 7
+roteiros do lote 1 (72 verificações) passaram.
 
 **Lote 4, o resto:** A7 (card de Recompra que o atendente não consegue criar
 ao arrastar para Ganho), M3, M4, M5, M6, M8, segurança (M19, M20, M21) e os baixos.
@@ -103,7 +108,9 @@ filtrar só pelo prefixo `[TESTE]`.**
 
 ### Onde retomar
 
-Lote 3 (M12 a M18), num branch `b22-lote-historico` a partir do `master`.
+Lote 4 (A7, M3 a M6, M8, M19 a M21 e os baixos), num branch `b22-lote-resto` a
+partir do `master`. Antes, perguntar ao Luan: "contém" por palavra inteira e os
+limites do M20.
 
 ---
 
