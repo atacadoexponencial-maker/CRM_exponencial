@@ -93,8 +93,8 @@ interface EditorFluxoProps {
 const ESPACO_VERTICAL = 90
 const DESVIO_LATERAL = 170
 
-// A cópia nasce um pouco abaixo e ao lado do original (e desce até achar espaço livre)
-const DESLOCAMENTO_COPIA = 40
+// A cópia nasce à direita do original, sem cobrir o "+" da saída dele (e desce até achar espaço livre)
+const DISTANCIA_DA_COPIA = 40
 
 // Espera depois da última edição antes de guardar o rascunho
 const ESPERA_RASCUNHO_MS = 1000
@@ -360,8 +360,9 @@ function EditorFluxoInterno({
     const bloco = original.data.bloco
     if (bloco.tipo === "gatilho") return
     const id = crypto.randomUUID()
+    const largura = original.measured?.width ?? LARGURA_BLOCO
     const posicao = posicaoLivre(
-      { x: original.position.x + DESLOCAMENTO_COPIA, y: original.position.y + DESLOCAMENTO_COPIA },
+      { x: original.position.x + largura + DISTANCIA_DA_COPIA, y: original.position.y },
       nos
     )
     const copia = copiaDoBloco(bloco, id, posicao, () => crypto.randomUUID())

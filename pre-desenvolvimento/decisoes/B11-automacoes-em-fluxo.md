@@ -1240,8 +1240,9 @@ melhoria fora da spec; o Luan aprovou em 14/10.
   bloco". O gatilho não tem: a regra só tem um.
 - A cópia leva os mesmos parâmetros e verificações (`copiaDoBloco`, em
   `src/lib/fluxo-automacao.ts`), com id novo para o bloco e para cada
-  verificação. Nasce solta, um pouco abaixo e ao lado do original, e
-  selecionada, para a pessoa ligar onde quiser.
+  verificação. Nasce solta, à direita do original, e selecionada, para a pessoa
+  ligar onde quiser. Embaixo do original ela cobriria o "+" da saída dele (visto
+  no roteiro do preview).
 - Na ação de imagem ou documento, a cópia aponta para o mesmo arquivo.
 
 **Descartado:**

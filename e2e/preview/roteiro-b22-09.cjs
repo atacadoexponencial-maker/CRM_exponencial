@@ -57,7 +57,7 @@ const PREFIXO = "B22-09"
 
   // Escolhida à mão, a repetição fica quando o gatilho muda
   await escolher(page, "#painel-repeticao", "No máximo a cada N horas por contato")
-  r.confere("'a cada N horas' mostra o campo de horas", (await page.getByRole("spinbutton", { name: "Horas entre execuções" }).inputValue()) === "24")
+  r.confere("'a cada N horas' mostra o campo de horas", (await page.getByRole("textbox", { name: "Horas entre execuções" }).inputValue()) === "24")
   r.confere("o bloco mostra as horas", (await blocoGatilho().innerText()).includes("Repetição: no máximo a cada 24 horas"))
   await escolher(page, "#painel-gatilho", "Conversa criada")
   r.confere("escolhida à mão, a repetição fica ao trocar o gatilho", (await repeticao()).includes("No máximo a cada N horas"), await repeticao())
