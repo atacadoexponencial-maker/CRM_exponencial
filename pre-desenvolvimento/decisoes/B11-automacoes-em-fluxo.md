@@ -1467,3 +1467,9 @@ porque mudam o que já existe.
   `_` (uma letra qualquer), a consulta traz até 50, e o servidor fica só com quem
   casa por `normalizarTexto`, a mesma das verificações de texto. Descartado: a
   extensão `unaccent`, que pediria migration para um campo de busca.
+- **B22-36:** Delete com vários blocos selecionados apagava todos sem perguntar.
+  Pelo `onBeforeDelete` do React Flow, apagar 2 ou mais blocos de uma vez abre
+  "Apagar N blocos?"; um bloco só continua direto, e o "Remover bloco" do painel
+  também. Desfazer (Ctrl+Z) ficou de fora, como o Luan decidiu. Conferido no
+  roteiro do preview (seleção com Ctrl e Delete), porque o jsdom não roda o
+  teclado do React Flow.

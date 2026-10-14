@@ -199,6 +199,10 @@ function EditorFluxoInterno({
   const [salvando, setSalvando] = useState(false)
   const salvandoAgora = useRef(false)
   const [confirmarSaida, setConfirmarSaida] = useState(false)
+  // B22-36: apagar 2 ou mais blocos de uma vez espera a resposta da pessoa
+  const [confirmarApagar, setConfirmarApagar] = useState<{ quantos: number; responder: (sim: boolean) => void } | null>(
+    null
+  )
   // Assinatura do que está gravado no banco: a da abertura e, depois, a de cada salvamento
   const [salvo, setSalvo] = useState(() => assinatura(regraInicial))
   const rascunhoDaAbertura = useRascunhoDaAbertura(chaveRascunho)
@@ -302,6 +306,18 @@ function EditorFluxoInterno({
     apagarRascunho(chaveRascunho)
     setConfirmarSaida(false)
     onVoltar()
+  }
+
+  // Apagar um bloco continua direto; 2 ou mais pedem confirmação (decidido pelo Luan em 14/10)
+  const antesDeApagar = useCallback(({ nodes }: { nodes: NoFluxo[]; edges: LigacaoFluxo[] }) => {
+    const quantos = nodes.filter((n) => n.type !== "gatilho").length
+    if (quantos < 2) return Promise.resolve(true)
+    return new Promise<boolean>((responder) => setConfirmarApagar({ quantos, responder }))
+  }, [])
+
+  function responderApagar(sim: boolean) {
+    confirmarApagar?.responder(sim)
+    setConfirmarApagar(null)
   }
 
   // Ligar uma saída que já tinha seta troca a ligação antiga pela nova
@@ -526,6 +542,7 @@ function EditorFluxoInterno({
             onConnect={onConnect}
             isValidConnection={ligacaoValida}
             deleteKeyCode={["Backspace", "Delete"]}
+            onBeforeDelete={antesDeApagar}
             colorMode="dark"
             fitView
             fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
@@ -652,6 +669,24 @@ function EditorFluxoInterno({
             <DialogClose render={<Button variant="outline" />}>Continuar editando</DialogClose>
             <Button variant="destructive" onClick={sairSemSalvar}>
               Sair sem salvar
+            </Button>
+          </div>
+        </DialogPopup>
+      </Dialog>
+
+      {/* Apagar vários blocos */}
+      <Dialog open={confirmarApagar !== null} onOpenChange={(aberto) => !aberto && responderApagar(false)}>
+        <DialogPopup className="max-w-md">
+          <DialogTitle className="mb-2">Apagar {confirmarApagar?.quantos} blocos?</DialogTitle>
+          <DialogDescription className="mb-4">
+            Os blocos selecionados e as ligações deles saem do fluxo. Não dá para desfazer.
+          </DialogDescription>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => responderApagar(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={() => responderApagar(true)}>
+              Apagar
             </Button>
           </div>
         </DialogPopup>

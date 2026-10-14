@@ -155,6 +155,28 @@ async function apagarAtendente(db, ws, id) {
   await page.getByRole("button", { name: "Salvar", exact: true }).click()
   r.confere("B22-33: depois de tentar salvar, a pendência fica vermelha", (await page.locator(".react-flow__node .text-destructive").count()) > 0)
 
+  // B22-36 (baixo): Delete com 2 ou mais blocos selecionados pede confirmação
+  const soltos = page.locator(".react-flow__node").filter({ hasText: "Resolver a conversa" })
+  const selecionarDois = async () => {
+    await soltos.nth(0).click()
+    await soltos.nth(1).click({ modifiers: ["Control"] })
+    await page.keyboard.press("Delete")
+  }
+  await selecionarDois()
+  const confirmacao = page.getByRole("dialog").filter({ hasText: "Apagar 2 blocos?" })
+  await confirmacao.waitFor({ timeout: 5000 })
+  r.confere("B22-36: apagar 2 blocos pede confirmação", true)
+  await confirmacao.getByRole("button", { name: "Cancelar" }).click()
+  r.confere("B22-36: 'Cancelar' mantém os blocos", (await soltos.count()) === 3, String(await soltos.count()))
+  await selecionarDois()
+  await confirmacao.getByRole("button", { name: "Apagar" }).click()
+  await page.waitForTimeout(300)
+  r.confere("B22-36: 'Apagar' tira os 2", (await soltos.count()) === 1, String(await soltos.count()))
+  await soltos.nth(0).click()
+  await page.keyboard.press("Delete")
+  await page.waitForTimeout(300)
+  r.confere("B22-36: um bloco só apaga direto", (await soltos.count()) === 0 && (await page.getByRole("dialog").count()) === 0)
+
   r.confere("sem erro no console", erros.length === 0, erros.join(" | "))
   await browser.close()
   process.exit(r.imprimir() ? 1 : 0)

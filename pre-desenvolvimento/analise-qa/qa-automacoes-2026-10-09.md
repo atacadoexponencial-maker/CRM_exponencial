@@ -106,6 +106,7 @@ seção 32; roteiro do preview `roteiro-b22-resto.cjs`.
 | B22-33 | baixo | Regra nova sem vermelho antes de tentar salvar; blocos soltos conferidos no preview |
 | B22-34 | baixo | Lista vazia diz onde criar; "alterar dado" sem `= ""`; aviso do espaço na tag |
 | B22-35 | baixo | Busca de contato do "Testar" sem acento |
+| B22-36 | baixo | Delete de 2 ou mais blocos pede confirmação |
 
 Falta: os baixos.
 
@@ -187,7 +188,7 @@ limites do M20.
 - [x] Três cliques simultâneos em Salvar criaram 3 regras (duplo clique real cria 1). → **B22-31 (14/10).**
 - [x] Arquivo > 4 MB dá 500 em vez da mensagem de limite que já existe. → **B22-32 (14/10).**
 - [x] Regra nova abre com "Complete a configuração" em vermelho; bloco solto nasce em cima de outros. → **B22-33 (14/10).**
-- "Iniciar sequência" com lista vazia sem orientação; "Alterar dado" vazio mostra `= ""`; tag com espaço vira "tagcomespaço" sem aviso; busca de contato não ignora acento; Delete com tudo selecionado apaga todos os blocos sem desfazer.
+- [x] "Iniciar sequência" com lista vazia sem orientação; "Alterar dado" vazio mostra `= ""`; tag com espaço vira "tagcomespaço" sem aviso; busca de contato não ignora acento; Delete com tudo selecionado apaga todos os blocos sem desfazer. → **B22-34, B22-35 e B22-36 (14/10).**
 - Arquivos escolhidos e trocados ficam no armazenamento para sempre; upload confia no tipo declarado.
 - `{{ nome_contato }}` com espaço vai literal; contato chamado `{{nome_vendedor}}` vira o nome do vendedor.
 - "contém oi" casa com "Boituva" (é substring, como a spec diz — vale considerar palavra inteira).
