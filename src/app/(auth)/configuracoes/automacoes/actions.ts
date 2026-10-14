@@ -30,7 +30,7 @@ import { simularFluxo } from "@/lib/automacoes/simulacao"
 import type { PassoGravado, ResultadoExecucao } from "@/lib/automacoes/execucoes"
 import {
   lerRepeticao,
-  pendenciasDoFluxo,
+  problemasDoFluxo,
   repeticaoPadrao,
   type BlocoGatilho,
   type Fluxo,
@@ -108,14 +108,16 @@ export async function listarRegras(): Promise<RegraListada[]> {
   const regras: RegraListada[] = []
   const criadaEm = new Map<string, string>()
   for (const f of fluxos ?? []) {
+    // B22-25: fluxo gravado por fora do editor aparece com o problema, para dar
+    // para pausar e excluir pela tela, em vez de sumir da lista
     const fluxo = lerFluxo(f.fluxo)
-    if (!fluxo) continue
     criadaEm.set(f.id, f.created_at)
     regras.push({
       id: f.id,
       nome: f.nome,
       ativa: f.ativa,
       fluxo,
+      problema: fluxo ? (problemasDoFluxo(fluxo)[0] ?? null) : "O fluxo está fora do formato e não pode ser aberto no editor",
       execucoes7dias: execucoes.get(f.id)?.ultimos7dias ?? 0,
       ultimaExecucao: execucoes.get(f.id)?.ultima ?? null,
     })
@@ -308,9 +310,8 @@ export async function salvarRegra(dados: {
 
   const fluxo = lerFluxo(dados.fluxo)
   if (!fluxo) return { erro: "O desenho da automação veio num formato inválido. Recarregue a página." }
-  const pendencias = pendenciasDoFluxo(fluxo)
-  const problemas = [...pendencias.gerais, ...Object.values(pendencias.porBloco).flat()]
-  if (problemas.length > 0) return { erro: `O fluxo ainda tem pendências: ${[...new Set(problemas)].join(". ")}` }
+  const problemas = problemasDoFluxo(fluxo)
+  if (problemas.length > 0) return { erro: `O fluxo ainda tem pendências: ${problemas.join(". ")}` }
 
   const erroReferencia = await conferirReferencias(admin, fluxo)
   if (erroReferencia) return { erro: erroReferencia }
@@ -374,8 +375,9 @@ export async function duplicarRegra(id: string): Promise<{ erro?: string }> {
     .eq("id", id)
     .eq("workspace_id", workspaceId)
     .maybeSingle()
-  const fluxo = data ? lerFluxo(data.fluxo) : null
-  if (!data || !fluxo) return { erro: "Esta automação não existe mais." }
+  if (!data) return { erro: "Esta automação não existe mais." }
+  const fluxo = lerFluxo(data.fluxo)
+  if (!fluxo) return { erro: "O fluxo desta automação está fora do formato e não pode ser duplicado." }
 
   const { error } = await supabase.from("automation_flows").insert({
     workspace_id: workspaceId,
@@ -484,9 +486,8 @@ export async function simularRegra(
   const fluxo = lerFluxo(fluxoRecebido)
   if (!fluxo) return { erro: "O desenho da automação veio num formato inválido. Recarregue a página." }
   // O que não pode ser salvo também não é testado: uma condição vazia, por exemplo, daria "sim" (B22-11)
-  const pendencias = pendenciasDoFluxo(fluxo)
-  const problemas = [...pendencias.gerais, ...Object.values(pendencias.porBloco).flat()]
-  if (problemas.length > 0) return { erro: `Complete o fluxo antes de testar: ${[...new Set(problemas)].join(". ")}` }
+  const problemas = problemasDoFluxo(fluxo)
+  if (problemas.length > 0) return { erro: `Complete o fluxo antes de testar: ${problemas.join(". ")}` }
 
   const { data: contato } = await admin.supabase
     .from("contacts")

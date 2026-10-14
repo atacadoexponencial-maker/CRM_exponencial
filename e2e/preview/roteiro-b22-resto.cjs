@@ -62,6 +62,34 @@ async function apagarAtendente(db, ws, id) {
     await apagarAtendente(db, ws, atendente.id)
   }
 
+  // B22-25 (M5): regra com fluxo fora do formato aparece na lista e dá para pausar
+  const { data: quebrada } = await db
+    .from("automation_flows")
+    .insert({
+      workspace_id: ws,
+      nome: "B22-25 Quebrada",
+      ativa: true,
+      repeticao: { modo: "sempre" },
+      fluxo: {
+        blocos: [
+          { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao: { x: 0, y: 0 } },
+          { id: "sem-tipo", posicao: { x: 0, y: 150 } },
+        ],
+        ligacoes: [],
+      },
+    })
+    .select("id")
+    .single()
+  await page.goto(`${URL_PREVIEW}/configuracoes/automacoes`, { waitUntil: "networkidle" })
+  const linhaQuebrada = page.locator("tbody tr").filter({ hasText: "B22-25 Quebrada" })
+  r.confere("B22-25: a regra quebrada aparece na lista", (await linhaQuebrada.count()) === 1)
+  r.confere("B22-25: e diz que não roda", (await linhaQuebrada.innerText()).includes("Não roda"))
+  await linhaQuebrada.getByRole("switch", { name: "Pausar B22-25 Quebrada" }).click()
+  await page.getByText("Salvando…").waitFor({ state: "hidden", timeout: 20000 })
+  const { data: pausada } = await db.from("automation_flows").select("ativa").eq("id", quebrada.id).single()
+  r.confere("B22-25: dá para pausar pela tela", pausada?.ativa === false)
+  await db.from("automation_flows").delete().eq("workspace_id", ws).eq("id", quebrada.id)
+
   r.confere("sem erro no console", erros.length === 0, erros.join(" | "))
   await browser.close()
   process.exit(r.imprimir() ? 1 : 0)

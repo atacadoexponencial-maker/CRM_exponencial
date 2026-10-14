@@ -1368,3 +1368,17 @@ porque mudam o que já existe.
   `GatewayIndisponivel` do gateway e timeout). "Não confirmado", e não "não
   enviado": num timeout, a mensagem pode ter saído. As sequências, que usam o
   mesmo envio, não mudam.
+- **B22-25 (M5):** o admin pode gravar o fluxo direto no banco (a RLS deixa), e o
+  que o editor não deixaria salvar se perdia: fluxo fora do formato sumia da lista
+  (sem dar para pausar ou excluir), laço ou dois gatilhos eram pulados sem
+  registro, e condição sem verificação rodava como "sim". Agora:
+  - `problemasDoFluxo` (`fluxo-automacao.ts`) junta o que impede o fluxo de rodar.
+    O Salvar, o Testar, o motor e a lista usam a mesma função.
+  - O motor não roda essas regras e grava cada disparo no histórico como
+    "falhou", com o motivo ("Não rodou: … Abra a regra no editor para corrigir",
+    ou, fora do formato, "Exclua a regra e crie de novo pelo editor").
+  - A lista mostra a regra com "Não roda: …". A que está fora do formato não abre
+    no editor nem duplica, mas pausa e exclui.
+  - Antes de ligar a recusa no motor, as 4 regras da produção foram conferidas:
+    nenhuma tinha pendência. Uma regra de exemplo de um teste antigo tinha
+    (gatilho "card movido" sem funil) e foi corrigida.

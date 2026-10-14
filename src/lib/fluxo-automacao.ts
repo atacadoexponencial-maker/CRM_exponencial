@@ -409,6 +409,15 @@ export function pendenciasDoFluxo(fluxo: Fluxo): PendenciasFluxo {
 }
 
 /**
+ * Tudo o que impede o fluxo de rodar, sem repetir: o que o Salvar recusa, e o que
+ * o motor e a lista conferem nas regras gravadas por fora do editor (B22-25).
+ */
+export function problemasDoFluxo(fluxo: Fluxo): string[] {
+  const { gerais, porBloco } = pendenciasDoFluxo(fluxo)
+  return [...new Set([...gerais, ...Object.values(porBloco).flat()])]
+}
+
+/**
  * Regra que responde toda mensagem do contato: gatilho "mensagem recebida",
  * alguma ação de envio no caminho e nenhuma proteção de repetição.
  */

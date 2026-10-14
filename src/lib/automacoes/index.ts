@@ -25,7 +25,7 @@ import {
   lerRepeticao,
   normalizarTag,
   percorrerFluxo,
-  problemasDeEstrutura,
+  problemasDoFluxo,
   type BlocoGatilho,
   type Fluxo,
 } from "@/lib/fluxo-automacao"
@@ -45,8 +45,13 @@ export type { GatilhoAutomacao } from "./contexto"
 
 interface RegraCarregada extends RegraDaExecucao {
   criadaEm: string
-  fluxo: Fluxo
+  /** `null`: gravado por fora do editor, fora do formato. */
+  fluxo: Fluxo | null
 }
+
+/** Motivo da regra com fluxo fora do formato (B22-25). */
+export const FLUXO_FORA_DO_FORMATO =
+  "Não rodou: o fluxo desta regra está fora do formato. Exclua a regra e crie de novo pelo editor"
 
 /** Motivo das regras que o prazo da fila não deixou começar (B22-06). */
 export const SEM_TEMPO = "Não rodou: o tempo desta execução acabou antes de chegar nesta regra"
@@ -73,24 +78,35 @@ export async function processarAutomacoes(gatilho: GatilhoAutomacao, opcoes: Opc
     const contexto: ContextoDaExecucao = { supabase, gatilho }
 
     for (const regra of await carregarRegras(supabase, gatilho)) {
-      const blocoGatilho = gatilhoDoFluxo(regra.fluxo)
-      if (!blocoGatilho || problemasDeEstrutura(regra.fluxo).length > 0) continue
-      if (!gatilhoCorresponde(blocoGatilho, gatilho)) continue
+      // B22-25: fluxo que não pode rodar (gravado por fora do editor) vai para o
+      // histórico como falha, com o motivo, em vez de ser pulado em silêncio
+      const { fluxo } = regra
+      const blocoGatilho = fluxo ? gatilhoDoFluxo(fluxo) : undefined
+      if (blocoGatilho && !gatilhoCorresponde(blocoGatilho, gatilho)) continue
       const semRodar =
-        opcoes.naoRodarPorque ?? (opcoes.prazo !== undefined && Date.now() >= opcoes.prazo ? SEM_TEMPO : null)
-      if (semRodar) {
-        await registrarExecucao(supabase, { gatilho, regra, resultado: "falhou", motivo: semRodar })
+        opcoes.naoRodarPorque ??
+        motivoDoFluxo(fluxo) ??
+        (opcoes.prazo !== undefined && Date.now() >= opcoes.prazo ? SEM_TEMPO : null)
+      if (semRodar || !fluxo) {
+        await registrarExecucao(supabase, { gatilho, regra, resultado: "falhou", motivo: semRodar ?? FLUXO_FORA_DO_FORMATO })
         continue
       }
-      await executarRegra(contexto, regra)
+      await executarRegra(contexto, { ...regra, fluxo })
     }
   } catch {
     // Automação nunca pode derrubar o fluxo principal (envio, webhook, pipeline)
   }
 }
 
+/** Por que o fluxo não pode rodar, ou `null` se pode (B22-25). */
+function motivoDoFluxo(fluxo: Fluxo | null): string | null {
+  if (!fluxo) return FLUXO_FORA_DO_FORMATO
+  const [problema] = problemasDoFluxo(fluxo)
+  return problema ? `Não rodou: ${problema}. Abra a regra no editor para corrigir` : null
+}
+
 /** Proteção, percurso e registro de uma regra. Cada regra é isolada: nada aqui sobe. */
-async function executarRegra(contexto: ContextoDaExecucao, regra: RegraCarregada): Promise<void> {
+async function executarRegra(contexto: ContextoDaExecucao, regra: RegraCarregada & { fluxo: Fluxo }): Promise<void> {
   const { supabase, gatilho } = contexto
 
   let motivo: string | null
@@ -139,15 +155,13 @@ async function carregarRegras(supabase: ServiceClient, gatilho: GatilhoAutomacao
 
   const regras: RegraCarregada[] = []
   for (const r of data ?? []) {
-    // Fluxo fora do formato (gravado por fora do editor) não roda
-    const fluxo = lerFluxo(r.fluxo)
-    if (!fluxo) continue
+    // Fluxo fora do formato (gravado por fora do editor) não roda, mas vai para o histórico
     regras.push({
       id: r.id,
       nome: r.nome,
       repeticao: lerRepeticao(r.repeticao),
       criadaEm: r.created_at,
-      fluxo,
+      fluxo: lerFluxo(r.fluxo),
     })
   }
   return regras.sort((a, b) => (a.criadaEm < b.criadaEm ? -1 : a.criadaEm > b.criadaEm ? 1 : 0))

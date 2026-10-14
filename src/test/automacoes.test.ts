@@ -14,7 +14,7 @@ vi.mock("@/lib/whatsapp-envio", async (importOriginal) => ({
 }))
 
 import { createServiceClient } from "@/integrations/supabase/service"
-import { SEM_FILA, SEM_TEMPO, gatilhoCorresponde, processarAutomacoes } from "@/lib/automacoes"
+import { FLUXO_FORA_DO_FORMATO, SEM_FILA, SEM_TEMPO, gatilhoCorresponde, processarAutomacoes } from "@/lib/automacoes"
 import type { AcaoTipo, Fluxo, GatilhoTipo } from "@/lib/fluxo-automacao"
 import { enviarWhatsAppComMotivo } from "@/lib/whatsapp-envio"
 
@@ -146,7 +146,8 @@ describe("processarAutomacoes", () => {
       rpc: vi.fn().mockResolvedValue({ data: false }),
       from: vi.fn().mockImplementation((table: string) => {
         if (table === "automation_flows") {
-          return chain({ data: [regraDeDoisBlocos("card_movido", {}, "atribuir_atendente", { atendente_id: "user-7" })] })
+          // O funil é obrigatório no gatilho: sem ele, o motor recusa o fluxo (B22-25)
+          return chain({ data: [regraDeDoisBlocos("card_movido", { funil: "entrada" }, "atribuir_atendente", { atendente_id: "user-7" })] })
         }
         if (table === "conversations") {
           const c = chain({ data: { id: "conv-9" } })
@@ -553,6 +554,68 @@ describe("histórico e proteção de repetição (B11-03)", () => {
     expect(mockEnviar).not.toHaveBeenCalled()
     expect(h.gravadas).toHaveLength(1)
     expect(h.gravadas[0]).toMatchObject({ resultado: "falhou", motivo: SEM_TEMPO, regra_nome: "Boas-vindas" })
+  })
+
+  it("B22-25: fluxo fora do formato não roda e fica no histórico como 'falhou'", async () => {
+    const h = historico()
+    const upsert = vi.fn().mockResolvedValue({ error: null })
+    const quebrado = { blocos: [{ id: "g", posicao }], ligacoes: [] }
+    banco({
+      automation_flows: chain({ data: [{ id: "regra-1", nome: "Boas-vindas", created_at: "2026-10-07T10:00:00Z", fluxo: quebrado, repeticao: { modo: "sempre" } }] }),
+      automation_runs: h.obj,
+      conversation_labels: { upsert },
+    })
+
+    await processarAutomacoes(conversaCriada)
+
+    expect(upsert).not.toHaveBeenCalled()
+    expect(h.gravadas).toHaveLength(1)
+    expect(h.gravadas[0]).toMatchObject({ resultado: "falhou", motivo: FLUXO_FORA_DO_FORMATO, regra_nome: "Boas-vindas" })
+  })
+
+  it("B22-25: condição sem verificação não roda (antes, contava como 'sim') e diz o motivo", async () => {
+    const h = historico()
+    const upsert = vi.fn().mockResolvedValue({ error: null })
+    const comCondicaoVazia = {
+      blocos: [
+        { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao },
+        { id: "c", tipo: "condicao", verificacoes: [], posicao },
+        { id: "etiqueta", tipo: "acao", acao: "aplicar_etiqueta", parametros: { label_id: "label-1" }, posicao },
+      ],
+      ligacoes: [
+        { de: "g", saida: "proximo", para: "c" },
+        { de: "c", saida: "sim", para: "etiqueta" },
+      ],
+    }
+    banco({
+      automation_flows: chain({ data: [{ id: "regra-1", nome: "Boas-vindas", created_at: "2026-10-07T10:00:00Z", fluxo: comCondicaoVazia, repeticao: { modo: "sempre" } }] }),
+      automation_runs: h.obj,
+      conversation_labels: { upsert },
+    })
+
+    await processarAutomacoes(conversaCriada)
+
+    expect(upsert).not.toHaveBeenCalled()
+    expect(h.gravadas[0]).toMatchObject({ resultado: "falhou", motivo: expect.stringMatching(/^Não rodou: .+Abra a regra no editor para corrigir$/) })
+  })
+
+  it("B22-25: fluxo com dois gatilhos (laço ou estrutura inválida) também vai para o histórico", async () => {
+    const h = historico()
+    const doisGatilhos = {
+      blocos: [
+        { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao },
+        { id: "g2", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao },
+      ],
+      ligacoes: [],
+    }
+    banco({
+      automation_flows: chain({ data: [{ id: "regra-1", nome: "Boas-vindas", created_at: "2026-10-07T10:00:00Z", fluxo: doisGatilhos, repeticao: { modo: "sempre" } }] }),
+      automation_runs: h.obj,
+    })
+
+    await processarAutomacoes(conversaCriada)
+
+    expect(h.gravadas[0]).toMatchObject({ resultado: "falhou", motivo: expect.stringContaining("exatamente um gatilho") })
   })
 
   it("B22-07: evento fora da fila não roda nenhuma regra e grava cada uma como 'falhou'", async () => {
