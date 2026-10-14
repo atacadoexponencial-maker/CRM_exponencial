@@ -97,6 +97,8 @@ describe("B22-22 — Ganho pelo atendente cria o card de Recompra", () => {
       expect.objectContaining({ tipo: "card_movido", cardId: "card-recompra", funil: "recompra", etapa: "onboarding" })
     )
     expect(sequencia).toHaveBeenCalledWith(expect.objectContaining({ gatilho: "onboarding", contactId: "contato-1" }))
+    // B22-43: as regras do card movido para Ganho vêm antes das do card novo da Recompra
+    expect(disparar.mock.calls.map(([g]) => `${g.funil}:${g.etapa}`)).toEqual(["entrada:ganho", "recompra:onboarding"])
   })
 
   it("se a RLS barrou a mudança de etapa, recusa e não cria nada", async () => {

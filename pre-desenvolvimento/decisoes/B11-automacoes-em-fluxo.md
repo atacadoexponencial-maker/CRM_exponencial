@@ -1519,3 +1519,7 @@ porque mudam o que já existe.
   mais." (o erro do banco continua com "Tente novamente"). E o nome longo sem
   espaço, que empurrava o interruptor para fora da tela no celular, quebra em
   qualquer ponto (`overflow-wrap: anywhere`).
+- **B22-43:** no Ganho, as regras do card novo da Recompra rodavam antes das do
+  card da Entrada, porque o evento dele entrava na fila primeiro. O `moverCard`
+  passou a disparar o card movido antes de criar o da Recompra; a fila roda os
+  eventos do contato na ordem em que entram.

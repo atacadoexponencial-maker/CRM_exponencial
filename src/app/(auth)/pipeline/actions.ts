@@ -204,6 +204,17 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
       alterado_por: user.id,
     })
 
+  // B22-43: o card movido primeiro; no Ganho, as regras do card da Recompra rodavam
+  // antes das do card da Entrada, porque ele era disparado antes
+  await dispararAutomacoes({
+    tipo: "card_movido",
+    workspaceId: card.workspace_id,
+    contactId: card.contact_id,
+    cardId,
+    funil: (card.funil ?? "entrada") as "entrada" | "recompra",
+    etapa: novaEtapa,
+  })
+
   if (novaEtapa === "ganho" && card.contact_id && card.workspace_id) {
     // B22-22: o card de Recompra é criado pelo servidor. Pela RLS, só admin e gerente
     // criam card, e o atendente que marcava Ganho ficava sem card, sem gatilho e sem
@@ -249,15 +260,6 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
       }
     }
   }
-
-  await dispararAutomacoes({
-    tipo: "card_movido",
-    workspaceId: card.workspace_id,
-    contactId: card.contact_id,
-    cardId,
-    funil: (card.funil ?? "entrada") as "entrada" | "recompra",
-    etapa: novaEtapa,
-  })
 
   // Gatilhos automáticos de sequência do método
   if (novaEtapa === "catalogo_enviado" || novaEtapa === "inativos") {
