@@ -1253,3 +1253,27 @@ melhoria fora da spec; o Luan aprovou em 14/10.
   bloco; ramos copiados trariam ligações para decidir.
 - **A cópia já ligada na saída livre do original.** Na maioria das vezes ela vai
   para o outro lado de uma condição, que o editor não tem como adivinhar.
+
+## 30. Botões de variável na mensagem (B22-14, 14/10/2026)
+
+A Marcelle pediu, no teste manual de 09/10 (U3), botões que inserem a variável no
+texto da mensagem, como no Manychat, em vez de copiar `{{primeiro_nome}}` à mão.
+Era melhoria fora da spec; o Luan aprovou em 14/10.
+
+**Como ficou:**
+
+- No campo "Mensagem" da ação "Enviar mensagem", a linha "Variáveis: …" virou
+  "Inserir:" com três botões: "Nome do contato", "Primeiro nome" e "Nome do
+  vendedor". Cada um insere a variável onde está o cursor, ou no lugar do trecho
+  selecionado, e devolve o cursor para logo depois dela.
+- A lista fica em `variaveis-mensagem.ts`, ao lado do editor. Um teste confere
+  que toda variável dos botões é preenchida pelo envio (`textoComVariaveis`).
+- O campo do catálogo ganhou `variaveis: true`; os outros textos longos não mudam.
+
+**Descartado:**
+
+- **Botões também nas sequências e nas campanhas.** O pedido é das automações, e
+  as sequências e campanhas têm as próprias telas e variáveis.
+- **Mostrar a variável como etiqueta dentro do texto (chip).** Pediria trocar o
+  `textarea` por um editor rico, e o texto salvo continuaria sendo
+  `{{primeiro_nome}}`.

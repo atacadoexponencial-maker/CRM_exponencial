@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Copy, Plus, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -40,6 +40,7 @@ import {
   type OpcoesEditor,
 } from "./catalogo"
 import { CampoSelecao, type ItemSelecao } from "./campo-selecao"
+import { VARIAVEIS_DA_MENSAGEM, inserirNoCursor } from "./variaveis-mensagem"
 
 const textareaClass =
   "w-full min-h-24 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 resize-y"
@@ -308,6 +309,55 @@ function CamposParametros({
   )
 }
 
+/** Texto da mensagem com botões que inserem cada variável onde está o cursor (B22-14). */
+function TextoComVariaveis({
+  id,
+  valor,
+  placeholder,
+  onMudar,
+}: {
+  id: string
+  valor: string
+  placeholder?: string
+  onMudar: (valor: string) => void
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+
+  function inserir(variavel: string) {
+    const campo = ref.current
+    const inicio = campo?.selectionStart ?? valor.length
+    const fim = campo?.selectionEnd ?? valor.length
+    const { texto, cursor } = inserirNoCursor(valor, inicio, fim, variavel)
+    onMudar(texto)
+    requestAnimationFrame(() => {
+      campo?.focus()
+      campo?.setSelectionRange(cursor, cursor)
+    })
+  }
+
+  return (
+    <>
+      <textarea
+        ref={ref}
+        id={id}
+        className={textareaClass}
+        value={valor}
+        placeholder={placeholder}
+        onChange={(e) => onMudar(e.target.value)}
+      />
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-xs text-muted-foreground">Inserir:</span>
+        {VARIAVEIS_DA_MENSAGEM.map(({ variavel, rotulo }) => (
+          <Button key={variavel} variant="outline" size="xs" title={variavel} onClick={() => inserir(variavel)}>
+            <Plus />
+            {rotulo}
+          </Button>
+        ))}
+      </div>
+    </>
+  )
+}
+
 function CampoParametro({
   id,
   campo,
@@ -329,6 +379,16 @@ function CampoParametro({
         <Input id={id} value={valor} placeholder={campo.placeholder} onChange={(e) => onMudar(campo.chave, e.target.value)} />
       )
     case "texto_longo":
+      if (campo.variaveis) {
+        return (
+          <TextoComVariaveis
+            id={id}
+            valor={valor}
+            placeholder={campo.placeholder}
+            onMudar={(novo) => onMudar(campo.chave, novo)}
+          />
+        )
+      }
       return (
         <>
           <textarea
