@@ -107,6 +107,7 @@ seção 32; roteiro do preview `roteiro-b22-resto.cjs`.
 | B22-34 | baixo | Lista vazia diz onde criar; "alterar dado" sem `= ""`; aviso do espaço na tag |
 | B22-35 | baixo | Busca de contato do "Testar" sem acento |
 | B22-36 | baixo | Delete de 2 ou mais blocos pede confirmação |
+| B22-37 | baixo | Arquivos sem uso há mais de 1 dia saem do armazenamento ao salvar ou excluir regra |
 
 Falta: os baixos.
 

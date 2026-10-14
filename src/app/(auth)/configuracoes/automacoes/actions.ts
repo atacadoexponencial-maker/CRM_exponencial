@@ -364,6 +364,7 @@ export async function salvarRegra(dados: {
       .maybeSingle()
     if (error) return { erro: "Não foi possível salvar a automação. Tente novamente." }
     if (!data) return { erro: "Esta automação não existe mais." }
+    await limparArquivosSemUso(admin)
     revalidatePath(CAMINHO_LISTA)
     return { id: data.id }
   }
@@ -375,8 +376,38 @@ export async function salvarRegra(dados: {
     .select("id")
     .single()
   if (error || !data) return { erro: "Não foi possível salvar a automação. Tente novamente." }
+  await limparArquivosSemUso(admin)
   revalidatePath(CAMINHO_LISTA)
   return { id: data.id }
+}
+
+/**
+ * Apaga da pasta da empresa os arquivos que nenhuma regra usa e que têm mais de 1
+ * dia: o que foi trocado no editor ou era de regra excluída (B22-37, decidido pelo
+ * Luan em 14/10). O dia de folga protege o arquivo que alguém acabou de subir num
+ * editor ainda não salvo. A procura é pelo nome no texto do fluxo inteiro, para não
+ * apagar o arquivo de uma regra com fluxo fora do formato. Falha aqui não atrapalha
+ * o salvar nem o excluir.
+ */
+async function limparArquivosSemUso({ supabase, workspaceId }: Admin): Promise<void> {
+  try {
+    const servico = createServiceClient()
+    const pasta = pastaDosArquivos(workspaceId)
+    const [{ data: arquivos }, { data: fluxos, error }] = await Promise.all([
+      servico.storage.from(BUCKET_DOS_ARQUIVOS).list(pasta, { limit: 1000 }),
+      supabase.from("automation_flows").select("fluxo").eq("workspace_id", workspaceId),
+    ])
+    if (error || !fluxos) return
+    const textoDasRegras = JSON.stringify(fluxos.map((f) => f.fluxo))
+    const antesDe = Date.now() - DIA_EM_MS
+    const semUso = (arquivos ?? [])
+      // Sem `id`, é subpasta
+      .filter((a) => a.id && a.created_at && new Date(a.created_at).getTime() < antesDe && !textoDasRegras.includes(a.name))
+      .map((a) => `${pasta}/${a.name}`)
+    if (semUso.length > 0) await servico.storage.from(BUCKET_DOS_ARQUIVOS).remove(semUso)
+  } catch {
+    // Arquivo que sobrou só ocupa espaço; o próximo salvamento tenta de novo
+  }
 }
 
 export async function alternarRegra(id: string, ativa: boolean): Promise<{ erro?: string }> {
@@ -452,6 +483,7 @@ export async function excluirRegra(id: string): Promise<{ erro?: string }> {
     .select("id")
     .maybeSingle()
   if (error || !data) return { erro: "Não foi possível excluir a automação. Tente novamente." }
+  await limparArquivosSemUso(admin)
   revalidatePath(CAMINHO_LISTA)
   return {}
 }

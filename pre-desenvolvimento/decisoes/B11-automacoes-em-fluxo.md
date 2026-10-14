@@ -1473,3 +1473,12 @@ porque mudam o que já existe.
   também. Desfazer (Ctrl+Z) ficou de fora, como o Luan decidiu. Conferido no
   roteiro do preview (seleção com Ctrl e Delete), porque o jsdom não roda o
   teclado do React Flow.
+- **B22-37:** o arquivo escolhido no editor sobe na hora, e os trocados ou de
+  regras excluídas ficavam no armazenamento para sempre. Ao salvar ou excluir uma
+  regra, `limparArquivosSemUso` lista a pasta da empresa e apaga o que tem mais de
+  1 dia e não aparece no texto de nenhum fluxo da empresa. A busca é pelo texto
+  inteiro, e não pelo fluxo lido, para não apagar o arquivo de uma regra fora do
+  formato; a cópia feita pelo "Duplicar" cita o mesmo arquivo e o mantém. Falha
+  na limpeza não atrapalha o salvar. **Limite aceito:** um rascunho do navegador
+  com arquivo subido há mais de 1 dia e nunca salvo perde o arquivo, se alguém
+  salvar outra regra antes; o envio dessa ação falha com motivo.
