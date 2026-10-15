@@ -547,6 +547,13 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
                     <span>{avaliacao.aviso}</span>
                   </p>
                 )}
+                {/* B26-03: número em aquecimento, com o dia e os limites que a fila usa */}
+                {avaliacao?.aquecimento && (
+                  <p className="flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 p-3 text-xs">
+                    <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
+                    <span>{avaliacao.aquecimento}</span>
+                  </p>
+                )}
                 {avaliacao?.estimativa && (
                   <p className="rounded-lg border bg-muted/40 p-3 text-xs">
                     <strong className="font-medium">Duração estimada:</strong> {avaliacao.estimativa}

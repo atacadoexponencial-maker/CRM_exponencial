@@ -11,7 +11,23 @@
 // cliente acha que a campanha travou e dispara de novo.
 
 import { GatewayRecusou, type ClienteGateway } from "./cliente"
+import type { SaudeDoNumero } from "./saude"
 import type { RitmoDoNumero } from "./tipos"
+
+/**
+ * B26-03: a faixa que a campanha mostra para número em aquecimento, com os tetos
+ * que a fila usa agora. `null` fora do aquecimento: avisar sem motivo ensina a
+ * ignorar avisos.
+ */
+export function fraseDoAquecimento(
+  saude: Pick<SaudeDoNumero, "tetoHora" | "tetoDia" | "aquecimento">
+): string | null {
+  if (!saude.aquecimento.ativo) return null
+  return (
+    `Número em aquecimento (dia ${saude.aquecimento.dia}): até ${saude.tetoHora} mensagens por hora ` +
+    `e ${saude.tetoDia} por dia. Os limites sobem sozinhos até o dia 30.`
+  )
+}
 
 /**
  * Ritmo do número, na medida que a estimativa usa.

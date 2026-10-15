@@ -12,8 +12,10 @@ import { clienteGatewayDoAmbiente } from "@/lib/whatsapp/gateway/cliente"
 import {
   buscarRitmoDoNumero,
   estimarDuracaoDoDisparo,
+  fraseDoAquecimento,
   RITMO_PADRAO,
 } from "@/lib/whatsapp/gateway/fila-campanha"
+import { lerSaudeDoNumero } from "@/lib/whatsapp/gateway/saude"
 import { calcularClassificacao } from "../contatos/classificacao"
 
 export type Segmento = {
@@ -281,6 +283,8 @@ export type AvaliacaoDoDisparo = {
   estimativa: string
   /** Falso quando o ritmo real não pôde ser lido e o padrão foi assumido. */
   ritmoConfirmado: boolean
+  /** B26-03: faixa do número em aquecimento; nula fora dele ou sem leitura. */
+  aquecimento: string | null
 }
 
 /**
@@ -295,7 +299,7 @@ export async function avaliarDisparo(
   totalDestinatarios: number
 ): Promise<AvaliacaoDoDisparo> {
   const { perfil } = await perfilGestor()
-  if (!perfil) return { aviso: null, estimativa: "", ritmoConfirmado: false }
+  if (!perfil) return { aviso: null, estimativa: "", ritmoConfirmado: false, aquecimento: null }
 
   // B19-03: `instance_token` só é legível pela chave de serviço; o filtro de empresa fica.
   const { data: conexao } = connectionId
@@ -312,27 +316,38 @@ export async function avaliarDisparo(
   if (canal !== "gateway") {
     // Pela API Oficial não há fila nossa nem ritmo a respeitar: o tempo do
     // disparo é o da Meta, e prometer número aqui seria inventar.
-    return { aviso: null, estimativa: "", ritmoConfirmado: true }
+    return { aviso: null, estimativa: "", ritmoConfirmado: true, aquecimento: null }
   }
 
   let ritmo = RITMO_PADRAO
   let ritmoConfirmado = false
+  let aquecimento: string | null = null
 
   if (conexao?.instance_id && conexao.instance_token) {
-    try {
-      const lido = await buscarRitmoDoNumero(
-        clienteGatewayDoAmbiente(),
-        conexao.instance_id,
-        conexao.instance_token
-      )
-      if (lido) {
-        ritmo = lido
-        ritmoConfirmado = true
-      }
-    } catch {
-      // Gateway indisponível ou não configurado: estimativa com o ritmo padrão,
-      // e a tela diz que é aproximada.
+    const instanceId = conexao.instance_id
+    const instanceToken = conexao.instance_token
+    // B26-03: o dia do aquecimento vem da saúde do número, lida junto com o
+    // ritmo. Falha numa não derruba a outra, nem a tela.
+    const [lido, saude] = await Promise.all([
+      Promise.resolve()
+        .then(() => buscarRitmoDoNumero(clienteGatewayDoAmbiente(), instanceId, instanceToken))
+        .catch(() => null),
+      Promise.resolve()
+        .then(() =>
+          lerSaudeDoNumero({
+            cliente: clienteGatewayDoAmbiente(),
+            conexao: { instanceId, instanceToken, numero: null, nomeExibicao: null },
+          })
+        )
+        .catch(() => null),
+    ])
+    // Sem ritmo (gateway indisponível ou não configurado): estimativa com o
+    // padrão, e a tela diz que é aproximada.
+    if (lido) {
+      ritmo = lido
+      ritmoConfirmado = true
     }
+    if (saude?.ok) aquecimento = fraseDoAquecimento(saude.saude)
   }
 
   const estimativa = estimarDuracaoDoDisparo({ destinatarios: totalDestinatarios, ritmo })
@@ -344,6 +359,7 @@ export async function avaliarDisparo(
       "e a responsabilidade por ele é sua. O envio respeita o ritmo configurado, e por isso leva tempo.",
     estimativa: estimativa.texto,
     ritmoConfirmado,
+    aquecimento,
   }
 }
 
