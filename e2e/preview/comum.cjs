@@ -200,6 +200,48 @@ async function prepararNumeroReal(db, workspaceId, env = lerEnv()) {
   return { contatoId: contato.id, conversaId, chip, telefone }
 }
 
+/** Atendente temporário da empresa de teste, com e-mail de domínio reservado. Apague com `apagarAtendente`. */
+async function criarAtendente(db, ws, nome) {
+  const { randomUUID } = require("node:crypto")
+  const email = `b22-atendente-${Date.now()}@example.com`
+  const senha = `B22-${randomUUID()}`
+  const { data, error } = await db.auth.admin.createUser({ email, password: senha, email_confirm: true })
+  if (error) throw new Error(error.message)
+  const id = data.user.id
+  const { error: erroPerfil } = await db
+    .from("profiles")
+    .insert({ id, workspace_id: ws, name: nome, role: "atendente", status: "active" })
+  if (erroPerfil) {
+    await db.auth.admin.deleteUser(id)
+    throw new Error(erroPerfil.message)
+  }
+  return { id, email, senha }
+}
+
+/**
+ * Apaga o atendente temporário e o que o prende ao perfil. O histórico do card
+ * guarda quem moveu (`alterado_por`, obrigatório e sem `on delete`), então o
+ * perfil de quem moveu um card só sai depois das linhas dele no histórico. Para
+ * com erro em vez de deixar o perfil para trás em silêncio.
+ */
+async function apagarAtendente(db, ws, id) {
+  const { data: cards, error: erroCards } = await db.from("pipeline_cards").select("id").eq("workspace_id", ws)
+  if (erroCards) throw new Error(`apagar atendente ${id} (cards): ${erroCards.message}`)
+  const idsCards = cards.map((c) => c.id)
+  const passos = [
+    // O histórico não tem workspace_id: a trava da empresa de teste vem pelos cards dela
+    ["histórico do card", () => db.from("pipeline_card_history").delete().eq("alterado_por", id).in("card_id", idsCards)],
+    ["cards", () => db.from("pipeline_cards").update({ atendente_id: null }).eq("workspace_id", ws).eq("atendente_id", id)],
+    ["conversas", () => db.from("conversations").update({ assigned_to: null }).eq("workspace_id", ws).eq("assigned_to", id)],
+    ["perfil", () => db.from("profiles").delete().eq("workspace_id", ws).eq("id", id)],
+    ["login", () => db.auth.admin.deleteUser(id)],
+  ]
+  for (const [nome, passo] of passos) {
+    const { error } = await passo()
+    if (error) throw new Error(`apagar atendente ${id} (${nome}): ${error.message}`)
+  }
+}
+
 module.exports = {
   PROJETO,
   lerEnv,
@@ -210,4 +252,6 @@ module.exports = {
   esperarAutomacoes,
   enviarEventoDoGateway,
   prepararNumeroReal,
+  criarAtendente,
+  apagarAtendente,
 }

@@ -5,34 +5,18 @@
 // empresa de teste e o apaga no fim.
 // Uso: node e2e/preview/roteiro-b22-resto.cjs <endereço do preview>
 
-const { randomUUID } = require("node:crypto")
-const { abrirPreview, bancoDeServico, conferirEmpresaDeTeste, criarRelatorio, esperarAutomacoes } = require("./comum.cjs")
+const {
+  abrirPreview,
+  apagarAtendente,
+  bancoDeServico,
+  conferirEmpresaDeTeste,
+  criarAtendente,
+  criarRelatorio,
+  esperarAutomacoes,
+} = require("./comum.cjs")
 const { moverCard } = require("./tela.cjs")
 
 const URL_PREVIEW = process.argv[2]
-
-/** Atendente temporário da empresa de teste, com e-mail de domínio reservado. */
-async function criarAtendente(db, ws) {
-  const email = `b22-atendente-${Date.now()}@example.com`
-  const senha = `B22-${randomUUID()}`
-  const { data, error } = await db.auth.admin.createUser({ email, password: senha, email_confirm: true })
-  if (error) throw new Error(error.message)
-  const id = data.user.id
-  const { error: erroPerfil } = await db
-    .from("profiles")
-    .insert({ id, workspace_id: ws, name: "Atendente B22", role: "atendente", status: "active" })
-  if (erroPerfil) {
-    await db.auth.admin.deleteUser(id)
-    throw new Error(erroPerfil.message)
-  }
-  return { id, email, senha }
-}
-
-async function apagarAtendente(db, ws, id) {
-  await db.from("pipeline_cards").update({ atendente_id: null }).eq("workspace_id", ws).eq("atendente_id", id)
-  await db.from("profiles").delete().eq("workspace_id", ws).eq("id", id)
-  await db.auth.admin.deleteUser(id)
-}
 
 ;(async () => {
   if (!URL_PREVIEW) throw new Error("passe o endereço do preview (veja endereco-preview.cjs)")
@@ -42,7 +26,7 @@ async function apagarAtendente(db, ws, id) {
   const r = criarRelatorio()
 
   // B22-22 (A7): atendente marca Ganho e o card de Recompra nasce
-  const atendente = await criarAtendente(db, ws)
+  const atendente = await criarAtendente(db, ws, "Atendente B22")
   const sessaoAtendente = await abrirPreview(URL_PREVIEW, atendente)
   try {
     const { data: carla } = await db.from("contacts").select("id").eq("workspace_id", ws).eq("name", "Teste B11 Carla").single()

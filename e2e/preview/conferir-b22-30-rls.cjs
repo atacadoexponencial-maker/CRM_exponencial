@@ -5,9 +5,8 @@
 // banco, com a chave pública, como o navegador de quem estivesse logado.
 // Uso: node e2e/preview/conferir-b22-30-rls.cjs
 
-const { randomUUID } = require("node:crypto")
 const { createClient } = require("@supabase/supabase-js")
-const { bancoDeServico, conferirEmpresaDeTeste, criarRelatorio, lerEnv } = require("./comum.cjs")
+const { apagarAtendente, bancoDeServico, conferirEmpresaDeTeste, criarAtendente, criarRelatorio, lerEnv } = require("./comum.cjs")
 
 ;(async () => {
   const env = lerEnv()
@@ -28,12 +27,8 @@ const { bancoDeServico, conferirEmpresaDeTeste, criarRelatorio, lerEnv } = requi
     .select("id")
     .single()
 
-  const email = `b22-30-${Date.now()}@example.com`
-  const senha = `B22-${randomUUID()}`
-  const { data: criado, error } = await db.auth.admin.createUser({ email, password: senha, email_confirm: true })
-  if (error) throw new Error(error.message)
+  const atendente = await criarAtendente(db, ws, "Atendente B22-30")
   try {
-    await db.from("profiles").insert({ id: criado.user.id, workspace_id: ws, name: "Atendente B22-30", role: "atendente", status: "active" })
     const lerComo = async (login, segredo) => {
       const cliente = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, { auth: { persistSession: false } })
       const { error: erroLogin } = await cliente.auth.signInWithPassword({ email: login, password: segredo })
@@ -41,12 +36,11 @@ const { bancoDeServico, conferirEmpresaDeTeste, criarRelatorio, lerEnv } = requi
       const { data } = await cliente.from("automation_flows").select("id").eq("id", regra.id)
       return data?.length ?? 0
     }
-    r.confere("B22-30: atendente não lê as regras", (await lerComo(email, senha)) === 0)
+    r.confere("B22-30: atendente não lê as regras", (await lerComo(atendente.email, atendente.senha)) === 0)
     r.confere("B22-30: o admin continua lendo", (await lerComo(env.B11_TESTE_EMAIL, env.B11_TESTE_SENHA)) === 1)
   } finally {
-    await db.from("profiles").delete().eq("id", criado.user.id)
-    await db.auth.admin.deleteUser(criado.user.id)
     await db.from("automation_flows").delete().eq("id", regra.id)
+    await apagarAtendente(db, ws, atendente.id)
   }
   process.exit(r.imprimir() ? 1 : 0)
 })().catch((e) => {
