@@ -1,6 +1,6 @@
 # issues
 
-- **Arquivos soltos nesta pasta = issues abertas.** Hoje: B13 (lixeira de contatos) e B19-04. As correções do QA das automações (B22) são escritas lote a lote.
+- **Arquivos soltos nesta pasta = issues abertas.** Hoje: B13-05 e B19-04, as duas no ar e esperando só o teste manual.
 - `concluidas_<série>/` = entregues e no ar. Não se mexe mais nelas.
 - `bloqueadas_modulo6/` = escritas, mas sem como fazer (API da Meta não tem grupos).
 
