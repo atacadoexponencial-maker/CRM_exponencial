@@ -16,7 +16,10 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import type { Json } from "@/integrations/supabase/types"
 import { lerFluxo } from "@/lib/automacoes/fluxo-recebido"
 import {
+  ARQUIVO_GRANDE_DEMAIS,
   BUCKET_DOS_ARQUIVOS,
+  LIMITE_DO_ARQUIVO,
+  conteudoDoTipo,
   arquivoDaAutomacaoValido,
   classificacaoValida,
   dadoDoContatoValido,
@@ -30,14 +33,16 @@ import { simularFluxo } from "@/lib/automacoes/simulacao"
 import type { PassoGravado, ResultadoExecucao } from "@/lib/automacoes/execucoes"
 import {
   lerRepeticao,
-  pendenciasDoFluxo,
+  problemasDoFluxo,
   repeticaoPadrao,
   type BlocoGatilho,
   type Fluxo,
   type Repeticao,
   type ResultadoSimulacao,
 } from "@/lib/fluxo-automacao"
+import { normalizarTexto } from "@/lib/catalogo/planilha"
 import { problemaDoHorario } from "@/lib/horario-comercial"
+import { chaveDoUsuario, passouDoLimite, registrarTentativa } from "@/lib/limite-de-tentativas"
 import { sessaoAtual } from "@/lib/sessao"
 import type { ContatoTeste } from "./components/editor-fluxo"
 import type { RegraListada } from "./components/lista-regras"
@@ -76,6 +81,20 @@ export interface FiltrosDoHistorico {
 
 const DIA_EM_MS = 86_400_000
 
+/**
+ * Padrão do `ilike` que acha o nome com ou sem acento: vogal, "c" e "n" (com ou sem
+ * acento) viram `_`, que casa com uma letra qualquer. O resultado passa depois por
+ * `normalizarTexto` (B22-35).
+ */
+function padraoSemAcento(texto: string): string {
+  return texto.replace(/[aeioucnáàâãäéèêëíìîïóòôõöúùûüçñ]/giu, "_")
+}
+
+// B22-44: as actions podem ser chamadas por fora da tela, com qualquer coisa; o que
+// não tem o formato esperado volta com esta mensagem, e não com erro 500
+const PEDIDO_INVALIDO = "Pedido inválido. Recarregue a página."
+const ehTexto = (valor: unknown): valor is string => typeof valor === "string"
+
 const NOME_MAXIMO = 120
 const SUFIXO_DA_COPIA = " (cópia)"
 
@@ -87,7 +106,26 @@ function nomeDaCopia(nome: string): string {
 async function adminDaSessao() {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user || perfil?.role !== "admin") return null
-  return { supabase, workspaceId: perfil.workspace_id }
+  return { supabase, workspaceId: perfil.workspace_id, usuarioId: user.id }
+}
+
+// B22-29: limites para uma automação não pesar o sistema (decididos pelo Luan em 14/10)
+const TAMANHO_MAXIMO_DO_FLUXO = 200 * 1024
+const AUTOMACOES_POR_EMPRESA = 100
+const TESTES_POR_MINUTO = 10
+
+const FLUXO_GRANDE_DEMAIS = "A automação passou do tamanho máximo (200 KB). Encurte os textos ou divida em duas."
+const LIMITE_DE_AUTOMACOES = `A empresa chegou ao limite de ${AUTOMACOES_POR_EMPRESA} automações. Exclua uma para criar outra.`
+
+/** Tamanho do fluxo como chega do editor, antes de qualquer conferência. */
+const grandeDemais = (fluxo: unknown) => (JSON.stringify(fluxo ?? null)?.length ?? 0) > TAMANHO_MAXIMO_DO_FLUXO
+
+async function chegouAoLimiteDeAutomacoes({ supabase, workspaceId }: Admin): Promise<boolean> {
+  const { count } = await supabase
+    .from("automation_flows")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId)
+  return (count ?? 0) >= AUTOMACOES_POR_EMPRESA
 }
 
 type Admin = NonNullable<Awaited<ReturnType<typeof adminDaSessao>>>
@@ -108,14 +146,16 @@ export async function listarRegras(): Promise<RegraListada[]> {
   const regras: RegraListada[] = []
   const criadaEm = new Map<string, string>()
   for (const f of fluxos ?? []) {
+    // B22-25: fluxo gravado por fora do editor aparece com o problema, para dar
+    // para pausar e excluir pela tela, em vez de sumir da lista
     const fluxo = lerFluxo(f.fluxo)
-    if (!fluxo) continue
     criadaEm.set(f.id, f.created_at)
     regras.push({
       id: f.id,
       nome: f.nome,
       ativa: f.ativa,
       fluxo,
+      problema: fluxo ? (problemasDoFluxo(fluxo)[0] ?? null) : "O fluxo está fora do formato e não pode ser aberto no editor",
       execucoes7dias: execucoes.get(f.id)?.ultimos7dias ?? 0,
       ultimaExecucao: execucoes.get(f.id)?.ultima ?? null,
     })
@@ -261,8 +301,6 @@ const TIPO_DO_ARQUIVO: Record<string, "imagem" | "documento"> = {
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "documento",
 }
 
-/** Mesmo teto do chat: o limite de uma requisição na Vercel, e não do WhatsApp. */
-const LIMITE_DO_ARQUIVO = 4 * 1024 * 1024
 
 /**
  * Sobe o arquivo escolhido no editor para a pasta das automações da empresa
@@ -273,12 +311,17 @@ export async function guardarArquivoDaAutomacao(
 ): Promise<{ erro?: string; arquivo?: { url: string; nome: string; tipo: "imagem" | "documento" } }> {
   const admin = await adminDaSessao()
   if (!admin) return { erro: SEM_PERMISSAO }
+  if (!(formData instanceof FormData)) return { erro: PEDIDO_INVALIDO }
 
   const arquivo = formData.get("arquivo")
   if (!(arquivo instanceof File) || arquivo.size === 0) return { erro: "Escolha um arquivo." }
   const tipo = TIPO_DO_ARQUIVO[arquivo.type]
   if (!tipo) return { erro: "Use uma imagem (JPG, PNG ou WebP) ou um documento (PDF, Word ou Excel)." }
-  if (arquivo.size > LIMITE_DO_ARQUIVO) return { erro: "Arquivo muito grande (máximo 4 MB)." }
+  if (arquivo.size > LIMITE_DO_ARQUIVO) return { erro: ARQUIVO_GRANDE_DEMAIS }
+  // B22-38: o tipo vem do navegador, pela extensão; o conteúdo tem de bater
+  if (!conteudoDoTipo(arquivo.type, new Uint8Array(await arquivo.slice(0, 12).arrayBuffer()))) {
+    return { erro: "O conteúdo do arquivo não é do tipo que a extensão diz. Escolha o arquivo original." }
+  }
 
   const nomeSeguro = arquivo.name.replace(/[^a-zA-Z0-9._-]/g, "_")
   const caminho = `${pastaDosArquivos(admin.workspaceId)}/${Date.now()}-${nomeSeguro}`
@@ -302,15 +345,18 @@ export async function salvarRegra(dados: {
   if (!admin) return { erro: SEM_PERMISSAO }
   const { supabase, workspaceId } = admin
 
+  if (!dados || typeof dados !== "object" || !ehTexto(dados.nome) || (dados.id !== null && !ehTexto(dados.id))) {
+    return { erro: PEDIDO_INVALIDO }
+  }
+  if (grandeDemais(dados.fluxo)) return { erro: FLUXO_GRANDE_DEMAIS }
   const nome = dados.nome.trim()
   if (!nome) return { erro: "Dê um nome à automação" }
   if (nome.length > NOME_MAXIMO) return { erro: `O nome pode ter até ${NOME_MAXIMO} caracteres` }
 
   const fluxo = lerFluxo(dados.fluxo)
   if (!fluxo) return { erro: "O desenho da automação veio num formato inválido. Recarregue a página." }
-  const pendencias = pendenciasDoFluxo(fluxo)
-  const problemas = [...pendencias.gerais, ...Object.values(pendencias.porBloco).flat()]
-  if (problemas.length > 0) return { erro: `O fluxo ainda tem pendências: ${[...new Set(problemas)].join(". ")}` }
+  const problemas = problemasDoFluxo(fluxo)
+  if (problemas.length > 0) return { erro: `O fluxo ainda tem pendências: ${problemas.join(". ")}` }
 
   const erroReferencia = await conferirReferencias(admin, fluxo)
   if (erroReferencia) return { erro: erroReferencia }
@@ -332,23 +378,72 @@ export async function salvarRegra(dados: {
       .maybeSingle()
     if (error) return { erro: "Não foi possível salvar a automação. Tente novamente." }
     if (!data) return { erro: "Esta automação não existe mais." }
+    await limparArquivosSemUso(admin)
     revalidatePath(CAMINHO_LISTA)
     return { id: data.id }
   }
 
+  if (await chegouAoLimiteDeAutomacoes(admin)) return { erro: LIMITE_DE_AUTOMACOES }
   const { data, error } = await supabase
     .from("automation_flows")
     .insert({ workspace_id: workspaceId, nome, fluxo: paraJson(fluxo), repeticao: repeticaoJson, ativa: true })
     .select("id")
     .single()
   if (error || !data) return { erro: "Não foi possível salvar a automação. Tente novamente." }
+  await limparArquivosSemUso(admin)
   revalidatePath(CAMINHO_LISTA)
   return { id: data.id }
+}
+
+/**
+ * Apaga da pasta da empresa os arquivos que nenhuma regra usa e que têm mais de 1
+ * dia: o que foi trocado no editor ou era de regra excluída (B22-37, decidido pelo
+ * Luan em 14/10). O dia de folga protege o arquivo que alguém acabou de subir num
+ * editor ainda não salvo. A procura é pelo nome no texto do fluxo inteiro, para não
+ * apagar o arquivo de uma regra com fluxo fora do formato. Falha aqui não atrapalha
+ * o salvar nem o excluir.
+ */
+async function limparArquivosSemUso({ supabase, workspaceId }: Admin): Promise<void> {
+  try {
+    const servico = createServiceClient()
+    const pasta = pastaDosArquivos(workspaceId)
+    const [{ data: arquivos }, { data: fluxos, error }] = await Promise.all([
+      servico.storage.from(BUCKET_DOS_ARQUIVOS).list(pasta, { limit: 1000 }),
+      supabase.from("automation_flows").select("fluxo").eq("workspace_id", workspaceId),
+    ])
+    if (error || !fluxos) return
+    const textoDasRegras = JSON.stringify(fluxos.map((f) => f.fluxo))
+    const antesDe = Date.now() - DIA_EM_MS
+    const semUso = (arquivos ?? [])
+      // Sem `id`, é subpasta
+      .filter((a) => a.id && a.created_at && new Date(a.created_at).getTime() < antesDe && !textoDasRegras.includes(a.name))
+      .map((a) => `${pasta}/${a.name}`)
+    if (semUso.length > 0) await servico.storage.from(BUCKET_DOS_ARQUIVOS).remove(semUso)
+  } catch {
+    // Arquivo que sobrou só ocupa espaço; o próximo salvamento tenta de novo
+  }
 }
 
 export async function alternarRegra(id: string, ativa: boolean): Promise<{ erro?: string }> {
   const admin = await adminDaSessao()
   if (!admin) return { erro: SEM_PERMISSAO }
+  if (!ehTexto(id) || typeof ativa !== "boolean") return { erro: PEDIDO_INVALIDO }
+
+  // B22-27: ativar confere as escolhas como o Salvar (etiqueta, time, mensagem
+  // rápida… apagados depois). Pausar não confere: tem de funcionar sempre.
+  if (ativa) {
+    const { data: regra } = await admin.supabase
+      .from("automation_flows")
+      .select("fluxo")
+      .eq("id", id)
+      .eq("workspace_id", admin.workspaceId)
+      .maybeSingle()
+    const fluxo = regra ? lerFluxo(regra.fluxo) : null
+    if (fluxo) {
+      const erroReferencia = await conferirReferencias(admin, fluxo)
+      if (erroReferencia) return { erro: `Não dá para ativar: ${erroReferencia}` }
+    }
+  }
 
   const { data, error } = await admin.supabase
     .from("automation_flows")
@@ -357,7 +452,9 @@ export async function alternarRegra(id: string, ativa: boolean): Promise<{ erro?
     .eq("workspace_id", admin.workspaceId)
     .select("id")
     .maybeSingle()
-  if (error || !data) return { erro: "Não foi possível alterar a automação. Tente novamente." }
+  if (error) return { erro: "Não foi possível alterar a automação. Tente novamente." }
+  // B22-42: regra apagada (outra aba, outro admin) não é erro passageiro
+  if (!data) return { erro: "Esta automação não existe mais." }
   revalidatePath(CAMINHO_LISTA)
   return {}
 }
@@ -366,6 +463,7 @@ export async function alternarRegra(id: string, ativa: boolean): Promise<{ erro?
 export async function duplicarRegra(id: string): Promise<{ erro?: string }> {
   const admin = await adminDaSessao()
   if (!admin) return { erro: SEM_PERMISSAO }
+  if (!ehTexto(id)) return { erro: PEDIDO_INVALIDO }
   const { supabase, workspaceId } = admin
 
   const { data } = await supabase
@@ -374,8 +472,10 @@ export async function duplicarRegra(id: string): Promise<{ erro?: string }> {
     .eq("id", id)
     .eq("workspace_id", workspaceId)
     .maybeSingle()
-  const fluxo = data ? lerFluxo(data.fluxo) : null
-  if (!data || !fluxo) return { erro: "Esta automação não existe mais." }
+  if (!data) return { erro: "Esta automação não existe mais." }
+  const fluxo = lerFluxo(data.fluxo)
+  if (!fluxo) return { erro: "O fluxo desta automação está fora do formato e não pode ser duplicado." }
+  if (await chegouAoLimiteDeAutomacoes(admin)) return { erro: LIMITE_DE_AUTOMACOES }
 
   const { error } = await supabase.from("automation_flows").insert({
     workspace_id: workspaceId,
@@ -392,6 +492,7 @@ export async function duplicarRegra(id: string): Promise<{ erro?: string }> {
 export async function excluirRegra(id: string): Promise<{ erro?: string }> {
   const admin = await adminDaSessao()
   if (!admin) return { erro: SEM_PERMISSAO }
+  if (!ehTexto(id)) return { erro: PEDIDO_INVALIDO }
 
   const { data, error } = await admin.supabase
     .from("automation_flows")
@@ -400,7 +501,9 @@ export async function excluirRegra(id: string): Promise<{ erro?: string }> {
     .eq("workspace_id", admin.workspaceId)
     .select("id")
     .maybeSingle()
-  if (error || !data) return { erro: "Não foi possível excluir a automação. Tente novamente." }
+  if (error) return { erro: "Não foi possível excluir a automação. Tente novamente." }
+  if (!data) return { erro: "Esta automação não existe mais." }
+  await limparArquivosSemUso(admin)
   revalidatePath(CAMINHO_LISTA)
   return {}
 }
@@ -443,7 +546,7 @@ export async function salvarHorarioComercial(dados: unknown): Promise<{ erro?: s
  */
 export async function buscarContatosTeste(texto: string): Promise<ContatoTeste[]> {
   const admin = await adminDaSessao()
-  if (!admin) return []
+  if (!admin || !ehTexto(texto)) return []
   const { supabase, workspaceId } = admin
 
   let consulta = supabase
@@ -451,13 +554,13 @@ export async function buscarContatosTeste(texto: string): Promise<ContatoTeste[]
     .select("id, name, phone_number")
     .eq("workspace_id", workspaceId)
     .is("excluido_em", null)
-    .limit(10)
+    .limit(50)
 
   // Só letras, números, espaço, "+" e "-": o texto entra no filtro `or` do PostgREST,
   // onde vírgula, ponto e parênteses mudam o sentido da consulta
   const busca = texto.replace(/[^\p{L}\p{N} +-]/gu, "").trim().slice(0, 60)
   if (busca) {
-    consulta = consulta.or(`name.ilike.%${busca}%,phone_number.ilike.%${busca.replace(/\D/g, "") || busca}%`)
+    consulta = consulta.or(`name.ilike.%${padraoSemAcento(busca)}%,phone_number.ilike.%${busca.replace(/\D/g, "") || busca}%`)
   } else {
     const { data: conversas } = await supabase
       .from("conversations")
@@ -471,7 +574,14 @@ export async function buscarContatosTeste(texto: string): Promise<ContatoTeste[]
   }
 
   const { data } = await consulta
-  return (data ?? []).map((c) => ({ id: c.id, nome: c.name || c.phone_number, descricao: c.phone_number }))
+  // B22-35: o padrão do banco pega também outras letras na posição das vogais; aqui
+  // fica só quem casa sem acento e sem maiúscula ("jose" acha "José")
+  const procurado = normalizarTexto(busca)
+  const digitos = busca.replace(/\D/g, "")
+  return (data ?? [])
+    .filter((c) => !busca || normalizarTexto(c.name ?? "").includes(procurado) || (!!digitos && c.phone_number.includes(digitos)))
+    .slice(0, 10)
+    .map((c) => ({ id: c.id, nome: c.name || c.phone_number, descricao: c.phone_number }))
 }
 
 export async function simularRegra(
@@ -480,13 +590,21 @@ export async function simularRegra(
 ): Promise<{ erro?: string; resultado?: ResultadoSimulacao }> {
   const admin = await adminDaSessao()
   if (!admin) return { erro: SEM_PERMISSAO }
+  if (!ehTexto(contatoId)) return { erro: PEDIDO_INVALIDO }
+  if (grandeDemais(fluxoRecebido)) return { erro: FLUXO_GRANDE_DEMAIS }
+
+  // B22-29: cada teste consulta o banco a cada condição; até 10 por minuto por pessoa
+  const chave = chaveDoUsuario(admin.usuarioId)
+  if (await passouDoLimite("teste_automacao", [{ chave, limite: TESTES_POR_MINUTO }], 1)) {
+    return { erro: "Muitos testes seguidos. Espere um minuto e teste de novo." }
+  }
+  await registrarTentativa("teste_automacao", [chave])
 
   const fluxo = lerFluxo(fluxoRecebido)
   if (!fluxo) return { erro: "O desenho da automação veio num formato inválido. Recarregue a página." }
   // O que não pode ser salvo também não é testado: uma condição vazia, por exemplo, daria "sim" (B22-11)
-  const pendencias = pendenciasDoFluxo(fluxo)
-  const problemas = [...pendencias.gerais, ...Object.values(pendencias.porBloco).flat()]
-  if (problemas.length > 0) return { erro: `Complete o fluxo antes de testar: ${[...new Set(problemas)].join(". ")}` }
+  const problemas = problemasDoFluxo(fluxo)
+  if (problemas.length > 0) return { erro: `Complete o fluxo antes de testar: ${problemas.join(". ")}` }
 
   const { data: contato } = await admin.supabase
     .from("contacts")
@@ -549,6 +667,13 @@ export async function listarExecucoes(
   const admin = await adminDaSessao()
   if (!admin) return { execucoes: [], erro: SEM_PERMISSAO }
   const { supabase, workspaceId } = admin
+  // Período fora de 7 ou 30 dias quebrava a data da consulta (B22-44)
+  if (!filtros || typeof filtros !== "object") return { execucoes: [], erro: PEDIDO_INVALIDO }
+  filtros = {
+    dias: filtros.dias === 7 ? 7 : 30,
+    regraId: ehTexto(filtros.regraId) ? filtros.regraId : undefined,
+    resultado: (["concluida", "falhou", "ignorada"] as const).find((r) => r === filtros.resultado),
+  }
 
   let consulta = supabase
     .from("automation_runs")

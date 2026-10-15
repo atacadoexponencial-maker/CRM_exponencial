@@ -26,11 +26,13 @@ import {
   type Verificacao,
   type VerificacaoTipo,
 } from "@/lib/fluxo-automacao"
+import { ARQUIVO_GRANDE_DEMAIS, LIMITE_DO_ARQUIVO } from "@/lib/automacoes/referencias"
 import { descreverHorario } from "@/lib/horario-comercial"
 import {
   ACOES,
   FUNIS,
   GATILHOS,
+  NAO_EXISTE_MAIS,
   VERIFICACOES,
   etapasDoFunil,
   opcoesDaFonte,
@@ -48,6 +50,24 @@ const textareaClass =
 const TITULO = { gatilho: "Gatilho", condicao: "Condição", acao: "Ação" } as const
 
 const paraItens = (opcoes: Opcao[]): ItemSelecao[] => opcoes.map((o) => ({ valor: o.id, rotulo: o.nome }))
+
+/** O que dizer quando a lista da empresa está vazia, e onde criar (B22-34). */
+const LISTA_VAZIA: Partial<Record<string, { texto: string; link: string; onde: string }>> = {
+  sequencias: { texto: "Nenhuma sequência criada ainda.", link: "Criar em Sequências", onde: "/sequencias" },
+  mensagensRapidas: {
+    texto: "Nenhuma mensagem rápida criada ainda.",
+    link: "Criar em Mensagens rápidas",
+    onde: "/configuracoes/mensagens-rapidas",
+  },
+  etiquetas: { texto: "Nenhuma etiqueta criada ainda.", link: "Criar em Etiquetas", onde: "/configuracoes/etiquetas" },
+  times: { texto: "Nenhum time criado ainda.", link: "Criar em Times", onde: "/configuracoes/times" },
+}
+
+/** A escolha que saiu da lista continua no campo, como "(não existe mais)", e não pelo id (B22-27). */
+function comEscolhaApagada(itens: ItemSelecao[], valor: string): ItemSelecao[] {
+  if (!valor || itens.some((i) => i.valor === valor)) return itens
+  return [...itens, { valor, rotulo: NAO_EXISTE_MAIS, desabilitado: true }]
+}
 
 /** O que o motor ainda não executa aparece desabilitado, com "(em breve)". */
 function itemDisponivel<T extends string>(valor: T, rotulo: string, disponiveis: readonly T[]): ItemSelecao {
@@ -401,16 +421,30 @@ function CampoParametro({
           {campo.ajuda && <p className="text-xs text-muted-foreground">{campo.ajuda}</p>}
         </>
       )
-    case "opcoes":
+    case "opcoes": {
+      const lista = opcoesDaFonte(campo.fonte, opcoes)
+      const semNada = LISTA_VAZIA[campo.fonte]
+      // B22-34: lista da empresa vazia diz onde criar, em vez de um seletor sem opção
+      if (lista.length === 0 && !valor && semNada) {
+        return (
+          <p className="rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground">
+            {semNada.texto}{" "}
+            <a href={semNada.onde} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+              {semNada.link}
+            </a>
+          </p>
+        )
+      }
       return (
         <CampoSelecao
           id={id}
           valor={valor}
           vazio={campo.vazio}
-          itens={paraItens(opcoesDaFonte(campo.fonte, opcoes))}
+          itens={comEscolhaApagada(paraItens(lista), valor)}
           onMudar={(novo) => onMudar(campo.chave, novo)}
         />
       )
+    }
     case "etapa":
       return (
         <CampoSelecao
@@ -477,6 +511,11 @@ function CampoArquivo({
 
   async function escolher(arquivo: File | undefined) {
     if (!arquivo || !guardarArquivo) return
+    // B22-32: acima do limite, o Next recusa a requisição antes da action, com erro 500
+    if (arquivo.size > LIMITE_DO_ARQUIVO) {
+      setErro(ARQUIVO_GRANDE_DEMAIS)
+      return
+    }
     setErro(null)
     setEnviando(true)
     const dados = new FormData()
@@ -616,7 +655,7 @@ function EditorVerificacoes({
                 aria-label="Valor"
                 valor={v.valor}
                 vazio="Escolha…"
-                itens={paraItens(opcoesDaFonte(item.valor.fonte, opcoes))}
+                itens={comEscolhaApagada(paraItens(opcoesDaFonte(item.valor.fonte, opcoes)), v.valor)}
                 onMudar={(valor) => mudar(v.id, { valor })}
               />
             )}
@@ -689,6 +728,8 @@ function CampoTag({
 }) {
   // As que combinam com o que foi digitado
   const sugestoes = tags.filter((t) => t.id !== valor && t.id.includes(valor)).slice(0, 12)
+  // B22-34: o espaço digitado some, e a tela diz por quê
+  const [tirouEspaco, setTirouEspaco] = useState(false)
   return (
     <>
       <Input
@@ -698,7 +739,10 @@ function CampoTag({
         maxLength={50}
         placeholder={vazio ?? "ex.: interessado"}
         // Como a tela do contato grava: minúsculas e sem espaço
-        onChange={(e) => onMudar(e.target.value.toLowerCase().replace(/\s/g, ""))}
+        onChange={(e) => {
+          setTirouEspaco(/\s/.test(e.target.value))
+          onMudar(e.target.value.toLowerCase().replace(/\s/g, ""))
+        }}
       />
       {sugestoes.length > 0 && (
         <div className="flex flex-wrap gap-1">
@@ -713,6 +757,9 @@ function CampoTag({
             </button>
           ))}
         </div>
+      )}
+      {tirouEspaco && (
+        <p className="text-xs text-amber-300">Tag não tem espaço: o espaço foi tirado. Use hífen para separar (ex.: cliente-vip).</p>
       )}
       <p className="text-xs text-muted-foreground">
         {vazio ? `Em branco: ${vazio.toLowerCase()}. ` : ""}Pode ser uma tag nova. Minúsculas e sem espaço.

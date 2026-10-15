@@ -76,7 +76,10 @@ export async function atribuirAtendente(cardId: string, atendenteId: string): Pr
   if (error) throw new Error("Erro ao atribuir atendente")
 }
 
-export async function criarNovoLead(telefone: string, nome: string | null): Promise<void> {
+const JA_NO_FUNIL = "Este contato já está no Funil de Entrada."
+
+/** `erro`: o contato já tem card no Funil de Entrada (B22-26). O resto continua lançando. */
+export async function criarNovoLead(telefone: string, nome: string | null): Promise<{ erro?: string }> {
   const supabase = await createClient()
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -110,6 +113,19 @@ export async function criarNovoLead(telefone: string, nome: string | null): Prom
     throw new Error("Erro ao criar ou localizar contato")
   }
 
+  // B22-26: um card por contato em cada funil. Dois cards no mesmo funil quebravam
+  // "mover card" e a condição de etapa das automações. O índice único do banco
+  // segura quem chegar junto; aqui fica a mensagem clara.
+  const { data: jaTem } = await supabase
+    .from("pipeline_cards")
+    .select("id")
+    .eq("workspace_id", profile.workspace_id)
+    .eq("contact_id", contato.id)
+    .eq("funil", "entrada")
+    .limit(1)
+    .maybeSingle()
+  if (jaTem) return { erro: JA_NO_FUNIL }
+
   // B11-06: o lead novo pode mudar a classificação (de "sem histórico" para "lead")
   const dispararClassificacao = await prepararGatilhoDeClassificacao(profile.workspace_id, contato.id, (cards) => [
     ...cards,
@@ -126,6 +142,7 @@ export async function criarNovoLead(telefone: string, nome: string | null): Prom
     .select("id")
     .single()
 
+  if (cardError?.code === "23505") return { erro: JA_NO_FUNIL }
   if (cardError || !novoCard) throw new Error("Erro ao criar card no pipeline")
 
   await dispararAutomacoes({
@@ -145,6 +162,7 @@ export async function criarNovoLead(telefone: string, nome: string | null): Prom
   })
 
   await dispararClassificacao()
+  return {}
 }
 
 export async function moverCard(cardId: string, novaEtapa: string): Promise<void> {
@@ -166,12 +184,16 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
     cardsDepoisDoMovimento(cards, cardId, novaEtapa)
   )
 
-  const { error: updateError } = await supabase
+  // `select` devolve a linha alterada: sem ela, a RLS barrou sem erro (B22-22)
+  const { data: movido, error: updateError } = await supabase
     .from("pipeline_cards")
     .update({ etapa: novaEtapa, etapa_changed_at: new Date().toISOString() })
     .eq("id", cardId)
+    .select("id")
+    .maybeSingle()
 
   if (updateError) throw new Error("Erro ao mover card")
+  if (!movido) throw new Error("Sem permissão para mover este card")
 
   await supabase
     .from("pipeline_card_history")
@@ -182,8 +204,24 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
       alterado_por: user.id,
     })
 
+  // B22-43: o card movido primeiro; no Ganho, as regras do card da Recompra rodavam
+  // antes das do card da Entrada, porque ele era disparado antes
+  await dispararAutomacoes({
+    tipo: "card_movido",
+    workspaceId: card.workspace_id,
+    contactId: card.contact_id,
+    cardId,
+    funil: (card.funil ?? "entrada") as "entrada" | "recompra",
+    etapa: novaEtapa,
+  })
+
   if (novaEtapa === "ganho" && card.contact_id && card.workspace_id) {
-    const { data: existente } = await supabase
+    // B22-22: o card de Recompra é criado pelo servidor. Pela RLS, só admin e gerente
+    // criam card, e o atendente que marcava Ganho ficava sem card, sem gatilho e sem
+    // onboarding, em silêncio. Quem pode mover este card já foi conferido acima (o
+    // card veio pela RLS e a etapa mudou de fato); a chave de serviço só cria o par dele.
+    const servico = createServiceClient()
+    const { data: existente } = await servico
       .from("pipeline_cards")
       .select("id")
       .eq("funil", "recompra")
@@ -192,7 +230,7 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
       .maybeSingle()
 
     if (!existente) {
-      const { data: cardRecompra } = await supabase
+      const { data: cardRecompra } = await servico
         .from("pipeline_cards")
         .insert({
           funil: "recompra",
@@ -222,15 +260,6 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
       }
     }
   }
-
-  await dispararAutomacoes({
-    tipo: "card_movido",
-    workspaceId: card.workspace_id,
-    contactId: card.contact_id,
-    cardId,
-    funil: (card.funil ?? "entrada") as "entrada" | "recompra",
-    etapa: novaEtapa,
-  })
 
   // Gatilhos automáticos de sequência do método
   if (novaEtapa === "catalogo_enviado" || novaEtapa === "inativos") {

@@ -52,19 +52,37 @@ export async function verificacaoVale(contexto: ContextoDaExecucao, verificacao:
   }
 }
 
+const palavras = (texto: string) => texto.split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+
+/**
+ * O procurado aparece na mensagem como palavras inteiras, em sequência: "oi" casa
+ * com "Oi, tudo bem?", e não com "Boituva" nem com "oito" (B22-40, decidido pelo
+ * Luan em 14/10). A última palavra aceita o plural com "s" ou "es": "preço" casa
+ * com "preços". Procurado sem letra nem número ("?!") continua valendo como trecho.
+ */
+function contemPalavras(mensagem: string, procurado: string): boolean {
+  const alvo = palavras(procurado)
+  if (alvo.length === 0) return mensagem.includes(procurado)
+  const texto = palavras(mensagem)
+  const ultima = alvo.length - 1
+  const casa = (palavra: string | undefined, j: number) =>
+    palavra === alvo[j] || (j === ultima && (palavra === `${alvo[j]}s` || palavra === `${alvo[j]}es`))
+  return texto.some((_, i) => alvo.every((__, j) => casa(texto[i + j], j)))
+}
+
 /**
  * O texto que o cliente escreveu contra o valor da verificação, sem distinguir
- * maiúsculas, acentos nem espaços repetidos. "Contém alguma das palavras" separa
- * o valor por vírgula e procura cada item como trecho, igual ao "contém".
+ * maiúsculas, acentos nem espaços repetidos. "Contém" e "contém alguma das
+ * palavras" procuram palavras inteiras; a segunda separa o valor por vírgula.
  */
 export function textoDaMensagemVale({ operador, valor }: Verificacao, texto: string): boolean {
   const mensagem = normalizarTexto(texto)
   const procurado = normalizarTexto(valor)
   switch (operador) {
     case "contem":
-      return procurado !== "" && mensagem.includes(procurado)
+      return procurado !== "" && contemPalavras(mensagem, procurado)
     case "nao_contem":
-      return procurado !== "" && !mensagem.includes(procurado)
+      return procurado !== "" && !contemPalavras(mensagem, procurado)
     case "comeca_com":
       return procurado !== "" && mensagem.startsWith(procurado)
     case "igual":
@@ -73,7 +91,7 @@ export function textoDaMensagemVale({ operador, valor }: Verificacao, texto: str
       return valor
         .split(",")
         .map(normalizarTexto)
-        .some((palavra) => palavra !== "" && mensagem.includes(palavra))
+        .some((palavra) => palavra !== "" && contemPalavras(mensagem, palavra))
     default:
       return false
   }

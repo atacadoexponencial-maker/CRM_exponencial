@@ -71,11 +71,18 @@ export async function consumirFila(chave: string): Promise<void> {
     while (Date.now() - inicio < PRAZO_DA_FILA_MS) {
       const { data, error } = await supabase.rpc("reivindicar_evento_de_automacao", { p_chave: chave })
       const item = data?.[0]
-      if (error || !item) return
+      if (error || !item) break
       // O motor não lança erro: cada regra registra no histórico o que deu certo ou não
       await processarAutomacoes(item.evento as unknown as GatilhoAutomacao, { prazo: inicio + PRAZO_DAS_REGRAS_MS })
       await supabase.from("automation_queue").delete().eq("id", item.id)
     }
+    // B22-41: o descartado fica uma semana, para conferência, e sai de passagem; o
+    // histórico das regras já guarda o que não rodou (B22-06)
+    await supabase
+      .from("automation_queue")
+      .delete()
+      .eq("status", "descartado")
+      .lt("created_at", new Date(Date.now() - 7 * 86_400_000).toISOString())
   } catch {
     // Um evento que ficou "processando" é descartado pelo banco depois de 5 minutos
   }

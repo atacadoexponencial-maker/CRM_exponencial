@@ -7,6 +7,7 @@ import {
   ACOES,
   FUNIS,
   GATILHOS,
+  NAO_EXISTE_MAIS,
   VERIFICACOES,
   etapasDoFunil,
   opcoesDaFonte,
@@ -17,6 +18,10 @@ import {
 } from "./catalogo"
 
 const nomeEm = (lista: Opcao[], id: string | undefined) => lista.find((o) => o.id === id)?.nome ?? id ?? ""
+
+/** Nas listas da empresa, a escolha apagada aparece como "(não existe mais)", e não pelo id (B22-27). */
+const nomeOuApagado = (lista: Opcao[], id: string | undefined) =>
+  lista.find((o) => o.id === id)?.nome ?? (id ? NAO_EXISTE_MAIS : "")
 
 const trecho = (texto: string, max = 60) => (texto.length > max ? `${texto.slice(0, max)}…` : texto)
 
@@ -56,10 +61,10 @@ export function fraseGatilho(bloco: BlocoGatilho, opcoes: OpcoesEditor): string 
         : `Quando o card mudar de etapa no ${funil}`
     }
     case "tag_adicionada":
-      return p.tag ? `Quando a tag "${nomeEm(opcoes.tags, p.tag)}" for adicionada` : "Quando qualquer tag for adicionada"
+      return p.tag ? `Quando a tag "${p.tag}" for adicionada` : "Quando qualquer tag for adicionada"
     case "etiqueta_aplicada":
       return p.label_id
-        ? `Quando a etiqueta "${nomeEm(opcoes.etiquetas, p.label_id)}" for aplicada`
+        ? `Quando a etiqueta "${nomeOuApagado(opcoes.etiquetas, p.label_id)}" for aplicada`
         : "Quando qualquer etiqueta for aplicada"
     case "dado_contato_alterado": {
       if (!p.campo) return "Quando um dado do contato mudar"
@@ -78,7 +83,7 @@ export function fraseVerificacao(v: Verificacao, opcoes: OpcoesEditor): string {
     return v.tipo === "horario_comercial" ? operador : `${item.rotulo.toLowerCase()} ${operador}`
   }
   let valor = v.valor
-  if (item.valor.tipo === "opcoes") valor = nomeEm(opcoesDaFonte(item.valor.fonte, opcoes), v.valor)
+  if (item.valor.tipo === "opcoes") valor = nomeOuApagado(opcoesDaFonte(item.valor.fonte, opcoes), v.valor)
   if (item.valor.tipo === "funil_etapa") {
     const [funil, etapa] = v.valor.split(":")
     valor = funil ? `${nomeEm(etapasDoFunil(funil), etapa)} (${nomeEm(FUNIS, funil)})` : ""
@@ -93,25 +98,27 @@ export function fraseAcao(bloco: BlocoAcao, opcoes: OpcoesEditor): string {
     case "enviar_mensagem":
       return p.texto ? `Enviar: "${trecho(p.texto)}"` : rotulo
     case "enviar_mensagem_rapida":
-      return p.mensagem_rapida_id ? `Enviar a mensagem rápida "${nomeEm(opcoes.mensagensRapidas, p.mensagem_rapida_id)}"` : rotulo
+      return p.mensagem_rapida_id ? `Enviar a mensagem rápida "${nomeOuApagado(opcoes.mensagensRapidas, p.mensagem_rapida_id)}"` : rotulo
     case "enviar_midia":
       return p.arquivo ? `Enviar ${p.arquivo_tipo === "imagem" ? "a imagem" : "o documento"} "${p.arquivo_nome || "arquivo"}"` : rotulo
     case "adicionar_tag":
-      return p.tag ? `Adicionar a tag "${nomeEm(opcoes.tags, p.tag)}"` : rotulo
+      return p.tag ? `Adicionar a tag "${p.tag}"` : rotulo
     case "remover_tag":
-      return p.tag ? `Remover a tag "${nomeEm(opcoes.tags, p.tag)}"` : rotulo
+      return p.tag ? `Remover a tag "${p.tag}"` : rotulo
     case "aplicar_etiqueta":
-      return p.label_id ? `Aplicar a etiqueta "${nomeEm(opcoes.etiquetas, p.label_id)}"` : rotulo
+      return p.label_id ? `Aplicar a etiqueta "${nomeOuApagado(opcoes.etiquetas, p.label_id)}"` : rotulo
     case "remover_etiqueta":
-      return p.label_id ? `Remover a etiqueta "${nomeEm(opcoes.etiquetas, p.label_id)}"` : rotulo
+      return p.label_id ? `Remover a etiqueta "${nomeOuApagado(opcoes.etiquetas, p.label_id)}"` : rotulo
     case "alterar_dado_contato":
       if (!p.campo) return rotulo
-      if (p.campo === "observacoes") return `Acrescentar às observações: "${trecho(p.valor ?? "", 40)}"`
+      // B22-34: sem valor ainda, a frase diz o que falta, e não `= ""`
+      if (!p.valor) return `Alterar ${rotuloCampoContato(p.campo).toLowerCase()} do contato`
+      if (p.campo === "observacoes") return `Acrescentar às observações: "${trecho(p.valor, 40)}"`
       return `${rotuloCampoContato(p.campo)} do contato = "${valorDoCampo(p.campo, p.valor, opcoes)}"`
     case "atribuir_atendente":
-      return p.atendente_id ? `Atribuir a ${nomeEm(opcoes.atendentes, p.atendente_id)}` : rotulo
+      return p.atendente_id ? `Atribuir a ${nomeOuApagado(opcoes.atendentes, p.atendente_id)}` : rotulo
     case "atribuir_time":
-      return p.time_id ? `Atribuir ao time ${nomeEm(opcoes.times, p.time_id)}` : rotulo
+      return p.time_id ? `Atribuir ao time ${nomeOuApagado(opcoes.times, p.time_id)}` : rotulo
     case "mover_card": {
       if (!p.funil || !p.etapa) return rotulo
       const destino = `Mover card para "${nomeEm(etapasDoFunil(p.funil), p.etapa)}" (${nomeEm(FUNIS, p.funil)})`
@@ -119,7 +126,7 @@ export function fraseAcao(bloco: BlocoAcao, opcoes: OpcoesEditor): string {
       return comSequencia ? `${destino} e iniciar a sequência` : destino
     }
     case "iniciar_sequencia":
-      return p.sequencia_id ? `Iniciar a sequência "${nomeEm(opcoes.sequencias, p.sequencia_id)}"` : rotulo
+      return p.sequencia_id ? `Iniciar a sequência "${nomeOuApagado(opcoes.sequencias, p.sequencia_id)}"` : rotulo
     case "resolver_conversa":
     case "reabrir_conversa":
       return rotulo
@@ -156,7 +163,7 @@ export function fraseDoEvento(evento: Record<string, string>, opcoes?: OpcoesEdi
     case "tag_adicionada":
       return `Tag "${evento.tag}" adicionada`
     case "etiqueta_aplicada":
-      return `Etiqueta "${opcoes ? nomeEm(opcoes.etiquetas, evento.labelId) : evento.labelId}" aplicada`
+      return `Etiqueta "${opcoes ? nomeOuApagado(opcoes.etiquetas, evento.labelId) : evento.labelId}" aplicada`
     case "dado_contato_alterado": {
       const campo = rotuloCampoContato(evento.campo)
       if (!evento.valor) return `${campo} apagado`

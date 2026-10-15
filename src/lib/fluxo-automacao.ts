@@ -359,9 +359,15 @@ export function problemasDeEstrutura(fluxo: Fluxo): string[] {
 }
 
 /** Tudo que impede o fluxo de ser salvo. Vazio = pode salvar. */
+/** Até 100 blocos por automação (B22-29, decidido pelo Luan em 14/10). */
+export const BLOCOS_POR_AUTOMACAO = 100
+
 export function pendenciasDoFluxo(fluxo: Fluxo): PendenciasFluxo {
   const porBloco: Record<string, string[]> = {}
   const gerais = problemasDeEstrutura(fluxo)
+  if (fluxo.blocos.length > BLOCOS_POR_AUTOMACAO) {
+    gerais.push(`Uma automação pode ter até ${BLOCOS_POR_AUTOMACAO} blocos; esta tem ${fluxo.blocos.length}`)
+  }
   const anotar = (id: string, motivo: string) => {
     ;(porBloco[id] ??= []).push(motivo)
   }
@@ -406,6 +412,15 @@ export function pendenciasDoFluxo(fluxo: Fluxo): PendenciasFluxo {
   if (!temAcaoNoCaminho) gerais.push("Ligue pelo menos uma ação ao caminho")
 
   return { porBloco, gerais }
+}
+
+/**
+ * Tudo o que impede o fluxo de rodar, sem repetir: o que o Salvar recusa, e o que
+ * o motor e a lista conferem nas regras gravadas por fora do editor (B22-25).
+ */
+export function problemasDoFluxo(fluxo: Fluxo): string[] {
+  const { gerais, porBloco } = pendenciasDoFluxo(fluxo)
+  return [...new Set([...gerais, ...Object.values(porBloco).flat()])]
 }
 
 /**

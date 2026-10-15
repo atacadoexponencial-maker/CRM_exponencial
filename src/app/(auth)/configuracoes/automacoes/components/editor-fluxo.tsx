@@ -40,7 +40,7 @@ import {
   type ResultadoSimulacao,
   type Saida,
 } from "@/lib/fluxo-automacao"
-import type { OpcoesEditor } from "./catalogo"
+import { referenciasQueSumiram, type OpcoesEditor } from "./catalogo"
 import {
   ContextoEditorFluxo,
   TIPOS_DE_BLOCO,
@@ -197,7 +197,12 @@ function EditorFluxoInterno({
     avisoInicial ? { tipo: "ok", texto: avisoInicial } : null
   )
   const [salvando, setSalvando] = useState(false)
+  const salvandoAgora = useRef(false)
   const [confirmarSaida, setConfirmarSaida] = useState(false)
+  // B22-36: apagar 2 ou mais blocos de uma vez espera a resposta da pessoa
+  const [confirmarApagar, setConfirmarApagar] = useState<{ quantos: number; responder: (sim: boolean) => void } | null>(
+    null
+  )
   // Assinatura do que está gravado no banco: a da abertura e, depois, a de cada salvamento
   const [salvo, setSalvo] = useState(() => assinatura(regraInicial))
   const rascunhoDaAbertura = useRascunhoDaAbertura(chaveRascunho)
@@ -215,7 +220,15 @@ function EditorFluxoInterno({
   )
   const rascunhoAchado =
     !rascunhoResolvido && rascunhoDaAbertura && assinaturaDoRascunho !== salvo ? rascunhoDaAbertura : null
-  const pendencias = useMemo(() => pendenciasDoFluxo(fluxo), [fluxo])
+  // B22-27: escolha apagada (etiqueta, time, mensagem rápida…) marca o bloco, como as outras pendências
+  const pendencias = useMemo(() => {
+    const doFluxo = pendenciasDoFluxo(fluxo)
+    const porBloco = { ...doFluxo.porBloco }
+    for (const [id, motivos] of Object.entries(referenciasQueSumiram(fluxo, opcoes))) {
+      porBloco[id] = [...(porBloco[id] ?? []), ...motivos]
+    }
+    return { ...doFluxo, porBloco }
+  }, [fluxo, opcoes])
   const caminhoAtual = useMemo(() => assinaturaDoCaminho(fluxo), [fluxo])
   const simulacaoVelha = simulacao !== null && simulacao.caminho !== caminhoAtual
   const selecionado = nos.find((n) => n.selected)
@@ -293,6 +306,35 @@ function EditorFluxoInterno({
     apagarRascunho(chaveRascunho)
     setConfirmarSaida(false)
     onVoltar()
+  }
+
+  // Apagar um bloco continua direto; 2 ou mais pedem confirmação (decidido pelo Luan em 14/10).
+  // A tecla é tratada aqui, e não pelo atalho do React Flow: com o diálogo aberto ao
+  // descer a tecla, ele não via a tecla subir e deixava de apagar depois de um "Cancelar".
+  // Como o atalho dele, vale com o foco em qualquer lugar da página, menos em campo de
+  // texto e com diálogo aberto.
+  useEffect(() => {
+    function aoApertar(e: KeyboardEvent) {
+      if (e.key !== "Delete" && e.key !== "Backspace") return
+      const alvo = e.target as HTMLElement | null
+      if (alvo?.closest("input, textarea, select, [contenteditable='true']")) return
+      if (document.querySelector("[role='dialog']")) return
+      const blocos = nos.filter((n) => n.selected && n.deletable !== false)
+      const setas = ligacoes.filter((l) => l.selected)
+      if (blocos.length === 0 && setas.length === 0) return
+      e.preventDefault()
+      const apagar = () =>
+        deleteElements({ nodes: blocos.map((n) => ({ id: n.id })), edges: setas.map((l) => ({ id: l.id })) })
+      if (blocos.length >= 2) setConfirmarApagar({ quantos: blocos.length, responder: (sim) => sim && apagar() })
+      else apagar()
+    }
+    document.addEventListener("keydown", aoApertar)
+    return () => document.removeEventListener("keydown", aoApertar)
+  }, [nos, ligacoes, deleteElements])
+
+  function responderApagar(sim: boolean) {
+    confirmarApagar?.responder(sim)
+    setConfirmarApagar(null)
   }
 
   // Ligar uma saída que já tinha seta troca a ligação antiga pela nova
@@ -441,9 +483,15 @@ function EditorFluxoInterno({
     }
     setAvisoRepeticao(false)
 
+    // B22-31: cliques seguidos chegam antes de o botão ficar desabilitado na tela;
+    // a referência muda na hora, e só um salvamento roda por vez
+    if (salvandoAgora.current) return
+    salvandoAgora.current = true
     setSalvando(true)
     const enviada = { nome: nome.trim(), repeticao, fluxo }
-    const resultado = await salvar(enviada)
+    const resultado = await salvar(enviada).finally(() => {
+      salvandoAgora.current = false
+    })
     setSalvando(false)
     if (resultado.erro) {
       setMensagem({ tipo: "erro", texto: resultado.erro })
@@ -510,7 +558,7 @@ function EditorFluxoInterno({
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             isValidConnection={ligacaoValida}
-            deleteKeyCode={["Backspace", "Delete"]}
+            deleteKeyCode={null}
             colorMode="dark"
             fitView
             fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
@@ -637,6 +685,24 @@ function EditorFluxoInterno({
             <DialogClose render={<Button variant="outline" />}>Continuar editando</DialogClose>
             <Button variant="destructive" onClick={sairSemSalvar}>
               Sair sem salvar
+            </Button>
+          </div>
+        </DialogPopup>
+      </Dialog>
+
+      {/* Apagar vários blocos */}
+      <Dialog open={confirmarApagar !== null} onOpenChange={(aberto) => !aberto && responderApagar(false)}>
+        <DialogPopup className="max-w-md">
+          <DialogTitle className="mb-2">Apagar {confirmarApagar?.quantos} blocos?</DialogTitle>
+          <DialogDescription className="mb-4">
+            Os blocos selecionados e as ligações deles saem do fluxo. Não dá para desfazer.
+          </DialogDescription>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => responderApagar(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={() => responderApagar(true)}>
+              Apagar
             </Button>
           </div>
         </DialogPopup>

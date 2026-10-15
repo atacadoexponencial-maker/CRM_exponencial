@@ -85,12 +85,52 @@ Verificado no fim do lote: 748 testes unitários, lint de `src` e `e2e` e build
 com código 0. No preview, o `roteiro-b22-historico.cjs` (16 verificações) e os 7
 roteiros do lote 1 (72 verificações) passaram.
 
-**Lote 4, o resto:** A7 (card de Recompra que o atendente não consegue criar
-ao arrastar para Ganho), M3, M4, M5, M6, M8, segurança (M19, M20, M21) e os baixos.
+### Em andamento: lote 4, o resto
 
-Decidido pelo Luan em 14/10: no A7, a action de mover cria o card de Recompra com
-a chave de serviço, sem mudar a RLS; no M21, só o admin lê as regras, com a
-migration que troca a política aplicada no merge do lote 4.
+Branch `b22-lote-resto`, aberto em 14/10/2026 a partir do `master`. Decisões na
+seção 32; roteiro do preview `roteiro-b22-resto.cjs`.
+
+| Issue | Achado | O que mudou |
+|---|---|---|
+| B22-22 | A7 | Card de Recompra do Ganho criado pela chave de serviço; movimento barrado pela RLS recusa |
+| B22-23 | M3 | API Oficial: botão, lista, cartão de contato e localização chegam com texto e tipo certos |
+| B22-24 | M4 | Falha de rede no envio vira "Sem conexão com o WhatsApp: o envio não foi confirmado" |
+| B22-25 | M5 | Fluxo inválido gravado direto no banco: não roda, vai para o histórico com motivo e aparece na lista |
+| B22-26 | M6 | "Novo lead" confere o card existente; índice único por funil (migration `20261014000001`, aplicar no merge) |
+| B22-27 | M8 | Escolha apagada aparece como "(não existe mais)", marca o bloco, avisa na lista e trava o "Ativar"; time apagado com motivo certo |
+| B22-28 | M19 | Arquivo da ação: depois da pasta da empresa, só o nome que o upload gera (`%2e%2e` não passa mais) |
+| B22-29 | M20 | Até 100 blocos, 200 KB, 100 automações por empresa e 10 testes por minuto (migration `20261014000002`, aplicar no merge) |
+| B22-30 | M21 | Só o admin lê as regras (migration `20261014000003`, aplicar no merge; conferir com `conferir-b22-30-rls.cjs`) |
+| B22-31 | baixo | Cliques seguidos em Salvar criam uma regra só |
+| B22-32 | baixo | Arquivo acima de 4 MB avisa na tela, sem erro 500 |
+| B22-33 | baixo | Regra nova sem vermelho antes de tentar salvar; blocos soltos conferidos no preview |
+| B22-34 | baixo | Lista vazia diz onde criar; "alterar dado" sem `= ""`; aviso do espaço na tag |
+| B22-35 | baixo | Busca de contato do "Testar" sem acento |
+| B22-36 | baixo | Delete de 2 ou mais blocos pede confirmação |
+| B22-37 | baixo | Arquivos sem uso há mais de 1 dia saem do armazenamento ao salvar ou excluir regra |
+| B22-38 | baixo | Upload confere o conteúdo do arquivo, não só a extensão |
+| B22-39 | baixo | Variáveis com espaço nas chaves; nome do contato não é trocado de novo |
+| B22-40 | baixo | "Contém" por palavra inteira, com plural na última palavra |
+| B22-41 | baixo | "Na última hora"; horário comercial o dia inteiro; descartados saem da fila em 7 dias |
+| B22-42 | baixo | Regra já apagada: "não existe mais"; nome longo sem espaço cabe no celular |
+| B22-43 | baixo | No Ganho, as regras do card da Entrada rodam antes das do card da Recompra |
+| B22-44 | baixo | Entrada malformada nas actions responde "Pedido inválido", sem erro 500 |
+| B22-45 | baixo | Reentrega da Meta conferida no começo: não soma "não lida" nem cria conversa de novo |
+
+Verificado: 815 testes unitários, lint e build com código 0, e 16 roteiros do
+preview passando (o do lote 4 com 21 verificações). Em 14/10, o roteiro do lote 4
+deixava um perfil "Atendente B22" por rodada: o Ganho grava quem moveu no
+histórico do card, isso travava a exclusão do perfil, e a limpeza não conferia o
+erro. Com 9 perfis na empresa, o b11-10 e o b11-11-e-12 paravam no começo. A
+limpeza foi corrigida (commit 6c2d6c1) e os 8 perfis foram apagados com aprovação
+do Luan.
+
+Todos os achados do QA estão resolvidos. **No merge:** aplicar as três migrations
+do lote (`20261014000001`, `…02` e `…03`) e rodar `conferir-b22-30-rls.cjs`.
+
+Decisões do Luan para o lote 4 (14/10): seção 32 das decisões (A7, M6, M20, M21,
+"contém" por palavra inteira, confirmação ao apagar 2 ou mais blocos e limpeza dos
+arquivos sem uso).
 
 ### Decisões pendentes
 
@@ -108,9 +148,9 @@ filtrar só pelo prefixo `[TESTE]`.**
 
 ### Onde retomar
 
-Lote 4 (A7, M3 a M6, M8, M19 a M21 e os baixos), num branch `b22-lote-resto` a
-partir do `master`. Antes, perguntar ao Luan: "contém" por palavra inteira e os
-limites do M20.
+Lote 4 pronto e verificado no branch `b22-lote-resto` (16 roteiros passando). Falta
+o merge, com aprovação do Luan, e, junto dele, as três migrations e o
+`conferir-b22-30-rls.cjs`.
 
 ---
 
@@ -126,21 +166,21 @@ limites do M20.
 - [x] **A4. Atribuir (atendente/time) deixa a conversa em "Em espera" com atendente** — o "Atribuir" do chat muda para "em atendimento"; nesse estado o chat só oferece "Atribuir" (sem Transferir/Resolver). `acoes.ts:295`. (motor, código) → **Resolvido na B22-03 (09/10):** em espera passa a em atendimento; resolvida continua resolvida.
 - [x] **A5. Sair do editor sem salvar perde tudo sem aviso** (botão voltar, voltar do navegador, fechar aba); e "Automação salva" continua visível após novas edições. `editor-fluxo.tsx:312`. (editor) → **Resolvido na B22-08 (13/10):** "Alterações não salvas" no topo, confirmação no "Automações", aviso do navegador ao fechar a aba e rascunho no navegador para o voltar e o menu lateral.
 - [x] **A6. "Atribuir ao time" conta a própria conversa como carga** → com "sempre" em mensagem recebida, a conversa alterna Ana/Bruno/Ana a cada mensagem. E leads simultâneos de contatos diferentes caem todos no mesmo atendente (rodam em paralelo). `acoes.ts:337-364`. (código — suspeita forte, não reproduzido na tela) → **Resolvido na B22-04 (09/10):** conversa com membro ativo do time fica com ele; escolha e gravação travadas por time numa função do banco.
-- [ ] **A7. Atendente que arrasta card para Ganho:** o banco recusa em silêncio o card de Recompra (só admin/gerente cria) → não nasce card, gatilho "card movido Onboarding" nem sequência de onboarding. `pipeline/actions.ts:165-221`. Fora do módulo, mas afeta gatilhos. (código)
+- [x] **A7. Atendente que arrasta card para Ganho:** o banco recusa em silêncio o card de Recompra (só admin/gerente cria) → não nasce card, gatilho "card movido Onboarding" nem sequência de onboarding. `pipeline/actions.ts:165-221`. Fora do módulo, mas afeta gatilhos. (código) → **Resolvido na B22-22 (14/10):** o servidor cria o card de Recompra com a chave de serviço.
 
 ## 🟡 Médios
 
 **Motor e regras**
 - [x] M1. Gatilho "dado do contato alterado" com valor diferencia maiúsculas/acentos ("são paulo" ≠ "São Paulo"; trocar só a caixa conta como alteração). `index.ts:148`, `gatilhos-do-crm.ts:28`. (3 agentes) → **Resolvido na B22-05 (09/10).**
 - [x] M2. Se a gravação na fila falha, as regras rodam sem fila → some a proteção contra envio em dobro. `fila.ts:33-35`. (código) → **Resolvido na B22-07 (09/10):** sem fila, não roda; cada regra vai para o histórico como falha.
-- [ ] M3. API Oficial: resposta de botão, lista e cartão de contato chegam sem texto e como tipo "desconhecido". (código)
-- [ ] M4. Falha de rede no envio aparece só como "Erro inesperado ao executar a ação". (motor)
-- [ ] M5. Fluxo inválido gravado direto no banco (o admin pode, pela RLS): laço/dois gatilhos → regra pulada sem registro; bloco sem tipo ou 201 blocos → regra some da lista mesmo ativa (não dá para pausar/excluir pela tela); condição vazia → roda. (bordas)
-- [ ] M6. Contato com dois cards no mesmo funil → mover card e condição de etapa falham com "erro no banco"; origem provável `criarNovoLead` sem conferir card existente (= A6 do QA de 06/10). (bordas)
+- [x] M3. API Oficial: resposta de botão, lista e cartão de contato chegam sem texto e como tipo "desconhecido". (código) → **Resolvido na B22-23 (14/10).**
+- [x] M4. Falha de rede no envio aparece só como "Erro inesperado ao executar a ação". (motor) → **Resolvido na B22-24 (14/10).**
+- [x] M5. Fluxo inválido gravado direto no banco (o admin pode, pela RLS): laço/dois gatilhos → regra pulada sem registro; bloco sem tipo ou 201 blocos → regra some da lista mesmo ativa (não dá para pausar/excluir pela tela); condição vazia → roda. (bordas) → **Resolvido na B22-25 (14/10).**
+- [x] M6. Contato com dois cards no mesmo funil → mover card e condição de etapa falham com "erro no banco"; origem provável `criarNovoLead` sem conferir card existente (= A6 do QA de 06/10). (bordas) → **Resolvido na B22-26 (14/10).**
 - [x] M7. Envio usa o número gravado na conversa mesmo removido/desconectado (`whatsapp/index.ts:110`). (motor — suspeita) → **Conferido em 09/10, sem mudança:** o envio falha com "O número de envio estava fora do ar"; decidido não trocar de número (decisões, seção 21).
 
 **Referências apagadas**
-- [ ] M8. Etiqueta/time/mensagem rápida apagados: bloco e painel mostram o UUID em vez do nome; erro só no topo ao salvar, não no bloco; lista não avisa; reativar não confere; para time apagado o motivo engana ("time não tem atendente ativo"). `frases-fluxo.ts:19`. (editor, bordas)
+- [x] M8. Etiqueta/time/mensagem rápida apagados: bloco e painel mostram o UUID em vez do nome; erro só no topo ao salvar, não no bloco; lista não avisa; reativar não confere; para time apagado o motivo engana ("time não tem atendente ativo"). `frases-fluxo.ts:19`. (editor, bordas) → **Resolvido na B22-27 (14/10).**
 
 **Editor**
 - [x] M9. Resultado de "Testar com um contato" fica velho após editar o fluxo (só some em "Limpar"). (editor) → **Resolvido na B22-10 (14/10):** com o fluxo diferente, o caminho sai do canvas e a faixa oferece "Testar de novo".
@@ -157,24 +197,24 @@ limites do M20.
 - [x] M18. Interruptor leva 2,4–3,7 s sem nenhum estado de "salvando". → **Resolvido na B22-21 (14/10).**
 
 **Segurança (nenhum crítico/alto)**
-- [ ] M19. Trava de caminho do arquivo da ação contornada com `%2e%2e` → ação aponta para arquivo de outra empresa (precisa saber o caminho; bucket já é público por link). `referencias.ts:113`. (provado)
-- [ ] M20. Sem teto de tamanho/custo: fluxo de 3,5 MB salvo; simulação com 200 condições = 24 s, sem limite de frequência; sem limite de regras. (provado)
-- [ ] M21. **Decisão:** gerente e atendente leem todas as regras (textos e links de arquivos) direto pela API do Supabase — RLS "membros leem" em `20261007000000_automation_flows.sql:48` x spec "só admin". (seguranca, lista)
+- [x] M19. Trava de caminho do arquivo da ação contornada com `%2e%2e` → ação aponta para arquivo de outra empresa (precisa saber o caminho; bucket já é público por link). `referencias.ts:113`. (provado) → **Resolvido na B22-28 (14/10).**
+- [x] M20. Sem teto de tamanho/custo: fluxo de 3,5 MB salvo; simulação com 200 condições = 24 s, sem limite de frequência; sem limite de regras. (provado) → **Resolvido na B22-29 (14/10).**
+- [x] M21. **Decisão:** gerente e atendente leem todas as regras (textos e links de arquivos) direto pela API do Supabase — RLS "membros leem" em `20261007000000_automation_flows.sql:48` x spec "só admin". (seguranca, lista) → **Resolvido na B22-30 (14/10):** só o admin lê; a migration entra no merge do lote 4.
 
 ## ⚪ Baixos
 
-- Três cliques simultâneos em Salvar criaram 3 regras (duplo clique real cria 1).
-- Arquivo > 4 MB dá 500 em vez da mensagem de limite que já existe.
-- Regra nova abre com "Complete a configuração" em vermelho; bloco solto nasce em cima de outros.
-- "Iniciar sequência" com lista vazia sem orientação; "Alterar dado" vazio mostra `= ""`; tag com espaço vira "tagcomespaço" sem aviso; busca de contato não ignora acento; Delete com tudo selecionado apaga todos os blocos sem desfazer.
-- Arquivos escolhidos e trocados ficam no armazenamento para sempre; upload confia no tipo declarado.
-- `{{ nome_contato }}` com espaço vai literal; contato chamado `{{nome_vendedor}}` vira o nome do vendedor.
-- "contém oi" casa com "Boituva" (é substring, como a spec diz — vale considerar palavra inteira).
-- Motivo "últimas 1 horas"; não dá para configurar horário 24 h; linhas descartadas ficam na fila para sempre.
-- Agir em regra já apagada mostra "Tente novamente"; nome longo sem espaço estoura a lista no celular.
-- Ganho: regras do card novo da Recompra rodam antes das do card da Entrada.
-- Entrada malformada nas actions dá 500 (`actions.ts:504`, `:290`).
-- Webhook da Meta sem registro de evento: reentrega pode disparar "conversa criada" de novo (suspeita).
+- [x] Três cliques simultâneos em Salvar criaram 3 regras (duplo clique real cria 1). → **B22-31 (14/10).**
+- [x] Arquivo > 4 MB dá 500 em vez da mensagem de limite que já existe. → **B22-32 (14/10).**
+- [x] Regra nova abre com "Complete a configuração" em vermelho; bloco solto nasce em cima de outros. → **B22-33 (14/10).**
+- [x] "Iniciar sequência" com lista vazia sem orientação; "Alterar dado" vazio mostra `= ""`; tag com espaço vira "tagcomespaço" sem aviso; busca de contato não ignora acento; Delete com tudo selecionado apaga todos os blocos sem desfazer. → **B22-34, B22-35 e B22-36 (14/10).**
+- [x] Arquivos escolhidos e trocados ficam no armazenamento para sempre; upload confia no tipo declarado. → **B22-37 e B22-38 (14/10).**
+- [x] `{{ nome_contato }}` com espaço vai literal; contato chamado `{{nome_vendedor}}` vira o nome do vendedor. → **B22-39 (14/10).**
+- [x] "contém oi" casa com "Boituva" (é substring, como a spec diz — vale considerar palavra inteira). → **B22-40 (14/10):** palavra inteira, decidido pelo Luan.
+- [x] Motivo "últimas 1 horas"; não dá para configurar horário 24 h; linhas descartadas ficam na fila para sempre. → **B22-41 (14/10).**
+- [x] Agir em regra já apagada mostra "Tente novamente"; nome longo sem espaço estoura a lista no celular. → **B22-42 (14/10).**
+- [x] Ganho: regras do card novo da Recompra rodam antes das do card da Entrada. → **B22-43 (14/10).**
+- [x] Entrada malformada nas actions dá 500 (`actions.ts:504`, `:290`). → **B22-44 (14/10).**
+- [x] Webhook da Meta sem registro de evento: reentrega pode disparar "conversa criada" de novo (suspeita). → **B22-45 (14/10).**
 
 ## ✅ O que aguentou
 

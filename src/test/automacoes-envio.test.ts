@@ -13,7 +13,8 @@ vi.mock("@/lib/whatsapp", async (importOriginal) => ({
 import { resolverProviderDaConversa, resolverProviderDoContato } from "@/lib/whatsapp"
 import { executarAcao } from "@/lib/automacoes/acoes"
 import type { GatilhoAutomacao } from "@/lib/automacoes/contexto"
-import { textoComVariaveis } from "@/lib/automacoes/envio"
+import { MOTIVO_FALHA_DE_REDE, textoComVariaveis } from "@/lib/automacoes/envio"
+import { GatewayIndisponivel } from "@/lib/whatsapp/gateway/cliente"
 import { arquivoDaAutomacaoValido } from "@/lib/automacoes/referencias"
 import type { AcaoTipo, BlocoAcao } from "@/lib/fluxo-automacao"
 import { banco } from "./automacoes-banco-falso"
@@ -76,6 +77,22 @@ describe("textoComVariaveis", () => {
         nomeVendedor: "Bruna",
       })
     ).toBe("Oi Ana! Ana Paula, aqui é Bruna. Até, Ana")
+  })
+
+  it("B22-39: aceita espaço dentro das chaves", () => {
+    expect(textoComVariaveis("Oi {{ primeiro_nome }}, sou {{nome_vendedor }}", { nomeContato: "Ana Paula", primeiroNome: "Ana", nomeVendedor: "Bruna" })).toBe(
+      "Oi Ana, sou Bruna"
+    )
+  })
+
+  it("B22-39: o que entra no lugar de uma variável não é trocado de novo", () => {
+    expect(
+      textoComVariaveis("Oi {{nome_contato}}, aqui é {{nome_vendedor}}", {
+        nomeContato: "{{nome_vendedor}}",
+        primeiroNome: "{{nome_vendedor}}",
+        nomeVendedor: "Bruna",
+      })
+    ).toBe("Oi {{nome_vendedor}}, aqui é Bruna")
   })
 })
 
@@ -258,5 +275,44 @@ describe("arquivoDaAutomacaoValido", () => {
   it("o tipo é imagem ou documento", () => {
     expect(valido(`${PASTA}video.mp4`, "video")).toBe(false)
     expect(valido(`${PASTA}tabela.pdf`, "documento")).toBe(true)
+  })
+
+  it("B22-28 (M19): '..' codificado, subpasta e caracteres fora do nome gerado são recusados", () => {
+    expect(valido(`${PASTA}%2e%2e/%2e%2e/ws-2/automacoes/foto.jpg`)).toBe(false)
+    expect(valido(`${PASTA}%2E%2E%2Fws-2%2Fautomacoes%2Ffoto.jpg`)).toBe(false)
+    expect(valido(`${PASTA}sub/foto.jpg`)).toBe(false)
+    expect(valido(`${PASTA}foto.jpg?x=1`)).toBe(false)
+    expect(valido(`${PASTA}..`)).toBe(false)
+    expect(valido(`${PASTA}1760000000-Tabela_de_precos-2026.pdf`, "documento")).toBe(true)
+  })
+})
+
+describe("B22-24 — falha de rede no envio (M4)", () => {
+  it("fetch que não chega à Meta vira o motivo de rede, e não 'Erro inesperado'", async () => {
+    const b = banco({ contacts: { um: { phone_number: "5511999998888" } } })
+    provider.enviarTexto.mockRejectedValue(new TypeError("fetch failed"))
+
+    expect(await executarAcao(b.contexto(mensagemRecebida), acao("enviar_mensagem", { texto: "Bom dia!" }))).toEqual({
+      ok: false,
+      motivo: MOTIVO_FALHA_DE_REDE,
+    })
+    expect(b.gravacoes("messages")).toEqual([])
+  })
+
+  it("gateway que não respondeu também", async () => {
+    const b = banco({ contacts: { um: { phone_number: "5511999998888" } } })
+    provider.enviarTexto.mockRejectedValue(new GatewayIndisponivel("O gateway não respondeu.", new Error("timeout")))
+
+    expect(await executarAcao(b.contexto(mensagemRecebida), acao("enviar_mensagem", { texto: "Bom dia!" }))).toEqual({
+      ok: false,
+      motivo: MOTIVO_FALHA_DE_REDE,
+    })
+  })
+
+  it("outro erro continua subindo", async () => {
+    const b = banco({ contacts: { um: { phone_number: "5511999998888" } } })
+    provider.enviarTexto.mockRejectedValue(new Error("bug"))
+
+    await expect(executarAcao(b.contexto(mensagemRecebida), acao("enviar_mensagem", { texto: "Bom dia!" }))).rejects.toThrow("bug")
   })
 })

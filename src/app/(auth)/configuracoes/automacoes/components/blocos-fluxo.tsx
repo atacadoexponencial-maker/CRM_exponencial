@@ -129,8 +129,9 @@ function BlocoDoFluxo({ id, data, selected }: NodeProps<NoFluxo>) {
         <p className="-mt-1.5 px-3 pb-2.5 text-xs text-muted-foreground">{fraseRepeticao(repeticao)}</p>
       )}
 
+      {/* Antes da primeira tentativa de salvar, o que falta é orientação, e não erro (B22-33) */}
       {problemas.length > 0 && (
-        <ul className="space-y-0.5 px-3 pb-2.5 text-xs text-destructive">
+        <ul className={cn("space-y-0.5 px-3 pb-2.5 text-xs", destacarErros ? "text-destructive" : "text-muted-foreground")}>
           {problemas.map((p) => (
             <li key={p}>{p}</li>
           ))}

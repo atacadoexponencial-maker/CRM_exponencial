@@ -23,6 +23,9 @@ export const NOMES_DOS_DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
 
 const FORMATO_HORA = /^([01]\d|2[0-3]):[0-5]\d$/
 
+/** Fim do dia: "24:00" no fim cobre até 23:59 inclusive (B22-41). O `time` do banco aceita. */
+export const FIM_DO_DIA = "24:00"
+
 const minutos = (hora: string) => Number(hora.slice(0, 2)) * 60 + Number(hora.slice(3, 5))
 
 /** O que impede de gravar, em português; `null` quando vale. */
@@ -32,7 +35,7 @@ export function problemaDoHorario(horario: HorarioComercial): string | null {
   if (dias.some((d) => !Number.isInteger(d) || d < 0 || d > 6) || new Set(dias).size !== dias.length) {
     return "Os dias marcados não são válidos"
   }
-  if (!FORMATO_HORA.test(inicio) || !FORMATO_HORA.test(fim)) return "Use horas no formato 08:00"
+  if (!FORMATO_HORA.test(inicio) || (fim !== FIM_DO_DIA && !FORMATO_HORA.test(fim))) return "Use horas no formato 08:00"
   if (minutos(inicio) >= minutos(fim)) return "O fim precisa ser depois do início"
   return null
 }
@@ -67,7 +70,7 @@ export function dentroDoHorario(horario: HorarioComercial, agora: Date): boolean
 /** "Seg a Sex, das 08:00 às 18:00". Três ou mais dias seguidos viram "de … a …". */
 export function descreverHorario({ dias, inicio, fim }: HorarioComercial): string {
   const ordenados = [...new Set(dias)].sort((a, b) => a - b)
-  const faixa = `das ${inicio} às ${fim}`
+  const faixa = inicio === "00:00" && fim === FIM_DO_DIA ? "o dia inteiro" : `das ${inicio} às ${fim}`
   if (ordenados.length === 7) return `Todos os dias, ${faixa}`
 
   const partes: string[] = []

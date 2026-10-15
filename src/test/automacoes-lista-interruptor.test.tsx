@@ -24,6 +24,7 @@ const REGRA: RegraListada = {
   nome: "Boas-vindas",
   ativa: true,
   fluxo: { blocos: [{ id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao: { x: 0, y: 0 } }], ligacoes: [] },
+  problema: null,
   execucoes7dias: 0,
   ultimaExecucao: null,
 }
@@ -58,5 +59,35 @@ describe("B22-21 — interruptor com 'Salvando…'", () => {
     await act(async () => responder({ erro: "falhou" }))
     expect(screen.queryByText("Salvando…")).toBeNull()
     expect(screen.getByRole("switch", { name: "Pausar Boas-vindas" }).getAttribute("aria-checked")).toBe("true")
+  })
+})
+
+describe("B22-25 — regra com fluxo que não roda aparece na lista (M5)", () => {
+  function listar(regra: RegraListada) {
+    render(
+      <ListaRegras
+        regras={[regra]}
+        opcoes={OPCOES}
+        historicoDisponivel
+        onNova={vi.fn()}
+        onEditar={vi.fn()}
+        onAlternar={vi.fn(async () => ({}))}
+        onDuplicar={vi.fn()}
+        onVerHistorico={vi.fn()}
+        onExcluir={vi.fn(async () => ({}))}
+      />
+    )
+  }
+
+  it("fluxo fora do formato: aparece com o problema e dá para pausar", () => {
+    listar({ ...REGRA, fluxo: null, problema: "O fluxo está fora do formato e não pode ser aberto no editor" })
+    expect(screen.getByText("Boas-vindas")).toBeTruthy()
+    expect(screen.getByText("Não roda: O fluxo está fora do formato e não pode ser aberto no editor")).toBeTruthy()
+    expect(screen.getByRole("switch", { name: "Pausar Boas-vindas" })).toBeTruthy()
+  })
+
+  it("fluxo incompleto: mostra o resumo e o problema", () => {
+    listar({ ...REGRA, problema: "Condição sem verificação" })
+    expect(screen.getByText("Não roda: Condição sem verificação")).toBeTruthy()
   })
 })

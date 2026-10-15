@@ -1319,3 +1319,215 @@ teste em vez de disparar regras.
   apagado, desabilitado e com "Salvando…" até o servidor responder. Se a
   gravação falhar, ele volta ao estado do servidor e o erro aparece no topo, como
   antes.
+
+## 32. Lote 4: o resto do QA (B22-22 em diante, 14/10/2026)
+
+O último lote junta o alto A7, os médios M3 a M6, M8 e M19 a M21, e os baixos.
+Cada item tem commit próprio; o roteiro do preview é um só,
+`roteiro-b22-resto.cjs`. Migrations do lote (M6 e M21) só são aplicadas no merge,
+porque mudam o que já existe.
+
+**Decidido pelo Luan em 14/10/2026:**
+
+- **A7:** a action de mover cria o card de Recompra com a chave de serviço, sem
+  mudar a RLS. Descartados: liberar o atendente na RLS (ele poderia criar card de
+  Recompra por fora da tela) e só avisar (o onboarding esperaria um gerente).
+- **M21:** só o admin lê as regras (`automation_flows`), como a spec diz.
+- **M6:** o "novo lead" confere o card existente, e um índice único (empresa,
+  contato, funil) trava no banco. Em 14/10 a produção não tinha nenhum caso.
+- **M20:** fluxo até 200 KB e 100 blocos; até 100 automações por empresa;
+  "Testar com um contato" até 10 vezes por minuto por pessoa.
+- **"Contém" por palavra inteira:** "contém oi" deixa de casar com "Boituva". Muda
+  as regras que já existem; frases continuam valendo como sequência de palavras.
+- **Delete de 2 ou mais blocos** no editor pede confirmação; desfazer (Ctrl+Z)
+  ficou de fora.
+- **Arquivos sem uso:** ao salvar ou excluir uma regra, os arquivos da pasta da
+  empresa que nenhuma regra usa e que têm mais de 1 dia são apagados.
+
+**Como ficou, item a item:**
+
+- **B22-22 (A7):** o card de Recompra do Ganho é criado pela chave de serviço. A
+  mudança de etapa passou a pedir a linha alterada de volta (`select`): sem ela, a
+  RLS que barrasse o movimento passaria sem erro, e a chave de serviço criaria o
+  card para quem não pôde mover. Agora isso recusa com "Sem permissão para mover
+  este card". O roteiro cria um atendente temporário, marca Ganho por ele e o apaga
+  no fim (`abrirPreview` aceita outro login).
+- **B22-23 (M3):** o webhook da API Oficial só lia `text.body`. Agora
+  `lerMensagemMeta` (`src/lib/whatsapp/mensagem-meta.ts`) tira o texto de cada
+  tipo: resposta a botão de modelo (`button`), a botão interativo e a lista
+  (`interactive`) contam como texto, com o título escolhido; cartão de contato
+  (`contacts`, no plural na Meta) e localização ganham o texto montado pelo CRM,
+  como no canal do gateway, e as regras não leem texto neles; foto, vídeo e
+  documento passam a legenda. Sem roteiro do preview: o webhook só aceita o que
+  vem assinado com o segredo da Meta, que só existe na Vercel. O teste do webhook
+  confere a resposta de botão chegando às regras.
+- **B22-24 (M4):** falha de rede no envio aparecia como "Erro inesperado ao
+  executar a ação". Os providers deixam a exceção de rede subir de propósito; o
+  envio das automações (`envio.ts`) passou a trocá-la pelo motivo "Sem conexão com
+  o WhatsApp: o envio não foi confirmado" (TypeError do fetch da Meta,
+  `GatewayIndisponivel` do gateway e timeout). "Não confirmado", e não "não
+  enviado": num timeout, a mensagem pode ter saído. As sequências, que usam o
+  mesmo envio, não mudam.
+- **B22-25 (M5):** o admin pode gravar o fluxo direto no banco (a RLS deixa), e o
+  que o editor não deixaria salvar se perdia: fluxo fora do formato sumia da lista
+  (sem dar para pausar ou excluir), laço ou dois gatilhos eram pulados sem
+  registro, e condição sem verificação rodava como "sim". Agora:
+  - `problemasDoFluxo` (`fluxo-automacao.ts`) junta o que impede o fluxo de rodar.
+    O Salvar, o Testar, o motor e a lista usam a mesma função.
+  - O motor não roda essas regras e grava cada disparo no histórico como
+    "falhou", com o motivo ("Não rodou: … Abra a regra no editor para corrigir",
+    ou, fora do formato, "Exclua a regra e crie de novo pelo editor").
+  - A lista mostra a regra com "Não roda: …". A que está fora do formato não abre
+    no editor nem duplica, mas pausa e exclui.
+  - Antes de ligar a recusa no motor, as 4 regras da produção foram conferidas:
+    nenhuma tinha pendência. Uma regra de exemplo de um teste antigo tinha
+    (gatilho "card movido" sem funil) e foi corrigida.
+- **B22-26 (M6):** o "novo lead" não conferia se o contato já tinha card no Funil
+  de Entrada, e o contato com dois cards no mesmo funil quebrava "mover card" e a
+  condição de etapa ("erro no banco"). A action passou a conferir e devolve "Este
+  contato já está no Funil de Entrada.", que o modal mostra (antes, qualquer erro
+  virava "Não foi possível criar o lead"). A migration
+  `20261014000001_um_card_por_funil.sql` cria o índice único (empresa, contato,
+  funil), que segura dois pedidos juntos e qualquer outro caminho; o erro dele
+  (23505) vira a mesma mensagem. **Só é aplicada no merge do lote 4.** Visto e
+  deixado de fora: o "novo lead" para um contato que já existe troca o nome dele
+  pelo digitado, e apaga o nome se o campo vier vazio (o `upsert` do contato).
+- **B22-27 (M8):** etiqueta, time, mensagem rápida, sequência ou número apagados
+  (ou atendente desativado) depois de a regra existir apareciam pelo id no bloco e
+  no painel, o erro só vinha no topo ao salvar, a lista não avisava, reativar não
+  conferia e, para time apagado, o motivo dizia "o time não tem atendente ativo".
+  Agora:
+  - `referenciasQueSumiram` (`catalogo.ts`) acha as escolhas que não estão mais
+    nas listas da empresa. O editor junta isso às pendências do bloco, que fica
+    marcado; a lista mostra "Atenção: …" (a regra roda, mas aquela ação falha).
+  - Bloco, painel e histórico mostram "(não existe mais)" no lugar do id. Tags
+    são texto livre e ficam de fora; na condição "atendente é", atendente
+    desativado continua valendo (B22-02).
+  - Ativar confere as escolhas no servidor (`conferirReferencias`, a mesma do
+    Salvar) e recusa com "Não dá para ativar: …". Pausar não confere.
+  - Time apagado falha com "O time não existe mais".
+- **B22-28 (M19):** a trava do arquivo da ação barrava `..` no endereço, mas
+  `%2e%2e/` passava, e o Storage decodificava: a ação podia apontar para um arquivo
+  de outra empresa (precisava saber o caminho, e o bucket já é público por link).
+  `arquivoDaAutomacaoValido` passou a aceitar, depois da pasta da empresa, só um
+  nome como o que o upload gera: letras, números, ponto, hífen e sublinhado, sem
+  barra, sem `%` e sem ser só pontos. Em 14/10 nenhuma regra da produção tinha
+  arquivo, então nada salvo deixou de valer.
+- **B22-29 (M20):** não havia teto: o QA salvou um fluxo de 3,5 MB, testou 200
+  condições em 24 s, sem limite de frequência, e não havia limite de regras. Com
+  os valores do Luan:
+  - **Até 100 blocos:** virou pendência do fluxo (`BLOCOS_POR_AUTOMACAO`), então
+    o editor avisa, o Salvar recusa e o motor não roda. O formato aceito pelo
+    `lerFluxo` continua em 200, para uma regra grande não sumir da lista.
+  - **Até 200 KB:** o Salvar e o Testar medem o fluxo como chega, antes de
+    qualquer conferência.
+  - **Até 100 automações por empresa:** conferido ao criar e ao duplicar.
+  - **Até 10 testes por minuto por pessoa:** pelo contador de tentativas da B20-05
+    (`teste_automacao`, chave pelo id da pessoa). A migration
+    `20261014000002_limite_de_testes_da_automacao.sql` acrescenta o tipo à regra
+    da tabela; **só é aplicada no merge do lote 4**, e até lá o contador falha em
+    silêncio, sem bloquear ninguém, como já fazia.
+  - Sem roteiro do preview: os limites são números altos para chegar pela tela; os
+    testes unitários conferem cada um.
+- **B22-30 (M21):** a política "membros leem" de `automation_flows`, copiada das
+  regras da primeira versão, deixava gerente e atendente lerem todas as regras
+  (textos das mensagens e links dos arquivos) pela API do Supabase. A migration
+  `20261014000003_regras_so_admin_le.sql` tira essa política; o admin continua
+  lendo pela "Admin gerencia…", e o motor usa a chave de serviço. O histórico
+  (`automation_runs`) já era só do admin. **Só é aplicada no merge do lote 4.**
+  O `conferir-b22-30-rls.cjs` fala direto com o banco como um atendente
+  temporário: antes da migration, em 14/10, ele leu a regra (furo confirmado);
+  depois, tem de não ler, com o admin ainda lendo.
+
+**Baixos do QA** (um commit por linha da lista):
+
+- **B22-31:** três cliques seguidos em Salvar criavam três regras: o botão só fica
+  desabilitado depois de a tela atualizar. Uma referência (`salvandoAgora`) muda na
+  hora e deixa um salvamento por vez. O teste de tela falha sem a correção.
+- **B22-32:** arquivo acima de 4 MB dava erro 500: a requisição inteira tem até
+  4 MB (`bodySizeLimit`), e o Next recusa antes de a action rodar. O teto passou
+  para `referencias.ts` (`LIMITE_DO_ARQUIVO`, 4 MB menos 16 KB de folga para o
+  resto do formulário), e a tela confere antes de subir, com a mesma mensagem do
+  servidor.
+- **B22-33:** a regra nova abria com "Complete a configuração" em vermelho no
+  gatilho, antes de a pessoa fazer qualquer coisa. Até a primeira tentativa de
+  salvar, o que falta no bloco aparece em cinza, como orientação; depois, em
+  vermelho, como antes. O bloco solto "nascendo em cima de outros" não se
+  reproduziu pelo código (a posição livre já é procurada desde a B11-01); o
+  roteiro do lote 4 adiciona três blocos soltos seguidos e confere que nenhum
+  cobre outro.
+- **B22-34:** três orientações no painel. Lista da empresa vazia (sequências,
+  mensagens rápidas, etiquetas, times) diz que não há nenhuma e leva para onde
+  criar, em vez de um seletor sem opção. "Alterar dado" com o campo escolhido e
+  sem valor mostra "Alterar cidade do contato", e não `= ""`. Tag digitada com
+  espaço continua sem o espaço, como a tela do contato grava, mas agora o painel
+  avisa e sugere hífen.
+- **B22-35:** a busca de contato do "Testar" não ignorava acento ("jose" não
+  achava "José"). Sem extensão nova no banco: no `ilike`, vogal, "c" e "n" viram
+  `_` (uma letra qualquer), a consulta traz até 50, e o servidor fica só com quem
+  casa por `normalizarTexto`, a mesma das verificações de texto. Descartado: a
+  extensão `unaccent`, que pediria migration para um campo de busca.
+- **B22-36:** Delete com vários blocos selecionados apagava todos sem perguntar.
+  Apagar 2 ou mais blocos de uma vez abre "Apagar N blocos?"; um bloco só continua
+  direto, e o "Remover bloco" do painel também. A primeira versão usou o
+  `onBeforeDelete` do React Flow, e o roteiro do preview pegou um defeito: com o
+  diálogo aberto quando a tecla desce, o React Flow não via a tecla subir e, depois
+  de um "Cancelar", deixava de apagar. Agora o atalho do React Flow está desligado
+  (`deleteKeyCode={null}`) e o editor trata Delete e Backspace na página, como o
+  atalho dele fazia: com o foco em qualquer lugar, menos em campo de texto e com
+  diálogo aberto. (Uma versão intermediária ouvia só o canvas e falhava quando o
+  foco ia para o fundo da página.) Desfazer (Ctrl+Z) ficou de fora, como o Luan decidiu. Conferido no
+  roteiro do preview (seleção com Ctrl e Delete), porque o jsdom não roda o
+  teclado do React Flow.
+- **B22-37:** o arquivo escolhido no editor sobe na hora, e os trocados ou de
+  regras excluídas ficavam no armazenamento para sempre. Ao salvar ou excluir uma
+  regra, `limparArquivosSemUso` lista a pasta da empresa e apaga o que tem mais de
+  1 dia e não aparece no texto de nenhum fluxo da empresa. A busca é pelo texto
+  inteiro, e não pelo fluxo lido, para não apagar o arquivo de uma regra fora do
+  formato; a cópia feita pelo "Duplicar" cita o mesmo arquivo e o mantém. Falha
+  na limpeza não atrapalha o salvar. **Limite aceito:** um rascunho do navegador
+  com arquivo subido há mais de 1 dia e nunca salvo perde o arquivo, se alguém
+  salvar outra regra antes; o envio dessa ação falha com motivo.
+- **B22-38:** o upload confiava no tipo declarado pelo navegador, que vem da
+  extensão: um arquivo renomeado para `.pdf` subia e ia para o cliente.
+  `conteudoDoTipo` (`referencias.ts`) confere os primeiros bytes de cada formato
+  aceito (JPEG, PNG, WebP com o "WEBP", PDF, Word e Excel, novos em ZIP e antigos
+  em OLE) antes de subir.
+- **B22-39:** `{{ nome_contato }}`, com espaço dentro das chaves, saía literal, e
+  um contato chamado `{{nome_vendedor}}` virava o nome do vendedor, porque as
+  variáveis eram trocadas uma depois da outra. `textoComVariaveis` faz uma troca
+  só, por expressão regular que aceita espaço, e o que entra não é lido de novo.
+  As sequências, que têm a própria troca, não mudam.
+- **B22-40:** "contém oi" casava com "Boituva" e "oito" (trecho, como a spec
+  dizia). Decidido pelo Luan: palavra inteira. "Contém", "não contém" e "contém
+  alguma das palavras" procuram as palavras do valor em sequência, inteiras.
+  **Refinamento:** só palavra inteira faria "contém preço" não casar com "quais os
+  preços", e "catálogo" com "catálogos"; por isso a última palavra aceita o plural
+  com "s" ou "es". "Começa com" e "é igual a" não mudaram. Valor sem letra nem
+  número ("??") continua valendo como trecho. Em 14/10 nenhuma regra da produção
+  usava essas verificações, então nada em uso mudou de comportamento.
+*Muda a seção 12.2 (texto por trecho).*
+- **B22-41:** três pequenos. O motivo da proteção diz "na última hora", e não "nas
+  últimas 1 horas". O horário comercial ganhou "O dia inteiro (24 horas)", que
+  grava das 00:00 às 24:00: o campo de hora não deixa digitar 24:00, e 23:59 no fim
+  deixava o último minuto de fora; o `time` do banco aceita 24:00, e o fim continua
+  excluído. E as linhas descartadas da fila, que ficavam para sempre, saem de
+  passagem depois de 7 dias, no fim de cada consumo (o histórico das regras já
+  guarda o que não rodou, desde a B22-06). Sem migration.
+- **B22-42:** pausar, ativar ou excluir uma regra que outra aba ou outro admin já
+  tinha apagado dizia "Tente novamente"; agora diz "Esta automação não existe
+  mais." (o erro do banco continua com "Tente novamente"). E o nome longo sem
+  espaço, que empurrava o interruptor para fora da tela no celular, quebra em
+  qualquer ponto (`overflow-wrap: anywhere`).
+- **B22-43:** no Ganho, as regras do card novo da Recompra rodavam antes das do
+  card da Entrada, porque o evento dele entrava na fila primeiro. O `moverCard`
+  passou a disparar o card movido antes de criar o da Recompra; a fila roda os
+  eventos do contato na ordem em que entram.
+- **B22-44:** as actions das automações podem ser chamadas por fora da tela, e uma
+  entrada malformada (nome que não é texto, período que não é número) quebrava com
+  erro 500. Cada action confere o tipo do que recebe e responde "Pedido inválido.
+  Recarregue a página."; o histórico com período estranho volta a 30 dias.
+- **B22-45:** o webhook da API Oficial só percebia a reentrega da Meta no fim, ao
+  gravar a mensagem (o `wamid` é único). Até ali, já tinha somado "não lida" e, se
+  a conversa tivesse sido resolvida no meio, criado outra, com "conversa criada".
+  Agora ele confere o `wamid` antes de qualquer coisa e pula a mensagem já gravada.

@@ -13,14 +13,17 @@ import {
 import { formatarHorarioDaLista } from "@/lib/datas"
 import type { Fluxo } from "@/lib/fluxo-automacao"
 import { cn } from "@/lib/utils"
-import type { OpcoesEditor } from "./catalogo"
+import { referenciasQueSumiram, type OpcoesEditor } from "./catalogo"
 import { resumoRegra } from "./frases-fluxo"
 
 export interface RegraListada {
   id: string
   nome: string
   ativa: boolean
-  fluxo: Fluxo
+  /** `null`: gravado por fora do editor, fora do formato (B22-25). */
+  fluxo: Fluxo | null
+  /** Por que a regra não roda (fluxo incompleto ou fora do formato), ou `null`. */
+  problema: string | null
   execucoes7dias: number
   ultimaExecucao: string | null
 }
@@ -54,6 +57,13 @@ const EXEMPLOS = [
     texto: "Quando o cliente enviar mensagem fora do horário comercial → avisar quando o time volta",
   },
 ]
+
+/** Escolha apagada (etiqueta, time, mensagem rápida…): a regra roda, mas aquela ação falha (B22-27). */
+function AvisoDeReferencia({ fluxo, opcoes }: { fluxo: Fluxo; opcoes: OpcoesEditor }) {
+  const [primeiro] = Object.values(referenciasQueSumiram(fluxo, opcoes)).flat()
+  if (!primeiro) return null
+  return <span className="mt-0.5 block text-xs text-amber-300">Atenção: {primeiro}</span>
+}
 
 export function ListaRegras({
   regras,
@@ -172,10 +182,22 @@ export function ListaRegras({
               {regrasNaTela.map((r) => (
                 <tr key={r.id} className="border-b transition-colors last:border-0 hover:bg-muted/30">
                   <td className="px-4 py-3">
-                    <button type="button" onClick={() => onEditar(r.id)} className="text-left">
-                      <span className="block font-medium hover:underline">{r.nome}</span>
-                      <span className="block text-muted-foreground">{resumoRegra(r.fluxo, opcoes)}</span>
+                    <button
+                      type="button"
+                      onClick={() => r.fluxo && onEditar(r.id)}
+                      disabled={!r.fluxo}
+                      className="text-left disabled:cursor-default"
+                    >
+                      {/* Nome longo sem espaço quebra em qualquer ponto, para não estourar no celular (B22-42) */}
+                      <span className={cn("block font-medium [overflow-wrap:anywhere]", r.fluxo && "hover:underline")}>
+                        {r.nome}
+                      </span>
+                      {r.fluxo && <span className="block text-muted-foreground">{resumoRegra(r.fluxo, opcoes)}</span>}
                     </button>
+                    {r.problema && (
+                      <span className="mt-0.5 block text-xs text-amber-300">Não roda: {r.problema}</span>
+                    )}
+                    {!r.problema && r.fluxo && <AvisoDeReferencia fluxo={r.fluxo} opcoes={opcoes} />}
                   </td>
                   {historicoDisponivel && (
                     <>
@@ -218,8 +240,12 @@ export function ListaRegras({
                         <span className="sr-only">Abrir menu de {r.nome}</span>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onEditar(r.id)}>Editar</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onDuplicar(r.id)}>Duplicar</DropdownMenuItem>
+                        <DropdownMenuItem disabled={!r.fluxo} onClick={() => onEditar(r.id)}>
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem disabled={!r.fluxo} onClick={() => onDuplicar(r.id)}>
+                          Duplicar
+                        </DropdownMenuItem>
                         <DropdownMenuItem disabled={!historicoDisponivel} onClick={() => onVerHistorico(r.id)}>
                           Ver histórico{historicoDisponivel ? "" : " (em breve)"}
                         </DropdownMenuItem>

@@ -27,7 +27,8 @@ describe("problemaDoHorario", () => {
 
   it("recusa hora fora do formato e fim antes do início ou igual a ele", () => {
     expect(problemaDoHorario({ ...SEG_A_SEX, inicio: "8:00" })).toBe("Use horas no formato 08:00")
-    expect(problemaDoHorario({ ...SEG_A_SEX, fim: "24:00" })).toBe("Use horas no formato 08:00")
+    // "24:00" no fim passou a valer como fim do dia (B22-41); depois disso, não
+    expect(problemaDoHorario({ ...SEG_A_SEX, fim: "24:30" })).toBe("Use horas no formato 08:00")
     expect(problemaDoHorario({ ...SEG_A_SEX, inicio: "18:00", fim: "08:00" })).toBe("O fim precisa ser depois do início")
     expect(problemaDoHorario({ ...SEG_A_SEX, inicio: "08:00", fim: "08:00" })).toBe("O fim precisa ser depois do início")
   })
