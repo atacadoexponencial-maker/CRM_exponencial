@@ -51,6 +51,18 @@ type Envelope = {
 }
 
 /** Envelope da seção 2: sem estes três campos não há o que processar. */
+/**
+ * B26-02: até quando um aviso de status sem mensagem gravada vale reentrega. O
+ * gateway reentrega em 1 e depois 2 minutos; 5 cobre essas duas tentativas.
+ */
+const JANELA_DO_AVISO_ADIANTADO_MS = 5 * 60_000
+
+/** Sem o momento do fato, não há como saber a idade: não pede reentrega. */
+function avisoRecente(timestamp: string | undefined, agora = Date.now()): boolean {
+  const momento = timestamp ? Date.parse(timestamp) : NaN
+  return Number.isFinite(momento) && agora - momento <= JANELA_DO_AVISO_ADIANTADO_MS
+}
+
 function envelopeValido(corpo: unknown): corpo is Envelope {
   if (typeof corpo !== "object" || corpo === null) return false
   const e = corpo as Record<string, unknown>
@@ -191,7 +203,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "invalid payload" }, { status: 400 })
     }
 
-    await aplicarStatusDeMensagem({ supabase, evento: dados })
+    const aplicado = await aplicarStatusDeMensagem({ supabase, evento: dados })
+
+    // B26-02: o aviso de envio pode chegar antes de o CRM gravar a mensagem que
+    // acabou de mandar. Recente e sem nada para atualizar, pede reentrega (o
+    // evento fica sem processar) em vez de perder o status e deixar a mensagem
+    // presa "na fila". Mais velho que isso, é mensagem que o CRM nunca gravou.
+    if (aplicado.status && aplicado.achou === false && avisoRecente(envelope.timestamp)) {
+      return NextResponse.json({ status: "aguardando_mensagem" }, { status: 503 })
+    }
   }
 
   if (envelope.type === "instance.state") {

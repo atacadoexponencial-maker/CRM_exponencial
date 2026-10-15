@@ -30,6 +30,11 @@ const disparo = vi.mocked(dispararMensagemEnviadaPeloTime)
 
 type Resposta = { data: unknown; error: unknown }
 
+/** B26-02: o que foi gravado, para conferir o status da mensagem. */
+let linhasGravadas: Array<{ operacao: string; tabela: string; linha: unknown }> = []
+const mensagemGravada = () =>
+  linhasGravadas.find((g) => g.operacao === "insert" && g.tabela === "messages")?.linha as Record<string, unknown> | undefined
+
 /**
  * Cliente falso: `single`/`maybeSingle` devolvem a resposta da tabela, e o
  * `await` direto devolve sucesso vazio. Cada gravação fica registrada na ordem,
@@ -42,8 +47,9 @@ function clienteFalso(respostas: Record<string, Resposta>, gravacoes: string[]) 
       const obj: Record<string, unknown> = {}
       for (const m of ["select", "eq", "in", "order", "limit"]) obj[m] = vi.fn(() => obj)
       for (const m of ["insert", "update"]) {
-        obj[m] = vi.fn(() => {
+        obj[m] = vi.fn((linha: unknown) => {
           gravacoes.push(`${m} ${tabela}`)
+          linhasGravadas.push({ operacao: m, tabela, linha })
           return obj
         })
       }
@@ -70,10 +76,11 @@ const CONVERSA = {
 }
 
 let gravacoes: string[]
-let provider: { enviarTexto: ReturnType<typeof vi.fn>; enviarMidia: ReturnType<typeof vi.fn> }
+let provider: { canal: string; enviarTexto: ReturnType<typeof vi.fn>; enviarMidia: ReturnType<typeof vi.fn> }
 
-function prepararChat({ mensagemGravada = true } = {}) {
+function prepararChat({ mensagemGravada = true, canal = "meta" }: { mensagemGravada?: boolean; canal?: string } = {}) {
   gravacoes = []
+  linhasGravadas = []
   const cliente = clienteFalso(
     {
       conversations: { data: CONVERSA, error: null },
@@ -84,6 +91,7 @@ function prepararChat({ mensagemGravada = true } = {}) {
   vi.mocked(createClient).mockResolvedValue(cliente as unknown as Awaited<ReturnType<typeof createClient>>)
   vi.mocked(createServiceClient).mockReturnValue(cliente as unknown as ReturnType<typeof createServiceClient>)
   provider = {
+    canal,
     enviarTexto: vi.fn().mockResolvedValue({ ok: true, mensagemId: "wamid-1" }),
     enviarMidia: vi.fn().mockResolvedValue({ ok: true, mensagemId: "wamid-2" }),
   }
@@ -108,7 +116,7 @@ describe("B11-05 — envio pelo chat dispara 'mensagem enviada pelo time'", () =
       gravouAntes = gravacoes.includes("insert messages")
     })
 
-    expect(await enviarMensagem("conversa-1", "Segue o catálogo 👇")).toEqual({ mensagemId: "msg-1" })
+    expect(await enviarMensagem("conversa-1", "Segue o catálogo 👇")).toEqual({ mensagemId: "msg-1", status: "enviado" })
 
     expect(disparo).toHaveBeenCalledTimes(1)
     expect(disparo).toHaveBeenCalledWith({
@@ -158,9 +166,9 @@ describe("B26-01 — o envio pelo chat devolve o id da mensagem gravada", () => 
 
   it("CA-B26-05: texto e mídia devolvem o id da mensagem gravada, para a tela receber entregue e lida", async () => {
     prepararChat()
-    expect(await enviarMensagem("conversa-1", "oi")).toEqual({ mensagemId: "msg-1" })
-    expect(await enviarImagem("conversa-1", arquivo("foto.jpg", "image/jpeg"))).toEqual({ mensagemId: "msg-1" })
-    expect(await enviarDocumento("conversa-1", arquivo("tabela.pdf", "application/pdf"))).toEqual({ mensagemId: "msg-1" })
+    expect(await enviarMensagem("conversa-1", "oi")).toEqual({ mensagemId: "msg-1", status: "enviado" })
+    expect(await enviarImagem("conversa-1", arquivo("foto.jpg", "image/jpeg"))).toEqual({ mensagemId: "msg-1", status: "enviado" })
+    expect(await enviarDocumento("conversa-1", arquivo("tabela.pdf", "application/pdf"))).toEqual({ mensagemId: "msg-1", status: "enviado" })
   })
 
   it("CA-B26-05: envio recusado não devolve id, só o motivo", async () => {
@@ -169,6 +177,49 @@ describe("B26-01 — o envio pelo chat devolve o id da mensagem gravada", () => 
     const resultado = await enviarMensagem("conversa-1", "oi")
     expect(resultado.mensagemId).toBeUndefined()
     expect(resultado.erro).toContain("Não enviada")
+  })
+})
+
+describe("B26-02 — mensagem na fila do número", () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it("CA-B26-01: texto por número do canal direto é gravado na fila e a tela recebe esse status", async () => {
+    prepararChat({ canal: "gateway" })
+    expect(await enviarMensagem("conversa-1", "oi")).toEqual({ mensagemId: "msg-1", status: "na_fila" })
+    expect(mensagemGravada()?.status).toBe("na_fila")
+  })
+
+  it("CA-B26-02: foto e documento por número do canal direto também ficam na fila", async () => {
+    prepararChat({ canal: "gateway" })
+    expect(await enviarImagem("conversa-1", arquivo("foto.jpg", "image/jpeg"))).toMatchObject({ status: "na_fila" })
+    expect(await enviarDocumento("conversa-1", arquivo("tabela.pdf", "application/pdf"))).toMatchObject({ status: "na_fila" })
+    const status = linhasGravadas.filter((g) => g.operacao === "insert" && g.tabela === "messages").map((g) => (g.linha as { status: string }).status)
+    expect(status).toEqual(["na_fila", "na_fila"])
+  })
+
+  it("CA-B26-03: mensagem de automação e de sequência por número do canal direto é gravada na fila", async () => {
+    linhasGravadas = []
+    const servico = clienteFalso(
+      {
+        contacts: { data: { phone_number: "5511999998888" }, error: null },
+        conversations: { data: { id: "conversa-1" }, error: null },
+      },
+      []
+    )
+    vi.mocked(resolverProviderDoContato).mockResolvedValue({
+      canal: "gateway",
+      enviarTexto: vi.fn().mockResolvedValue({ ok: true, mensagemId: "wagw_1" }),
+    } as unknown as Awaited<ReturnType<typeof resolverProviderDoContato>>)
+
+    await enviarTextoWhatsAppComMotivo(servico as unknown as ReturnType<typeof createServiceClient>, "ws-1", "contato-1", "Olá!")
+
+    expect(mensagemGravada()).toMatchObject({ status: "na_fila", wamid: "wagw_1" })
+  })
+
+  it("CA-B26-07: pela API Oficial a mensagem continua gravada como enviada, sem fila", async () => {
+    prepararChat({ canal: "meta" })
+    expect(await enviarMensagem("conversa-1", "oi")).toEqual({ mensagemId: "msg-1", status: "enviado" })
+    expect(mensagemGravada()?.status).toBe("enviado")
   })
 })
 

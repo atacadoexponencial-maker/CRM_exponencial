@@ -293,8 +293,14 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
     }))
   }
 
-  function handleMensagemConfirmada(conversaId: string, idProvisorio: string, mensagemId: string) {
-    const guardado = statusGuardados.current.get(mensagemId)
+  function handleMensagemConfirmada(
+    conversaId: string,
+    idProvisorio: string,
+    mensagemId: string,
+    statusGravado?: Mensagem["status"]
+  ) {
+    // O aviso que chegou antes da troca é mais novo que o status da gravação
+    const guardado = statusGuardados.current.get(mensagemId) ?? statusGravado
     statusGuardados.current.delete(mensagemId)
     setMensagensLocais((prev) => {
       const lista = prev[conversaId]
@@ -401,8 +407,8 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
             conversa={conversaAtiva}
             mensagens={mensagensLocais[conversaAtiva.id] ?? []}
             onMensagemEnviada={handleMensagemEnviada}
-            onMensagemConfirmada={(idProvisorio, mensagemId) =>
-              handleMensagemConfirmada(conversaAtiva.id, idProvisorio, mensagemId)
+            onMensagemConfirmada={(idProvisorio, mensagemId, status) =>
+              handleMensagemConfirmada(conversaAtiva.id, idProvisorio, mensagemId, status)
             }
             podeAtribuir={papel !== "atendente"}
             atendentes={atendentes}

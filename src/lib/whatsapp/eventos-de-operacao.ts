@@ -41,7 +41,8 @@ export type EventoDeStatus = {
  * continua funcionando sem migration.
  *
  * Identificador que o CRM não tem simplesmente não atualiza nada — pode ser
- * status de mensagem enviada antes de a conexão existir.
+ * status de mensagem enviada antes de a conexão existir. `achou` diz se alguma
+ * linha mudou (B26-02): o aviso pode ter chegado antes de a mensagem ser gravada.
  */
 export async function aplicarStatusDeMensagem({
   supabase,
@@ -49,25 +50,29 @@ export async function aplicarStatusDeMensagem({
 }: {
   supabase: ServiceClient
   evento: EventoDeStatus
-}): Promise<{ status: string | null }> {
+}): Promise<{ status: string | null; achou?: boolean }> {
   const status = STATUS_NO_CRM[evento.status]
   // Status novo no gateway não pode virar valor inválido no banco: a restrição
   // de `campaign_recipients.status` recusaria a linha inteira.
   if (!status) return { status: null }
 
-  await supabase
+  const { count: mensagens } = await supabase
     .from("messages")
-    .update({
+    .update(
+      {
       status,
       // O motivo só existe em falha, e é o que o atendente precisa ler para
       // saber se o número não tem WhatsApp ou se a mídia estourou o limite.
       status_error: status === "falhou" ? motivoLegivel(evento.error) : null,
-    })
+      },
+      { count: "exact" }
+    )
     .eq("wamid", evento.message_id)
 
-  await supabase
+  const { count: destinatarios } = await supabase
     .from("campaign_recipients")
-    .update({
+    .update(
+      {
       status,
       // B8-04: em falha, o relatório passa a dizer por quê. O `code` do
       // contrato nunca vai para a tela — vira frase em português.
@@ -76,10 +81,12 @@ export async function aplicarStatusDeMensagem({
           ? motivoDaFalha({ codigo: evento.error?.code, mensagem: evento.error?.message })
           : null,
       atualizado_em: new Date().toISOString(),
-    })
+      },
+      { count: "exact" }
+    )
     .eq("wamid", evento.message_id)
 
-  return { status }
+  return { status, achou: (mensagens ?? 0) + (destinatarios ?? 0) > 0 }
 }
 
 function motivoLegivel(erro: EventoDeStatus["error"]): string | null {

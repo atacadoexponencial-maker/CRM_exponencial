@@ -17,7 +17,7 @@ import {
 import { BalaoMensagem } from "./balao-mensagem"
 import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio, atribuirConversa, transferirConversa, resolverConversa, reabrirConversa, aplicarEtiqueta, removerEtiqueta } from "../actions"
 import type { Conversa } from "../mock-conversas"
-import type { Mensagem } from "../mock-mensagens"
+import type { Mensagem, StatusMensagem } from "../mock-mensagens"
 import { formatarHoraDoDia } from "@/lib/datas"
 
 async function converterParaMp3(blob: Blob): Promise<Blob> {
@@ -98,8 +98,11 @@ interface PainelConversaProps {
   conversa: Conversa
   mensagens: Mensagem[]
   onMensagemEnviada: (msg: Mensagem) => void
-  /** O servidor gravou a mensagem: troca o id provisório pelo real (B26-01). */
-  onMensagemConfirmada: (idProvisorio: string, mensagemId: string) => void
+  /**
+   * O servidor gravou a mensagem: troca o id provisório pelo real (B26-01) e dá o
+   * status com que ela foi gravada. Até aqui ela fica sem ícone (B26-02).
+   */
+  onMensagemConfirmada: (idProvisorio: string, mensagemId: string, status?: StatusMensagem) => void
   podeAtribuir: boolean
   atendentes: Array<{ id: string; nome: string }>
   atendentesTransferir: Array<{ id: string; nome: string }>
@@ -188,7 +191,6 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
       direcao: "enviada",
       conteudo,
       horario: horaAtual(),
-      status: modoNota ? undefined : "enviado",
       ...(replyPara && !modoNota ? { replyDe: { id: replyPara.id, texto: replyPara.conteudo } } : {}),
     }
     onMensagemEnviada(nova)
@@ -201,12 +203,12 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
     setEnviando(true)
     setErroEnvio(null)
     try {
-      const { erro, mensagemId } = await enviarMensagem(conversa.id, conteudo)
+      const { erro, mensagemId, status } = await enviarMensagem(conversa.id, conteudo)
       if (erro) {
         falhou(tempId, erro)
         setTexto(conteudo)
       } else if (mensagemId) {
-        onMensagemConfirmada(tempId, mensagemId)
+        onMensagemConfirmada(tempId, mensagemId, status)
       }
     } catch {
       falhou(tempId, MOTIVO_SEM_RESPOSTA)
@@ -235,7 +237,6 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
       direcao: "enviada",
       conteudo: blobUrl,
       horario: horaAtual(),
-      status: "enviado",
     }
     onMensagemEnviada(nova)
 
@@ -243,9 +244,9 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
     const formData = new FormData()
     formData.append("arquivo", arquivo)
     try {
-      const { erro, mensagemId } = await enviarImagem(conversa.id, formData)
+      const { erro, mensagemId, status } = await enviarImagem(conversa.id, formData)
       if (erro) falhou(tempId, erro)
-      else if (mensagemId) onMensagemConfirmada(tempId, mensagemId)
+      else if (mensagemId) onMensagemConfirmada(tempId, mensagemId, status)
     } catch {
       falhou(tempId, MOTIVO_SEM_RESPOSTA)
     } finally {
@@ -271,7 +272,6 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
       direcao: "enviada",
       conteudo: arquivo.name,
       horario: horaAtual(),
-      status: "enviado",
     }
     onMensagemEnviada(nova)
 
@@ -279,9 +279,9 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
     const formData = new FormData()
     formData.append("arquivo", arquivo)
     try {
-      const { erro, mensagemId } = await enviarDocumento(conversa.id, formData)
+      const { erro, mensagemId, status } = await enviarDocumento(conversa.id, formData)
       if (erro) falhou(tempId, erro)
-      else if (mensagemId) onMensagemConfirmada(tempId, mensagemId)
+      else if (mensagemId) onMensagemConfirmada(tempId, mensagemId, status)
     } catch {
       falhou(tempId, MOTIVO_SEM_RESPOSTA)
     } finally {
@@ -308,7 +308,6 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
       direcao: "enviada",
       conteudo: blobUrl,
       horario: horaAtual(),
-      status: "enviado",
     }
     onMensagemEnviada(nova)
 
@@ -316,9 +315,9 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
     const formData = new FormData()
     formData.append("arquivo", arquivo)
     try {
-      const { erro, mensagemId } = await enviarVideo(conversa.id, formData)
+      const { erro, mensagemId, status } = await enviarVideo(conversa.id, formData)
       if (erro) falhou(tempId, erro)
-      else if (mensagemId) onMensagemConfirmada(tempId, mensagemId)
+      else if (mensagemId) onMensagemConfirmada(tempId, mensagemId, status)
     } catch {
       falhou(tempId, MOTIVO_SEM_RESPOSTA)
     } finally {
@@ -395,16 +394,15 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
         direcao: "enviada",
         conteudo: blobUrl,
         horario: horaAtual(),
-        status: "enviado",
       }
       onMensagemEnviada(nova)
 
       const formData = new FormData()
       formData.append("arquivo", mp3Blob, "audio.mp3")
       try {
-        const { erro, mensagemId } = await enviarAudio(conversa.id, formData)
+        const { erro, mensagemId, status } = await enviarAudio(conversa.id, formData)
         if (erro) falhou(tempId, erro)
-        else if (mensagemId) onMensagemConfirmada(tempId, mensagemId)
+        else if (mensagemId) onMensagemConfirmada(tempId, mensagemId, status)
       } catch {
         falhou(tempId, MOTIVO_SEM_RESPOSTA)
       } finally {

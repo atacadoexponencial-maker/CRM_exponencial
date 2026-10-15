@@ -1,6 +1,7 @@
 export type TipoMensagem = "texto" | "imagem" | "audio" | "video" | "documento" | "nota_interna"
 export type DirecaoMensagem = "enviada" | "recebida"
-export type StatusMensagem = "enviado" | "entregue" | "lido" | "falhou"
+/** `na_fila`: aceita pela fila do número do canal direto, ainda não saiu (B26-02). */
+export type StatusMensagem = "na_fila" | "enviado" | "entregue" | "lido" | "falhou"
 
 export interface Mensagem {
   id: string

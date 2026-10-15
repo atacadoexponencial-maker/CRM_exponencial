@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Check, CheckCheck, AlertTriangle, FileText, Play, Pause, Mic, Film, Download, X, Reply } from "lucide-react"
+import { Check, CheckCheck, Clock, AlertTriangle, FileText, Play, Pause, Mic, Film, Download, X, Reply } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogTrigger, DialogPopup, DialogClose } from "@/components/ui/dialog"
 import type { Mensagem, StatusMensagem } from "../mock-mensagens"
@@ -109,6 +109,15 @@ function textoComDestaque(texto: string, termo: string) {
 function IconeStatus({ status }: { status?: StatusMensagem }) {
   if (!status) return null
   if (status === "falhou") return <AlertTriangle className="size-3 text-destructive" />
+  // B26-02: aceita pela fila do número do canal direto, ainda não saiu
+  if (status === "na_fila") {
+    return (
+      <span className="flex items-center gap-1 text-[11px] opacity-70">
+        <Clock className="size-3" />
+        Na fila do número
+      </span>
+    )
+  }
   if (status === "lido") return <CheckCheck className="size-3 text-blue-400" />
   if (status === "entregue") return <CheckCheck className="size-3 opacity-60" />
   return <Check className="size-3 opacity-60" />

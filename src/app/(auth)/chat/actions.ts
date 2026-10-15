@@ -3,7 +3,7 @@
 import { createClient } from "@/integrations/supabase/server"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { formatarDataCurta, formatarHoraDoDia, formatarHorarioDaLista } from "@/lib/datas"
-import { resolverProviderDaConversa } from "@/lib/whatsapp"
+import { resolverProviderDaConversa, statusInicialDoEnvio } from "@/lib/whatsapp"
 import type { Mensagem, TipoMensagem, DirecaoMensagem, StatusMensagem } from "./mock-mensagens"
 import type { Conversa } from "./mock-conversas"
 import { listarConversas, TAMANHO_PAGINA_CONVERSAS } from "./conversas"
@@ -36,7 +36,7 @@ async function dispararRegrasDoTime(
   })
 }
 
-async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promise<string | null> {
+async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promise<MensagemGravada | null> {
   const supabase = await createClient()
 
   const { data: conversa, error: errConversa } = await supabase
@@ -71,7 +71,7 @@ async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promi
       direction: "enviada",
       type: "texto",
       content: texto,
-      status: "enviado",
+      status: statusInicialDoEnvio(provider.canal),
       wamid,
       created_at: agora,
     })
@@ -86,10 +86,10 @@ async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promi
     .eq("id", conversaId)
 
   await dispararRegrasDoTime({ workspace_id, contact_id }, conversaId, gravada, "texto", texto)
-  return gravada?.id ?? null
+  return gravada ? { id: gravada.id, status: statusInicialDoEnvio(provider.canal) } : null
 }
 
-async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Promise<string | null> {
+async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Promise<MensagemGravada | null> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -146,7 +146,7 @@ async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Pr
       direction: "enviada",
       type: "imagem",
       content: publicUrl,
-      status: "enviado",
+      status: statusInicialDoEnvio(provider.canal),
       // Sem o wamid, o status que o gateway manda depois não encontra a mensagem.
       wamid: resultado.mensagemId,
       created_at: agora,
@@ -162,7 +162,7 @@ async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Pr
     .eq("id", conversaId)
 
   await dispararRegrasDoTime({ workspace_id, contact_id }, conversaId, gravada, "imagem")
-  return gravada?.id ?? null
+  return gravada ? { id: gravada.id, status: statusInicialDoEnvio(provider.canal) } : null
 }
 
 const TIPOS_DOCUMENTO_VALIDOS = [
@@ -179,7 +179,7 @@ const TIPOS_DOCUMENTO_VALIDOS = [
   "application/vnd.oasis.opendocument.presentation",
 ]
 
-async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData): Promise<string | null> {
+async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData): Promise<MensagemGravada | null> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -237,7 +237,7 @@ async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData):
       direction: "enviada",
       type: "documento",
       content: publicUrl,
-      status: "enviado",
+      status: statusInicialDoEnvio(provider.canal),
       // Sem o wamid, o status que o gateway manda depois não encontra a mensagem.
       wamid: resultado.mensagemId,
       created_at: agora,
@@ -253,10 +253,10 @@ async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData):
     .eq("id", conversaId)
 
   await dispararRegrasDoTime({ workspace_id, contact_id }, conversaId, gravada, "documento")
-  return gravada?.id ?? null
+  return gravada ? { id: gravada.id, status: statusInicialDoEnvio(provider.canal) } : null
 }
 
-async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Promise<string | null> {
+async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Promise<MensagemGravada | null> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -313,7 +313,7 @@ async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Pro
       direction: "enviada",
       type: "video",
       content: publicUrl,
-      status: "enviado",
+      status: statusInicialDoEnvio(provider.canal),
       // Sem o wamid, o status que o gateway manda depois não encontra a mensagem.
       wamid: resultado.mensagemId,
       created_at: agora,
@@ -329,10 +329,10 @@ async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Pro
     .eq("id", conversaId)
 
   await dispararRegrasDoTime({ workspace_id, contact_id }, conversaId, gravada, "video")
-  return gravada?.id ?? null
+  return gravada ? { id: gravada.id, status: statusInicialDoEnvio(provider.canal) } : null
 }
 
-async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Promise<string | null> {
+async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Promise<MensagemGravada | null> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -389,7 +389,7 @@ async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Pro
       direction: "enviada",
       type: "audio",
       content: publicUrl,
-      status: "enviado",
+      status: statusInicialDoEnvio(provider.canal),
       // Sem o wamid, o status que o gateway manda depois não encontra a mensagem.
       wamid: resultado.mensagemId,
       created_at: agora,
@@ -405,7 +405,7 @@ async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Pro
     .eq("id", conversaId)
 
   await dispararRegrasDoTime({ workspace_id, contact_id }, conversaId, gravada, "audio")
-  return gravada?.id ?? null
+  return gravada ? { id: gravada.id, status: statusInicialDoEnvio(provider.canal) } : null
 }
 
 /**
@@ -413,7 +413,10 @@ async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Pro
  * sucesso, o id da mensagem gravada, para a tela trocar o provisório por ele e
  * receber os avisos de entregue e lida sem recarregar (B26-01).
  */
-export type ResultadoDoEnvio = { erro?: string; mensagemId?: string }
+export type ResultadoDoEnvio = { erro?: string; mensagemId?: string; status?: StatusMensagem }
+
+/** A mensagem que o envio gravou, e com que status (B26-02: na fila, no canal direto). */
+type MensagemGravada = { id: string; status: StatusMensagem }
 
 /**
  * Envolve os envios do chat. Em produção o Next.js troca a mensagem de toda
@@ -422,12 +425,12 @@ export type ResultadoDoEnvio = { erro?: string; mensagemId?: string }
  */
 async function comMotivo(
   conversaId: string,
-  enviar: () => Promise<string | null>,
+  enviar: () => Promise<MensagemGravada | null>,
   aoFalhar?: (motivo: string) => Promise<void>
 ): Promise<ResultadoDoEnvio> {
   try {
-    const mensagemId = await enviar()
-    return mensagemId ? { mensagemId } : {}
+    const gravada = await enviar()
+    return gravada ? { mensagemId: gravada.id, status: gravada.status } : {}
   } catch (erro) {
     const aviso = await avisoDaConexao(conversaId).catch(() => null)
     const motivo = `Não enviada: ${

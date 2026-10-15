@@ -187,6 +187,15 @@ export function recursosDoCanal(canal: CanalWhatsApp | null): Record<RecursoWhat
   return canal === "gateway" ? { ...RECURSOS_DO_GATEWAY } : { ...RECURSOS_DA_META }
 }
 
+/**
+ * Status com que a mensagem enviada é gravada (B26-02). No canal direto, aceitar
+ * não é enviar: a mensagem entra na fila do número e só vira `enviado` quando o
+ * gateway avisa que ela saiu. Na API Oficial, o aceite é o envio.
+ */
+export function statusInicialDoEnvio(canal: CanalWhatsApp | null): "na_fila" | "enviado" {
+  return canal === "gateway" ? "na_fila" : "enviado"
+}
+
 /** Nome do canal como o atendente o vê. */
 export function nomeDoCanal(canal: CanalWhatsApp | null): string {
   return canal === "gateway" ? "Canal direto" : "API Oficial"

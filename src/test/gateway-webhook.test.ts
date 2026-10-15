@@ -21,7 +21,16 @@ vi.mock("@/lib/whatsapp/recebimento", () => ({
   }),
 }))
 
+// B26-02: o efeito do status no banco tem teste próprio
+// (gateway-eventos-de-operacao.test.ts). Aqui interessa a resposta da porta
+// quando o aviso chega antes de a mensagem estar gravada.
+vi.mock("@/lib/whatsapp/eventos-de-operacao", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/whatsapp/eventos-de-operacao")>()),
+  aplicarStatusDeMensagem: vi.fn(),
+}))
+
 import { createServiceClient } from "@/integrations/supabase/service"
+import { aplicarStatusDeMensagem } from "@/lib/whatsapp/eventos-de-operacao"
 import { POST } from "@/app/api/webhooks/gateway/route"
 import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"
 
@@ -265,6 +274,47 @@ describe("idempotência", () => {
 
     expect(resposta.status).toBe(200)
     expect(await resposta.json()).toEqual({ status: "ok" })
+    expect(updates).toHaveLength(1)
+  })
+})
+
+describe("B26-02 — aviso de envio que chega antes da mensagem gravada", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.stubEnv("GATEWAY_WEBHOOK_SECRET", SEGREDO)
+  })
+
+  const avisoDeEnvio = (timestamp: string) =>
+    envelope({ type: "message.status", timestamp, data: { message_id: "wagw_1", status: "sent" } })
+
+  it("CA-B26-06: aviso recente sem mensagem gravada pede reentrega e não fica processado", async () => {
+    const { updates } = supabaseFalso()
+    vi.mocked(aplicarStatusDeMensagem).mockResolvedValue({ status: "enviado", achou: false })
+
+    const resposta = await POST(pedido(avisoDeEnvio(new Date().toISOString())))
+
+    expect(resposta.status).toBe(503)
+    expect(updates).toEqual([])
+  })
+
+  it("CA-B26-06: na reentrega, com a mensagem já gravada, o aviso é aplicado e fica processado", async () => {
+    const { updates } = supabaseFalso({ registroNovo: false, jaProcessado: false })
+    vi.mocked(aplicarStatusDeMensagem).mockResolvedValue({ status: "enviado", achou: true })
+
+    const resposta = await POST(pedido(avisoDeEnvio(new Date().toISOString())))
+
+    expect(resposta.status).toBe(200)
+    expect(updates).toHaveLength(1)
+  })
+
+  it("CA-B26-06: aviso de mais de 5 minutos sem mensagem é aceito, para não pedir reentrega para sempre", async () => {
+    const { updates } = supabaseFalso()
+    vi.mocked(aplicarStatusDeMensagem).mockResolvedValue({ status: "enviado", achou: false })
+
+    const antigo = new Date(Date.now() - 6 * 60_000).toISOString()
+    const resposta = await POST(pedido(avisoDeEnvio(antigo)))
+
+    expect(resposta.status).toBe(200)
     expect(updates).toHaveLength(1)
   })
 })

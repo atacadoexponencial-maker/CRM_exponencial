@@ -4,7 +4,7 @@
 // mão, nela. As automações também mandam imagem e documento (B11-07).
 
 import type { createServiceClient } from "@/integrations/supabase/service"
-import { resolverProviderDaConversa, resolverProviderDoContato } from "@/lib/whatsapp"
+import { resolverProviderDaConversa, resolverProviderDoContato, statusInicialDoEnvio } from "@/lib/whatsapp"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -141,7 +141,8 @@ export async function enviarWhatsAppComMotivo(
     // Na mídia, o endereço do arquivo, como o chat grava
     content: conteudo.tipo === "texto" ? conteudo.texto : conteudo.url,
     media_filename: conteudo.tipo === "documento" ? conteudo.nomeArquivo : null,
-    status: "enviado",
+    // B26-02: no canal direto, a mensagem espera na fila do número até sair
+    status: statusInicialDoEnvio(provider.canal),
     wamid,
     created_at: agora,
   })
