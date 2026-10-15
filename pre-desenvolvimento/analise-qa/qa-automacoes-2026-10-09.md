@@ -117,6 +117,14 @@ seção 32; roteiro do preview `roteiro-b22-resto.cjs`.
 | B22-44 | baixo | Entrada malformada nas actions responde "Pedido inválido", sem erro 500 |
 | B22-45 | baixo | Reentrega da Meta conferida no começo: não soma "não lida" nem cria conversa de novo |
 
+Verificado: 815 testes unitários, lint e build com código 0, e 16 roteiros do
+preview passando (o do lote 4 com 21 verificações). Em 14/10, o roteiro do lote 4
+deixava um perfil "Atendente B22" por rodada: o Ganho grava quem moveu no
+histórico do card, isso travava a exclusão do perfil, e a limpeza não conferia o
+erro. Com 9 perfis na empresa, o b11-10 e o b11-11-e-12 paravam no começo. A
+limpeza foi corrigida (commit 6c2d6c1) e os 8 perfis foram apagados com aprovação
+do Luan.
+
 Todos os achados do QA estão resolvidos. **No merge:** aplicar as três migrations
 do lote (`20261014000001`, `…02` e `…03`) e rodar `conferir-b22-30-rls.cjs`.
 
@@ -140,8 +148,9 @@ filtrar só pelo prefixo `[TESTE]`.**
 
 ### Onde retomar
 
-Lote 4 pronto no branch `b22-lote-resto`: falta o merge, com aprovação do Luan, e,
-junto dele, as três migrations e o `conferir-b22-30-rls.cjs`.
+Lote 4 pronto e verificado no branch `b22-lote-resto` (16 roteiros passando). Falta
+o merge, com aprovação do Luan, e, junto dele, as três migrations e o
+`conferir-b22-30-rls.cjs`.
 
 ---
 
