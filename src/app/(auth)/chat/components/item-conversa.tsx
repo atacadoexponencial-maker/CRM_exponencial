@@ -1,14 +1,9 @@
 "use client"
 
 import { cn } from "@/lib/utils"
+import { AvatarContato } from "@/components/shared/avatar-contato"
 import { formatarNumero } from "@/lib/whatsapp"
 import type { Conversa } from "../mock-conversas"
-
-function avatarIniciais(nome: string): string {
-  const partes = nome.trim().split(" ")
-  if (partes.length >= 2) return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase()
-  return partes[0][0].toUpperCase()
-}
 
 interface ItemConversaProps {
   conversa: Conversa
@@ -31,9 +26,7 @@ export function ItemConversa({ conversa, ativa, onClick, eMinhaConversa }: ItemC
       )}
     >
       <div className="relative shrink-0">
-        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-sm font-medium text-muted-foreground">
-          {avatarIniciais(nomeExibido)}
-        </div>
+        <AvatarContato nome={conversa.contato.nome} />
         {conversa.status === "em_espera" && conversa.atribuidaA === null && (
           <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-amber-400 border-2 border-background" />
         )}

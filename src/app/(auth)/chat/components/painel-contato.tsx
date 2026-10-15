@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useTransition, KeyboardEvent } from "react"
 import { Pencil, Check, X, ChevronRight, MessageSquare, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { AvatarContato } from "@/components/shared/avatar-contato"
 import { buscarInfoContato, atualizarNomeContato } from "../actions"
 import type { Conversa } from "../mock-conversas"
 import type { ConversaAnterior } from "../actions"
@@ -17,12 +18,6 @@ const STATUS_CLASS: Record<string, string> = {
   em_espera: "text-amber-600",
   em_atendimento: "text-green-600",
   resolvida: "text-muted-foreground",
-}
-
-function avatarIniciais(nome: string): string {
-  const partes = nome.trim().split(" ")
-  if (partes.length >= 2) return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase()
-  return partes[0][0].toUpperCase()
 }
 
 interface PainelContatoProps {
@@ -118,9 +113,7 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
       <div className="flex flex-col gap-5 p-4 overflow-y-auto">
         {/* Avatar + nome + telefone */}
         <div className="flex flex-col items-center gap-2 py-2">
-          <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center text-xl font-medium text-muted-foreground">
-            {avatarIniciais(nomeExibido)}
-          </div>
+          <AvatarContato nome={nomeLocal} tamanho="lg" />
 
           {editando ? (
             <div className="flex flex-col items-center gap-1">
