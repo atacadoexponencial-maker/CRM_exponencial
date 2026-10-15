@@ -250,6 +250,11 @@ export function PainelBloco({
                 Ganho: para levá-lo à Recompra, mova para Ganho no Funil de Entrada.
               </p>
             )}
+            {bloco.acao === "mover_card" && bloco.parametros.funil === "entrada" && (
+              <p className="text-xs text-muted-foreground">
+                Se o contato ainda não tem card na Entrada, ele é criado nesta etapa.
+              </p>
+            )}
           </>
         )}
 

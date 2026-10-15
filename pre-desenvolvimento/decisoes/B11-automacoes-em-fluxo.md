@@ -277,6 +277,20 @@ mensagem, e as regras antigas que movem cards passariam a iniciá-las sem
 ninguém ter escolhido. Também foi descartado nunca iniciar, porque aí a
 automação não conseguiria repetir o que o time faz à mão.
 
+**Adendo, decidido pela Marcelle em 15/10/2026:** na **Entrada**, "mover card"
+cria o card quando o contato não tem, já na etapa escolhida. O card nasce como o
+do "Novo lead": sem atendente e sem linha no histórico do card. Criado direto em
+Ganho, também abre o card da Recompra. Se o card nascer ao mesmo tempo por outro
+caminho, o índice único da B22-26 recusa o segundo, e a ação move o que já
+existe. O painel da ação avisa isso quando o funil é Entrada. A **Recompra**
+continua como acima.
+
+**Achado no teste dela:** a regra "conversa criada → tag, boas-vindas, mover
+para Sondagem" falhava no último bloco com "O contato não tem card no Funil de
+Entrada". Nenhum caminho automático criava card, e só o botão "Novo lead" punha
+um contato novo no funil. A preocupação que motivou a regra (pular o Ganho e
+mudar a classificação para "ativo") vale só para a Recompra.
+
 ## 8. Histórico de execuções e proteção de repetição (B11-03, 07/10/2026)
 
 ### 8.1 Uma tabela, com cópias

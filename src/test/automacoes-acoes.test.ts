@@ -204,7 +204,7 @@ describe("atribuir a um time (B22-04: escolha e conversa gravadas pela função 
 })
 
 describe("mover card segue a regra do CRM (B11-11)", () => {
-  it("contato sem card no funil de destino: não move nem cria nada", async () => {
+  it("contato sem card na Recompra: não move nem cria nada", async () => {
     const b = banco({ pipeline_cards: { umEmOrdem: [null] } })
     const ok = await executarAcao(b.contexto(cardMovido), acao("mover_card", { funil: "recompra", etapa: "onboarding" }))
 
@@ -238,6 +238,75 @@ describe("mover card segue a regra do CRM (B11-11)", () => {
     await executarAcao(b.contexto(cardMovido), acao("mover_card", { funil: "entrada", etapa: "negociacao" }))
 
     expect(b.gravacoes("pipeline_cards").map((g) => g.metodo)).toEqual(["update"])
+  })
+})
+
+describe("mover card cria o card na Entrada quando o contato não tem (decisões 7.5, 15/10)", () => {
+  it("contato sem card na Entrada ganha o card na etapa escolhida, sem histórico de movimento", async () => {
+    const b = banco({ pipeline_cards: { umEmOrdem: [null] } })
+    const ok = await executarAcao(b.contexto(conversaCriada), acao("mover_card", { funil: "entrada", etapa: "sondagem" }))
+
+    expect(ok).toEqual({ ok: true })
+    expect(b.gravacoes("pipeline_cards").map((g) => [g.metodo, g.args[0]])).toEqual([
+      ["insert", { funil: "entrada", etapa: "sondagem", contact_id: "contato-1", workspace_id: "ws-1" }],
+    ])
+    expect(b.gravacoes("pipeline_card_history")).toEqual([])
+  })
+
+  it("criado direto em Ganho também abre o card da Recompra e inicia o onboarding", async () => {
+    const iniciou = vi.mocked(processarGatilhoSequencia)
+    iniciou.mockClear()
+    const b = banco({ pipeline_cards: { umEmOrdem: [null, null] } })
+    await executarAcao(
+      b.contexto(conversaCriada),
+      acao("mover_card", { funil: "entrada", etapa: "ganho", iniciar_sequencia: "sim" })
+    )
+
+    expect(b.gravacoes("pipeline_cards").map((g) => [g.metodo, g.args[0]])).toEqual([
+      ["insert", { funil: "entrada", etapa: "ganho", contact_id: "contato-1", workspace_id: "ws-1" }],
+      ["insert", { funil: "recompra", etapa: "onboarding", contact_id: "contato-1", workspace_id: "ws-1" }],
+    ])
+    expect(iniciou).toHaveBeenCalledWith(expect.objectContaining({ atendenteId: null, gatilho: "onboarding" }))
+  })
+
+  it("card que nasceu ao mesmo tempo por outro caminho (23505) é movido", async () => {
+    // 1ª busca: sem card; o insert esbarra no índice único; 2ª busca: o card que nasceu
+    const b = banco({ pipeline_cards: { umEmOrdem: [null, { id: "card-1", etapa: "lead" }] } })
+    const contexto = b.contexto(conversaCriada)
+    const from = contexto.supabase.from.bind(contexto.supabase)
+    contexto.supabase.from = ((tabela: string) => {
+      const consulta = from(tabela as "pipeline_cards") as unknown as Record<string, unknown>
+      if (tabela === "pipeline_cards") {
+        const insert = consulta.insert as (...args: unknown[]) => unknown
+        consulta.insert = (...args: unknown[]) => {
+          insert(...args)
+          return Promise.resolve({ data: null, error: { code: "23505" } })
+        }
+      }
+      return consulta
+    }) as unknown as typeof contexto.supabase.from
+
+    const ok = await executarAcao(contexto, acao("mover_card", { funil: "entrada", etapa: "sondagem" }))
+
+    expect(ok).toEqual({ ok: true })
+    expect(b.gravacoes("pipeline_cards").map((g) => g.metodo)).toEqual(["insert", "update"])
+    expect(b.gravacoes("pipeline_card_history")[0].args[0]).toMatchObject({ de_etapa: "lead", para_etapa: "sondagem" })
+  })
+
+  it("outro erro ao criar vai para o histórico como erro no banco", async () => {
+    const b = banco({ pipeline_cards: { umEmOrdem: [null] } })
+    const contexto = b.contexto(conversaCriada)
+    const from = contexto.supabase.from.bind(contexto.supabase)
+    contexto.supabase.from = ((tabela: string) => {
+      const consulta = from(tabela as "pipeline_cards") as unknown as Record<string, unknown>
+      if (tabela === "pipeline_cards") consulta.insert = () => Promise.resolve({ data: null, error: { code: "XX000" } })
+      return consulta
+    }) as unknown as typeof contexto.supabase.from
+
+    expect(await executarAcao(contexto, acao("mover_card", { funil: "entrada", etapa: "sondagem" }))).toEqual({
+      ok: false,
+      motivo: "Erro ao gravar no banco",
+    })
   })
 })
 

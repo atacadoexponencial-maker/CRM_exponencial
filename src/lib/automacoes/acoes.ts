@@ -121,21 +121,43 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
       const { funil, etapa } = parametros
       if (!funil || !etapa) return CONFIGURACAO_INCOMPLETA
 
-      const { data: card, error: erroBusca } = await supabase
-        .from("pipeline_cards")
-        .select("id, etapa, atendente_id")
-        .eq("workspace_id", gatilho.workspaceId)
-        .eq("contact_id", contactId)
-        .eq("funil", funil)
-        .maybeSingle()
+      const buscarCard = () =>
+        supabase
+          .from("pipeline_cards")
+          .select("id, etapa, atendente_id")
+          .eq("workspace_id", gatilho.workspaceId)
+          .eq("contact_id", contactId)
+          .eq("funil", funil)
+          .maybeSingle()
+
+      const { data: encontrado, error: erroBusca } = await buscarCard()
       if (erroBusca) return ERRO_NO_BANCO
+      let card = encontrado
 
-      // Contato sem card neste funil: a automação não cria. Na Recompra, o card
-      // nasce quando o card da Entrada chega em Ganho (abaixo), como no CRM.
-      if (!card) return falhou(`O contato não tem card no ${NOME_DO_FUNIL[funil] ?? funil}`)
+      // Contato sem card: na Entrada, o card nasce na etapa escolhida, como o
+      // "Novo lead" (decisões, seção 7.5, adendo de 15/10/2026). Na Recompra, a
+      // automação não cria: o card nasce quando o da Entrada chega em Ganho (abaixo).
+      let criou = false
+      if (!card) {
+        if (funil !== "entrada") return falhou(`O contato não tem card no ${NOME_DO_FUNIL[funil] ?? funil}`)
+        const { error } = await supabase
+          .from("pipeline_cards")
+          .insert({ funil: "entrada", etapa, contact_id: contactId, workspace_id: gatilho.workspaceId })
+        if (!error) {
+          criou = true
+        } else {
+          // 23505: o card nasceu ao mesmo tempo por outro caminho (índice único da
+          // B22-26); segue movendo o card que já existe
+          if (error.code !== "23505") return ERRO_NO_BANCO
+          const { data: existente, error: erroNovaBusca } = await buscarCard()
+          if (erroNovaBusca || !existente) return ERRO_NO_BANCO
+          card = existente
+        }
+      }
 
-      const moveu = card.etapa !== etapa
-      if (moveu) {
+      // Card criado agora já nasce na etapa: não há o que mover
+      const moveu = card !== null && card.etapa !== etapa
+      if (card && moveu) {
         const { error } = await supabase
           .from("pipeline_cards")
           .update({ etapa, etapa_changed_at: new Date().toISOString() })
@@ -154,7 +176,7 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
       // A sequência da etapa começa só se o admin marcou na ação, e só quando o
       // card de fato entra nela (ou, em Ganho, quando o card da Recompra nasce)
       const sequencia = parametros.iniciar_sequencia === "sim" ? SEQUENCIA_DA_ETAPA[`${funil}:${etapa}`] : undefined
-      let entrouNaEtapa = moveu
+      let entrouNaEtapa = criou || moveu
 
       if (funil === "entrada" && etapa === "ganho") {
         const recompra = await abrirCardDeRecompra(contexto, contactId)
@@ -166,7 +188,7 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
         await processarGatilhoSequencia({
           workspaceId: gatilho.workspaceId,
           contactId,
-          atendenteId: card.atendente_id,
+          atendenteId: card?.atendente_id ?? null,
           gatilho: sequencia,
         })
       }
