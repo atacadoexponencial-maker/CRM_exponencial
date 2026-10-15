@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import { useState, useTransition, useEffect, useRef } from "react"
 import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import { createClient } from "@/integrations/supabase/client"
 import { formatarHoraDoDia, formatarHorarioDaLista } from "@/lib/datas"
@@ -11,6 +11,7 @@ import { COOKIE_CAIXA_RECOLHIDA, gravarPreferencia } from "@/lib/preferencias-la
 import { buscarConversa, buscarMensagens, carregarMaisConversas, marcarComoLidas } from "../actions"
 import type { Conversa, StatusConversa } from "../mock-conversas"
 import type { Mensagem } from "../mock-mensagens"
+import { aplicarStatus, confirmarEnvio } from "../mensagens-locais"
 
 interface ChatLayoutProps {
   conversas: Conversa[]
@@ -36,6 +37,10 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
   const [carregandoMais, setCarregandoMais] = useState(false)
   const [conversaAtivaId, setConversaAtivaId] = useState<string | null>(null)
   const [mensagensLocais, setMensagensLocais] = useState<Record<string, Mensagem[]>>({})
+  // B26-01: status que chegou antes de a mensagem enviada trocar o id provisório
+  // pelo real. Guarda poucos: o UPDATE vem da empresa toda, e o que não está na
+  // tela não precisa ficar aqui.
+  const statusGuardados = useRef<Map<string, NonNullable<Mensagem["status"]>>>(new Map())
   const [erroConversaId, setErroConversaId] = useState<string | null>(null)
   const [abertas, setAbertas] = useState<Set<string>>(new Set())
   // B13-02: contatos que foram para a lixeira enquanto a caixa estava aberta.
@@ -137,15 +142,18 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
         },
         (payload) => {
           const row = payload.new as { id: string; status: string; conversation_id: string }
+          const status = row.status as NonNullable<Mensagem["status"]>
           setMensagensLocais((prev) => {
             const lista = prev[row.conversation_id]
             if (!lista) return prev
-            return {
-              ...prev,
-              [row.conversation_id]: lista.map((m) =>
-                m.id === row.id ? { ...m, status: row.status as Mensagem["status"] } : m
-              ),
+            const aplicado = aplicarStatus(lista, row.id, status)
+            if (!aplicado.achou) {
+              const guardados = statusGuardados.current
+              guardados.set(row.id, status)
+              if (guardados.size > 50) guardados.delete(guardados.keys().next().value!)
+              return prev
             }
+            return { ...prev, [row.conversation_id]: aplicado.lista }
           })
         }
       )
@@ -285,6 +293,16 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
     }))
   }
 
+  function handleMensagemConfirmada(conversaId: string, idProvisorio: string, mensagemId: string) {
+    const guardado = statusGuardados.current.get(mensagemId)
+    statusGuardados.current.delete(mensagemId)
+    setMensagensLocais((prev) => {
+      const lista = prev[conversaId]
+      if (!lista) return prev
+      return { ...prev, [conversaId]: confirmarEnvio(lista, idProvisorio, mensagemId, guardado) }
+    })
+  }
+
   function handleConversaAtualizada(id: string, updates: Partial<Conversa>) {
     setConversasState((prev) =>
       prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
@@ -383,6 +401,9 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
             conversa={conversaAtiva}
             mensagens={mensagensLocais[conversaAtiva.id] ?? []}
             onMensagemEnviada={handleMensagemEnviada}
+            onMensagemConfirmada={(idProvisorio, mensagemId) =>
+              handleMensagemConfirmada(conversaAtiva.id, idProvisorio, mensagemId)
+            }
             podeAtribuir={papel !== "atendente"}
             atendentes={atendentes}
             atendentesTransferir={atendentesTransferir}

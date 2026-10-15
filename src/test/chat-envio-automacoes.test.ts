@@ -108,7 +108,7 @@ describe("B11-05 — envio pelo chat dispara 'mensagem enviada pelo time'", () =
       gravouAntes = gravacoes.includes("insert messages")
     })
 
-    expect(await enviarMensagem("conversa-1", "Segue o catálogo 👇")).toEqual({})
+    expect(await enviarMensagem("conversa-1", "Segue o catálogo 👇")).toEqual({ mensagemId: "msg-1" })
 
     expect(disparo).toHaveBeenCalledTimes(1)
     expect(disparo).toHaveBeenCalledWith({
@@ -150,6 +150,25 @@ describe("B11-05 — envio pelo chat dispara 'mensagem enviada pelo time'", () =
     await enviarMensagem("conversa-1", "Segue o catálogo")
 
     expect(disparo).not.toHaveBeenCalled()
+  })
+})
+
+describe("B26-01 — o envio pelo chat devolve o id da mensagem gravada", () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it("CA-B26-05: texto e mídia devolvem o id da mensagem gravada, para a tela receber entregue e lida", async () => {
+    prepararChat()
+    expect(await enviarMensagem("conversa-1", "oi")).toEqual({ mensagemId: "msg-1" })
+    expect(await enviarImagem("conversa-1", arquivo("foto.jpg", "image/jpeg"))).toEqual({ mensagemId: "msg-1" })
+    expect(await enviarDocumento("conversa-1", arquivo("tabela.pdf", "application/pdf"))).toEqual({ mensagemId: "msg-1" })
+  })
+
+  it("CA-B26-05: envio recusado não devolve id, só o motivo", async () => {
+    prepararChat()
+    provider.enviarTexto.mockResolvedValue({ ok: false, motivo: "número desconectado" })
+    const resultado = await enviarMensagem("conversa-1", "oi")
+    expect(resultado.mensagemId).toBeUndefined()
+    expect(resultado.erro).toContain("Não enviada")
   })
 })
 

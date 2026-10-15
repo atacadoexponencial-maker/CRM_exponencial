@@ -36,7 +36,7 @@ async function dispararRegrasDoTime(
   })
 }
 
-async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promise<void> {
+async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promise<string | null> {
   const supabase = await createClient()
 
   const { data: conversa, error: errConversa } = await supabase
@@ -86,9 +86,10 @@ async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promi
     .eq("id", conversaId)
 
   await dispararRegrasDoTime({ workspace_id, contact_id }, conversaId, gravada, "texto", texto)
+  return gravada?.id ?? null
 }
 
-async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Promise<void> {
+async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Promise<string | null> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -161,6 +162,7 @@ async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Pr
     .eq("id", conversaId)
 
   await dispararRegrasDoTime({ workspace_id, contact_id }, conversaId, gravada, "imagem")
+  return gravada?.id ?? null
 }
 
 const TIPOS_DOCUMENTO_VALIDOS = [
@@ -177,7 +179,7 @@ const TIPOS_DOCUMENTO_VALIDOS = [
   "application/vnd.oasis.opendocument.presentation",
 ]
 
-async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData): Promise<void> {
+async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData): Promise<string | null> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -251,9 +253,10 @@ async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData):
     .eq("id", conversaId)
 
   await dispararRegrasDoTime({ workspace_id, contact_id }, conversaId, gravada, "documento")
+  return gravada?.id ?? null
 }
 
-async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Promise<void> {
+async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Promise<string | null> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -326,9 +329,10 @@ async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Pro
     .eq("id", conversaId)
 
   await dispararRegrasDoTime({ workspace_id, contact_id }, conversaId, gravada, "video")
+  return gravada?.id ?? null
 }
 
-async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Promise<void> {
+async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Promise<string | null> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -401,10 +405,15 @@ async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Pro
     .eq("id", conversaId)
 
   await dispararRegrasDoTime({ workspace_id, contact_id }, conversaId, gravada, "audio")
+  return gravada?.id ?? null
 }
 
-/** Resultado dos envios: o motivo volta como valor, nunca como exceção. */
-export type ResultadoDoEnvio = { erro?: string }
+/**
+ * Resultado dos envios: o motivo volta como valor, nunca como exceção. No
+ * sucesso, o id da mensagem gravada, para a tela trocar o provisório por ele e
+ * receber os avisos de entregue e lida sem recarregar (B26-01).
+ */
+export type ResultadoDoEnvio = { erro?: string; mensagemId?: string }
 
 /**
  * Envolve os envios do chat. Em produção o Next.js troca a mensagem de toda
@@ -413,12 +422,12 @@ export type ResultadoDoEnvio = { erro?: string }
  */
 async function comMotivo(
   conversaId: string,
-  enviar: () => Promise<void>,
+  enviar: () => Promise<string | null>,
   aoFalhar?: (motivo: string) => Promise<void>
 ): Promise<ResultadoDoEnvio> {
   try {
-    await enviar()
-    return {}
+    const mensagemId = await enviar()
+    return mensagemId ? { mensagemId } : {}
   } catch (erro) {
     const aviso = await avisoDaConexao(conversaId).catch(() => null)
     const motivo = `Não enviada: ${
