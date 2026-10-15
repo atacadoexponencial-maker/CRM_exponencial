@@ -85,9 +85,10 @@ Verificado no fim do lote: 748 testes unitários, lint de `src` e `e2e` e build
 com código 0. No preview, o `roteiro-b22-historico.cjs` (16 verificações) e os 7
 roteiros do lote 1 (72 verificações) passaram.
 
-### Em andamento: lote 4, o resto
+### Feito: lote 4, o resto (no ar desde 14/10/2026)
 
-Branch `b22-lote-resto`, aberto em 14/10/2026 a partir do `master`. Decisões na
+Branch `b22-lote-resto`, aberto em 14/10/2026 a partir do `master` e juntado nele
+no mesmo dia (merge 004d14a), com aprovação do Luan. Decisões na
 seção 32; roteiro do preview `roteiro-b22-resto.cjs`.
 
 | Issue | Achado | O que mudou |
@@ -125,8 +126,9 @@ erro. Com 9 perfis na empresa, o b11-10 e o b11-11-e-12 paravam no começo. A
 limpeza foi corrigida (commit 6c2d6c1) e os 8 perfis foram apagados com aprovação
 do Luan.
 
-Todos os achados do QA estão resolvidos. **No merge:** aplicar as três migrations
-do lote (`20261014000001`, `…02` e `…03`) e rodar `conferir-b22-30-rls.cjs`.
+Todos os achados do QA estão resolvidos. As três migrations do lote
+(`20261014000001`, `…02` e `…03`) foram aplicadas antes do merge, e o
+`conferir-b22-30-rls.cjs` confirmou: o atendente não lê as regras, o admin lê.
 
 Decisões do Luan para o lote 4 (14/10): seção 32 das decisões (A7, M6, M20, M21,
 "contém" por palavra inteira, confirmação ao apagar 2 ou mais blocos e limpeza dos
@@ -148,9 +150,8 @@ filtrar só pelo prefixo `[TESTE]`.**
 
 ### Onde retomar
 
-Lote 4 pronto e verificado no branch `b22-lote-resto` (16 roteiros passando). Falta
-o merge, com aprovação do Luan, e, junto dele, as três migrations e o
-`conferir-b22-30-rls.cjs`.
+Série B22 concluída: os quatro lotes estão no ar desde 14/10/2026. Nada pendente,
+fora as decisões acima, que ficam só se incomodarem.
 
 ---
 
