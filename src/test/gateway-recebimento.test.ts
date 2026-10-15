@@ -35,7 +35,7 @@ const TEXTO: EventoMensagemRecebida = {
 }
 
 type Estado = {
-  contato?: { id: string } | null
+  contato?: { id: string; name?: string | null } | null
   conversaAberta?: { id: string; unread_count: number; whatsapp_connection_id?: string | null } | null
   mensagemCitada?: { id: string } | null
   /** B11-04: `false` faz o insert da mensagem falhar. */
@@ -61,6 +61,10 @@ function supabaseFalso({ contato = null, conversaAberta = null, mensagemCitada =
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
           maybeSingle: vi.fn().mockResolvedValue({ data: contato }),
+          update: vi.fn((linha: unknown) => {
+            registra("contacts", "update", linha)
+            return { eq: vi.fn().mockResolvedValue({ error: null }) }
+          }),
           insert: vi.fn((linha: unknown) => {
             registra("contacts", "insert", linha)
             return {
@@ -146,6 +150,7 @@ describe("contato e conversa", () => {
     expect(escritaDe(escritas, "contacts", "insert")).toEqual({
       workspace_id: WORKSPACE,
       phone_number: "5511999998888",
+      name: null,
     })
     expect(escritaDe(escritas, "conversations", "insert")).toMatchObject({
       workspace_id: WORKSPACE,
@@ -198,6 +203,64 @@ describe("contato e conversa", () => {
     await registrarMensagemRecebida({ supabase, workspaceId: WORKSPACE, evento: TEXTO, recebidoEm: RECEBIDO_EM })
 
     expect(escritaDe(escritas, "messages", "insert")?.wamid).toBe(TEXTO.message_id)
+  })
+})
+
+describe("nome de perfil do WhatsApp (push_name)", () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it("contato novo nasce com o nome de perfil, sem espaços nas pontas", async () => {
+    const { supabase, escritas } = supabaseFalso()
+    await registrarMensagemRecebida({
+      supabase,
+      workspaceId: WORKSPACE,
+      evento: { ...TEXTO, push_name: "  Maria Souza " },
+      recebidoEm: RECEBIDO_EM,
+    })
+    expect(escritaDe(escritas, "contacts", "insert")?.name).toBe("Maria Souza")
+  })
+
+  it("contato que já existe sem nome ganha o nome de perfil", async () => {
+    const { supabase, escritas } = supabaseFalso({
+      contato: { id: "contato-1", name: null },
+      conversaAberta: { id: "conversa-1", unread_count: 0 },
+    })
+    await registrarMensagemRecebida({
+      supabase,
+      workspaceId: WORKSPACE,
+      evento: { ...TEXTO, push_name: "Maria" },
+      recebidoEm: RECEBIDO_EM,
+    })
+    expect(escritaDe(escritas, "contacts", "update")).toEqual({ name: "Maria" })
+  })
+
+  it("nome que o contato já tem nunca é trocado pelo de perfil", async () => {
+    const { supabase, escritas } = supabaseFalso({
+      contato: { id: "contato-1", name: "Maria (Loja Centro)" },
+      conversaAberta: { id: "conversa-1", unread_count: 0 },
+    })
+    await registrarMensagemRecebida({
+      supabase,
+      workspaceId: WORKSPACE,
+      evento: { ...TEXTO, push_name: "Mari 💜" },
+      recebidoEm: RECEBIDO_EM,
+    })
+    expect(escritaDe(escritas, "contacts", "update")).toBeUndefined()
+  })
+
+  it("sem nome de perfil (ausente ou só espaços), nada muda", async () => {
+    const semNome = supabaseFalso()
+    await registrarMensagemRecebida({ supabase: semNome.supabase, workspaceId: WORKSPACE, evento: TEXTO, recebidoEm: RECEBIDO_EM })
+    expect(escritaDe(semNome.escritas, "contacts", "insert")?.name).toBeNull()
+
+    const vazio = supabaseFalso({ contato: { id: "contato-1", name: null }, conversaAberta: { id: "v", unread_count: 0 } })
+    await registrarMensagemRecebida({
+      supabase: vazio.supabase,
+      workspaceId: WORKSPACE,
+      evento: { ...TEXTO, push_name: "   " },
+      recebidoEm: RECEBIDO_EM,
+    })
+    expect(escritaDe(vazio.escritas, "contacts", "update")).toBeUndefined()
   })
 })
 

@@ -37,6 +37,17 @@ export type EventoMensagemRecebida = {
   /** `emoji` vazio significa reação removida. */
   reaction?: { emoji: string; target_message_id: string } | null
   system?: { action: "edited" | "deleted"; target_message_id: string; new_text?: string | null } | null
+  /** Nome que o remetente exibe no WhatsApp. Só preenche contato sem nome. */
+  push_name?: string | null
+}
+
+/**
+ * Nome de perfil do WhatsApp (o `push_name` do gateway, o `profile.name` da
+ * Meta) pronto para gravar, ou null quando não veio. Vale para contato novo e
+ * para contato ainda sem nome; o nome que o time deu nunca é trocado.
+ */
+export function nomeDoPerfil(bruto: string | null | undefined): string | null {
+  return bruto?.trim() || null
 }
 
 /**
@@ -236,7 +247,7 @@ export async function registrarMensagemRecebida({
   const traduzido = conteudo ?? traduzirTexto(evento)
   const identificador = identificadorDoContato(evento)
 
-  const contactId = await acharOuCriarContato(supabase, workspaceId, identificador)
+  const contactId = await acharOuCriarContato(supabase, workspaceId, identificador, nomeDoPerfil(evento.push_name))
   const { conversationId, conversaCriada } = await abrirOuReusarConversa({
     supabase,
     workspaceId,
@@ -315,11 +326,12 @@ export async function registrarMensagemRecebida({
 async function acharOuCriarContato(
   supabase: ServiceClient,
   workspaceId: string,
-  identificador: string
+  identificador: string,
+  nome: string | null
 ): Promise<string> {
   const { data: existente } = await supabase
     .from("contacts")
-    .select("id, excluido_em")
+    .select("id, excluido_em, name")
     .eq("workspace_id", workspaceId)
     .eq("phone_number", identificador)
     .maybeSingle()
@@ -330,12 +342,16 @@ async function acharOuCriarContato(
     if (existente.excluido_em) {
       await tirarDaLixeira(supabase, workspaceId, existente.id).catch(() => {})
     }
+    // Contato sem nome ganha o do perfil; falhar aqui não segura a mensagem
+    if (nome && !existente.name?.trim()) {
+      await supabase.from("contacts").update({ name: nome }).eq("id", existente.id)
+    }
     return existente.id
   }
 
   const { data: criado, error } = await supabase
     .from("contacts")
-    .insert({ workspace_id: workspaceId, phone_number: identificador })
+    .insert({ workspace_id: workspaceId, phone_number: identificador, name: nome })
     .select("id")
     .single()
 

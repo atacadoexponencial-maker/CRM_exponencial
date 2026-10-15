@@ -5,7 +5,7 @@ import { dispararAutomacoes } from "@/lib/automacoes/fila"
 import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"
 import { transmitirMensagem } from "@/lib/whatsapp/realtime"
 import { lerMensagemMeta } from "@/lib/whatsapp/mensagem-meta"
-import { escolherConversaDoNumero } from "@/lib/whatsapp/recebimento"
+import { escolherConversaDoNumero, nomeDoPerfil } from "@/lib/whatsapp/recebimento"
 import { tirarDaLixeira } from "@/lib/lixeira"
 
 // Valida a assinatura X-Hub-Signature-256 que a Meta envia em todo webhook.
@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
     metadata?: { phone_number_id?: string }
     statuses?: Array<{ status: string; id?: string }>
     messages?: Array<{ from: string; id: string; timestamp: string; type?: string; text?: { body?: string } }>
+    contacts?: Array<{ wa_id?: string; profile?: { name?: string } }>
   }
   type WebhookBody = { entry?: Array<{ changes?: Array<{ value?: WebhookValue }> }> }
 
@@ -116,10 +117,14 @@ export async function POST(request: NextRequest) {
     const lida = lerMensagemMeta(message)
     const messageText = lida.conteudo
     const messageAt = new Date(Number(message.timestamp) * 1000).toISOString()
+    // Nome de perfil do remetente: a Meta manda em `contacts`, ao lado das mensagens
+    const nome = nomeDoPerfil(
+      change?.contacts?.find((c) => c.wa_id === phoneNumber)?.profile?.name
+    )
 
     let { data: contact } = await supabase
       .from("contacts")
-      .select("id, excluido_em")
+      .select("id, excluido_em, name")
       .eq("workspace_id", workspace_id)
       .eq("phone_number", phoneNumber)
       .single()
@@ -130,11 +135,16 @@ export async function POST(request: NextRequest) {
       await tirarDaLixeira(supabase, workspace_id, contact.id).catch(() => {})
     }
 
+    // Contato sem nome ganha o do perfil; o nome que o time deu nunca é trocado
+    if (contact && nome && !contact.name?.trim()) {
+      await supabase.from("contacts").update({ name: nome }).eq("id", contact.id)
+    }
+
     if (!contact) {
       const { data: newContact, error } = await supabase
         .from("contacts")
-        .insert({ workspace_id, phone_number: phoneNumber })
-        .select("id, excluido_em")
+        .insert({ workspace_id, phone_number: phoneNumber, name: nome })
+        .select("id, excluido_em, name")
         .single()
       if (error || !newContact) return NextResponse.json({ error: "db error" }, { status: 500 })
       contact = newContact

@@ -30,12 +30,17 @@ function bancoFalso({
   mensagemGravada = true,
   /** B22-45: o id da Meta já está gravado (reentrega). */
   jaGravada = false,
+  /** O contato que a busca por telefone encontra; null cria um novo. */
+  contato = { id: "contato-1", excluido_em: null, name: null } as { id: string; excluido_em: null; name: string | null } | null,
 } = {}) {
   const gravacoes: string[] = []
+  const escritas: Array<{ operacao: string; tabela: string; linha: unknown }> = []
+  let contatoBuscado = false
   const from = vi.fn((tabela: string) => {
     const respostas: Record<string, Resposta> = {
       whatsapp_connections: { data: { id: "conexao-1", workspace_id: "ws-1" } },
       contacts: { data: { id: "contato-1", excluido_em: null } },
+      contacts_busca: { data: contato },
       conversations: { data: { id: "conversa-nova" } },
       messages: mensagemGravada ? { data: { id: "msg-1" } } : { data: null, error: { code: "23505" } },
     }
@@ -43,22 +48,30 @@ function bancoFalso({
     const obj: Record<string, unknown> = {}
     for (const m of ["select", "eq", "in", "order"]) obj[m] = vi.fn(() => obj)
     for (const m of ["insert", "update"]) {
-      obj[m] = vi.fn(() => {
+      obj[m] = vi.fn((linha: unknown) => {
         gravacoes.push(`${m} ${tabela}`)
+        escritas.push({ operacao: m, tabela, linha })
         return obj
       })
     }
     obj.limit = vi.fn(() => ({ then: (r: (v: Resposta) => void) => Promise.resolve({ data: abertas }).then(r) }))
-    obj.single = vi.fn(() => Promise.resolve(resposta))
+    // Em `contacts`, a primeira consulta é a busca por telefone; a do insert devolve o criado
+    obj.single = vi.fn(() => {
+      if (tabela === "contacts" && !contatoBuscado) {
+        contatoBuscado = true
+        return Promise.resolve(respostas.contacts_busca)
+      }
+      return Promise.resolve(resposta)
+    })
     obj.maybeSingle = vi.fn(() => Promise.resolve({ data: tabela === "messages" && jaGravada ? { id: "msg-0" } : null, error: null }))
     obj.then = (r: (v: Resposta) => void) => Promise.resolve({ data: null, error: null }).then(r)
     return obj
   })
   vi.mocked(createServiceClient).mockReturnValue({ from } as unknown as ReturnType<typeof createServiceClient>)
-  return { gravacoes }
+  return { gravacoes, escritas }
 }
 
-function requisicao(mensagem: Record<string, unknown>) {
+function requisicao(mensagem: Record<string, unknown>, contatos?: Array<Record<string, unknown>>) {
   const corpo = {
     entry: [
       {
@@ -66,6 +79,7 @@ function requisicao(mensagem: Record<string, unknown>) {
           {
             value: {
               metadata: { phone_number_id: "pn-1" },
+              ...(contatos ? { contacts: contatos } : {}),
               messages: [{ from: "5511999998888", id: "wamid.1", timestamp: "1760000000", ...mensagem }],
             },
           },
@@ -181,5 +195,38 @@ describe("B22-45 — reentrega da Meta", () => {
     expect(resposta.status).toBe(200)
     expect(gravacoes).toEqual([])
     expect(dispararAutomacoes).not.toHaveBeenCalled()
+  })
+})
+
+describe("nome de perfil da Meta (contacts[].profile.name)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    process.env.META_APP_SECRET = SEGREDO_DE_TESTE
+  })
+
+  const PERFIL = [{ wa_id: "5511999998888", profile: { name: " Maria Souza " } }]
+  const contatoDe = (escritas: Array<{ operacao: string; tabela: string; linha: unknown }>, operacao: string) =>
+    escritas.find((e) => e.tabela === "contacts" && e.operacao === operacao)?.linha
+
+  it("contato novo nasce com o nome de perfil", async () => {
+    const { escritas } = bancoFalso({ contato: null })
+    await POST(requisicao({ type: "text", text: { body: "oi" } }, PERFIL))
+    expect(contatoDe(escritas, "insert")).toEqual({ workspace_id: "ws-1", phone_number: "5511999998888", name: "Maria Souza" })
+  })
+
+  it("contato sem nome ganha o de perfil; com nome, nunca é trocado", async () => {
+    const semNome = bancoFalso({ abertas: [ABERTA] })
+    await POST(requisicao({ type: "text", text: { body: "oi" } }, PERFIL))
+    expect(contatoDe(semNome.escritas, "update")).toEqual({ name: "Maria Souza" })
+
+    const comNome = bancoFalso({ abertas: [ABERTA], contato: { id: "contato-1", excluido_em: null, name: "Maria (Loja)" } })
+    await POST(requisicao({ type: "text", text: { body: "oi" } }, PERFIL))
+    expect(contatoDe(comNome.escritas, "update")).toBeUndefined()
+  })
+
+  it("perfil de outro número ou ausente não dá nome a ninguém", async () => {
+    const { escritas } = bancoFalso({ contato: null })
+    await POST(requisicao({ type: "text", text: { body: "oi" } }, [{ wa_id: "5511000000000", profile: { name: "Outra" } }]))
+    expect(contatoDe(escritas, "insert")).toMatchObject({ name: null })
   })
 })
