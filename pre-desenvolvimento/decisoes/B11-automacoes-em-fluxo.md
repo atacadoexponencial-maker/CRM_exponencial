@@ -521,6 +521,15 @@ Ficou assim:
 - **Sem conversa aberta e sem card:** a ação falha com "O contato não tem
   conversa aberta nem card". Antes, ela contava como feita sem mudar nada.
 
+**Adendo, decidido pela Marcelle em 15/10/2026:** no gatilho "card movido para
+Ganho" no Funil de Entrada, "atribuir" (atendente ou time) passa o **card da
+Recompra**, e não o card que se moveu. O da Entrada fica com quem vendeu. Sem
+card na Recompra, a ação passa só a conversa. No "atribuir ao time", se a
+conversa já está com alguém do time, o card da Recompra recebe essa pessoa
+mesmo assim. **Achado no teste dela:** a regra "Ganho → atribuir ao time
+Recompra" passava a conversa e o card da Entrada para a atendente da Recompra,
+e o card da Recompra, que tinha acabado de nascer, ficava sem atendente.
+
 **Consequência no merge:** as regras antigas viram fluxo. Uma regra antiga
 "conversa criada → atribuir atendente" passa a mudar também o card principal
 do contato, o que antes não fazia. É o que o Luan descreveu como certo.

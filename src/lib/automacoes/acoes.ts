@@ -364,7 +364,9 @@ async function atribuirAoTime(contexto: ContextoDaExecucao, timeId: string): Pro
       .maybeSingle()
     return falhou(time ? "O time não tem atendente ativo" : "O time não existe mais")
   }
-  if (escolha.manteve) return FEITO
+  // Conversa que já está com alguém do time fica com ele. No Ganho, o card da
+  // Recompra, que acabou de nascer, ainda precisa receber essa pessoa.
+  if (escolha.manteve && !ehGanhoNaEntrada(gatilho)) return FEITO
   return passarCardEConcluir(contexto, escolha.atendente_id, conversaId, [])
 }
 
@@ -411,16 +413,25 @@ async function impedimentoDoAtendente(
   return perfil.status === "active" ? null : falhou("O atendente está desativado")
 }
 
+/** O card da Entrada acabou de chegar em Ganho: o contato passa a ser atendido na Recompra. */
+function ehGanhoNaEntrada(gatilho: ContextoDaExecucao["gatilho"]): boolean {
+  return gatilho.tipo === "card_movido" && gatilho.funil === "entrada" && gatilho.etapa === "ganho"
+}
+
 /**
- * No "card movido", o card que se moveu: é dele que a regra trata. Nos outros
- * gatilhos, o card principal do contato: o da Recompra, se houver, porque quem
- * foi ganho na Entrada passa a ser atendido lá; senão, o da Entrada.
+ * No "card movido", o card que se moveu: é dele que a regra trata. A exceção é o
+ * Ganho na Entrada: quem foi ganho passa a ser atendido na Recompra, então a
+ * atribuição vai para o card da Recompra, e o da Entrada fica com quem vendeu
+ * (decisões, seção 10.5, adendo de 15/10/2026). Sem card na Recompra, nenhum.
+ * Nos outros gatilhos, o card principal do contato: o da Recompra, se houver;
+ * senão, o da Entrada.
  */
 async function cardDoContato({
   supabase,
   gatilho,
 }: ContextoDaExecucao): Promise<{ id: string | null; erro?: { code?: string } }> {
-  if (gatilho.tipo === "card_movido") return { id: gatilho.cardId }
+  const ganhoNaEntrada = ehGanhoNaEntrada(gatilho)
+  if (gatilho.tipo === "card_movido" && !ganhoNaEntrada) return { id: gatilho.cardId }
   if (!gatilho.contactId) return { id: null }
 
   const { data: cards, error } = await supabase
@@ -430,7 +441,9 @@ async function cardDoContato({
     .eq("contact_id", gatilho.contactId)
   if (error) return { id: null, erro: error }
 
-  const principal = cards?.find((c) => c.funil === "recompra") ?? cards?.find((c) => c.funil === "entrada")
+  const recompra = cards?.find((c) => c.funil === "recompra")
+  if (ganhoNaEntrada) return { id: recompra?.id ?? null }
+  const principal = recompra ?? cards?.find((c) => c.funil === "entrada")
   return { id: principal?.id ?? null }
 }
 

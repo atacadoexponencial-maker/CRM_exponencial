@@ -594,6 +594,54 @@ describe("atribuir passa também o card principal do contato (B11-08)", () => {
   })
 })
 
+describe("no Ganho da Entrada, atribuir passa o card da Recompra (decisões 10.5, 15/10)", () => {
+  const ganho: GatilhoAutomacao = {
+    tipo: "card_movido",
+    workspaceId: "ws-1",
+    contactId: "contato-1",
+    cardId: "card-entrada",
+    funil: "entrada",
+    etapa: "ganho",
+  }
+  const cardAtualizado = (b: ReturnType<typeof banco>) =>
+    b.chamadas.filter((c) => c.tabela === "pipeline_cards" && c.metodo === "eq" && c.args[0] === "id").map((c) => c.args[1])
+  const DOIS_CARDS = { lista: [{ id: "card-entrada", funil: "entrada" }, { id: "card-recompra", funil: "recompra" }] }
+  const CONVERSA = { conversations: { um: { id: "conv-1", status: "em_atendimento" } } }
+
+  it("atribuir atendente passa o card da Recompra e deixa o da Entrada com quem vendeu", async () => {
+    const b = banco({ ...ATENDENTE_ATIVO, ...CONVERSA, pipeline_cards: DOIS_CARDS })
+    expect(await executarAcao(b.contexto(ganho), acao("atribuir_atendente", { atendente_id: "u-1" }))).toEqual({ ok: true })
+    expect(cardAtualizado(b)).toEqual(["card-recompra"])
+    expect(b.gravacoes("conversations")[0].args[0]).toEqual({ assigned_to: "u-1" })
+  })
+
+  it("atribuir ao time passa o card da Recompra para quem o time escolheu", async () => {
+    const b = banco({ pipeline_cards: DOIS_CARDS }, { atribuir_conversa_ao_time: { data: [{ atendente_id: "fulana", manteve: false }] } })
+    expect(await executarAcao(b.contexto(ganho), acao("atribuir_time", { time_id: "time-recompra" }))).toEqual({ ok: true })
+    expect(cardAtualizado(b)).toEqual(["card-recompra"])
+    expect(b.gravacoes("pipeline_cards")[0].args[0]).toEqual({ atendente_id: "fulana" })
+  })
+
+  it("conversa já com alguém do time: o card da Recompra recebe essa pessoa mesmo assim", async () => {
+    const b = banco({ pipeline_cards: DOIS_CARDS }, { atribuir_conversa_ao_time: { data: [{ atendente_id: "fulana", manteve: true }] } })
+    expect(await executarAcao(b.contexto(ganho), acao("atribuir_time", { time_id: "time-recompra" }))).toEqual({ ok: true })
+    expect(cardAtualizado(b)).toEqual(["card-recompra"])
+  })
+
+  it("sem card na Recompra, passa só a conversa e não toca no card da Entrada", async () => {
+    const b = banco({ ...ATENDENTE_ATIVO, ...CONVERSA, pipeline_cards: { lista: [{ id: "card-entrada", funil: "entrada" }] } })
+    expect(await executarAcao(b.contexto(ganho), acao("atribuir_atendente", { atendente_id: "u-1" }))).toEqual({ ok: true })
+    expect(cardAtualizado(b)).toEqual([])
+    expect(b.gravacoes("conversations")[0].args[0]).toEqual({ assigned_to: "u-1" })
+  })
+
+  it("em outra etapa da Entrada, continua o card que se moveu", async () => {
+    const b = banco({ ...ATENDENTE_ATIVO, pipeline_cards: DOIS_CARDS })
+    await executarAcao(b.contexto({ ...ganho, etapa: "negociacao" }), acao("atribuir_atendente", { atendente_id: "u-1" }))
+    expect(cardAtualizado(b)).toEqual(["card-entrada"])
+  })
+})
+
 describe("atribuir atendente só para quem está ativo (B22-02)", () => {
   it("atendente desativado: falha com o motivo e não mexe na conversa nem no card", async () => {
     const b = banco({ profiles: { um: { status: "inactive" } } })
