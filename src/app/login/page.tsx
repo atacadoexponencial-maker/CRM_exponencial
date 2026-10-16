@@ -1,6 +1,7 @@
 "use client"
 
 import { use, useState } from "react"
+import { unstable_rethrow } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -39,7 +40,10 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<{ mo
         setError("root", { type: "manual", message: resultado.erro })
         setEntrando(false)
       }
-    } catch {
+    } catch (erro) {
+      // O redirect da action chega aqui como erro; devolvido, o Next faz a
+      // troca de página. Só falha de verdade mostra o aviso.
+      unstable_rethrow(erro)
       setError("root", { type: "manual", message: "Não foi possível entrar. Tente novamente." })
       setEntrando(false)
     }
