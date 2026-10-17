@@ -21,4 +21,5 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B24 | `../spec-landing-atacado-exp.md` (reservada: a landing está no branch `b22-landing-atacado-exp` e troca o código B22 por B24 no merge) | `concluidas_B24/` (quando houver) |
 | B25 | `../spec-canal-direto-envio-pelo-celular.md` (em andamento: mensagem enviada pelo celular aparece no CRM, canal direto) | `concluidas_B25/` (quando houver) |
 | B26 | `../spec-mensagem-na-fila.md` (em andamento: mensagem na fila do número e aviso de aquecimento, canal direto) | `concluidas_B26/` (quando houver) |
+| B27 | `../spec-porteiro-rapido.md` (em andamento: conferência de login do porteiro sem ida ao banco de logins, mantendo o aviso de conta desativada) | `concluidas_B27/` (quando houver) |
 | F1 | `docs/specs-arquivadas/spec-fluxo-com-prova.md` (melhoria do fluxo de desenvolvimento: critérios de aceite com código, auditor, lições) | `concluidas_F1/` |

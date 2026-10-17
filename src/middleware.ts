@@ -44,9 +44,13 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user }, error } = await supabase.auth.getUser()
+  // B27-01: confere a assinatura da sessão ali mesmo, com a chave pública
+  // guardada em memória. O getUser ia ao Auth em Oregon a cada clique (~220 ms
+  // a partir de São Paulo). Usuário desativado com a assinatura ainda válida
+  // passa daqui e é barrado por `sessaoAtual()`, no servidor das telas.
+  const { data, error } = await supabase.auth.getClaims()
 
-  if (!user) {
+  if (!data?.claims) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.search = ''

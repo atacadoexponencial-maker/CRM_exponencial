@@ -1,4 +1,5 @@
 import { cache } from "react"
+import { redirect } from "next/navigation"
 import { createClient } from "@/integrations/supabase/server"
 
 export type PerfilDaSessao = {
@@ -22,7 +23,10 @@ export type PerfilDaSessao = {
  */
 export const sessaoAtual = cache(async () => {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error } = await supabase.auth.getUser()
+  // B27-01: o porteiro não percebe mais o usuário desativado (B20-02); quem
+  // percebe é esta conferência, na próxima tela ou ação dele.
+  if (error?.code === "user_banned") redirect("/login?motivo=desativada")
   if (!user) return { supabase, user: null, perfil: null }
 
   const { data: perfil } = await supabase

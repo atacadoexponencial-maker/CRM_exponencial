@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { ArrowLeft, TriangleAlert } from "lucide-react"
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { lerSaude } from "./actions"
 import { SaudeClient } from "./saude-client"
 
@@ -21,15 +21,8 @@ export default async function SaudeDoNumeroPage({
 }) {
   const { id } = await params
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single()
 
   if (perfil?.role !== "admin" && perfil?.role !== "gerente") redirect("/perfil")
 

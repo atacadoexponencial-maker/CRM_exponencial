@@ -1,20 +1,12 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { buscarCampanha, numerosParaCampanha, opcoesSegmentacao } from "../actions"
 import { EditorCampanhaClient } from "./editor-campanha-client"
 
 export default async function EditorCampanhaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single()
 
   if (!perfil || !["admin", "gerente"].includes(perfil.role)) redirect("/perfil")
 

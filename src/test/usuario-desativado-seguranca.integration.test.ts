@@ -71,12 +71,12 @@ afterAll(async () => {
 }, 60_000)
 
 describe("B20-02 — Usuário desativado perde o acesso de verdade", { timeout: 40_000 }, () => {
-  it("should ver os dados da empresa antes de ser desativado (controle)", async () => {
+  it("should ver os dados da empresa antes de ser desativado (controle) (CA-B27-09)", async () => {
     expect(await lerComToken("conversations", tokenAntigo)).toHaveLength(1)
     expect(await lerComToken("contacts", tokenAntigo)).toHaveLength(1)
   })
 
-  it("should not deixar a sessão antiga ler conversas, contatos, mensagens nem perfis depois de desativado", async () => {
+  it("should not deixar a sessão antiga ler conversas, contatos, mensagens nem perfis depois de desativado (CA-B27-09)", async () => {
     clienteDaVez = navegadorAdmin
     expect(await desativarUsuario(atendente)).toEqual({})
 
@@ -85,25 +85,25 @@ describe("B20-02 — Usuário desativado perde o acesso de verdade", { timeout: 
     }
   })
 
-  it("should not deixar a sessão antiga ser aceita como usuário logado", async () => {
+  it("should not deixar a sessão antiga ser aceita como usuário logado (CA-B27-09)", async () => {
     const { data, error } = await novoCliente().auth.getUser(tokenAntigo)
     expect(data.user).toBeNull()
     expect(error?.code).toBe("user_banned")
   })
 
-  it("should reject o login do desativado com o aviso de conta desativada", async () => {
+  it("should reject o login do desativado com o aviso de conta desativada (CA-B27-09)", async () => {
     clienteDaVez = novoCliente()
     expect(await realizarLogin(emailAtendente, SENHA)).toEqual({ erro: AVISO_CONTA_DESATIVADA })
   })
 
-  it("should reject o login de perfil inativo mesmo sem ban no Auth", async () => {
+  it("should reject o login de perfil inativo mesmo sem ban no Auth (CA-B27-09)", async () => {
     await service.auth.admin.updateUserById(atendente, { ban_duration: "none" })
     clienteDaVez = novoCliente()
     expect(await realizarLogin(emailAtendente, SENHA)).toEqual({ erro: AVISO_CONTA_DESATIVADA })
     await service.auth.admin.updateUserById(atendente, { ban_duration: "876000h" })
   })
 
-  it("should devolver o acesso com mesma senha e papel ao reativar", async () => {
+  it("should devolver o acesso com mesma senha e papel ao reativar (CA-B27-09)", async () => {
     clienteDaVez = navegadorAdmin
     expect(await reativarUsuario(atendente)).toEqual({})
 
@@ -115,7 +115,7 @@ describe("B20-02 — Usuário desativado perde o acesso de verdade", { timeout: 
     expect(perfil).toEqual({ role: "atendente", status: "active" })
   })
 
-  it("should not desativar usuário de outra empresa", async () => {
+  it("should not desativar usuário de outra empresa (CA-B27-09)", async () => {
     const outra = (await service.from("workspaces").insert({ name: `Outra B20 ${ts}` }).select("id").single()).data!.id
     const { data } = await service.auth.admin.createUser({ email: `b20-02-outra-${ts}@teste.com`, password: SENHA, email_confirm: true })
     await service.from("profiles").insert({ id: data.user!.id, workspace_id: outra, name: "X", role: "atendente" })

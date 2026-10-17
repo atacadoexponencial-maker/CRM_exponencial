@@ -1,20 +1,12 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { buscarSequencia } from "../actions"
 import { EditorSequenciaClient } from "./editor-client"
 
 export default async function EditorSequenciaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single()
 
   // Editor disponível apenas para Admin
   if (perfil?.role !== "admin") redirect("/sequencias")

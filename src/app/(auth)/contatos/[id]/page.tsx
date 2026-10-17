@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/integrations/supabase/server"
+import { sessaoAtual } from "@/lib/sessao"
 import { PerfilContato } from "./components/perfil-contato"
 import { buscarDadosContato } from "../actions"
 import { estadoNaLixeira } from "../lixeira/actions"
@@ -11,15 +11,8 @@ interface Props {
 export default async function PerfilContatoPage({ params }: Props) {
   const { id } = await params
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
-
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single()
 
   const contato = await buscarDadosContato(id)
   // B13-04: não veio porque está na lixeira? O perfil mostra o aviso com "Restaurar".
