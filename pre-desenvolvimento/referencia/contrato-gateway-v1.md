@@ -2,8 +2,8 @@
   CÓPIA. O original vive em `atacadoexponencial-maker/whatsapp-gateway`, em
   `pre-desenvolvimento/contrato-v1.md`, e é a fonte de verdade.
 
-  Copiado em 17/09/2026, do commit que acrescentou a seção 4.5 (saúde, perfil de
-  ritmo e retomada do freio).
+  Copiado em 19/10/2026, do branch que acrescentou a seção 3.5
+  (`message.sent_from_phone`, issue B25-01).
 
   Alteração no contrato parte SEMPRE do repositório do gateway. Quem alterar lá
   avisa quem toca a Parte B e atualiza esta cópia; ninguém edita este arquivo
@@ -21,6 +21,10 @@
 > - **17/09/2026** — seção 4.5 (saúde, perfil de ritmo e retomada do freio) e três
 >   `error.code` novos. Acréscimo não quebrante, pedido pelos blocos B4 e B5 do CRM
 >   (issue `B4-00` no `CRM_exponencial`). **Avisar quem toca a Parte B.**
+> - **19/10/2026** — evento `message.sent_from_phone` (seção 3.5): mensagem enviada
+>   pelo celular, ou outro aparelho do número, chega ao CRM. Acréscimo não quebrante:
+>   o CRM responde `2xx` e ignora tipo que não conhece. Pedido pela série B25 do CRM
+>   (issue `B25-01`); a Parte B foi avisada antes.
 
 ## Princípio
 
@@ -80,7 +84,7 @@ Todo evento entregue ao CRM tem a mesma casca:
 | Campo | Tipo | Observação |
 |---|---|---|
 | `event_id` | string | único e estável. **A mesma entrega repetida carrega o mesmo `event_id`** — é como o CRM ignora evento já processado (A7-03 reenvia) |
-| `type` | string | um dos quatro da seção 3 |
+| `type` | string | um dos cinco da seção 3 |
 | `instance_id` | string | ocupa o lugar que `phone_number_id` ocupa no webhook da Meta: é por ele que o CRM resolve o workspace |
 | `timestamp` | string | ISO 8601 em UTC, do momento do fato, não da entrega |
 | `data` | objeto | conteúdo específico do tipo |
@@ -196,8 +200,9 @@ Campo `system`, para avisos sobre mensagens anteriores:
 
 `action` assume `edited` ou `deleted`.
 
-**Não geram evento:** mensagem de grupo e mensagem enviada pelo próprio número em
-outro aparelho quando duplicada. São descartadas em silêncio no gateway (A3-01).
+**Não geram evento:** mensagem de grupo, lista de transmissão e status, descartadas em
+silêncio no gateway (A3-01). Mensagem enviada pelo próprio número em outro aparelho
+não é `message.received`: vira `message.sent_from_phone` (seção 3.5).
 
 ### 3.2 `message.status`
 
@@ -259,6 +264,42 @@ gateway volta sozinho:
 `reason` assume `banned`, `failure_rate`, `manual`. `released: true` marca a
 liberação da instância freada. `queued_count` é quantas mensagens ficaram paradas —
 é o que permite ao CRM avisar que uma campanha travou (B8).
+
+### 3.5 `message.sent_from_phone`
+
+Mensagem que saiu do número conectado **sem passar pelo gateway**: o vendedor
+respondeu pelo celular, pelo WhatsApp Web ou por outro aparelho do número.
+
+```json
+{
+  "message_id": "3EB0D1F2A3B4C5D6E7",
+  "from": "5511777776666",
+  "to": "5511999998888",
+  "to_is_lid": false,
+  "type": "text",
+  "text": "Tem sim, segue a tabela",
+  "reply_to": null,
+  "media": null,
+  "location": null,
+  "contact": null,
+  "timestamp": "2026-10-19T14:32:07.000Z"
+}
+```
+
+- `from` é o número conectado; **o contato é o `to`**. `to_is_lid` vale como o
+  `from_is_lid` da seção 3.1: com `true`, `to` é LID e **não casa por telefone**.
+- `type`, `text`, `media`, `location`, `contact` e `reply_to` seguem a seção 3.1, com
+  os mesmos campos condicionais por tipo. `type` não assume `reaction` nem `unknown`.
+- `message_id` é o id do WhatsApp. Não é um id devolvido pelo envio (seção 4.3): o CRM
+  não tem essa mensagem em `messages.wamid` antes do evento.
+- `timestamp` é o horário da mensagem no WhatsApp.
+
+**Não geram este evento:** o que o CRM enviou pelo gateway (o CRM já registrou), grupo,
+lista de transmissão, status, mensagem para o próprio número, e reação, edição ou
+exclusão feitas no aparelho.
+
+A ordem é a da conversa com o contato do `to`, na mesma fila da `message.received`
+dele (seção 2, Ordem).
 
 ---
 
