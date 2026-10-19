@@ -11,10 +11,13 @@
 //
 //  - não soma "não lidas" — quem escreveu foi a empresa;
 //  - conversa resolvida é reaberta, em vez de abrir outra (PER-B25-03);
-//  - conversa nova não dispara automação nenhuma (SUP-B25-06). A resposta do
-//    time é da B25-03.
+//  - conversa nova não dispara "conversa criada" (SUP-B25-06);
+//  - vale como resposta do time (B25-03): dispara "mensagem enviada pelo time",
+//    como o envio pelo chat. Alertas já contam pela prévia da conversa.
 
 import type { createServiceClient } from "@/integrations/supabase/service"
+import { tipoDaMensagemParaRegras } from "@/lib/automacoes/contexto"
+import { dispararMensagemEnviadaPeloTime } from "@/lib/automacoes/gatilhos-do-crm"
 import {
   acharMensagemPorWamid,
   acharOuCriarContato,
@@ -237,6 +240,18 @@ export async function registrarEnviadaPeloCelular({
       created_at: enviadaEm,
       status: "enviado",
       sent_from_phone: true,
+    })
+
+    // B25-03: só a mensagem gravada dispara; na reentrega o insert falha e as
+    // regras não rodam duas vezes. Como no chat, só a de texto leva texto.
+    const texto = traduzido.tipo === "texto" || traduzido.tipo === "desconhecido" ? evento.text ?? "" : ""
+    await dispararMensagemEnviadaPeloTime({
+      workspaceId,
+      contactId,
+      conversationId,
+      messageId: inserida.id,
+      tipoMensagem: tipoDaMensagemParaRegras(traduzido.tipo, texto),
+      texto,
     })
   }
 

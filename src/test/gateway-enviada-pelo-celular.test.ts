@@ -25,6 +25,7 @@ import {
   registrarEnviadaPeloCelular,
   type EventoMensagemEnviadaPeloCelular,
 } from "@/lib/whatsapp/enviada-pelo-celular"
+import { calcularAlertas, CONFIG_ALERTAS_PADRAO } from "@/lib/alertas"
 import type { createServiceClient } from "@/integrations/supabase/service"
 
 const WORKSPACE = "11111111-1111-1111-1111-111111111111"
@@ -246,10 +247,11 @@ describe("B25-02 — mensagem enviada pelo celular na conversa", () => {
     })
     expect(escritaDe(escritas, "messages", "insert")).toMatchObject({ conversation_id: "conversa-nova" })
     expect(resultado.conversaCriada).toBe(true)
-    // Card nasceria em outra tabela, que o Supabase falso recusa; e nenhuma
-    // automação (que poderia criar card) foi disparada.
+    // Card nasceria em outra tabela, que o Supabase falso recusa; e "conversa
+    // criada" (que poderia criar card) não dispara. A B25-03 dispara só
+    // "mensagem enviada pelo time".
     expect(escritas.every((e) => ["contacts", "conversations", "messages"].includes(e.tabela))).toBe(true)
-    expect(dispararAutomacoes).not.toHaveBeenCalled()
+    expect(dispararAutomacoes).not.toHaveBeenCalledWith(expect.objectContaining({ tipo: "conversa_criada" }))
   })
 
   it("CA-B25-09: conversa resolvida volta a ficar em atendimento, com a mensagem dentro, sem abrir outra", async () => {
@@ -298,5 +300,60 @@ describe("B25-02 — mensagem enviada pelo celular na conversa", () => {
     expect(atualizacao).toBeDefined()
     // Sem unread_count na atualização: as 3 não lidas ficam como estão.
     expect(atualizacao).not.toHaveProperty("unread_count")
+  })
+})
+
+describe("B25-03 — mensagem do celular vale como resposta do time", () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it("CA-B25-12: o aviso do celular dispara \"mensagem enviada pelo time\" como o envio pelo chat; a reentrega não", async () => {
+    const conversas = [{ id: "conversa-1", status: "em_atendimento", unread_count: 0 }]
+    const { supabase } = supabaseFalso({ contato: { id: "contato-1" }, conversas })
+
+    await registrar(supabase)
+
+    expect(dispararAutomacoes).toHaveBeenCalledWith({
+      tipo: "mensagem_enviada_time",
+      workspaceId: WORKSPACE,
+      contactId: "contato-1",
+      conversationId: "conversa-1",
+      messageId: "mensagem-nova",
+      tipoMensagem: "texto",
+      texto: TEXTO.text,
+    })
+
+    vi.mocked(dispararAutomacoes).mockClear()
+    const reentrega = supabaseFalso({ contato: { id: "contato-1" }, conversas, mensagemGravada: false })
+    await registrar(reentrega.supabase)
+
+    expect(dispararAutomacoes).not.toHaveBeenCalled()
+  })
+
+  it("CA-B25-13: a resposta pelo celular tira o lead de \"Lead sem resposta\"", async () => {
+    const agora = new Date("2026-10-19T15:00:00.000Z")
+    const card = {
+      id: "card-1",
+      funil: "entrada",
+      etapa: "lead",
+      etapa_changed_at: "2026-10-01T12:00:00.000Z",
+      contact_id: "contato-1",
+      contatoNome: "Cliente",
+      atendenteNome: null,
+      // Última atividade de 10 dias atrás: o lead está aguardando resposta.
+      ultimaAtividade: "2026-10-09T12:00:00.000Z",
+    }
+    const antes = calcularAlertas([card], CONFIG_ALERTAS_PADRAO, [], agora)
+    expect(antes.map((a) => a.tipo)).toContain("lead_sem_resposta")
+
+    const { supabase, escritas } = supabaseFalso({
+      contato: { id: "contato-1" },
+      conversas: [{ id: "conversa-1", status: "em_atendimento", unread_count: 0 }],
+    })
+    await registrar(supabase)
+
+    // A tela de alertas lê a última atividade de conversations.last_message_at.
+    const ultimaAtividade = escritaDe(escritas, "conversations", "update")?.last_message_at as string
+    const depois = calcularAlertas([{ ...card, ultimaAtividade }], CONFIG_ALERTAS_PADRAO, [], agora)
+    expect(depois.map((a) => a.tipo)).not.toContain("lead_sem_resposta")
   })
 })
