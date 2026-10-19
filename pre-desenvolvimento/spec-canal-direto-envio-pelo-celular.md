@@ -202,6 +202,8 @@ celular vale como uma mensagem enviada pelo CRM. A diferença é que ela não te
 | SUP-B25-03 | O gateway consegue distinguir, por um registro que ele já guarda, toda mensagem que o próprio CRM enviou. O registro dura 30 dias, mais do que o tempo entre o envio e a confirmação do WhatsApp. | confirmada | Marcelle, 15/10/2026. Conferir no código no /plan. |
 | SUP-B25-04 | Mensagem enviada pelo celular enquanto o número estava pausado ou o gateway reiniciava entra no CRM pela mesma janela de mensagens atrasadas que já vale para as recebidas. | confirmada | Marcelle, 15/10/2026. Conferir no código no /plan. |
 | SUP-B25-05 | O contato criado por envio pelo celular nasce sem nome. Nesse caso o WhatsApp não manda o nome do destinatário, e o nome entra quando ele responder (correção de 15/10/2026). | confirmada | Marcelle, 15/10/2026. |
+| SUP-B25-06 | Conversa nova aberta por envio pelo celular não dispara a automação "conversa criada". Ela pode criar card, e o CA-B25-08 diz que não nasce card; a regra de resposta do time é da B25-03. | confirmada | Marcelle, 19/10/2026. |
+| SUP-B25-07 | Conversa resolvida reaberta pelo celular volta para "em atendimento" quando tem responsável e para "em espera" quando não tem, a mesma regra do botão "Reabrir". | confirmada | Marcelle, 19/10/2026. |
 
 ## Perguntas em aberto
 

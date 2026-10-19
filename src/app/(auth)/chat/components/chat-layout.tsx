@@ -178,6 +178,7 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
             content: string
             created_at: string
             status: string | null
+            sent_from_phone?: boolean
           }
           const novaMensagem: Mensagem = {
             id: row.id,
@@ -188,6 +189,7 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
             // Mesma formatação das mensagens carregadas pela página.
             horario: formatarHoraDoDia(row.created_at),
             status: row.status as Mensagem["status"] | undefined,
+            ...(row.sent_from_phone ? { enviadaPeloCelular: true } : {}),
           }
           setMensagensLocais((prev) => {
             const lista = prev[row.conversation_id]

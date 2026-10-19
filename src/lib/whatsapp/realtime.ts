@@ -19,6 +19,8 @@ export type MensagemTransmitida = {
   content: string
   created_at: string
   status: string | null
+  /** B25-02: saiu do número por outro aparelho, e não pelo CRM. */
+  sent_from_phone?: boolean
 }
 
 async function enviarAoRealtime(mensagens: Array<{ topic: string; event: string; payload: unknown }>): Promise<void> {

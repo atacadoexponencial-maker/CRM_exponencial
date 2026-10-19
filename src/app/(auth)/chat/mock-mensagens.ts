@@ -14,6 +14,8 @@ export interface Mensagem {
   /** Por que o envio falhou, gravado junto da tentativa. */
   motivoFalha?: string
   replyDe?: { id: string; texto: string }
+  /** B25-02: saiu do número pelo celular (ou WhatsApp Web), e não pelo CRM. */
+  enviadaPeloCelular?: boolean
 }
 
 function m(

@@ -1160,6 +1160,7 @@ export type Database = {
           reaction_emoji: string | null
           reply_preview_text: string | null
           reply_to_id: string | null
+          sent_from_phone: boolean
           status: string | null
           status_error: string | null
           type: string
@@ -1180,6 +1181,7 @@ export type Database = {
           reaction_emoji?: string | null
           reply_preview_text?: string | null
           reply_to_id?: string | null
+          sent_from_phone?: boolean
           status?: string | null
           status_error?: string | null
           type?: string
@@ -1200,6 +1202,7 @@ export type Database = {
           reaction_emoji?: string | null
           reply_preview_text?: string | null
           reply_to_id?: string | null
+          sent_from_phone?: boolean
           status?: string | null
           status_error?: string | null
           type?: string

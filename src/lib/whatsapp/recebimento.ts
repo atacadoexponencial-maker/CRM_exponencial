@@ -323,7 +323,7 @@ export async function registrarMensagemRecebida({
   return { contactId, conversationId, messageId: inserida?.id ?? null, conversaCriada }
 }
 
-async function acharOuCriarContato(
+export async function acharOuCriarContato(
   supabase: ServiceClient,
   workspaceId: string,
   identificador: string,
@@ -387,10 +387,10 @@ export type ConversaAbertaDoContato = {
  *
  * `abertas` vem ordenada da mais recente para a mais antiga.
  */
-export function escolherConversaDoNumero(
-  abertas: ConversaAbertaDoContato[],
+export function escolherConversaDoNumero<T extends ConversaAbertaDoContato>(
+  abertas: T[],
   connectionId: string | null
-): ConversaAbertaDoContato | null {
+): T | null {
   if (abertas.length === 0) return null
   if (!connectionId) return abertas[0]
 
@@ -470,7 +470,7 @@ async function abrirOuReusarConversa({
 }
 
 /** Mensagem local citada pela recebida. Null quando o CRM não a tem. */
-async function acharMensagemPorWamid(
+export async function acharMensagemPorWamid(
   supabase: ServiceClient,
   wamid: string | undefined
 ): Promise<string | null> {

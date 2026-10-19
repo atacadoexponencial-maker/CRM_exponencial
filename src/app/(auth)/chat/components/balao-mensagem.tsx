@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Check, CheckCheck, Clock, AlertTriangle, FileText, Play, Pause, Mic, Film, Download, X, Reply } from "lucide-react"
+import { Check, CheckCheck, Clock, AlertTriangle, FileText, Play, Pause, Mic, Film, Download, X, Reply, Smartphone } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogTrigger, DialogPopup, DialogClose } from "@/components/ui/dialog"
 import type { Mensagem, StatusMensagem } from "../mock-mensagens"
@@ -272,6 +272,13 @@ export function BalaoMensagem({ mensagem, termoBusca = "", onResponder }: BalaoM
             : "bg-muted text-foreground rounded-bl-sm"
         )}
       >
+        {isEnviada && mensagem.enviadaPeloCelular && (
+          <span className="flex items-center gap-1 mb-1 text-[10px] font-medium text-primary-foreground/80">
+            <Smartphone className="size-3" />
+            Enviada pelo celular
+          </span>
+        )}
+
         {mensagem.replyDe && (
           <div
             className={cn(

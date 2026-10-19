@@ -22,6 +22,10 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"
 import { receberMensagem, type EventoMensagemRecebida } from "@/lib/whatsapp/recebimento"
 import {
+  registrarEnviadaPeloCelular,
+  type EventoMensagemEnviadaPeloCelular,
+} from "@/lib/whatsapp/enviada-pelo-celular"
+import {
   aplicarEstadoDaInstancia,
   aplicarStatusDeMensagem,
   registrarFreio,
@@ -32,9 +36,11 @@ import {
 
 const HEADER_ASSINATURA = "x-gateway-signature-256"
 
-/** Os quatro tipos da seção 3 do contrato. */
+/** Os cinco tipos da seção 3 do contrato. */
 const TIPOS_CONHECIDOS = [
   "message.received",
+  // B25-02: mensagem que o vendedor mandou pelo celular (seção 3.5).
+  "message.sent_from_phone",
   "message.status",
   "instance.state",
   "instance.braked",
@@ -85,6 +91,19 @@ function mensagemValida(data: unknown): data is EventoMensagemRecebida {
     d.message_id.length > 0 &&
     typeof d.from === "string" &&
     d.from.length > 0 &&
+    typeof d.type === "string"
+  )
+}
+
+/** `data` de `message.sent_from_phone`: sem destinatário e identificador não há mensagem. */
+function enviadaPeloCelularValida(data: unknown): data is EventoMensagemEnviadaPeloCelular {
+  if (typeof data !== "object" || data === null) return false
+  const d = data as Record<string, unknown>
+  return (
+    typeof d.message_id === "string" &&
+    d.message_id.length > 0 &&
+    typeof d.to === "string" &&
+    d.to.length > 0 &&
     typeof d.type === "string"
   )
 }
@@ -193,6 +212,21 @@ export async function POST(request: NextRequest) {
       instanceToken: conexao.instance_token,
       // B7-01: a conversa aberta agora nasce com o número por onde a mensagem
       // chegou, para a resposta sair pelo mesmo telefone.
+      connectionId: conexao.id,
+    })
+  }
+
+  if (envelope.type === "message.sent_from_phone") {
+    if (!enviadaPeloCelularValida(envelope.data)) {
+      return NextResponse.json({ error: "invalid payload" }, { status: 400 })
+    }
+
+    await registrarEnviadaPeloCelular({
+      supabase,
+      workspaceId: conexao.workspace_id,
+      evento: envelope.data,
+      enviadaEm: envelope.timestamp ?? new Date().toISOString(),
+      instanceToken: conexao.instance_token,
       connectionId: conexao.id,
     })
   }

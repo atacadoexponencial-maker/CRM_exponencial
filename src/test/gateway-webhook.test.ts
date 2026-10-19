@@ -29,7 +29,20 @@ vi.mock("@/lib/whatsapp/eventos-de-operacao", async (importOriginal) => ({
   aplicarStatusDeMensagem: vi.fn(),
 }))
 
+// B25-02: o efeito no banco tem teste próprio (gateway-enviada-pelo-celular.test.ts).
+// Aqui interessa a porta: o tipo novo é aceito, validado e não reprocessado.
+vi.mock("@/lib/whatsapp/enviada-pelo-celular", () => ({
+  registrarEnviadaPeloCelular: vi.fn().mockResolvedValue({
+    contactId: "c",
+    conversationId: "v",
+    messageId: "m",
+    conversaCriada: false,
+    conversaReaberta: false,
+  }),
+}))
+
 import { createServiceClient } from "@/integrations/supabase/service"
+import { registrarEnviadaPeloCelular } from "@/lib/whatsapp/enviada-pelo-celular"
 import { aplicarStatusDeMensagem } from "@/lib/whatsapp/eventos-de-operacao"
 import { POST } from "@/app/api/webhooks/gateway/route"
 import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"
@@ -316,5 +329,41 @@ describe("B26-02 — aviso de envio que chega antes da mensagem gravada", () => 
 
     expect(resposta.status).toBe(200)
     expect(updates).toHaveLength(1)
+  })
+})
+
+describe("B25-02 — mensagem enviada pelo celular", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.stubEnv("GATEWAY_WEBHOOK_SECRET", SEGREDO)
+  })
+
+  const enviadaPeloCelular = () =>
+    envelope({
+      type: "message.sent_from_phone",
+      data: { message_id: "3EB0CELULAR", from: "5511955020972", to: "5511999998888", to_is_lid: false, type: "text", text: "oi" },
+    })
+
+  it("CA-B25-05: o aviso é registrado na primeira entrega e ignorado na reentrega já processada", async () => {
+    const primeira = supabaseFalso()
+    const resposta = await POST(pedido(enviadaPeloCelular()))
+
+    expect(resposta.status).toBe(200)
+    expect(await resposta.json()).toEqual({ status: "ok" })
+    expect(registrarEnviadaPeloCelular).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(registrarEnviadaPeloCelular).mock.calls[0][0]).toMatchObject({
+      workspaceId: WORKSPACE,
+      connectionId: "conn-1",
+      instanceToken: "tok",
+      evento: { message_id: "3EB0CELULAR", to: "5511999998888" },
+    })
+    expect(primeira.updates).toHaveLength(1)
+
+    supabaseFalso({ registroNovo: false, jaProcessado: true })
+    const reentrega = await POST(pedido(enviadaPeloCelular()))
+
+    expect(reentrega.status).toBe(200)
+    expect(await reentrega.json()).toMatchObject({ motivo: "evento_repetido" })
+    expect(registrarEnviadaPeloCelular).toHaveBeenCalledTimes(1)
   })
 })

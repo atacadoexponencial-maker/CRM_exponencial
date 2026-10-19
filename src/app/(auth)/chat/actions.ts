@@ -841,7 +841,7 @@ export async function buscarMensagens(conversaId: string): Promise<Mensagem[]> {
 
   const { data, error } = await supabase
     .from("messages")
-    .select("id, conversation_id, direction, type, content, status, status_error, reply_to_id, reply_preview_text, created_at")
+    .select("id, conversation_id, direction, type, content, status, status_error, reply_to_id, reply_preview_text, created_at, sent_from_phone")
     .eq("conversation_id", conversaId)
     .order("created_at", { ascending: true })
 
@@ -859,6 +859,7 @@ export async function buscarMensagens(conversaId: string): Promise<Mensagem[]> {
       horario,
       status: (row.status ?? undefined) as StatusMensagem | undefined,
       ...(row.status === "falhou" && row.status_error ? { motivoFalha: row.status_error } : {}),
+      ...(row.sent_from_phone ? { enviadaPeloCelular: true } : {}),
     }
 
     if (row.reply_to_id && row.reply_preview_text) {
