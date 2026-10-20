@@ -422,11 +422,11 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
           )}
         </div>
 
-        {/* Conversas anteriores */}
+        {/* Atendimentos anteriores: cada conversa resolvida é um atendimento; mensagem nova depois dela abre outra */}
         <div className="flex flex-col gap-2">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
             <MessageSquare className="size-3" />
-            Conversas anteriores
+            Atendimentos anteriores
           </p>
           {isPending || conversasAnteriores === null ? (
             erroInfo ? (
@@ -437,7 +437,7 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
               </div>
             )
           ) : conversasAnteriores.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Nenhuma conversa anterior</p>
+            <p className="text-xs text-muted-foreground">Este é o primeiro atendimento com este contato.</p>
           ) : (
             <div className="flex flex-col gap-1">
               {conversasAnteriores.map((c) => (
