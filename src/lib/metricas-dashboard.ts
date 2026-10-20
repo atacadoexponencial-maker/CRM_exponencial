@@ -103,9 +103,25 @@ export function rangeDoPeriodo(filtro: FiltroDashboard, agora = new Date()): Ran
       break
     }
     case "custom": {
-      if (filtro.inicio) return {
-        inicio: new Date(filtro.inicio + "T00:00:00"),
-        fim: filtro.fim ? new Date(filtro.fim + "T23:59:59") : fim,
+      // QA M17 (06/10): só a data final valia nada, e inicial depois da final zerava
+      // tudo em silêncio. Só a final: 30 dias até ela. Trocadas: vale a ordem certa.
+      if (filtro.inicio || filtro.fim) {
+        let de = filtro.inicio ? new Date(filtro.inicio + "T00:00:00") : null
+        let ate = filtro.fim ? new Date(filtro.fim + "T23:59:59") : fim
+        if (!de) {
+          de = new Date(ate)
+          de.setDate(ate.getDate() - 30)
+          de.setHours(0, 0, 0, 0)
+        }
+        if (de > ate) {
+          const comeco = new Date(ate)
+          comeco.setHours(0, 0, 0, 0)
+          const final = new Date(de)
+          final.setHours(23, 59, 59, 0)
+          de = comeco
+          ate = final
+        }
+        return { inicio: de, fim: ate }
       }
       inicio.setDate(fim.getDate() - 30)
       break

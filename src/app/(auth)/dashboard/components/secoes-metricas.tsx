@@ -26,7 +26,7 @@ export function SecoesMetricas({ metricas }: { metricas: MetricasDashboard }) {
       <section>
         <h2 className="text-sm font-semibold mb-3">Conversão</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-          <CardMetrica titulo="Taxa de conversão (lead → primeira compra)" valor={metricas.conversao.taxaGeral} sufixo="%" />
+          <CardMetrica titulo="Taxa de conversão (lead → ganho)" valor={metricas.conversao.taxaGeral} sufixo="%" />
         </div>
         <div className="rounded-lg border p-4">
           <span className="text-xs text-muted-foreground block mb-3">Funil de conversão (% sobre a etapa anterior)</span>
