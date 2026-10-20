@@ -19,7 +19,8 @@ export interface CanalDaConversa {
 
 export interface Conversa {
   id: string
-  contato: { nome: string | null; telefone: string; contactId: string | null }
+  /** `fotoUrl`: endereço assinado da foto de perfil (B29), ou null. */
+  contato: { nome: string | null; telefone: string; contactId: string | null; fotoUrl?: string | null }
   ultimaMensagem: { texto: string; horario: string }
   naoLidas: number
   status: StatusConversa

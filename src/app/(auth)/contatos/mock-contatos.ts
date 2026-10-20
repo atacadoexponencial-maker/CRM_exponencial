@@ -56,6 +56,8 @@ export interface EventoTimeline {
 
 export interface ContatoPerfil extends Contato {
   icp: ICP | null
+  /** Endereço assinado da foto de perfil (B29), ou null. Opcional só nos mocks antigos. */
+  fotoUrl?: string | null
   tags: string[]
   observacoes: string
   conversaId: string | null

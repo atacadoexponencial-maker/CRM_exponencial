@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { MessageSquare, ArrowLeft, Pencil, X, Zap, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { AvatarContato } from "@/components/shared/avatar-contato"
 import { IniciarSequenciaDialog } from "@/components/shared/iniciar-sequencia-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -237,6 +238,9 @@ export function PerfilContato({ contato, papel, contactId, naLixeira }: PerfilCo
 
       {/* Cabeçalho */}
       <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+        {/* B29: a foto de perfil, ou as iniciais, ao lado do nome. */}
+        <AvatarContato nome={contato.nome} fotoUrl={contato.fotoUrl ?? null} tamanho="lg" />
         <div className="flex flex-col gap-1">
           <h1 className="text-xl font-semibold">{contato.nome}</h1>
           <p className="text-sm text-muted-foreground">{formatarWhatsapp(contato.telefone.replace(/\D/g, ""))}</p>
@@ -246,6 +250,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira }: PerfilCo
           )}>
             {CLASSIFICACAO_LABEL[contato.classificacao]}
           </span>
+        </div>
         </div>
         {/* QA M23 (06/10): no celular, "Excluir contato" ficava cortado. */}
         <div className="flex flex-wrap items-center gap-2">

@@ -5,6 +5,8 @@
 // idêntica à que apareceria recarregando — inclusive na regra do atendente.
 
 import type { createClient } from "@/integrations/supabase/server"
+import { createServiceClient } from "@/integrations/supabase/service"
+import { urlsAssinadasDasFotos } from "@/lib/whatsapp/foto-de-perfil"
 import { formatarDataCurta, formatarHorarioDaLista } from "@/lib/datas"
 import { nomeDoCanal, recursosDoCanal } from "@/lib/whatsapp"
 import type { CanalWhatsApp } from "@/lib/whatsapp"
@@ -40,7 +42,7 @@ export async function listarConversas(
     .from("conversations")
     // B7-02: `conexao` traz o canal e o número que atendem a conversa. Nunca
     // credencial: só o que a tela mostra.
-    .select("id, status, assigned_to, unread_count, last_message_text, last_message_at, created_at, contact_id, contact:contacts(name, phone_number), assignee:profiles!assigned_to(name), conversation_labels(label_id, labels(id, name, color)), conexao:whatsapp_connections(id, canal, phone_number)")
+    .select("id, status, assigned_to, unread_count, last_message_text, last_message_at, created_at, contact_id, contact:contacts(name, phone_number, photo_path), assignee:profiles!assigned_to(name), conversation_labels(label_id, labels(id, name, color)), conexao:whatsapp_connections(id, canal, phone_number)")
     .eq("workspace_id", workspaceId)
     .order("last_message_at", { ascending: false })
 
@@ -72,18 +74,27 @@ export async function listarConversas(
     last_message_at: string
     created_at: string
     contact_id: string | null
-    contact: { name: string | null; phone_number: string } | null
+    contact: { name: string | null; phone_number: string; photo_path: string | null } | null
     assignee: { name: string } | null
     conversation_labels: ConvLabelRow[]
     conexao: { id: string; canal: CanalWhatsApp | null; phone_number: string | null } | null
   }
 
-  return ((rows ?? []) as unknown as ConversationRow[]).map((c) => ({
+  const linhas = (rows ?? []) as unknown as ConversationRow[]
+  // B29: a cópia da foto fica num bucket privado; a tela recebe um endereço
+  // assinado de 1 h, gerado aqui de uma vez para a página toda.
+  const fotos = await urlsAssinadasDasFotos(
+    createServiceClient(),
+    linhas.map((c) => c.contact?.photo_path ?? "").filter(Boolean)
+  ).catch(() => new Map<string, string>())
+
+  return linhas.map((c) => ({
     id: c.id,
     contato: {
       nome: c.contact?.name ?? null,
       telefone: c.contact?.phone_number ?? "",
       contactId: c.contact_id ?? null,
+      fotoUrl: (c.contact?.photo_path && fotos.get(c.contact.photo_path)) || null,
     },
     ultimaMensagem: {
       texto: c.last_message_text,

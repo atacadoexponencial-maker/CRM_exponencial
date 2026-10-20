@@ -26,7 +26,7 @@ export function ItemConversa({ conversa, ativa, onClick, eMinhaConversa }: ItemC
       )}
     >
       <div className="relative shrink-0">
-        <AvatarContato nome={conversa.contato.nome} />
+        <AvatarContato nome={conversa.contato.nome} fotoUrl={conversa.contato.fotoUrl ?? null} />
         {conversa.status === "em_espera" && conversa.atribuidaA === null && (
           <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-amber-400 border-2 border-background" />
         )}

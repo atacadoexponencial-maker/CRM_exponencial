@@ -266,7 +266,7 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
       <div className="flex flex-col gap-5 p-4 overflow-y-auto">
         {/* Avatar + nome + telefone */}
         <div className="flex flex-col items-center gap-2 py-2">
-          <AvatarContato nome={nomeLocal} tamanho="lg" />
+          <AvatarContato nome={nomeLocal} fotoUrl={conversa.contato.fotoUrl ?? null} tamanho="lg" />
 
           {editando ? (
             <div className="flex flex-col items-center gap-1">

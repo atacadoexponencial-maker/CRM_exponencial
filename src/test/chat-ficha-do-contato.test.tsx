@@ -85,4 +85,11 @@ describe("ficha do contato no chat", () => {
     expect(screen.queryByLabelText("Editar nicho")).toBeNull()
     expect(screen.queryByLabelText("Nova tag")).toBeNull()
   })
+
+  it("CA-B29-14: a ficha mostra a foto do contato no círculo grande", () => {
+    const comFoto = { ...CONVERSA, contato: { ...CONVERSA.contato, fotoUrl: "https://assinada/ws/c-1.jpg?t=1" } }
+    render(<PainelContato conversa={comFoto} conversaId="conv-1" onFechar={vi.fn()} onConversaAtualizada={vi.fn()} />)
+    const img = screen.getByRole("img", { name: "Marcelle" })
+    expect(img.getAttribute("src")).toBe("https://assinada/ws/c-1.jpg?t=1")
+  })
 })
