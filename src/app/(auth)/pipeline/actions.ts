@@ -276,6 +276,18 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
     etapa: novaEtapa,
   })
 
+  // QA M2 (06/10, decisão dela em 20/10): o card da Entrada que sai de Ganho desfaz
+  // a venda; o card da Recompra que nasceu dela é apagado (histórico e notas vão
+  // junto, pela cascata). Ganhar de novo cria outro.
+  if (card.funil === "entrada" && card.etapa === "ganho" && novaEtapa !== "ganho" && card.contact_id && card.workspace_id) {
+    await createServiceClient()
+      .from("pipeline_cards")
+      .delete()
+      .eq("funil", "recompra")
+      .eq("contact_id", card.contact_id)
+      .eq("workspace_id", card.workspace_id)
+  }
+
   if (novaEtapa === "ganho" && card.contact_id && card.workspace_id) {
     // B22-22: o card de Recompra é criado pelo servidor. Pela RLS, só admin e gerente
     // criam card, e o atendente que marcava Ganho ficava sem card, sem gatilho e sem

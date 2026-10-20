@@ -164,6 +164,17 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
           .eq("id", card.id)
         if (error) return ERRO_NO_BANCO
 
+        // QA M2: como no CRM, sair de Ganho na Entrada apaga o card da Recompra.
+        if (funil === "entrada" && card.etapa === "ganho" && etapa !== "ganho") {
+          const { error: erroApagar } = await supabase
+            .from("pipeline_cards")
+            .delete()
+            .eq("workspace_id", gatilho.workspaceId)
+            .eq("contact_id", contactId)
+            .eq("funil", "recompra")
+          if (erroApagar) return ERRO_NO_BANCO
+        }
+
         // alterado_por nulo = movimentação feita pelo sistema/automação
         await supabase.from("pipeline_card_history").insert({
           card_id: card.id,
