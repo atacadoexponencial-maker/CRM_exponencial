@@ -106,6 +106,8 @@ function validarSequencia(nome: string, gatilho: string, etapas: EtapaSequencia[
   if (etapas.length === 0) return "A sequência precisa de pelo menos uma etapa"
   for (const [i, e] of etapas.entries()) {
     if (e.prazoDias < 0) return `Etapa ${i + 1}: o prazo não pode ser negativo`
+    // QA C2: a coluna é inteira; prazo decimal derrubava o insert depois de apagar as etapas.
+    if (!Number.isInteger(e.prazoDias)) return `Etapa ${i + 1}: o prazo precisa ser um número inteiro de dias`
     if (e.tipo === "mensagem" && !e.conteudo.trim()) return `Etapa ${i + 1}: a mensagem automática precisa de conteúdo`
     if (e.tipo === "lembrete" && !e.instrucao.trim()) return `Etapa ${i + 1}: o lembrete precisa de instrução para o vendedor`
   }
@@ -124,50 +126,23 @@ export async function salvarSequencia(params: {
   const erro = validarSequencia(params.nome, params.gatilho, params.etapas)
   if (erro) return { erro }
 
-  let sequenceId = params.id
-
-  if (sequenceId) {
-    const { error } = await supabase
-      .from("sequences")
-      .update({ nome: params.nome.trim(), gatilho: params.gatilho })
-      .eq("id", sequenceId)
-      .eq("workspace_id", perfil.workspace_id)
-    if (error) return { erro: "Não foi possível salvar a sequência" }
-
-    // Substitui as etapas (abordagem simples e consistente)
-    const { error: delError } = await supabase
-      .from("sequence_steps")
-      .delete()
-      .eq("sequence_id", sequenceId)
-    if (delError) return { erro: "Não foi possível salvar as etapas" }
-  } else {
-    const { data, error } = await supabase
-      .from("sequences")
-      .insert({
-        workspace_id: perfil.workspace_id,
-        nome: params.nome.trim(),
-        gatilho: params.gatilho,
-        predefinida: false,
-      })
-      .select("id")
-      .single()
-    if (error || !data) return { erro: "Não foi possível criar a sequência" }
-    sequenceId = data.id
-  }
-
-  const { error: stepsError } = await supabase.from("sequence_steps").insert(
-    params.etapas.map((e, i) => ({
-      sequence_id: sequenceId,
-      ordem: i,
+  // QA C2: sequência e etapas gravadas numa transação só (função salvar_sequencia).
+  // Antes, apagava as etapas e inseria as novas em dois passos; erro no segundo
+  // deixava a sequência vazia, e na criação cada erro deixava uma sequência a mais.
+  const { data, error } = await supabase.rpc("salvar_sequencia", {
+    p_id: params.id,
+    p_nome: params.nome.trim(),
+    p_gatilho: params.gatilho,
+    p_etapas: params.etapas.map((e) => ({
       tipo: e.tipo,
       prazo_dias: e.prazoDias,
       conteudo: e.tipo === "mensagem" ? e.conteudo.trim() : null,
       instrucao: e.tipo === "lembrete" ? e.instrucao.trim() : null,
-    }))
-  )
-  if (stepsError) return { erro: "Não foi possível salvar as etapas" }
+    })),
+  })
+  if (error || !data) return { erro: params.id ? "Não foi possível salvar a sequência" : "Não foi possível criar a sequência" }
 
-  return { id: sequenceId ?? undefined }
+  return { id: data as string }
 }
 
 export async function alternarSequencia(id: string, ativa: boolean): Promise<{ erro?: string }> {

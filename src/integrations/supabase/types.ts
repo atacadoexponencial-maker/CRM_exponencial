@@ -1985,6 +1985,15 @@ export type Database = {
         Args: { p_estoque: Json; p_produto: string; p_tipos: Json }
         Returns: undefined
       }
+      salvar_sequencia: {
+        Args: {
+          p_etapas: Json
+          p_gatilho: string
+          p_id: string
+          p_nome: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

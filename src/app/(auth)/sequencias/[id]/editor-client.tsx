@@ -149,7 +149,7 @@ export function EditorSequenciaClient({ sequencia }: { sequencia: SequenciaDetal
                       type="number"
                       min={0}
                       value={etapa.prazoDias}
-                      onChange={(e) => atualizarEtapa(idx, { prazoDias: Math.max(0, Number(e.target.value)) })}
+                      onChange={(e) => atualizarEtapa(idx, { prazoDias: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
                       className="w-20"
                     />
                     <span className="text-xs text-muted-foreground whitespace-nowrap">
