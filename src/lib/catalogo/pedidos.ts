@@ -13,6 +13,13 @@ export interface ItemSolicitado {
   produtoId: string
   combinacao: string
   quantidade: number
+  /** Preço que a cliente viu no carrinho. Se mudou, o pedido não sai: ela confere o novo antes (QA A9). */
+  preco?: number
+}
+
+export interface PrecoNovo {
+  produtoId: string
+  preco: number
 }
 
 export interface ItemSemEstoque {
@@ -23,7 +30,7 @@ export interface ItemSemEstoque {
 
 export type ResultadoPedido =
   | { ok: true; numero: number; mensagem: string; link: string }
-  | { ok: false; erro: string; semEstoque?: ItemSemEstoque[] }
+  | { ok: false; erro: string; semEstoque?: ItemSemEstoque[]; precosNovos?: PrecoNovo[] }
 
 /**
  * Formas do mesmo celular brasileiro: o WhatsApp às vezes entrega o número sem o nono
@@ -118,6 +125,20 @@ export async function registrarPedido(endereco: string, cliente: { nome: string;
       return `${p.name}${s.combinacao ? ` (${s.combinacao})` : ""}: ${s.disponivel === 0 ? "esgotou" : `só ${s.disponivel}`}`
     })
     return { ok: false, erro: `Algumas peças mudaram de estoque — ${nomes.join("; ")}. Ajuste o carrinho.`, semEstoque }
+  }
+
+  // QA A9 (06/10): o carrinho guarda o preço de quando a peça entrou. Mudou no
+  // catálogo, a cliente vê o novo e confirma de novo, em vez de o pedido sair diferente.
+  const precosNovos: PrecoNovo[] = []
+  for (const i of agrupados.values()) {
+    const p = porId.get(i.produtoId)
+    if (!p || i.preco === undefined) continue
+    const atual = Number(p.price)
+    if (Math.abs(i.preco - atual) >= 0.005 && !precosNovos.some((n) => n.produtoId === p.id)) precosNovos.push({ produtoId: p.id, preco: atual })
+  }
+  if (precosNovos.length) {
+    const nomes = precosNovos.map((n) => porId.get(n.produtoId)!.name)
+    return { ok: false, erro: `O preço mudou: ${nomes.join(", ")}. Confira o carrinho e envie de novo.`, precosNovos }
   }
 
   const falta = faltaParaMinimo(itens, loja.minimo)

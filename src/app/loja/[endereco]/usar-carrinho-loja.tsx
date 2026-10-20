@@ -28,10 +28,11 @@ export function useCarrinhoLoja(endereco: string, tema: TemaLoja, minimo: Minimo
     const r = await fazerPedido(
       endereco,
       cliente,
-      carrinho.itens.map((i) => ({ produtoId: i.produtoId, combinacao: i.combinacao, quantidade: i.quantidade }))
+      carrinho.itens.map((i) => ({ produtoId: i.produtoId, combinacao: i.combinacao, quantidade: i.quantidade, preco: i.preco }))
     )
     if (!r.ok) {
       if (r.semEstoque?.length) carrinho.ajustarLimites(r.semEstoque)
+      if (r.precosNovos?.length) carrinho.ajustarPrecos(r.precosNovos)
       return { erro: r.erro }
     }
     return { numero: r.numero, mensagem: r.mensagem, link: r.link }

@@ -112,3 +112,21 @@ describe("B16-09 — Carrinho e pedido pelo WhatsApp", { timeout: 30_000 }, () =
     expect(error).not.toBeNull()
   })
 })
+
+describe("QA A9 — preço que mudou depois de entrar no carrinho", { timeout: 30_000 }, () => {
+  it("o pedido não sai com preço diferente do que a cliente viu: avisa, devolve o novo e sai na segunda tentativa", async () => {
+    await service.from("catalog_products").update({ price: 60 }).eq("id", vestido)
+    const cliente = { nome: "Preço Novo", whatsapp: "(21) 97777-1234" }
+    const r = await registrarPedido(slug, cliente, [{ produtoId: vestido, combinacao: "M", quantidade: 3, preco: 50 }])
+    expect(r.ok).toBe(false)
+    if (r.ok) return
+    expect(r.erro).toContain("O preço mudou: Vestido")
+    expect(r.precosNovos).toEqual([{ produtoId: vestido, preco: 60 }])
+
+    const r2 = await registrarPedido(slug, cliente, [{ produtoId: vestido, combinacao: "M", quantidade: 3, preco: 60 }])
+    expect(r2.ok).toBe(true)
+    if (!r2.ok) return
+    const { data: pedido } = await service.from("catalog_orders").select("total").eq("workspace_id", ws).eq("number", r2.numero).single()
+    expect(pedido?.total).toBe(180)
+  })
+})

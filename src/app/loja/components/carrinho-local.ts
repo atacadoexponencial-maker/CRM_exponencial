@@ -98,6 +98,16 @@ export function useCarrinho(endereco: string) {
     )
   }
 
+  /** O servidor disse que o preço mudou: o carrinho passa a mostrar o novo (QA A9). */
+  function ajustarPrecos(mudancas: { produtoId: string; preco: number }[]) {
+    atualizar(
+      itens.map((i) => {
+        const m = mudancas.find((x) => x.produtoId === i.produtoId)
+        return m ? { ...i, preco: m.preco } : i
+      })
+    )
+  }
+
   function remover(produtoId: string, combinacao: string) {
     atualizar(itens.filter((i) => !(i.produtoId === produtoId && i.combinacao === combinacao)))
   }
@@ -106,5 +116,5 @@ export function useCarrinho(endereco: string) {
     atualizar([])
   }
 
-  return { itens, adicionar, adicionarVarios, mudarQuantidade, ajustarLimites, remover, esvaziar }
+  return { itens, adicionar, adicionarVarios, mudarQuantidade, ajustarLimites, ajustarPrecos, remover, esvaziar }
 }
