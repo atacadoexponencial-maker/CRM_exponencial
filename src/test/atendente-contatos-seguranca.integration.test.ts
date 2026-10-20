@@ -174,7 +174,10 @@ describe("B21-02 — Atendente só alcança os cards e contatos dele", { timeout
 
     await expect(atribuirAtendente(cardBia, forasteiro)).rejects.toThrow("Atendente não encontrado")
     await atribuirAtendente(cardBia, ana)
-    const { data } = await service.from("pipeline_cards").select("atendente_id").eq("id", cardBia).single()
+    const { data } = await service.from("pipeline_cards").select("atendente_id, contact_id").eq("id", cardBia).single()
     expect(data!.atendente_id).toBe(ana)
+    // QA A5 (06/10): o contato acompanha o card (Campanhas e Contatos leem contacts.atendente_id)
+    const { data: contato } = await service.from("contacts").select("atendente_id").eq("id", data!.contact_id).single()
+    expect(contato!.atendente_id).toBe(ana)
   })
 })

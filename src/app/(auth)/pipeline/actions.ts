@@ -68,12 +68,24 @@ export async function atribuirAtendente(cardId: string, atendenteId: string): Pr
     .maybeSingle()
   if (!alvo) throw new Error("Atendente não encontrado")
 
-  const { error } = await supabase
+  const { data: cardAtualizado, error } = await supabase
     .from("pipeline_cards")
     .update({ atendente_id: atendenteId })
     .eq("id", cardId)
+    .select("contact_id")
+    .maybeSingle()
 
   if (error) throw new Error("Erro ao atribuir atendente")
+  if (!cardAtualizado) throw new Error("Card não encontrado")
+
+  // QA A5 (06/10): o atendente do card só ficava no card. Campanhas segmentam e a
+  // lista de Contatos mostra `contacts.atendente_id`; sem isto, ficava "—" e 0.
+  const { error: erroContato } = await supabase
+    .from("contacts")
+    .update({ atendente_id: atendenteId })
+    .eq("id", cardAtualizado.contact_id)
+    .eq("workspace_id", profile.workspace_id)
+  if (erroContato) throw new Error("Erro ao atribuir atendente")
 }
 
 /** Devolve o contato do telefone (na lixeira ou não), criando se não existir. `null` quando o banco falha. */
@@ -275,6 +287,9 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
           etapa: "onboarding",
           contact_id: card.contact_id,
           workspace_id: card.workspace_id,
+          // QA A4 (06/10): sem copiar, o card nascia sem atendente e o vendedor
+          // perdia o cliente em "Clientes ativos" e no Funil de Recompra dele.
+          atendente_id: card.atendente_id,
         })
         .select("id")
         .single()

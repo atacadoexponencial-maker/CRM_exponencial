@@ -179,7 +179,7 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
       let entrouNaEtapa = criou || moveu
 
       if (funil === "entrada" && etapa === "ganho") {
-        const recompra = await abrirCardDeRecompra(contexto, contactId)
+        const recompra = await abrirCardDeRecompra(contexto, contactId, card?.atendente_id ?? null)
         if (recompra === "falhou") return falhou("O card foi para Ganho, mas o card na Recompra não pôde ser criado")
         entrouNaEtapa = recompra === "criado"
       }
@@ -283,7 +283,8 @@ async function reabrirConversa({ supabase, gatilho }: ContextoDaExecucao, contac
  */
 async function abrirCardDeRecompra(
   { supabase, gatilho }: ContextoDaExecucao,
-  contactId: string
+  contactId: string,
+  atendenteId: string | null
 ): Promise<"criado" | "existente" | "falhou"> {
   const { data: existente, error: erroBusca } = await supabase
     .from("pipeline_cards")
@@ -300,6 +301,8 @@ async function abrirCardDeRecompra(
     etapa: "onboarding",
     contact_id: contactId,
     workspace_id: gatilho.workspaceId,
+    // QA A4 (06/10): como no `moverCard` do CRM, o card da Recompra herda quem vendeu.
+    atendente_id: atendenteId,
   })
   return error ? "falhou" : "criado"
 }
@@ -387,6 +390,16 @@ async function passarCardEConcluir(
       .from("pipeline_cards")
       .update({ atendente_id: atendenteId })
       .eq("id", card.id)
+    erros.push(error)
+  }
+  // QA A5 (06/10): o contato acompanha o card. Campanhas segmentam e a lista de
+  // Contatos mostra `contacts.atendente_id`.
+  if (contexto.gatilho.contactId) {
+    const { error } = await contexto.supabase
+      .from("contacts")
+      .update({ atendente_id: atendenteId })
+      .eq("id", contexto.gatilho.contactId)
+      .eq("workspace_id", contexto.gatilho.workspaceId)
     erros.push(error)
   }
   if (!conversaId && !card.id && !card.erro) return falhou("O contato não tem conversa aberta nem card")

@@ -221,7 +221,7 @@ describe("mover card segue a regra do CRM (B11-11)", () => {
     const gravacoes = b.gravacoes("pipeline_cards").map((g) => [g.metodo, g.args[0]])
     expect(gravacoes).toEqual([
       ["update", expect.objectContaining({ etapa: "ganho" })],
-      ["insert", { funil: "recompra", etapa: "onboarding", contact_id: "contato-1", workspace_id: "ws-1" }],
+      ["insert", { funil: "recompra", etapa: "onboarding", contact_id: "contato-1", workspace_id: "ws-1", atendente_id: null }],
     ])
     expect(b.gravacoes("pipeline_card_history")[0].args[0]).toMatchObject({ de_etapa: "negociacao", para_etapa: "ganho" })
   })
@@ -264,7 +264,7 @@ describe("mover card cria o card na Entrada quando o contato não tem (decisões
 
     expect(b.gravacoes("pipeline_cards").map((g) => [g.metodo, g.args[0]])).toEqual([
       ["insert", { funil: "entrada", etapa: "ganho", contact_id: "contato-1", workspace_id: "ws-1" }],
-      ["insert", { funil: "recompra", etapa: "onboarding", contact_id: "contato-1", workspace_id: "ws-1" }],
+      ["insert", { funil: "recompra", etapa: "onboarding", contact_id: "contato-1", workspace_id: "ws-1", atendente_id: null }],
     ])
     expect(iniciou).toHaveBeenCalledWith(expect.objectContaining({ atendenteId: null, gatilho: "onboarding" }))
   })

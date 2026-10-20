@@ -90,7 +90,8 @@ describe("B22-22 — Ganho pelo atendente cria o card de Recompra", () => {
     await moverCard("card-1", "ganho")
 
     expect(servico.inseridos).toEqual([
-      ["pipeline_cards", { funil: "recompra", etapa: "onboarding", contact_id: "contato-1", workspace_id: "ws-1" }],
+      // QA A4 (06/10): o card da Recompra herda o atendente do card da Entrada
+      ["pipeline_cards", { funil: "recompra", etapa: "onboarding", contact_id: "contato-1", workspace_id: "ws-1", atendente_id: "atendente-1" }],
     ])
     expect(usuario.inseridos.filter(([t]) => t === "pipeline_cards")).toEqual([])
     expect(disparar).toHaveBeenCalledWith(
