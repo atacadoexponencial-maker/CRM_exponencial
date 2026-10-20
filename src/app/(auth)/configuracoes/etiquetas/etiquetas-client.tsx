@@ -56,6 +56,8 @@ function SeletorCor({
           )}
           style={{ backgroundColor: cor }}
           title={cor}
+          aria-label={`Cor ${cor}`}
+          aria-pressed={corSelecionada === cor}
         />
       ))}
     </div>
@@ -67,7 +69,8 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
 
   const [dialogCriarAberto, setDialogCriarAberto] = useState(false)
   const [novoNome, setNovoNome] = useState("")
-  const [novaCor, setNovaCor] = useState("")
+  // QA baixos (06/10): sem cor escolhida o Salvar ficava desabilitado sem explicar.
+  const [novaCor, setNovaCor] = useState(CORES_DISPONIVEIS[0])
   const [isPendingCriar, setIsPendingCriar] = useState(false)
   const [erroCriar, setErroCriar] = useState<string | null>(null)
 
@@ -103,7 +106,8 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
       setErroCriar(resultado.erro)
       return
     }
-    setEtiquetas((prev) => [...prev, resultado.etiqueta!])
+    // Na mesma ordem do servidor (por nome), para não mudar ao recarregar.
+    setEtiquetas((prev) => [...prev, resultado.etiqueta!].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")))
     setDialogCriarAberto(false)
   }
 

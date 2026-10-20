@@ -47,7 +47,7 @@ function mapItem(r: ReminderRow, conversaPorContato: Record<string, string>): It
   return {
     id: r.id,
     origem: r.origem,
-    contatoNome: r.contacts?.name ?? r.contacts?.phone_number ?? "—",
+    contatoNome: r.contacts?.name || r.contacts?.phone_number || "—",
     contatoId: r.contact_id,
     conversaId: conversaPorContato[r.contact_id] ?? null,
     instrucao: r.instrucao,
@@ -143,7 +143,7 @@ export async function listarAgendaEquipe(atendenteId?: string | null): Promise<{
       .map((r) => ({
         runId: r.id,
         sequenciaNome: r.sequences?.nome ?? "—",
-        contatoNome: r.contacts?.name ?? r.contacts?.phone_number ?? "—",
+        contatoNome: r.contacts?.name || r.contacts?.phone_number || "—",
         atendenteNome: r.profiles?.name ?? "—",
         etapaAtual: r.etapa_atual + 1,
         totalEtapas: r.sequences?.sequence_steps?.length ?? 0,
@@ -234,6 +234,8 @@ export async function criarFollowUp(params: {
   if (params.hora && !/^\d{2}:\d{2}$/.test(params.hora)) return { erro: "Hora inválida" }
   const dueAt = new Date(`${params.data}T${params.hora || "09:00"}:00-03:00`)
   if (Number.isNaN(dueAt.getTime())) return { erro: "Data inválida" }
+  // QA baixos (06/10): follow-up no passado nasceria atrasado.
+  if (dueAt.getTime() < Date.now() - 60_000) return { erro: "A data do follow-up já passou." }
 
   const { error } = await supabase.from("reminders").insert({
     workspace_id: perfil.workspace_id,
@@ -265,7 +267,7 @@ export async function buscarContatosParaFollowUp(termo: string): Promise<Array<{
   }
 
   const { data } = await query
-  return (data ?? []).map((c) => ({ id: c.id, nome: c.name ?? c.phone_number }))
+  return (data ?? []).map((c) => ({ id: c.id, nome: c.name || c.phone_number }))
 }
 
 export async function contarAtrasados(): Promise<number> {

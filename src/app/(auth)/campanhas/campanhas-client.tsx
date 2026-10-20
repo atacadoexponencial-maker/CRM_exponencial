@@ -170,7 +170,8 @@ export function CampanhasClient({ campanhasIniciais }: { campanhasIniciais: Camp
                       {STATUS_LABEL[c.status] ?? c.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{c.totalDestinatarios}</td>
+                  {/* Rascunho ainda não tem lista: os destinatários nascem na confirmação. */}
+                  <td className="px-4 py-3 text-muted-foreground">{c.status === "rascunho" ? "—" : c.totalDestinatarios}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {c.dataEnvio
                       ? new Date(c.dataEnvio).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })

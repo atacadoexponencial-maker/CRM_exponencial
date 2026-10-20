@@ -51,6 +51,9 @@ export type PerformanceVendedor = {
 
 export type RangePeriodo = { inicio: Date; fim: Date }
 
+/** Linha da performance para os cards sem atendente. */
+export const SEM_ATENDENTE = "__sem_atendente__"
+
 export type CardRow = {
   id: string
   contact_id: string | null
@@ -155,22 +158,28 @@ export function calcularMetricas(
   const novosLeadsCards = entrada.filter((c) => noPeriodo(c.created_at))
   const leadsAtivos = entrada.filter((c) => c.etapa !== "ganho" && c.etapa !== "perdido").length
 
-  // Buckets semanais do período
+  // Buckets do período: por semana; acima de 26 semanas, por mês (QA baixos, 06/10:
+  // 145 barras sem ano eram ilegíveis).
   const leadsPorSemana: Array<{ label: string; valor: number }> = []
   const cursor = new Date(inicio)
   cursor.setHours(0, 0, 0, 0)
+  const porMes = (fim.getTime() - cursor.getTime()) / (7 * 86400000) > 26
+  if (porMes) cursor.setDate(1)
   while (cursor <= fim) {
-    const fimSemana = new Date(cursor)
-    fimSemana.setDate(cursor.getDate() + 7)
+    const proximo = new Date(cursor)
+    if (porMes) proximo.setMonth(cursor.getMonth() + 1)
+    else proximo.setDate(cursor.getDate() + 7)
     const valor = novosLeadsCards.filter((c) => {
       const d = new Date(c.created_at)
-      return d >= cursor && d < fimSemana
+      return d >= cursor && d < proximo
     }).length
     leadsPorSemana.push({
-      label: cursor.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+      label: porMes
+        ? cursor.toLocaleDateString("pt-BR", { month: "2-digit", year: "2-digit" })
+        : cursor.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
       valor,
     })
-    cursor.setDate(cursor.getDate() + 7)
+    cursor.setTime(proximo.getTime())
   }
 
   // ── Conversão ─────────────────────────────────────────────────────
@@ -281,8 +290,12 @@ export function calcularPerformanceVendedores(
   }
   const dataCompra = (p: PurchaseRow) => new Date(p.data + "T12:00:00")
 
-  return atendentes.map((a) => {
-    const cardsDoAtendente = cards.filter((c) => c.atendente_id === a.id)
+  // QA baixos (06/10): o que não tem atendente também aparece, numa linha própria.
+  const semAtendente = cards.some((c) => !c.atendente_id)
+  const linhas = semAtendente ? [...atendentes, { id: SEM_ATENDENTE, nome: "Sem atendente" }] : atendentes
+
+  return linhas.map((a) => {
+    const cardsDoAtendente = cards.filter((c) => (c.atendente_id ?? SEM_ATENDENTE) === a.id)
     const entrada = cardsDoAtendente.filter((c) => c.funil === "entrada")
     const recompra = cardsDoAtendente.filter((c) => c.funil === "recompra")
     const idsRecompra = new Set(recompra.map((c) => c.id))

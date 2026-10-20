@@ -156,7 +156,11 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
           ? `Enviada em ${new Date(relatorio.enviadaEm).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`
           : relatorio.status === "cancelada"
             ? "Campanha cancelada"
-            : "Envio em andamento"}{" "}
+            : relatorio.status === "rascunho"
+              ? "Rascunho, ainda não enviada"
+              : relatorio.status === "agendada"
+                ? "Agendada, ainda não enviada"
+                : "Envio em andamento"}{" "}
         · {relatorio.total} destinatários
       </p>
 
@@ -266,7 +270,7 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
             {filtrados.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                  Nenhum destinatário com este status
+                  {filtroStatus ? "Nenhum destinatário com este status" : "Nenhum destinatário"}
                 </td>
               </tr>
             )}

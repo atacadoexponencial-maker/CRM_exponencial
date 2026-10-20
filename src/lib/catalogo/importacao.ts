@@ -12,11 +12,24 @@ import { BUCKET_CATALOGO } from "./regras"
 
 const formatarPreco = (valor: number) => valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
 
+/**
+ * CSV salvo pelo Excel em ANSI (windows-1252) não é UTF-8: os acentos viravam "�" e a
+ * importação recusava com mensagem enganosa (QA baixos, 06/10). Tenta UTF-8 estrito e,
+ * se não for, lê como windows-1252.
+ */
+function decodificarCsv(bytes: ArrayBuffer): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes)
+  } catch {
+    return new TextDecoder("windows-1252").decode(bytes)
+  }
+}
+
 /** Matriz de células da primeira aba. CSV é lido como texto (sem converter números à moda americana). */
 export function lerArquivoPlanilha(nome: string, bytes: ArrayBuffer): unknown[][] {
   const csv = nome.toLowerCase().endsWith(".csv")
   const livro = csv
-    ? XLSX.read(new TextDecoder("utf-8").decode(bytes).replace(/^﻿/, ""), { type: "string", raw: true })
+    ? XLSX.read(decodificarCsv(bytes).replace(/^﻿/, ""), { type: "string", raw: true })
     : XLSX.read(new Uint8Array(bytes), { type: "array" })
   const aba = livro.Sheets[livro.SheetNames[0]]
   if (!aba) return []

@@ -4,7 +4,7 @@
 
 import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
-import { enderecoDeLojaValido } from "@/lib/catalogo/regras"
+import { ENDERECOS_RESERVADOS, enderecoDeLojaValido } from "@/lib/catalogo/regras"
 import { normalizarWhatsapp } from "@/app/loja/components/pedido"
 import type { ConfigCatalogo } from "../components/form-configuracoes"
 
@@ -47,9 +47,12 @@ export async function carregarConfiguracoes(): Promise<{ config: ConfigCatalogo 
 }
 
 /** Disponível quando nenhuma outra empresa usa o endereço. */
-export async function verificarEndereco(endereco: string): Promise<"disponivel" | "em_uso"> {
+export async function verificarEndereco(endereco: string): Promise<"disponivel" | "em_uso" | "reservado" | "invalido"> {
   const s = await exigirGestor()
-  if (!s.ok || !enderecoDeLojaValido(endereco)) return "em_uso"
+  if (!s.ok) return "invalido"
+  // QA baixos (06/10): reservado e inválido não são "em uso por outra loja".
+  if (ENDERECOS_RESERVADOS.includes(endereco)) return "reservado"
+  if (!enderecoDeLojaValido(endereco)) return "invalido"
   // A busca precisa olhar todas as empresas (o RLS só mostra a própria): chave de serviço,
   // devolvendo só sim/não.
   const { data } = await createServiceClient().from("catalog_settings").select("workspace_id").ilike("slug", endereco).maybeSingle()

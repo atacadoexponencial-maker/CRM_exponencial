@@ -62,7 +62,8 @@ async function acharOuCriarContato(workspaceId: string, whatsapp: string, nome: 
 
 export async function registrarPedido(endereco: string, cliente: { nome: string; whatsapp: string }, solicitados: ItemSolicitado[]): Promise<ResultadoPedido> {
   const nome = cliente.nome.trim()
-  if (!nome || nome.length > 80) return { ok: false, erro: "Informe seu nome." }
+  if (!nome) return { ok: false, erro: "Informe seu nome." }
+  if (nome.length > 80) return { ok: false, erro: "O nome passa de 80 caracteres." }
   const whatsapp = normalizarWhatsapp(cliente.whatsapp)
   if (!whatsapp) return { ok: false, erro: "Informe o WhatsApp com DDD, ex.: (21) 99999-0000." }
   if (!Array.isArray(solicitados) || solicitados.length === 0 || solicitados.length > 100) return { ok: false, erro: "Seu carrinho está vazio." }

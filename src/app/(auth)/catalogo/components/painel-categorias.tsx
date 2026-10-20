@@ -126,7 +126,9 @@ export function PainelCategorias({ categorias, contagem, onCriar, onRenomear, on
           <DialogTitle>Excluir a categoria {excluindo?.nome}?</DialogTitle>
           <DialogDescription className="mt-2">
             {(contagem[excluindo?.id ?? ""] ?? 0) > 0
-              ? `Os ${contagem[excluindo?.id ?? ""]} produtos dela continuam no catálogo, em "Sem categoria".`
+              ? contagem[excluindo?.id ?? ""] === 1
+                ? `O produto dela continua no catálogo, em "Sem categoria".`
+                : `Os ${contagem[excluindo?.id ?? ""]} produtos dela continuam no catálogo, em "Sem categoria".`
               : "A categoria está vazia."}
           </DialogDescription>
           <div className="mt-5 flex justify-end gap-2">

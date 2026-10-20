@@ -36,7 +36,7 @@ interface FormConfiguracoesProps {
   inicial: ConfigCatalogo
   /** Ex.: "https://crm-exponencial.vercel.app/loja/" */
   prefixoLink: string
-  onVerificarEndereco: (endereco: string) => Promise<"disponivel" | "em_uso">
+  onVerificarEndereco: (endereco: string) => Promise<"disponivel" | "em_uso" | "reservado" | "invalido">
   onSalvar: (config: ConfigCatalogo) => Promise<{ erro?: string; aviso?: string }>
 }
 
@@ -44,7 +44,7 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
   const [config, setConfig] = useState<ConfigCatalogo>(inicial)
   /** O que está gravado: a chave e o link mostram o que vale de fato, não o que ainda não foi salvo. */
   const [salvo, setSalvo] = useState<ConfigCatalogo>(inicial)
-  const [disponibilidade, setDisponibilidade] = useState<"disponivel" | "em_uso" | null>(null)
+  const [disponibilidade, setDisponibilidade] = useState<"disponivel" | "em_uso" | "reservado" | "invalido" | null>(null)
   const [copiado, setCopiado] = useState(false)
   const [mensagem, setMensagem] = useState<{ tipo: "erro" | "aviso"; texto: string } | null>(null)
   const [confirmarTroca, setConfirmarTroca] = useState(false)
@@ -88,7 +88,7 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
       setMensagem({ tipo: "erro", texto: "O endereço precisa ter de 3 a 40 caracteres e não pode começar nem terminar com hífen." })
       return
     }
-    if (disponibilidade === "em_uso") {
+    if (disponibilidade === "em_uso" || disponibilidade === "reservado" || disponibilidade === "invalido") {
       setMensagem({ tipo: "erro", texto: "Esse endereço já é de outra loja. Escolha outro." })
       return
     }
@@ -141,6 +141,8 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
         <div className="flex flex-wrap items-center gap-3 text-xs">
           {disponibilidade === "disponivel" && <span className="text-emerald-300">Disponível</span>}
           {disponibilidade === "em_uso" && <span className="text-destructive">Já está em uso por outra loja</span>}
+          {disponibilidade === "reservado" && <span className="text-destructive">Esse endereço é reservado pelo sistema</span>}
+          {disponibilidade === "invalido" && <span className="text-destructive">Use de 3 a 40 letras minúsculas, números e hífen</span>}
           <span className="text-muted-foreground">Só letras minúsculas, números e hífen.</span>
         </div>
         <div className="flex items-center gap-2">

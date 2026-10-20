@@ -211,7 +211,8 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <Trash2 className="size-3.5" aria-hidden />
-            Lixeira ({totalLixeira + excluidos.size})
+            {/* Só conta o que ainda está na lista: depois do refresh o servidor já contou. */}
+            Lixeira ({totalLixeira + [...excluidos].filter((id) => paginas.some((c) => c.id === id)).length})
           </Link>
           {papel !== "atendente" && <NovoContatoDialog />}
         </div>
@@ -394,7 +395,7 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
                   onClick={() => router.push(`/contatos/${contato.id}`)}
                   className="border-b last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
                 >
-                  <td className="px-4 py-3 font-medium">{contato.nome}</td>
+                  <td className="px-4 py-3 font-medium max-w-64 [overflow-wrap:anywhere]">{contato.nome}</td>
                   <td className="px-4 py-3 text-muted-foreground">{contato.telefone}</td>
                   <td className="px-4 py-3">
                     <span className={cn(

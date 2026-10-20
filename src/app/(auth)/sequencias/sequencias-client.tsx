@@ -135,7 +135,7 @@ export function SequenciasClient({
                     >
                       <span
                         className={cn(
-                          "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                          "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
                           s.ativa ? "translate-x-[18px]" : "translate-x-0.5"
                         )}
                       />

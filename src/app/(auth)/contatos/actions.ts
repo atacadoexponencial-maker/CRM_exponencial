@@ -15,7 +15,7 @@ const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, nicho, cida
 function mapContato(c: any): Contato {
   return {
     id: c.id,
-    nome: c.name ?? c.phone_number,
+    nome: c.name || c.phone_number,
     telefone: c.phone_number,
     classificacao: (c.classificacao ?? "sem_historico") as ClassificacaoContato,
     tipo: (c.tipo ?? null) as TipoContato | null,
@@ -341,7 +341,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
 
   return {
     id: c.id,
-    nome: c.name ?? c.phone_number,
+    nome: c.name || c.phone_number,
     telefone: c.phone_number,
     classificacao: calcularClassificacao(rawCards),
     tipo: (c.tipo ?? null) as TipoContato | null,

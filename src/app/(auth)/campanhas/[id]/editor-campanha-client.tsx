@@ -241,6 +241,11 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
         return
       }
       agendadaPara = new Date(`${dataAgendada}T${horaAgendada || "09:00"}:00`).toISOString()
+      // QA baixos (06/10): data no passado avisada aqui, antes de ir ao servidor.
+      if (new Date(agendadaPara) <= new Date()) {
+        setErro("A data de agendamento precisa estar no futuro")
+        return
+      }
     }
     setSalvando(true)
     setErro(null)

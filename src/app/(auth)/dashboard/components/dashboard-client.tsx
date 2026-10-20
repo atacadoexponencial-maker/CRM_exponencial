@@ -54,7 +54,7 @@ export function DashboardClient({ metricasIniciais, atendentes, papel }: Dashboa
           <h1 className="text-xl font-semibold">Dashboard</h1>
           {isPending && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <FiltrosDashboard
             filtros={filtros}
             onChange={aplicarFiltros}

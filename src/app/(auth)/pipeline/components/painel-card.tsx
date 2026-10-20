@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { DialogoExcluirContato } from "../../contatos/components/dialogo-excluir-contato"
 import { resumoExclusaoPorCard, excluirContatoPorCard, type ResumoExclusao } from "../../contatos/lixeira/actions"
 import { TagsDoContato } from "./tags-do-contato"
+import { formatarNumero } from "@/lib/whatsapp"
 
 interface PainelCardProps {
   card: CardLead | CardCliente | null
@@ -84,7 +85,7 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
           <div className="px-4 py-4 border-b border-border space-y-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Phone className="size-3.5 shrink-0" />
-              <span>{card.contato.telefone}</span>
+              <span>{formatarNumero(card.contato.telefone)}</span>
             </div>
 
             <div className="flex items-center gap-2 text-sm">
@@ -353,7 +354,7 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
             {carregando ? (
               <p className="text-xs text-muted-foreground/60">Carregando...</p>
             ) : painelData.historico.length === 0 ? (
-              <p className="text-xs text-muted-foreground/60">Nenhum histórico disponível.</p>
+              <p className="text-xs text-muted-foreground/60">Ainda sem movimentação: o card está na etapa em que foi criado.</p>
             ) : (
               <div className="space-y-2">
                 {painelData.historico.map((h, i) => (

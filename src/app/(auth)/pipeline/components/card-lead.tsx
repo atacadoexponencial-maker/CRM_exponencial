@@ -42,7 +42,7 @@ export function CardLeadItem({ card, onPainelAbrir }: CardLeadProps) {
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="text-sm font-medium leading-snug">{card.contato.nome}</span>
+        <span className="text-sm font-medium leading-snug min-w-0 [overflow-wrap:anywhere]">{card.contato.nome}</span>
         <button
           aria-label="Abrir conversa"
           disabled={!card.conversaId}

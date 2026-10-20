@@ -69,6 +69,8 @@ export function AlertasClient({
 
   const [configAberta, setConfigAberta] = useState(false)
   const [config, setConfig] = useState<ConfigAlertas>(configInicial)
+  // QA baixos (06/10): fechar sem salvar volta ao que estava.
+  const [configSalva, setConfigSalva] = useState<ConfigAlertas>(configInicial)
   const [salvandoConfig, setSalvandoConfig] = useState(false)
   const [erroConfig, setErroConfig] = useState<string | null>(null)
 
@@ -95,6 +97,7 @@ export function AlertasClient({
       setErroConfig(resultado.erro)
       return
     }
+    setConfigSalva(config)
     setConfigAberta(false)
     window.location.reload()
   }
@@ -238,7 +241,10 @@ export function AlertasClient({
       <Dialog
         open={configAberta}
         onOpenChange={(open) => {
-          if (!open) setErroConfig(null)
+          if (!open) {
+            setErroConfig(null)
+            setConfig(configSalva)
+          }
           setConfigAberta(open)
         }}
       >
