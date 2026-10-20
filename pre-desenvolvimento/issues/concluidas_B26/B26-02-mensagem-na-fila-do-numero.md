@@ -117,3 +117,9 @@ Reuso: `aplicarStatus` e `confirmarEnvio` de `src/app/(auth)/chat/mensagens-loca
 - [x] Tela: mensagem nova sem ícone até a resposta; relógio "Na fila do número" para `na_fila`
 - [x] Webhook do gateway pede reentrega de aviso recente sem mensagem gravada
 - [x] Testes da CA-B26-01, 02, 03, 04, 06 e 07
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B26-08 | Marcelle | 20/10/2026 |
