@@ -66,6 +66,12 @@ avulsos. O roteiro da Agenda passa inteiro.
 | CA-B28-30 | automática | `src/test/agenda-lembrete-automacao.test.tsx` | o lembrete de automação aparece como "Lembrete de automação", com a regra, e Feito e Adiar chamam as mesmas ações dos avulsos |
 | CA-B28-37 | automática | `e2e/preview/roteiro-b28-agenda.cjs` | o roteiro passa por follow-up, feito, adiar, atrasado, selo, equipe com filtro, reatribuir e o lembrete da automação, no preview |
 
+## Exceções
+
+| Problema | Alvo | Motivo | Aprovado por | Dia |
+|---|---|---|---|---|
+| CRITERIO_SEM_TESTE | CA-B28-37 | Provado pelo roteiro `e2e/preview/roteiro-b28-agenda.cjs` no preview (13 de 13 verificações em 20/10/2026, commit 8546895); o auditor só lê o vitest | Luan | 20/10/2026 |
+
 ## Banco de Dados
 
 - Migration `supabase/migrations/20261020000006_lembrete_de_automacao.sql` (só acrescenta):
@@ -117,5 +123,5 @@ O roteiro da Agenda achou o erro #418 do React em `/agenda` e `/agenda/equipe`: 
 - [x] Referências: responsável conferido no Salvar
 - [x] Agenda mostra o lembrete de automação
 - [x] Testes CA-B28-27 a 30
-- [ ] Roteiro CA-B28-37 no preview
+- [x] Roteiro CA-B28-37 no preview
 - [x] Agenda no fuso da operação (fora do escopo, aprovado)

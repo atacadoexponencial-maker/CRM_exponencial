@@ -758,6 +758,10 @@ describe("criar lembrete na Agenda (B28-01)", () => {
         ["status", "active"],
       ])
     )
+    // "Primeiro": o mais antigo, um só
+    const doPerfil = b.chamadas.filter((c) => c.tabela === "profiles")
+    expect(doPerfil).toContainEqual(expect.objectContaining({ metodo: "order", args: ["created_at"] }))
+    expect(doPerfil).toContainEqual(expect.objectContaining({ metodo: "limit", args: [1] }))
   })
 
   it("vencimento vazio vence na hora", async () => {
