@@ -13,6 +13,7 @@
 
 const {
   abrirPreview,
+  adminDoLogin,
   apagarAtendente,
   bancoDeServico,
   conferirEmpresaDeTeste,
@@ -37,7 +38,7 @@ function amanhaEmBrasilia() {
   await conferirEmpresaDeTeste(db, ws)
   const r = criarRelatorio()
 
-  const { data: admin } = await db.from("profiles").select("id, name").eq("workspace_id", ws).eq("role", "admin").single()
+  const admin = await adminDoLogin(db)
   const { data: ana } = await db.from("contacts").select("id").eq("workspace_id", ws).eq("name", "Teste B11 Ana").single()
   const atendente = await criarAtendente(db, ws, "Atendente B28")
   const lembretesDoAdmin = async () =>
@@ -61,8 +62,13 @@ function amanhaEmBrasilia() {
     // 2. Feito
     await item("B28 ligar amanhã").getByRole("button", { name: "Feito" }).click()
     await page.getByText("B28 ligar amanhã").waitFor({ state: "detached", timeout: 20000 })
-    const feito = (await lembretesDoAdmin()).find((l) => l.id === criado.id)
-    r.confere("Feito tira o item da lista e grava como feito", feito?.status === "feito")
+    // A tela tira o item antes de a action gravar: espera a gravação
+    let feito
+    for (let i = 0; i < 20 && feito?.status !== "feito"; i++) {
+      await page.waitForTimeout(500)
+      feito = (await lembretesDoAdmin()).find((l) => l.id === criado.id)
+    }
+    r.confere("Feito tira o item da lista e grava como feito", feito?.status === "feito", feito?.status)
 
     // 3. Adiar 3 dias
     await db.from("reminders").insert({

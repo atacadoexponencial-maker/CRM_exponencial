@@ -88,18 +88,34 @@ avulsos. O roteiro da Agenda passa inteiro.
 - **Modificar:** `src/app/(auth)/configuracoes/automacoes/components/painel-bloco.tsx` — campo de vencimento (número + horas/dias)
 - **Modificar:** `src/app/(auth)/configuracoes/automacoes/components/frases-fluxo.ts` — frase do bloco
 - **Modificar:** `src/app/(auth)/agenda/actions.ts` — `origem` e `automacao_nome` no item
-- **Modificar:** `src/app/(auth)/agenda/agenda-client.tsx` e `src/app/(auth)/agenda/equipe/agenda-equipe-client.tsx` — ícone e "Automação: <regra>"
+- **Modificar:** `src/app/(auth)/agenda/agenda-client.tsx` — ícone e "Automação: <regra>"
+- **Modificar:** `src/app/(auth)/agenda/equipe/agenda-equipe-client.tsx` — ícone e "Automação: <regra>"
 - **Modificar:** `src/integrations/supabase/types.ts` — regerado depois da migration
 - **Modificar:** `src/test/automacoes-acoes.test.ts` — CA-B28-27 a 29
+- **Criar:** `src/app/(auth)/agenda/origem-do-lembrete.tsx` — ícone e nome da origem, iguais nas duas Agendas
+- **Modificar:** `src/test/fluxo-automacao.test.ts` — validação do texto e do vencimento
+- **Modificar:** `e2e/preview/comum.cjs` — `apagarAtendente` apaga os lembretes do atendente; `adminDoLogin`
+- **Modificar:** `e2e/preview/README.md` — o admin só dos roteiros
+
+### Fora do escopo, aprovado pelo Luan em 20/10/2026
+
+O roteiro da Agenda achou o erro #418 do React em `/agenda` e `/agenda/equipe`: o servidor (UTC) e o navegador (Brasília) escreviam o vencimento e o dia ("Hoje", "Amanhã") cada um no seu fuso. A Agenda passa a usar o fuso da operação, como o chat já usava.
+
+- **Modificar:** `src/lib/datas.ts` — `formatarDiaEHora` e `diasAte`
+- **Modificar:** `src/app/(auth)/agenda/agenda-client.tsx` — usa as duas no vencimento e no agrupamento
+- **Modificar:** `src/app/(auth)/agenda/equipe/agenda-equipe-client.tsx` — usa `formatarDiaEHora`
+- **Criar:** `src/test/agenda-fuso.test.ts` — com o processo em UTC, como o servidor
+
 
 ## Checklist
 
-- [ ] Migration criada e aplicada (só acrescenta)
-- [ ] Tipos regerados
-- [ ] `criar_lembrete` no formato do fluxo, com validação
-- [ ] Ação no motor (`lembrete.ts`)
-- [ ] Editor: menu, painel com vencimento, frase
-- [ ] Referências: responsável conferido no Salvar
-- [ ] Agenda mostra o lembrete de automação
-- [ ] Testes CA-B28-27 a 30
+- [x] Migration criada e aplicada (só acrescenta)
+- [x] Tipos regerados
+- [x] `criar_lembrete` no formato do fluxo, com validação
+- [x] Ação no motor (`lembrete.ts`)
+- [x] Editor: menu, painel com vencimento, frase
+- [x] Referências: responsável conferido no Salvar
+- [x] Agenda mostra o lembrete de automação
+- [x] Testes CA-B28-27 a 30
 - [ ] Roteiro CA-B28-37 no preview
+- [x] Agenda no fuso da operação (fora do escopo, aprovado)
