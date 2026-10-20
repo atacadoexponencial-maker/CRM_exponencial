@@ -50,8 +50,11 @@ export async function listarUsuarios(): Promise<UsuarioListado[]> {
     email: emailMap.get(p.id) ?? "",
     role: p.role,
     status: p.status,
+    // QA M8 (06/10): o PostgREST devolve `teams` como objeto (relação N:1), não lista.
     times: (p.user_teams ?? [])
-      .map((ut: { team_id: string; teams: { name: string }[] | null }) => ut.teams?.[0]?.name ?? "")
+      .map((ut: { team_id: string; teams: { name: string } | { name: string }[] | null }) =>
+        Array.isArray(ut.teams) ? (ut.teams[0]?.name ?? "") : (ut.teams?.name ?? "")
+      )
       .filter(Boolean),
     timesIds: (p.user_teams ?? [])
       .map((ut: { team_id: string; teams: { name: string }[] | null }) => ut.team_id)
@@ -122,6 +125,13 @@ export async function adicionarUsuario(data: {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
+  // QA M14 (06/10): o servidor confere nome, papel e times, não só a tela.
+  const nome = data.nome.trim()
+  if (!nome) return { erro: "Informe o nome do usuário." }
+  if (nome.length > 80) return { erro: "O nome passa de 80 caracteres." }
+  if (!["gerente", "atendente"].includes(data.papel)) return { erro: "Papel inválido" }
+  if (!Array.isArray(data.times) || data.times.some((t) => typeof t !== "string")) return { erro: "Times inválidos" }
+
   const { data: userData, error: userError } = await adminClient.auth.admin.createUser({
     email: data.email,
     password: data.senha,
@@ -139,7 +149,7 @@ export async function adicionarUsuario(data: {
 
   const { error: profileError } = await adminClient
     .from("profiles")
-    .insert({ id: userId, workspace_id: workspaceId, name: data.nome, role: data.papel })
+    .insert({ id: userId, workspace_id: workspaceId, name: nome, role: data.papel })
 
   if (profileError) {
     return { erro: "Não foi possível criar o usuário. Tente novamente." }

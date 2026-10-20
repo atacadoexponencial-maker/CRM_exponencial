@@ -2,10 +2,15 @@
 
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
+import { escaparLike } from "@/lib/escapar-like"
+
+const NOME_DE_TIME_MAXIMO = 40
 
 export async function criarTime(nome: string): Promise<{ erro?: string }> {
   const nomeTrimado = nome.trim()
   if (!nomeTrimado) return { erro: "Nome é obrigatório" }
+  // QA M20 (06/10): nome sem limite quebrava o layout no celular.
+  if (nomeTrimado.length > NOME_DE_TIME_MAXIMO) return { erro: `O nome passa de ${NOME_DE_TIME_MAXIMO} caracteres.` }
 
   const ssrClient = await createSsrClient()
   const { data: { user } } = await ssrClient.auth.getUser()
@@ -25,7 +30,7 @@ export async function criarTime(nome: string): Promise<{ erro?: string }> {
     .from("teams")
     .select("id")
     .eq("workspace_id", workspaceId)
-    .ilike("name", nomeTrimado)
+    .ilike("name", escaparLike(nomeTrimado))
     .maybeSingle()
 
   if (existente) return { erro: "Já existe um time com esse nome" }
@@ -66,12 +71,13 @@ export async function editarNomeTime(timeId: string, novoNome: string): Promise<
 
   if (!time) return { erro: "Time não encontrado" }
   if (time.is_default) return { erro: "Não é possível editar times padrão" }
+  if (nomeTrimado.length > NOME_DE_TIME_MAXIMO) return { erro: `O nome passa de ${NOME_DE_TIME_MAXIMO} caracteres.` }
 
   const { data: duplicado } = await ssrClient
     .from("teams")
     .select("id")
     .eq("workspace_id", workspaceId)
-    .ilike("name", nomeTrimado)
+    .ilike("name", escaparLike(nomeTrimado))
     .neq("id", timeId)
     .maybeSingle()
 

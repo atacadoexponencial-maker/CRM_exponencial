@@ -1,6 +1,26 @@
 "use server"
 
 import { createClient } from "@/integrations/supabase/server"
+import { escaparLike } from "@/lib/escapar-like"
+
+const NOME_DE_ETIQUETA_MAXIMO = 30
+
+/** QA M19/M20 (06/10): nome limpo, com limite, e sem repetir na empresa (sem diferença de maiúscula). */
+async function conferirNomeDeEtiqueta(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  workspaceId: string,
+  nome: string,
+  ignorarId?: string
+): Promise<{ erro: string } | { nome: string }> {
+  const limpo = nome.trim()
+  if (!limpo) return { erro: "Informe o nome da etiqueta." }
+  if (limpo.length > NOME_DE_ETIQUETA_MAXIMO) return { erro: `O nome passa de ${NOME_DE_ETIQUETA_MAXIMO} caracteres.` }
+  let q = supabase.from("labels").select("id").eq("workspace_id", workspaceId).ilike("name", escaparLike(limpo))
+  if (ignorarId) q = q.neq("id", ignorarId)
+  const { data } = await q.limit(1).maybeSingle()
+  if (data) return { erro: "Já existe uma etiqueta com esse nome." }
+  return { nome: limpo }
+}
 import { sessaoAtual } from "@/lib/sessao"
 
 export type EtiquetaListada = {
@@ -49,9 +69,12 @@ export async function criarEtiqueta(
 
   if (perfil?.role !== "admin") return { erro: "Sem permissão" }
 
+  const conferido = await conferirNomeDeEtiqueta(supabase, perfil.workspace_id, nome)
+  if ("erro" in conferido) return { erro: conferido.erro }
+
   const { data, error } = await supabase
     .from("labels")
-    .insert({ name: nome, color: cor, workspace_id: perfil.workspace_id })
+    .insert({ name: conferido.nome, color: cor, workspace_id: perfil.workspace_id })
     .select("id, name, color")
     .single()
 
@@ -80,9 +103,12 @@ export async function editarEtiqueta(
 
   if (perfil?.role !== "admin") return { erro: "Sem permissão" }
 
+  const conferido = await conferirNomeDeEtiqueta(supabase, perfil.workspace_id, nome, id)
+  if ("erro" in conferido) return { erro: conferido.erro }
+
   const { error } = await supabase
     .from("labels")
-    .update({ name: nome, color: cor })
+    .update({ name: conferido.nome, color: cor })
     .eq("id", id)
     .eq("workspace_id", perfil.workspace_id)
 
