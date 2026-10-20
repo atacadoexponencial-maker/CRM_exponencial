@@ -22,7 +22,6 @@ import {
   Store,
   Tags,
   FileBadge,
-  UserCircle,
   Users,
   UsersRound,
   X,
@@ -30,6 +29,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { COOKIE_MENU_RECOLHIDO, gravarPreferencia } from "@/lib/preferencias-layout"
+import { MenuDoUsuario } from "./menu-do-usuario"
 
 type Papel = "admin" | "gerente" | "atendente"
 
@@ -49,6 +49,8 @@ interface SecaoNav {
 interface SidebarNavProps {
   papel: Papel
   nomeUsuario: string
+  /** E-mail do usuário, para o menu da bolinha. */
+  email?: string
   atrasados: number
   /** Pedidos do catálogo ainda Novos (B16-10). */
   pedidosNovos?: number
@@ -144,7 +146,6 @@ function ItemLink({
 
 function ConteudoNav({
   papel,
-  nomeUsuario,
   atrasados,
   pedidosNovos = 0,
   pathname,
@@ -221,30 +222,6 @@ function ConteudoNav({
         })}
       </nav>
 
-      {/* Perfil fixo no rodapé */}
-      <div className="border-t p-2.5 shrink-0">
-        <Link
-          href="/perfil"
-          onClick={onNavegar}
-          title={recolhido ? "Meu perfil" : undefined}
-          aria-label={recolhido ? "Meu perfil" : undefined}
-          className={cn(
-            "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors",
-            recolhido && "justify-center px-0",
-            ehAtivo("/perfil")
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-          )}
-        >
-          <UserCircle className="size-5 shrink-0" />
-          {!recolhido && (
-            <span className="flex flex-col min-w-0">
-              <span className="truncate font-medium text-foreground text-xs">{nomeUsuario}</span>
-              <span className="text-[11px] text-muted-foreground">Meu perfil</span>
-            </span>
-          )}
-        </Link>
-      </div>
     </div>
   )
 }
@@ -275,6 +252,8 @@ export function SidebarNav({ recolhidoInicial = false, ...props }: SidebarNavPro
           </span>
           <span className="font-semibold text-sm">CRM Exponencial</span>
         </span>
+        <span className="flex items-center gap-2">
+        <MenuDoUsuario nome={props.nomeUsuario} email={props.email ?? ""} />
         <button
           type="button"
           onClick={() => setAberto(true)}
@@ -288,6 +267,7 @@ export function SidebarNav({ recolhidoInicial = false, ...props }: SidebarNavPro
             </span>
           )}
         </button>
+        </span>
       </div>
 
       {aberto && (
