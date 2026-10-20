@@ -474,6 +474,19 @@ export async function confirmarCampanha(
     return { erro: "A data de agendamento precisa estar no futuro" }
   }
 
+  // QA M9 (06/10): sem número conectado, a campanha entrava em "enviando" e falhava
+  // em silêncio. O número escolhido (ou qualquer um da empresa) precisa estar conectado.
+  let numeros = supabase
+    .from("whatsapp_connections")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", perfil.workspace_id)
+    .eq("status", "connected")
+  if (dados.whatsappConnectionId) numeros = numeros.eq("id", dados.whatsappConnectionId)
+  const { count: conectados } = await numeros
+  if (!conectados) {
+    return { erro: dados.whatsappConnectionId ? "O número escolhido não está conectado. Conecte-o ou escolha outro." : "Conecte um número de WhatsApp antes de enviar a campanha." }
+  }
+
   // Resolve a lista de destinatários no momento da confirmação (snapshot)
   const destinatarios = await buscarDestinatariosSegmento(supabase, perfil.workspace_id, dados.segmento)
   if (destinatarios.length === 0) return { erro: "Nenhum destinatário corresponde aos filtros" }
