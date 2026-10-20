@@ -52,7 +52,8 @@ function mapItem(r: ReminderRow, conversaPorContato: Record<string, string>): It
     conversaId: conversaPorContato[r.contact_id] ?? null,
     instrucao: r.instrucao,
     dueAt: r.due_at,
-    atrasado: new Date(r.due_at) < new Date(new Date().toDateString()),
+    // QA M5 (06/10): mesma regra do selo do menu: a hora já passou.
+    atrasado: new Date(r.due_at) < new Date(),
     atendenteNome: r.profiles?.name,
     atendenteId: r.atendente_id,
   }
@@ -227,7 +228,12 @@ export async function criarFollowUp(params: {
   // B13-03: contato na lixeira não recebe follow-up.
   if (!contato || contato.workspace_id !== perfil.workspace_id) return { erro: "Contato não encontrado" }
 
-  const dueAt = new Date(`${params.data}T${params.hora || "09:00"}:00`)
+  // QA M12 (06/10): o horário é de Brasília, não do servidor (a Vercel roda em UTC:
+  // 09:00 viraria 06:00). Data e hora conferidas antes de montar.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(params.data)) return { erro: "Data inválida" }
+  if (params.hora && !/^\d{2}:\d{2}$/.test(params.hora)) return { erro: "Hora inválida" }
+  const dueAt = new Date(`${params.data}T${params.hora || "09:00"}:00-03:00`)
+  if (Number.isNaN(dueAt.getTime())) return { erro: "Data inválida" }
 
   const { error } = await supabase.from("reminders").insert({
     workspace_id: perfil.workspace_id,

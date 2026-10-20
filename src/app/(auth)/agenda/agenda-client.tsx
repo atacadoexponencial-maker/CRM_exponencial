@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { AlarmClock, Bell, Check, ListChecks, MessageSquare, Plus, Search } from "lucide-react"
@@ -39,9 +39,12 @@ const GRUPO_LABEL: Record<Grupo, string> = {
 }
 
 function grupoDoItem(item: ItemAgenda): Grupo {
+  // QA M5 (06/10): "atrasado" é a mesma regra do selo do menu e da agenda da equipe:
+  // a hora já passou. Antes, aqui contava por dia, e as três telas discordavam.
+  const due = new Date(item.dueAt)
+  if (due < new Date()) return "atrasados"
   const hoje = new Date()
   hoje.setHours(0, 0, 0, 0)
-  const due = new Date(item.dueAt)
   const dueDia = new Date(due)
   dueDia.setHours(0, 0, 0, 0)
 
@@ -112,11 +115,14 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
     )
   }
 
+  // QA M6 (06/10): só a resposta da última busca vale; as anteriores podem chegar depois.
+  const ultimaBusca = useRef(0)
   async function handleBuscarContato(termo: string) {
     setTermoBusca(termo)
     setContatoSel(null)
+    const esta = ++ultimaBusca.current
     const lista = await buscarContatosParaFollowUp(termo)
-    setResultados(lista)
+    if (esta === ultimaBusca.current) setResultados(lista)
   }
 
   function abrirNovoFollowUp() {
