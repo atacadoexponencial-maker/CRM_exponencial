@@ -28,6 +28,7 @@ export interface ProdutoEditavel {
   destaque: boolean
   fotos: FotoProduto[]
   tipos: TipoVariacao[]
+  /** Ao carregar, a grade inteira. Ao salvar, só as combinações mexidas (QA A8). */
   estoque: EstoquePorCombinacao
 }
 
@@ -129,11 +130,14 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
 
     // A grade guarda só as combinações que existem hoje.
     const chaves = new Set(combinacoes(produto.tipos).map(chaveCombinacao))
-    const estoque = Object.fromEntries(Object.entries(produto.estoque).filter(([k]) => chaves.has(k)))
+    const grade = Object.fromEntries(Object.entries(produto.estoque).filter(([k]) => chaves.has(k)))
+    // QA A8 (06/10): vai só o que a pessoa mexeu. Com a tela aberta, um pedido
+    // fechado baixa o estoque no banco; mandar a grade lida ao abrir desfazia a baixa.
+    const estoque = Object.fromEntries(Object.entries(grade).filter(([k, q]) => !(k in inicial.estoque) || inicial.estoque[k] !== q))
 
     // Vai entrar na loja agora (novo, ou estava oculto) sem nenhuma peça: apareceria "Esgotado".
     const entraNaLoja = produto.visivel && (inicial.id === null || !inicial.visivel)
-    const semEstoque = Object.values(estoque).every((q) => !q)
+    const semEstoque = Object.values(grade).every((q) => !q)
     if (!escolha && comVariacoes && entraNaLoja && semEstoque) {
       setAvisoEsgotado(true)
       return

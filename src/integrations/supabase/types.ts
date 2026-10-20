@@ -1949,6 +1949,10 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: boolean
       }
+      recalcular_classificacao_do_contato: {
+        Args: { p_contact: string }
+        Returns: undefined
+      }
       registrar_pedido_catalogo: {
         Args: {
           p_contato: string
@@ -1982,7 +1986,12 @@ export type Database = {
         }
       }
       salvar_estoque_produto: {
-        Args: { p_estoque: Json; p_produto: string; p_tipos: Json }
+        Args: {
+          p_combinacoes: Json
+          p_estoque: Json
+          p_produto: string
+          p_tipos: Json
+        }
         Returns: undefined
       }
       salvar_sequencia: {

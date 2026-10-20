@@ -193,6 +193,21 @@ describe("B16-06 — Variações e grade de estoque", { timeout: 30_000 }, () =>
     expect((data ?? []).map((d) => d.combination).sort()).toEqual(["M / Azul", "M / Preto", "P / Azul", "P / Preto"])
   })
 
+  it("QA A8 — salvar com a tela aberta não desfaz a baixa de estoque feita por um pedido", async () => {
+    await entrarComo(emailA)
+    const r = (await salvarProduto(produto({ nome: "Tela aberta", tipos: [], estoque: { "": 10 } }))) as { id: string }
+    // Um pedido fechou enquanto a tela estava aberta: 10 → 8
+    await service.from("catalog_stock").update({ quantity: 8 }).eq("product_id", r.id).eq("combination", "")
+    // O editor manda só o que a pessoa mexeu: nada no estoque, só a descrição
+    expect((await salvarProduto(produto({ id: r.id, nome: "Tela aberta", descricao: "nova", tipos: [], estoque: {} }))).erro).toBeUndefined()
+    const { data: depois } = await service.from("catalog_stock").select("quantity").eq("product_id", r.id).eq("combination", "").single()
+    expect(depois?.quantity).toBe(8)
+    // Mexeu no estoque: o valor novo vale
+    await salvarProduto(produto({ id: r.id, nome: "Tela aberta", tipos: [], estoque: { "": 3 } }))
+    const { data: mexido } = await service.from("catalog_stock").select("quantity").eq("product_id", r.id).eq("combination", "").single()
+    expect(mexido?.quantity).toBe(3)
+  })
+
   it("sem variação usa um estoque único; zerado aparece esgotado (estoque 0)", async () => {
     await entrarComo(emailA)
     const r = (await salvarProduto(produto({ nome: "Único", tipos: [], estoque: { "": 0 } }))) as { id: string }

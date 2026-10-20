@@ -90,8 +90,13 @@ export async function carregarProduto(id: string): Promise<ProdutoEditavel | nul
   }
 }
 
-/** Confere tipos e estoque; devolve o erro ou o estoque só das combinações que existem. */
-function validarVariacoes(tipos: TipoVariacao[], estoque: Record<string, number>): { erro: string } | { tipos: TipoVariacao[]; estoque: Record<string, number> } {
+/**
+ * Confere tipos e estoque; devolve o erro ou os tipos limpos, a lista das combinações
+ * que existem e o estoque só das combinações informadas. QA A8 (06/10): `estoque`
+ * traz só o que a pessoa mexeu; o resto fica como está no banco, para a tela
+ * aberta não desfazer a baixa de um pedido.
+ */
+function validarVariacoes(tipos: TipoVariacao[], estoque: Record<string, number>): { erro: string } | { tipos: TipoVariacao[]; combinacoes: string[]; estoque: Record<string, number> } {
   if (tipos.length > MAX_TIPOS_VARIACAO) return { erro: `O produto aceita até ${MAX_TIPOS_VARIACAO} tipos de variação.` }
   const limpos: TipoVariacao[] = []
   for (const tipo of tipos) {
@@ -103,18 +108,24 @@ function validarVariacoes(tipos: TipoVariacao[], estoque: Record<string, number>
     if (opcoes.some((o) => o.includes(" / "))) return { erro: `${nome}: a opção não pode ter " / ".` }
     limpos.push({ id: tipo.id, nome, opcoes })
   }
+  const chaves = combinacoes(limpos).map(chaveCombinacao)
   const grade: Record<string, number> = {}
-  for (const c of combinacoes(limpos)) {
-    const chave = chaveCombinacao(c)
-    const qtd = estoque[chave] ?? 0
+  for (const chave of chaves) {
+    if (!(chave in estoque)) continue
+    const qtd = estoque[chave]
     if (!Number.isInteger(qtd) || qtd < 0 || qtd > ESTOQUE_MAXIMO) return { erro: `Estoque de ${chave || "produto"}: use um número inteiro de 0 a ${ESTOQUE_MAXIMO.toLocaleString("pt-BR")}.` }
     grade[chave] = qtd
   }
-  return { tipos: limpos, estoque: grade }
+  return { tipos: limpos, combinacoes: chaves, estoque: grade }
 }
 
-async function gravarEstoque(supabase: Awaited<ReturnType<typeof sessaoAtual>>["supabase"], produtoId: string, tipos: TipoVariacao[], estoque: Record<string, number>) {
-  const { error } = await supabase.rpc("salvar_estoque_produto", { p_produto: produtoId, p_tipos: tipos, p_estoque: estoque })
+async function gravarEstoque(supabase: Awaited<ReturnType<typeof sessaoAtual>>["supabase"], produtoId: string, variacoes: { tipos: TipoVariacao[]; combinacoes: string[]; estoque: Record<string, number> }) {
+  const { error } = await supabase.rpc("salvar_estoque_produto", {
+    p_produto: produtoId,
+    p_tipos: variacoes.tipos,
+    p_estoque: variacoes.estoque,
+    p_combinacoes: variacoes.combinacoes,
+  })
   return !error
 }
 
@@ -182,7 +193,7 @@ export async function salvarProduto(produto: ProdutoEditavel): Promise<Resultado
       .select("id")
       .single()
     if (error || !data) return { erro: "Não deu para salvar o produto. Tente de novo." }
-    if (!(await gravarEstoque(supabase, data.id, variacoes.tipos, variacoes.estoque))) return { erro: "O produto foi salvo, mas o estoque não. Abra e salve de novo." }
+    if (!(await gravarEstoque(supabase, data.id, variacoes))) return { erro: "O produto foi salvo, mas o estoque não. Abra e salve de novo." }
     return { id: data.id }
   }
 
@@ -201,7 +212,7 @@ export async function salvarProduto(produto: ProdutoEditavel): Promise<Resultado
     .eq("id", produto.id)
     .eq("workspace_id", perfil.workspace_id)
   if (error) return { erro: "Não deu para salvar o produto. Tente de novo." }
-  if (!(await gravarEstoque(supabase, produto.id, variacoes.tipos, variacoes.estoque))) return { erro: "Não deu para salvar o estoque. Tente de novo." }
+  if (!(await gravarEstoque(supabase, produto.id, variacoes))) return { erro: "Não deu para salvar o estoque. Tente de novo." }
 
   const removidas = ((antes.photos as string[]) ?? []).filter((c) => !caminhos.includes(c))
   if (removidas.length) await createServiceClient().storage.from(BUCKET_CATALOGO).remove(removidas).catch(() => {})
