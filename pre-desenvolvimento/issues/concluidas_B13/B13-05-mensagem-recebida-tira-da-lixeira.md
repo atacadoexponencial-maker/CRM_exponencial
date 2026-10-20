@@ -100,5 +100,5 @@ Nenhuma.
 - [x] `npx tsc --noEmit`, `npm run lint`, `npm run build`, testes existentes do webhook,
       recebimento, pipeline e contatos — 211/215; as 4 falhas são as antigas do webhook (3 de status em `mensagens.integration` e 1 de assinatura em `caixa-de-entrada.integration`), iguais sem esta mudança
 - [x] Push da série (B13-01 a 05) e deploy no ar (`645db56`, deploy Vercel com sucesso, 02/10)
-- [ ] Teste com o chip real, **com autorização da Marcelle** (memória: perguntar antes de
+- [x] Teste com o chip real (Marcelle, 20/10/2026: "passou no teste, deu certinho"), **com autorização da Marcelle** (memória: perguntar antes de
       agir no número dela)
