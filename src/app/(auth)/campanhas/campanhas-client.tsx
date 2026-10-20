@@ -13,7 +13,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { cancelarCampanha } from "./actions"
+import { cancelarCampanha, excluirCampanha } from "./actions"
 import type { CampanhaListada } from "./actions"
 
 const selectClass =
@@ -34,6 +34,9 @@ const STATUS_CLASS: Record<string, string> = {
   enviada: "bg-green-500/10 text-green-600",
   cancelada: "bg-red-500/10 text-red-600",
 }
+
+/** QA M10: enviada ou em envio fica, porque o relatório é histórico. */
+const PODE_EXCLUIR = new Set(["rascunho", "agendada", "cancelada"])
 
 const FILTROS: Array<{ id: string; label: string }> = [
   { id: "", label: "Todas" },
@@ -57,6 +60,9 @@ export function CampanhasClient({ campanhasIniciais }: { campanhasIniciais: Camp
   const [cancelandoId, setCancelandoId] = useState<string | null>(null)
   const [cancelando, setCancelando] = useState(false)
   const [erroCancelar, setErroCancelar] = useState<string | null>(null)
+  const [excluindoId, setExcluindoId] = useState<string | null>(null)
+  const [excluindo, setExcluindo] = useState(false)
+  const [erroExcluir, setErroExcluir] = useState<string | null>(null)
 
   const filtradas = campanhas.filter((c) => {
     if (filtroStatus && c.status !== filtroStatus) return false
@@ -65,6 +71,21 @@ export function CampanhasClient({ campanhasIniciais }: { campanhasIniciais: Camp
   })
 
   const campanhaCancelando = campanhas.find((c) => c.id === cancelandoId)
+  const campanhaExcluindo = campanhas.find((c) => c.id === excluindoId)
+
+  async function handleExcluir() {
+    if (!excluindoId) return
+    setExcluindo(true)
+    setErroExcluir(null)
+    const resultado = await excluirCampanha(excluindoId)
+    setExcluindo(false)
+    if (resultado.erro) {
+      setErroExcluir(resultado.erro)
+      return
+    }
+    setCampanhas((prev) => prev.filter((c) => c.id !== excluindoId))
+    setExcluindoId(null)
+  }
 
   async function handleCancelar() {
     if (!cancelandoId) return
@@ -157,18 +178,33 @@ export function CampanhasClient({ campanhasIniciais }: { campanhasIniciais: Camp
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{c.criador ?? "—"}</td>
                   <td className="px-4 py-3">
-                    {c.status === "agendada" && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setErroCancelar(null)
-                          setCancelandoId(c.id)
-                        }}
-                        className="text-xs text-destructive hover:underline"
-                      >
-                        Cancelar
-                      </button>
-                    )}
+                    <div className="flex items-center gap-3">
+                      {c.status === "agendada" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setErroCancelar(null)
+                            setCancelandoId(c.id)
+                          }}
+                          className="text-xs text-destructive hover:underline"
+                        >
+                          Cancelar
+                        </button>
+                      )}
+                      {PODE_EXCLUIR.has(c.status) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setErroExcluir(null)
+                            setExcluindoId(c.id)
+                          }}
+                          className="text-xs text-muted-foreground hover:text-destructive hover:underline"
+                          aria-label={`Excluir ${c.nome}`}
+                        >
+                          Excluir
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -176,6 +212,32 @@ export function CampanhasClient({ campanhasIniciais }: { campanhasIniciais: Camp
           </table>
         </div>
       )}
+
+      <Dialog
+        open={excluindoId !== null}
+        onOpenChange={(open) => {
+          if (!open) setExcluindoId(null)
+        }}
+      >
+        <DialogPopup>
+          <DialogTitle className="mb-4">Excluir campanha</DialogTitle>
+          <div className="flex flex-col gap-4">
+            <p className="text-sm">
+              <strong>{campanhaExcluindo?.nome}</strong> será apagada de vez, com a lista de
+              destinatários. Isso não pode ser desfeito.
+            </p>
+            {erroExcluir && <p className="text-sm text-destructive">{erroExcluir}</p>}
+            <div className="flex justify-end gap-2 pt-2">
+              <DialogClose render={<Button type="button" variant="outline" />}>
+                Voltar
+              </DialogClose>
+              <Button variant="destructive" onClick={handleExcluir} disabled={excluindo}>
+                Excluir campanha
+              </Button>
+            </div>
+          </div>
+        </DialogPopup>
+      </Dialog>
 
       <Dialog
         open={cancelandoId !== null}

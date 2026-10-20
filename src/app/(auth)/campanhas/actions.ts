@@ -529,6 +529,29 @@ export async function confirmarCampanha(
   return {}
 }
 
+const STATUS_QUE_PODE_EXCLUIR = ["rascunho", "agendada", "cancelada"]
+
+/**
+ * QA M10 (06/10, aprovado em 20/10): apaga a campanha e, pela cascata, os
+ * destinatários. Enviada ou em envio não se apaga: o relatório de entrega é histórico.
+ */
+export async function excluirCampanha(id: string): Promise<{ erro?: string }> {
+  const { supabase, perfil } = await perfilGestor()
+  if (!perfil) return { erro: "Sem permissão" }
+
+  const { data, error } = await supabase
+    .from("campaigns")
+    .delete()
+    .eq("id", id)
+    .eq("workspace_id", perfil.workspace_id)
+    .in("status", STATUS_QUE_PODE_EXCLUIR)
+    .select("id")
+
+  if (error || !data?.length) return { erro: "Só é possível excluir campanhas em rascunho, agendadas ou canceladas" }
+  revalidatePath("/campanhas")
+  return {}
+}
+
 export async function cancelarCampanha(id: string): Promise<{ erro?: string }> {
   const { supabase, perfil } = await perfilGestor()
   if (!perfil) return { erro: "Sem permissão" }
