@@ -11,6 +11,7 @@
 
 import { createServiceClient } from "@/integrations/supabase/service"
 import { transmitirContatoRestaurado } from "@/lib/whatsapp/realtime"
+import { apagarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -86,6 +87,8 @@ export async function apagarDaLixeira(svc: ServiceClient, workspaceId: string, c
     // Falha aqui deixa arquivo órfão, nunca dado — segue para apagar os dados.
     await svc.storage.from("chat-attachments").remove(caminhos).catch(() => {})
   }
+  // B29-02: a cópia da foto de perfil vai junto.
+  await apagarFotoDoContato(svc, workspaceId, contactId)
   const { data, error } = await svc.rpc("apagar_contato_de_vez", { p_contact_id: contactId })
   if (error) throw new Error(`Não foi possível apagar o contato: ${error.message}`)
   return data === true

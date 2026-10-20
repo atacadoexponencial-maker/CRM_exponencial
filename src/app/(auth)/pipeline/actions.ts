@@ -6,6 +6,7 @@ import { dispararAutomacoes } from "@/lib/automacoes/fila"
 import { cardsDepoisDoMovimento, prepararGatilhoDeClassificacao } from "@/lib/automacoes/gatilhos-do-crm"
 import { processarGatilhoSequencia } from "@/lib/sequencias"
 import { createServiceClient } from "@/integrations/supabase/service"
+import { buscarEGuardarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
 import { tirarDaLixeira } from "@/lib/lixeira"
 import { normalizarWhatsapp, TELEFONE_INVALIDO } from "@/lib/telefone"
 import { type CardLead, type EtapaEntrada, type CardCliente, type EtapaRecompra, type HistoricoEtapa, type NotaInterna, ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "./mock-pipeline"
@@ -223,6 +224,10 @@ export async function criarNovoLead(telefoneDigitado: string, nome: string | nul
   })
 
   await dispararClassificacao()
+
+  // B29-02: a foto vem pelo canal direto, por último. Contato já conferido sai na hora.
+  await buscarEGuardarFotoDoContato({ workspaceId: profile.workspace_id, contactId: contato.id, telefone })
+
   return {}
 }
 

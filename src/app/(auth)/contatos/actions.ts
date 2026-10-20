@@ -6,6 +6,7 @@ import type { Contato, ContatoPerfil, ClassificacaoContato, TipoContato, ICP } f
 import { calcularClassificacao } from "./classificacao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { tirarDaLixeira } from "@/lib/lixeira"
+import { buscarEGuardarFotoDoContato, urlAssinadaDaFoto } from "@/lib/whatsapp/foto-de-perfil"
 import { dispararDadosAlterados, dispararTagAdicionada } from "@/lib/automacoes/gatilhos-do-crm"
 import { normalizarWhatsapp, TELEFONE_INVALIDO } from "@/lib/telefone"
 
@@ -119,6 +120,9 @@ export async function criarContato(dados: {
     return { erro: "Erro ao criar contato. Tente novamente." }
   }
 
+  // B29-02: a foto vem pelo canal direto, depois de o contato existir. Nunca falha.
+  await buscarEGuardarFotoDoContato({ workspaceId: profile.workspace_id, contactId: data.id, telefone })
+
   return { id: data.id }
 }
 
@@ -144,7 +148,7 @@ const ETAPA_ENTRADA_LABEL: Record<string, string> = {
 }
 
 
-const PERFIL_SELECT = "id, name, phone_number, tipo, nicho, cidade, icp, observacoes, created_at, atendente_id"
+const PERFIL_SELECT = "id, name, phone_number, tipo, nicho, cidade, icp, observacoes, created_at, atendente_id, photo_path"
 
 function formatarDataEvento(iso: string): string {
   const d = new Date(iso)
@@ -339,10 +343,14 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
     responsavel: e.responsavel,
   }))
 
+  // B29: endereço assinado (1 h) da cópia da foto, no bucket privado.
+  const fotoUrl = c.photo_path ? await urlAssinadaDaFoto(createServiceClient(), c.photo_path).catch(() => null) : null
+
   return {
     id: c.id,
     nome: c.name || c.phone_number,
     telefone: c.phone_number,
+    fotoUrl,
     classificacao: calcularClassificacao(rawCards),
     tipo: (c.tipo ?? null) as TipoContato | null,
     nicho: c.nicho ?? null,

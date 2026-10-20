@@ -12,9 +12,11 @@ vi.mock("@/integrations/supabase/service", () => ({ createServiceClient: vi.fn()
 vi.mock("@/lib/automacoes/fila", () => ({ dispararAutomacoes: vi.fn().mockResolvedValue(undefined) }))
 vi.mock("@/lib/whatsapp/realtime", () => ({ transmitirMensagem: vi.fn().mockResolvedValue(undefined) }))
 vi.mock("@/lib/lixeira", () => ({ tirarDaLixeira: vi.fn().mockResolvedValue(undefined) }))
+vi.mock("@/lib/whatsapp/foto-de-perfil", () => ({ buscarEGuardarFotoDoContato: vi.fn().mockResolvedValue("guardada") }))
 
 import { createServiceClient } from "@/integrations/supabase/service"
 import { dispararAutomacoes } from "@/lib/automacoes/fila"
+import { buscarEGuardarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
 import { POST } from "@/app/api/webhooks/whatsapp/route"
 
 type Resposta = { data: unknown; error?: unknown }
@@ -244,3 +246,27 @@ describe("nome de perfil da Meta (contacts[].profile.name)", () => {
     expect(contatoDe(escritas, "insert")).toMatchObject({ name: null })
   })
 })
+
+describe("B29-02 — foto de perfil na mensagem pela API Oficial", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    process.env.META_APP_SECRET = SEGREDO_DE_TESTE
+  })
+
+  it("CA-B29-06: a mensagem pela Meta pede a foto do contato, informando a conexão por onde chegou, depois de gravar", async () => {
+    const { gravacoes } = bancoFalso({ contato: null })
+    let gravadaAntes = false
+    vi.mocked(buscarEGuardarFotoDoContato).mockImplementationOnce(async () => {
+      gravadaAntes = gravacoes.includes("insert messages")
+      return "guardada"
+    })
+
+    const resposta = await POST(requisicao({ type: "text", text: { body: "oi" } }))
+
+    expect(resposta.status).toBe(200)
+    expect(buscarEGuardarFotoDoContato).toHaveBeenCalledTimes(1)
+    expect(buscarEGuardarFotoDoContato).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: "ws-1", contactId: "contato-1", telefone: "5511999998888", connectionId: "conexao-1" }))
+    expect(gravadaAntes).toBe(true)
+  })
+})
+

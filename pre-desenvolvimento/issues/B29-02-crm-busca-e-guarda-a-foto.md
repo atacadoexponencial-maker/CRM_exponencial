@@ -89,7 +89,7 @@ e não atrapalham nada.
 |---|---|---|---|
 | CA-B29-05 | automática | `src/test/foto-de-perfil-contato.test.ts` e `src/test/gateway-recebimento.test.ts` | o recebimento pelo canal direto chama a busca com o contato e a conexão da mensagem; a busca grava os bytes em `contact-photos/{ws}/{id}.jpg` e aponta o contato para o caminho |
 | CA-B29-06 | automática | `src/test/foto-de-perfil-contato.test.ts` e `src/test/webhook-whatsapp-automacoes.test.ts` | mensagem pela Meta chama a busca; com a conexão da mensagem sendo `meta`, a busca usa a conexão `gateway` conectada da empresa |
-| CA-B29-07 | automática | `src/test/foto-de-perfil-caminhos.test.ts` | `criarContato`, `criarNovoLead` e `registrarPedido` chamam a busca uma vez para o contato criado |
+| CA-B29-07 | automática | `src/test/foto-de-perfil-caminhos.test.ts` e `src/test/catalogo-pedido.integration.test.ts` | `criarContato`, `criarNovoLead` e `registrarPedido` chamam a busca uma vez para o contato criado |
 | CA-B29-08 | automática | `src/test/foto-de-perfil-contato.test.ts` | `204` marca `photo_checked_at` sem caminho; contato já conferido não gera chamada ao gateway |
 | CA-B29-09 | automática | `src/test/foto-de-perfil-contato.test.ts` | sem conexão `gateway` conectada, nenhuma chamada de rede e nada gravado |
 | CA-B29-10 | automática | `src/test/foto-de-perfil-contato.test.ts` e `src/test/gateway-recebimento.test.ts` | gateway com erro/tempo esgotado: a mensagem é gravada e transmitida, nada é marcado no contato, e a chamada seguinte tenta de novo |
@@ -116,8 +116,13 @@ e não atrapalham nada.
 - **Modificar:** `src/lib/catalogo/pedidos.ts` — chama depois do insert em `acharOuCriarContato`.
 - **Modificar:** `src/lib/lixeira.ts` — `apagarDaLixeira` remove a foto.
 - **Modificar:** `src/integrations/supabase/types.ts` — regenerado.
-- **Criar:** `src/test/foto-de-perfil-contato.test.ts`, `src/test/foto-de-perfil-caminhos.test.ts`, `src/test/lixeira-foto.test.ts`, `src/test/foto-de-perfil-seguranca.integration.test.ts`
-- **Modificar:** `src/test/gateway-recebimento.test.ts`, `src/test/webhook-whatsapp-automacoes.test.ts` — a chamada da busca.
+- **Criar:** `src/test/foto-de-perfil-contato.test.ts` — a busca e a guarda, com banco, storage e gateway falsos.
+- **Criar:** `src/test/foto-de-perfil-caminhos.test.ts` — Contatos e funil chamam a busca.
+- **Criar:** `src/test/lixeira-foto.test.ts` — lixeira e a foto.
+- **Criar:** `src/test/foto-de-perfil-seguranca.integration.test.ts` — bucket privado, no Storage real.
+- **Modificar:** `src/test/gateway-recebimento.test.ts` — a chamada da busca no recebimento.
+- **Modificar:** `src/test/webhook-whatsapp-automacoes.test.ts` — a chamada da busca na Meta.
+- **Modificar:** `src/test/catalogo-pedido.integration.test.ts` — a chamada da busca no pedido.
 
 ## Dependências Externas
 
@@ -126,9 +131,9 @@ e não atrapalham nada.
 
 ## Checklist
 
-- [ ] Migration aplicada no remoto e tipos regenerados
-- [ ] Módulo `foto-de-perfil.ts` com busca, guarda, endereço assinado e remoção
-- [ ] Chamada nos cinco caminhos (gateway, Meta, Contatos, funil, loja) e na lixeira
-- [ ] Evento `contato_foto` transmitido depois de guardar
-- [ ] Testes da tabela Prova passando; `tsc`, lint e build
+- [x] Migration aplicada no remoto e tipos regenerados
+- [x] Módulo `foto-de-perfil.ts` com busca, guarda, endereço assinado e remoção
+- [x] Chamada nos cinco caminhos (gateway, Meta, Contatos, funil, loja) e na lixeira
+- [x] Evento `contato_foto` transmitido depois de guardar
+- [x] Testes da tabela Prova passando; `tsc`, lint e build
 

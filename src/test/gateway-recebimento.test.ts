@@ -7,12 +7,14 @@ vi.mock("@/lib/whatsapp/realtime", () => ({
   transmitirMensagem: vi.fn().mockResolvedValue(undefined),
 }))
 
+vi.mock("@/lib/whatsapp/foto-de-perfil", () => ({ buscarEGuardarFotoDoContato: vi.fn().mockResolvedValue("guardada") }))
 vi.mock("@/lib/automacoes/fila", () => ({
   dispararAutomacoes: vi.fn().mockResolvedValue(undefined),
 }))
 
 import { transmitirMensagem } from "@/lib/whatsapp/realtime"
 import { dispararAutomacoes } from "@/lib/automacoes/fila"
+import { buscarEGuardarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
 import {
   identificadorDoContato,
   PREFIXO_LID,
@@ -523,3 +525,35 @@ describe("tradução de texto", () => {
     expect(traduzirTexto(TEXTO)).toEqual({ tipo: "texto", conteudo: TEXTO.text, previa: TEXTO.text })
   })
 })
+
+describe("B29-02 — foto de perfil no recebimento", () => {
+  beforeEach(() => vi.mocked(buscarEGuardarFotoDoContato).mockClear())
+
+  it("CA-B29-05: a mensagem recebida pelo canal direto pede a foto do contato, pelo número por onde ela chegou, depois de gravar", async () => {
+    const { supabase, escritas } = supabaseFalso()
+    let gravadaAntes = false
+    vi.mocked(buscarEGuardarFotoDoContato).mockImplementationOnce(async () => {
+      gravadaAntes = escritas.some((e) => e.tabela === "messages" && e.operacao === "insert")
+      return "guardada"
+    })
+
+    await registrarMensagemRecebida({ supabase, workspaceId: WORKSPACE, evento: TEXTO, recebidoEm: RECEBIDO_EM, connectionId: "cx-gw" })
+
+    expect(buscarEGuardarFotoDoContato).toHaveBeenCalledTimes(1)
+    expect(buscarEGuardarFotoDoContato).toHaveBeenCalledWith({ svc: supabase, workspaceId: WORKSPACE, contactId: "contato-novo", telefone: TEXTO.from, connectionId: "cx-gw" })
+    expect(gravadaAntes).toBe(true)
+  })
+
+  it("CA-B29-10: a busca que falha não atrapalha a mensagem: gravada, transmitida e com as regras na fila", async () => {
+    const { supabase, escritas } = supabaseFalso()
+    vi.mocked(buscarEGuardarFotoDoContato).mockResolvedValueOnce("falhou")
+
+    const resultado = await registrarMensagemRecebida({ supabase, workspaceId: WORKSPACE, evento: TEXTO, recebidoEm: RECEBIDO_EM })
+
+    expect(resultado.messageId).toBe("mensagem-nova")
+    expect(escritaDe(escritas, "messages", "insert")).toBeDefined()
+    expect(transmitirMensagem).toHaveBeenCalled()
+    expect(dispararAutomacoes).toHaveBeenCalledWith(expect.objectContaining({ tipo: "mensagem_recebida" }))
+  })
+})
+

@@ -2,6 +2,7 @@
 // é conferido aqui, com dados do banco — preços, estoque e mínimo do navegador nunca valem.
 
 import { createServiceClient } from "@/integrations/supabase/service"
+import { buscarEGuardarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
 import { chaveCombinacao, combinacoes, type TipoVariacao } from "./combinacoes"
 import { carregarLojaPublica } from "./loja-publica"
 import { faltaParaMinimo, linkWhatsapp, montarMensagemPedido, normalizarWhatsapp, type ItemPedido } from "@/app/loja/components/pedido"
@@ -155,6 +156,9 @@ export async function registrarPedido(endereco: string, cliente: { nome: string;
   })
   const registrado = (data as { pedido_id: string; numero: number }[] | null)?.[0]
   if (error || !registrado) return { ok: false, erro: "Não deu para enviar o pedido. Tente de novo." }
+
+  // B29-02: a foto vem pelo canal direto, depois de o pedido estar gravado. Nunca falha.
+  await buscarEGuardarFotoDoContato({ svc, workspaceId: loja.workspaceId, contactId: contatoId, telefone: whatsapp })
 
   const mensagem = montarMensagemPedido({ numero: registrado.numero, nomeCliente: nome, itens, mensagemFechamento: loja.mensagemFechamento })
   return { ok: true, numero: registrado.numero, mensagem, link: linkWhatsapp(loja.whatsapp, mensagem) }

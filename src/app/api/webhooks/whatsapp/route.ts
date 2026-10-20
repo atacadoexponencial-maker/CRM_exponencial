@@ -4,6 +4,7 @@ import { tipoDaMensagemParaRegras } from "@/lib/automacoes/contexto"
 import { dispararAutomacoes } from "@/lib/automacoes/fila"
 import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"
 import { transmitirMensagem } from "@/lib/whatsapp/realtime"
+import { buscarEGuardarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
 import { lerMensagemMeta } from "@/lib/whatsapp/mensagem-meta"
 import { escolherConversaDoNumero, nomeDoPerfil, statusAoReabrir } from "@/lib/whatsapp/recebimento"
 import { tirarDaLixeira } from "@/lib/lixeira"
@@ -250,6 +251,10 @@ export async function POST(request: NextRequest) {
           texto: lida.textoDoCliente,
         })
       }
+
+      // B29-02: a foto vem pelo canal direto da empresa, se houver um conectado.
+      // Por último, e sem derrubar nada.
+      await buscarEGuardarFotoDoContato({ svc: supabase, workspaceId: workspace_id, contactId: contact.id, telefone: phoneNumber, connectionId: connectionId ?? null })
     }
   }
 

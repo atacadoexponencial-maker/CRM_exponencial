@@ -3,7 +3,13 @@
 // login: o servidor usa a chave de serviço).
 
 import { createClient } from "@supabase/supabase-js"
-import { describe, it, expect, beforeAll, afterAll } from "vitest"
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest"
+
+// B29-02: a busca da foto de perfil é falsa aqui (o gateway não entra no teste);
+// o que se confere é que o pedido a chama para o contato criado.
+vi.mock("@/lib/whatsapp/foto-de-perfil", () => ({ buscarEGuardarFotoDoContato: vi.fn().mockResolvedValue("sem_canal") }))
+
+import { buscarEGuardarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
 import { formasDoNumero, registrarPedido } from "@/lib/catalogo/pedidos"
 
 const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
@@ -130,3 +136,16 @@ describe("QA A9 — preço que mudou depois de entrar no carrinho", { timeout: 3
     expect(pedido?.total).toBe(180)
   })
 })
+
+describe("B29-02 — pedido da loja e a foto de perfil", { timeout: 30_000 }, () => {
+  it("CA-B29-07: o pedido pela loja pede a foto do contato criado, depois de o pedido estar gravado", async () => {
+    vi.mocked(buscarEGuardarFotoDoContato).mockClear()
+    const r = await registrarPedido(slug, { nome: "Foto Teste", whatsapp: "61 93333-2222" }, [{ produtoId: camisa, combinacao: "", quantidade: 3 }])
+    expect(r.ok).toBe(true)
+
+    const { data: contato } = await service.from("contacts").select("id").eq("workspace_id", ws).eq("phone_number", "5561933332222").single()
+    expect(buscarEGuardarFotoDoContato).toHaveBeenCalledTimes(1)
+    expect(buscarEGuardarFotoDoContato).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: ws, contactId: contato!.id, telefone: "5561933332222" }))
+  })
+})
+

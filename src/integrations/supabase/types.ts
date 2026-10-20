@@ -859,6 +859,8 @@ export type Database = {
           nicho: string | null
           observacoes: string | null
           phone_number: string
+          photo_checked_at: string | null
+          photo_path: string | null
           tipo: string | null
           workspace_id: string
         }
@@ -875,6 +877,8 @@ export type Database = {
           nicho?: string | null
           observacoes?: string | null
           phone_number: string
+          photo_checked_at?: string | null
+          photo_path?: string | null
           tipo?: string | null
           workspace_id: string
         }
@@ -891,6 +895,8 @@ export type Database = {
           nicho?: string | null
           observacoes?: string | null
           phone_number?: string
+          photo_checked_at?: string | null
+          photo_path?: string | null
           tipo?: string | null
           workspace_id?: string
         }
@@ -1530,6 +1536,7 @@ export type Database = {
       reminders: {
         Row: {
           atendente_id: string
+          automacao_nome: string | null
           contact_id: string
           created_at: string
           done_at: string | null
@@ -1543,6 +1550,7 @@ export type Database = {
         }
         Insert: {
           atendente_id: string
+          automacao_nome?: string | null
           contact_id: string
           created_at?: string
           done_at?: string | null
@@ -1556,6 +1564,7 @@ export type Database = {
         }
         Update: {
           atendente_id?: string
+          automacao_nome?: string | null
           contact_id?: string
           created_at?: string
           done_at?: string | null

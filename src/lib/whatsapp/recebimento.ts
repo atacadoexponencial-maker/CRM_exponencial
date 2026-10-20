@@ -16,6 +16,7 @@ import type { createServiceClient } from "@/integrations/supabase/service"
 import { tipoDaMensagemParaRegras } from "@/lib/automacoes/contexto"
 import { dispararAutomacoes } from "@/lib/automacoes/fila"
 import { transmitirMensagem } from "./realtime"
+import { buscarEGuardarFotoDoContato } from "./foto-de-perfil"
 import { guardarMidiaRecebida, type MidiaDoEvento, type MidiaGuardada } from "./midia-recebida"
 import { tirarDaLixeira } from "@/lib/lixeira"
 
@@ -323,6 +324,10 @@ export async function registrarMensagemRecebida({
       texto,
     })
   }
+
+  // B29-02: por último, e sem derrubar nada: a mensagem já está gravada,
+  // transmitida e com as regras na fila. Contato já conferido sai na hora.
+  await buscarEGuardarFotoDoContato({ svc: supabase, workspaceId, contactId, telefone: identificador, connectionId })
 
   return { contactId, conversationId, messageId: inserida?.id ?? null, conversaCriada }
 }
