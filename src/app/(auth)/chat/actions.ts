@@ -11,6 +11,7 @@ import { listarConversas, TAMANHO_PAGINA_CONVERSAS } from "./conversas"
 /** Mesmo teto do painel: limite da requisição no Vercel, não do WhatsApp. */
 const LIMITE_ANEXO_BYTES = 4 * 1024 * 1024
 import { sessaoAtual } from "@/lib/sessao"
+import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
 import { dispararEtiquetaAplicada, dispararMensagemEnviadaPeloTime } from "@/lib/automacoes/gatilhos-do-crm"
 
 /**
@@ -682,36 +683,70 @@ export interface ConversaAnterior {
   ultimaMensagemHorario: string
 }
 
+/** Cadastro e funil do contato, para a ficha do chat (pedido dela em 20/10/2026). */
+export interface CadastroDoContato {
+  contactId: string
+  classificacao: string
+  tipo: string | null
+  nicho: string | null
+  cidade: string | null
+  icp: string | null
+  atendente: string | null
+  tags: string[]
+  /** Etapa (rótulo) em cada funil em que há card. */
+  funis: Array<{ funil: "entrada" | "recompra"; etapa: string }>
+}
+
 export interface InfoContato {
   dataPrimeiroContato: string
-  etiquetas: []
+  cadastro: CadastroDoContato
   conversasAnteriores: ConversaAnterior[]
 }
+
+const ROTULO_DA_ETAPA: Record<string, string> = Object.fromEntries(
+  [...ETAPAS_ENTRADA, ...ETAPAS_RECOMPRA].map((e) => [e.id, e.label])
+)
 
 export async function buscarInfoContato(conversaId: string): Promise<InfoContato> {
   const supabase = await createClient()
 
   const { data: conversa, error: errConversa } = await supabase
     .from("conversations")
-    .select("contact_id, contact:contacts(created_at)")
+    .select("contact_id, contact:contacts(created_at, classificacao, tipo, nicho, cidade, icp, atendente:profiles!contacts_atendente_id_fkey(name))")
     .eq("id", conversaId)
     .single()
 
   if (errConversa || !conversa) throw new Error("Conversa não encontrada")
 
-  type ConversaRow = { contact_id: string; contact: { created_at: string } | null }
+  type ConversaRow = {
+    contact_id: string
+    contact: {
+      created_at: string
+      classificacao: string | null
+      tipo: string | null
+      nicho: string | null
+      cidade: string | null
+      icp: string | null
+      atendente: { name: string } | { name: string }[] | null
+    } | null
+  }
   const { contact_id, contact } = conversa as unknown as ConversaRow
 
   if (!contact) throw new Error("Contato não encontrado")
 
   const dataPrimeiroContato = formatarDataCurta(contact.created_at)
 
-  const { data: anteriores } = await supabase
-    .from("conversations")
-    .select("id, status, last_message_text, last_message_at")
-    .eq("contact_id", contact_id)
-    .neq("id", conversaId)
-    .order("last_message_at", { ascending: false })
+  // Mesmas regras de acesso das outras telas: a RLS filtra cards e tags.
+  const [{ data: anteriores }, { data: cards }, { data: tags }] = await Promise.all([
+    supabase
+      .from("conversations")
+      .select("id, status, last_message_text, last_message_at")
+      .eq("contact_id", contact_id)
+      .neq("id", conversaId)
+      .order("last_message_at", { ascending: false }),
+    supabase.from("pipeline_cards").select("funil, etapa").eq("contact_id", contact_id),
+    supabase.from("contact_tags").select("tag").eq("contact_id", contact_id).order("created_at"),
+  ])
 
   const conversasAnteriores: ConversaAnterior[] = (anteriores ?? []).map((c) => ({
     id: c.id,
@@ -720,7 +755,22 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
     ultimaMensagemHorario: formatarHorarioDaLista(c.last_message_at),
   }))
 
-  return { dataPrimeiroContato, etiquetas: [], conversasAnteriores }
+  const atendente = Array.isArray(contact.atendente) ? contact.atendente[0] : contact.atendente
+  const cadastro: CadastroDoContato = {
+    contactId: contact_id,
+    classificacao: contact.classificacao ?? "sem_historico",
+    tipo: contact.tipo,
+    nicho: contact.nicho,
+    cidade: contact.cidade,
+    icp: contact.icp,
+    atendente: atendente?.name ?? null,
+    tags: (tags ?? []).map((t) => t.tag as string),
+    funis: (cards ?? [])
+      .filter((c) => c.funil === "entrada" || c.funil === "recompra")
+      .map((c) => ({ funil: c.funil as "entrada" | "recompra", etapa: ROTULO_DA_ETAPA[c.etapa] ?? c.etapa })),
+  }
+
+  return { dataPrimeiroContato, cadastro, conversasAnteriores }
 }
 
 export async function atualizarNomeContato(contactId: string, nome: string): Promise<void> {

@@ -1,12 +1,24 @@
 "use client"
 
 import { useState, useRef, useEffect, useTransition, KeyboardEvent } from "react"
-import { Pencil, Check, X, ChevronRight, MessageSquare, Loader2 } from "lucide-react"
+import Link from "next/link"
+import { Pencil, Check, X, ChevronRight, MessageSquare, Loader2, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AvatarContato } from "@/components/shared/avatar-contato"
 import { buscarInfoContato, atualizarNomeContato } from "../actions"
 import type { Conversa } from "../mock-conversas"
-import type { ConversaAnterior } from "../actions"
+import type { CadastroDoContato, ConversaAnterior } from "../actions"
+import { CLASSIFICACAO_LABEL, ICP_LABEL, TIPO_LABEL, type ClassificacaoContato, type ICP, type TipoContato } from "@/app/(auth)/contatos/mock-contatos"
+
+/** Linha rótulo + valor do cadastro; vazio vira "—", para a pessoa ver o que falta. */
+function Dado({ rotulo, valor }: { rotulo: string; valor: string | null | undefined }) {
+  return (
+    <div className="flex items-baseline justify-between gap-2 text-xs">
+      <dt className="text-muted-foreground shrink-0">{rotulo}</dt>
+      <dd className={cn("text-right truncate", !valor && "text-muted-foreground")}>{valor || "—"}</dd>
+    </div>
+  )
+}
 
 const STATUS_LABEL: Record<string, string> = {
   em_espera: "Em espera",
@@ -37,6 +49,7 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
   const inputRef = useRef<HTMLInputElement>(null)
   const [dataPrimeiroContato, setDataPrimeiroContato] = useState<string | null>(null)
   const [conversasAnteriores, setConversasAnteriores] = useState<ConversaAnterior[] | null>(null)
+  const [cadastro, setCadastro] = useState<CadastroDoContato | null>(null)
   const [erroInfo, setErroInfo] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -50,6 +63,7 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
         const info = await buscarInfoContato(conversaId)
         setDataPrimeiroContato(info.dataPrimeiroContato)
         setConversasAnteriores(info.conversasAnteriores)
+        setCadastro(info.cadastro)
       } catch {
         setErroInfo(true)
       }
@@ -177,6 +191,47 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
             )
           ) : (
             <p className="text-sm">{dataPrimeiroContato}</p>
+          )}
+        </div>
+
+        {/* Cadastro e funil (20/10/2026): o que o perfil tem, só de leitura */}
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Cadastro</p>
+          {isPending || cadastro === null ? (
+            erroInfo ? (
+              <p className="text-xs text-destructive">Erro ao carregar</p>
+            ) : (
+              <div className="h-20 rounded-md bg-muted animate-pulse" />
+            )
+          ) : (
+            <>
+              <dl className="flex flex-col gap-1">
+                <Dado rotulo="Classificação" valor={CLASSIFICACAO_LABEL[cadastro.classificacao as ClassificacaoContato] ?? cadastro.classificacao} />
+                <Dado rotulo="Tipo" valor={cadastro.tipo ? TIPO_LABEL[cadastro.tipo as TipoContato] ?? cadastro.tipo : null} />
+                <Dado rotulo="Nicho" valor={cadastro.nicho} />
+                <Dado rotulo="Cidade" valor={cadastro.cidade} />
+                <Dado rotulo="Perfil" valor={cadastro.icp ? ICP_LABEL[cadastro.icp as ICP] ?? cadastro.icp : null} />
+                <Dado rotulo="Atendente" valor={cadastro.atendente} />
+                {cadastro.funis.map((f) => (
+                  <Dado key={f.funil} rotulo={f.funil === "entrada" ? "Funil de Entrada" : "Funil de Recompra"} valor={f.etapa} />
+                ))}
+                {cadastro.funis.length === 0 && <Dado rotulo="Funil" valor={null} />}
+              </dl>
+              {cadastro.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1" aria-label="Tags">
+                  {cadastro.tags.map((t) => (
+                    <span key={t} className="rounded-full bg-muted px-2 py-0.5 text-[11px]">{t}</span>
+                  ))}
+                </div>
+              )}
+              <Link
+                href={`/contatos/${cadastro.contactId}`}
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                <ExternalLink className="size-3" />
+                Abrir perfil completo
+              </Link>
+            </>
           )}
         </div>
 
