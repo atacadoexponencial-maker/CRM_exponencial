@@ -7,6 +7,7 @@ import { calcularClassificacao } from "./classificacao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { tirarDaLixeira } from "@/lib/lixeira"
 import { dispararDadosAlterados, dispararTagAdicionada } from "@/lib/automacoes/gatilhos-do-crm"
+import { normalizarWhatsapp, TELEFONE_INVALIDO } from "@/lib/telefone"
 
 const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, nicho, cidade, created_at, profiles!contacts_atendente_id_fkey(name)"
 
@@ -25,8 +26,9 @@ function mapContato(c: any): Contato {
   }
 }
 
-export async function verificarNumeroDuplicado(telefone: string): Promise<boolean> {
-  if (!telefone.trim()) return false
+export async function verificarNumeroDuplicado(telefoneDigitado: string): Promise<boolean> {
+  const telefone = normalizarWhatsapp(telefoneDigitado)
+  if (!telefone) return false
 
   const supabase = await createClient()
 
@@ -58,7 +60,7 @@ export async function criarContato(dados: {
   tipo?: string | null
   nicho?: string | null
   cidade?: string | null
-}): Promise<{ erro?: string; id?: string }> {
+}): Promise<{ erro?: string; id?: string; restaurado?: boolean }> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -73,13 +75,20 @@ export async function criarContato(dados: {
   if (!profile) return { erro: "Perfil não encontrado" }
   if (profile.role === "atendente") return { erro: "Sem permissão para criar contatos" }
 
+  // QA M13/M14 (06/10): o servidor confere nome e telefone, não só a tela.
+  const nome = dados.nome.trim()
+  if (!nome) return { erro: "Informe o nome do contato." }
+  if (nome.length > 120) return { erro: "O nome passa de 120 caracteres." }
+  const telefone = normalizarWhatsapp(dados.telefone)
+  if (!telefone) return { erro: TELEFONE_INVALIDO }
+
   // B13-05: telefone de contato na lixeira restaura o contato antigo, com o
   // histórico (os dados antigos ficam), em vez de criar outro.
   const { data: naLixeira } = await supabase
     .from("contacts")
     .select("id")
     .eq("workspace_id", profile.workspace_id)
-    .eq("phone_number", dados.telefone)
+    .eq("phone_number", telefone)
     .not("excluido_em", "is", null)
     .maybeSingle()
   if (naLixeira) {
@@ -88,15 +97,16 @@ export async function criarContato(dados: {
     } catch {
       return { erro: "Erro ao criar contato. Tente novamente." }
     }
-    return { id: naLixeira.id }
+    // QA M11 (06/10): a tela avisa que o nome digitado não valeu.
+    return { id: naLixeira.id, restaurado: true }
   }
 
   const { data, error } = await supabase
     .from("contacts")
     .insert({
       workspace_id: profile.workspace_id,
-      phone_number: dados.telefone,
-      name: dados.nome,
+      phone_number: telefone,
+      name: nome,
       tipo: dados.tipo ?? null,
       nicho: dados.nicho ?? null,
       cidade: dados.cidade ?? null,
@@ -256,7 +266,13 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
 
   for (const card of rawCards) {
     const funilLabel = card.funil === "recompra" ? "Recompra" : "Entrada"
-    const etapaLabel = ETAPA_LABEL_ALL[card.etapa] ?? card.etapa
+    // QA M3 (06/10): a etapa em que o card nasceu é a "de" da primeira movimentação;
+    // sem movimentação, é a atual. Antes mostrava sempre a atual ("criado em Perdido").
+    const primeiraMovimentacao = (historyData ?? [])
+      .filter((h) => h.card_id === card.id)
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))[0]
+    const etapaInicial = primeiraMovimentacao?.de_etapa ?? card.etapa
+    const etapaLabel = ETAPA_LABEL_ALL[etapaInicial] ?? etapaInicial
     eventos.push({
       id: card.id,
       created_at: card.created_at,
@@ -374,13 +390,18 @@ export async function atualizarDadosContato(
   if (!profile) return { erro: "Perfil não encontrado" }
   if (profile.role === "atendente") return { erro: "Sem permissão para editar contatos" }
 
+  // QA M14 (06/10): nome só com espaços não vale.
+  const nome = dados.nome.trim()
+  if (!nome) return { erro: "Informe o nome do contato." }
+  if (nome.length > 120) return { erro: "O nome passa de 120 caracteres." }
+
   // B11-06: o antes, para o gatilho "dado do contato alterado" só disparar no que mudou
   const { data: antes } = await supabase.from("contacts").select("workspace_id, tipo, nicho, cidade").eq("id", id).maybeSingle()
 
   const depois = { tipo: dados.tipo ?? null, nicho: dados.nicho ?? null, cidade: dados.cidade ?? null }
   const { error } = await supabase
     .from("contacts")
-    .update({ name: dados.nome, ...depois, icp: dados.icp ?? null })
+    .update({ name: nome, ...depois, icp: dados.icp ?? null })
     .eq("id", id)
 
   if (error) return { erro: "Erro ao salvar. Tente novamente." }
@@ -409,8 +430,14 @@ function aplicarOpcoes<Q extends {
   range: (a: number, b: number) => Q
 }>(query: Q, { limite, offset = 0, busca }: OpcoesListagemContatos): Q {
   let q = query
+  // QA M29 (06/10): "(11) 98888" acha "5511988880001": no telefone, só os dígitos contam.
+  // (Acento no nome continua literal aqui: o banco não tem unaccent; as telas ignoram.)
   const termo = busca?.trim().replace(/[%,()]/g, "")
-  if (termo) q = q.or(`name.ilike.%${termo}%,phone_number.ilike.%${termo}%`)
+  const digitos = busca?.replace(/\D/g, "") ?? ""
+  if (termo) {
+    const porTelefone = digitos.length >= 3 ? `,phone_number.ilike.%${digitos}%` : ""
+    q = q.or(`name.ilike.%${termo}%${porTelefone}`)
+  }
   if (limite) {
     q = q.order("created_at", { ascending: false }).range(offset, offset + limite - 1)
   } else {
@@ -561,20 +588,28 @@ export async function atualizarObservacoesContato(
 
   if (!profile) return { erro: "Perfil não encontrado" }
 
+  // A leitura passa pela RLS: admin e gerente veem todos; o atendente, só os dele (B21).
   const { data: contato } = await supabase
     .from("contacts")
     .select("workspace_id")
     .eq("id", contactId)
+    .is("excluido_em", null)
     .single()
 
   if (!contato || contato.workspace_id !== profile.workspace_id) {
     return { erro: "Contato não encontrado" }
   }
 
-  const { error } = await supabase
+  if (observacoes.length > 5000) return { erro: "As observações passam de 5.000 caracteres." }
+
+  // QA M7 (06/10): a RLS só deixa admin e gerente atualizarem contatos; o atendente
+  // não conseguia salvar observações nem no próprio contato. Quem chegou aqui
+  // vê o contato; a chave de serviço grava só este campo.
+  const { error } = await createServiceClient()
     .from("contacts")
     .update({ observacoes: observacoes || null })
     .eq("id", contactId)
+    .eq("workspace_id", profile.workspace_id)
 
   if (error) return { erro: "Erro ao salvar. Tente novamente." }
 

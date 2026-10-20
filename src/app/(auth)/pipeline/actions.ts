@@ -7,7 +7,14 @@ import { cardsDepoisDoMovimento, prepararGatilhoDeClassificacao } from "@/lib/au
 import { processarGatilhoSequencia } from "@/lib/sequencias"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { tirarDaLixeira } from "@/lib/lixeira"
-import { type CardLead, type EtapaEntrada, type CardCliente, type EtapaRecompra, type HistoricoEtapa, type NotaInterna } from "./mock-pipeline"
+import { normalizarWhatsapp, TELEFONE_INVALIDO } from "@/lib/telefone"
+import { type CardLead, type EtapaEntrada, type CardCliente, type EtapaRecompra, type HistoricoEtapa, type NotaInterna, ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "./mock-pipeline"
+
+// QA M4 (06/10): o histórico do painel mostrava "sondagem → catalogo_enviado".
+const ROTULO_DA_ETAPA: Record<string, string> = Object.fromEntries(
+  [...ETAPAS_ENTRADA, ...ETAPAS_RECOMPRA].map((e) => [e.id, e.label])
+)
+const rotuloDaEtapa = (etapa: string | null | undefined) => (etapa ? (ROTULO_DA_ETAPA[etapa] ?? etapa) : "")
 
 function calcularTempoNaEtapa(etapaChangedAt: string): string {
   const agora = new Date()
@@ -134,8 +141,12 @@ async function localizarOuCriarContato(
 const JA_NO_FUNIL = "Este contato já está no Funil de Entrada."
 
 /** `erro`: o contato já tem card no Funil de Entrada (B22-26). O resto continua lançando. */
-export async function criarNovoLead(telefone: string, nome: string | null): Promise<{ erro?: string }> {
+export async function criarNovoLead(telefoneDigitado: string, nome: string | null): Promise<{ erro?: string }> {
   const supabase = await createClient()
+
+  // QA M13 (06/10): telefone normalizado no servidor; "abcdef" e "1" não entram.
+  const telefone = normalizarWhatsapp(telefoneDigitado)
+  if (!telefone) return { erro: TELEFONE_INVALIDO }
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) throw new Error("Usuário não autenticado")
@@ -380,8 +391,8 @@ export async function buscarDadosPainel(cardId: string): Promise<{ historico: Hi
   ])
 
   const historico: HistoricoEtapa[] = (historicoResult.data ?? []).map((row) => ({
-    deEtapa: row.de_etapa ?? "",
-    etapa: row.para_etapa,
+    deEtapa: rotuloDaEtapa(row.de_etapa),
+    etapa: rotuloDaEtapa(row.para_etapa),
     data: new Date(row.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }),
     responsavel: (row.alterado_por as unknown as { name: string } | null)?.name,
   }))

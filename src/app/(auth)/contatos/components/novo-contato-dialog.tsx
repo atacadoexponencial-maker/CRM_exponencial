@@ -32,6 +32,7 @@ export function NovoContatoDialog() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [erroGeral, setErroGeral] = useState<string | null>(null)
+  const [aviso, setAviso] = useState<string | null>(null)
   const [erroTelefone, setErroTelefone] = useState<string | null>(null)
 
   const {
@@ -57,9 +58,15 @@ export function NovoContatoDialog() {
       setErroGeral(resultado.erro)
       return
     }
-    setOpen(false)
     reset()
     router.refresh()
+    // QA M11 (06/10): número que estava na lixeira volta com os dados antigos; o nome
+    // digitado não vale, e a pessoa precisa saber.
+    if (resultado.restaurado) {
+      setAviso("Esse número estava na lixeira. O contato antigo voltou, com o nome e os dados de antes.")
+      return
+    }
+    setOpen(false)
   }
 
   async function handleTelefoneBlur(e: React.FocusEvent<HTMLInputElement>) {
@@ -93,6 +100,11 @@ export function NovoContatoDialog() {
         <DialogTitle className="mb-4">Novo contato</DialogTitle>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          {aviso && (
+            <p className="rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-500" role="status">
+              {aviso}
+            </p>
+          )}
           {erroGeral && (
             <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {erroGeral}
