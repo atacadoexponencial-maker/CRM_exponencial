@@ -86,7 +86,10 @@ export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, pape
   })
 
   return (
-    <div className="flex flex-col h-full">
+    // 20/10: era `h-full`, 100% da caixa, sem descontar o cabeçalho "Caixa de
+    // Entrada" acima. A lista passava 53 px do fundo e a última conversa ficava
+    // escondida mesmo rolando até o fim. Agora ocupa só o que sobra.
+    <div className="flex flex-col flex-1 min-h-0">
       <div className="p-3 border-b space-y-2">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
