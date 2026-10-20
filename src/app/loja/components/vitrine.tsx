@@ -4,11 +4,12 @@
 // É a mesma na prévia da tela de Aparência e na loja pública. Reage à largura do próprio
 // quadro (container queries), não à da janela.
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ImageOff, Search, ShoppingBag } from "lucide-react"
 import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { coresDaVitrine, type TemaLoja } from "./tema"
 import { familiaDaFonte } from "./fontes"
+import { contemTermo } from "@/lib/normalizar-busca"
 
 export interface CategoriaVitrine {
   id: string
@@ -152,9 +153,30 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
   const [busca, setBusca] = useState("")
   const cores = coresDaVitrine(tema)
 
+  // QA M31 (06/10): voltar do produto perdia filtro, busca e rolagem. Ficam guardados
+  // no aparelho, só para esta aba, enquanto a cliente navega pela loja.
+  const chaveDaVitrine = typeof window === "undefined" ? "" : `vitrine:${window.location.pathname}`
+  useEffect(() => {
+    if (!chaveDaVitrine) return
+    try {
+      const bruto = sessionStorage.getItem(chaveDaVitrine)
+      if (!bruto) return
+      sessionStorage.removeItem(chaveDaVitrine)
+      const guardado = JSON.parse(bruto) as { categoria: string | null; busca: string; rolagem: number }
+      // Depois da hidratação: primeiro o filtro, no quadro seguinte a rolagem.
+      requestAnimationFrame(() => {
+        setCategoriaAtiva(guardado.categoria)
+        setBusca(guardado.busca)
+        requestAnimationFrame(() => window.scrollTo(0, guardado.rolagem))
+      })
+    } catch {
+      // armazenamento indisponível: começa do zero
+    }
+  }, [chaveDaVitrine])
+
   const termo = busca.trim().toLowerCase()
   const filtrados = produtos.filter(
-    (p) => (!termo || p.nome.toLowerCase().includes(termo)) && (categoriaAtiva === null || p.categoriaId === categoriaAtiva)
+    (p) => (!termo || contemTermo(p.nome, termo)) && (categoriaAtiva === null || p.categoriaId === categoriaAtiva)
   )
   const grupos = [...categorias, { id: null as string | null, nome: "Mais produtos" }]
     .map((c) => ({ ...c, itens: filtrados.filter((p) => p.categoriaId === c.id) }))
@@ -163,6 +185,11 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
   const filtrando = termo !== "" || categoriaAtiva !== null
 
   function abrir(id: string) {
+    try {
+      if (chaveDaVitrine) sessionStorage.setItem(chaveDaVitrine, JSON.stringify({ categoria: categoriaAtiva, busca, rolagem: window.scrollY }))
+    } catch {
+      // armazenamento indisponível: volta sem o filtro
+    }
     onAbrirProduto?.(id)
   }
 

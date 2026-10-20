@@ -8,6 +8,7 @@ import { AbasCatalogo } from "../../components/abas-catalogo"
 import { EditorProduto, type FotoProduto, type ProdutoEditavel } from "../../components/editor-produto"
 import type { CategoriaCatalogo } from "../../components/lista-produtos"
 import { excluirProduto, prepararEnvioFoto, salvarProduto } from "../../actions"
+import { conteudoDoTipo } from "@/lib/automacoes/referencias"
 import { HREFS_CATALOGO } from "../../produtos-client"
 import { ALVOS_TOQUE_CELULAR } from "../../components/alvos-toque"
 
@@ -20,6 +21,11 @@ export function EditorClient({ inicial, categorias }: { inicial: ProdutoEditavel
     const supabase = createClient()
     const resultados = await Promise.all(
       arquivos.map(async (arquivo) => {
+        // QA M16 (06/10): o tipo vem do navegador, pela extensão; o conteúdo tem de bater
+        // (a foto vai direto ao armazenamento, então a conferência é aqui).
+        if (!conteudoDoTipo(arquivo.type, new Uint8Array(await arquivo.slice(0, 12).arrayBuffer()))) {
+          return { erro: `${arquivo.name}: o conteúdo não é uma imagem ${arquivo.type.replace("image/", "").toUpperCase()}. Escolha o arquivo original.` }
+        }
         const preparo = await prepararEnvioFoto({ tipo: arquivo.type, tamanho: arquivo.size })
         if (!("caminho" in preparo)) return { erro: `${arquivo.name}: ${preparo.erro}` }
         const { error } = await supabase.storage.from(BUCKET_CATALOGO).uploadToSignedUrl(preparo.caminho, preparo.token, arquivo, { contentType: arquivo.type })

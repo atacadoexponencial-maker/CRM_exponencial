@@ -122,6 +122,8 @@ export function Carrinho({ tema, aberto, linhas, minimo, onFechar, onMudarQuanti
           <div className="flex-1 flex flex-col items-center justify-center gap-2 p-6 text-center" style={{ color: cores.suave }}>
             <ShoppingBag className="size-8" />
             <p className="text-sm">Seu carrinho está vazio.</p>
+            {/* QA M21 (06/10): produto que saiu da loja esvazia o carrinho; o motivo tem de aparecer. */}
+            {erros.geral && <p className="text-sm text-red-600" role="alert">{erros.geral}</p>}
           </div>
         ) : (
           <>

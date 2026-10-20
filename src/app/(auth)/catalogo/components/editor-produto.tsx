@@ -53,9 +53,15 @@ interface EditorProdutoProps {
 
 type ErrosCampo = Partial<Record<"nome" | "preco" | "precoDe" | "fotos", string>>
 
-function paraNumero(texto: string): number | null {
-  const limpo = texto.replace(/\./g, "").replace(",", ".").trim()
-  if (!limpo) return null
+/**
+ * "1.050,00" → 1050; "10,5" → 10.5. QA M15 (06/10): "10.50" (ponto como decimal, sem
+ * vírgula) virava 1050; agora um único ponto seguido de 1 ou 2 dígitos é decimal.
+ */
+export function paraNumero(texto: string): number | null {
+  const bruto = texto.trim()
+  if (!bruto) return null
+  const pontoDecimal = !bruto.includes(",") && /^\d+\.\d{1,2}$/.test(bruto)
+  const limpo = pontoDecimal ? bruto : bruto.replace(/\./g, "").replace(",", ".")
   const n = Number(limpo)
   return Number.isFinite(n) ? n : null
 }
