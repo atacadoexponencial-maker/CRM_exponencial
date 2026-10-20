@@ -37,6 +37,8 @@ const TEXTO: EventoMensagemRecebida = {
 type Estado = {
   contato?: { id: string; name?: string | null } | null
   conversaAberta?: { id: string; unread_count: number; whatsapp_connection_id?: string | null } | null
+  /** 20/10: conversa resolvida do contato, reaberta quando ele escreve de novo. */
+  conversaResolvida?: { id: string; unread_count: number; assigned_to?: string | null; whatsapp_connection_id?: string | null } | null
   mensagemCitada?: { id: string } | null
   /** B11-04: `false` faz o insert da mensagem falhar. */
   mensagemGravada?: boolean
@@ -47,7 +49,7 @@ type Estado = {
  * métodos que o módulo usa — se ele chamar outra coisa, o teste quebra, o que é
  * o comportamento desejado.
  */
-function supabaseFalso({ contato = null, conversaAberta = null, mensagemCitada = null, mensagemGravada = true }: Estado = {}) {
+function supabaseFalso({ contato = null, conversaAberta = null, conversaResolvida = null, mensagemCitada = null, mensagemGravada = true }: Estado = {}) {
   const escritas: Array<{ tabela: string; operacao: string; linha: unknown }> = []
 
   function registra(tabela: string, operacao: string, linha: unknown) {
@@ -84,9 +86,10 @@ function supabaseFalso({ contato = null, conversaAberta = null, mensagemCitada =
           // A busca da conversa aberta devolve LISTA: a escolha é por número
           // dono, e pode haver mais de uma caixa do mesmo contato.
           limit: vi.fn().mockResolvedValue({
-            data: conversaAberta
-              ? [{ whatsapp_connection_id: null, ...conversaAberta }]
-              : [],
+            data: [
+              ...(conversaAberta ? [{ whatsapp_connection_id: null, status: "em_atendimento", assigned_to: null, ...conversaAberta }] : []),
+              ...(conversaResolvida ? [{ whatsapp_connection_id: null, status: "resolvida", assigned_to: null, ...conversaResolvida }] : []),
+            ],
           }),
           update: vi.fn((linha: unknown) => {
             registra("conversations", "update", linha)
@@ -197,6 +200,34 @@ describe("contato e conversa", () => {
     expect(resultado.conversaCriada).toBe(false)
   })
 
+  it("20/10: mensagem depois de resolvida reabre a mesma conversa, em vez de criar outra", async () => {
+    const { supabase, escritas } = supabaseFalso({
+      contato: { id: "contato-1" },
+      conversaResolvida: { id: "conversa-1", unread_count: 0, assigned_to: "atendente-1" },
+    })
+
+    const resultado = await registrarMensagemRecebida({ supabase, workspaceId: WORKSPACE, evento: TEXTO, recebidoEm: RECEBIDO_EM })
+
+    expect(escritaDe(escritas, "conversations", "insert")).toBeUndefined()
+    expect(escritaDe(escritas, "conversations", "update")).toMatchObject({ status: "em_atendimento", unread_count: 1 })
+    expect(resultado).toMatchObject({ conversationId: "conversa-1", conversaCriada: false })
+  })
+
+  it("20/10: resolvida sem atendente volta para em espera; com aberta, a aberta ganha", async () => {
+    const semAtendente = supabaseFalso({ contato: { id: "contato-1" }, conversaResolvida: { id: "r", unread_count: 0 } })
+    await registrarMensagemRecebida({ supabase: semAtendente.supabase, workspaceId: WORKSPACE, evento: TEXTO, recebidoEm: RECEBIDO_EM })
+    expect(escritaDe(semAtendente.escritas, "conversations", "update")).toMatchObject({ status: "em_espera" })
+
+    const comAberta = supabaseFalso({
+      contato: { id: "contato-1" },
+      conversaAberta: { id: "aberta", unread_count: 2 },
+      conversaResolvida: { id: "r", unread_count: 0 },
+    })
+    const resultado = await registrarMensagemRecebida({ supabase: comAberta.supabase, workspaceId: WORKSPACE, evento: TEXTO, recebidoEm: RECEBIDO_EM })
+    expect(resultado.conversationId).toBe("aberta")
+    expect(escritaDe(comAberta.escritas, "conversations", "update")).not.toHaveProperty("status")
+  })
+
   it("wamid do gateway grava na mesma coluna que a Meta usa", async () => {
     const { supabase, escritas } = supabaseFalso({ contato: { id: "c" }, conversaAberta: { id: "v", unread_count: 0 } })
 
@@ -278,6 +309,14 @@ describe("automações", () => {
       contactId: "contato-novo",
       conversationId: "conversa-nova",
     })
+  })
+
+  it("20/10: conversa reaberta não dispara conversa_criada, só mensagem_recebida", async () => {
+    const { supabase } = supabaseFalso({ contato: { id: "contato-1" }, conversaResolvida: { id: "conversa-1", unread_count: 0 } })
+
+    await registrarMensagemRecebida({ supabase, workspaceId: WORKSPACE, evento: TEXTO, recebidoEm: RECEBIDO_EM })
+
+    expect(vi.mocked(dispararAutomacoes).mock.calls.map(([g]) => g.tipo)).toEqual(["mensagem_recebida"])
   })
 
   it("B11-04: mensagem em conversa já aberta não dispara conversa_criada, só mensagem_recebida", async () => {

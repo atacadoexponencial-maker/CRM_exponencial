@@ -5,7 +5,7 @@ import { dispararAutomacoes } from "@/lib/automacoes/fila"
 import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"
 import { transmitirMensagem } from "@/lib/whatsapp/realtime"
 import { lerMensagemMeta } from "@/lib/whatsapp/mensagem-meta"
-import { escolherConversaDoNumero, nomeDoPerfil } from "@/lib/whatsapp/recebimento"
+import { escolherConversaDoNumero, nomeDoPerfil, statusAoReabrir } from "@/lib/whatsapp/recebimento"
 import { tirarDaLixeira } from "@/lib/lixeira"
 
 // Valida a assinatura X-Hub-Signature-256 que a Meta envia em todo webhook.
@@ -154,16 +154,22 @@ export async function POST(request: NextRequest) {
     // escreve para dois números do workspace tem duas conversas. Sem isto, a
     // segunda mensagem caía na caixa do primeiro número e a resposta saía pelo
     // telefone errado. A escolha é a mesma do gateway, e mora lá.
-    const { data: abertas } = await supabase
+    const { data: conversasDoContato } = await supabase
       .from("conversations")
-      .select("id, unread_count, whatsapp_connection_id")
+      .select("id, status, assigned_to, unread_count, whatsapp_connection_id")
       .eq("workspace_id", workspace_id)
       .eq("contact_id", contact.id)
-      .in("status", ["em_espera", "em_atendimento"])
+      .in("status", ["em_espera", "em_atendimento", "resolvida"])
       .order("created_at", { ascending: false })
       .limit(50)
 
-    const openConversation = escolherConversaDoNumero(abertas ?? [], connectionId ?? null)
+    // 20/10: uma conversa só por contato e número. Sem aberta, a resolvida é
+    // reaberta (regra do botão Reabrir), em vez de nascer outra vazia.
+    type ConversaDoContato = { id: string; status: string; assigned_to: string | null; unread_count: number; whatsapp_connection_id: string | null }
+    const conversas = (conversasDoContato ?? []) as ConversaDoContato[]
+    const aberta = escolherConversaDoNumero(conversas.filter((c) => c.status !== "resolvida"), connectionId ?? null)
+    const resolvida = aberta ? null : escolherConversaDoNumero(conversas.filter((c) => c.status === "resolvida"), connectionId ?? null)
+    const openConversation = aberta ?? resolvida
 
     let conversaId: string
 
@@ -177,6 +183,7 @@ export async function POST(request: NextRequest) {
           // Conversa sem dono registrado adota o número por onde a mensagem
           // chegou, em vez de virar caixa duplicada.
           whatsapp_connection_id: openConversation.whatsapp_connection_id ?? connectionId ?? null,
+          ...(resolvida ? { status: statusAoReabrir(resolvida.assigned_to) } : {}),
         })
         .eq("id", openConversation.id)
       if (error) return NextResponse.json({ error: "db error" }, { status: 500 })

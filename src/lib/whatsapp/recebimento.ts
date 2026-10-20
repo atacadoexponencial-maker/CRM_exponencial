@@ -391,6 +391,11 @@ export type ConversaAbertaDoContato = {
  *
  * `abertas` vem ordenada da mais recente para a mais antiga.
  */
+/** Reabrir: com atendente volta para em atendimento; sem, para em espera. */
+export function statusAoReabrir(assignedTo: string | null): "em_atendimento" | "em_espera" {
+  return assignedTo ? "em_atendimento" : "em_espera"
+}
+
 export function escolherConversaDoNumero<T extends ConversaAbertaDoContato>(
   abertas: T[],
   connectionId: string | null
@@ -421,19 +426,25 @@ async function abrirOuReusarConversa({
   /** B7-01: número por onde a conversa chegou, para a resposta sair por ele. */
   connectionId?: string | null
 }): Promise<{ conversationId: string; conversaCriada: boolean }> {
-  const { data: abertas } = await supabase
+  const { data } = await supabase
     .from("conversations")
-    .select("id, unread_count, whatsapp_connection_id")
+    .select("id, status, assigned_to, unread_count, whatsapp_connection_id")
     .eq("workspace_id", workspaceId)
     .eq("contact_id", contactId)
     // A caixa é por NÚMERO DONO, não por contato. Sem este filtro, o mesmo
     // cliente escrevendo para dois números do workspace caía na mesma conversa,
     // e a resposta saía pelo telefone errado.
-    .in("status", ["em_espera", "em_atendimento"])
+    .in("status", ["em_espera", "em_atendimento", "resolvida"])
     .order("created_at", { ascending: false })
     .limit(50)
 
-  const doMesmoNumero = escolherConversaDoNumero(abertas ?? [], connectionId ?? null)
+  // 20/10: uma conversa só por contato e número. Sem aberta, a resolvida é
+  // reaberta (mesma regra do botão Reabrir e do envio pelo celular, B25), em vez
+  // de nascer outra vazia com o histórico escondido em "atendimentos anteriores".
+  const conversas = (data ?? []) as Array<ConversaAbertaDoContato & { status: string; assigned_to: string | null }>
+  const aberta = escolherConversaDoNumero(conversas.filter((c) => c.status !== "resolvida"), connectionId ?? null)
+  const resolvida = aberta ? null : escolherConversaDoNumero(conversas.filter((c) => c.status === "resolvida"), connectionId ?? null)
+  const doMesmoNumero = aberta ?? resolvida
 
   if (doMesmoNumero) {
     const { error } = await supabase
@@ -445,6 +456,7 @@ async function abrirOuReusarConversa({
         // Conversa sem dono registrado adota o número por onde a mensagem
         // chegou, em vez de virar caixa duplicada.
         whatsapp_connection_id: doMesmoNumero.whatsapp_connection_id ?? connectionId ?? null,
+        ...(resolvida ? { status: statusAoReabrir(resolvida.assigned_to) } : {}),
       })
       .eq("id", doMesmoNumero.id)
 

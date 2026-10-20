@@ -2,13 +2,13 @@
 
 import { useState, useRef, useEffect, useTransition, KeyboardEvent } from "react"
 import Link from "next/link"
-import { Pencil, Check, X, ChevronRight, MessageSquare, Loader2, ExternalLink } from "lucide-react"
+import { Pencil, Check, X, ChevronRight, Loader2, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AvatarContato } from "@/components/shared/avatar-contato"
 import { buscarInfoContato, atualizarNomeContato } from "../actions"
 import { adicionarTagContato, atualizarDadosContato, removerTagContato } from "@/app/(auth)/contatos/actions"
 import type { Conversa } from "../mock-conversas"
-import type { CadastroDoContato, ConversaAnterior } from "../actions"
+import type { CadastroDoContato } from "../actions"
 import { CLASSIFICACAO_LABEL, ICP_LABEL, TIPO_LABEL, type ClassificacaoContato, type ICP, type TipoContato } from "@/app/(auth)/contatos/mock-contatos"
 
 /** Linha rótulo + valor do cadastro; vazio vira "—", para a pessoa ver o que falta. */
@@ -129,29 +129,16 @@ function DadoEditavel({
   )
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  em_espera: "Em espera",
-  em_atendimento: "Em atendimento",
-  resolvida: "Resolvida",
-}
-
-const STATUS_CLASS: Record<string, string> = {
-  em_espera: "text-amber-600",
-  em_atendimento: "text-green-600",
-  resolvida: "text-muted-foreground",
-}
-
 interface PainelContatoProps {
   conversa: Conversa
   conversaId: string
   onFechar: () => void
   onConversaAtualizada: (id: string, updates: Partial<Conversa>) => void
-  onNavegar: (id: string) => void
   /** Admin e gerente editam o cadastro na ficha; o atendente só vê. */
   podeEditar?: boolean
 }
 
-export function PainelContato({ conversa, conversaId, onFechar, onConversaAtualizada, onNavegar, podeEditar = false }: PainelContatoProps) {
+export function PainelContato({ conversa, conversaId, onFechar, onConversaAtualizada, podeEditar = false }: PainelContatoProps) {
   const [nomeLocal, setNomeLocal] = useState<string | null>(conversa.contato.nome)
   const [editando, setEditando] = useState(false)
   const [valorEdicao, setValorEdicao] = useState("")
@@ -159,7 +146,6 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
   const [erroSalvar, setErroSalvar] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const [dataPrimeiroContato, setDataPrimeiroContato] = useState<string | null>(null)
-  const [conversasAnteriores, setConversasAnteriores] = useState<ConversaAnterior[] | null>(null)
   const [cadastro, setCadastro] = useState<CadastroDoContato | null>(null)
   const [novaTag, setNovaTag] = useState("")
   const [erroTag, setErroTag] = useState<string | null>(null)
@@ -216,7 +202,6 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
       try {
         const info = await buscarInfoContato(conversaId)
         setDataPrimeiroContato(info.dataPrimeiroContato)
-        setConversasAnteriores(info.conversasAnteriores)
         setCadastro(info.cadastro)
       } catch {
         setErroInfo(true)
@@ -422,42 +407,6 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
           )}
         </div>
 
-        {/* Atendimentos anteriores: cada conversa resolvida é um atendimento; mensagem nova depois dela abre outra */}
-        <div className="flex flex-col gap-2">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-            <MessageSquare className="size-3" />
-            Atendimentos anteriores
-          </p>
-          {isPending || conversasAnteriores === null ? (
-            erroInfo ? (
-              <p className="text-xs text-destructive">Erro ao carregar</p>
-            ) : (
-              <div className="flex flex-col gap-1">
-                <div className="h-12 rounded-md bg-muted animate-pulse" />
-              </div>
-            )
-          ) : conversasAnteriores.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Este é o primeiro atendimento com este contato.</p>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {conversasAnteriores.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => onNavegar(c.id)}
-                  className="flex flex-col gap-0.5 px-3 py-2 rounded-md bg-muted/50 text-xs text-left hover:bg-muted transition-colors"
-                >
-                  <div className="flex items-center justify-between gap-2 w-full">
-                    <span className={cn("font-medium", STATUS_CLASS[c.status])}>
-                      {STATUS_LABEL[c.status]}
-                    </span>
-                    <span className="text-muted-foreground shrink-0">{c.ultimaMensagemHorario}</span>
-                  </div>
-                  <p className="text-muted-foreground truncate">{c.ultimaMensagemTexto}</p>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     </aside>
   )

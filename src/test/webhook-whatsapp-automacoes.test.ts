@@ -26,7 +26,7 @@ type Resposta = { data: unknown; error?: unknown }
  * conversa nova devolve `{ id: "conversa-nova" }`.
  */
 function bancoFalso({
-  abertas = [] as Array<{ id: string; unread_count: number; whatsapp_connection_id: string | null }>,
+  abertas = [] as Array<{ id: string; unread_count: number; whatsapp_connection_id: string | null; status?: string; assigned_to?: string | null }>,
   mensagemGravada = true,
   /** B22-45: o id da Meta já está gravado (reentrega). */
   jaGravada = false,
@@ -54,7 +54,10 @@ function bancoFalso({
         return obj
       })
     }
-    obj.limit = vi.fn(() => ({ then: (r: (v: Resposta) => void) => Promise.resolve({ data: abertas }).then(r) }))
+    obj.limit = vi.fn(() => ({
+      then: (r: (v: Resposta) => void) =>
+        Promise.resolve({ data: abertas.map((c) => ({ status: "em_atendimento", assigned_to: null, ...c })) }).then(r),
+    }))
     // Em `contacts`, a primeira consulta é a busca por telefone; a do insert devolve o criado
     obj.single = vi.fn(() => {
       if (tabela === "contacts" && !contatoBuscado) {
@@ -135,6 +138,17 @@ describe("B11-04 — mensagem recebida pela API Oficial", () => {
 
     expect(vi.mocked(dispararAutomacoes).mock.calls.map(([g]) => g.tipo)).toEqual(["conversa_criada", "mensagem_recebida"])
     expect(vi.mocked(dispararAutomacoes).mock.calls[1][0]).toMatchObject({ conversationId: "conversa-nova" })
+  })
+
+  it("20/10: mensagem depois de resolvida reabre a mesma conversa, sem conversa_criada", async () => {
+    const { escritas } = bancoFalso({ abertas: [{ ...ABERTA, status: "resolvida", assigned_to: "atendente-1" }] })
+
+    await POST(requisicao({ type: "text", text: { body: "oi de novo" } }))
+
+    expect(escritas.find((e) => e.tabela === "conversations" && e.operacao === "insert")).toBeUndefined()
+    expect(escritas.find((e) => e.tabela === "conversations" && e.operacao === "update")?.linha).toMatchObject({ status: "em_atendimento", unread_count: 1 })
+    expect(vi.mocked(dispararAutomacoes).mock.calls.map(([g]) => g.tipo)).toEqual(["mensagem_recebida"])
+    expect(vi.mocked(dispararAutomacoes).mock.calls[0][0]).toMatchObject({ conversationId: "conversa-1" })
   })
 
   it("foto: as regras veem o tipo imagem, mesmo com o webhook gravando como texto", async () => {

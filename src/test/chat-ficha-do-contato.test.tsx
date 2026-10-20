@@ -1,5 +1,5 @@
 // Ficha do contato no chat (pedido dela em 20/10/2026): além de nome, número e
-// conversas anteriores, mostra o cadastro (classificação, tipo, nicho, cidade,
+// mostra o cadastro (classificação, tipo, nicho, cidade,
 // perfil, atendente, tags), a etapa em cada funil e o link para o perfil completo.
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
@@ -16,7 +16,6 @@ vi.mock("@/app/(auth)/contatos/actions", () => ({
 vi.mock("@/app/(auth)/chat/actions", () => ({
   buscarInfoContato: vi.fn(async () => ({
     dataPrimeiroContato: "20 de out. de 2026",
-    conversasAnteriores: [],
     cadastro: {
       contactId: "c-1",
       classificacao: "lead",
@@ -48,7 +47,7 @@ const CONVERSA: Conversa = {
 
 describe("ficha do contato no chat", () => {
   it("mostra cadastro, funil, tags e o link do perfil; campo vazio vira —", async () => {
-    render(<PainelContato conversa={CONVERSA} conversaId="conv-1" onFechar={vi.fn()} onConversaAtualizada={vi.fn()} onNavegar={vi.fn()} />)
+    render(<PainelContato conversa={CONVERSA} conversaId="conv-1" onFechar={vi.fn()} onConversaAtualizada={vi.fn()} />)
     await waitFor(() => expect(screen.getByText("Lead")).toBeTruthy())
     expect(screen.getByText("Lojista")).toBeTruthy()
     expect(screen.getByText("Moda")).toBeTruthy()
@@ -63,7 +62,7 @@ describe("ficha do contato no chat", () => {
   })
 
   it("admin e gerente editam no lugar: nicho salvo com os outros campos como estão; tag nova adicionada", async () => {
-    render(<PainelContato conversa={CONVERSA} conversaId="conv-1" onFechar={vi.fn()} onConversaAtualizada={vi.fn()} onNavegar={vi.fn()} podeEditar />)
+    render(<PainelContato conversa={CONVERSA} conversaId="conv-1" onFechar={vi.fn()} onConversaAtualizada={vi.fn()} podeEditar />)
     await waitFor(() => expect(screen.getByText("Moda")).toBeTruthy())
 
     fireEvent.click(screen.getByLabelText("Editar nicho"))
@@ -81,7 +80,7 @@ describe("ficha do contato no chat", () => {
   })
 
   it("atendente não vê lápis nem campo de tag", async () => {
-    render(<PainelContato conversa={CONVERSA} conversaId="conv-1" onFechar={vi.fn()} onConversaAtualizada={vi.fn()} onNavegar={vi.fn()} />)
+    render(<PainelContato conversa={CONVERSA} conversaId="conv-1" onFechar={vi.fn()} onConversaAtualizada={vi.fn()} />)
     await waitFor(() => expect(screen.getByText("Moda")).toBeTruthy())
     expect(screen.queryByLabelText("Editar nicho")).toBeNull()
     expect(screen.queryByLabelText("Nova tag")).toBeNull()

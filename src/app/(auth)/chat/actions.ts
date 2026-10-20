@@ -2,7 +2,7 @@
 
 import { createClient } from "@/integrations/supabase/server"
 import { createServiceClient } from "@/integrations/supabase/service"
-import { formatarDataCurta, formatarHoraDoDia, formatarHorarioDaLista } from "@/lib/datas"
+import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
 import { resolverProviderDaConversa, statusInicialDoEnvio } from "@/lib/whatsapp"
 import type { Mensagem, TipoMensagem, DirecaoMensagem, StatusMensagem } from "./mock-mensagens"
 import type { Conversa } from "./mock-conversas"
@@ -676,13 +676,6 @@ export async function reabrirConversa(conversaId: string): Promise<{ novoStatus:
   return { novoStatus }
 }
 
-export interface ConversaAnterior {
-  id: string
-  status: string
-  ultimaMensagemTexto: string
-  ultimaMensagemHorario: string
-}
-
 /** Cadastro e funil do contato, para a ficha do chat (pedido dela em 20/10/2026). */
 export interface CadastroDoContato {
   contactId: string
@@ -700,7 +693,6 @@ export interface CadastroDoContato {
 export interface InfoContato {
   dataPrimeiroContato: string
   cadastro: CadastroDoContato
-  conversasAnteriores: ConversaAnterior[]
 }
 
 const ROTULO_DA_ETAPA: Record<string, string> = Object.fromEntries(
@@ -737,23 +729,10 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
   const dataPrimeiroContato = formatarDataCurta(contact.created_at)
 
   // Mesmas regras de acesso das outras telas: a RLS filtra cards e tags.
-  const [{ data: anteriores }, { data: cards }, { data: tags }] = await Promise.all([
-    supabase
-      .from("conversations")
-      .select("id, status, last_message_text, last_message_at")
-      .eq("contact_id", contact_id)
-      .neq("id", conversaId)
-      .order("last_message_at", { ascending: false }),
+  const [{ data: cards }, { data: tags }] = await Promise.all([
     supabase.from("pipeline_cards").select("funil, etapa").eq("contact_id", contact_id),
     supabase.from("contact_tags").select("tag").eq("contact_id", contact_id).order("created_at"),
   ])
-
-  const conversasAnteriores: ConversaAnterior[] = (anteriores ?? []).map((c) => ({
-    id: c.id,
-    status: c.status,
-    ultimaMensagemTexto: c.last_message_text,
-    ultimaMensagemHorario: formatarHorarioDaLista(c.last_message_at),
-  }))
 
   const atendente = Array.isArray(contact.atendente) ? contact.atendente[0] : contact.atendente
   const cadastro: CadastroDoContato = {
@@ -770,7 +749,7 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
       .map((c) => ({ funil: c.funil as "entrada" | "recompra", etapa: ROTULO_DA_ETAPA[c.etapa] ?? c.etapa })),
   }
 
-  return { dataPrimeiroContato, cadastro, conversasAnteriores }
+  return { dataPrimeiroContato, cadastro }
 }
 
 export async function atualizarNomeContato(contactId: string, nome: string): Promise<void> {
