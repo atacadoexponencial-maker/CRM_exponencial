@@ -76,6 +76,49 @@ export async function atribuirAtendente(cardId: string, atendenteId: string): Pr
   if (error) throw new Error("Erro ao atribuir atendente")
 }
 
+/** Devolve o contato do telefone (na lixeira ou não), criando se não existir. `null` quando o banco falha. */
+async function localizarOuCriarContato(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  workspaceId: string,
+  telefone: string,
+  nome: string | null
+): Promise<{ id: string } | null> {
+  const { data: existente, error: erroBusca } = await supabase
+    .from("contacts")
+    .select("id, name")
+    .eq("workspace_id", workspaceId)
+    .eq("phone_number", telefone)
+    .maybeSingle()
+  if (erroBusca) return null
+
+  if (existente) {
+    const semNome = !existente.name || existente.name.trim() === ""
+    if (semNome && nome && nome.trim() !== "") {
+      const { error } = await supabase.from("contacts").update({ name: nome.trim() }).eq("id", existente.id)
+      if (error) return null
+    }
+    return { id: existente.id }
+  }
+
+  const { data: novo, error: erroInsert } = await supabase
+    .from("contacts")
+    .insert({ workspace_id: workspaceId, phone_number: telefone, name: nome?.trim() || null })
+    .select("id")
+    .single()
+  if (erroInsert?.code === "23505") {
+    // Outro pedido criou o contato entre a busca e o insert: usar o que está lá.
+    const { data: criadoJunto } = await supabase
+      .from("contacts")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("phone_number", telefone)
+      .maybeSingle()
+    return criadoJunto ? { id: criadoJunto.id } : null
+  }
+  if (erroInsert || !novo) return null
+  return { id: novo.id }
+}
+
 const JA_NO_FUNIL = "Este contato já está no Funil de Entrada."
 
 /** `erro`: o contato já tem card no Funil de Entrada (B22-26). O resto continua lançando. */
@@ -94,16 +137,11 @@ export async function criarNovoLead(telefone: string, nome: string | null): Prom
   if (profileError || !profile) throw new Error("Perfil não encontrado")
   if (!["admin", "gerente"].includes(profile.role)) throw new Error("Sem permissão para criar leads")
 
-  const { data: contato, error: contatoError } = await supabase
-    .from("contacts")
-    .upsert(
-      { workspace_id: profile.workspace_id, phone_number: telefone, name: nome ?? null },
-      { onConflict: "workspace_id,phone_number", ignoreDuplicates: false }
-    )
-    .select("id")
-    .single()
-
-  if (contatoError || !contato) throw new Error("Erro ao criar ou localizar contato")
+  // QA C3 (06/10): o upsert antigo regravava o nome do contato que já existia
+  // (inclusive com null). Contato existente mantém o nome; só ganha o digitado
+  // se estiver sem nome. Contato novo nasce com o nome do formulário.
+  const contato = await localizarOuCriarContato(supabase, profile.workspace_id, telefone, nome)
+  if (!contato) throw new Error("Erro ao criar ou localizar contato")
 
   // B13-05: telefone de contato na lixeira traz o contato de volta, com o
   // histórico. Antes do card: card de contato na lixeira nasceria invisível.
