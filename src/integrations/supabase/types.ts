@@ -766,30 +766,55 @@ export type Database = {
       }
       contact_purchases: {
         Row: {
+          atendente_id: string | null
+          codigo_externo: string | null
           contact_id: string
           created_at: string
           data: string
+          desconto: number | null
+          forma_pagamento: string | null
           id: string
+          origem: string
+          pecas: number | null
           valor: number
           workspace_id: string
         }
         Insert: {
+          atendente_id?: string | null
+          codigo_externo?: string | null
           contact_id: string
           created_at?: string
           data: string
+          desconto?: number | null
+          forma_pagamento?: string | null
           id?: string
+          origem?: string
+          pecas?: number | null
           valor: number
           workspace_id: string
         }
         Update: {
+          atendente_id?: string | null
+          codigo_externo?: string | null
           contact_id?: string
           created_at?: string
           data?: string
+          desconto?: number | null
+          forma_pagamento?: string | null
           id?: string
+          origem?: string
+          pecas?: number | null
           valor?: number
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contact_purchases_atendente_id_fkey"
+            columns: ["atendente_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contact_purchases_contact_id_fkey"
             columns: ["contact_id"]

@@ -39,6 +39,13 @@ export interface Compra {
   id: string
   data: string
   valor: number
+  /** B30-01: campos dos relatórios. Opcionais; compra antiga vem sem eles. */
+  pecas?: number | null
+  desconto?: number | null
+  formaPagamento?: import("@/lib/compras").FormaPagamento | null
+  /** Nome do atendente responsável pela venda. */
+  atendente?: string | null
+  origem?: import("@/lib/compras").OrigemCompra
 }
 
 export interface CardPipelineMock {
@@ -63,6 +70,8 @@ export interface ContatoPerfil extends Contato {
   conversaId: string | null
   cards: CardPipelineMock[]
   compras: Compra[]
+  /** B30-01: id do atendente responsável pelo contato, para sugerir no diálogo de compra. */
+  atendenteId?: string | null
   timeline: EventoTimeline[]
   /** Pedidos feitos pela loja do catálogo (B16-10). */
   pedidosCatalogo?: import("../catalogo/components/lista-pedidos").PedidoResumo[]

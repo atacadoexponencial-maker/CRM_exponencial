@@ -26,6 +26,7 @@ import { RegistrarCompraDialog } from "./registrar-compra-dialog"
 import { DialogoExcluirContato } from "../../components/dialogo-excluir-contato"
 import { resumoExclusaoContato, excluirContato, restaurarContato, type ResumoExclusao } from "../../lixeira/actions"
 import { atualizarDadosContato, adicionarTagContato, removerTagContato, atualizarObservacoesContato } from "../../actions"
+import { ROTULO_FORMA_PAGAMENTO, ROTULO_ORIGEM_COMPRA } from "@/lib/compras"
 
 const CLASSIFICACAO_BADGE: Record<string, string> = {
   lead: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
@@ -58,9 +59,12 @@ interface PerfilContatoProps {
   contactId?: string
   /** B13-04: o contato não veio porque está na lixeira. */
   naLixeira?: { excluidoPor: string; excluidoEm: string; diasRestantes: number } | null
+  /** B30-01: usuários ativos para o seletor de atendente da compra e quem vem marcado. */
+  atendentes?: Array<{ id: string; nome: string }>
+  atendenteSugeridoId?: string | null
 }
 
-export function PerfilContato({ contato, papel, contactId, naLixeira }: PerfilContatoProps) {
+export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes = [], atendenteSugeridoId = null }: PerfilContatoProps) {
   const router = useRouter()
   const [aba, setAba] = useState<Aba>("dados")
   const [editando, setEditando] = useState(false)
@@ -592,26 +596,35 @@ export function PerfilContato({ contato, papel, contactId, naLixeira }: PerfilCo
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Histórico de compras</h2>
               {papel !== "atendente" && (
-                <RegistrarCompraDialog contactId={contato.id} />
+                <RegistrarCompraDialog contactId={contato.id} atendentes={atendentes} atendenteSugeridoId={atendenteSugeridoId} />
               )}
             </div>
 
             {contato.compras.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nenhuma compra registrada</p>
             ) : (
-              <div className="rounded-lg border overflow-hidden">
+              <div className="rounded-lg border overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/50">
                       <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Data</th>
                       <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">Valor</th>
+                      {/* B30-01: campos dos relatórios */}
+                      <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">Peças</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Pagamento</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Atendente</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Origem</th>
                     </tr>
                   </thead>
                   <tbody>
                     {contato.compras.map((compra) => (
                       <tr key={compra.id} className="border-b last:border-0">
-                        <td className="px-4 py-2.5 text-muted-foreground">{compra.data}</td>
-                        <td className="px-4 py-2.5 text-right font-medium">{formatarMoeda(compra.valor)}</td>
+                        <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{compra.data}</td>
+                        <td className="px-4 py-2.5 text-right font-medium whitespace-nowrap">{formatarMoeda(compra.valor)}</td>
+                        <td className="px-4 py-2.5 text-right text-muted-foreground">{compra.pecas ?? "—"}</td>
+                        <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{compra.formaPagamento ? ROTULO_FORMA_PAGAMENTO[compra.formaPagamento] : "—"}</td>
+                        <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{compra.atendente ?? "—"}</td>
+                        <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{ROTULO_ORIGEM_COMPRA[compra.origem ?? "manual"]}</td>
                       </tr>
                     ))}
                   </tbody>

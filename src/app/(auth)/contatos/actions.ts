@@ -9,6 +9,7 @@ import { tirarDaLixeira } from "@/lib/lixeira"
 import { buscarEGuardarFotoDoContato, urlAssinadaDaFoto } from "@/lib/whatsapp/foto-de-perfil"
 import { dispararDadosAlterados, dispararTagAdicionada } from "@/lib/automacoes/gatilhos-do-crm"
 import { normalizarWhatsapp, TELEFONE_INVALIDO } from "@/lib/telefone"
+import { esquemaCompra, type CompraEntrada, type FormaPagamento, type OrigemCompra } from "@/lib/compras"
 
 const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, nicho, cidade, created_at, profiles!contacts_atendente_id_fkey(name)"
 
@@ -202,7 +203,8 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
       .order("created_at"),
     supabase
       .from("contact_purchases")
-      .select("id, data, valor, created_at")
+      // B30-01: campos dos relatórios e o nome de quem vendeu.
+      .select("id, data, valor, created_at, pecas, desconto, forma_pagamento, origem, vendedor:profiles!contact_purchases_atendente_id_fkey(name)")
       .eq("contact_id", id)
       .order("data", { ascending: false }),
     supabase
@@ -366,7 +368,13 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
       id: p.id,
       data: new Date(p.data + "T00:00:00").toLocaleDateString("pt-BR"),
       valor: Number(p.valor),
+      pecas: p.pecas ?? null,
+      desconto: p.desconto === null || p.desconto === undefined ? null : Number(p.desconto),
+      formaPagamento: (p.forma_pagamento ?? null) as FormaPagamento | null,
+      atendente: p.vendedor?.name ?? null,
+      origem: (p.origem ?? "manual") as OrigemCompra,
     })),
+    atendenteId: c.atendente_id ?? null,
     timeline,
     pedidosCatalogo: (pedidosData ?? []).map((o) => ({
       id: o.id,
@@ -624,11 +632,29 @@ export async function atualizarObservacoesContato(
   return {}
 }
 
+/** B30-01: usuários ativos da empresa, para o seletor de atendente da compra. */
+export async function listarAtendentesAtivos(): Promise<Array<{ id: string; nome: string }>> {
+  const { supabase, perfil } = await sessaoAtual()
+  if (!perfil) return []
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, name")
+    .eq("workspace_id", perfil.workspace_id)
+    .eq("status", "active")
+    .order("name")
+  return (data ?? []).map((p) => ({ id: p.id, nome: p.name }))
+}
+
 export async function registrarCompra(
   contactId: string,
-  dados: { data: string; valor: number }
+  entrada: CompraEntrada
 ): Promise<{ erro?: string }> {
-  if (!dados.valor || dados.valor <= 0) return { erro: "Valor deve ser maior que zero" }
+  // B30-01: a mesma validação da tela, feita de verdade aqui.
+  const validado = esquemaCompra.safeParse(entrada)
+  if (!validado.success) {
+    return { erro: validado.error.issues[0]?.message ?? "Dados da compra inválidos" }
+  }
+  const dados = validado.data
 
   const supabase = await createClient()
 
@@ -654,6 +680,18 @@ export async function registrarCompra(
     return { erro: "Contato não encontrado" }
   }
 
+  // B30-01: o atendente da venda precisa ser um usuário ativo desta empresa.
+  if (dados.atendenteId) {
+    const { data: atendente } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", dados.atendenteId)
+      .eq("workspace_id", profile.workspace_id)
+      .eq("status", "active")
+      .maybeSingle()
+    if (!atendente) return { erro: "Atendente inválido" }
+  }
+
   const { error } = await supabase
     .from("contact_purchases")
     .insert({
@@ -661,6 +699,11 @@ export async function registrarCompra(
       workspace_id: profile.workspace_id,
       data: dados.data,
       valor: dados.valor,
+      pecas: dados.pecas,
+      desconto: dados.desconto,
+      forma_pagamento: dados.formaPagamento,
+      atendente_id: dados.atendenteId,
+      origem: "manual",
     })
 
   if (error) return { erro: "Erro ao registrar compra. Tente novamente." }
