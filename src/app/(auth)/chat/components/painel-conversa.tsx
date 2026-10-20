@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, KeyboardEvent } from "react"
 import {
-  Search, Paperclip, Mic, Zap, StickyNote, Send, X, MoreVertical, Phone, Reply, ChevronUp, ChevronDown, Check,
+  Search, Paperclip, Mic, Zap, StickyNote, Send, X, MoreVertical, Phone, Reply, ChevronUp, ChevronDown, Check, ArrowLeft,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -112,9 +112,11 @@ interface PainelConversaProps {
   mensagensRapidas: Array<{ id: string; titulo: string; conteudo: string }>
   /** Abre a ficha do contato, que a tela do chat mostra entre a lista e a conversa. */
   onAbrirFicha: () => void
+  /** QA M23: no celular, volta para a lista de conversas. */
+  onVoltar?: () => void
 }
 
-export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensagemConfirmada, podeAtribuir, atendentes, atendentesTransferir, onConversaAtualizada, nomeUsuario, etiquetasDisponiveis, mensagensRapidas, onAbrirFicha }: PainelConversaProps) {
+export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensagemConfirmada, podeAtribuir, atendentes, atendentesTransferir, onConversaAtualizada, nomeUsuario, etiquetasDisponiveis, mensagensRapidas, onAbrirFicha, onVoltar }: PainelConversaProps) {
   /**
    * B7-02: por que a mídia não está disponível neste canal, se for o caso.
    * `null` significa disponível. Vem pronto do servidor, via `conversa.canal`.
@@ -441,6 +443,16 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
         {/* Cabeçalho */}
         <div className="flex items-center justify-between px-4 py-3 border-b bg-background shrink-0">
           <div className="flex items-center gap-3 min-w-0">
+            {onVoltar && (
+              <button
+                type="button"
+                onClick={onVoltar}
+                className="md:hidden flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
+                aria-label="Voltar para a lista de conversas"
+              >
+                <ArrowLeft className="size-4" />
+              </button>
+            )}
             <button
               onClick={onAbrirFicha}
               className="font-semibold text-sm hover:underline truncate text-left"

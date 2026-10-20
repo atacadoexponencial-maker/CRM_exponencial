@@ -329,8 +329,10 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
 
   return (
     <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 57px)" }}>
+      {/* QA M23 (06/10): no celular, uma coluna por vez: lista, depois a conversa aberta,
+          com "voltar" no cabeçalho dela; a ficha do contato vira uma gaveta por cima. */}
       {caixaRecolhida ? (
-        <aside className="w-12 shrink-0 border-r flex flex-col items-center gap-2 py-2">
+        <aside className="hidden md:flex w-12 shrink-0 border-r flex-col items-center gap-2 py-2">
           <button
             type="button"
             onClick={alternarCaixa}
@@ -350,7 +352,10 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
           )}
         </aside>
       ) : (
-      <aside className="w-80 shrink-0 border-r flex flex-col overflow-hidden">
+      <aside
+        data-testid="lista-de-conversas"
+        className={`${conversaAtivaId ? "hidden md:flex" : "flex"} w-full md:w-80 shrink-0 border-r flex-col overflow-hidden`}
+      >
         <div className="flex items-center justify-between gap-2 px-4 py-3 border-b">
           <h1 className="text-sm font-semibold">Caixa de Entrada</h1>
           <button
@@ -379,17 +384,19 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
 
       {/* Ficha do contato: entre a lista e a conversa. */}
       {fichaAberta && conversaAtiva && !ativaFoiExcluida && (
-        <PainelContato
-          key={conversaAtiva.id}
-          conversa={conversaAtiva}
-          conversaId={conversaAtiva.id}
-          onFechar={() => setFichaAberta(false)}
-          onConversaAtualizada={handleConversaAtualizada}
-          onNavegar={handleConversaClick}
-        />
+        <div className="fixed inset-0 z-40 flex bg-background md:static md:z-auto md:inset-auto">
+          <PainelContato
+            key={conversaAtiva.id}
+            conversa={conversaAtiva}
+            conversaId={conversaAtiva.id}
+            onFechar={() => setFichaAberta(false)}
+            onConversaAtualizada={handleConversaAtualizada}
+            onNavegar={handleConversaClick}
+          />
+        </div>
       )}
 
-      <main className="flex-1 flex overflow-hidden">
+      <main data-testid="area-da-conversa" className={`${conversaAtivaId ? "flex" : "hidden md:flex"} flex-1 overflow-hidden`}>
         {ativaFoiExcluida ? (
           <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
             Este contato foi excluído
@@ -420,6 +427,7 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
             etiquetasDisponiveis={etiquetasDisponiveis}
             mensagensRapidas={mensagensRapidas}
             onAbrirFicha={() => setFichaAberta(true)}
+            onVoltar={() => setConversaAtivaId(null)}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
