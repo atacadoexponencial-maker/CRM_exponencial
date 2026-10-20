@@ -1,6 +1,6 @@
 # Spec: Foto de perfil real do contato
 
-> série: B28
+> série: B29
 > estado: aprovada em 20/10/2026
 
 ## Visão Geral
@@ -47,14 +47,14 @@ que o CRM não dependa do endereço temporário.
 
 **Critérios de aceite:**
 
-#### CA-B28-01 — O gateway entrega a foto de um número · prova: automática
+#### CA-B29-01 — O gateway entrega a foto de um número · prova: automática
 
 - **Dado** uma instância conectada e um telefone cujo WhatsApp devolve o endereço de uma foto
 - **Quando** o CRM pede a foto desse telefone
 - **Então** o gateway responde com a própria imagem (tipo de conteúdo de imagem) e não com
   o endereço temporário do WhatsApp
 
-#### CA-B28-02 — Número sem foto visível responde "sem foto" · prova: automática
+#### CA-B29-02 — Número sem foto visível responde "sem foto" · prova: automática
 
 - **Dado** uma instância conectada e um telefone cujo WhatsApp não devolve foto (escondida
   ou inexistente)
@@ -62,7 +62,7 @@ que o CRM não dependa do endereço temporário.
 - **Então** o gateway responde "sem foto" (resposta vazia com código próprio), sem erro, e
   não grava nada
 
-#### CA-B28-03 — Sem credencial ou instância desconectada, a consulta é recusada · prova: automática
+#### CA-B29-03 — Sem credencial ou instância desconectada, a consulta é recusada · prova: automática
 
 - **Dado** um pedido de foto sem a credencial da instância, ou para uma instância que não
   está conectada
@@ -70,7 +70,7 @@ que o CRM não dependa do endereço temporário.
 - **Então** o gateway recusa (como recusa as demais rotas da instância) e não consulta o
   WhatsApp
 
-#### CA-B28-04 — A consulta não passa pelo freio nem pelo ritmo · prova: automática
+#### CA-B29-04 — A consulta não passa pelo freio nem pelo ritmo · prova: automática
 
 - **Dado** uma instância conectada com o freio acionado ou o ritmo esgotado
 - **Quando** o CRM pede a foto de um telefone
@@ -88,7 +88,7 @@ da empresa, guarda uma cópia no próprio storage e anota no contato onde está 
 
 **Comportamentos:**
 - Contato que nasce por mensagem recebida (canal direto ou Meta), por lead novo no funil,
-  por novo contato na tela de Contatos, por pedido na loja ou por importação: o CRM tenta
+  por novo contato na tela de Contatos ou por pedido na loja: o CRM tenta
   buscar a foto logo depois de criá-lo.
 - Para buscar, o CRM usa um número do canal direto **conectado** da empresa. Se o contato
   escreveu por um número do canal direto, usa esse; senão, qualquer um conectado.
@@ -103,7 +103,7 @@ da empresa, guarda uma cópia no próprio storage e anota no contato onde está 
 
 **Critérios de aceite:**
 
-#### CA-B28-05 — Mensagem recebida pelo canal direto traz a foto do contato novo · prova: automática
+#### CA-B29-05 — Mensagem recebida pelo canal direto traz a foto do contato novo · prova: automática
 
 - **Dado** uma empresa com um número do canal direto conectado e um telefone desconhecido
   cujo WhatsApp tem foto visível
@@ -111,35 +111,35 @@ da empresa, guarda uma cópia no próprio storage e anota no contato onde está 
 - **Então** o contato nasce, a cópia da foto fica guardada no storage do CRM e o contato
   aponta para ela
 
-#### CA-B28-06 — Contato que chega pela Meta ganha a foto pelo canal direto · prova: automática
+#### CA-B29-06 — Contato que chega pela Meta ganha a foto pelo canal direto · prova: automática
 
 - **Dado** uma empresa com um número da API Oficial e outro do canal direto, ambos
   conectados, e um telefone desconhecido com foto visível
 - **Quando** chega a primeira mensagem desse telefone pelo número da Meta
 - **Então** o contato nasce com a foto buscada pelo número do canal direto
 
-#### CA-B28-07 — Lead, contato novo, pedido da loja e importação também buscam · prova: automática
+#### CA-B29-07 — Lead, contato novo e pedido da loja também buscam · prova: automática
 
 - **Dado** uma empresa com um número do canal direto conectado
 - **Quando** um contato nasce por lead novo no funil, por "Novo contato" em Contatos, por
-  pedido na loja ou por importação de planilha
+  pedido na loja
 - **Então** o CRM pede a foto desse contato ao gateway uma vez, do mesmo jeito que faz para
   a mensagem recebida
 
-#### CA-B28-08 — Sem foto visível, o contato fica com as iniciais e não busca de novo · prova: automática
+#### CA-B29-08 — Sem foto visível, o contato fica com as iniciais e não busca de novo · prova: automática
 
 - **Dado** um telefone cujo WhatsApp não mostra foto
 - **Quando** o contato nasce e, depois, escreve de novo
 - **Então** o contato fica sem foto (iniciais ou ícone), a tentativa fica anotada, e a
   segunda mensagem não gera nova consulta ao gateway
 
-#### CA-B28-09 — Empresa sem canal direto não busca nada · prova: automática
+#### CA-B29-09 — Empresa sem canal direto não busca nada · prova: automática
 
 - **Dado** uma empresa só com número da API Oficial, ou sem número conectado
 - **Quando** um contato nasce
 - **Então** o CRM não chama o gateway, e o contato fica sem foto
 
-#### CA-B28-10 — Gateway fora do ar não atrapalha a mensagem · prova: automática
+#### CA-B29-10 — Gateway fora do ar não atrapalha a mensagem · prova: automática
 
 - **Dado** uma empresa com canal direto e o gateway respondendo erro ou demorando além do
   limite na consulta de foto
@@ -147,7 +147,7 @@ da empresa, guarda uma cópia no próprio storage e anota no contato onde está 
 - **Então** o contato nasce, a mensagem é gravada e aparece no chat como hoje; a foto fica
   faltando, e na próxima mensagem desse contato o CRM tenta buscar de novo
 
-#### CA-B28-11 — Lixeira: restaurar devolve a foto; apagar de vez apaga a cópia · prova: automática
+#### CA-B29-11 — Lixeira: restaurar devolve a foto; apagar de vez apaga a cópia · prova: automática
 
 - **Dado** um contato com foto guardada
 - **Quando** ele é excluído e restaurado
@@ -155,7 +155,7 @@ da empresa, guarda uma cópia no próprio storage e anota no contato onde está 
 - **E quando** ele é apagado de vez
 - **Então** a cópia da foto some do storage
 
-#### CA-B28-12 — Foto só para quem é da empresa · prova: automática
+#### CA-B29-12 — Foto só para quem é da empresa · prova: automática
 
 - **Dado** a cópia da foto de um contato de uma empresa
 - **Quando** alguém sem login, ou logado em outra empresa, tenta abrir o endereço da foto
@@ -180,38 +180,38 @@ o contato tem uma.
 
 **Critérios de aceite:**
 
-#### CA-B28-13 — A lista de conversas mostra a foto · prova: automática
+#### CA-B29-13 — A lista de conversas mostra a foto · prova: automática
 
 - **Dado** um contato com foto guardada e uma conversa dele
 - **Quando** a lista de conversas é exibida
 - **Então** o círculo da conversa mostra a imagem, com o nome do contato como texto
   alternativo
 
-#### CA-B28-14 — A ficha do contato mostra a foto · prova: automática
+#### CA-B29-14 — A ficha do contato mostra a foto · prova: automática
 
 - **Dado** um contato com foto guardada
 - **Quando** a ficha dele é aberta no chat
 - **Então** o círculo grande mostra a imagem
 
-#### CA-B28-15 — Sem foto, tudo continua como hoje · prova: automática
+#### CA-B29-15 — Sem foto, tudo continua como hoje · prova: automática
 
 - **Dado** um contato sem foto guardada
 - **Quando** a lista ou a ficha é exibida
 - **Então** aparecem as iniciais do nome ou, sem nome, o ícone de pessoa
 
-#### CA-B28-16 — Foto que não carrega volta às iniciais · prova: automática
+#### CA-B29-16 — Foto que não carrega volta às iniciais · prova: automática
 
 - **Dado** um contato cuja foto guardada não abre
 - **Quando** a lista é exibida
 - **Então** o círculo mostra as iniciais, sem imagem quebrada
 
-#### CA-B28-17 — Foto chega ao vivo com a conversa nova · prova: automática
+#### CA-B29-17 — Foto chega ao vivo com a conversa nova · prova: automática
 
 - **Dado** o chat aberto
 - **Quando** chega a primeira mensagem de um contato novo com foto
 - **Então** a conversa nova aparece na lista já com a foto, sem recarregar a página
 
-#### CA-B28-18 — Chip real: a foto de um contato de verdade aparece no chat · prova: manual
+#### CA-B29-18 — Chip real: a foto de um contato de verdade aparece no chat · prova: manual
 
 - **Dado** a mudança no ar e a Marcelle com um número do canal direto conectado
 - **Quando** um telefone que ela ainda não tem no CRM, com foto visível a todos, manda a
@@ -232,7 +232,7 @@ contato, com a mesma regra de iniciais e ícone quando não há foto.
 
 **Critérios de aceite:**
 
-#### CA-B28-19 — O perfil mostra a foto ou as iniciais · prova: automática
+#### CA-B29-19 — O perfil mostra a foto ou as iniciais · prova: automática
 
 - **Dado** um contato com foto guardada e outro sem
 - **Quando** o perfil de cada um é aberto
@@ -246,8 +246,10 @@ contato, com a mesma regra de iniciais e ícone quando não há foto.
   em 20/10: só na primeira vez. Pode virar série própria.
 - Foto nos lugares que ela não pediu: lista de Contatos, cabeçalho da conversa aberta,
   cards do funil, agenda.
+- Importação de contatos por planilha: não existe no CRM (só produtos). Tirada do
+  CA-B29-07 em 20/10, no /plan da B29-02, com a Marcelle.
 - Buscar foto dos contatos que já existem no banco antes desta mudança (ver pergunta
-  PER-B28-04).
+  PER-B29-04).
 - Foto de grupos (o CRM não tem grupos).
 - Foto dos usuários do CRM (atendentes).
 
@@ -255,17 +257,17 @@ contato, com a mesma regra de iniciais e ícone quando não há foto.
 
 | ID | Suposição | Status | Resolução |
 |---|---|---|---|
-| SUP-B28-01 | "Só na primeira vez" vale também quando a primeira busca falha por culpa do gateway (fora do ar, demorou): o CRM anota a tentativa e não tenta de novo, mesmo que o contato escreva depois | invalidada | Marcelle, 20/10/2026: falha técnica tenta de novo na próxima mensagem do contato; "sem foto visível" é definitivo. Comportamento e CA-B28-10 ajustados. |
-| SUP-B28-02 | O tamanho guardado é o pequeno (a "prévia" do WhatsApp, cerca de 100 px), suficiente para os círculos do chat e do perfil, e barato de guardar | confirmada | Marcelle, 20/10/2026. |
-| SUP-B28-03 | A cópia fica no mesmo storage privado dos anexos do chat, servida por endereço assinado, como os anexos | confirmada | Marcelle, 20/10/2026. |
-| SUP-B28-04 | Quando o contato escreveu por um número do canal direto, a busca usa esse número; nos demais casos, qualquer número do canal direto conectado da empresa, sem preferência | confirmada | Marcelle, 20/10/2026. |
-| SUP-B28-05 | A busca da foto acontece depois de a mensagem/lead/pedido estar gravado, com limite de tempo curto, para nunca atrasar o que o atendente vê | confirmada | Marcelle, 20/10/2026. |
+| SUP-B29-01 | "Só na primeira vez" vale também quando a primeira busca falha por culpa do gateway (fora do ar, demorou): o CRM anota a tentativa e não tenta de novo, mesmo que o contato escreva depois | invalidada | Marcelle, 20/10/2026: falha técnica tenta de novo na próxima mensagem do contato; "sem foto visível" é definitivo. Comportamento e CA-B29-10 ajustados. |
+| SUP-B29-02 | O tamanho guardado é o pequeno (a "prévia" do WhatsApp, cerca de 100 px), suficiente para os círculos do chat e do perfil, e barato de guardar | confirmada | Marcelle, 20/10/2026. |
+| SUP-B29-03 | A cópia fica no mesmo storage privado dos anexos do chat, servida por endereço assinado, como os anexos | invalidada | O storage dos anexos é público por endereço (B19-05 só tirou a listagem). Marcelle, 20/10/2026, no /plan da B29-02: a foto vai para um bucket próprio e privado, servida por endereço assinado de 1 h. |
+| SUP-B29-04 | Quando o contato escreveu por um número do canal direto, a busca usa esse número; nos demais casos, qualquer número do canal direto conectado da empresa, sem preferência | confirmada | Marcelle, 20/10/2026. |
+| SUP-B29-05 | A busca da foto acontece depois de a mensagem/lead/pedido estar gravado, com limite de tempo curto, para nunca atrasar o que o atendente vê | confirmada | Marcelle, 20/10/2026. |
 
 ## Perguntas em aberto
 
 | ID | Pergunta | Status | Resposta |
 |---|---|---|---|
-| PER-B28-01 | Onde a foto aparece? | respondida | Marcelle, 20/10/2026: no chat (lista e ficha) e no perfil do contato. Não na lista de Contatos nem no cabeçalho da conversa. |
-| PER-B28-02 | Contato que chega pela Meta pode ter a foto buscada por um número do canal direto da mesma empresa? | respondida | Marcelle, 20/10/2026: sim, qualquer número do canal direto conectado serve. |
-| PER-B28-03 | Com que frequência atualizar a foto? | respondida | Marcelle, 20/10/2026: só na primeira vez, quando o contato nasce. |
-| PER-B28-04 | Os contatos que já existem no banco quando a mudança subir devem ganhar foto (uma varredura única, respeitando o ritmo do gateway) ou só os que nascerem depois? | respondida | Marcelle, 20/10/2026: só os que nascerem depois; o banco vai ser limpo. |
+| PER-B29-01 | Onde a foto aparece? | respondida | Marcelle, 20/10/2026: no chat (lista e ficha) e no perfil do contato. Não na lista de Contatos nem no cabeçalho da conversa. |
+| PER-B29-02 | Contato que chega pela Meta pode ter a foto buscada por um número do canal direto da mesma empresa? | respondida | Marcelle, 20/10/2026: sim, qualquer número do canal direto conectado serve. |
+| PER-B29-03 | Com que frequência atualizar a foto? | respondida | Marcelle, 20/10/2026: só na primeira vez, quando o contato nasce. |
+| PER-B29-04 | Os contatos que já existem no banco quando a mudança subir devem ganhar foto (uma varredura única, respeitando o ritmo do gateway) ou só os que nascerem depois? | respondida | Marcelle, 20/10/2026: só os que nascerem depois; o banco vai ser limpo. |

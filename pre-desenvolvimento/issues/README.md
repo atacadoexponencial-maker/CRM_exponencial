@@ -22,5 +22,6 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B25 | `docs/specs-arquivadas/spec-canal-direto-envio-pelo-celular.md` (mensagem enviada pelo celular aparece no CRM, canal direto) | `concluidas_B25/` |
 | B26 | `docs/specs-arquivadas/spec-mensagem-na-fila.md` (mensagem na fila do número e aviso de aquecimento, canal direto) | `concluidas_B26/` |
 | B27 | `docs/specs-arquivadas/spec-porteiro-rapido.md` (conferência de login do porteiro sem ida ao banco de logins, mantendo o aviso de conta desativada) | `concluidas_B27/` |
-| B28 | `../spec-foto-de-perfil.md` (em andamento: foto de perfil real do contato, buscada pelo canal direto) | `concluidas_B28/` (quando houver) |
+| B28 | `../spec-espera-e-fim-das-sequencias.md` (em andamento, no branch `b28-espera-e-fim-das-sequencias` do Luan: bloco "esperar" nas automações, fim das sequências e ação "criar lembrete na Agenda") | `concluidas_B28/` (quando houver) |
+| B29 | `../spec-foto-de-perfil.md` (em andamento: foto de perfil real do contato, buscada pelo canal direto) | `concluidas_B29/` (quando houver) |
 | F1 | `docs/specs-arquivadas/spec-fluxo-com-prova.md` (melhoria do fluxo de desenvolvimento: critérios de aceite com código, auditor, lições) | `concluidas_F1/` |
