@@ -57,6 +57,16 @@ export async function middleware(request: NextRequest) {
   // QA baixos (06/10): quem já está logado não vê o formulário de login nem o de cadastro.
   if (rotaDeEntrada) {
     if (!data?.claims) return supabaseResponse
+    // 20/10: desativado com a assinatura ainda válida chega aqui mandado por
+    // `sessaoAtual()`. Devolvê-lo ao Dashboard fechava um laço (tela → login →
+    // Dashboard → ...), e ele ficava só com o menu, sem aviso. Aqui a sessão é
+    // apagada e a tela de login abre com o aviso.
+    if (pathname === '/login' && request.nextUrl.searchParams.get('motivo') === 'desativada') {
+      for (const { name } of request.cookies.getAll()) {
+        if (name.startsWith('sb-') && name.includes('-auth-token')) supabaseResponse.cookies.delete(name)
+      }
+      return supabaseResponse
+    }
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     url.search = ''

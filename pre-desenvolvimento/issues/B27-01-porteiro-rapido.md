@@ -134,3 +134,14 @@ Meta: ≤ 0,45 s. Falta a Marcelle aceitar o resultado para registrar.
 | Critério | Conferido por | Dia |
 |---|---|---|
 | CA-B27-06 | Marcelle | 19/10/2026 |
+
+## Correção de 20/10/2026 (falha no teste manual CA-B27-10)
+
+A Marcelle desativou um usuário de teste e ele ficou só com o menu lateral, sem aviso.
+Causa: a tela mandava o desativado para `/login?motivo=desativada`, o porteiro via a
+sessão ainda assinada e devolvia ao Dashboard, que mandava de novo ao login. Laço.
+Conserto em `src/middleware.ts`: em `/login` com `motivo=desativada`, o porteiro apaga
+os cookies da sessão e deixa a tela de login abrir com o aviso. Prova nova em
+`src/test/porteiro-rapido.test.ts` (CA-B27-07, caminho inteiro) e lição L-02.
+CA-B27-10 segue pendente até ela refazer o teste.
+

@@ -152,6 +152,30 @@ describe("porteiro rápido", () => {
     expect(novo?.value).not.toBe(cookieDaSessao(vencida).split("=")[1])
   })
 
+  it("CA-B27-07: desativado mandado ao login com o aviso não volta ao Dashboard, e a sessão é apagada", async () => {
+    // Falha vista em 20/10: a tela mandava para /login?motivo=desativada, o
+    // porteiro devolvia ao Dashboard (sessão ainda assinada), e a tela mandava de
+    // novo. O usuário ficava só com o menu, sem aviso.
+    const cookie = cookieDaSessao(await sessao(certa))
+
+    const resposta = await middleware(pedido("/login?motivo=desativada", cookie))
+
+    expect(passou(resposta)).toBe(true)
+    expect(destino(resposta)).toBeNull()
+    const apagado = resposta.cookies.getAll().find((c) => c.name === COOKIE)
+    expect(apagado).toBeDefined()
+    expect(apagado?.value).toBe("")
+    expect(chamadas.some((c) => c.includes("/auth/v1/user"))).toBe(false)
+  })
+
+  it("QA 06/10: logado sem motivo abrindo /login vai para o Dashboard", async () => {
+    const cookie = cookieDaSessao(await sessao(certa))
+
+    const resposta = await middleware(pedido("/login", cookie))
+
+    expect(destino(resposta)?.pathname).toBe("/dashboard")
+  })
+
   it("CA-B27-05: telas públicas abrem sem sessão e sem rede", async () => {
     for (const caminho of ["/login", "/cadastro", "/politica-de-privacidade", "/loja/minha-loja"]) {
       expect(passou(await middleware(pedido(caminho)))).toBe(true)
