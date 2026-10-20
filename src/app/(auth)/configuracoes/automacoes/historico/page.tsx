@@ -18,7 +18,7 @@ export default async function HistoricoAutomacoesPage({
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
 
-  if (perfil?.role !== "admin") redirect("/perfil")
+  if (perfil?.role !== "admin") redirect("/perfil?motivo=sem-permissao")
 
   const { regra, resultado, dias } = await searchParams
   const [regras, opcoes] = await Promise.all([regrasDoFiltroDoHistorico(), carregarOpcoesEditor(supabase, perfil.workspace_id)])

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { contemTermo } from "@/lib/normalizar-busca"
 import Link from "next/link"
 import { Eye, EyeOff, FileSpreadsheet, GripVertical, ImageOff, Package, Plus, Search, Store } from "lucide-react"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -65,7 +66,7 @@ export function ListaProdutos({
 
   const termo = busca.trim().toLowerCase()
   const filtrados = produtos.filter((p) => {
-    if (termo && !p.nome.toLowerCase().includes(termo)) return false
+    if (termo && !contemTermo(p.nome, termo)) return false // QA M29: sem acento
     if (categoriaFiltro === "sem" && p.categoriaId !== null) return false
     if (categoriaFiltro !== "todas" && categoriaFiltro !== "sem" && p.categoriaId !== categoriaFiltro) return false
     if (visibilidade === "visiveis" && !p.visivel) return false

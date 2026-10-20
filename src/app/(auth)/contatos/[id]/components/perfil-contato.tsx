@@ -247,7 +247,8 @@ export function PerfilContato({ contato, papel, contactId, naLixeira }: PerfilCo
             {CLASSIFICACAO_LABEL[contato.classificacao]}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        {/* QA M23 (06/10): no celular, "Excluir contato" ficava cortado. */}
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setSequenciaAberta(true)}

@@ -7,7 +7,7 @@ export default async function SequenciasPage() {
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
 
-  if (!perfil || !["admin", "gerente"].includes(perfil.role)) redirect("/perfil")
+  if (!perfil || !["admin", "gerente"].includes(perfil.role)) redirect("/perfil?motivo=sem-permissao")
 
   const sequencias = await listarSequencias()
 

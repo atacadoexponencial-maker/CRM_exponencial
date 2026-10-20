@@ -12,7 +12,7 @@ const PRODUTO_NOVO: ProdutoEditavel = {
 export default async function EditorProdutoPage({ params }: { params: Promise<{ id: string }> }) {
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
-  if (perfil?.role !== "admin" && perfil?.role !== "gerente") redirect("/perfil")
+  if (perfil?.role !== "admin" && perfil?.role !== "gerente") redirect("/perfil?motivo=sem-permissao")
 
   const { id } = await params
   const [{ categorias }, produto] = await Promise.all([listarCatalogo(), id === "nova" ? Promise.resolve(PRODUTO_NOVO) : carregarProduto(id)])

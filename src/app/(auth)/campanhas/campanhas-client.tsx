@@ -124,7 +124,7 @@ export function CampanhasClient({ campanhasIniciais }: { campanhasIniciais: Camp
           <p className="text-sm">Nenhuma campanha encontrada</p>
         </div>
       ) : (
-        <div className="rounded-lg border overflow-hidden">
+        <div className="rounded-lg border overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">

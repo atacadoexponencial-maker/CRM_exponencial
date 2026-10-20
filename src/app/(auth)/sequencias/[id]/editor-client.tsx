@@ -131,7 +131,8 @@ export function EditorSequenciaClient({ sequencia }: { sequencia: SequenciaDetal
               </div>
 
               <div className="flex-1 flex flex-col gap-2 min-w-0">
-                <div className="grid grid-cols-2 gap-2">
+                {/* QA M24 (06/10): no celular, o prazo sumia e o seletor ficava cortado. */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <select
                     aria-label="Tipo da etapa"
                     className={selectClass}

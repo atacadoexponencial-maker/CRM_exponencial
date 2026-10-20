@@ -9,7 +9,7 @@ import { AparenciaClient } from "./aparencia-client"
 export default async function AparenciaPage() {
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
-  if (perfil?.role !== "admin" && perfil?.role !== "gerente") redirect("/perfil")
+  if (perfil?.role !== "admin" && perfil?.role !== "gerente") redirect("/perfil?motivo=sem-permissao")
 
   // A prévia mostra os produtos visíveis da própria empresa, como a cliente vai ver.
   const [tema, vitrine, dados] = await Promise.all([carregarTema(), carregarVitrine(perfil.workspace_id), carregarConfiguracoes()])

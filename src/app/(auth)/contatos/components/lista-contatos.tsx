@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Search, ChevronDown, Loader2, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { contemTermo } from "@/lib/normalizar-busca"
 import { NovoContatoDialog } from "./novo-contato-dialog"
 import { DialogoExcluirContato } from "./dialogo-excluir-contato"
 import { resumoExclusaoContato, excluirContato, type ResumoExclusao } from "../lixeira/actions"
@@ -177,10 +178,8 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
 
   const contatosFiltrados = useMemo(() => {
     let lista = contatos.filter((c) => {
-      if (busca.trim()) {
-        const termo = busca.toLowerCase()
-        if (!c.nome.toLowerCase().includes(termo) && !c.telefone.toLowerCase().includes(termo)) return false
-      }
+      // QA M29 (06/10): sem acento e sem formatação de telefone
+      if (busca.trim() && !contemTermo(c.nome, busca) && !contemTermo(c.telefone, busca)) return false
       if (classificacao !== "todas" && c.classificacao !== classificacao) return false
       if (tipo !== "todos" && c.tipo !== tipo) return false
       if (nicho && c.nicho !== nicho) return false

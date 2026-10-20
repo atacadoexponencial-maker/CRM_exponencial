@@ -8,7 +8,7 @@ export default async function RelatorioCampanhaPage({ params }: { params: Promis
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
 
-  if (!perfil || !["admin", "gerente"].includes(perfil.role)) redirect("/perfil")
+  if (!perfil || !["admin", "gerente"].includes(perfil.role)) redirect("/perfil?motivo=sem-permissao")
 
   const relatorio = await relatorioCampanha(id)
   if (!relatorio) redirect("/campanhas")

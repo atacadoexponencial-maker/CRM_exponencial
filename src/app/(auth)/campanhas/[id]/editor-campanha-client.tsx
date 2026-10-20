@@ -661,7 +661,8 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
       {erro && <p className="text-sm text-destructive mt-4">{erro}</p>}
 
       {/* Navegação */}
-      <div className="flex items-center justify-between gap-2 pt-6 mt-6 border-t">
+      {/* QA M23 (06/10): no celular, "Confirmar e enviar agora" saía da tela. */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-6 mt-6 border-t">
         <div>
           {etapa > 1 && (
             <Button type="button" variant="outline" onClick={() => setEtapa(etapa - 1)}>
@@ -669,7 +670,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
             </Button>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="outline" onClick={handleSalvarRascunho} disabled={salvando}>
             Salvar como rascunho
           </Button>

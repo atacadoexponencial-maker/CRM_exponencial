@@ -24,7 +24,7 @@ export default async function SaudeDoNumeroPage({
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
 
-  if (perfil?.role !== "admin" && perfil?.role !== "gerente") redirect("/perfil")
+  if (perfil?.role !== "admin" && perfil?.role !== "gerente") redirect("/perfil?motivo=sem-permissao")
 
   const resultado = await lerSaude(id)
 

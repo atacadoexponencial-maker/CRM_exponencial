@@ -6,6 +6,6 @@ import { ImportarClient } from "./importar-client"
 export default async function ImportarProdutosPage() {
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
-  if (perfil?.role !== "admin" && perfil?.role !== "gerente") redirect("/perfil")
+  if (perfil?.role !== "admin" && perfil?.role !== "gerente") redirect("/perfil?motivo=sem-permissao")
   return <ImportarClient />
 }

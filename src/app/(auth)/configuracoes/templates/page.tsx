@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { sessaoAtual } from "@/lib/sessao"
 import { motivoDoRecursoIndisponivel, recursosDoCanal } from "@/lib/whatsapp"
@@ -9,7 +10,7 @@ export default async function TemplatesPage() {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
 
-  if (perfil?.role !== "admin") redirect("/perfil")
+  if (perfil?.role !== "admin") redirect("/perfil?motivo=sem-permissao")
 
   // B7-02: template de mensagem só existe na API Oficial. Quem tem apenas
   // número do canal direto não deve ver uma gestão que não se aplica a ele — e
@@ -24,6 +25,20 @@ export default async function TemplatesPage() {
   const semTemplates = canais.filter((canal) => !recursosDoCanal(canal).templates)
 
   const nenhumNumeroSuportaTemplates = canais.length > 0 && comTemplates.length === 0
+
+  // QA M28 (06/10): sem número, a tela só avisava no fim ("Sem permissão ou WhatsApp não
+  // conectado"). Agora diz logo o que falta e aonde ir.
+  if (canais.length === 0) {
+    return (
+      <div className="max-w-5xl mx-auto w-full px-4 py-8">
+        <h1 className="text-xl font-semibold mb-2">Templates de mensagem</h1>
+        <p className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+          Nenhum número de WhatsApp conectado. Os templates valem para o número da API Oficial:{" "}
+          <Link href="/configuracoes/whatsapp" className="underline text-foreground">conecte um número</Link> para gerenciá-los.
+        </p>
+      </div>
+    )
+  }
 
   if (nenhumNumeroSuportaTemplates) {
     return (

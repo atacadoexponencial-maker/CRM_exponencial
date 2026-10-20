@@ -7,7 +7,7 @@ import { ConfiguracoesClient } from "./configuracoes-client"
 export default async function ConfiguracoesCatalogoPage() {
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
-  if (perfil?.role !== "admin" && perfil?.role !== "gerente") redirect("/perfil")
+  if (perfil?.role !== "admin" && perfil?.role !== "gerente") redirect("/perfil?motivo=sem-permissao")
 
   const dados = await carregarConfiguracoes()
   if (!dados) redirect("/perfil")

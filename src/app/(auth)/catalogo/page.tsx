@@ -7,7 +7,7 @@ import { ProdutosClient } from "./produtos-client"
 export default async function CatalogoPage() {
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
-  if (perfil?.role !== "admin" && perfil?.role !== "gerente") redirect("/perfil")
+  if (perfil?.role !== "admin" && perfil?.role !== "gerente") redirect("/perfil?motivo=sem-permissao")
 
   const [catalogo, dados] = await Promise.all([listarCatalogo(), carregarConfiguracoes()])
   const cfg = dados?.config

@@ -8,7 +8,7 @@ export default async function EditorCampanhaPage({ params }: { params: Promise<{
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
 
-  if (!perfil || !["admin", "gerente"].includes(perfil.role)) redirect("/perfil")
+  if (!perfil || !["admin", "gerente"].includes(perfil.role)) redirect("/perfil?motivo=sem-permissao")
 
   const campanha = id === "nova" ? null : await buscarCampanha(id)
   if (id !== "nova" && !campanha) redirect("/campanhas")

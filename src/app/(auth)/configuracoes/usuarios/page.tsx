@@ -21,7 +21,7 @@ export default async function UsuariosPage() {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
 
-  if (perfil?.role !== "admin") redirect("/perfil")
+  if (perfil?.role !== "admin") redirect("/perfil?motivo=sem-permissao")
 
   const [usuarios, { data: times }] = await Promise.all([
     listarUsuarios(),

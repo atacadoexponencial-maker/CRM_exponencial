@@ -21,7 +21,7 @@ export default async function TimesPage() {
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
 
-  if (perfil?.role !== "admin") redirect("/perfil")
+  if (perfil?.role !== "admin") redirect("/perfil?motivo=sem-permissao")
 
   const [times, todosUsuarios] = await Promise.all([listarTimes(), listarUsuariosDoWorkspace()])
 

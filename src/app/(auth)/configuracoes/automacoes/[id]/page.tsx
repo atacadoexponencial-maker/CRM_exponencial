@@ -15,7 +15,7 @@ export default async function EditorAutomacaoPage({
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
 
-  if (perfil?.role !== "admin") redirect("/perfil")
+  if (perfil?.role !== "admin") redirect("/perfil?motivo=sem-permissao")
 
   const [{ id }, { salva }] = await Promise.all([params, searchParams])
   const [resultado, opcoes] = await Promise.all([

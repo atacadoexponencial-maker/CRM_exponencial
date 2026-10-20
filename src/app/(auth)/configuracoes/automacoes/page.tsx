@@ -8,7 +8,7 @@ export default async function AutomacoesPage() {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
 
-  if (perfil?.role !== "admin") redirect("/perfil")
+  if (perfil?.role !== "admin") redirect("/perfil?motivo=sem-permissao")
 
   const [regras, opcoes] = await Promise.all([listarRegras(), carregarOpcoesEditor(supabase, perfil.workspace_id)])
 

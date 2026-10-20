@@ -22,7 +22,7 @@ export default async function RitmoDoNumeroPage({
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
 
-  if (perfil?.role !== "admin") redirect("/perfil")
+  if (perfil?.role !== "admin") redirect("/perfil?motivo=sem-permissao")
 
   // O ritmo e a saúde vêm do mesmo gateway, em chamadas diferentes: o perfil
   // sugerido depende da idade do número, que só a saúde conhece. Saúde que

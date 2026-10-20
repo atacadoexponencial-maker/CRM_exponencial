@@ -186,7 +186,7 @@ export function AgendaEquipeClient({
             Nenhuma sequência em andamento
           </p>
         ) : (
-          <div className="rounded-lg border overflow-hidden">
+          <div className="rounded-lg border overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">

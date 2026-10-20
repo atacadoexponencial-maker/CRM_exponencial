@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Search, Plus, ChevronDown } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { contemTermo } from "@/lib/normalizar-busca"
 import { Button } from "@/components/ui/button"
 import { ColunaKanban } from "./coluna-kanban"
 import { PainelCard } from "./painel-card"
@@ -25,19 +26,26 @@ export function FunilEntrada({ cards, papel, atendentes }: FunilEntradaProps) {
   const [filtroAberto, setFiltroAberto] = useState(false)
   const [cardSelecionado, setCardSelecionado] = useState<CardLead | null>(null)
   const [modalAberto, setModalAberto] = useState(false)
+  // QA M27 (06/10): mover levava segundos sem nada na tela, e o erro era engolido.
+  const [movendo, setMovendo] = useState(false)
+  const [erroMover, setErroMover] = useState<string | null>(null)
 
   async function handleMoverCard(cardId: string, deEtapa: string, paraEtapa: string) {
-    await moverCard(cardId, paraEtapa).catch(() => {})
-    router.refresh()
+    setMovendo(true)
+    setErroMover(null)
+    try {
+      await moverCard(cardId, paraEtapa)
+    } catch (e) {
+      setErroMover(e instanceof Error && e.message ? e.message : "Não foi possível mover o card. Tente de novo.")
+    } finally {
+      setMovendo(false)
+      router.refresh()
+    }
   }
 
   const cardsFiltrados = cards.filter((card) => {
-    if (busca.trim()) {
-      const termo = busca.toLowerCase()
-      const nome = card.contato.nome.toLowerCase()
-      const tel = card.contato.telefone.toLowerCase()
-      if (!nome.includes(termo) && !tel.includes(termo)) return false
-    }
+    // QA M29 (06/10): sem acento e sem formatação de telefone
+    if (busca.trim() && !contemTermo(card.contato.nome, busca) && !contemTermo(card.contato.telefone, busca)) return false
     if (atendenteFiltro !== null) {
       if (atendenteFiltro === "__sem_atendente__") {
         if (card.atendente !== null) return false
@@ -58,8 +66,17 @@ export function FunilEntrada({ cards, papel, atendentes }: FunilEntradaProps) {
           onFechar={() => setModalAberto(false)}
         />
       )}
+      {(movendo || erroMover) && (
+        <div
+          role={erroMover ? "alert" : "status"}
+          className={cn("px-6 py-2 text-sm border-b border-border", erroMover ? "text-destructive" : "text-muted-foreground")}
+        >
+          {erroMover ?? "Movendo o card…"}
+        </div>
+      )}
       {/* Cabeçalho */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+      {/* QA M23 (06/10): no celular, "Atendente" e "Novo lead" saíam da tela; agora quebram a linha. */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-4 border-b border-border shrink-0">
         <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
           <span className="px-3 py-1.5 text-sm font-medium rounded-md bg-background text-foreground shadow-sm">
             Entrada

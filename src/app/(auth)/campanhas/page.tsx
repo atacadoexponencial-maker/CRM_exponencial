@@ -8,7 +8,7 @@ export default async function CampanhasPage() {
   if (!user) redirect("/login")
 
   // Atendente não tem acesso a campanhas
-  if (!perfil || !["admin", "gerente"].includes(perfil.role)) redirect("/perfil")
+  if (!perfil || !["admin", "gerente"].includes(perfil.role)) redirect("/perfil?motivo=sem-permissao")
 
   const campanhas = await listarCampanhas()
 
