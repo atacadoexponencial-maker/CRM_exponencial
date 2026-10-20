@@ -398,6 +398,7 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
             onFechar={() => setFichaAberta(false)}
             onConversaAtualizada={handleConversaAtualizada}
             onNavegar={handleConversaClick}
+            podeEditar={papel !== "atendente"}
           />
         </div>
       )}

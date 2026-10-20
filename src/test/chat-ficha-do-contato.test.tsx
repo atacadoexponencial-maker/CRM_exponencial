@@ -2,10 +2,17 @@
 // conversas anteriores, mostra o cadastro (classificação, tipo, nicho, cidade,
 // perfil, atendente, tags), a etapa em cada funil e o link para o perfil completo.
 
-import { render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import type { Conversa } from "@/app/(auth)/chat/mock-conversas"
 
+const atualizar = vi.fn<(...a: unknown[]) => Promise<{ erro?: string }>>(async () => ({}))
+const adicionarTag = vi.fn<(...a: unknown[]) => Promise<{ erro?: string }>>(async () => ({}))
+vi.mock("@/app/(auth)/contatos/actions", () => ({
+  atualizarDadosContato: (...a: unknown[]) => atualizar(...a),
+  adicionarTagContato: (...a: unknown[]) => adicionarTag(...a),
+  removerTagContato: vi.fn(async () => ({})),
+}))
 vi.mock("@/app/(auth)/chat/actions", () => ({
   buscarInfoContato: vi.fn(async () => ({
     dataPrimeiroContato: "20 de out. de 2026",
@@ -53,5 +60,30 @@ describe("ficha do contato no chat", () => {
     // Cidade vazia
     expect(screen.getByText("Cidade").nextElementSibling?.textContent).toBe("—")
     expect(screen.getByText("Abrir perfil completo").closest("a")?.getAttribute("href")).toBe("/contatos/c-1")
+  })
+
+  it("admin e gerente editam no lugar: nicho salvo com os outros campos como estão; tag nova adicionada", async () => {
+    render(<PainelContato conversa={CONVERSA} conversaId="conv-1" onFechar={vi.fn()} onConversaAtualizada={vi.fn()} onNavegar={vi.fn()} podeEditar />)
+    await waitFor(() => expect(screen.getByText("Moda")).toBeTruthy())
+
+    fireEvent.click(screen.getByLabelText("Editar nicho"))
+    const campo = screen.getByLabelText("Nicho") as HTMLInputElement
+    fireEvent.change(campo, { target: { value: "Fitness" } })
+    fireEvent.keyDown(campo, { key: "Enter" })
+    await waitFor(() => expect(screen.getByText("Fitness")).toBeTruthy())
+    expect(atualizar).toHaveBeenCalledWith("c-1", { nome: "Marcelle", tipo: "lojista", nicho: "Fitness", cidade: null, icp: "primeira_vez" })
+
+    const tag = screen.getByLabelText("Nova tag") as HTMLInputElement
+    fireEvent.change(tag, { target: { value: "Atacado" } })
+    fireEvent.keyDown(tag, { key: "Enter" })
+    await waitFor(() => expect(screen.getByText("atacado")).toBeTruthy())
+    expect(adicionarTag).toHaveBeenCalledWith("c-1", "atacado")
+  })
+
+  it("atendente não vê lápis nem campo de tag", async () => {
+    render(<PainelContato conversa={CONVERSA} conversaId="conv-1" onFechar={vi.fn()} onConversaAtualizada={vi.fn()} onNavegar={vi.fn()} />)
+    await waitFor(() => expect(screen.getByText("Moda")).toBeTruthy())
+    expect(screen.queryByLabelText("Editar nicho")).toBeNull()
+    expect(screen.queryByLabelText("Nova tag")).toBeNull()
   })
 })
