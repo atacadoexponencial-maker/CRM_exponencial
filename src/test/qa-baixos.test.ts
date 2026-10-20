@@ -27,7 +27,7 @@ describe("login volta para a página pedida", () => {
 })
 
 const card = (parcial: Partial<CardRow>): CardRow => ({
-  id: "c", funil: "entrada", etapa: "lead", etapa_changed_at: "2026-01-01T00:00:00Z", created_at: "2026-01-01T00:00:00Z", contact_id: "x", atendente_id: null, ...parcial,
+  id: "c", funil: "entrada", etapa: "lead", created_at: "2026-01-01T00:00:00Z", contact_id: "x", atendente_id: null, ...parcial,
 })
 
 describe("gráfico de leads por período", () => {
