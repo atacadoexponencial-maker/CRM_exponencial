@@ -5,6 +5,8 @@ import { listarExecucoes, regrasDoFiltroDoHistorico, type FiltrosDoHistorico } f
 import { carregarOpcoesEditor } from "../opcoes-editor"
 import { HistoricoClient } from "./historico-client"
 
+export const metadata = { title: "Histórico das automações" }
+
 const RESULTADOS: readonly ResultadoExecucao[] = ["concluida", "falhou", "ignorada"]
 
 // Histórico de execuções (B11-03). Os filtros ficam no endereço (?regra, ?resultado,

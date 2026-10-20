@@ -4,6 +4,8 @@ import { listarRegras } from "./actions"
 import { ListaClient } from "./lista-client"
 import { carregarOpcoesEditor } from "./opcoes-editor"
 
+export const metadata = { title: "Automações" }
+
 export default async function AutomacoesPage() {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")

@@ -5,6 +5,8 @@ import { AdicionarUsuarioDialog } from "./adicionar-usuario-dialog"
 import { AcoesUsuario } from "./acoes-usuario"
 import { listarUsuarios } from "./actions"
 
+export const metadata = { title: "Usuários" }
+
 const papelVariant: Record<string, "default" | "outline" | "secondary"> = {
   admin: "default",
   gerente: "outline",

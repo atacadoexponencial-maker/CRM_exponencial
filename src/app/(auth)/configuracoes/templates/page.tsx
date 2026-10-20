@@ -6,6 +6,8 @@ import type { CanalWhatsApp } from "@/lib/whatsapp"
 import { listarTemplates } from "./actions"
 import { TemplatesClient } from "./templates-client"
 
+export const metadata = { title: "Templates" }
+
 export default async function TemplatesPage() {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")

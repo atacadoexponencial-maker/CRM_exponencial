@@ -12,10 +12,12 @@ export function FormPerfil({ nome, email }: { nome: string; email: string }) {
   const [nomeAtual, setNomeAtual] = useState(nome)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [salvo, setSalvo] = useState(false)
 
   async function handleSalvar(e: React.FormEvent) {
     e.preventDefault()
     setErro(null)
+    setSalvo(false)
     setSalvando(true)
     const resultado = await editarNomePerfil(nomeAtual)
     setSalvando(false)
@@ -23,6 +25,8 @@ export function FormPerfil({ nome, email }: { nome: string; email: string }) {
       setErro(resultado.erro)
       return
     }
+    // QA baixos (06/10): salvar sem nenhum retorno parecia não ter funcionado.
+    setSalvo(true)
     router.refresh()
   }
 
@@ -53,6 +57,11 @@ export function FormPerfil({ nome, email }: { nome: string; email: string }) {
       {erro && (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {erro}
+        </p>
+      )}
+      {salvo && (
+        <p className="rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-500" role="status">
+          Nome salvo.
         </p>
       )}
 

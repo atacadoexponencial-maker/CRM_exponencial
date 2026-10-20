@@ -116,7 +116,9 @@ describe("porteiro rápido", () => {
     const resposta = await middleware(pedido("/contatos"))
 
     expect(destino(resposta)?.pathname).toBe("/login")
-    expect(destino(resposta)?.search).toBe("")
+    expect(destino(resposta)?.searchParams.get("motivo")).toBeNull()
+    // QA baixos (20/10): leva a página pedida, para voltar a ela depois do login
+    expect(destino(resposta)?.searchParams.get("voltar")).toBe("/contatos")
   })
 
   it("CA-B27-03: sessão assinada com outra chave não entra", async () => {

@@ -3,6 +3,8 @@ import { sessaoAtual } from "@/lib/sessao"
 import { buscarMetricasDashboard } from "./actions"
 import { DashboardClient } from "./components/dashboard-client"
 
+export const metadata = { title: "Dashboard" }
+
 export default async function DashboardPage() {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")

@@ -4,6 +4,8 @@ import { buscarRegraParaEditor } from "../actions"
 import { carregarOpcoesEditor } from "../opcoes-editor"
 import { EditorClient } from "./editor-client"
 
+export const metadata = { title: "Automação" }
+
 // `nova` cria uma regra; o id abre uma regra salva.
 export default async function EditorAutomacaoPage({
   params,

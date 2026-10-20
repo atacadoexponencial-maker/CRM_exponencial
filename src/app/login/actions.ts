@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { AVISO_CONTA_DESATIVADA, AVISO_MUITAS_TENTATIVAS } from "./avisos"
+import { destinoSeguro } from "./destino"
 import { chaveDoEmail, chaveDoIp, ipDaRequisicao, passouDoLimite, registrarTentativa } from "@/lib/limite-de-tentativas"
 
 // B20-05: senhas erradas em 15 minutos — por e-mail e por endereço de internet.
@@ -14,11 +15,9 @@ const LIMITE_ERROS_POR_IP = 30
  * Login feito no servidor, ao lado do banco: uma única ida do navegador.
  *
  * Em sucesso, os cookies da sessão e a página de destino voltam na mesma
- * resposta (`redirect` dentro da action). O destino sai do papel, para quem não
- * é admin não passar por `/configuracoes/whatsapp` só para ser mandado a
- * `/perfil`.
+ * resposta (`redirect` dentro da action).
  */
-export async function realizarLogin(email: string, senha: string): Promise<{ erro: string }> {
+export async function realizarLogin(email: string, senha: string, voltar?: string | null): Promise<{ erro: string }> {
   const chaves = [chaveDoEmail(email), chaveDoIp(await ipDaRequisicao())]
   const travado = await passouDoLimite(
     "login",
@@ -48,5 +47,8 @@ export async function realizarLogin(email: string, senha: string): Promise<{ err
     return { erro: AVISO_CONTA_DESATIVADA }
   }
 
-  redirect(perfil?.role === "admin" ? "/configuracoes/whatsapp" : "/perfil")
+  // QA baixos (06/10): volta para a página que a pessoa tentou abrir; sem ela, o
+  // Dashboard, que todo papel vê. Antes, atendente caía em /perfil e admin em
+  // /configuracoes/whatsapp.
+  redirect(destinoSeguro(voltar) ?? "/dashboard")
 }

@@ -4,6 +4,8 @@ import { PerfilContato } from "./components/perfil-contato"
 import { buscarDadosContato } from "../actions"
 import { estadoNaLixeira } from "../lixeira/actions"
 
+export const metadata = { title: "Contato" }
+
 interface Props {
   params: Promise<{ id: string }>
 }

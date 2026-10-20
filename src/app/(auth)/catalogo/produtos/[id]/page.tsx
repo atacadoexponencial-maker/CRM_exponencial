@@ -4,6 +4,8 @@ import { carregarProduto, listarCatalogo } from "../../actions"
 import type { ProdutoEditavel } from "../../components/editor-produto"
 import { EditorClient } from "./editor-client"
 
+export const metadata = { title: "Produto" }
+
 const PRODUTO_NOVO: ProdutoEditavel = {
   id: null, nome: "", descricao: "", preco: null, precoDe: null, codigo: "", categoriaId: null,
   visivel: true, destaque: false, fotos: [], tipos: [], estoque: { "": 0 },

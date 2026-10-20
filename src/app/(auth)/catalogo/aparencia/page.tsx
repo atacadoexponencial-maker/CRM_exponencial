@@ -6,6 +6,8 @@ import { carregarTema } from "./actions"
 import { carregarConfiguracoes } from "../configuracoes/actions"
 import { AparenciaClient } from "./aparencia-client"
 
+export const metadata = { title: "Aparência da loja" }
+
 export default async function AparenciaPage() {
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")

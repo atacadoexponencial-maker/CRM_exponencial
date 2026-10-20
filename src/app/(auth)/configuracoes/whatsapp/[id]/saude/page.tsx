@@ -5,6 +5,8 @@ import { sessaoAtual } from "@/lib/sessao"
 import { lerSaude } from "./actions"
 import { SaudeClient } from "./saude-client"
 
+export const metadata = { title: "Saúde do número" }
+
 /**
  * Saúde de um número conectado (B4-01, dados reais na B4-02).
  *

@@ -3,6 +3,8 @@ import { sessaoAtual } from "@/lib/sessao"
 import { buscarSequencia } from "../actions"
 import { EditorSequenciaClient } from "./editor-client"
 
+export const metadata = { title: "Sequência" }
+
 export default async function EditorSequenciaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { user, perfil } = await sessaoAtual()

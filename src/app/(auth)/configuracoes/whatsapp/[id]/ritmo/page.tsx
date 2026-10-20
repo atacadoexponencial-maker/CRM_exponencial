@@ -6,6 +6,8 @@ import { lerSaude } from "../saude/actions"
 import { lerRitmoDoNumero } from "./actions"
 import { RitmoClient } from "./ritmo-client"
 
+export const metadata = { title: "Ritmo do número" }
+
 /**
  * Ritmo de envio de um número (B5-01).
  *

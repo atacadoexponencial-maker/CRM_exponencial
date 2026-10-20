@@ -16,8 +16,12 @@ function rotaPublica(pathname: string): boolean {
   return PREFIXOS_PUBLICOS.some((p) => pathname.startsWith(p))
 }
 
+const ROTAS_DE_ENTRADA = ['/login', '/cadastro']
+
 export async function middleware(request: NextRequest) {
-  if (rotaPublica(request.nextUrl.pathname)) {
+  const { pathname } = request.nextUrl
+  const rotaDeEntrada = ROTAS_DE_ENTRADA.includes(pathname)
+  if (rotaPublica(pathname) && !rotaDeEntrada) {
     return NextResponse.next({ request })
   }
 
@@ -50,12 +54,23 @@ export async function middleware(request: NextRequest) {
   // passa daqui e é barrado por `sessaoAtual()`, no servidor das telas.
   const { data, error } = await supabase.auth.getClaims()
 
+  // QA baixos (06/10): quem já está logado não vê o formulário de login nem o de cadastro.
+  if (rotaDeEntrada) {
+    if (!data?.claims) return supabaseResponse
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    url.search = ''
+    return NextResponse.redirect(url)
+  }
+
   if (!data?.claims) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.search = ''
     // B20-02: usuário desativado é banido no Auth; a tela de login avisa o porquê.
     if (error?.code === 'user_banned') url.searchParams.set('motivo', 'desativada')
+    // QA baixos (06/10): depois de entrar, volta para a página que a pessoa tentou abrir.
+    else if (pathname !== '/dashboard') url.searchParams.set('voltar', pathname + request.nextUrl.search)
     return NextResponse.redirect(url)
   }
 

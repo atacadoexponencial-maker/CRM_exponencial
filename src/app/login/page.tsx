@@ -19,9 +19,10 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
-export default function LoginPage({ searchParams }: { searchParams: Promise<{ motivo?: string }> }) {
+export default function LoginPage({ searchParams }: { searchParams: Promise<{ motivo?: string; voltar?: string }> }) {
   // B20-02: o middleware manda para cá quem foi desativado com a sessão aberta.
-  const { motivo } = use(searchParams)
+  // `voltar`: a página que a pessoa tentou abrir sem sessão.
+  const { motivo, voltar } = use(searchParams)
   // Fica ligado do clique até a página seguinte abrir: o redirect da action
   // troca de tela sozinho, então só o erro desliga.
   const [entrando, setEntrando] = useState(false)
@@ -35,7 +36,7 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<{ mo
   async function onSubmit(data: FormData) {
     setEntrando(true)
     try {
-      const resultado = await realizarLogin(data.email, data.senha)
+      const resultado = await realizarLogin(data.email, data.senha, voltar ?? null)
       if (resultado?.erro) {
         setError("root", { type: "manual", message: resultado.erro })
         setEntrando(false)

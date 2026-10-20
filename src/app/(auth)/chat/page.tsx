@@ -5,6 +5,8 @@ import { sessaoAtual } from "@/lib/sessao"
 import { ChatLayout } from "./components/chat-layout"
 import { listarConversas, TAMANHO_PAGINA_CONVERSAS } from "./conversas"
 
+export const metadata = { title: "Chat" }
+
 type Cliente = Awaited<ReturnType<typeof sessaoAtual>>["supabase"]
 
 /**

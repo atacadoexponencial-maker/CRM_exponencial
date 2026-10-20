@@ -3,6 +3,8 @@ import { sessaoAtual } from "@/lib/sessao"
 import { buscarCampanha, numerosParaCampanha, opcoesSegmentacao } from "../actions"
 import { EditorCampanhaClient } from "./editor-campanha-client"
 
+export const metadata = { title: "Campanha" }
+
 export default async function EditorCampanhaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { user, perfil } = await sessaoAtual()

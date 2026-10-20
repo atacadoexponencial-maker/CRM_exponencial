@@ -3,6 +3,8 @@ import { sessaoAtual } from "@/lib/sessao"
 import { carregarPedido, listarPedidos } from "./actions"
 import { PedidosClient } from "./pedidos-client"
 
+export const metadata = { title: "Pedidos" }
+
 // Pedidos: todos os papéis (Atendente também).
 export default async function PedidosPage({ searchParams }: { searchParams: Promise<{ pedido?: string }> }) {
   const { user, perfil } = await sessaoAtual()

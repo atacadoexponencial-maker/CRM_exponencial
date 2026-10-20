@@ -3,6 +3,8 @@ import { sessaoAtual } from "@/lib/sessao"
 import { listarAlertas } from "./actions"
 import { AlertasClient } from "./alertas-client"
 
+export const metadata = { title: "Alertas" }
+
 export default async function AlertasPage() {
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")

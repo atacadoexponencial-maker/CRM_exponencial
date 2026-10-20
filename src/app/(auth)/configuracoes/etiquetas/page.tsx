@@ -3,6 +3,8 @@ import { sessaoAtual } from "@/lib/sessao"
 import { listarEtiquetas } from "./actions"
 import { EtiquetasClient } from "./etiquetas-client"
 
+export const metadata = { title: "Etiquetas" }
+
 export default async function EtiquetasPage() {
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")

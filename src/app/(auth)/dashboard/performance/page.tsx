@@ -3,6 +3,8 @@ import { sessaoAtual } from "@/lib/sessao"
 import { buscarPerformanceVendedores } from "../actions"
 import { PerformanceClient } from "./performance-client"
 
+export const metadata = { title: "Performance" }
+
 export default async function PerformancePage() {
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")

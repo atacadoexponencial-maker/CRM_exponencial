@@ -31,6 +31,8 @@ export async function alterarSenha(
   confirmarSenha: string
 ): Promise<{ erro?: string }> {
   if (novaSenha !== confirmarSenha) return { erro: "As senhas não coincidem." }
+  // QA baixos (06/10): o Auth recusava a senha curta com erro genérico.
+  if (novaSenha.length < 8) return { erro: "A nova senha precisa ter pelo menos 8 caracteres." }
 
   const ssrClient = await createClient()
   const { data: { user } } = await ssrClient.auth.getUser()

@@ -4,6 +4,8 @@ import { sessaoAtual } from "@/lib/sessao"
 import { carregarConfiguracoes } from "./actions"
 import { ConfiguracoesClient } from "./configuracoes-client"
 
+export const metadata = { title: "Configurações do catálogo" }
+
 export default async function ConfiguracoesCatalogoPage() {
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")

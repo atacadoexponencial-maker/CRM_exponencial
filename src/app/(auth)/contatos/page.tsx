@@ -5,6 +5,8 @@ import { listarContatos } from "./actions"
 import { TAMANHO_PAGINA_CONTATOS } from "./mock-contatos"
 import { contarLixeira } from "./lixeira/actions"
 
+export const metadata = { title: "Contatos" }
+
 export default async function ContatosPage() {
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")

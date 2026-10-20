@@ -2,6 +2,8 @@ import { sessaoAtual } from "@/lib/sessao"
 import { FunilRecompra } from "../components/funil-recompra"
 import { listarCardsRecompra, listarAtendentes } from "../actions"
 
+export const metadata = { title: "Funil de Recompra" }
+
 export default async function RecompraPage() {
   const { perfil: profile } = await sessaoAtual()
 

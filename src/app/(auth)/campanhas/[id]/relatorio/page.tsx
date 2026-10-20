@@ -3,6 +3,8 @@ import { sessaoAtual } from "@/lib/sessao"
 import { relatorioCampanha } from "../../actions"
 import { RelatorioCampanhaClient } from "./relatorio-client"
 
+export const metadata = { title: "Relatório da campanha" }
+
 export default async function RelatorioCampanhaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { user, perfil } = await sessaoAtual()

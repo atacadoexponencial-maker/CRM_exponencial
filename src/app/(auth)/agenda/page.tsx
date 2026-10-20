@@ -3,6 +3,8 @@ import { sessaoAtual } from "@/lib/sessao"
 import { listarMinhaAgenda } from "./actions"
 import { AgendaClient } from "./agenda-client"
 
+export const metadata = { title: "Minha agenda" }
+
 export default async function AgendaPage() {
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")

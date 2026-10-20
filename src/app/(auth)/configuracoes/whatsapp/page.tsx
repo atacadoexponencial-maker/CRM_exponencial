@@ -13,6 +13,8 @@ import type { NumeroConectado } from "./canal-direto/cartao-numero"
 import type { EstadoConexao } from "./canal-direto/estado-badge"
 import { situacaoDaPausa } from "@/lib/whatsapp/gateway/pausa"
 
+export const metadata = { title: "WhatsApp" }
+
 /**
  * Estados que o contrato do gateway prevê. A coluna `status` é texto livre e
  * guarda `connected` para as conexões da Meta; o que não for reconhecido é

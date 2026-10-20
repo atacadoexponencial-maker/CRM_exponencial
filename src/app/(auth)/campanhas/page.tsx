@@ -3,6 +3,8 @@ import { sessaoAtual } from "@/lib/sessao"
 import { listarCampanhas } from "./actions"
 import { CampanhasClient } from "./campanhas-client"
 
+export const metadata = { title: "Campanhas" }
+
 export default async function CampanhasPage() {
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")

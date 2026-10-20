@@ -2,6 +2,8 @@ import { redirect } from "next/navigation"
 import { sessaoAtual } from "@/lib/sessao"
 import { ImportarClient } from "./importar-client"
 
+export const metadata = { title: "Importar produtos" }
+
 // Importar produtos por planilha (B18): só Admin e Gerente.
 export default async function ImportarProdutosPage() {
   const { user, perfil } = await sessaoAtual()

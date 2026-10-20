@@ -5,6 +5,8 @@ import { AcoesTime } from "./acoes-time"
 import { sessaoAtual } from "@/lib/sessao"
 import { listarTimes, listarUsuariosDoWorkspace } from "./actions"
 
+export const metadata = { title: "Times" }
+
 function Iniciais({ nome }: { nome: string }) {
   const partes = nome.trim().split(" ")
   const iniciais = partes.length >= 2
@@ -62,6 +64,9 @@ export default async function TimesPage() {
             </div>
 
             <div className="px-4 py-3 flex flex-wrap gap-3">
+              {time.membros.length === 0 && (
+                <span className="text-sm text-muted-foreground">Nenhum membro ainda.</span>
+              )}
               {time.membros.map((membro) => (
                 <div key={membro.id} className="flex items-center gap-2 text-sm">
                   <Iniciais nome={membro.name} />

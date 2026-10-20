@@ -4,6 +4,8 @@ import { listarCatalogo } from "./actions"
 import { carregarConfiguracoes } from "./configuracoes/actions"
 import { ProdutosClient } from "./produtos-client"
 
+export const metadata = { title: "Catálogo" }
+
 export default async function CatalogoPage() {
   const { user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")

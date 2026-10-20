@@ -3,6 +3,8 @@ import { sessaoAtual } from "@/lib/sessao"
 import { listarAgendaEquipe } from "../actions"
 import { AgendaEquipeClient } from "./agenda-equipe-client"
 
+export const metadata = { title: "Agenda da equipe" }
+
 export default async function AgendaEquipePage() {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
