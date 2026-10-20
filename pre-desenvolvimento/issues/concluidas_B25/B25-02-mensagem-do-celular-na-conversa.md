@@ -148,3 +148,9 @@ Só depois que esta issue estiver no ar e a B25-01 estiver na VPS (merge do gate
 - [x] Balão de saída com "Enviada pelo celular"
 - [x] Testes da tabela Prova escritos e passando
 - [x] Build verde
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B25-14 | Marcelle | 20/10/2026 |

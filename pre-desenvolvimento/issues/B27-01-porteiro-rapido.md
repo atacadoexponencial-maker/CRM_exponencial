@@ -115,3 +115,22 @@ desativada na próxima tela que abrir.
 - [x] Build e suíte completa
 
 Os testes manuais (CA-B27-06 e CA-B27-10) são acompanhados pelo auditor, fora do checklist.
+
+## Medição na produção (CA-B27-06), 17/10/2026
+
+Feita por Claude após o deploy de `387ef37`, com o mesmo roteiro de 16/10 (admin temporário na Marcelle Midias, apagado no fim). Mediana de 6 aberturas:
+
+| Tela | Antes (16-17/10) | Depois |
+|---|---|---|
+| Lista do WhatsApp | 0,64 s | **0,435 s** |
+| Saúde (número real) | 0,86 s | 0,68 s |
+| Ritmo (número real) | 0,95 s | 0,69 s |
+| Saúde/Ritmo sem gateway | 0,65 s | 0,42 s |
+
+Meta: ≤ 0,45 s. Falta a Marcelle aceitar o resultado para registrar.
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B27-06 | Marcelle | 19/10/2026 |
