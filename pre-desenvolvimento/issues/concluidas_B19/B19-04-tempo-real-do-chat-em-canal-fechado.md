@@ -71,4 +71,4 @@ aviso falso. Conferido com mensagem real chegando no CRM publicado.
 - [x] `realtime.ts` transmite com `private: true`
 - [x] `chat-layout.tsx` assina com `private: true`
 - [x] Testes de ataque e de recebimento passando; testes existentes do chat (`chat-tempo-real-credencial`) passando; build e lint ok
-- [ ] Conferido no CRM publicado: mensagem real chega ao vivo (teste manual da Marcelle)
+- [x] Conferido no CRM publicado: mensagem real chega ao vivo (teste manual da Marcelle, 20/10/2026: "funcionando perfeitamente")
