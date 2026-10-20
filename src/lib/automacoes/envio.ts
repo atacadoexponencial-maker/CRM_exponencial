@@ -93,7 +93,8 @@ async function enviar(contexto: ContextoDaExecucao, contactId: string, conteudo:
 }
 
 /** Só consulta o banco quando o texto tem alguma variável. */
-async function preencherVariaveis(contexto: ContextoDaExecucao, contactId: string, texto: string): Promise<string> {
+/** Também usado pelo lembrete criado por automação (B28-01), com as mesmas variáveis. */
+export async function preencherVariaveis(contexto: ContextoDaExecucao, contactId: string, texto: string): Promise<string> {
   if (!texto.includes("{{")) return texto
   return textoComVariaveis(texto, await variaveisDoContato(contexto, contactId))
 }

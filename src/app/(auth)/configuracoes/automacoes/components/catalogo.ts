@@ -4,6 +4,7 @@
 
 import type { LucideIcon } from "lucide-react"
 import {
+  BellPlus,
   BookmarkMinus,
   BookmarkPlus,
   CircleCheck,
@@ -80,6 +81,8 @@ export type CampoTela =
    * Com `vazio`, deixar em branco vale como "qualquer tag" (no gatilho).
    */
   | { chave: "tag"; rotulo: string; tipo: "tag_livre"; vazio?: string }
+  /** Prazo em número e unidade (horas ou dias), gravado em `vence_em` e `vence_unidade` (B28-01). */
+  | { chave: "vence_em"; rotulo: string; tipo: "vencimento" }
 
 export const FUNIS: Opcao[] = [
   { id: "entrada", nome: "Funil de Entrada" },
@@ -368,6 +371,22 @@ export const ACOES: Record<AcaoTipo, { rotulo: string; icone: LucideIcon; campos
   },
   resolver_conversa: { rotulo: "Resolver a conversa", icone: CircleCheck, campos: [] },
   reabrir_conversa: { rotulo: "Reabrir a conversa", icone: RotateCcw, campos: [] },
+  criar_lembrete: {
+    rotulo: "Criar lembrete na Agenda",
+    icone: BellPlus,
+    campos: [
+      {
+        chave: "texto",
+        rotulo: "Lembrete",
+        tipo: "texto_longo",
+        placeholder: "Ligar para {{primeiro_nome}} e perguntar do pedido",
+        variaveis: true,
+      },
+      // B28-01: o padrão é o responsável pela conversa; dá para escolher outra pessoa
+      { chave: "responsavel_id", rotulo: "Para quem", tipo: "opcoes", fonte: "atendentes", vazio: "Responsável pela conversa" },
+      { chave: "vence_em", rotulo: "Vence", tipo: "vencimento" },
+    ],
+  },
 }
 
 /** Rótulo da escolha que não existe mais, no bloco e no painel (B22-27). */
@@ -419,5 +438,6 @@ export const GRUPOS_NOVO_BLOCO: Array<{ titulo: string; itens: Array<"condicao" 
     itens: ["aplicar_etiqueta", "remover_etiqueta", "atribuir_atendente", "resolver_conversa", "reabrir_conversa"],
   },
   { titulo: "Funil e time", itens: ["mover_card", "atribuir_time", "iniciar_sequencia"] },
+  { titulo: "Agenda", itens: ["criar_lembrete"] },
 ]
 

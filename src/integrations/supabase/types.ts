@@ -1530,6 +1530,7 @@ export type Database = {
       reminders: {
         Row: {
           atendente_id: string
+          automacao_nome: string | null
           contact_id: string
           created_at: string
           done_at: string | null
@@ -1543,6 +1544,7 @@ export type Database = {
         }
         Insert: {
           atendente_id: string
+          automacao_nome?: string | null
           contact_id: string
           created_at?: string
           done_at?: string | null
@@ -1556,6 +1558,7 @@ export type Database = {
         }
         Update: {
           atendente_id?: string
+          automacao_nome?: string | null
           contact_id?: string
           created_at?: string
           done_at?: string | null

@@ -6,7 +6,9 @@ import { avancarAposLembrete } from "@/lib/sequencias"
 
 export type ItemAgenda = {
   id: string
-  origem: "sequencia" | "avulso"
+  origem: "sequencia" | "avulso" | "automacao"
+  /** Nome da regra que criou o lembrete, quando a origem é automação (B28-01). */
+  automacaoNome?: string | null
   contatoNome: string
   contatoId: string
   conversaId: string | null
@@ -34,7 +36,8 @@ async function perfilAtual() {
 
 type ReminderRow = {
   id: string
-  origem: "sequencia" | "avulso"
+  origem: "sequencia" | "avulso" | "automacao"
+  automacao_nome: string | null
   instrucao: string
   due_at: string
   atendente_id: string
@@ -47,6 +50,7 @@ function mapItem(r: ReminderRow, conversaPorContato: Record<string, string>): It
   return {
     id: r.id,
     origem: r.origem,
+    automacaoNome: r.automacao_nome,
     contatoNome: r.contacts?.name || r.contacts?.phone_number || "—",
     contatoId: r.contact_id,
     conversaId: conversaPorContato[r.contact_id] ?? null,
@@ -84,7 +88,7 @@ export async function listarMinhaAgenda(): Promise<ItemAgenda[]> {
 
   const { data } = await supabase
     .from("reminders")
-    .select("id, origem, instrucao, due_at, atendente_id, contact_id, contacts(id, name, phone_number)")
+    .select("id, origem, automacao_nome, instrucao, due_at, atendente_id, contact_id, contacts(id, name, phone_number)")
     .eq("atendente_id", user.id)
     .eq("status", "pendente")
     .order("due_at")
@@ -103,7 +107,7 @@ export async function listarAgendaEquipe(atendenteId?: string | null): Promise<{
 
   let query = supabase
     .from("reminders")
-    .select("id, origem, instrucao, due_at, atendente_id, contact_id, contacts(id, name, phone_number), profiles!atendente_id(name)")
+    .select("id, origem, automacao_nome, instrucao, due_at, atendente_id, contact_id, contacts(id, name, phone_number), profiles!atendente_id(name)")
     .eq("workspace_id", perfil.workspace_id)
     .eq("status", "pendente")
     .order("due_at")

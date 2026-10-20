@@ -128,9 +128,10 @@ async function executarRegra(contexto: ContextoDaExecucao, regra: RegraCarregada
   }
 
   try {
+    const daRegra: ContextoDaExecucao = { ...contexto, regra: { id: regra.id, nome: regra.nome } }
     const caminho = await percorrerFluxo(regra.fluxo, {
-      avaliarVerificacao: (verificacao) => verificacaoVale(contexto, verificacao),
-      executarAcao: (bloco) => executarAcao(contexto, bloco),
+      avaliarVerificacao: (verificacao) => verificacaoVale(daRegra, verificacao),
+      executarAcao: (bloco) => executarAcao(daRegra, bloco),
     })
     await registrarExecucao(supabase, {
       gatilho,

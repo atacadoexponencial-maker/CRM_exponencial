@@ -40,6 +40,7 @@ export type AcaoTipo =
   | "iniciar_sequencia"
   | "resolver_conversa"
   | "reabrir_conversa"
+  | "criar_lembrete"
 
 /** Parâmetros de gatilho e de ação. As chaves seguem as de `automations.gatilho_config`/`acao_config`. */
 export type Parametros = Record<string, string>
@@ -167,6 +168,27 @@ export const PARAMETROS_OBRIGATORIOS_ACAO: Record<AcaoTipo, readonly string[]> =
   iniciar_sequencia: ["sequencia_id"],
   resolver_conversa: [],
   reabrir_conversa: [],
+  // B28-01: sem `responsavel_id`, vai para o responsável pela conversa
+  criar_lembrete: ["texto"],
+}
+
+/** Texto do lembrete criado por automação: o bastante para uma instrução (B28-01). */
+export const TEXTO_MAXIMO_DO_LEMBRETE = 500
+/** Vencimento do lembrete: até um ano, em horas ou em dias. */
+const VENCIMENTO_MAXIMO: Record<string, number> = { horas: HORAS_MAXIMAS, dias: 365 }
+
+/**
+ * Vencimento do "criar lembrete": vazio ou 0 é "na hora"; senão, número inteiro
+ * de horas ou de dias, até um ano. Sem unidade, vale em dias, o padrão do painel.
+ */
+export function vencimentoDoLembrete(parametros: Parametros): { quantidade: number; unidade: "horas" | "dias" } | null {
+  const unidade = parametros.vence_unidade === "horas" ? "horas" : "dias"
+  if (parametros.vence_unidade && !(parametros.vence_unidade in VENCIMENTO_MAXIMO)) return null
+  const texto = (parametros.vence_em ?? "").trim()
+  if (texto === "") return { quantidade: 0, unidade }
+  if (!/^\d+$/.test(texto)) return null
+  const quantidade = Number(texto)
+  return quantidade <= VENCIMENTO_MAXIMO[unidade] ? { quantidade, unidade } : null
 }
 
 const ACOES_QUE_ENVIAM: readonly AcaoTipo[] = ["enviar_mensagem", "enviar_mensagem_rapida", "enviar_midia"]
@@ -219,6 +241,8 @@ export const ACOES_DISPONIVEIS: readonly AcaoTipo[] = [
   // B11-07
   "enviar_mensagem_rapida",
   "enviar_midia",
+  // B28-01
+  "criar_lembrete",
 ]
 
 /**
@@ -395,6 +419,14 @@ export function pendenciasDoFluxo(fluxo: Fluxo): PendenciasFluxo {
         anotar(bloco.id, "Complete a configuração da ação")
       } else if (ACOES_COM_TAG.includes(bloco.acao) && !tagValida(bloco.parametros.tag)) {
         anotar(bloco.id, "A tag não pode ter espaço e vai até 50 caracteres")
+      }
+      if (bloco.acao === "criar_lembrete") {
+        if ((bloco.parametros.texto ?? "").trim().length > TEXTO_MAXIMO_DO_LEMBRETE) {
+          anotar(bloco.id, `O lembrete vai até ${TEXTO_MAXIMO_DO_LEMBRETE} caracteres`)
+        }
+        if (!vencimentoDoLembrete(bloco.parametros)) {
+          anotar(bloco.id, "O vencimento é um número inteiro, até 365 dias (ou 8760 horas)")
+        }
       }
     } else {
       if (bloco.verificacoes.some((v) => !VERIFICACOES_DISPONIVEIS.includes(v.tipo))) anotar(bloco.id, EM_BREVE)

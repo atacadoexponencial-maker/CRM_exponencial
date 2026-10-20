@@ -233,6 +233,8 @@ async function apagarAtendente(db, ws, id) {
     ["histórico do card", () => db.from("pipeline_card_history").delete().eq("alterado_por", id).in("card_id", idsCards)],
     ["cards", () => db.from("pipeline_cards").update({ atendente_id: null }).eq("workspace_id", ws).eq("atendente_id", id)],
     ["conversas", () => db.from("conversations").update({ assigned_to: null }).eq("workspace_id", ws).eq("assigned_to", id)],
+    // B28-01: lembrete da Agenda aponta para o perfil (`atendente_id`, sem `on delete`)
+    ["lembretes", () => db.from("reminders").delete().eq("workspace_id", ws).eq("atendente_id", id)],
     ["perfil", () => db.from("profiles").delete().eq("workspace_id", ws).eq("id", id)],
     ["login", () => db.auth.admin.deleteUser(id)],
   ]
