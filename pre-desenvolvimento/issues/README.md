@@ -15,11 +15,12 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B10 | `docs/specs-arquivadas/spec-navegacao-fluida.md` | `concluidas_B10/` |
 | B11 | `../spec-automacoes-v2.md` (em andamento) | `concluidas_B11/` (quando houver) |
 | B12 | `docs/specs-arquivadas/spec-renomear-funis.md` | `concluidas_B12/` |
-| B13 | `../spec-lixeira-contatos.md` (em andamento) | `concluidas_B13/` (quando houver) |
+| B13 | `docs/specs-arquivadas/spec-lixeira-contatos.md` (excluir lead e contato, com lixeira) | `concluidas_B13/` |
 | B22 | `../analise-qa/qa-automacoes-2026-10-09.md` (correções do QA das automações v2) | `concluidas_B22/` |
 | B23 | `../spec-coexistencia.md` (em andamento: WhatsApp Business no celular e CRM no mesmo número, pela API Oficial) | `concluidas_B23/` (quando houver) |
 | B24 | `../spec-landing-atacado-exp.md` (reservada: a landing está no branch `b22-landing-atacado-exp` e troca o código B22 por B24 no merge) | `concluidas_B24/` (quando houver) |
-| B25 | `../spec-canal-direto-envio-pelo-celular.md` (em andamento: mensagem enviada pelo celular aparece no CRM, canal direto) | `concluidas_B25/` (quando houver) |
-| B26 | `../spec-mensagem-na-fila.md` (em andamento: mensagem na fila do número e aviso de aquecimento, canal direto) | `concluidas_B26/` (quando houver) |
-| B27 | `../spec-porteiro-rapido.md` (em andamento: conferência de login do porteiro sem ida ao banco de logins, mantendo o aviso de conta desativada) | `concluidas_B27/` (quando houver) |
+| B25 | `docs/specs-arquivadas/spec-canal-direto-envio-pelo-celular.md` (mensagem enviada pelo celular aparece no CRM, canal direto) | `concluidas_B25/` |
+| B26 | `docs/specs-arquivadas/spec-mensagem-na-fila.md` (mensagem na fila do número e aviso de aquecimento, canal direto) | `concluidas_B26/` |
+| B27 | `docs/specs-arquivadas/spec-porteiro-rapido.md` (conferência de login do porteiro sem ida ao banco de logins, mantendo o aviso de conta desativada) | `concluidas_B27/` |
+| B28 | `../spec-foto-de-perfil.md` (em andamento: foto de perfil real do contato, buscada pelo canal direto) | `concluidas_B28/` (quando houver) |
 | F1 | `docs/specs-arquivadas/spec-fluxo-com-prova.md` (melhoria do fluxo de desenvolvimento: critérios de aceite com código, auditor, lições) | `concluidas_F1/` |
