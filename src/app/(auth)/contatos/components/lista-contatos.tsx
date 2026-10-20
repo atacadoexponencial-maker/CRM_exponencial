@@ -77,6 +77,14 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
   // B10-06: páginas carregadas e, quando há busca, o resultado vindo do servidor.
   const [paginas, setPaginas] = useState<Contato[]>(contatosIniciais)
   const [temMais, setTemMais] = useState(temMaisInicial)
+  // QA A10 (06/10): depois de "Novo contato", o router.refresh() traz a lista nova
+  // nas props; sem isto, o estado ficava com a lista antiga até o F5.
+  const [recebidos, setRecebidos] = useState(contatosIniciais)
+  if (contatosIniciais !== recebidos) {
+    setRecebidos(contatosIniciais)
+    setPaginas(contatosIniciais)
+    setTemMais(temMaisInicial)
+  }
   const [carregandoMais, setCarregandoMais] = useState(false)
   // Resultado guardado junto com o termo: só vale enquanto o termo for o mesmo.
   const [respostaBusca, setRespostaBusca] = useState<{ termo: string; lista: Contato[] } | null>(null)

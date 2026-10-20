@@ -64,6 +64,13 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
   const router = useRouter()
   const [itens, setItens] = useState<ItemAgenda[]>(itensIniciais)
   const [erro, setErro] = useState<string | null>(null)
+  // QA A10 (06/10): depois de "Novo follow-up", o router.refresh() traz a agenda nova
+  // nas props; sem isto, o estado ficava com a lista antiga até o F5.
+  const [recebidos, setRecebidos] = useState(itensIniciais)
+  if (itensIniciais !== recebidos) {
+    setRecebidos(itensIniciais)
+    setItens(itensIniciais)
+  }
 
   // Novo follow-up
   const [dialogAberto, setDialogAberto] = useState(false)
