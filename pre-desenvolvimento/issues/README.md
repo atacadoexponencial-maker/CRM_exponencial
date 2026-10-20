@@ -1,6 +1,6 @@
 # issues
 
-- **Arquivos soltos nesta pasta = issues abertas.** Hoje: B13-05 e B19-04, as duas no ar e esperando só o teste manual.
+- **Arquivos soltos nesta pasta = issues abertas.** Hoje: B29-01 e B29-03 (foto de perfil) e B30-01 a B30-05 (fundação da venda).
 - `concluidas_<série>/` = entregues e no ar. Não se mexe mais nelas.
 - `bloqueadas_modulo6/` = escritas, mas sem como fazer (API da Meta não tem grupos).
 
@@ -24,4 +24,5 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B27 | `docs/specs-arquivadas/spec-porteiro-rapido.md` (conferência de login do porteiro sem ida ao banco de logins, mantendo o aviso de conta desativada) | `concluidas_B27/` |
 | B28 | `../spec-espera-e-fim-das-sequencias.md` (em andamento, no branch `b28-espera-e-fim-das-sequencias` do Luan: bloco "esperar" nas automações, fim das sequências e ação "criar lembrete na Agenda") | `concluidas_B28/` (quando houver) |
 | B29 | `../spec-foto-de-perfil.md` (em andamento: foto de perfil real do contato, buscada pelo canal direto) | `concluidas_B29/` (quando houver) |
+| B30 | `../spec-fundacao-da-venda.md` (aprovada em 20/10/2026, 5 issues: pedido do catálogo fechado vira compra, compra com peças/desconto/pagamento/atendente/origem, dashboard na fonte unificada, exportação Excel e gráficos para os relatórios) | `concluidas_B30/` (quando houver) |
 | F1 | `docs/specs-arquivadas/spec-fluxo-com-prova.md` (melhoria do fluxo de desenvolvimento: critérios de aceite com código, auditor, lições) | `concluidas_F1/` |
