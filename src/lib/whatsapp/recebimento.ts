@@ -303,6 +303,7 @@ export async function registrarMensagemRecebida({
       content: traduzido.conteudo,
       created_at: recebidoEm,
       status: null,
+      media_mime_type: midia?.mimeType ?? null,
     })
 
     // B11-04: só a mensagem gravada dispara. Na reentrega de um evento que morreu

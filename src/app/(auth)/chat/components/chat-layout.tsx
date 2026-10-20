@@ -179,6 +179,7 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
             created_at: string
             status: string | null
             sent_from_phone?: boolean
+            media_mime_type?: string | null
           }
           const novaMensagem: Mensagem = {
             id: row.id,
@@ -190,6 +191,7 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
             horario: formatarHoraDoDia(row.created_at),
             status: row.status as Mensagem["status"] | undefined,
             ...(row.sent_from_phone ? { enviadaPeloCelular: true } : {}),
+            ...(row.media_mime_type ? { tipoDoArquivo: row.media_mime_type } : {}),
           }
           setMensagensLocais((prev) => {
             const lista = prev[row.conversation_id]

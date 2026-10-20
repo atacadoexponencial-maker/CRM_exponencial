@@ -159,7 +159,35 @@ function ConteudoMensagem({ mensagem, termoBusca, isEnviada }: { mensagem: Mensa
           <span className="text-xs text-muted-foreground truncate max-w-40">{mensagem.conteudo}</span>
         </div>
       )
+    case "figurinha":
+      // GIF e figurinha chegam como .webp (animado ou não); antes caía no texto e
+      // mostrava a URL (relato dela, 20/10/2026).
+      if (mensagem.conteudo.startsWith("http")) {
+        // eslint-disable-next-line @next/next/no-img-element
+        return <img src={mensagem.conteudo} alt="figurinha" className="w-32 rounded-lg" />
+      }
+      return <>{textoComDestaque(mensagem.conteudo, termoBusca)}</>
     case "video":
+      if (/codecs=(hvc1|hev1)/.test(mensagem.tipoDoArquivo ?? "")) {
+        // HEVC: o navegador toca só o áudio com a tela preta; melhor avisar e dar o arquivo.
+        return (
+          <div className="w-56 rounded-lg border bg-muted/40 p-3 flex flex-col gap-2">
+            <p className="text-xs text-muted-foreground">
+              Este vídeo veio num formato (HEVC) que o navegador não reproduz. Baixe para assistir.
+            </p>
+            <a
+              href={mensagem.conteudo}
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+              className="inline-flex items-center gap-1.5 text-xs font-medium hover:underline"
+            >
+              <Download className="size-3.5" />
+              Baixar vídeo
+            </a>
+          </div>
+        )
+      }
       if (mensagem.conteudo.startsWith("http") || mensagem.conteudo.startsWith("blob:")) {
         return (
           <video

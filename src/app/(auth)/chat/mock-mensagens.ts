@@ -1,4 +1,4 @@
-export type TipoMensagem = "texto" | "imagem" | "audio" | "video" | "documento" | "nota_interna"
+export type TipoMensagem = "texto" | "imagem" | "audio" | "video" | "documento" | "figurinha" | "nota_interna"
 export type DirecaoMensagem = "enviada" | "recebida"
 /** `na_fila`: aceita pela fila do número do canal direto, ainda não saiu (B26-02). */
 export type StatusMensagem = "na_fila" | "enviado" | "entregue" | "lido" | "falhou"
@@ -16,6 +16,8 @@ export interface Mensagem {
   replyDe?: { id: string; texto: string }
   /** B25-02: saiu do número pelo celular (ou WhatsApp Web), e não pelo CRM. */
   enviadaPeloCelular?: boolean
+  /** Tipo do arquivo, com o codec quando é vídeo (ex.: "video/mp4; codecs=hvc1"). */
+  tipoDoArquivo?: string
 }
 
 function m(

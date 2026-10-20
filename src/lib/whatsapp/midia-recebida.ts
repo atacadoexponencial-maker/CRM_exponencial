@@ -32,6 +32,20 @@ export type MidiaGuardada = {
   filename: string | null
 }
 
+/**
+ * Vídeo HEVC (H.265), padrão do iPhone e de alguns Android: o Chrome no Windows
+ * não decodifica, e o player toca só o áudio com a tela preta (relato dela,
+ * 20/10/2026). O cabeçalho do MP4 (caixa `ftyp`) lista as marcas compatíveis;
+ * `hvc1`/`hev1` denunciam o HEVC. Devolve o mime com o codec, para a tela avisar.
+ */
+export function mimeComCodec(mimeType: string | null, inicio: Uint8Array): string | null {
+  if (!mimeType?.startsWith("video/")) return mimeType
+  const texto = new TextDecoder("latin1").decode(inicio.subarray(0, 64))
+  if (!texto.includes("ftyp")) return mimeType
+  if (/hvc1|hev1/.test(texto)) return `${mimeType}; codecs=hvc1`
+  return mimeType
+}
+
 /** Extensão a partir do nome original ou do mime; `bin` quando não há pista. */
 function extensaoDe(midia: MidiaDoEvento): string {
   const doNome = midia.filename?.includes(".") ? midia.filename.split(".").pop() : null
@@ -68,7 +82,7 @@ export async function guardarMidiaRecebida({
     if (!resposta.ok) return null
 
     const conteudo = await resposta.arrayBuffer()
-    const mimeType = midia.mime_type ?? resposta.headers.get("content-type") ?? null
+    const mimeType = mimeComCodec(midia.mime_type ?? resposta.headers.get("content-type") ?? null, new Uint8Array(conteudo))
 
     // Nome próprio, não o do remetente: nome de arquivo de fora não define
     // caminho no nosso Storage. O original fica em `messages.media_filename`.
@@ -76,7 +90,7 @@ export async function guardarMidiaRecebida({
 
     const { error } = await supabase.storage
       .from(BUCKET)
-      .upload(caminho, conteudo, { contentType: mimeType ?? "application/octet-stream" })
+      .upload(caminho, conteudo, { contentType: mimeType?.split(";")[0] ?? "application/octet-stream" })
 
     if (error) return null
 

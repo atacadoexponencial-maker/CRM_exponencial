@@ -385,6 +385,8 @@ describe("tempo real", () => {
       content: TEXTO.text,
       created_at: RECEBIDO_EM,
       status: null,
+      // Texto não tem arquivo; vídeo leva o mime com o codec (20/10/2026)
+      media_mime_type: null,
     })
   })
 })

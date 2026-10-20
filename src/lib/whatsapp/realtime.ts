@@ -21,6 +21,8 @@ export type MensagemTransmitida = {
   status: string | null
   /** B25-02: saiu do número por outro aparelho, e não pelo CRM. */
   sent_from_phone?: boolean
+  /** Tipo do arquivo, com o codec quando é vídeo. */
+  media_mime_type?: string | null
 }
 
 async function enviarAoRealtime(mensagens: Array<{ topic: string; event: string; payload: unknown }>): Promise<void> {
