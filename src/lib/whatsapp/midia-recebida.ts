@@ -30,6 +30,8 @@ export type MidiaGuardada = {
   mimeType: string | null
   /** Nome original, quando o WhatsApp mandou. */
   filename: string | null
+  /** Miniatura (JPEG) no Storage do CRM, quando o gateway mandou uma. */
+  thumbnailUrl: string | null
 }
 
 /**
@@ -98,7 +100,27 @@ export async function guardarMidiaRecebida({
       data: { publicUrl },
     } = supabase.storage.from(BUCKET).getPublicUrl(caminho)
 
-    return { url: publicUrl, mimeType, filename: midia.filename ?? null }
+    // Prévia (20/10/2026): a miniatura que o WhatsApp manda, guardada ao lado do
+    // arquivo. Falhar aqui só deixa a mensagem sem prévia.
+    let thumbnailUrl: string | null = null
+    if (midia.thumbnail_url) {
+      try {
+        const miniatura = await buscar(midia.thumbnail_url, {
+          headers: instanceToken ? { "X-Instance-Token": instanceToken } : undefined,
+        })
+        if (miniatura.ok) {
+          const caminhoDaMiniatura = `${caminho}.thumb.jpg`
+          const { error: erroMiniatura } = await supabase.storage
+            .from(BUCKET)
+            .upload(caminhoDaMiniatura, await miniatura.arrayBuffer(), { contentType: "image/jpeg" })
+          if (!erroMiniatura) thumbnailUrl = supabase.storage.from(BUCKET).getPublicUrl(caminhoDaMiniatura).data.publicUrl
+        }
+      } catch {
+        // sem prévia
+      }
+    }
+
+    return { url: publicUrl, mimeType, filename: midia.filename ?? null, thumbnailUrl }
   } catch {
     // Rede, tempo limite, endereço já expirado: nada disso derruba a mensagem.
     return null

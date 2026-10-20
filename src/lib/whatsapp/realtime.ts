@@ -23,6 +23,9 @@ export type MensagemTransmitida = {
   sent_from_phone?: boolean
   /** Tipo do arquivo, com o codec quando é vídeo. */
   media_mime_type?: string | null
+  /** Nome original do arquivo e a prévia, quando houver. */
+  media_filename?: string | null
+  media_thumbnail_url?: string | null
 }
 
 async function enviarAoRealtime(mensagens: Array<{ topic: string; event: string; payload: unknown }>): Promise<void> {

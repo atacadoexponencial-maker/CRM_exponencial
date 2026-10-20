@@ -18,6 +18,9 @@ export interface Mensagem {
   enviadaPeloCelular?: boolean
   /** Tipo do arquivo, com o codec quando é vídeo (ex.: "video/mp4; codecs=hvc1"). */
   tipoDoArquivo?: string
+  /** Nome original do documento e a prévia dele, quando houver (20/10/2026). */
+  nomeDoArquivo?: string
+  miniatura?: string
 }
 
 function m(

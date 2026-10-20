@@ -288,6 +288,7 @@ export async function registrarMensagemRecebida({
       // Storage, e o nome do arquivo lá é gerado por nós.
       media_mime_type: midia?.mimeType ?? null,
       media_filename: midia?.filename ?? null,
+      media_thumbnail_url: midia?.thumbnailUrl ?? null,
       media_caption: TIPOS_COM_ARQUIVO.includes(evento.type) ? evento.text ?? null : null,
     })
     .select("id")
@@ -304,6 +305,8 @@ export async function registrarMensagemRecebida({
       created_at: recebidoEm,
       status: null,
       media_mime_type: midia?.mimeType ?? null,
+      media_filename: midia?.filename ?? null,
+      media_thumbnail_url: midia?.thumbnailUrl ?? null,
     })
 
     // B11-04: só a mensagem gravada dispara. Na reentrega de um evento que morreu

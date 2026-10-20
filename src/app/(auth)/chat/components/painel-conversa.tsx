@@ -273,6 +273,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
       tipo: "documento",
       direcao: "enviada",
       conteudo: arquivo.name,
+      nomeDoArquivo: arquivo.name,
       horario: horaAtual(),
     }
     onMensagemEnviada(nova)

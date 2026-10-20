@@ -237,6 +237,9 @@ async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData):
       direction: "enviada",
       type: "documento",
       content: publicUrl,
+      // Nome original, para o balão (o caminho no Storage é gerado por nós).
+      media_filename: arquivo.name,
+      media_mime_type: arquivo.type || null,
       status: statusInicialDoEnvio(provider.canal),
       // Sem o wamid, o status que o gateway manda depois não encontra a mensagem.
       wamid: resultado.mensagemId,
@@ -841,7 +844,7 @@ export async function buscarMensagens(conversaId: string): Promise<Mensagem[]> {
 
   const { data, error } = await supabase
     .from("messages")
-    .select("id, conversation_id, direction, type, content, status, status_error, reply_to_id, reply_preview_text, created_at, sent_from_phone, media_mime_type")
+    .select("id, conversation_id, direction, type, content, status, status_error, reply_to_id, reply_preview_text, created_at, sent_from_phone, media_mime_type, media_filename, media_thumbnail_url")
     .eq("conversation_id", conversaId)
     .order("created_at", { ascending: true })
 
@@ -861,6 +864,8 @@ export async function buscarMensagens(conversaId: string): Promise<Mensagem[]> {
       ...(row.status === "falhou" && row.status_error ? { motivoFalha: row.status_error } : {}),
       ...(row.sent_from_phone ? { enviadaPeloCelular: true } : {}),
       ...(row.media_mime_type ? { tipoDoArquivo: row.media_mime_type } : {}),
+      ...(row.media_filename ? { nomeDoArquivo: row.media_filename } : {}),
+      ...(row.media_thumbnail_url ? { miniatura: row.media_thumbnail_url } : {}),
     }
 
     if (row.reply_to_id && row.reply_preview_text) {

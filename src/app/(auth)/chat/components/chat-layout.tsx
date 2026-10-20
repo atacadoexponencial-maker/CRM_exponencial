@@ -180,6 +180,8 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
             status: string | null
             sent_from_phone?: boolean
             media_mime_type?: string | null
+            media_filename?: string | null
+            media_thumbnail_url?: string | null
           }
           const novaMensagem: Mensagem = {
             id: row.id,
@@ -192,6 +194,8 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
             status: row.status as Mensagem["status"] | undefined,
             ...(row.sent_from_phone ? { enviadaPeloCelular: true } : {}),
             ...(row.media_mime_type ? { tipoDoArquivo: row.media_mime_type } : {}),
+            ...(row.media_filename ? { nomeDoArquivo: row.media_filename } : {}),
+            ...(row.media_thumbnail_url ? { miniatura: row.media_thumbnail_url } : {}),
           }
           setMensagensLocais((prev) => {
             const lista = prev[row.conversation_id]

@@ -220,9 +220,11 @@ function ConteudoMensagem({ mensagem, termoBusca, isEnviada }: { mensagem: Mensa
       )
     case "documento":
       if (mensagem.conteudo.startsWith("http") || mensagem.conteudo.startsWith("blob:")) {
-        const nomeArquivo = decodeURIComponent(
-          mensagem.conteudo.split("/").pop()?.replace(/^\d+-/, "") ?? "Documento"
-        )
+        // Nome original quando o temos (20/10/2026); senão, o do caminho, que é
+        // gerado por nós, com os sublinhados do envio virando espaço.
+        const nomeArquivo =
+          mensagem.nomeDoArquivo ??
+          decodeURIComponent(mensagem.conteudo.split("/").pop()?.replace(/^\d+-/, "") ?? "Documento").replace(/_/g, " ")
         return (
           <a
             href={mensagem.conteudo}
@@ -230,13 +232,19 @@ function ConteudoMensagem({ mensagem, termoBusca, isEnviada }: { mensagem: Mensa
             rel="noopener noreferrer"
             download={nomeArquivo}
             title="Baixar documento"
-            className="flex items-center gap-2 w-52 hover:opacity-80"
+            className="flex flex-col gap-2 w-52 hover:opacity-80"
           >
-            <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
-              <FileText className="size-4 text-primary" />
-            </div>
-            <span className="text-xs truncate flex-1">{nomeArquivo}</span>
-            <Download className="size-3 shrink-0 text-muted-foreground" />
+            {mensagem.miniatura && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={mensagem.miniatura} alt={`Prévia de ${nomeArquivo}`} className="w-full rounded-md object-cover max-h-40" />
+            )}
+            <span className="flex items-center gap-2">
+              <span className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
+                <FileText className="size-4 text-primary" />
+              </span>
+              <span className="text-xs truncate flex-1">{nomeArquivo}</span>
+              <Download className="size-3 shrink-0 text-muted-foreground" />
+            </span>
           </a>
         )
       }

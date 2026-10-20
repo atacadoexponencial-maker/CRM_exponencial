@@ -1157,6 +1157,7 @@ export type Database = {
           media_caption: string | null
           media_filename: string | null
           media_mime_type: string | null
+          media_thumbnail_url: string | null
           reaction_emoji: string | null
           reply_preview_text: string | null
           reply_to_id: string | null
@@ -1178,6 +1179,7 @@ export type Database = {
           media_caption?: string | null
           media_filename?: string | null
           media_mime_type?: string | null
+          media_thumbnail_url?: string | null
           reaction_emoji?: string | null
           reply_preview_text?: string | null
           reply_to_id?: string | null
@@ -1199,6 +1201,7 @@ export type Database = {
           media_caption?: string | null
           media_filename?: string | null
           media_mime_type?: string | null
+          media_thumbnail_url?: string | null
           reaction_emoji?: string | null
           reply_preview_text?: string | null
           reply_to_id?: string | null
@@ -1985,15 +1988,20 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      salvar_estoque_produto: {
-        Args: {
-          p_combinacoes: Json
-          p_estoque: Json
-          p_produto: string
-          p_tipos: Json
-        }
-        Returns: undefined
-      }
+      salvar_estoque_produto:
+        | {
+            Args: { p_estoque: Json; p_produto: string; p_tipos: Json }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_combinacoes: Json
+              p_estoque: Json
+              p_produto: string
+              p_tipos: Json
+            }
+            Returns: undefined
+          }
       salvar_sequencia: {
         Args: {
           p_etapas: Json
