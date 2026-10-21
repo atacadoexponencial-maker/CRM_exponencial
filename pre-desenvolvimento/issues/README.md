@@ -1,6 +1,6 @@
 # issues
 
-- **Arquivos soltos nesta pasta = issues abertas.** Hoje: B29-01 e B29-03 (foto de perfil) e B30-01 a B30-05 (fundação da venda).
+- **Arquivos soltos nesta pasta = issues abertas.** Hoje: B29-01 e B29-03 (foto de perfil) e B30-05 (gráficos do dashboard, aguardando o teste manual).
 - `concluidas_<série>/` = entregues e no ar. Não se mexe mais nelas.
 - `bloqueadas_modulo6/` = escritas, mas sem como fazer (API da Meta não tem grupos).
 
