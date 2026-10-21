@@ -25,4 +25,5 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B28 | `../spec-espera-e-fim-das-sequencias.md` (em andamento, no branch `b28-espera-e-fim-das-sequencias` do Luan: bloco "esperar" nas automações, fim das sequências e ação "criar lembrete na Agenda") | `concluidas_B28/` (quando houver) |
 | B29 | `../spec-foto-de-perfil.md` (em andamento: foto de perfil real do contato, buscada pelo canal direto) | `concluidas_B29/` (quando houver) |
 | B30 | `../spec-fundacao-da-venda.md` (aprovada em 20/10/2026, 5 issues: pedido do catálogo fechado vira compra, compra com peças/desconto/pagamento/atendente/origem, dashboard na fonte unificada, exportação Excel e gráficos para os relatórios) | `concluidas_B30/` (quando houver) |
+| B31 | `../spec-regras-de-venda-do-catalogo.md` (rascunho de 21/10/2026: preço por quantidade, mínimo por produto, grade fechada e repetir último pedido na loja do catálogo) | `concluidas_B31/` (quando houver) |
 | F1 | `docs/specs-arquivadas/spec-fluxo-com-prova.md` (melhoria do fluxo de desenvolvimento: critérios de aceite com código, auditor, lições) | `concluidas_F1/` |
