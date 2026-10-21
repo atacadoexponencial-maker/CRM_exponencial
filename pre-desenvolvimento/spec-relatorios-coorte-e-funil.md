@@ -125,7 +125,7 @@ o filtro de atendente vale.
 
 - **Dado** 10 clientes com 1 venda de R$ 100 cada, 5 com 2 vendas (R$ 100 cada venda) e 2 com 3 vendas (R$ 100 cada venda)
 - **Quando** o funil é calculado
-- **Então** 1+ tem 17 clientes, 2+ tem 7, 3+ tem 2 e 4+ a 7+ têm 0; as conversões são 41,2% (1→2) e 28,6% (2→3); o ticket médio de 2+ é R$ 242,86 (1.700 ÷ 7)
+- **Então** 1+ tem 17 clientes, 2+ tem 7, 3+ tem 2 e 4+ a 7+ têm 0; as conversões são 41,2% (1→2) e 28,6% (2→3); o ticket médio de 2+ é R$ 228,57 (1.600 ÷ 7)
 
 #### CA-B34-10 — Clientes parados por etapa · prova: automática
 
