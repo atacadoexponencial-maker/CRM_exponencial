@@ -17,7 +17,7 @@ import { SidebarNav } from "@/components/shared/sidebar-nav"
 import { RelatoriosClient } from "@/app/(auth)/relatorios/components/relatorios-client"
 
 const HOJE = "2026-10-21"
-const visao = (periodo = periodoPadrao(HOJE)) => ({ ...calcularCartoes([], periodo, HOJE), graficos: calcularGraficos([], periodo, HOJE, {}), atendenteId: null })
+const visao = (periodo = periodoPadrao(HOJE)) => ({ ...calcularCartoes([], periodo, HOJE), graficos: calcularGraficos([], periodo, HOJE, {}), tabela: [], atendenteId: null })
 
 function renderTela(papel = "admin") {
   return render(

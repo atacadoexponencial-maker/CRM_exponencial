@@ -25,6 +25,16 @@ export type VendaRow = {
   pecas: number | null
   atendente_id?: string | null
   forma_pagamento?: string | null
+  /** B32-05: dados da tabela de vendas; opcionais nos cálculos. */
+  id?: string
+  created_at?: string | null
+  origem?: string | null
+  pedido_numero?: number | string | null
+  atendente_nome?: string | null
+  contato_nome?: string | null
+  contato_telefone?: string | null
+  contato_cidade?: string | null
+  contato_uf?: string | null
 }
 
 /** Intervalo fechado de datas, yyyy-mm-dd. */
@@ -437,4 +447,47 @@ export function calcularGraficos(
     projecao: projecaoDoMes(vendas, periodo, hoje),
     porForma: faturamentoPorForma(vendas, intervalo, rotulosDeForma),
   }
+}
+
+// ---------- tabela de vendas (B32-05) ----------
+
+export type VendaDaTabela = {
+  id: string
+  contatoId: string
+  contato: string
+  telefone: string | null
+  data: string
+  /** "Manual", "Catálogo #123" ou "Externa". */
+  origem: string
+  atendente: string | null
+  cidade: string | null
+  uf: string | null
+  pecas: number | null
+  formaPagamento: string | null
+  valor: number
+}
+
+/** Vendas do período, da mais recente para a mais antiga (CA-B32-15). */
+export function vendasDoPeriodo(
+  vendas: VendaRow[],
+  intervalo: Intervalo,
+  rotulos: { origem: Record<string, string>; forma: Record<string, string> }
+): VendaDaTabela[] {
+  return vendas
+    .filter((v) => dentro(v, intervalo))
+    .sort((a, b) => (a.data === b.data ? (b.created_at ?? "").localeCompare(a.created_at ?? "") : b.data.localeCompare(a.data)))
+    .map((v) => ({
+      id: v.id ?? `${v.contact_id}-${v.data}-${v.valor}`,
+      contatoId: v.contact_id,
+      contato: v.contato_nome ?? v.contato_telefone ?? "—",
+      telefone: v.contato_telefone ?? null,
+      data: v.data,
+      origem: `${rotulos.origem[v.origem ?? "manual"] ?? v.origem ?? "Manual"}${v.pedido_numero ? ` #${v.pedido_numero}` : ""}`,
+      atendente: v.atendente_nome ?? null,
+      cidade: v.contato_cidade ?? null,
+      uf: v.contato_uf ?? null,
+      pecas: v.pecas,
+      formaPagamento: v.forma_pagamento ? (rotulos.forma[v.forma_pagamento] ?? v.forma_pagamento) : null,
+      valor: v.valor,
+    }))
 }

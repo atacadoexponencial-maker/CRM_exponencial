@@ -9,6 +9,8 @@ import { MESES, periodoMesAnterior, periodoPadrao, type PeriodoRelatorio } from 
 import { buscarVisaoGeral, type VisaoGeral } from "../actions"
 import { CartoesResumo } from "./cartoes-resumo"
 import { GraficoFormaPagamento, GraficoProjecao, GraficoVendasDiarias } from "./graficos-visao-geral"
+import { TabelaVendas } from "./tabela-vendas"
+import { urlDeExportacao } from "@/lib/relatorios/exportar-vendas"
 
 const ABAS_FUTURAS = ["RFV", "Coorte", "Funil de clientes", "Carteiras"]
 
@@ -157,6 +159,8 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
         <GraficoVendasDiarias dias={visao.graficos.vendasDiarias} />
         {visao.graficos.projecao && <GraficoProjecao projecao={visao.graficos.projecao} />}
         <GraficoFormaPagamento formas={visao.graficos.porForma} />
+        {/* B32-05: a tabela das vendas do período, com o mesmo filtro no Exportar. */}
+        <TabelaVendas vendas={visao.tabela} urlExportar={urlDeExportacao(periodo, atendenteId || null)} />
       </div>
     </>
   )

@@ -2,13 +2,16 @@
 
 import { sessaoAtual } from "@/lib/sessao"
 import { compraEhDoAtendente } from "@/lib/metricas-dashboard"
-import { ROTULO_FORMA_PAGAMENTO } from "@/lib/compras"
+import { ROTULO_FORMA_PAGAMENTO, ROTULO_ORIGEM_COMPRA } from "@/lib/compras"
 import {
   calcularCartoes,
   calcularGraficos,
   hojeNoFuso,
+  intervaloDoPeriodo,
+  vendasDoPeriodo,
   type FiltroRelatorio,
   type GraficosVisaoGeral,
+  type VendaDaTabela,
   type VendaRow,
   type VisaoGeralCartoes,
 } from "@/lib/relatorios/visao-geral"
@@ -18,6 +21,8 @@ export type { FiltroRelatorio, PeriodoRelatorio, VisaoGeralCartoes } from "@/lib
 export type VisaoGeral = VisaoGeralCartoes & {
   /** B32-04: vendas diárias, projeção do mês e forma de pagamento. */
   graficos: GraficosVisaoGeral
+  /** B32-05: as vendas do período, da mais recente para a mais antiga. */
+  tabela: VendaDaTabela[]
   /** Atendente que de fato valeu (o Atendente só vê o próprio). */
   atendenteId: string | null
 }
@@ -33,11 +38,15 @@ async function carregarVendas(atendenteId: string | null) {
 
   const { data } = await supabase
     .from("contact_purchases")
-    .select("contact_id, data, valor, desconto, pecas, atendente_id, forma_pagamento, contato:contacts!inner(excluido_em)")
+    .select(
+      "id, contact_id, data, valor, desconto, pecas, atendente_id, forma_pagamento, origem, created_at, contato:contacts!inner(name, phone_number, cidade, uf, excluido_em), vendedor:profiles!contact_purchases_atendente_id_fkey(name), pedido:catalog_orders!contact_purchases_catalog_order_id_fkey(number)"
+    )
     .eq("workspace_id", perfil.workspace_id)
     .is("contato.excluido_em", null)
 
+  const um = <T,>(x: T | T[] | null): T | null => (Array.isArray(x) ? (x[0] ?? null) : x)
   let vendas = (data ?? []).map((p) => ({
+    id: p.id,
     contact_id: p.contact_id,
     data: p.data,
     valor: Number(p.valor),
@@ -45,6 +54,14 @@ async function carregarVendas(atendenteId: string | null) {
     pecas: p.pecas,
     atendente_id: p.atendente_id,
     forma_pagamento: p.forma_pagamento,
+    origem: p.origem,
+    created_at: p.created_at,
+    pedido_numero: um(p.pedido)?.number ?? null,
+    atendente_nome: um(p.vendedor)?.name ?? null,
+    contato_nome: um(p.contato)?.name ?? null,
+    contato_telefone: um(p.contato)?.phone_number ?? null,
+    contato_cidade: um(p.contato)?.cidade ?? null,
+    contato_uf: um(p.contato)?.uf ?? null,
   })) as VendaRow[]
 
   if (atendenteId) {
@@ -73,6 +90,19 @@ export async function buscarVisaoGeral(filtro: FiltroRelatorio): Promise<VisaoGe
   return {
     ...calcularCartoes(dados.vendas, filtro.periodo, hoje),
     graficos: calcularGraficos(dados.vendas, filtro.periodo, hoje, ROTULO_FORMA_PAGAMENTO),
+    tabela: vendasDoPeriodo(dados.vendas, intervaloDoPeriodo(filtro.periodo, hoje), ROTULOS_DA_TABELA),
     atendenteId,
   }
+}
+
+const ROTULOS_DA_TABELA = { origem: ROTULO_ORIGEM_COMPRA, forma: ROTULO_FORMA_PAGAMENTO }
+
+/** B32-05: só a tabela, para a rota de exportação. Mesma regra do atendente. */
+export async function buscarVendasDoPeriodo(filtro: FiltroRelatorio): Promise<VendaDaTabela[] | null> {
+  const { user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return null
+  const atendenteId = perfil.role === "atendente" ? user.id : (filtro.atendenteId ?? null)
+  const dados = await carregarVendas(atendenteId)
+  if (!dados) return null
+  return vendasDoPeriodo(dados.vendas, intervaloDoPeriodo(filtro.periodo, hojeNoFuso()), ROTULOS_DA_TABELA)
 }

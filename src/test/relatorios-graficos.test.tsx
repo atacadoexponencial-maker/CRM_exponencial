@@ -63,6 +63,7 @@ describe("B32-04 — gráficos da Visão Geral", () => {
     const montar = (periodo: ReturnType<typeof periodoPadrao>) => ({
       ...calcularCartoes(vendas, periodo, hoje),
       graficos: calcularGraficos(vendas, periodo, hoje, ROTULO_FORMA_PAGAMENTO),
+      tabela: [],
       atendenteId: null,
     })
     const atual = render(<RelatoriosClient visaoInicial={montar(periodoPadrao(hoje))} atendentes={[]} papel="admin" hoje={hoje} />)
