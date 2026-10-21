@@ -9,6 +9,7 @@ import { formatarDataBr } from "@/lib/relatorios/visao-geral"
 import { PERFIL_POR_ID, PERFIS, type CelulaRfv, type IndicadorPerfil, type ResultadoRfv } from "@/lib/relatorios/rfv"
 import { buscarRfv } from "../actions"
 import { ListaClientesRfv } from "./lista-clientes-rfv"
+import { EvolucaoPerfis } from "./evolucao-perfis"
 
 const moeda = (v: number | null) => (v === null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }))
 const decimal = (v: number | null) => (v === null ? "—" : v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }))
@@ -140,6 +141,8 @@ export function RfvClient({ atendenteId, inicial = null }: RfvClientProps) {
       </div>
       {/* B33-02: a lista segue a célula clicada na matriz. */}
       <ListaClientesRfv clientes={resultado.clientes} celula={celula} onLimparCelula={() => setCelula(null)} atendenteId={atendenteId} />
+      {/* B33-03: evolução semanal e mensal, com a base saudável. */}
+      <EvolucaoPerfis evolucao={resultado.evolucao} />
       <p className="text-[11px] text-muted-foreground">
         Perfis: {PERFIS.map((p) => `${p.icone} ${p.nome}`).join(" · ")}
       </p>

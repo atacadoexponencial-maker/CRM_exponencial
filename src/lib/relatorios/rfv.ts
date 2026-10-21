@@ -128,6 +128,8 @@ export type ResultadoRfv = {
   /** 25 células, linhas FV 5→1, colunas R 1→5. */
   matriz: CelulaRfv[]
   indicadores: IndicadorPerfil[]
+  /** B33-03: perfis semana a semana e mês a mês. */
+  evolucao: EvolucaoRfv
 }
 
 export type ExtrasRfv = {
@@ -225,5 +227,108 @@ export function montarIndicadores(clientes: ClienteRfv[]): IndicadorPerfil[] {
 
 export function calcularRfv(vendas: VendaRow[], referencia: string, extras: ExtrasRfv): ResultadoRfv {
   const clientes = calcularClientesRfv(vendas, referencia, extras)
-  return { referencia, base: clientes.length, clientes, matriz: montarMatriz(clientes), indicadores: montarIndicadores(clientes) }
+  return {
+    referencia,
+    base: clientes.length,
+    clientes,
+    matriz: montarMatriz(clientes),
+    indicadores: montarIndicadores(clientes),
+    evolucao: evolucaoDosPerfis(vendas, referencia),
+  }
+}
+
+// ---------- evolução dos perfis (B33-03) ----------
+
+export type ColunaEvolucao = {
+  /** Data de referência, yyyy-mm-dd. */
+  referencia: string
+  /** "S43" ou "Out/26". */
+  rotulo: string
+  /** Data curta da referência, "21/10". */
+  sub: string
+  porPerfil: Record<PerfilRfv, number>
+  /** Soma dos perfis saudáveis. */
+  saudavel: number
+}
+
+export type EvolucaoRfv = { semanal: ColunaEvolucao[]; mensal: ColunaEvolucao[] }
+
+const SEMANAS = 14
+const MESES_EVOLUCAO = 13
+const MESES_CURTOS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+
+function utc(iso: string): Date {
+  const { ano, mes, dia } = partesDaData(iso)
+  return new Date(Date.UTC(ano, mes - 1, dia))
+}
+
+function isoDe(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
+
+/** Número da semana ISO (segunda a domingo). */
+export function semanaIso(iso: string): number {
+  const d = utc(iso)
+  const dia = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dia)
+  const inicioAno = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return Math.ceil(((d.getTime() - inicioAno.getTime()) / 86_400_000 + 1) / 7)
+}
+
+/** Domingo que fecha a semana ISO de `iso`. */
+function domingoDaSemana(iso: string): string {
+  const d = utc(iso)
+  const dia = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + (7 - dia))
+  return isoDe(d)
+}
+
+/** Referências semanais: hoje e os domingos que fecham as 13 semanas anteriores. */
+export function referenciasSemanais(hoje: string, quantidade = SEMANAS): string[] {
+  const refs = [hoje]
+  const domingoAtual = utc(domingoDaSemana(hoje))
+  for (let k = 1; k < quantidade; k++) {
+    const d = new Date(domingoAtual)
+    d.setUTCDate(d.getUTCDate() - 7 * k)
+    refs.push(isoDe(d))
+  }
+  return refs
+}
+
+/** Referências mensais: hoje e o último dia dos 12 meses anteriores. */
+export function referenciasMensais(hoje: string, quantidade = MESES_EVOLUCAO): string[] {
+  const refs = [hoje]
+  const { ano, mes } = partesDaData(hoje)
+  for (let k = 1; k < quantidade; k++) {
+    const d = new Date(Date.UTC(ano, mes - k, 0)) // dia 0 do mês seguinte = último dia do mês (mes − k)
+    refs.push(isoDe(d))
+  }
+  return refs
+}
+
+const dois = (n: number) => String(n).padStart(2, "0")
+
+function coluna(vendas: VendaRow[], referencia: string, rotulo: string): ColunaEvolucao {
+  const clientes = calcularClientesRfv(vendas, referencia, { ativos: new Set(), comLembreteRecente: new Set() })
+  const porPerfil = Object.fromEntries(PERFIS.map((p) => [p.id, 0])) as Record<PerfilRfv, number>
+  for (const c of clientes) porPerfil[c.perfil]++
+  const { dia, mes } = partesDaData(referencia)
+  return {
+    referencia,
+    rotulo,
+    sub: `${dois(dia)}/${dois(mes)}`,
+    porPerfil,
+    saudavel: PERFIS.filter((p) => p.saudavel).reduce((s, p) => s + porPerfil[p.id], 0),
+  }
+}
+
+/** Perfis em cada semana (14) e em cada mês (13), mais recente primeiro (SUP-B33-04). */
+export function evolucaoDosPerfis(vendas: VendaRow[], hoje: string): EvolucaoRfv {
+  return {
+    semanal: referenciasSemanais(hoje).map((ref) => coluna(vendas, ref, `S${dois(semanaIso(ref))}`)),
+    mensal: referenciasMensais(hoje).map((ref) => {
+      const { ano, mes } = partesDaData(ref)
+      return coluna(vendas, ref, `${MESES_CURTOS[mes - 1]}/${String(ano).slice(2)}`)
+    }),
+  }
 }
