@@ -24,8 +24,8 @@ export function GraficoBarras({ dados }: { dados: Array<{ label: string; valor: 
   )
 }
 
-/** Balão do tema escuro: o padrão da biblioteca é branco com texto escuro. */
-function Balao({ linhas }: { linhas: Array<{ rotulo: string; valor: string }> }) {
+/** Balão do tema escuro: o padrão da biblioteca é branco com texto escuro. Os relatórios (B32-04) reutilizam. */
+export function Balao({ linhas }: { linhas: Array<{ rotulo: string; valor: string }> }) {
   return (
     <div className="rounded-md border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md">
       {linhas.map((l) => (

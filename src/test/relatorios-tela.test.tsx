@@ -2,7 +2,7 @@
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { describe, expect, it, vi, beforeEach } from "vitest"
-import { calcularCartoes, periodoPadrao } from "@/lib/relatorios/visao-geral"
+import { calcularCartoes, calcularGraficos, periodoPadrao } from "@/lib/relatorios/visao-geral"
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/dashboard",
@@ -17,7 +17,7 @@ import { SidebarNav } from "@/components/shared/sidebar-nav"
 import { RelatoriosClient } from "@/app/(auth)/relatorios/components/relatorios-client"
 
 const HOJE = "2026-10-21"
-const visao = (periodo = periodoPadrao(HOJE)) => ({ ...calcularCartoes([], periodo, HOJE), atendenteId: null })
+const visao = (periodo = periodoPadrao(HOJE)) => ({ ...calcularCartoes([], periodo, HOJE), graficos: calcularGraficos([], periodo, HOJE, {}), atendenteId: null })
 
 function renderTela(papel = "admin") {
   return render(

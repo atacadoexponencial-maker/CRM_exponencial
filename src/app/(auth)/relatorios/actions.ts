@@ -2,10 +2,13 @@
 
 import { sessaoAtual } from "@/lib/sessao"
 import { compraEhDoAtendente } from "@/lib/metricas-dashboard"
+import { ROTULO_FORMA_PAGAMENTO } from "@/lib/compras"
 import {
   calcularCartoes,
+  calcularGraficos,
   hojeNoFuso,
   type FiltroRelatorio,
+  type GraficosVisaoGeral,
   type VendaRow,
   type VisaoGeralCartoes,
 } from "@/lib/relatorios/visao-geral"
@@ -13,6 +16,8 @@ import {
 export type { FiltroRelatorio, PeriodoRelatorio, VisaoGeralCartoes } from "@/lib/relatorios/visao-geral"
 
 export type VisaoGeral = VisaoGeralCartoes & {
+  /** B32-04: vendas diárias, projeção do mês e forma de pagamento. */
+  graficos: GraficosVisaoGeral
   /** Atendente que de fato valeu (o Atendente só vê o próprio). */
   atendenteId: string | null
 }
@@ -28,7 +33,7 @@ async function carregarVendas(atendenteId: string | null) {
 
   const { data } = await supabase
     .from("contact_purchases")
-    .select("contact_id, data, valor, desconto, pecas, atendente_id, contato:contacts!inner(excluido_em)")
+    .select("contact_id, data, valor, desconto, pecas, atendente_id, forma_pagamento, contato:contacts!inner(excluido_em)")
     .eq("workspace_id", perfil.workspace_id)
     .is("contato.excluido_em", null)
 
@@ -39,6 +44,7 @@ async function carregarVendas(atendenteId: string | null) {
     desconto: p.desconto === null ? null : Number(p.desconto),
     pecas: p.pecas,
     atendente_id: p.atendente_id,
+    forma_pagamento: p.forma_pagamento,
   })) as VendaRow[]
 
   if (atendenteId) {
@@ -63,5 +69,10 @@ export async function buscarVisaoGeral(filtro: FiltroRelatorio): Promise<VisaoGe
   const dados = await carregarVendas(atendenteId)
   if (!dados) return null
 
-  return { ...calcularCartoes(dados.vendas, filtro.periodo, hojeNoFuso()), atendenteId }
+  const hoje = hojeNoFuso()
+  return {
+    ...calcularCartoes(dados.vendas, filtro.periodo, hoje),
+    graficos: calcularGraficos(dados.vendas, filtro.periodo, hoje, ROTULO_FORMA_PAGAMENTO),
+    atendenteId,
+  }
 }

@@ -24,6 +24,7 @@ export type VendaRow = {
   desconto: number | null
   pecas: number | null
   atendente_id?: string | null
+  forma_pagamento?: string | null
 }
 
 /** Intervalo fechado de datas, yyyy-mm-dd. */
@@ -276,5 +277,164 @@ export function calcularCartoes(vendas: VendaRow[], periodo: PeriodoRelatorio, h
       vsMesPassado: comparativo(c.id, mesPassado),
       vsAnoPassado: comparativo(c.id, anoPassado),
     })),
+  }
+}
+
+// ---------- gráficos (B32-04) ----------
+
+export type DiaDeVendas = {
+  /** yyyy-mm-dd */
+  data: string
+  /** Rótulo do eixo: o dia do mês (ou dd/mm quando o período passa de um mês). */
+  rotulo: string
+  valor: number
+  pecas: number
+  /** Ticket médio por venda do dia; nulo sem venda. */
+  ticket: number | null
+}
+
+export type DiaDaProjecao = {
+  data: string
+  rotulo: string
+  /** Vendido no dia, até ontem; nulo nos dias que faltam. */
+  realizado: number | null
+  /** Média diária nos dias que faltam (hoje inclusive); nulo nos dias passados. */
+  projetado: number | null
+}
+
+export type ProjecaoDoMes = {
+  dias: DiaDaProjecao[]
+  realizadoAteOntem: number
+  mediaDiaria: number
+  diasRestantes: number
+  totalProjetado: number
+}
+
+export type FaturamentoPorForma = {
+  forma: string | null
+  rotulo: string
+  valor: number
+  /** % do total do período, com uma casa. */
+  percentual: number
+}
+
+export type GraficosVisaoGeral = {
+  vendasDiarias: DiaDeVendas[]
+  /** Nula fora do mês atual (CA-B32-14). */
+  projecao: ProjecaoDoMes | null
+  porForma: FaturamentoPorForma[]
+}
+
+/** Todos os dias do intervalo, em ordem. */
+export function diasDoIntervalo(i: Intervalo): string[] {
+  const dias: string[] = []
+  let atual = i.de
+  while (atual <= i.ate) {
+    dias.push(atual)
+    const { ano, mes, dia } = partesDaData(atual)
+    const d = new Date(Date.UTC(ano, mes - 1, dia + 1))
+    atual = montarData(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate())
+  }
+  return dias
+}
+
+const arredondar = (n: number) => Math.round(n * 100) / 100
+
+/** Um ponto por dia do intervalo, mesmo sem venda (CA-B32-11). */
+export function vendasDiarias(vendas: VendaRow[], intervalo: Intervalo): DiaDeVendas[] {
+  const umMes = intervalo.de.slice(0, 7) === intervalo.ate.slice(0, 7)
+  const porDia = new Map<string, VendaRow[]>()
+  for (const v of vendas) if (dentro(v, intervalo)) porDia.set(v.data, [...(porDia.get(v.data) ?? []), v])
+  return diasDoIntervalo(intervalo).map((data) => {
+    const doDia = porDia.get(data) ?? []
+    const valor = doDia.reduce((s, v) => s + v.valor, 0)
+    const { dia, mes } = partesDaData(data)
+    return {
+      data,
+      rotulo: umMes ? String(dia) : `${dois(dia)}/${dois(mes)}`,
+      valor: arredondar(valor),
+      pecas: doDia.reduce((s, v) => s + (v.pecas ?? 0), 0),
+      ticket: doDia.length ? arredondar(valor / doDia.length) : null,
+    }
+  })
+}
+
+/**
+ * Projeção do mês atual (SUP-B32-04): realizado até ontem + média diária simples
+ * (realizado ÷ dias passados) × dias que faltam, contando hoje. Nula quando o período
+ * não é o mês atual; no dia 1º a média é zero.
+ */
+export function projecaoDoMes(vendas: VendaRow[], periodo: PeriodoRelatorio, hoje: string): ProjecaoDoMes | null {
+  const { ano, mes, dia } = partesDaData(hoje)
+  if (periodo.tipo !== "meses" || periodo.ano !== ano || periodo.meses.length !== 1 || periodo.meses[0] !== mes) return null
+
+  const ultimo = ultimoDiaDoMes(ano, mes)
+  const diasPassados = dia - 1
+  const ateOntem: Intervalo = { de: montarData(ano, mes, 1), ate: diaAnterior(hoje) }
+  const realizadoPorDia = new Map<string, number>()
+  if (diasPassados > 0) {
+    for (const v of vendas) if (dentro(v, ateOntem)) realizadoPorDia.set(v.data, (realizadoPorDia.get(v.data) ?? 0) + v.valor)
+  }
+  const realizadoAteOntem = arredondar([...realizadoPorDia.values()].reduce((s, v) => s + v, 0))
+  const mediaDiaria = diasPassados > 0 ? arredondar(realizadoAteOntem / diasPassados) : 0
+  const diasRestantes = ultimo - diasPassados
+
+  const dias: DiaDaProjecao[] = []
+  for (let d = 1; d <= ultimo; d++) {
+    const data = montarData(ano, mes, d)
+    const passado = d < dia
+    dias.push({
+      data,
+      rotulo: String(d),
+      realizado: passado ? arredondar(realizadoPorDia.get(data) ?? 0) : null,
+      projetado: passado ? null : mediaDiaria,
+    })
+  }
+  return {
+    dias,
+    realizadoAteOntem,
+    mediaDiaria,
+    diasRestantes,
+    totalProjetado: arredondar(realizadoAteOntem + mediaDiaria * diasRestantes),
+  }
+}
+
+export const ROTULO_SEM_FORMA = "Não informada"
+
+/** Faturamento líquido por forma de pagamento, da maior para a menor (CA-B32-18). */
+export function faturamentoPorForma(
+  vendas: VendaRow[],
+  intervalo: Intervalo,
+  rotulos: Record<string, string>
+): FaturamentoPorForma[] {
+  const soma = new Map<string | null, number>()
+  let total = 0
+  for (const v of vendas) {
+    if (!dentro(v, intervalo)) continue
+    const forma = v.forma_pagamento ?? null
+    soma.set(forma, (soma.get(forma) ?? 0) + v.valor)
+    total += v.valor
+  }
+  return [...soma.entries()]
+    .map(([forma, valor]) => ({
+      forma,
+      rotulo: forma === null ? ROTULO_SEM_FORMA : (rotulos[forma] ?? forma),
+      valor: arredondar(valor),
+      percentual: total > 0 ? Math.round((valor / total) * 1000) / 10 : 0,
+    }))
+    .sort((a, b) => b.valor - a.valor)
+}
+
+export function calcularGraficos(
+  vendas: VendaRow[],
+  periodo: PeriodoRelatorio,
+  hoje: string,
+  rotulosDeForma: Record<string, string>
+): GraficosVisaoGeral {
+  const intervalo = intervaloDoPeriodo(periodo, hoje)
+  return {
+    vendasDiarias: vendasDiarias(vendas, intervalo),
+    projecao: projecaoDoMes(vendas, periodo, hoje),
+    porForma: faturamentoPorForma(vendas, intervalo, rotulosDeForma),
   }
 }

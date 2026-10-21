@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { MESES, periodoMesAnterior, periodoPadrao, type PeriodoRelatorio } from "@/lib/relatorios/visao-geral"
 import { buscarVisaoGeral, type VisaoGeral } from "../actions"
 import { CartoesResumo } from "./cartoes-resumo"
+import { GraficoFormaPagamento, GraficoProjecao, GraficoVendasDiarias } from "./graficos-visao-geral"
 
 const ABAS_FUTURAS = ["RFV", "Coorte", "Funil de clientes", "Carteiras"]
 
@@ -150,6 +151,13 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
       {erro && <p className="text-sm text-destructive mb-4">Não foi possível carregar o relatório. Tente novamente.</p>}
 
       <CartoesResumo cartoes={visao.cartoes} />
+
+      {/* B32-04: gráficos abaixo dos cartões; a projeção só no mês atual. */}
+      <div className="flex flex-col gap-4 mt-6">
+        <GraficoVendasDiarias dias={visao.graficos.vendasDiarias} />
+        {visao.graficos.projecao && <GraficoProjecao projecao={visao.graficos.projecao} />}
+        <GraficoFormaPagamento formas={visao.graficos.porForma} />
+      </div>
     </>
   )
 }
