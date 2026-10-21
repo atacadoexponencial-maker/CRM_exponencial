@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation"
 import {
   AlarmClock,
   AlertTriangle,
+  BarChart3,
   CalendarCheck,
   Contact,
   Kanban,
@@ -63,6 +64,8 @@ function montarSecoes(atrasados: number, pedidosNovos: number): SecaoNav[] {
       titulo: null,
       itens: [
         { href: "/dashboard", label: "Dashboard", icone: LayoutDashboard },
+        // B32-03: relatórios para todos; o Atendente vê só os próprios números.
+        { href: "/relatorios", label: "Relatórios", icone: BarChart3 },
         { href: "/pipeline", label: "Pipeline", icone: Kanban },
         { href: "/chat", label: "Chat", icone: MessageSquare },
         { href: "/contatos", label: "Contatos", icone: Contact },

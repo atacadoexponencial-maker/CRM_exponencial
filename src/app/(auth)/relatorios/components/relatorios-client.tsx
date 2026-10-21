@@ -1,0 +1,155 @@
+"use client"
+
+// B32-03: tela Relatórios — abas, cabeçalho do período, atalhos, filtros e os cartões.
+
+import { useState, useTransition } from "react"
+import { Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { MESES, periodoMesAnterior, periodoPadrao, type PeriodoRelatorio } from "@/lib/relatorios/visao-geral"
+import { buscarVisaoGeral, type VisaoGeral } from "../actions"
+import { CartoesResumo } from "./cartoes-resumo"
+
+const ABAS_FUTURAS = ["RFV", "Coorte", "Funil de clientes", "Carteiras"]
+
+const selectClass =
+  "h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+
+const botaoClass =
+  "h-8 rounded-lg border border-input px-3 text-sm transition-colors hover:bg-muted disabled:opacity-50"
+
+interface RelatoriosClientProps {
+  visaoInicial: VisaoGeral
+  atendentes: Array<{ id: string; nome: string }>
+  papel: string
+  /** yyyy-mm-dd no fuso da operação, vindo do servidor. */
+  hoje: string
+}
+
+export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: RelatoriosClientProps) {
+  const [visao, setVisao] = useState<VisaoGeral>(visaoInicial)
+  const [periodo, setPeriodo] = useState<PeriodoRelatorio>(periodoPadrao(hoje))
+  const [atendenteId, setAtendenteId] = useState("")
+  const [erro, setErro] = useState(false)
+  const [isPending, startTransition] = useTransition()
+
+  const podeFiltrarAtendente = papel === "admin" || papel === "gerente"
+  const anoDeHoje = Number(hoje.slice(0, 4))
+  const anos = [anoDeHoje, anoDeHoje - 1, anoDeHoje - 2]
+
+  function aplicar(novoPeriodo: PeriodoRelatorio, novoAtendente = atendenteId) {
+    setPeriodo(novoPeriodo)
+    setAtendenteId(novoAtendente)
+    if (novoPeriodo.tipo === "meses" && novoPeriodo.meses.length === 0) return
+    setErro(false)
+    startTransition(async () => {
+      try {
+        const r = await buscarVisaoGeral({ periodo: novoPeriodo, atendenteId: novoAtendente || null })
+        if (r) setVisao(r)
+        else setErro(true)
+      } catch {
+        setErro(true)
+      }
+    })
+  }
+
+  function alternarMes(mes: number) {
+    const base = periodo.tipo === "meses" ? periodo : { tipo: "meses" as const, ano: anoDeHoje, meses: [] as number[] }
+    const meses = base.meses.includes(mes) ? base.meses.filter((m) => m !== mes) : [...base.meses, mes]
+    aplicar({ tipo: "meses", ano: base.ano, meses })
+  }
+
+  function trocarAno(ano: number) {
+    const meses = periodo.tipo === "meses" ? periodo.meses : [Number(hoje.slice(5, 7))]
+    aplicar({ tipo: "meses", ano, meses })
+  }
+
+  const anoSelecionado = periodo.tipo === "meses" ? periodo.ano : anoDeHoje
+  const mesesSelecionados = periodo.tipo === "meses" ? periodo.meses : []
+
+  return (
+    <>
+      <div className="flex items-center gap-3 mb-4">
+        <h1 className="text-xl font-semibold">Relatórios</h1>
+        {isPending && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
+      </div>
+
+      {/* Abas: só a Visão Geral existe; as outras avisam "em breve" (SUP-B32-06 invalidada). */}
+      <div role="tablist" aria-label="Relatórios" className="flex flex-wrap gap-1 border-b mb-6">
+        <button type="button" role="tab" aria-selected="true" className="px-3 py-2 text-sm font-medium border-b-2 border-primary -mb-px">
+          Visão Geral
+        </button>
+        {ABAS_FUTURAS.map((aba) => (
+          <button
+            key={aba}
+            type="button"
+            role="tab"
+            aria-selected="false"
+            disabled
+            title="Em breve"
+            className="px-3 py-2 text-sm text-muted-foreground/60 cursor-not-allowed"
+          >
+            {aba} <span className="text-[10px] uppercase tracking-wide">em breve</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Cabeçalho do período + atalhos */}
+      <div className="rounded-lg border p-4 mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm">
+            <span className="font-semibold">Visualização:</span> <span data-testid="titulo-periodo">{visao.cabecalho.titulo}</span>
+          </p>
+          {visao.cabecalho.aviso && (
+            <p className="text-xs text-sky-400 mt-1" data-testid="aviso-comparacao">{visao.cabecalho.aviso}</p>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" className={botaoClass} onClick={() => aplicar({ tipo: "ontem" })}>Ontem</button>
+          <button type="button" className={botaoClass} onClick={() => aplicar(periodoMesAnterior(hoje))}>Mês anterior</button>
+          <button type="button" className={botaoClass} onClick={() => aplicar(periodoPadrao(hoje))}>Este mês</button>
+        </div>
+      </div>
+
+      {/* Filtros: ano, meses (vários do mesmo ano) e atendente */}
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        <select aria-label="Ano" className={selectClass} value={anoSelecionado} onChange={(e) => trocarAno(Number(e.target.value))}>
+          {anos.map((a) => (
+            <option key={a} value={a}>{a}</option>
+          ))}
+        </select>
+        <div className="flex flex-wrap gap-1" role="group" aria-label="Meses">
+          {MESES.map((nome, i) => {
+            const mes = i + 1
+            const ativo = mesesSelecionados.includes(mes)
+            return (
+              <button
+                key={mes}
+                type="button"
+                aria-pressed={ativo}
+                onClick={() => alternarMes(mes)}
+                className={cn(
+                  "h-7 rounded-md border px-2 text-xs transition-colors",
+                  ativo ? "border-primary bg-primary text-primary-foreground" : "border-input text-muted-foreground hover:bg-muted"
+                )}
+              >
+                {nome.slice(0, 3)}
+              </button>
+            )
+          })}
+        </div>
+        {podeFiltrarAtendente && (
+          <select aria-label="Atendente" className={selectClass} value={atendenteId} onChange={(e) => aplicar(periodo, e.target.value)}>
+            <option value="">Todos os atendentes</option>
+            {atendentes.map((a) => (
+              <option key={a.id} value={a.id}>{a.nome}</option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {erro && <p className="text-sm text-destructive mb-4">Não foi possível carregar o relatório. Tente novamente.</p>}
+
+      <CartoesResumo cartoes={visao.cartoes} />
+    </>
+  )
+}
