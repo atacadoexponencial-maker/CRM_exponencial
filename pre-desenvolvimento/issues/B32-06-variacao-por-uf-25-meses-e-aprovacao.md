@@ -76,6 +76,7 @@ Não se aplica.
 - **Criar:** `src/app/(auth)/relatorios/variacao-por-uf/exportar/route.ts` — GET que baixa a planilha.
 - **Criar:** `src/app/(auth)/relatorios/components/variacao-por-uf.tsx` — tabela ordenável com total e Exportar Excel.
 - **Criar:** `src/app/(auth)/relatorios/components/grafico-25-meses.tsx` — barras + linha da variação.
+- **Modificar:** `src/app/(auth)/relatorios/components/graficos-visao-geral.tsx` — rótulo do eixo de valores com uma casa ("1,5 mil"), visto no print de conferência: "2 mil" aparecia duas vezes.
 - **Modificar:** `src/app/(auth)/relatorios/components/relatorios-client.tsx` — os dois blocos no fim.
 - **Modificar:** `src/test/relatorios-tela.test.tsx` — o `visao()` de apoio ganha os dois campos.
 - **Modificar:** `src/test/relatorios-graficos.test.tsx` — o `montar()` de apoio ganha os dois campos.

@@ -9,7 +9,7 @@ import type { DiaDaProjecao, DiaDeVendas, FaturamentoPorForma, ProjecaoDoMes } f
 
 const moeda = (v: number | null) => (v === null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }))
 const inteiro = (v: number) => v.toLocaleString("pt-BR")
-const eixoMoeda = (v: number) => (v >= 1000 ? `${Math.round(v / 1000)} mil` : String(v))
+const eixoMoeda = (v: number) => (v >= 1000 ? `${(v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mil` : String(v))
 
 const TICK = { fill: "var(--muted-foreground)", fontSize: 11 }
 const COR_VALOR = "var(--primary)"

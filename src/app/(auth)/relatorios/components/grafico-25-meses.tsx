@@ -7,7 +7,7 @@ import { Balao } from "@/app/(auth)/dashboard/components/graficos"
 import type { MesDoHistorico } from "@/lib/relatorios/visao-geral"
 
 const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-const eixoMoeda = (v: number) => (v >= 1000 ? `${Math.round(v / 1000)} mil` : String(v))
+const eixoMoeda = (v: number) => (v >= 1000 ? `${(v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mil` : String(v))
 const percentual = (v: number | null) => (v === null ? "—" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`)
 const TICK = { fill: "var(--muted-foreground)", fontSize: 11 }
 
