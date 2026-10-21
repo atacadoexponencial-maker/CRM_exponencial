@@ -11,6 +11,7 @@ import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { coresDaVitrine, type TemaLoja } from "./tema"
 import { familiaDaFonte } from "./fontes"
 import { contemTermo } from "@/lib/normalizar-busca"
+import { LIMITE_POR_SECAO, ORDENS_VITRINE, ordemVitrineValida, ordenarProdutos, type OrdemVitrine } from "@/lib/catalogo/vitrine"
 
 export interface CategoriaVitrine {
   id: string
@@ -21,11 +22,15 @@ export interface ProdutoVitrine {
   id: string
   nome: string
   descricao: string
+  /** Código do produto (SKU); vazio quando o lojista não preencheu. */
+  codigo: string
   preco: number
   precoDe: number | null
   fotoUrl: string | null
   categoriaId: string | null
   destaque: boolean
+  /** Resumo das variações para o cartão (ex.: "P, M, G · 2 opções de cor"); `null` sem variação. */
+  variacoes: string | null
   esgotado: boolean
 }
 
@@ -103,6 +108,7 @@ function CartaoGrade({ produto, cores, href, onAbrir }: CartaoProps) {
       <Foto produto={produto} cores={cores} className="aspect-square" />
       <div className="p-2.5 space-y-1">
         <p className="text-sm leading-snug line-clamp-2">{produto.nome}</p>
+        {produto.variacoes && <p className="text-xs truncate" style={{ color: cores.suave }}>{produto.variacoes}</p>}
         <Preco produto={produto} cores={cores} />
       </div>
     </Cartao>
@@ -116,6 +122,11 @@ function LinhaLista({ produto, cores, href, onAbrir }: CartaoProps) {
       <div className="min-w-0 flex-1 space-y-1">
         <p className="text-sm font-medium leading-snug">{produto.nome}</p>
         {produto.descricao && <p className="text-xs line-clamp-2" style={{ color: cores.suave }}>{produto.descricao}</p>}
+        {(produto.variacoes || produto.codigo.trim()) && (
+          <p className="text-xs truncate" style={{ color: cores.suave }}>
+            {[produto.variacoes, produto.codigo.trim() ? `Cód. ${produto.codigo.trim()}` : null].filter(Boolean).join(" · ")}
+          </p>
+        )}
         <Preco produto={produto} cores={cores} />
       </div>
     </Cartao>
@@ -128,6 +139,7 @@ function CartaoDestaque({ produto, cores, href, onAbrir }: CartaoProps) {
       <Foto produto={produto} cores={cores} className="aspect-[4/5]" />
       <div className="p-3 space-y-1">
         <p className="font-medium leading-snug line-clamp-2">{produto.nome}</p>
+        {produto.variacoes && <p className="text-xs truncate" style={{ color: cores.suave }}>{produto.variacoes}</p>}
         <Preco produto={produto} cores={cores} />
       </div>
     </Cartao>
@@ -178,6 +190,10 @@ export function CabecalhoLoja({
 export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, avisoMinimo, hrefProduto, onAbrirProduto, onAbrirCarrinho }: VitrineProps) {
   const [categoriaAtiva, setCategoriaAtiva] = useState<string | null>(null)
   const [busca, setBusca] = useState("")
+  const [ordem, setOrdem] = useState<OrdemVitrine>("loja")
+  const [soComEstoque, setSoComEstoque] = useState(false)
+  // Seções que a cliente abriu por inteiro com "Ver mais" (chave: id da categoria ou "outros").
+  const [abertas, setAbertas] = useState<string[]>([])
   const cores = coresDaVitrine(tema)
 
   // QA M31 (06/10): voltar do produto perdia filtro, busca e rolagem. Ficam guardados
@@ -189,11 +205,14 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
       const bruto = sessionStorage.getItem(chaveDaVitrine)
       if (!bruto) return
       sessionStorage.removeItem(chaveDaVitrine)
-      const guardado = JSON.parse(bruto) as { categoria: string | null; busca: string; rolagem: number }
+      const guardado = JSON.parse(bruto) as { categoria: string | null; busca: string; rolagem: number; ordem?: unknown; soComEstoque?: boolean; abertas?: string[] }
       // Depois da hidratação: primeiro o filtro, no quadro seguinte a rolagem.
       requestAnimationFrame(() => {
         setCategoriaAtiva(guardado.categoria)
         setBusca(guardado.busca)
+        if (ordemVitrineValida(guardado.ordem)) setOrdem(guardado.ordem)
+        setSoComEstoque(guardado.soComEstoque === true)
+        setAbertas(Array.isArray(guardado.abertas) ? guardado.abertas.filter((a) => typeof a === "string") : [])
         requestAnimationFrame(() => window.scrollTo(0, guardado.rolagem))
       })
     } catch {
@@ -202,19 +221,27 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
   }, [chaveDaVitrine])
 
   const termo = busca.trim().toLowerCase()
-  const filtrados = produtos.filter(
-    (p) => (!termo || contemTermo(p.nome, termo)) && (categoriaAtiva === null || p.categoriaId === categoriaAtiva)
+  const filtrados = ordenarProdutos(
+    produtos.filter(
+      (p) =>
+        (!termo || contemTermo(p.nome, termo)) &&
+        (categoriaAtiva === null || p.categoriaId === categoriaAtiva) &&
+        (!soComEstoque || !p.esgotado)
+    ),
+    ordem
   )
   const grupos = [...categorias, { id: null as string | null, nome: "Mais produtos" }]
-    .map((c) => ({ ...c, itens: filtrados.filter((p) => p.categoriaId === c.id) }))
+    .map((c) => ({ ...c, chave: c.id ?? "outros", itens: filtrados.filter((p) => p.categoriaId === c.id) }))
     .filter((g) => g.itens.length > 0)
   const destaques = produtos.filter((p) => p.destaque)
-  const filtrando = termo !== "" || categoriaAtiva !== null
+  const filtrando = termo !== "" || categoriaAtiva !== null || soComEstoque
+  const chip = (ativo: boolean) =>
+    ativo ? { background: cores.principal, color: cores.sobrePrincipal, borderColor: cores.principal } : { borderColor: cores.borda }
 
   // Guarda filtro, busca e rolagem antes de sair; com `hrefProduto`, quem navega é o link.
   function abrir(id: string) {
     try {
-      if (chaveDaVitrine) sessionStorage.setItem(chaveDaVitrine, JSON.stringify({ categoria: categoriaAtiva, busca, rolagem: window.scrollY }))
+      if (chaveDaVitrine) sessionStorage.setItem(chaveDaVitrine, JSON.stringify({ categoria: categoriaAtiva, busca, rolagem: window.scrollY, ordem, soComEstoque, abertas }))
     } catch {
       // armazenamento indisponível: volta sem o filtro
     }
@@ -261,7 +288,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
                   type="button"
                   onClick={() => setCategoriaAtiva(c.id)}
                   className="shrink-0 rounded-full px-3.5 h-8 text-sm border"
-                  style={ativa ? { background: cores.principal, color: cores.sobrePrincipal, borderColor: cores.principal } : { borderColor: cores.borda }}
+                  style={chip(ativa)}
                 >
                   {c.nome}
                 </button>
@@ -269,6 +296,30 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
             })}
           </nav>
         )}
+
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => setSoComEstoque((v) => !v)}
+            aria-pressed={soComEstoque}
+            className="shrink-0 rounded-full px-3.5 h-8 text-sm border"
+            style={chip(soComEstoque)}
+          >
+            Só com estoque
+          </button>
+          <label className="flex items-center gap-2 text-sm min-w-0" style={{ color: cores.suave }}>
+            <span className="shrink-0">Ordenar</span>
+            <select
+              value={ordem}
+              onChange={(e) => setOrdem(ordemVitrineValida(e.target.value) ? e.target.value : "loja")}
+              className="h-8 max-w-44 rounded-full border px-2 text-sm outline-none focus-visible:ring-2"
+              style={{ background: cores.superficie, borderColor: cores.borda, color: cores.texto, ["--tw-ring-color" as string]: cores.principal }}
+              aria-label="Ordenar produtos"
+            >
+              {ORDENS_VITRINE.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
+            </select>
+          </label>
+        </div>
 
         {tema.layout === "destaque" && !filtrando && destaques.length > 0 && (
           <section className="space-y-3">
@@ -281,18 +332,34 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
 
         {grupos.length === 0 && <p className="py-10 text-center text-sm" style={{ color: cores.suave }}>Nenhum produto encontrado.</p>}
 
-        {grupos.map((g) => (
-          <section key={g.id ?? "outros"} className="space-y-3">
-            <h2 className="text-lg font-semibold">{g.nome}</h2>
-            {tema.layout === "lista" ? (
-              <div>{g.itens.map((p) => <LinhaLista key={p.id} {...cartao(p)} />)}</div>
-            ) : (
-              <div className="grid grid-cols-2 @xl:grid-cols-3 @3xl:grid-cols-4 gap-3">
-                {g.itens.map((p) => <CartaoGrade key={p.id} {...cartao(p)} />)}
-              </div>
-            )}
-          </section>
-        ))}
+        {grupos.map((g) => {
+          // Seção longa carrega em blocos: as primeiras peças e um "Ver mais" com o resto.
+          const aberta = abertas.includes(g.chave)
+          const mostrados = aberta ? g.itens : g.itens.slice(0, LIMITE_POR_SECAO)
+          const restantes = g.itens.length - mostrados.length
+          return (
+            <section key={g.chave} className="space-y-3">
+              <h2 className="text-lg font-semibold">{g.nome}</h2>
+              {tema.layout === "lista" ? (
+                <div>{mostrados.map((p) => <LinhaLista key={p.id} {...cartao(p)} />)}</div>
+              ) : (
+                <div className="grid grid-cols-2 @xl:grid-cols-3 @3xl:grid-cols-4 gap-3">
+                  {mostrados.map((p) => <CartaoGrade key={p.id} {...cartao(p)} />)}
+                </div>
+              )}
+              {restantes > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setAbertas((atual) => [...atual, g.chave])}
+                  className="w-full h-11 rounded-full border text-sm font-medium"
+                  style={{ borderColor: cores.borda }}
+                >
+                  Ver mais {restantes} {restantes === 1 ? "produto" : "produtos"} de {g.nome}
+                </button>
+              )}
+            </section>
+          )
+        })}
       </div>
     </div>
   )

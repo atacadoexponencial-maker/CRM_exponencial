@@ -7,6 +7,7 @@ import { cache } from "react"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { chaveCombinacao, combinacoes, type TipoVariacao } from "./combinacoes"
 import { BUCKET_CATALOGO } from "./regras"
+import { resumoDasVariacoes } from "./vitrine"
 import { TEMA_PADRAO, type LayoutVitrine, type TemaLoja } from "@/app/loja/components/tema"
 import type { IdFonte } from "@/app/loja/components/fontes"
 import type { CategoriaVitrine, ProdutoVitrine } from "@/app/loja/components/vitrine"
@@ -90,7 +91,7 @@ export async function carregarVitrine(workspaceId: string): Promise<{ categorias
     service.from("catalog_categories").select("id, name").eq("workspace_id", workspaceId).order("position").order("created_at"),
     service
       .from("catalog_products")
-      .select("id, name, description, price, compare_at_price, category_id, featured, photos, variant_types, catalog_stock(combination, quantity)")
+      .select("id, name, description, price, compare_at_price, sku, category_id, featured, photos, variant_types, catalog_stock(combination, quantity)")
       .eq("workspace_id", workspaceId)
       .eq("visible", true)
       .order("position")
@@ -100,16 +101,19 @@ export async function carregarVitrine(workspaceId: string): Promise<{ categorias
   const produtos = (prods ?? []).map((p) => {
     const estoque = Object.fromEntries(((p.catalog_stock as { combination: string; quantity: number }[]) ?? []).map((e) => [e.combination, e.quantity]))
     const fotos = (p.photos as string[]) ?? []
+    const tipos = (p.variant_types as TipoVariacao[]) ?? []
     return {
       id: p.id,
       nome: p.name,
       descricao: p.description,
+      codigo: p.sku,
       preco: Number(p.price),
       precoDe: p.compare_at_price === null ? null : Number(p.compare_at_price),
       fotoUrl: fotos[0] ? urlPublicaImagem(fotos[0]) : null,
       categoriaId: p.category_id,
       destaque: p.featured,
-      esgotado: combinacoes((p.variant_types as TipoVariacao[]) ?? []).every((c) => (estoque[chaveCombinacao(c)] ?? 0) === 0),
+      variacoes: resumoDasVariacoes(tipos),
+      esgotado: combinacoes(tipos).every((c) => (estoque[chaveCombinacao(c)] ?? 0) === 0),
     }
   })
   // Só categorias com algum produto visível aparecem na loja.
@@ -122,7 +126,7 @@ export const carregarProdutoPublico = cache(async function carregarProdutoPublic
   if (!/^[0-9a-f-]{36}$/i.test(produtoId)) return null
   const { data: p } = await createServiceClient()
     .from("catalog_products")
-    .select("id, name, description, price, compare_at_price, photos, variant_types, catalog_stock(combination, quantity)")
+    .select("id, name, description, price, compare_at_price, sku, photos, variant_types, catalog_stock(combination, quantity)")
     .eq("id", produtoId)
     .eq("workspace_id", workspaceId)
     .eq("visible", true)
@@ -132,6 +136,7 @@ export const carregarProdutoPublico = cache(async function carregarProdutoPublic
     id: p.id,
     nome: p.name,
     descricao: p.description,
+    codigo: p.sku,
     preco: Number(p.price),
     precoDe: p.compare_at_price === null ? null : Number(p.compare_at_price),
     fotos: ((p.photos as string[]) ?? []).map(urlPublicaImagem),

@@ -17,6 +17,8 @@ export interface ProdutoDetalhe {
   id: string
   nome: string
   descricao: string
+  /** Código do produto (SKU); vazio quando o lojista não preencheu. */
+  codigo: string
   preco: number
   precoDe: number | null
   fotos: string[]
@@ -154,6 +156,7 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
           <div className="space-y-5">
             <div className="space-y-1.5">
               <h1 className="text-2xl font-semibold leading-tight">{produto.nome}</h1>
+              {produto.codigo.trim() && <p className="text-xs" style={{ color: cores.suave }}>Cód. {produto.codigo.trim()}</p>}
               <p className="flex items-baseline gap-2">
                 <span className="text-xl font-semibold" style={{ color: cores.principal }}>{formatarPreco(produto.preco)}</span>
                 {produto.precoDe && <span className="text-sm line-through" style={{ color: cores.suave }}>{formatarPreco(produto.precoDe)}</span>}

@@ -89,7 +89,7 @@ export async function registrarPedido(endereco: string, cliente: { nome: string;
   if (ids.some((id) => !/^[0-9a-f-]{36}$/i.test(id))) return { ok: false, erro: "Um produto do carrinho não existe mais. Tire-o e tente de novo." }
   const { data: produtos } = await svc
     .from("catalog_products")
-    .select("id, name, price, photos, variant_types, catalog_stock(combination, quantity)")
+    .select("id, name, price, sku, photos, variant_types, catalog_stock(combination, quantity)")
     .eq("workspace_id", loja.workspaceId)
     .eq("visible", true)
     .in("id", ids)
@@ -115,6 +115,7 @@ export async function registrarPedido(endereco: string, cliente: { nome: string;
     itens.push({
       product_id: p.id,
       nome: p.name,
+      codigo: p.sku,
       variacao: i.combinacao,
       quantidade: i.quantidade,
       precoUnitario: Number(p.price),

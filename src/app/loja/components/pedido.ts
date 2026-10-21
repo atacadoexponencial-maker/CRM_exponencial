@@ -10,6 +10,8 @@ export interface MinimoPedido {
 
 export interface ItemPedido {
   nome: string
+  /** Código do produto (SKU) do cadastro; vazio quando o lojista não preencheu. */
+  codigo?: string
   /** Ex.: "M / Azul"; vazio quando o produto não tem variação. */
   variacao: string
   quantidade: number
@@ -68,7 +70,7 @@ export function montarMensagemPedido(dados: {
     "",
     ...dados.itens.map(
       (i) =>
-        `• ${i.quantidade}x ${i.nome}${i.variacao ? ` (${i.variacao})` : ""} — ${reais(i.precoUnitario)} cada = ${reais(i.quantidade * i.precoUnitario)}`
+        `• ${i.quantidade}x ${i.nome}${i.variacao ? ` (${i.variacao})` : ""}${i.codigo?.trim() ? ` · cód. ${i.codigo.trim()}` : ""} — ${reais(i.precoUnitario)} cada = ${reais(i.quantidade * i.precoUnitario)}`
     ),
     "",
     `Total: ${pecas} ${pecas === 1 ? "peça" : "peças"} · *${reais(valor)}*`,
