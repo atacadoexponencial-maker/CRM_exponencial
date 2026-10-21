@@ -1,7 +1,7 @@
 # Spec: Regras de venda do catálogo
 
 > série: B31
-> estado: rascunho
+> estado: aprovada em 21/10/2026
 
 ## Visão Geral
 
@@ -10,10 +10,13 @@ produto, qualquer quantidade por combinação e um pedido mínimo único para a 
 A pesquisa de 21/10/2026 sobre catálogos de atacado (sem checkout) mostrou quatro regras
 que o mercado espera e que a loja ainda não tem:
 
-1. **Preço por quantidade**: a peça fica mais barata a partir de tantas unidades.
+1. **Preço por quantidade**: a peça fica mais barata a partir de tantas unidades, por
+   produto ("a partir de 12 camisetas, R$ 24,90") ou pelo pedido inteiro ("acima de 50
+   peças no pedido, 10% a menos"). O lojista escolhe o jeito dele; pode usar os dois.
 2. **Mínimo por produto**: cada peça tem a sua quantidade mínima, além do mínimo da loja.
 3. **Grade fechada**: o produto só sai em pacote com quantidades fixas por tamanho
-   (ex.: 1 P, 2 M, 2 G, 1 GG), e a cliente escolhe quantos pacotes de cada cor.
+   (ex.: 1 P, 2 M, 2 G, 1 GG), e a cliente escolhe quantos pacotes de cada cor. O
+   pacote custa a soma das peças ou um preço próprio que o lojista dá.
 4. **Repetir o último pedido**: a cliente que já comprou monta o carrinho de novo com
    um toque.
 
@@ -25,8 +28,11 @@ abaixo do que a marca aceita, grade quebrada, preço de varejo em pedido de atac
 Toda conferência de regra é do servidor, na hora de registrar o pedido: o que a vitrine
 mostra é só aviso.
 
-Fora destas quatro: catálogo restrito (preço só para cliente aprovada) ficou de fora por
-decisão da Marcelle em 21/10/2026.
+Decisões da Marcelle em 21/10/2026: catálogo restrito (preço só para cliente aprovada)
+fica de fora; como a faixa de preço conta e quanto custa a grade são regras do negócio
+de cada atacadista, o sistema oferece as duas formas e o lojista escolhe; repetir
+pedido vale no aparelho da cliente; ordem das entregas: faixas e mínimo, grade fechada,
+repetir pedido.
 
 ## Páginas / Módulos
 
@@ -38,7 +44,8 @@ decisão da Marcelle em 21/10/2026.
 - Faixas de preço: até 3 linhas "a partir de N peças, R$ X", abaixo do preço.
 - Mínimo por produto: campo "mínimo de peças por pedido".
 - Grade fechada: interruptor "vender só em grade fechada" e, ligado, uma quantidade por
-  opção do primeiro tipo de variação (ex.: Tamanho: P 1, M 2, G 2, GG 1).
+  opção do primeiro tipo de variação (ex.: Tamanho: P 1, M 2, G 2, GG 1) e um campo
+  opcional "preço da grade"; vazio, a grade custa a soma das peças.
 
 **Comportamentos:**
 - Salvar faixas de preço: cada faixa tem quantidade inteira maior que 1 e preço menor
@@ -47,6 +54,8 @@ decisão da Marcelle em 21/10/2026.
 - Salvar mínimo por produto: inteiro maior ou igual a 1; vazio é "sem mínimo".
 - Ligar grade fechada: só em produto com variação; a soma das quantidades do pacote é
   maior que zero; produto sem variação não mostra o interruptor.
+- Preço da grade: opcional, maior que zero; quando preenchido, vale no lugar da soma
+  das peças (e as faixas de preço do produto não se aplicam a ele).
 - Importar por planilha (B18): as três regras entram como colunas opcionais do modelo.
 
 **Critérios de aceite:**
@@ -73,6 +82,14 @@ decisão da Marcelle em 21/10/2026.
 - **Então** o produto fica com a grade de 6 peças; produto sem variação não aceita grade
   fechada; grade com todas as quantidades zero é recusada
 
+#### CA-B31-15 — Preço próprio da grade · prova: automática
+
+- **Dado** o produto com grade de 6 peças a R$ 29,90 cada
+- **Quando** o lojista preenche "preço da grade" R$ 150,00
+- **Então** a página do produto, o carrinho e a mensagem do pedido mostram a grade por
+  R$ 150,00 (R$ 25,00 a peça); com o campo vazio, R$ 179,40; preço zero ou negativo é
+  recusado
+
 #### CA-B31-04 — Regras na planilha de importação · prova: automática
 
 - **Dado** o modelo de planilha da B18 com as colunas opcionais de faixas de preço,
@@ -81,6 +98,40 @@ decisão da Marcelle em 21/10/2026.
 - **Então** o produto nasce com as três regras, e linha com faixa inválida aparece na
   prévia como erro daquela linha, sem travar as outras
 
+### Configurações do catálogo (CRM, `/catalogo/configuracoes`)
+
+**Descrição:** além do pedido mínimo, a loja ganha o desconto por total de peças do
+pedido, para o lojista que prefere a regra pelo pedido inteiro em vez de por produto.
+
+**Componentes:**
+- Desconto por pedido: até 3 linhas "a partir de N peças no pedido, X% a menos",
+  abaixo do pedido mínimo.
+
+**Comportamentos:**
+- Salvar desconto por pedido: quantidades inteiras crescentes e porcentagens crescentes
+  entre 1 e 90; linha repetida ou fora de ordem é recusada com aviso.
+- O desconto por pedido se soma ao preço por produto: primeiro cada item recebe o preço
+  da sua faixa (ou da grade), depois o desconto da loja vale sobre o total.
+
+**Critérios de aceite:**
+
+#### CA-B31-16 — Desconto por total do pedido salvo e conferido · prova: automática
+
+- **Dado** a loja sem desconto por pedido
+- **Quando** o lojista salva "a partir de 50 peças, 10%" e "a partir de 100 peças, 15%"
+- **Então** a loja fica com as duas linhas; "a partir de 100, 5%" depois de "50, 10%"
+  (porcentagem que não sobe) ou 0% ou 95% são recusados com aviso
+
+#### CA-B31-17 — Desconto do pedido aplicado no carrinho e no servidor · prova: automática
+
+- **Dado** a loja com "a partir de 50 peças, 10%" e um produto a R$ 29,90 com faixa
+  "a partir de 12: R$ 24,90"
+- **Quando** o carrinho tem 50 peças desse produto
+- **Então** o carrinho mostra 50 × R$ 24,90 = R$ 1.245,00, "desconto de 10% do pedido:
+  - R$ 124,50" e total R$ 1.120,50; o pedido registrado guarda o desconto e a compra do
+  contato (B30) recebe esse desconto; com 49 peças não há desconto e o carrinho avisa
+  "falta 1 peça para 10% de desconto"
+
 ### Vitrine (loja pública, `/loja/[endereco]`)
 
 **Descrição:** a cliente vê as regras antes de escolher, e o carrinho mostra o preço que
@@ -88,7 +139,9 @@ vai valer.
 
 **Componentes:**
 - No cartão e na página do produto: "a partir de 12: R$ 24,90", "mínimo 6 peças",
-  "grade fechada de 6 peças" quando houver.
+  "grade fechada de 6 peças" (com o preço da grade, se houver) quando houver.
+- No topo da vitrine, ao lado do pedido mínimo: "10% a menos a partir de 50 peças",
+  quando a loja tem desconto por pedido.
 - Na página de produto com grade fechada: a grade (P 1 · M 2 · G 2 · GG 1) e um contador
   de pacotes por cor, no lugar da grade de quantidades livre.
 - No carrinho: preço unitário já na faixa alcançada; aviso do que falta para a próxima
@@ -158,7 +211,8 @@ que valeu. Nada do navegador é confiável.
 - Grade fechada: pedido com quantidades que não são múltiplos exatos da grade, por
   bloco, é recusado dizendo qual; a mensagem do WhatsApp mostra "2 grades (12 peças)"
   antes das linhas.
-- A mensagem do WhatsApp mostra o preço da faixa e, se houver, "preço de 12+".
+- A mensagem do WhatsApp mostra o preço da faixa e, se houver, "preço de 12+"; com
+  desconto por pedido, mostra o subtotal, a linha do desconto e o total.
 
 **Critérios de aceite:**
 
@@ -199,7 +253,6 @@ que valeu. Nada do navegador é confiável.
 
 - Catálogo restrito (preço escondido até aprovação ou login): decisão de 21/10/2026.
 - Tabela de preço por cliente (preço diferente para cada contato).
-- Preço por quantidade contando o pedido inteiro (todas as peças de todos os produtos).
 - Repetir pedido a partir do histórico do CRM por link enviado pelo vendedor (ver PER-B31-03).
 - Baixa automática de estoque ao registrar o pedido (continua como na B16).
 
@@ -207,19 +260,20 @@ que valeu. Nada do navegador é confiável.
 
 | ID | Suposição | Status | Resolução |
 |---|---|---|---|
-| SUP-B31-01 | A faixa de preço conta as peças do mesmo produto somando todas as combinações (cores e tamanhos), não por combinação nem pelo pedido inteiro. | aberta | — |
-| SUP-B31-02 | O mínimo por produto é em peças, somando todas as combinações. | aberta | — |
-| SUP-B31-03 | A grade fechada é definida sobre o primeiro tipo de variação (normalmente o tamanho) e repetida por opção do segundo (cor); produto com um tipo só tem um bloco. | aberta | — |
-| SUP-B31-04 | Produto com grade fechada não aceita compra avulsa: só pacotes inteiros. | aberta | — |
-| SUP-B31-05 | O preço do pacote é a soma das peças pelo unitário (com faixa, se houver); não há preço próprio de pacote. | aberta | — |
-| SUP-B31-06 | "Repetir último pedido" vale para o aparelho em que o pedido foi feito (a loja não tem login); o último pedido fica guardado no aparelho, como o carrinho. | aberta | — |
-| SUP-B31-07 | No máximo 3 faixas de preço por produto. | aberta | — |
+| SUP-B31-01 | A faixa de preço do produto conta as peças do mesmo produto somando todas as combinações (cores e tamanhos). | confirmada | Marcelle, 21/10/2026: é uma das duas formas; a outra é o desconto por total do pedido (CA-B31-16) |
+| SUP-B31-02 | O mínimo por produto é em peças, somando todas as combinações. | confirmada | Marcelle, 21/10/2026 |
+| SUP-B31-03 | A grade fechada é definida sobre o primeiro tipo de variação (normalmente o tamanho) e repetida por opção do segundo (cor); produto com um tipo só tem um bloco. | confirmada | Marcelle, 21/10/2026 |
+| SUP-B31-04 | Produto com grade fechada não aceita compra avulsa: só pacotes inteiros. | confirmada | Marcelle, 21/10/2026 |
+| SUP-B31-05 | Sem preço próprio, o pacote custa a soma das peças pelo unitário (com faixa, se houver). | confirmada | Marcelle, 21/10/2026: o lojista pode dar preço próprio (CA-B31-15) |
+| SUP-B31-06 | "Repetir último pedido" vale para o aparelho em que o pedido foi feito (a loja não tem login); o último pedido fica guardado no aparelho, como o carrinho. | confirmada | Marcelle, 21/10/2026 |
+| SUP-B31-07 | No máximo 3 faixas de preço por produto e 3 linhas de desconto por pedido na loja. | confirmada | Marcelle, 21/10/2026 |
+| SUP-B31-08 | Quando a loja tem desconto por pedido e o produto tem faixa, os dois valem: a faixa dá o unitário e o desconto da loja entra sobre o total. | aberta | — |
 
 ## Perguntas em aberto
 
 | ID | Pergunta | Status | Resposta |
 |---|---|---|---|
-| PER-B31-01 | A faixa de preço deve contar as peças do produto (SUP-B31-01) ou o total de peças do pedido, como fazem algumas marcas ("acima de 50 peças, tudo com 10% a menos")? | aberta | — |
-| PER-B31-02 | Grade fechada: o lojista precisa de preço próprio para o pacote (ex.: "grade de 6 por R$ 150"), ou basta a soma das peças (SUP-B31-05)? | aberta | — |
-| PER-B31-03 | Repetir pedido: só no aparelho da cliente (SUP-B31-06) é suficiente agora, ou já quer o link que o vendedor manda pelo CRM ("repetir pedido #12") abrindo a loja com o carrinho montado? Este segundo encaixa com a fonte unificada da B30, mas é uma entrega a mais. | aberta | — |
-| PER-B31-04 | Ordem das entregas: faixas de preço e mínimo primeiro (mais pedidos), grade fechada depois, repetir pedido por último? | aberta | — |
+| PER-B31-01 | A faixa de preço deve contar as peças do produto (SUP-B31-01) ou o total de peças do pedido, como fazem algumas marcas ("acima de 50 peças, tudo com 10% a menos")? | respondida | Marcelle, 21/10/2026: regra do negócio de cada atacadista; o sistema oferece as duas e o lojista escolhe |
+| PER-B31-02 | Grade fechada: o lojista precisa de preço próprio para o pacote (ex.: "grade de 6 por R$ 150"), ou basta a soma das peças (SUP-B31-05)? | respondida | Marcelle, 21/10/2026: idem; preço próprio opcional, senão a soma |
+| PER-B31-03 | Repetir pedido: só no aparelho da cliente (SUP-B31-06) é suficiente agora, ou já quer o link que o vendedor manda pelo CRM ("repetir pedido #12") abrindo a loja com o carrinho montado? | respondida | Marcelle, 21/10/2026: só no aparelho |
+| PER-B31-04 | Ordem das entregas: faixas de preço e mínimo primeiro (mais pedidos), grade fechada depois, repetir pedido por último? | respondida | Marcelle, 21/10/2026: OK |
