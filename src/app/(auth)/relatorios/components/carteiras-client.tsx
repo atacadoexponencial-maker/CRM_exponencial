@@ -9,6 +9,7 @@ import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
 import type { NumerosDaCarteira } from "@/lib/relatorios/carteiras"
 import { ROTULO_MOTIVO } from "@/lib/carteira"
 import { buscarCarteiras, type ResultadoCarteiras } from "../actions"
+import { RemoverCarteiraDialog, TransferirCarteiraDialog } from "./acoes-carteira"
 
 const NUMEROS: Array<{ id: keyof NumerosDaCarteira; titulo: string; cor: string }> = [
   { id: "leads", titulo: "Leads", cor: "text-violet-400" },
@@ -169,7 +170,19 @@ export function CarteirasClient({ inicial = null }: { inicial?: ResultadoCarteir
           {isPending ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Atualizar
         </button>
       </div>
-      <PainelDeCarteiras resultado={resultado} />
+      <PainelDeCarteiras
+        resultado={resultado}
+        acoesDoVendedor={(id, total) => {
+          const vendedor = resultado.painel.vendedores.find((v) => v.id === id)
+          if (!vendedor) return null
+          return (
+            <div className="flex flex-wrap gap-2" data-testid={`acoes-${id}`}>
+              <TransferirCarteiraDialog vendedor={vendedor} total={total} vendedores={resultado.painel.vendedores} onFeito={carregar} />
+              <RemoverCarteiraDialog vendedor={vendedor} total={total} onFeito={carregar} />
+            </div>
+          )
+        }}
+      />
     </div>
   )
 }

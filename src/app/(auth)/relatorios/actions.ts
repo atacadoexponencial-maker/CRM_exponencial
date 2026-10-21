@@ -23,7 +23,7 @@ import { calcularRfv, type ResultadoRfv } from "@/lib/relatorios/rfv"
 import { calcularCoortes, type ResultadoCoorte } from "@/lib/relatorios/coorte"
 import { calcularFunilClientes, type ResultadoFunilClientes } from "@/lib/relatorios/funil-clientes"
 import { calcularPainelDeCarteiras, type PainelDeCarteiras } from "@/lib/relatorios/carteiras"
-import type { MotivoDaCarteira } from "@/lib/carteira"
+import { registrarMudancasDeCarteira, type MotivoDaCarteira } from "@/lib/carteira"
 
 export type { FiltroRelatorio, PeriodoRelatorio, VisaoGeralCartoes } from "@/lib/relatorios/visao-geral"
 
@@ -241,4 +241,51 @@ export async function buscarCarteiras(): Promise<ResultadoCarteiras | null> {
     }))
   }
   return { papel: perfil.role as ResultadoCarteiras["papel"], painel, historico }
+}
+
+/**
+ * B35-02: muda o dono de todos os contatos de `de` para `para` (nulo = remover), com os
+ * cards deles, e grava no histórico. Só Admin e Gerente. Devolve quantos mudaram.
+ */
+async function mudarCarteira(de: string, para: string | null, motivo: MotivoDaCarteira): Promise<{ erro?: string; quantidade?: number }> {
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return { erro: "Não autenticado" }
+  if (!["admin", "gerente"].includes(perfil.role)) return { erro: "Sem permissão" }
+
+  for (const id of [de, para]) {
+    if (!id) continue
+    const { data } = await supabase.from("profiles").select("id").eq("id", id).eq("workspace_id", perfil.workspace_id).maybeSingle()
+    if (!data) return { erro: "Vendedor não encontrado" }
+  }
+
+  const { data: contatos, error: erroLista } = await supabase
+    .from("contacts")
+    .select("id")
+    .eq("workspace_id", perfil.workspace_id)
+    .eq("atendente_id", de)
+    .is("excluido_em", null)
+  if (erroLista) return { erro: "Não foi possível carregar a carteira. Tente novamente." }
+  const ids = (contatos ?? []).map((c) => c.id)
+  if (ids.length === 0) return { quantidade: 0 }
+
+  const [{ error: e1 }, { error: e2 }] = await Promise.all([
+    supabase.from("contacts").update({ atendente_id: para }).in("id", ids).eq("workspace_id", perfil.workspace_id),
+    supabase.from("pipeline_cards").update({ atendente_id: para }).in("contact_id", ids).eq("workspace_id", perfil.workspace_id),
+  ])
+  if (e1 || e2) return { erro: para ? "Não foi possível transferir. Tente novamente." : "Não foi possível remover. Tente novamente." }
+
+  await registrarMudancasDeCarteira(
+    supabase,
+    ids.map((contactId) => ({ workspaceId: perfil.workspace_id, contactId, de, para, motivo, por: user.id }))
+  )
+  return { quantidade: ids.length }
+}
+
+export async function transferirCarteira(de: string, para: string): Promise<{ erro?: string; quantidade?: number }> {
+  if (!para || de === para) return { erro: "Escolha outro vendedor." }
+  return mudarCarteira(de, para, "transferencia")
+}
+
+export async function removerCarteira(de: string): Promise<{ erro?: string; quantidade?: number }> {
+  return mudarCarteira(de, null, "remocao")
 }
