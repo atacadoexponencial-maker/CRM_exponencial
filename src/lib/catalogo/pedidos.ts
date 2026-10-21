@@ -5,6 +5,7 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import { buscarEGuardarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
 import { chaveCombinacao, combinacoes, type TipoVariacao } from "./combinacoes"
 import { carregarLojaPublica } from "./loja-publica"
+import { faixaAlcancada, faixasDoBanco, type FaixaPreco } from "./regras-de-venda"
 import { faltaParaMinimo, linkWhatsapp, montarMensagemPedido, normalizarWhatsapp, type ItemPedido } from "@/app/loja/components/pedido"
 
 /** Mesmo WhatsApp, mesma loja: um pedido a cada 2 minutos. */
@@ -20,7 +21,10 @@ export interface ItemSolicitado {
 
 export interface PrecoNovo {
   produtoId: string
+  /** Preço base de hoje. */
   preco: number
+  /** Faixas de hoje (B31-01): o carrinho recalcula o unitário com elas. */
+  faixas: FaixaPreco[]
 }
 
 export interface ItemSemEstoque {
@@ -89,7 +93,7 @@ export async function registrarPedido(endereco: string, cliente: { nome: string;
   if (ids.some((id) => !/^[0-9a-f-]{36}$/i.test(id))) return { ok: false, erro: "Um produto do carrinho não existe mais. Tire-o e tente de novo." }
   const { data: produtos } = await svc
     .from("catalog_products")
-    .select("id, name, price, sku, photos, variant_types, catalog_stock(combination, quantity)")
+    .select("id, name, price, sku, photos, variant_types, price_tiers, min_quantity, catalog_stock(combination, quantity)")
     .eq("workspace_id", loja.workspaceId)
     .eq("visible", true)
     .in("id", ids)
@@ -103,6 +107,14 @@ export async function registrarPedido(endereco: string, cliente: { nome: string;
     agrupados.set(chave, atual ? { ...atual, quantidade: atual.quantidade + i.quantidade } : { ...i })
   }
 
+  // B31-01: a faixa de preço e o mínimo contam as peças do produto inteiro, somando as combinações.
+  const pecasDoProduto = new Map<string, number>()
+  for (const i of agrupados.values()) pecasDoProduto.set(i.produtoId, (pecasDoProduto.get(i.produtoId) ?? 0) + i.quantidade)
+  const unitarioDe = (p: { price: number | string; price_tiers: unknown }, produtoId: string) => {
+    const faixa = faixaAlcancada(faixasDoBanco(p.price_tiers), pecasDoProduto.get(produtoId) ?? 0)
+    return { preco: faixa?.preco ?? Number(p.price), faixaAplicada: faixa?.min ?? null }
+  }
+
   const itens: (ItemPedido & { product_id: string; photo_path: string | null })[] = []
   const semEstoque: ItemSemEstoque[] = []
   for (const i of agrupados.values()) {
@@ -112,13 +124,15 @@ export async function registrarPedido(endereco: string, cliente: { nome: string;
     if (!validas.has(i.combinacao)) return { ok: false, erro: `${p.name}: essa opção não existe mais. Tire-a do carrinho.`, semEstoque: [{ produtoId: i.produtoId, combinacao: i.combinacao, disponivel: 0 }] }
     const disponivel = ((p.catalog_stock as { combination: string; quantity: number }[]) ?? []).find((e) => e.combination === i.combinacao)?.quantity ?? 0
     if (i.quantidade > disponivel) semEstoque.push({ produtoId: i.produtoId, combinacao: i.combinacao, disponivel })
+    const unitario = unitarioDe(p, p.id)
     itens.push({
       product_id: p.id,
       nome: p.name,
       codigo: p.sku,
       variacao: i.combinacao,
       quantidade: i.quantidade,
-      precoUnitario: Number(p.price),
+      precoUnitario: unitario.preco,
+      faixaAplicada: unitario.faixaAplicada,
       photo_path: ((p.photos as string[]) ?? [])[0] ?? null,
     })
   }
@@ -131,17 +145,28 @@ export async function registrarPedido(endereco: string, cliente: { nome: string;
   }
 
   // QA A9 (06/10): o carrinho guarda o preço de quando a peça entrou. Mudou no
-  // catálogo, a cliente vê o novo e confirma de novo, em vez de o pedido sair diferente.
+  // catálogo (o preço base ou a faixa, B31-01), a cliente vê o novo e confirma de novo,
+  // em vez de o pedido sair diferente.
   const precosNovos: PrecoNovo[] = []
   for (const i of agrupados.values()) {
     const p = porId.get(i.produtoId)
     if (!p || i.preco === undefined) continue
-    const atual = Number(p.price)
-    if (Math.abs(i.preco - atual) >= 0.005 && !precosNovos.some((n) => n.produtoId === p.id)) precosNovos.push({ produtoId: p.id, preco: atual })
+    const atual = unitarioDe(p, p.id).preco
+    if (Math.abs(i.preco - atual) >= 0.005 && !precosNovos.some((n) => n.produtoId === p.id)) {
+      precosNovos.push({ produtoId: p.id, preco: Number(p.price), faixas: faixasDoBanco(p.price_tiers) })
+    }
   }
   if (precosNovos.length) {
     const nomes = precosNovos.map((n) => porId.get(n.produtoId)!.name)
     return { ok: false, erro: `O preço mudou: ${nomes.join(", ")}. Confira o carrinho e envie de novo.`, precosNovos }
+  }
+
+  // B31-01: mínimo de peças do produto, somando as combinações, além do mínimo da loja.
+  for (const [produtoId, pecas] of pecasDoProduto) {
+    const p = porId.get(produtoId)!
+    if (p.min_quantity && pecas < p.min_quantity) {
+      return { ok: false, erro: `${p.name}: mínimo ${p.min_quantity} ${p.min_quantity === 1 ? "peça" : "peças"}. Você pediu ${pecas}.` }
+    }
   }
 
   const falta = faltaParaMinimo(itens, loja.minimo)

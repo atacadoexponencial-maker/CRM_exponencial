@@ -10,6 +10,7 @@ import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { coresDaVitrine, type TemaLoja } from "./tema"
 import { familiaDaFonte } from "./fontes"
 import { faltaParaMinimo, normalizarWhatsapp, totaisDoPedido, type MinimoPedido } from "./pedido"
+import { avisoMinimoProduto, avisoProximaFaixa, precoPorQuantidade, type FaixaPreco } from "@/lib/catalogo/regras-de-venda"
 
 export interface LinhaCarrinho {
   produtoId: string
@@ -20,6 +21,21 @@ export interface LinhaCarrinho {
   quantidade: number
   /** Estoque disponível da combinação. */
   maximo: number
+  /** B31-01: faixas de preço e mínimo do produto. */
+  faixas?: FaixaPreco[]
+  minimo?: number | null
+}
+
+/** Peças de cada produto no carrinho, somando cores e tamanhos (faixa e mínimo contam assim). */
+export function pecasPorProduto(linhas: { produtoId: string; quantidade: number }[]): Map<string, number> {
+  const soma = new Map<string, number>()
+  for (const l of linhas) soma.set(l.produtoId, (soma.get(l.produtoId) ?? 0) + l.quantidade)
+  return soma
+}
+
+/** Unitário que vale para a linha, pela faixa alcançada pelo produto inteiro. */
+export function unitarioDaLinha(linha: { produtoId: string; preco: number; faixas?: FaixaPreco[] }, porProduto: Map<string, number>): number {
+  return precoPorQuantidade(linha.preco, linha.faixas ?? [], porProduto.get(linha.produtoId) ?? 0)
 }
 
 export type ResultadoPedido = { erro: string } | { numero: number | string; mensagem: string; link: string }
@@ -41,13 +57,23 @@ export function Carrinho({ tema, aberto, linhas, minimo, onFechar, onMudarQuanti
   const cores = coresDaVitrine(tema)
   const [nome, setNome] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
-  const [erros, setErros] = useState<{ nome?: string; whatsapp?: string; geral?: string; minimo?: boolean }>({})
+  const [erros, setErros] = useState<{ nome?: string; whatsapp?: string; geral?: string; minimo?: boolean; minimoProduto?: boolean }>({})
   const [enviando, setEnviando] = useState(false)
   const [feito, setFeito] = useState<{ numero: number | string; mensagem: string; link: string } | null>(null)
 
-  const itens = linhas.map((l) => ({ nome: l.nome, variacao: l.combinacao, quantidade: l.quantidade, precoUnitario: l.preco }))
+  const porProduto = pecasPorProduto(linhas)
+  const itens = linhas.map((l) => ({ nome: l.nome, variacao: l.combinacao, quantidade: l.quantidade, precoUnitario: unitarioDaLinha(l, porProduto) }))
   const { pecas, valor } = totaisDoPedido(itens)
   const falta = faltaParaMinimo(itens, minimo)
+  // B31-01: avisos por produto (na primeira linha dele): próxima faixa e mínimo do produto.
+  const primeiraLinhaDe = new Set<string>()
+  const avisosDoProduto = linhas.map((l) => {
+    if (primeiraLinhaDe.has(l.produtoId)) return null
+    primeiraLinhaDe.add(l.produtoId)
+    const total = porProduto.get(l.produtoId) ?? 0
+    return { faixa: avisoProximaFaixa(l.faixas ?? [], total), minimo: avisoMinimoProduto(l.minimo ?? null, total) }
+  })
+  const abaixoDoMinimoDoProduto = avisosDoProduto.some((a) => a?.minimo)
   const progresso =
     minimo.tipo === "nenhum" || !minimo.valor ? 1 : Math.min(1, (minimo.tipo === "pecas" ? pecas : valor) / minimo.valor)
 
@@ -57,6 +83,7 @@ export function Carrinho({ tema, aberto, linhas, minimo, onFechar, onMudarQuanti
     const numero = normalizarWhatsapp(whatsapp)
     if (!numero) novos.whatsapp = "Informe o WhatsApp com DDD, ex.: (21) 99999-0000."
     if (falta) novos.minimo = true
+    if (abaixoDoMinimoDoProduto) { novos.minimoProduto = true; novos.geral = "Alguns produtos estão abaixo do mínimo. Ajuste as peças." }
     setErros(novos)
     if (Object.keys(novos).length > 0) return
     // O Safari do iPhone só deixa abrir outra aba no próprio toque: abre agora, em branco,
@@ -128,7 +155,10 @@ export function Carrinho({ tema, aberto, linhas, minimo, onFechar, onMudarQuanti
         ) : (
           <>
             <ul className="flex-1 overflow-y-auto px-4 divide-y" style={{ borderColor: cores.borda }}>
-              {linhas.map((l) => (
+              {linhas.map((l, idx) => {
+                const avisos = avisosDoProduto[idx]
+                const unitario = unitarioDaLinha(l, porProduto)
+                return (
                 <li key={l.produtoId + l.combinacao} className="flex gap-3 py-3" style={{ borderColor: cores.borda }}>
                   <div className="size-16 shrink-0 rounded-lg overflow-hidden flex items-center justify-center" style={{ background: cores.superficie }}>
                     {l.fotoUrl ? (
@@ -141,6 +171,9 @@ export function Carrinho({ tema, aberto, linhas, minimo, onFechar, onMudarQuanti
                   <div className="min-w-0 flex-1 space-y-1">
                     <p className="text-sm font-medium leading-snug">{l.nome}</p>
                     {l.combinacao && <p className="text-xs" style={{ color: cores.suave }}>{l.combinacao}</p>}
+                    {unitario !== l.preco && <p className="text-xs" style={{ color: cores.suave }}>{formatarPreco(unitario)} cada (preço por quantidade)</p>}
+                    {avisos?.minimo && <p className={`text-xs ${erros.minimoProduto ? "text-red-600 font-medium" : ""}`} style={erros.minimoProduto ? undefined : { color: cores.texto }} role="status">{avisos.minimo} deste produto</p>}
+                    {avisos?.faixa && <p className="text-xs" style={{ color: cores.principal }}>{avisos.faixa}</p>}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center rounded-lg border" style={{ borderColor: cores.borda }}>
                         <button type="button" onClick={() => onMudarQuantidade(l.produtoId, l.combinacao, l.quantidade - 1)} className="size-11 flex items-center justify-center" aria-label={`Diminuir ${l.nome}`}><Minus className="size-3.5" /></button>
@@ -155,14 +188,15 @@ export function Carrinho({ tema, aberto, linhas, minimo, onFechar, onMudarQuanti
                           <Plus className="size-3.5" />
                         </button>
                       </div>
-                      <span className="text-sm font-semibold">{formatarPreco(l.preco * l.quantidade)}</span>
+                      <span className="text-sm font-semibold">{formatarPreco(unitario * l.quantidade)}</span>
                     </div>
                   </div>
                   <button type="button" onClick={() => onRemover(l.produtoId, l.combinacao)} className="self-start size-11 -mr-2 -mt-2 flex items-center justify-center" style={{ color: cores.suave }} aria-label={`Remover ${l.nome}`}>
                     <Trash2 className="size-4" />
                   </button>
                 </li>
-              ))}
+                )
+              })}
             </ul>
 
             <div className="border-t p-4 space-y-3" style={{ borderColor: cores.borda }}>

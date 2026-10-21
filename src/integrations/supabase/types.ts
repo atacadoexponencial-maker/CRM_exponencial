@@ -592,10 +592,12 @@ export type Database = {
           description: string
           featured: boolean
           id: string
+          min_quantity: number | null
           name: string
           photos: Json
           position: number
           price: number
+          price_tiers: Json
           sku: string
           updated_at: string
           variant_types: Json
@@ -609,10 +611,12 @@ export type Database = {
           description?: string
           featured?: boolean
           id?: string
+          min_quantity?: number | null
           name: string
           photos?: Json
           position?: number
           price: number
+          price_tiers?: Json
           sku?: string
           updated_at?: string
           variant_types?: Json
@@ -626,10 +630,12 @@ export type Database = {
           description?: string
           featured?: boolean
           id?: string
+          min_quantity?: number | null
           name?: string
           photos?: Json
           position?: number
           price?: number
+          price_tiers?: Json
           sku?: string
           updated_at?: string
           variant_types?: Json

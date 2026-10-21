@@ -58,7 +58,7 @@ async function entrarComo(email: string) {
 function produto(parcial: Partial<ProdutoEditavel>): ProdutoEditavel {
   return {
     id: null, nome: "Produto", descricao: "", preco: 10, precoDe: null, codigo: "", categoriaId: null,
-    visivel: true, destaque: false, fotos: [], tipos: [], estoque: { "": 0 }, ...parcial,
+    faixas: [], minimo: null, visivel: true, destaque: false, fotos: [], tipos: [], estoque: { "": 0 }, ...parcial,
   }
 }
 
@@ -230,5 +230,27 @@ describe("B16-06 — Variações e grade de estoque", { timeout: 30_000 }, () =>
     await atend.rpc("salvar_estoque_produto", { p_produto: r.id, p_tipos: [], p_estoque: { "": 999 } })
     const { data } = await service.from("catalog_stock").select("quantity").eq("product_id", r.id).single()
     expect(data?.quantity).toBe(5)
+  })
+})
+
+describe("B31-01 — Regras de venda do produto", { timeout: 30_000 }, () => {
+  it("CA-B31-01: salva duas faixas de preço e recusa faixa acima do preço base ou que não desce", async () => {
+    await entrarComo(emailA)
+    const r = (await salvarProduto(produto({ nome: "Com faixas", preco: 29.9, faixas: [{ min: 48, preco: 21.9 }, { min: 12, preco: 24.9 }] }))) as { id: string }
+    expect((r as { erro?: string }).erro).toBeUndefined()
+    expect((await carregarProduto(r.id))?.faixas).toEqual([{ min: 12, preco: 24.9 }, { min: 48, preco: 21.9 }])
+    expect((await salvarProduto(produto({ preco: 29.9, faixas: [{ min: 12, preco: 31 }] }))).erro).toMatch(/menor que o preço do produto/)
+    expect((await salvarProduto(produto({ preco: 29.9, faixas: [{ min: 12, preco: 24.9 }, { min: 48, preco: 25 }] }))).erro).toMatch(/menor que o da faixa anterior/)
+    expect((await salvarProduto(produto({ preco: 29.9, faixas: [{ min: 1, preco: 20 }] }))).erro).toMatch(/a partir de 2/)
+  })
+
+  it("CA-B31-02: salva mínimo 6; recusa 0 e texto; vazio volta a sem mínimo", async () => {
+    await entrarComo(emailA)
+    const r = (await salvarProduto(produto({ nome: "Com mínimo", minimo: 6 }))) as { id: string }
+    expect((await carregarProduto(r.id))?.minimo).toBe(6)
+    expect((await salvarProduto(produto({ minimo: 0 }))).erro).toMatch(/inteiro a partir de 1/)
+    expect((await salvarProduto(produto({ minimo: Number.NaN }))).erro).toMatch(/inteiro a partir de 1/)
+    expect((await salvarProduto(produto({ id: r.id, nome: "Com mínimo", minimo: null }))).erro).toBeUndefined()
+    expect((await carregarProduto(r.id))?.minimo).toBeNull()
   })
 })

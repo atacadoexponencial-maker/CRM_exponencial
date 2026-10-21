@@ -10,6 +10,7 @@ import type { CategoriaCatalogo, ProdutoResumo } from "./components/lista-produt
 import type { FotoProduto, ProdutoEditavel } from "./components/editor-produto"
 import { BUCKET_CATALOGO, ESTOQUE_MAXIMO, FORMATOS_FOTO, MAX_FOTOS, MAX_OPCOES_POR_TIPO, TAMANHO_MAX_FOTO } from "@/lib/catalogo/regras"
 import { chaveCombinacao, combinacoes, MAX_TIPOS_VARIACAO, type TipoVariacao } from "@/lib/catalogo/combinacoes"
+import { faixasDoBanco, faixasParaBanco, validarFaixas, validarMinimo } from "@/lib/catalogo/regras-de-venda"
 
 export interface Catalogo {
   categorias: CategoriaCatalogo[]
@@ -69,7 +70,7 @@ export async function carregarProduto(id: string): Promise<ProdutoEditavel | nul
   if (!s.ok) return null
   const { data } = await s.supabase
     .from("catalog_products")
-    .select("id, name, description, price, compare_at_price, sku, category_id, visible, featured, photos, variant_types, catalog_stock(combination, quantity)")
+    .select("id, name, description, price, compare_at_price, sku, category_id, visible, featured, photos, variant_types, price_tiers, min_quantity, catalog_stock(combination, quantity)")
     .eq("id", id)
     .eq("workspace_id", s.perfil.workspace_id)
     .maybeSingle()
@@ -81,6 +82,8 @@ export async function carregarProduto(id: string): Promise<ProdutoEditavel | nul
     preco: Number(data.price),
     precoDe: data.compare_at_price === null ? null : Number(data.compare_at_price),
     codigo: data.sku,
+    faixas: faixasDoBanco(data.price_tiers),
+    minimo: data.min_quantity,
     categoriaId: data.category_id,
     visivel: data.visible,
     destaque: data.featured,
@@ -172,6 +175,11 @@ export async function salvarProduto(produto: ProdutoEditavel): Promise<Resultado
   if (!(await categoriaDaEmpresa(supabase, perfil.workspace_id, produto.categoriaId))) return { erro: "Categoria não encontrada." }
   const variacoes = validarVariacoes(produto.tipos, produto.estoque)
   if ("erro" in variacoes) return { erro: variacoes.erro }
+  // B31-01: regras de venda. O editor manda o que a pessoa digitou; a conferência é aqui.
+  const faixas = validarFaixas(Array.isArray(produto.faixas) ? produto.faixas : [], produto.preco)
+  if ("erro" in faixas) return { erro: faixas.erro }
+  const minimo = validarMinimo(produto.minimo)
+  if ("erro" in minimo) return { erro: minimo.erro }
 
   const campos = {
     name: nome,
@@ -179,6 +187,8 @@ export async function salvarProduto(produto: ProdutoEditavel): Promise<Resultado
     price: produto.preco,
     compare_at_price: produto.precoDe,
     sku: produto.codigo.trim(),
+    price_tiers: faixasParaBanco(faixas.faixas),
+    min_quantity: minimo.minimo,
     category_id: produto.categoriaId,
     visible: produto.visivel,
     featured: produto.destaque,

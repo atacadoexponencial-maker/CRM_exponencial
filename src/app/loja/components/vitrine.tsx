@@ -12,6 +12,7 @@ import { coresDaVitrine, type TemaLoja } from "./tema"
 import { familiaDaFonte } from "./fontes"
 import { contemTermo } from "@/lib/normalizar-busca"
 import { LIMITE_POR_SECAO, ORDENS_VITRINE, ordemVitrineValida, ordenarProdutos, type OrdemVitrine } from "@/lib/catalogo/vitrine"
+import { resumoDasRegras, type FaixaPreco } from "@/lib/catalogo/regras-de-venda"
 
 export interface CategoriaVitrine {
   id: string
@@ -26,6 +27,9 @@ export interface ProdutoVitrine {
   codigo: string
   preco: number
   precoDe: number | null
+  /** B31-01: faixas de preço por quantidade e mínimo de peças do produto. */
+  faixas: FaixaPreco[]
+  minimo: number | null
   fotoUrl: string | null
   categoriaId: string | null
   destaque: boolean
@@ -74,11 +78,15 @@ function Cartao({ href, onAbrir, className, style, children }: Abrir & { classNa
 }
 
 function Preco({ produto, cores }: { produto: ProdutoVitrine; cores: Cores }) {
+  const regras = resumoDasRegras(produto.faixas, produto.minimo)
   return (
-    <p className="flex flex-wrap items-baseline gap-x-2">
-      <span className="font-semibold" style={{ color: cores.principal }}>{formatarPreco(produto.preco)}</span>
-      {produto.precoDe && <span className="text-xs line-through" style={{ color: cores.suave }}>{formatarPreco(produto.precoDe)}</span>}
-    </p>
+    <div>
+      <p className="flex flex-wrap items-baseline gap-x-2">
+        <span className="font-semibold" style={{ color: cores.principal }}>{formatarPreco(produto.preco)}</span>
+        {produto.precoDe && <span className="text-xs line-through" style={{ color: cores.suave }}>{formatarPreco(produto.precoDe)}</span>}
+      </p>
+      {regras && <p className="text-xs truncate" style={{ color: cores.suave }}>{regras}</p>}
+    </div>
   )
 }
 

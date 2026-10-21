@@ -8,6 +8,7 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import { chaveCombinacao, combinacoes, type TipoVariacao } from "./combinacoes"
 import { BUCKET_CATALOGO } from "./regras"
 import { resumoDasVariacoes } from "./vitrine"
+import { faixasDoBanco } from "./regras-de-venda"
 import { TEMA_PADRAO, type LayoutVitrine, type TemaLoja } from "@/app/loja/components/tema"
 import type { IdFonte } from "@/app/loja/components/fontes"
 import type { CategoriaVitrine, ProdutoVitrine } from "@/app/loja/components/vitrine"
@@ -91,7 +92,7 @@ export async function carregarVitrine(workspaceId: string): Promise<{ categorias
     service.from("catalog_categories").select("id, name").eq("workspace_id", workspaceId).order("position").order("created_at"),
     service
       .from("catalog_products")
-      .select("id, name, description, price, compare_at_price, sku, category_id, featured, photos, variant_types, catalog_stock(combination, quantity)")
+      .select("id, name, description, price, compare_at_price, sku, category_id, featured, photos, variant_types, price_tiers, min_quantity, catalog_stock(combination, quantity)")
       .eq("workspace_id", workspaceId)
       .eq("visible", true)
       .order("position")
@@ -109,6 +110,8 @@ export async function carregarVitrine(workspaceId: string): Promise<{ categorias
       codigo: p.sku,
       preco: Number(p.price),
       precoDe: p.compare_at_price === null ? null : Number(p.compare_at_price),
+      faixas: faixasDoBanco(p.price_tiers),
+      minimo: p.min_quantity,
       fotoUrl: fotos[0] ? urlPublicaImagem(fotos[0]) : null,
       categoriaId: p.category_id,
       destaque: p.featured,
@@ -126,7 +129,7 @@ export const carregarProdutoPublico = cache(async function carregarProdutoPublic
   if (!/^[0-9a-f-]{36}$/i.test(produtoId)) return null
   const { data: p } = await createServiceClient()
     .from("catalog_products")
-    .select("id, name, description, price, compare_at_price, sku, photos, variant_types, catalog_stock(combination, quantity)")
+    .select("id, name, description, price, compare_at_price, sku, photos, variant_types, price_tiers, min_quantity, catalog_stock(combination, quantity)")
     .eq("id", produtoId)
     .eq("workspace_id", workspaceId)
     .eq("visible", true)
@@ -139,6 +142,8 @@ export const carregarProdutoPublico = cache(async function carregarProdutoPublic
     codigo: p.sku,
     preco: Number(p.price),
     precoDe: p.compare_at_price === null ? null : Number(p.compare_at_price),
+    faixas: faixasDoBanco(p.price_tiers),
+    minimo: p.min_quantity,
     fotos: ((p.photos as string[]) ?? []).map(urlPublicaImagem),
     tipos: (p.variant_types as TipoVariacao[]) ?? [],
     estoque: Object.fromEntries(((p.catalog_stock as { combination: string; quantity: number }[]) ?? []).map((e) => [e.combination, e.quantity])),

@@ -127,7 +127,7 @@ describe("QA A9 — preço que mudou depois de entrar no carrinho", { timeout: 3
     expect(r.ok).toBe(false)
     if (r.ok) return
     expect(r.erro).toContain("O preço mudou: Vestido")
-    expect(r.precosNovos).toEqual([{ produtoId: vestido, preco: 60 }])
+    expect(r.precosNovos).toEqual([{ produtoId: vestido, preco: 60, faixas: [] }])
 
     const r2 = await registrarPedido(slug, cliente, [{ produtoId: vestido, combinacao: "M", quantidade: 3, preco: 60 }])
     expect(r2.ok).toBe(true)
@@ -149,3 +149,66 @@ describe("B29-02 — pedido da loja e a foto de perfil", { timeout: 30_000 }, ()
   })
 })
 
+
+describe("B31-01 — faixas de preço e mínimo por produto no pedido", { timeout: 30_000 }, () => {
+  // O formato de moeda usa espaço fixo entre "R$" e o número.
+  const semNbsp = (t: string) => t.replace(/ /g, " ")
+  let camiseta = ""
+  const cliente = (n: number) => ({ nome: `Faixa ${n}`, whatsapp: `(21) 9${String(6000000 + n).padStart(8, "0")}` })
+
+  it("CA-B31-10: pedido com 12 peças grava o unitário da faixa e a mensagem traz o preço; com 11 fica o base", async () => {
+    camiseta = (await service.from("catalog_products").insert({ workspace_id: ws, name: "Camiseta", price: 29.9, price_tiers: [{ min: 12, price: 24.9 }], variant_types: [{ id: "c", nome: "Cor", opcoes: ["Azul", "Preto"] }] }).select("id").single()).data!.id
+    await service.from("catalog_stock").insert([
+      { workspace_id: ws, product_id: camiseta, combination: "Azul", quantity: 100 },
+      { workspace_id: ws, product_id: camiseta, combination: "Preto", quantity: 100 },
+    ])
+    const r = await registrarPedido(slug, cliente(1), [
+      { produtoId: camiseta, combinacao: "Azul", quantidade: 8 },
+      { produtoId: camiseta, combinacao: "Preto", quantidade: 4 },
+    ])
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    expect(semNbsp(r.mensagem)).toContain("8x Camiseta (Azul) — R$ 24,90 cada (preço de 12+)")
+    expect(semNbsp(r.mensagem)).toContain("*R$ 298,80*")
+    const { data: pedido } = await service.from("catalog_orders").select("total, catalog_order_items(unit_price)").eq("workspace_id", ws).eq("number", r.numero).single()
+    expect(pedido?.total).toBe(298.8)
+    expect(pedido?.catalog_order_items.map((i) => i.unit_price)).toEqual([24.9, 24.9])
+
+    const r2 = await registrarPedido(slug, cliente(2), [{ produtoId: camiseta, combinacao: "Azul", quantidade: 11 }])
+    expect(r2.ok).toBe(true)
+    if (!r2.ok) return
+    expect(semNbsp(r2.mensagem)).toContain("11x Camiseta (Azul) — R$ 29,90 cada =")
+  })
+
+  it("CA-B31-11: a faixa foi tirada depois de a peça entrar no carrinho: o pedido não sai e devolve o preço de hoje", async () => {
+    await service.from("catalog_products").update({ price_tiers: [] }).eq("id", camiseta)
+    const r = await registrarPedido(slug, cliente(3), [{ produtoId: camiseta, combinacao: "Azul", quantidade: 12, preco: 24.9 }])
+    expect(r.ok).toBe(false)
+    if (r.ok) return
+    expect(r.erro).toContain("O preço mudou: Camiseta")
+    expect(r.precosNovos).toEqual([{ produtoId: camiseta, preco: 29.9, faixas: [] }])
+    await service.from("catalog_products").update({ price_tiers: [{ min: 12, price: 24.9 }] }).eq("id", camiseta)
+  })
+
+  it("CA-B31-12: produto com mínimo 6 recusa 4 peças mesmo com o mínimo da loja batido", async () => {
+    await service.from("catalog_products").update({ min_quantity: 6 }).eq("id", camiseta)
+    const r = await registrarPedido(slug, cliente(4), [
+      { produtoId: camiseta, combinacao: "Azul", quantidade: 2 },
+      { produtoId: camiseta, combinacao: "Preto", quantidade: 2 },
+      { produtoId: camisa, combinacao: "", quantidade: 5 },
+    ])
+    expect(r).toMatchObject({ ok: false, erro: expect.stringMatching(/^Camiseta: mínimo 6 peças/) })
+    const r2 = await registrarPedido(slug, cliente(4), [
+      { produtoId: camiseta, combinacao: "Azul", quantidade: 3 },
+      { produtoId: camiseta, combinacao: "Preto", quantidade: 3 },
+    ])
+    expect(r2.ok).toBe(true)
+  })
+
+  it("CA-B31-14: produto sem regra segue como na B16: preço base e qualquer quantidade", async () => {
+    const r = await registrarPedido(slug, cliente(5), [{ produtoId: camisa, combinacao: "", quantidade: 40 }])
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    expect(semNbsp(r.mensagem)).toContain("40x Camisa — R$ 20,00 cada = R$ 800,00")
+  })
+})

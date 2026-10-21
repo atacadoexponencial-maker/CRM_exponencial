@@ -16,6 +16,8 @@ export interface ItemPedido {
   variacao: string
   quantidade: number
   precoUnitario: number
+  /** B31-01: quantidade da faixa de preço que valeu ("preço de 12+"); ausente sem faixa. */
+  faixaAplicada?: number | null
 }
 
 export function totaisDoPedido(itens: ItemPedido[]): { pecas: number; valor: number } {
@@ -70,7 +72,7 @@ export function montarMensagemPedido(dados: {
     "",
     ...dados.itens.map(
       (i) =>
-        `• ${i.quantidade}x ${i.nome}${i.variacao ? ` (${i.variacao})` : ""}${i.codigo?.trim() ? ` · cód. ${i.codigo.trim()}` : ""} — ${reais(i.precoUnitario)} cada = ${reais(i.quantidade * i.precoUnitario)}`
+        `• ${i.quantidade}x ${i.nome}${i.variacao ? ` (${i.variacao})` : ""}${i.codigo?.trim() ? ` · cód. ${i.codigo.trim()}` : ""} — ${reais(i.precoUnitario)} cada${i.faixaAplicada ? ` (preço de ${i.faixaAplicada}+)` : ""} = ${reais(i.quantidade * i.precoUnitario)}`
     ),
     "",
     `Total: ${pecas} ${pecas === 1 ? "peça" : "peças"} · *${reais(valor)}*`,

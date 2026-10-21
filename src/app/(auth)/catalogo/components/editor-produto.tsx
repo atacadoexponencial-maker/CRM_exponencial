@@ -10,6 +10,7 @@ import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from
 import { cn } from "@/lib/utils"
 import type { CategoriaCatalogo } from "./lista-produtos"
 import { VariacoesEstoque, combinacoes, chaveCombinacao, type EstoquePorCombinacao, type TipoVariacao } from "./variacoes-estoque"
+import { MAX_FAIXAS, type FaixaPreco } from "@/lib/catalogo/regras-de-venda"
 
 export interface FotoProduto {
   id: string
@@ -23,6 +24,10 @@ export interface ProdutoEditavel {
   preco: number | null
   precoDe: number | null
   codigo: string
+  /** B31-01: faixas de preço por quantidade ("a partir de 12 peças, R$ 24,90"), até 3. */
+  faixas: FaixaPreco[]
+  /** B31-01: mínimo de peças do produto por pedido; `null` = sem mínimo. */
+  minimo: number | null
   categoriaId: string | null
   visivel: boolean
   destaque: boolean
@@ -70,10 +75,35 @@ function paraTexto(n: number | null): string {
   return n === null ? "" : n.toFixed(2).replace(".", ",")
 }
 
+/** Linha da faixa como a pessoa digita; o servidor confere e devolve o aviso. */
+interface FaixaTexto {
+  min: string
+  preco: string
+}
+
+function faixasParaTexto(faixas: FaixaPreco[]): FaixaTexto[] {
+  return faixas.map((f) => ({ min: String(f.min), preco: paraTexto(f.preco) }))
+}
+
+/** Linhas totalmente vazias são ignoradas; o resto vai como veio (inválido vira NaN e o servidor avisa). */
+function faixasDoTexto(linhas: FaixaTexto[]): FaixaPreco[] {
+  return linhas
+    .filter((l) => l.min.trim() || l.preco.trim())
+    .map((l) => ({ min: /^\d+$/.test(l.min.trim()) ? Number(l.min.trim()) : Number.NaN, preco: paraNumero(l.preco) ?? Number.NaN }))
+}
+
+function minimoDoTexto(texto: string): number | null {
+  const t = texto.trim()
+  if (!t) return null
+  return /^\d+$/.test(t) ? Number(t) : Number.NaN
+}
+
 export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFotos, onSalvar, onExcluir, novoId, comVariacoes = true }: EditorProdutoProps) {
   const [produto, setProduto] = useState<ProdutoEditavel>(inicial)
   const [precoTexto, setPrecoTexto] = useState(paraTexto(inicial.preco))
   const [precoDeTexto, setPrecoDeTexto] = useState(paraTexto(inicial.precoDe))
+  const [faixasTexto, setFaixasTexto] = useState<FaixaTexto[]>(faixasParaTexto(inicial.faixas))
+  const [minimoTexto, setMinimoTexto] = useState(inicial.minimo === null ? "" : String(inicial.minimo))
   const [erros, setErros] = useState<ErrosCampo>({})
   const [mensagem, setMensagem] = useState<{ tipo: "erro" | "aviso"; texto: string } | null>(null)
   const [salvando, setSalvando] = useState(false)
@@ -153,7 +183,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
     if (escolha === "oculto") mudar("visivel", false)
 
     setSalvando(true)
-    const resultado = await onSalvar({ ...final, nome: produto.nome.trim(), preco, precoDe, estoque })
+    const resultado = await onSalvar({ ...final, nome: produto.nome.trim(), preco, precoDe, estoque, faixas: faixasDoTexto(faixasTexto), minimo: minimoDoTexto(minimoTexto) })
     setSalvando(false)
     if (resultado.erro) setMensagem({ tipo: "erro", texto: resultado.erro })
     else if (resultado.aviso) setMensagem({ tipo: "aviso", texto: resultado.aviso })
@@ -219,6 +249,32 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
                 <Label htmlFor="codigo">Código (opcional)</Label>
                 <Input id="codigo" value={produto.codigo} onChange={(e) => mudar("codigo", e.target.value)} placeholder="SKU" />
               </div>
+            </div>
+          </section>
+
+          <section className="rounded-lg border p-4 space-y-3">
+            <h2 className="text-sm font-semibold">Regras de venda <span className="font-normal text-muted-foreground">· opcional</span></h2>
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">Preço por quantidade: a peça fica mais barata a partir de tantas unidades do mesmo produto no pedido, somando cores e tamanhos.</p>
+              {faixasTexto.map((f, i) => (
+                <div key={i} className="flex flex-wrap items-center gap-2 text-sm">
+                  <span>A partir de</span>
+                  <Input inputMode="numeric" value={f.min} onChange={(e) => setFaixasTexto((atual) => atual.map((x, j) => (j === i ? { ...x, min: e.target.value } : x)))} className="w-20" aria-label={`Quantidade da faixa ${i + 1}`} />
+                  <span>peças, R$</span>
+                  <Input inputMode="decimal" value={f.preco} onChange={(e) => setFaixasTexto((atual) => atual.map((x, j) => (j === i ? { ...x, preco: e.target.value } : x)))} placeholder="0,00" className="w-28" aria-label={`Preço da faixa ${i + 1}`} />
+                  <Button size="sm" variant="ghost" onClick={() => setFaixasTexto((atual) => atual.filter((_, j) => j !== i))} aria-label={`Remover faixa ${i + 1}`}>
+                    <X className="size-4" />
+                  </Button>
+                </div>
+              ))}
+              {faixasTexto.length < MAX_FAIXAS && (
+                <Button size="sm" variant="outline" onClick={() => setFaixasTexto((atual) => [...atual, { min: "", preco: "" }])}>Adicionar faixa de preço</Button>
+              )}
+            </div>
+            <div className="space-y-1.5 max-w-xs">
+              <Label htmlFor="minimo">Mínimo de peças por pedido</Label>
+              <Input id="minimo" inputMode="numeric" value={minimoTexto} onChange={(e) => setMinimoTexto(e.target.value)} placeholder="Sem mínimo" />
+              <p className="text-xs text-muted-foreground">Vale além do pedido mínimo da loja. Soma todas as cores e tamanhos do produto.</p>
             </div>
           </section>
 

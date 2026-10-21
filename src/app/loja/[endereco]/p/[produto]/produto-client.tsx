@@ -23,6 +23,7 @@ export function ProdutoClient({ endereco, tema, minimo, produto }: ProdutoClient
         produto={produto}
         quantidadeNoCarrinho={pecas}
         noCarrinho={(combinacao) => carrinho.itens.find((i) => i.produtoId === produto.id && i.combinacao === combinacao)?.quantidade ?? 0}
+        noCarrinhoDoProduto={carrinho.itens.filter((i) => i.produtoId === produto.id).reduce((s, i) => s + i.quantidade, 0)}
         avisoMinimo={textoDoMinimo(minimo)}
         onAdicionar={(itens) =>
           carrinho.adicionarVarios(
@@ -34,6 +35,8 @@ export function ProdutoClient({ endereco, tema, minimo, produto }: ProdutoClient
                 preco: produto.preco,
                 fotoUrl: produto.fotos[0] ?? null,
                 maximo: produto.estoque[combinacao] ?? 0,
+                faixas: produto.faixas,
+                minimo: produto.minimo,
               },
               quantidade,
             }))

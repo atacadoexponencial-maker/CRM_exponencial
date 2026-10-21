@@ -267,6 +267,7 @@ que valeu. Nada do navegador é confiável.
 | SUP-B31-05 | Sem preço próprio, o pacote custa a soma das peças pelo unitário (com faixa, se houver). | confirmada | Marcelle, 21/10/2026: o lojista pode dar preço próprio (CA-B31-15) |
 | SUP-B31-06 | "Repetir último pedido" vale para o aparelho em que o pedido foi feito (a loja não tem login); o último pedido fica guardado no aparelho, como o carrinho. | confirmada | Marcelle, 21/10/2026 |
 | SUP-B31-07 | No máximo 3 faixas de preço por produto e 3 linhas de desconto por pedido na loja. | confirmada | Marcelle, 21/10/2026 |
+| SUP-B31-09 | Na página do produto, o mínimo e a faixa contam as peças escolhidas mais as que já estão no carrinho do mesmo produto. | confirmada | Marcelle, 21/10/2026 |
 | SUP-B31-08 | Quando a loja tem desconto por pedido e o produto tem faixa, os dois valem: a faixa dá o unitário e o desconto da loja entra sobre o total. | aberta | — |
 
 ## Perguntas em aberto

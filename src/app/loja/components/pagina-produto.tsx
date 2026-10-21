@@ -8,6 +8,7 @@ import { ArrowLeft, Check, ImageOff, Minus, Plus, Share2, X } from "lucide-react
 import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { chaveCombinacao, combinacoes } from "@/lib/catalogo/combinacoes"
 import { blocosDaGrade, limitarQuantidade, totaisDaGrade } from "@/lib/catalogo/grade"
+import { avisoMinimoProduto, precoPorQuantidade, resumoDasRegras, type FaixaPreco } from "@/lib/catalogo/regras-de-venda"
 import { GradeQuantidades } from "./grade-quantidades"
 import { coresDaVitrine, type TemaLoja } from "./tema"
 import { familiaDaFonte } from "./fontes"
@@ -21,6 +22,9 @@ export interface ProdutoDetalhe {
   codigo: string
   preco: number
   precoDe: number | null
+  /** B31-01: faixas de preço por quantidade e mínimo de peças do produto. */
+  faixas: FaixaPreco[]
+  minimo: number | null
   fotos: string[]
   tipos: { id: string; nome: string; opcoes: string[] }[]
   /** Estoque por combinação (chave de `chaveCombinacao`). */
@@ -33,6 +37,8 @@ interface PaginaProdutoProps {
   quantidadeNoCarrinho?: number
   /** Quantas peças desta combinação já estão no carrinho (limita o que dá para somar). */
   noCarrinho?: (combinacao: string) => number
+  /** Peças deste produto já no carrinho, todas as combinações (faixa de preço e mínimo contam com elas). */
+  noCarrinhoDoProduto?: number
   /** Texto do pedido mínimo da loja (ex.: "Pedido mínimo: 6 peças"); `null` quando não há. */
   avisoMinimo?: string | null
   /** Sem esta função, a página só mostra o produto (sem quantidade nem botão). */
@@ -41,7 +47,7 @@ interface PaginaProdutoProps {
   onAbrirCarrinho?: () => void
 }
 
-export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarrinho = () => 0, avisoMinimo = null, onAdicionar, onVoltar, onAbrirCarrinho }: PaginaProdutoProps) {
+export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarrinho = () => 0, noCarrinhoDoProduto = 0, avisoMinimo = null, onAdicionar, onVoltar, onAbrirCarrinho }: PaginaProdutoProps) {
   const cores = coresDaVitrine(tema)
   const tipos = produto.tipos.filter((t) => t.opcoes.length > 0)
   const semVariacao = tipos.length === 0
@@ -52,6 +58,7 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
   const [ampliada, setAmpliada] = useState(false)
   const [adicionadas, setAdicionadas] = useState<number | null>(null)
   const [linkCopiado, setLinkCopiado] = useState(false)
+  const [avisoRegra, setAvisoRegra] = useState<string | null>(null)
 
   // No celular abre a folha de compartilhar do aparelho (WhatsApp na frente); no
   // computador copia o link. É o link desta página, que já tem a prévia do produto.
@@ -75,11 +82,16 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
   const esgotado = combinacoes(tipos).every((c) => estoqueDe(chaveCombinacao(c)) === 0)
   const livreUnica = disponivelDe("")
   const escolhidas: Record<string, number> = semVariacao ? (livreUnica > 0 ? { "": Math.min(quantidadeUnica, livreUnica) } : {}) : quantidades
-  const { pecas, valor } = totaisDaGrade(escolhidas, produto.preco)
+  // B31-01: a faixa e o mínimo contam as peças escolhidas mais as que já estão no carrinho.
+  const { pecas } = totaisDaGrade(escolhidas, produto.preco)
+  const unitario = precoPorQuantidade(produto.preco, produto.faixas, pecas + noCarrinhoDoProduto)
+  const valor = Math.round(pecas * unitario * 100) / 100
+  const regras = resumoDasRegras(produto.faixas, produto.minimo)
 
   function mudar(combinacao: string, quantidade: number) {
     setQuantidades((atual) => ({ ...atual, [combinacao]: quantidade }))
     setAdicionadas(null)
+    setAvisoRegra(null)
   }
 
   function adicionar() {
@@ -87,6 +99,12 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
       .filter(([, q]) => q > 0)
       .map(([combinacao, quantidade]) => ({ combinacao, quantidade }))
     if (itens.length === 0 || !onAdicionar) return
+    const abaixoDoMinimo = avisoMinimoProduto(produto.minimo, pecas + noCarrinhoDoProduto)
+    if (abaixoDoMinimo) {
+      setAvisoRegra(`${abaixoDoMinimo} deste produto. Você escolheu ${pecas + noCarrinhoDoProduto}.`)
+      return
+    }
+    setAvisoRegra(null)
     onAdicionar(itens)
     setAdicionadas(pecas)
     setQuantidades({})
@@ -161,6 +179,7 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
                 <span className="text-xl font-semibold" style={{ color: cores.principal }}>{formatarPreco(produto.preco)}</span>
                 {produto.precoDe && <span className="text-sm line-through" style={{ color: cores.suave }}>{formatarPreco(produto.precoDe)}</span>}
               </p>
+              {regras && <p className="text-sm" style={{ color: cores.suave }}>{regras}</p>}
             </div>
 
             {esgotado ? (
@@ -198,6 +217,7 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
                 ) : (
                   <GradeQuantidades cores={cores} blocos={blocos} quantidades={quantidades} estoque={estoqueDe} disponivel={disponivelDe} onMudar={mudar} />
                 )}
+                {avisoRegra && <p className="text-sm text-red-600 font-medium" role="alert">{avisoRegra}</p>}
                 {adicionadas !== null && (
                   <p className="flex items-center justify-center gap-1.5 text-sm" role="status">
                     <Check className="size-4" style={{ color: cores.principal }} />

@@ -4,6 +4,7 @@
 // armazenamento (aba anônima, por exemplo), o carrinho vale só enquanto a página está aberta.
 
 import { useCallback, useSyncExternalStore } from "react"
+import type { FaixaPreco } from "@/lib/catalogo/regras-de-venda"
 
 export interface ItemCarrinho {
   produtoId: string
@@ -17,6 +18,9 @@ export interface ItemCarrinho {
   fotoUrl: string | null
   /** Estoque disponível da combinação (o servidor atualiza quando muda). */
   maximo: number
+  /** B31-01: faixas de preço e mínimo do produto (carrinho antigo no aparelho pode não ter). */
+  faixas?: FaixaPreco[]
+  minimo?: number | null
 }
 
 export type NovoItemCarrinho = Omit<ItemCarrinho, "quantidade">
@@ -98,12 +102,12 @@ export function useCarrinho(endereco: string) {
     )
   }
 
-  /** O servidor disse que o preço mudou: o carrinho passa a mostrar o novo (QA A9). */
-  function ajustarPrecos(mudancas: { produtoId: string; preco: number }[]) {
+  /** O servidor disse que o preço (ou as faixas) mudou: o carrinho passa a mostrar o novo (QA A9). */
+  function ajustarPrecos(mudancas: { produtoId: string; preco: number; faixas?: FaixaPreco[] }[]) {
     atualizar(
       itens.map((i) => {
         const m = mudancas.find((x) => x.produtoId === i.produtoId)
-        return m ? { ...i, preco: m.preco } : i
+        return m ? { ...i, preco: m.preco, faixas: m.faixas ?? i.faixas } : i
       })
     )
   }
