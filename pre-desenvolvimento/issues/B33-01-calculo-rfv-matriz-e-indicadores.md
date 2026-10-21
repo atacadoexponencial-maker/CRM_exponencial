@@ -1,0 +1,37 @@
+# B33-01: Cálculo RFV, aba, matriz e indicadores por perfil
+
+**Tipo:** Implementação
+**Página:** Relatórios (`/relatorios`), aba RFV
+**Repositório:** `crm-exponencial`
+**Spec:** `pre-desenvolvimento/spec-relatorios-rfv.md`
+
+## Descrição
+
+Nasce o cálculo RFV (notas R por faixas fixas, F e V por quintis de 12 meses, FV e os onze perfis da matriz do Tailor), a aba RFV ativa com o cabeçalho (data de referência e tamanho da base) e o filtro de atendente, a matriz 5 × 5 com quantidade, perfil e percentual de ativos por célula, e a tabela de indicadores por perfil (clientes, sem lembrete 15d+, dias sem compra, média de vendas e valor médio por cliente). O clique na célula ainda não filtra nada (a lista vem na B33-02), mas já marca a célula.
+
+## Pronto quando
+
+Na empresa de teste, abrir Relatórios → RFV mostra a data de hoje, a base com os clientes que compraram, a matriz colorida com os perfis e a tabela de indicadores com os números das vendas semeadas. Logada como Atendente, só os clientes dela.
+
+## Critérios de aceite
+
+- **CA-B33-02** (automática) — Notas e perfil de cada cliente. Dado hoje 21/10/2026 e cinco clientes com última venda há 10, 45, 80, 120 e 200 dias, com 1, 2, 3, 4 e 5 vendas nos 12 meses e valores de R$ 100, R$ 200, R$ 300, R$ 400 e R$ 500, quando o RFV é calculado, então as notas R são 5, 4, 3, 2 e 1, as notas F e V são 1, 2, 3, 4 e 5, os FV são 1, 2, 3, 4 e 5, e os perfis são Clientes Recentes, Potencial Fiel, Precisa de Atenção, Em Risco e Não Perder.
+- **CA-B33-03** (automática) — Quem nunca comprou fica fora; quem não comprou em 12 meses tem F e V 1. Dado um contato sem venda, um contato na lixeira com venda e um contato cuja única venda foi há 14 meses, quando o RFV é calculado, então os dois primeiros não entram na base, e o terceiro entra com R 1, F 1, V 1 e perfil Perdido.
+- **CA-B33-04** (automática) — Empate recebe a mesma nota. Dado dez clientes, todos com exatamente 2 vendas nos 12 meses, quando a nota de Frequência é calculada, então os dez recebem a mesma nota, 5.
+- **CA-B33-05** (automática) — Atendente vê só os clientes dele. Dado clientes com compra de dois atendentes, quando um deles, com papel Atendente, abre a aba RFV, então a base, a matriz e a lista só têm os clientes dele, e os quintis são calculados só entre eles.
+- **CA-B33-06** (automática) — A matriz conta os clientes por célula com o percentual de ativos. Dado três clientes em R 5 / FV 5, dois deles com card em Ativos na Recompra, quando a matriz é desenhada, então a célula R 5 / FV 5 mostra "3", "Campeão" e "67% ativos", e as outras 24 células mostram seus próprios números (zero onde não há cliente).
+- **CA-B33-08** (automática) — Indicadores de um perfil. Dado dois clientes Campeão: um com última venda há 10 dias, 4 vendas e R$ 1.000 nos 12 meses e um lembrete criado há 3 dias; outro com última venda há 20 dias, 2 vendas e R$ 500 e nenhum lembrete, quando os indicadores são calculados, então a linha Campeão mostra clientes 2, sem lembrete 15d+ "1 (50%)", dias sem compra 15, média de vendas 3,0 e valor médio R$ 750,00.
+- **CA-B33-09** (automática) — Perfil sem cliente mostra zeros. Dado nenhum cliente no perfil Hibernando, quando a tabela é desenhada, então a linha Hibernando aparece com 0 clientes e "—" nas médias.
+
+## Suposições
+
+| ID | Suposição | Status | Resolução |
+|---|---|---|---|
+| SUP-B33-01 | "Ticket médio" da tabela de indicadores do Tailor vira "Valor médio por cliente (12 meses)": o faturamento líquido do perfil dividido pelos clientes dele. | confirmada | Marcelle, 21/10/2026 |
+| SUP-B33-02 | "Sem tarefa 15d+" do Tailor vira "Sem lembrete 15d+": cliente sem lembrete da Agenda criado nos últimos 15 dias, pendente ou feito. | confirmada | Marcelle, 21/10/2026 |
+| SUP-B33-03 | "% ativos" da matriz usa o card do funil de Recompra em Onboarding, Reposição ou Ativos, a mesma régua do Dashboard. | confirmada | Marcelle, 21/10/2026 |
+| SUP-B33-05 | A aba RFV não tem filtro de período: a data de referência é sempre hoje. | confirmada | Marcelle, 21/10/2026 |
+
+## Perguntas em aberto
+
+Nenhuma.
