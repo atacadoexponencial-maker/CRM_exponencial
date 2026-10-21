@@ -91,3 +91,26 @@ describe("B31-01 — mínimo por produto na vitrine", () => {
     expect(screen.getByRole("alert").textContent).toContain("abaixo do mínimo")
   })
 })
+
+describe("B31-02 — desconto por total do pedido no carrinho", () => {
+  const descontos = [{ min: 50, percent: 10 }]
+
+  it("CA-B31-17: com 50 peças a R$ 24,90 o carrinho mostra subtotal, desconto de 10% e total; com 49 avisa o que falta", () => {
+    const { unmount } = render(
+      <Carrinho tema={TEMA_PADRAO} aberto linhas={[linha("M / Azul", 30), linha("M / Preto", 20)]} minimo={{ tipo: "nenhum", valor: null }} descontos={descontos} onFechar={() => {}} onMudarQuantidade={() => {}} onRemover={() => {}} onFazerPedido={vi.fn()} onPedidoFeito={() => {}} />
+    )
+    expect(screen.getByText("Subtotal · 50 peças")).toBeTruthy()
+    expect(screen.getByText("R$ 1.245,00")).toBeTruthy()
+    expect(screen.getByText("Desconto de 10% do pedido")).toBeTruthy()
+    expect(screen.getByText("− R$ 124,50")).toBeTruthy()
+    expect(screen.getByText("R$ 1.120,50")).toBeTruthy()
+    unmount()
+
+    render(
+      <Carrinho tema={TEMA_PADRAO} aberto linhas={[linha("M / Azul", 30), linha("M / Preto", 19)]} minimo={{ tipo: "nenhum", valor: null }} descontos={descontos} onFechar={() => {}} onMudarQuantidade={() => {}} onRemover={() => {}} onFazerPedido={vi.fn()} onPedidoFeito={() => {}} />
+    )
+    expect(screen.queryByText(/Desconto de 10%/)).toBeNull()
+    expect(screen.getByText("Falta 1 peça para 10% de desconto")).toBeTruthy()
+    expect(screen.getByText("R$ 1.220,10")).toBeTruthy() // 49 × 24,90, sem desconto
+  })
+})

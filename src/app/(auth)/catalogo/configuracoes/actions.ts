@@ -7,6 +7,7 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import { ENDERECOS_RESERVADOS, enderecoDeLojaValido } from "@/lib/catalogo/regras"
 import { normalizarWhatsapp } from "@/app/loja/components/pedido"
 import type { ConfigCatalogo } from "../components/form-configuracoes"
+import { descontosDoBanco, validarDescontos } from "@/lib/catalogo/regras-de-venda"
 
 async function exigirGestor() {
   const { supabase, user, perfil } = await sessaoAtual()
@@ -25,6 +26,7 @@ const CONFIG_VAZIA: ConfigCatalogo = {
   endereco: "",
   numeroPedidos: "",
   minimo: { tipo: "nenhum", valor: null },
+  descontos: [],
   mensagemFechamento: "",
   publicado: false,
 }
@@ -32,13 +34,14 @@ const CONFIG_VAZIA: ConfigCatalogo = {
 export async function carregarConfiguracoes(): Promise<{ config: ConfigCatalogo } | null> {
   const s = await exigirGestor()
   if (!s.ok) return null
-  const { data: cfg } = await s.supabase.from("catalog_settings").select("slug, orders_whatsapp, min_type, min_value, closing_message, published").eq("workspace_id", s.perfil.workspace_id).maybeSingle()
+  const { data: cfg } = await s.supabase.from("catalog_settings").select("slug, orders_whatsapp, min_type, min_value, order_discounts, closing_message, published").eq("workspace_id", s.perfil.workspace_id).maybeSingle()
   return {
     config: cfg
       ? {
           endereco: cfg.slug ?? "",
           numeroPedidos: numeroParaExibir(cfg.orders_whatsapp),
           minimo: { tipo: cfg.min_type as ConfigCatalogo["minimo"]["tipo"], valor: cfg.min_value === null ? null : Number(cfg.min_value) },
+          descontos: descontosDoBanco(cfg.order_discounts),
           mensagemFechamento: cfg.closing_message,
           publicado: cfg.published,
         }
@@ -69,6 +72,9 @@ export async function salvarConfiguracoes(config: ConfigCatalogo): Promise<{ err
   if (config.minimo.tipo !== "nenhum" && !(config.minimo.valor && config.minimo.valor > 0)) return { erro: "Informe o valor do pedido mínimo, maior que zero." }
   if (config.minimo.tipo === "pecas" && !Number.isInteger(config.minimo.valor)) return { erro: "O mínimo de peças precisa ser um número inteiro." }
   if (config.mensagemFechamento.length > 500) return { erro: "A mensagem de fechamento passa de 500 caracteres." }
+  // B31-02: desconto por total do pedido, conferido aqui.
+  const descontos = validarDescontos(Array.isArray(config.descontos) ? config.descontos : [])
+  if ("erro" in descontos) return { erro: descontos.erro }
 
   const numeroPedidos = config.numeroPedidos.trim() ? normalizarWhatsapp(config.numeroPedidos) : null
   if (config.numeroPedidos.trim() && !numeroPedidos) return { erro: "Número dos pedidos inválido: informe o WhatsApp com DDD, ex.: (21) 99999-0000." }
@@ -81,6 +87,7 @@ export async function salvarConfiguracoes(config: ConfigCatalogo): Promise<{ err
     orders_whatsapp: numeroPedidos,
     min_type: config.minimo.tipo,
     min_value: config.minimo.tipo === "nenhum" ? null : config.minimo.valor,
+    order_discounts: descontos.descontos,
     closing_message: config.mensagemFechamento.trim(),
     published: config.publicado,
     updated_at: new Date().toISOString(),

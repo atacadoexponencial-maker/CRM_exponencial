@@ -47,6 +47,8 @@ interface VitrineProps {
   quantidadeNoCarrinho?: number
   /** Ex.: "Pedido mínimo: 12 peças". */
   avisoMinimo?: string | null
+  /** B31-02, ex.: "10% a menos a partir de 50 peças". */
+  avisoDesconto?: string | null
   /** Endereço da página do produto: o cartão vira link de verdade (abre em nova aba, copia, pré-carrega). */
   hrefProduto?: (id: string) => string
   /** Sem `hrefProduto` (a prévia da Aparência), o cartão só chama isto. */
@@ -195,7 +197,7 @@ export function CabecalhoLoja({
   )
 }
 
-export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, avisoMinimo, hrefProduto, onAbrirProduto, onAbrirCarrinho }: VitrineProps) {
+export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, avisoMinimo, avisoDesconto, hrefProduto, onAbrirProduto, onAbrirCarrinho }: VitrineProps) {
   const [categoriaAtiva, setCategoriaAtiva] = useState<string | null>(null)
   const [busca, setBusca] = useState("")
   const [ordem, setOrdem] = useState<OrdemVitrine>("loja")
@@ -271,7 +273,9 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
         <div className="space-y-1">
           {tema.logoUrl ? <h1 className="text-2xl @3xl:text-3xl font-semibold">{tema.nomeLoja}</h1> : <h1 className="sr-only">{tema.nomeLoja}</h1>}
           {tema.boasVindas && <p className="text-sm" style={{ color: cores.suave }}>{tema.boasVindas}</p>}
-          {avisoMinimo && <p className="text-xs font-medium" style={{ color: cores.principal }}>{avisoMinimo}</p>}
+          {(avisoMinimo || avisoDesconto) && (
+            <p className="text-xs font-medium" style={{ color: cores.principal }}>{[avisoMinimo, avisoDesconto].filter(Boolean).join(" · ")}</p>
+          )}
         </div>
 
         <div className="relative">

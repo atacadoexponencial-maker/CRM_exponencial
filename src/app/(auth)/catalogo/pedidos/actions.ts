@@ -19,6 +19,8 @@ interface LinhaPedido {
   customer_whatsapp: string
   pieces: number
   total: number
+  discount: number
+  discount_percent: number
   status: string
 }
 
@@ -30,11 +32,12 @@ function paraResumo(p: LinhaPedido): PedidoResumo {
     cliente: { nome: p.customer_name, whatsapp: p.customer_whatsapp },
     pecas: p.pieces,
     total: Number(p.total),
+    desconto: Number(p.discount) > 0 ? { percent: Number(p.discount_percent), valor: Number(p.discount) } : null,
     situacao: p.status as SituacaoPedido,
   }
 }
 
-const COLUNAS_RESUMO = "id, number, created_at, customer_name, customer_whatsapp, pieces, total, status"
+const COLUNAS_RESUMO = "id, number, created_at, customer_name, customer_whatsapp, pieces, total, discount, discount_percent, status"
 
 export async function listarPedidos(): Promise<PedidoResumo[]> {
   const { supabase, user, perfil } = await sessaoAtual()

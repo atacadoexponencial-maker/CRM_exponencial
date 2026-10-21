@@ -4,18 +4,20 @@ import { useRouter } from "next/navigation"
 import { PaginaProduto, type ProdutoDetalhe } from "../../../components/pagina-produto"
 import { textoDoMinimo, type MinimoPedido } from "../../../components/pedido"
 import type { TemaLoja } from "../../../components/tema"
+import type { DescontoPedido } from "@/lib/catalogo/regras-de-venda"
 import { useCarrinhoLoja } from "../../usar-carrinho-loja"
 
 interface ProdutoClientProps {
   endereco: string
   tema: TemaLoja
   minimo: MinimoPedido
+  descontos: DescontoPedido[]
   produto: ProdutoDetalhe
 }
 
-export function ProdutoClient({ endereco, tema, minimo, produto }: ProdutoClientProps) {
+export function ProdutoClient({ endereco, tema, minimo, descontos, produto }: ProdutoClientProps) {
   const router = useRouter()
-  const { carrinho, pecas, abrir, gaveta } = useCarrinhoLoja(endereco, tema, minimo)
+  const { carrinho, pecas, abrir, gaveta } = useCarrinhoLoja(endereco, tema, minimo, descontos)
   return (
     <>
       <PaginaProduto

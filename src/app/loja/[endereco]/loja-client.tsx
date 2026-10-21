@@ -3,18 +3,20 @@
 import { Vitrine, type CategoriaVitrine, type ProdutoVitrine } from "../components/vitrine"
 import { textoDoMinimo, type MinimoPedido } from "../components/pedido"
 import type { TemaLoja } from "../components/tema"
+import { resumoDoDesconto, type DescontoPedido } from "@/lib/catalogo/regras-de-venda"
 import { useCarrinhoLoja } from "./usar-carrinho-loja"
 
 interface LojaClientProps {
   endereco: string
   tema: TemaLoja
   minimo: MinimoPedido
+  descontos: DescontoPedido[]
   categorias: CategoriaVitrine[]
   produtos: ProdutoVitrine[]
 }
 
-export function LojaClient({ endereco, tema, minimo, categorias, produtos }: LojaClientProps) {
-  const { pecas, abrir, gaveta } = useCarrinhoLoja(endereco, tema, minimo)
+export function LojaClient({ endereco, tema, minimo, descontos, categorias, produtos }: LojaClientProps) {
+  const { pecas, abrir, gaveta } = useCarrinhoLoja(endereco, tema, minimo, descontos)
   return (
     <>
       <Vitrine
@@ -23,6 +25,7 @@ export function LojaClient({ endereco, tema, minimo, categorias, produtos }: Loj
         produtos={produtos}
         quantidadeNoCarrinho={pecas}
         avisoMinimo={textoDoMinimo(minimo)}
+        avisoDesconto={resumoDoDesconto(descontos)}
         hrefProduto={(id) => `/loja/${endereco}/p/${id}`}
         onAbrirCarrinho={abrir}
       />

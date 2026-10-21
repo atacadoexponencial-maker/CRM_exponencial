@@ -10,7 +10,7 @@ import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { coresDaVitrine, type TemaLoja } from "./tema"
 import { familiaDaFonte } from "./fontes"
 import { faltaParaMinimo, normalizarWhatsapp, totaisDoPedido, type MinimoPedido } from "./pedido"
-import { avisoMinimoProduto, avisoProximaFaixa, precoPorQuantidade, type FaixaPreco } from "@/lib/catalogo/regras-de-venda"
+import { aplicarDesconto, avisoMinimoProduto, avisoProximaFaixa, avisoProximoDesconto, descontoAlcancado, precoPorQuantidade, type DescontoPedido, type FaixaPreco } from "@/lib/catalogo/regras-de-venda"
 
 export interface LinhaCarrinho {
   produtoId: string
@@ -45,6 +45,8 @@ interface CarrinhoProps {
   aberto: boolean
   linhas: LinhaCarrinho[]
   minimo: MinimoPedido
+  /** B31-02: desconto por total de peças do pedido. */
+  descontos?: DescontoPedido[]
   onFechar: () => void
   onMudarQuantidade: (produtoId: string, combinacao: string, quantidade: number) => void
   onRemover: (produtoId: string, combinacao: string) => void
@@ -53,7 +55,7 @@ interface CarrinhoProps {
   onPedidoFeito: () => void
 }
 
-export function Carrinho({ tema, aberto, linhas, minimo, onFechar, onMudarQuantidade, onRemover, onFazerPedido, onPedidoFeito }: CarrinhoProps) {
+export function Carrinho({ tema, aberto, linhas, minimo, descontos = [], onFechar, onMudarQuantidade, onRemover, onFazerPedido, onPedidoFeito }: CarrinhoProps) {
   const cores = coresDaVitrine(tema)
   const [nome, setNome] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
@@ -65,6 +67,10 @@ export function Carrinho({ tema, aberto, linhas, minimo, onFechar, onMudarQuanti
   const itens = linhas.map((l) => ({ nome: l.nome, variacao: l.combinacao, quantidade: l.quantidade, precoUnitario: unitarioDaLinha(l, porProduto) }))
   const { pecas, valor } = totaisDoPedido(itens)
   const falta = faltaParaMinimo(itens, minimo)
+  // B31-02: desconto da loja pelo total de peças, sobre o subtotal já com as faixas.
+  const descontoDaLoja = descontoAlcancado(descontos, pecas)
+  const { desconto, total } = descontoDaLoja ? aplicarDesconto(valor, descontoDaLoja.percent) : { desconto: 0, total: valor }
+  const avisoDesconto = avisoProximoDesconto(descontos, pecas)
   // B31-01: avisos por produto (na primeira linha dele): próxima faixa e mínimo do produto.
   const primeiraLinhaDe = new Set<string>()
   const avisosDoProduto = linhas.map((l) => {
@@ -200,10 +206,28 @@ export function Carrinho({ tema, aberto, linhas, minimo, onFechar, onMudarQuanti
             </ul>
 
             <div className="border-t p-4 space-y-3" style={{ borderColor: cores.borda }}>
-              <div className="flex items-baseline justify-between">
-                <span className="text-sm" style={{ color: cores.suave }}>{pecas} {pecas === 1 ? "peça" : "peças"}</span>
-                <span className="text-lg font-semibold">{formatarPreco(valor)}</span>
-              </div>
+              {descontoDaLoja ? (
+                <div className="space-y-1">
+                  <div className="flex items-baseline justify-between text-sm">
+                    <span style={{ color: cores.suave }}>Subtotal · {pecas} {pecas === 1 ? "peça" : "peças"}</span>
+                    <span>{formatarPreco(valor)}</span>
+                  </div>
+                  <div className="flex items-baseline justify-between text-sm" style={{ color: cores.principal }}>
+                    <span>Desconto de {descontoDaLoja.percent}% do pedido</span>
+                    <span>− {formatarPreco(desconto)}</span>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-sm font-medium">Total</span>
+                    <span className="text-lg font-semibold">{formatarPreco(total)}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm" style={{ color: cores.suave }}>{pecas} {pecas === 1 ? "peça" : "peças"}</span>
+                  <span className="text-lg font-semibold">{formatarPreco(valor)}</span>
+                </div>
+              )}
+              {avisoDesconto && <p className="text-xs font-medium" style={{ color: cores.principal }} role="status">{avisoDesconto}</p>}
               {minimo.tipo !== "nenhum" && (
                 <div className="space-y-1">
                   <div className="h-1.5 rounded-full overflow-hidden" style={{ background: cores.superficie }}>

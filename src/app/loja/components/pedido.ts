@@ -20,6 +20,12 @@ export interface ItemPedido {
   faixaAplicada?: number | null
 }
 
+export interface DescontoAplicado {
+  percent: number
+  /** Em reais, já arredondado em centavos. */
+  valor: number
+}
+
 export function totaisDoPedido(itens: ItemPedido[]): { pecas: number; valor: number } {
   return itens.reduce(
     (acc, i) => ({ pecas: acc.pecas + i.quantidade, valor: acc.valor + i.quantidade * i.precoUnitario }),
@@ -63,9 +69,19 @@ export function montarMensagemPedido(dados: {
   numero: number | string
   nomeCliente: string
   itens: ItemPedido[]
+  /** B31-02: desconto por total do pedido, quando valeu. */
+  desconto?: DescontoAplicado | null
   mensagemFechamento?: string
 }): string {
   const { pecas, valor } = totaisDoPedido(dados.itens)
+  const desconto = dados.desconto && dados.desconto.valor > 0 ? dados.desconto : null
+  const totais = desconto
+    ? [
+        `Subtotal: ${pecas} ${pecas === 1 ? "peça" : "peças"} · ${reais(valor)}`,
+        `Desconto de ${desconto.percent}% do pedido: − ${reais(desconto.valor)}`,
+        `Total: *${reais(Math.round((valor - desconto.valor) * 100) / 100)}*`,
+      ]
+    : [`Total: ${pecas} ${pecas === 1 ? "peça" : "peças"} · *${reais(valor)}*`]
   const linhas = [
     `*Pedido #${dados.numero}*`,
     `Cliente: ${dados.nomeCliente}`,
@@ -75,7 +91,7 @@ export function montarMensagemPedido(dados: {
         `• ${i.quantidade}x ${i.nome}${i.variacao ? ` (${i.variacao})` : ""}${i.codigo?.trim() ? ` · cód. ${i.codigo.trim()}` : ""} — ${reais(i.precoUnitario)} cada${i.faixaAplicada ? ` (preço de ${i.faixaAplicada}+)` : ""} = ${reais(i.quantidade * i.precoUnitario)}`
     ),
     "",
-    `Total: ${pecas} ${pecas === 1 ? "peça" : "peças"} · *${reais(valor)}*`,
+    ...totais,
   ]
   if (dados.mensagemFechamento?.trim()) linhas.push("", dados.mensagemFechamento.trim())
   return linhas.join("\n")

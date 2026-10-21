@@ -8,7 +8,7 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import { chaveCombinacao, combinacoes, type TipoVariacao } from "./combinacoes"
 import { BUCKET_CATALOGO } from "./regras"
 import { resumoDasVariacoes } from "./vitrine"
-import { faixasDoBanco } from "./regras-de-venda"
+import { descontosDoBanco, faixasDoBanco, type DescontoPedido } from "./regras-de-venda"
 import { TEMA_PADRAO, type LayoutVitrine, type TemaLoja } from "@/app/loja/components/tema"
 import type { IdFonte } from "@/app/loja/components/fontes"
 import type { CategoriaVitrine, ProdutoVitrine } from "@/app/loja/components/vitrine"
@@ -20,6 +20,8 @@ export interface LojaPublica {
   endereco: string
   tema: TemaLoja
   minimo: MinimoPedido
+  /** B31-02: desconto por total de peças do pedido. */
+  descontos: DescontoPedido[]
   mensagemFechamento: string
   /** WhatsApp da loja, só dígitos com 55 (para o link do pedido). */
   whatsapp: string
@@ -64,7 +66,7 @@ export const carregarLojaPublica = cache(async function carregarLojaPublica(ende
   const service = createServiceClient()
   const { data: cfg } = await service
     .from("catalog_settings")
-    .select("workspace_id, slug, min_type, min_value, closing_message, published, store_name, welcome_text, logo_path, banner_path, primary_color, background_color, font_id, layout, orders_whatsapp, workspaces(name)")
+    .select("workspace_id, slug, min_type, min_value, order_discounts, closing_message, published, store_name, welcome_text, logo_path, banner_path, primary_color, background_color, font_id, layout, orders_whatsapp, workspaces(name)")
     .eq("slug", endereco.toLowerCase())
     .eq("published", true)
     .maybeSingle()
@@ -80,6 +82,7 @@ export const carregarLojaPublica = cache(async function carregarLojaPublica(ende
     endereco: cfg.slug,
     tema: temaDasConfiguracoes(cfg, empresa?.name ?? TEMA_PADRAO.nomeLoja),
     minimo: { tipo: cfg.min_type as MinimoPedido["tipo"], valor: cfg.min_value === null ? null : Number(cfg.min_value) },
+    descontos: descontosDoBanco(cfg.order_discounts),
     mensagemFechamento: cfg.closing_message,
     whatsapp: cfg.orders_whatsapp,
   }

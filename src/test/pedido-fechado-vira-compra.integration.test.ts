@@ -240,3 +240,16 @@ describe("B30-02 — Pedido do catálogo fechado vira compra do contato", { time
     expect(perfil!.timeline.filter((e) => e.tipo === "pedido_catalogo" && e.descricao.startsWith(`Pedido #${pedido.number}`))).toHaveLength(1)
   })
 })
+
+describe("B31-02 — desconto do pedido na compra do contato", { timeout: 60_000 }, () => {
+  it("CA-B31-17: pedido com desconto fechado no CRM gera compra com valor já com desconto e o desconto em reais", async () => {
+    await service.from("catalog_settings").update({ order_discounts: [{ min: 50, percent: 10 }] }).eq("workspace_id", ws)
+    // 50 peças de R$ 50 = R$ 2.500,00; 10% = R$ 250,00; total R$ 2.250,00
+    const pedido = await pedidoNovo("21977770031", 50)
+    await service.from("catalog_settings").update({ order_discounts: [] }).eq("workspace_id", ws)
+    entrarComo(emailAdmin)
+    expect((await mudarSituacaoPedido(pedido.id, "fechado")).erro).toBeUndefined()
+    const [compra] = await comprasDoPedido(pedido.id)
+    expect(compra).toMatchObject({ valor: 2250, pecas: 50, desconto: 250, origem: "catalogo" })
+  })
+})

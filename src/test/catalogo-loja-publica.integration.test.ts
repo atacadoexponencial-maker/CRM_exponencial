@@ -53,7 +53,7 @@ async function entrarComo(email: string) {
   mockSsr.mockResolvedValue(c as never)
 }
 function config(parcial: Partial<ConfigCatalogo>): ConfigCatalogo {
-  return { endereco: "", numeroPedidos: "", minimo: { tipo: "nenhum", valor: null }, mensagemFechamento: "", publicado: false, ...parcial }
+  return { endereco: "", numeroPedidos: "", minimo: { tipo: "nenhum", valor: null }, descontos: [], mensagemFechamento: "", publicado: false, ...parcial }
 }
 
 const emailA = `loja-admin-a-${ts}@catalogo-test.com`
@@ -168,5 +168,20 @@ describe("B16-08 — Aparência da loja aplicada na vitrine", { timeout: 30_000 
   it("atendente não muda a aparência", async () => {
     await entrarComo(emailAtendA)
     expect((await salvarAparencia(TEMA_PADRAO)).erro).toMatch(/Admin e Gerente/)
+  })
+})
+
+describe("B31-02 — Desconto por total do pedido", { timeout: 30_000 }, () => {
+  it("CA-B31-16: salva duas linhas e a loja pública devolve iguais; porcentagem que não sobe, 0% e 95% são recusados", async () => {
+    await entrarComo(emailA)
+    const base = config({ endereco: slugA, numeroPedidos: PEDIDOS, publicado: true })
+    expect((await salvarConfiguracoes({ ...base, descontos: [{ min: 100, percent: 15 }, { min: 50, percent: 10 }] })).erro).toBeUndefined()
+    expect((await carregarLojaPublica(slugA))?.descontos).toEqual([{ min: 50, percent: 10 }, { min: 100, percent: 15 }])
+    expect((await carregarConfiguracoes())?.config.descontos).toEqual([{ min: 50, percent: 10 }, { min: 100, percent: 15 }])
+    expect((await salvarConfiguracoes({ ...base, descontos: [{ min: 50, percent: 10 }, { min: 100, percent: 5 }] })).erro).toMatch(/maior que a da linha anterior/)
+    expect((await salvarConfiguracoes({ ...base, descontos: [{ min: 50, percent: 0 }] })).erro).toMatch(/de 1 a 90/)
+    expect((await salvarConfiguracoes({ ...base, descontos: [{ min: 50, percent: 95 }] })).erro).toMatch(/de 1 a 90/)
+    expect((await salvarConfiguracoes({ ...base, descontos: [] })).erro).toBeUndefined()
+    expect((await carregarLojaPublica(slugA))?.descontos).toEqual([])
   })
 })

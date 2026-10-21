@@ -14,7 +14,10 @@ export interface PedidoResumo {
   criadoEm: string
   cliente: { nome: string; whatsapp: string }
   pecas: number
+  /** Valor que a cliente paga (já com o desconto do pedido, B31-02). */
   total: number
+  /** B31-02: desconto por total do pedido, quando valeu (a lista do contato não carrega). */
+  desconto?: { percent: number; valor: number } | null
   situacao: SituacaoPedido
 }
 

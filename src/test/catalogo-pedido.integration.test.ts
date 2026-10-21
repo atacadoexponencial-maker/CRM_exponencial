@@ -212,3 +212,33 @@ describe("B31-01 — faixas de preço e mínimo por produto no pedido", { timeou
     expect(semNbsp(r.mensagem)).toContain("40x Camisa — R$ 20,00 cada = R$ 800,00")
   })
 })
+
+describe("B31-02 — desconto por total do pedido no servidor", { timeout: 30_000 }, () => {
+  const semNbsp = (t: string) => t.replace(/\u00a0/g, " ")
+
+  it("CA-B31-17: pedido com 50 peças grava desconto de 10% e total com desconto; a mensagem traz subtotal, desconto e total; com 49 não há desconto", async () => {
+    await service.from("catalog_settings").update({ order_discounts: [{ min: 50, percent: 10 }] }).eq("workspace_id", ws)
+    const { data: cam } = await service.from("catalog_products").select("id").eq("workspace_id", ws).eq("name", "Camiseta").single()
+    await service.from("catalog_products").update({ min_quantity: null }).eq("id", cam!.id)
+    const r = await registrarPedido(slug, { nome: "Desconto 50", whatsapp: "(21) 95000-0050" }, [
+      { produtoId: cam!.id, combinacao: "Azul", quantidade: 30 },
+      { produtoId: cam!.id, combinacao: "Preto", quantidade: 20 },
+    ])
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    const m = semNbsp(r.mensagem)
+    expect(m).toContain("Subtotal: 50 peças · R$ 1.245,00")
+    expect(m).toContain("Desconto de 10% do pedido: − R$ 124,50")
+    expect(m).toContain("Total: *R$ 1.120,50*")
+    const { data: pedido } = await service.from("catalog_orders").select("total, discount, discount_percent, pieces").eq("workspace_id", ws).eq("number", r.numero).single()
+    expect(pedido).toMatchObject({ total: 1120.5, discount: 124.5, discount_percent: 10, pieces: 50 })
+
+    const r2 = await registrarPedido(slug, { nome: "Desconto 49", whatsapp: "(21) 95000-0049" }, [{ produtoId: cam!.id, combinacao: "Azul", quantidade: 49 }])
+    expect(r2.ok).toBe(true)
+    if (!r2.ok) return
+    expect(semNbsp(r2.mensagem)).toContain("Total: 49 peças · *R$ 1.220,10*")
+    const { data: pedido2 } = await service.from("catalog_orders").select("total, discount").eq("workspace_id", ws).eq("number", r2.numero).single()
+    expect(pedido2).toMatchObject({ total: 1220.1, discount: 0 })
+    await service.from("catalog_settings").update({ order_discounts: [] }).eq("workspace_id", ws)
+  })
+})

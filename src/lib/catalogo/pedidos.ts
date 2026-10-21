@@ -5,8 +5,8 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import { buscarEGuardarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
 import { chaveCombinacao, combinacoes, type TipoVariacao } from "./combinacoes"
 import { carregarLojaPublica } from "./loja-publica"
-import { faixaAlcancada, faixasDoBanco, type FaixaPreco } from "./regras-de-venda"
-import { faltaParaMinimo, linkWhatsapp, montarMensagemPedido, normalizarWhatsapp, type ItemPedido } from "@/app/loja/components/pedido"
+import { aplicarDesconto, descontoAlcancado, faixaAlcancada, faixasDoBanco, type FaixaPreco } from "./regras-de-venda"
+import { faltaParaMinimo, linkWhatsapp, montarMensagemPedido, normalizarWhatsapp, totaisDoPedido, type ItemPedido } from "@/app/loja/components/pedido"
 
 /** Mesmo WhatsApp, mesma loja: um pedido a cada 2 minutos. */
 export const INTERVALO_ENTRE_PEDIDOS_MS = 2 * 60 * 1000
@@ -172,6 +172,11 @@ export async function registrarPedido(endereco: string, cliente: { nome: string;
   const falta = faltaParaMinimo(itens, loja.minimo)
   if (falta) return { ok: false, erro: `${falta}.` }
 
+  // B31-02: desconto da loja pelo total de peças, sobre o subtotal já com as faixas.
+  const totais = totaisDoPedido(itens)
+  const linhaDesconto = descontoAlcancado(loja.descontos, totais.pecas)
+  const desconto = linhaDesconto ? { percent: linhaDesconto.percent, valor: aplicarDesconto(totais.valor, linhaDesconto.percent).desconto } : null
+
   const contatoId = await acharOuCriarContato(loja.workspaceId, whatsapp, nome)
   const { data, error } = await svc.rpc("registrar_pedido_catalogo", {
     p_workspace: loja.workspaceId,
@@ -179,6 +184,7 @@ export async function registrarPedido(endereco: string, cliente: { nome: string;
     p_nome: nome,
     p_whatsapp: whatsapp,
     p_itens: itens.map((i) => ({ product_id: i.product_id, product_name: i.nome, combination: i.variacao, quantity: i.quantidade, unit_price: i.precoUnitario, photo_path: i.photo_path })),
+    p_desconto_percent: desconto?.percent ?? 0,
   })
   const registrado = (data as { pedido_id: string; numero: number }[] | null)?.[0]
   if (error || !registrado) return { ok: false, erro: "Não deu para enviar o pedido. Tente de novo." }
@@ -186,6 +192,6 @@ export async function registrarPedido(endereco: string, cliente: { nome: string;
   // B29-02: a foto vem pelo canal direto, depois de o pedido estar gravado. Nunca falha.
   await buscarEGuardarFotoDoContato({ svc, workspaceId: loja.workspaceId, contactId: contatoId, telefone: whatsapp })
 
-  const mensagem = montarMensagemPedido({ numero: registrado.numero, nomeCliente: nome, itens, mensagemFechamento: loja.mensagemFechamento })
+  const mensagem = montarMensagemPedido({ numero: registrado.numero, nomeCliente: nome, itens, desconto, mensagemFechamento: loja.mensagemFechamento })
   return { ok: true, numero: registrado.numero, mensagem, link: linkWhatsapp(loja.whatsapp, mensagem) }
 }

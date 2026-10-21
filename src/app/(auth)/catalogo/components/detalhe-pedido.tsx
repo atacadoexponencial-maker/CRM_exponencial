@@ -123,6 +123,12 @@ export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedi
               </li>
             ))}
           </ul>
+          {pedido.desconto && (
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Desconto de {pedido.desconto.percent}% do pedido</span>
+              <span>− {formatarPreco(pedido.desconto.valor)}</span>
+            </div>
+          )}
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">{pedido.pecas} peças</span>
             <span className="font-semibold">{formatarPreco(pedido.total)}</span>

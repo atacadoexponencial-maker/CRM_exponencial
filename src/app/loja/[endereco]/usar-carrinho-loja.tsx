@@ -7,9 +7,10 @@ import { Carrinho, pecasPorProduto, unitarioDaLinha, type LinhaCarrinho, type Re
 import { useCarrinho } from "../components/carrinho-local"
 import type { MinimoPedido } from "../components/pedido"
 import type { TemaLoja } from "../components/tema"
+import type { DescontoPedido } from "@/lib/catalogo/regras-de-venda"
 import { fazerPedido } from "./actions"
 
-export function useCarrinhoLoja(endereco: string, tema: TemaLoja, minimo: MinimoPedido) {
+export function useCarrinhoLoja(endereco: string, tema: TemaLoja, minimo: MinimoPedido, descontos: DescontoPedido[] = []) {
   const carrinho = useCarrinho(endereco)
   const [aberto, setAberto] = useState(false)
 
@@ -48,6 +49,7 @@ export function useCarrinhoLoja(endereco: string, tema: TemaLoja, minimo: Minimo
       aberto={aberto}
       linhas={linhas}
       minimo={minimo}
+      descontos={descontos}
       onFechar={() => setAberto(false)}
       onMudarQuantidade={carrinho.mudarQuantidade}
       onRemover={carrinho.remover}

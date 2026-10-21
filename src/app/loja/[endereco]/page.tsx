@@ -7,5 +7,5 @@ export default async function LojaPage({ params }: { params: Promise<{ endereco:
   const loja = await carregarLojaPublica(endereco)
   if (!loja) notFound()
   const { categorias, produtos } = await carregarVitrine(loja.workspaceId)
-  return <LojaClient endereco={loja.endereco} tema={loja.tema} minimo={loja.minimo} categorias={categorias} produtos={produtos} />
+  return <LojaClient endereco={loja.endereco} tema={loja.tema} minimo={loja.minimo} descontos={loja.descontos} categorias={categorias} produtos={produtos} />
 }

@@ -9,6 +9,7 @@ import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from
 import { cn } from "@/lib/utils"
 
 import type { TipoMinimo } from "@/app/loja/components/pedido"
+import { MAX_DESCONTOS, type DescontoPedido } from "@/lib/catalogo/regras-de-venda"
 
 export type { TipoMinimo }
 
@@ -17,6 +18,8 @@ export interface ConfigCatalogo {
   /** Como a pessoa digitou, ex.: (21) 99999-0000. O servidor confere e grava só os dígitos. */
   numeroPedidos: string
   minimo: { tipo: TipoMinimo; valor: number | null }
+  /** B31-02: desconto por total de peças do pedido ("a partir de 50 peças, 10% a menos"), até 3 linhas. */
+  descontos: DescontoPedido[]
   mensagemFechamento: string
   publicado: boolean
 }
@@ -208,6 +211,36 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
             />
             {config.minimo.tipo === "pecas" && <span className="text-sm text-muted-foreground">peças no pedido</span>}
           </div>
+        )}
+      </section>
+
+      <section className="rounded-lg border p-4 space-y-3">
+        <h2 className="text-sm font-semibold">Desconto por total do pedido <span className="font-normal text-muted-foreground">· opcional</span></h2>
+        <p className="text-xs text-muted-foreground">Vale sobre o pedido inteiro, contando todas as peças de todos os produtos. Entra depois do preço por quantidade de cada produto.</p>
+        {config.descontos.map((d, i) => (
+          <div key={i} className="flex flex-wrap items-center gap-2 text-sm">
+            <span>A partir de</span>
+            <Input
+              inputMode="numeric"
+              value={Number.isNaN(d.min) ? "" : String(d.min)}
+              onChange={(e) => mudar("descontos", config.descontos.map((x, j) => (j === i ? { ...x, min: /^\d+$/.test(e.target.value.trim()) ? Number(e.target.value) : Number.NaN } : x)))}
+              className="w-20"
+              aria-label={`Quantidade do desconto ${i + 1}`}
+            />
+            <span>peças no pedido,</span>
+            <Input
+              inputMode="numeric"
+              value={Number.isNaN(d.percent) ? "" : String(d.percent)}
+              onChange={(e) => mudar("descontos", config.descontos.map((x, j) => (j === i ? { ...x, percent: /^\d+([.,]\d+)?$/.test(e.target.value.trim()) ? Number(e.target.value.replace(",", ".")) : Number.NaN } : x)))}
+              className="w-16"
+              aria-label={`Porcentagem do desconto ${i + 1}`}
+            />
+            <span>% a menos</span>
+            <Button size="sm" variant="ghost" onClick={() => mudar("descontos", config.descontos.filter((_, j) => j !== i))} aria-label={`Remover desconto ${i + 1}`}>Remover</Button>
+          </div>
+        ))}
+        {config.descontos.length < MAX_DESCONTOS && (
+          <Button size="sm" variant="outline" onClick={() => mudar("descontos", [...config.descontos, { min: Number.NaN, percent: Number.NaN }])}>Adicionar desconto</Button>
         )}
       </section>
 

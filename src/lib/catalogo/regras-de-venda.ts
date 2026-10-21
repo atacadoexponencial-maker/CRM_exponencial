@@ -89,3 +89,64 @@ export function avisoMinimoProduto(minimo: number | null, pecas: number): string
   if (!minimo || pecas >= minimo) return null
   return `Mínimo ${minimo} ${minimo === 1 ? "peça" : "peças"}`
 }
+
+// ---- Desconto por total de peças do pedido (B31-02), regra da loja ----------------------
+
+export interface DescontoPedido {
+  /** A partir de quantas peças no pedido inteiro. */
+  min: number
+  /** Porcentagem a menos sobre o subtotal, de 1 a 90. */
+  percent: number
+}
+
+export const MAX_DESCONTOS = 3
+
+/** Linhas limpas (ordenadas por quantidade) ou o aviso do que está errado. */
+export function validarDescontos(descontos: DescontoPedido[]): { erro: string } | { descontos: DescontoPedido[] } {
+  if (descontos.length > MAX_DESCONTOS) return { erro: `A loja aceita até ${MAX_DESCONTOS} linhas de desconto por pedido.` }
+  const limpos = [...descontos].sort((a, b) => a.min - b.min)
+  let anterior: DescontoPedido | null = null
+  for (const [i, d] of limpos.entries()) {
+    const n = i + 1
+    if (!Number.isInteger(d.min) || d.min < 2) return { erro: `Desconto ${n}: a quantidade precisa ser um número inteiro a partir de 2.` }
+    if (!Number.isFinite(d.percent) || d.percent < 1 || d.percent > 90) return { erro: `Desconto ${n}: a porcentagem vai de 1 a 90.` }
+    if (anterior && d.min === anterior.min) return { erro: `Desconto ${n}: já existe uma linha a partir de ${d.min} peças.` }
+    if (anterior && d.percent <= anterior.percent) return { erro: `Desconto ${n}: a porcentagem precisa ser maior que a da linha anterior (${anterior.percent}%).` }
+    anterior = d
+  }
+  return { descontos: limpos.map((d) => ({ min: d.min, percent: Math.round(d.percent * 100) / 100 })) }
+}
+
+export function descontosDoBanco(bruto: unknown): DescontoPedido[] {
+  if (!Array.isArray(bruto)) return []
+  return bruto
+    .filter((d): d is { min: number; percent: number } => !!d && typeof d === "object" && typeof (d as { min?: unknown }).min === "number" && typeof (d as { percent?: unknown }).percent === "number")
+    .map((d) => ({ min: d.min, percent: Number(d.percent) }))
+    .sort((a, b) => a.min - b.min)
+}
+
+/** A linha que o total de peças alcança, ou `null`. */
+export function descontoAlcancado(descontos: DescontoPedido[], pecas: number): DescontoPedido | null {
+  let alcancado: DescontoPedido | null = null
+  for (const d of descontos) if (pecas >= d.min) alcancado = d
+  return alcancado
+}
+
+/** Desconto em reais (centavos arredondados) e total com o desconto. */
+export function aplicarDesconto(subtotal: number, percent: number): { desconto: number; total: number } {
+  const desconto = Math.round(subtotal * percent) / 100
+  return { desconto, total: Math.round((subtotal - desconto) * 100) / 100 }
+}
+
+export function avisoProximoDesconto(descontos: DescontoPedido[], pecas: number): string | null {
+  const proximo = descontos.find((d) => pecas < d.min)
+  if (!proximo) return null
+  const faltam = proximo.min - pecas
+  return `${faltam === 1 ? "Falta 1 peça" : `Faltam ${faltam} peças`} para ${proximo.percent}% de desconto`
+}
+
+/** Aviso no topo da vitrine: "10% a menos a partir de 50 peças". */
+export function resumoDoDesconto(descontos: DescontoPedido[]): string | null {
+  const primeiro = descontos[0]
+  return primeiro ? `${primeiro.percent}% a menos a partir de ${primeiro.min} peças` : null
+}

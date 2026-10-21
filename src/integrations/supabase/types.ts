@@ -536,6 +536,8 @@ export type Database = {
           created_at: string
           customer_name: string
           customer_whatsapp: string
+          discount: number
+          discount_percent: number
           id: string
           number: number
           pieces: number
@@ -548,6 +550,8 @@ export type Database = {
           created_at?: string
           customer_name: string
           customer_whatsapp: string
+          discount?: number
+          discount_percent?: number
           id?: string
           number: number
           pieces: number
@@ -560,6 +564,8 @@ export type Database = {
           created_at?: string
           customer_name?: string
           customer_whatsapp?: string
+          discount?: number
+          discount_percent?: number
           id?: string
           number?: number
           pieces?: number
@@ -669,6 +675,7 @@ export type Database = {
           logo_path: string | null
           min_type: string
           min_value: number | null
+          order_discounts: Json
           orders_whatsapp: string | null
           primary_color: string
           published: boolean
@@ -688,6 +695,7 @@ export type Database = {
           logo_path?: string | null
           min_type?: string
           min_value?: number | null
+          order_discounts?: Json
           orders_whatsapp?: string | null
           primary_color?: string
           published?: boolean
@@ -707,6 +715,7 @@ export type Database = {
           logo_path?: string | null
           min_type?: string
           min_value?: number | null
+          order_discounts?: Json
           orders_whatsapp?: string | null
           primary_color?: string
           published?: boolean
@@ -2010,6 +2019,7 @@ export type Database = {
       registrar_pedido_catalogo: {
         Args: {
           p_contato: string
+          p_desconto_percent?: number
           p_itens: Json
           p_nome: string
           p_whatsapp: string
