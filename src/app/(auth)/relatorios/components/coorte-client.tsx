@@ -3,9 +3,10 @@
 // B34-01: aba Coorte — tabelas de retenção e valor médio por coorte, com Excel.
 
 import { useEffect, useState, useTransition } from "react"
-import { Download, Loader2 } from "lucide-react"
+import { ChevronDown, Download, Loader2 } from "lucide-react"
+import { Bar, BarChart, LabelList, XAxis, YAxis } from "recharts"
 import { cn } from "@/lib/utils"
-import { MESES_DA_COORTE, rotuloDoMesK, type Coorte, type ResultadoCoorte } from "@/lib/relatorios/coorte"
+import { MESES_DA_COORTE, rotuloDoMesK, type Coorte, type ResultadoCoorte, type ResumoCoortes } from "@/lib/relatorios/coorte"
 import { urlDeExportacaoCoorte, type TabelaCoorte } from "@/lib/relatorios/exportar-coorte"
 import { buscarCoorte } from "../actions"
 
@@ -76,6 +77,72 @@ export function TabelasDeCoorte({ coortes, atendenteId }: { coortes: Coorte[]; a
   )
 }
 
+const ENTENDA: Array<[string, string]> = [
+  ["O que são coortes?", "Coortes são grupos de clientes que fizeram a primeira compra no mesmo mês. A análise mostra como cada grupo se comporta ao longo do tempo."],
+  ["Retenção de clientes", "A retenção mostra a porcentagem de clientes que continuam comprando em cada mês depois da primeira compra. O Mês 0 é sempre 100%, porque é o mês em que todos fizeram a primeira compra."],
+  ["Como ler os dados", "As linhas são os meses em que os clientes fizeram a primeira compra. As colunas mostram o comportamento desses clientes nos meses seguintes. Cores mais fortes indicam melhor retenção ou maior valor médio."],
+  ["Valor médio de venda", "Mostra o valor médio das vendas feitas pelos clientes de cada coorte em cada mês. Ajuda a ver se clientes mais antigos gastam mais que os novos, ou se há padrões sazonais."],
+]
+
+export function ResumoDasCoortes({ resumo }: { resumo: ResumoCoortes }) {
+  const dados = resumo.recompraPorMes.map((m) => ({ rotulo: `Mês ${m.mes}`, valor: m.percentual, texto: m.percentual === null ? "" : `${m.percentual.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` }))
+  const temBarra = dados.some((d) => d.valor !== null)
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <section className="rounded-lg border p-4">
+        <h2 className="text-sm font-semibold">Retenção média geral</h2>
+        <p className="text-xs text-muted-foreground mt-0.5 mb-3">Média ponderada pelo tamanho das coortes, dos meses 1 a 11 que já chegaram</p>
+        <p className="text-4xl font-semibold" data-testid="retencao-media-geral">
+          {resumo.retencaoMediaGeral === null ? "—" : `${resumo.retencaoMediaGeral.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`}
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">Taxa média de clientes que voltam a comprar, considerando todas as coortes</p>
+      </section>
+      <section className="rounded-lg border p-4">
+        <h2 className="text-sm font-semibold">Recompra geral por mês</h2>
+        <p className="text-xs text-muted-foreground mt-0.5 mb-3">% de clientes que fizeram ao menos uma nova compra em cada mês depois da primeira</p>
+        {temBarra ? (
+          <BarChart data={dados} width={520} height={180} margin={{ top: 16, right: 8, bottom: 0, left: 0 }} responsive style={{ width: "100%", maxWidth: "100%" }}>
+            <XAxis dataKey="rotulo" tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10 }} interval={0} />
+            <YAxis tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10 }} tickFormatter={(v: number) => `${v}%`} width={36} domain={[0, 100]} />
+            <Bar dataKey="valor" fill="#4caf7d" fillOpacity={0.85} radius={3} isAnimationActive={false}>
+              <LabelList dataKey="texto" position="top" fill="var(--foreground)" fontSize={10} />
+            </Bar>
+          </BarChart>
+        ) : (
+          <p className="text-sm text-muted-foreground">Ainda não há meses para comparar.</p>
+        )}
+        <ul className="sr-only" data-testid="recompra-por-mes">
+          {resumo.recompraPorMes.map((m) => (
+            <li key={m.mes}>Mês {m.mes}: {m.percentual === null ? "—" : `${m.percentual}%`}</li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  )
+}
+
+export function EntendaCoortes() {
+  const [aberto, setAberto] = useState(false)
+  return (
+    <section className="rounded-lg border p-4">
+      <button type="button" onClick={() => setAberto((a) => !a)} aria-expanded={aberto} className="flex w-full items-center justify-between text-left">
+        <h2 className="text-sm font-semibold">Entenda a análise de coortes</h2>
+        <ChevronDown className={cn("size-4 transition-transform", aberto && "rotate-180")} />
+      </button>
+      {aberto && (
+        <div className="grid gap-3 mt-3 sm:grid-cols-2">
+          {ENTENDA.map(([titulo, texto]) => (
+            <div key={titulo} className="rounded-md bg-muted/40 p-3">
+              <p className="text-sm font-medium mb-1">{titulo}</p>
+              <p className="text-xs text-muted-foreground">{texto}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
 export function CoorteClient({ atendenteId, inicial = null }: { atendenteId: string | null; inicial?: ResultadoCoorte | null }) {
   const [resultado, setResultado] = useState<ResultadoCoorte | null>(inicial)
   const [erro, setErro] = useState(false)
@@ -106,7 +173,10 @@ export function CoorteClient({ atendenteId, inicial = null }: { atendenteId: str
         <h2 className="text-base font-semibold">Análise de coortes</h2>
         {isPending && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
       </div>
+      {/* B34-02: resumo acima das tabelas e o Entenda abaixo. */}
+      <ResumoDasCoortes resumo={resultado.resumo} />
       <TabelasDeCoorte coortes={resultado.coortes} atendenteId={atendenteId} />
+      <EntendaCoortes />
     </div>
   )
 }

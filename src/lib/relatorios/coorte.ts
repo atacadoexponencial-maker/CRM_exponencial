@@ -29,6 +29,8 @@ export type Coorte = {
 export type ResultadoCoorte = {
   referencia: string
   coortes: Coorte[]
+  /** B34-02: retenção média geral e recompra por mês. */
+  resumo: ResumoCoortes
 }
 
 const indiceDoMes = (yyyymm: string) => {
@@ -105,10 +107,38 @@ export function calcularCoortes(vendas: VendaRow[], hoje: string, quantidade = M
     const mesYm = mesDoIndice(c)
     coortes.push({ mes: mesYm, rotulo: rotuloDoMes(mesYm), clientes, idade, clientesPorMes, retencao, valorMedio, vendasPorMes })
   }
-  return { referencia: hoje, coortes }
+  return { referencia: hoje, coortes, resumo: resumoDasCoortes(coortes) }
 }
 
 /** Mês calendário do Mês k de uma coorte, "Fev/2026". */
 export function rotuloDoMesK(coorte: Coorte, k: number): string {
   return rotuloDoMes(mesDoIndice(indiceDoMes(coorte.mes) + k))
+}
+
+// ---------- resumo das coortes (B34-02) ----------
+
+export type ResumoCoortes = {
+  /** Retenção média ponderada dos meses 1 a 11 existentes; nula sem mês para comparar. */
+  retencaoMediaGeral: number | null
+  /** Mês 1..11: % de clientes com venda no mês k entre os das coortes que já chegaram ao mês k; nulo quando nenhuma chegou. */
+  recompraPorMes: Array<{ mes: number; percentual: number | null; clientes: number; base: number }>
+}
+
+export function resumoDasCoortes(coortes: Coorte[]): ResumoCoortes {
+  let numerador = 0, denominador = 0
+  const recompraPorMes: ResumoCoortes["recompraPorMes"] = []
+  for (let k = 1; k < MESES_DA_COORTE; k++) {
+    let clientes = 0, base = 0
+    for (const c of coortes) {
+      if (c.clientes === 0 || k > c.idade) continue
+      const r = c.retencao[k]
+      if (r === null) continue
+      numerador += c.clientes * r
+      denominador += c.clientes
+      clientes += c.clientesPorMes[k] ?? 0
+      base += c.clientes
+    }
+    recompraPorMes.push({ mes: k, percentual: base > 0 ? arred1((clientes / base) * 100) : null, clientes, base })
+  }
+  return { retencaoMediaGeral: denominador > 0 ? arred1(numerador / denominador) : null, recompraPorMes }
 }
