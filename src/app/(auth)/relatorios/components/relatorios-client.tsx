@@ -10,11 +10,14 @@ import { buscarVisaoGeral, type VisaoGeral } from "../actions"
 import { CartoesResumo } from "./cartoes-resumo"
 import { GraficoFormaPagamento, GraficoProjecao, GraficoVendasDiarias } from "./graficos-visao-geral"
 import { TabelaVendas } from "./tabela-vendas"
+import { RfvClient } from "./rfv-client"
 import { urlDeExportacao, urlDeExportacaoPorUf } from "@/lib/relatorios/exportar-vendas"
 import { VariacaoPorUfTabela } from "./variacao-por-uf"
 import { Grafico25Meses } from "./grafico-25-meses"
 
-const ABAS_FUTURAS = ["RFV", "Coorte", "Funil de clientes", "Carteiras"]
+const ABAS_FUTURAS = ["Coorte", "Funil de clientes", "Carteiras"]
+
+type Aba = "visao-geral" | "rfv"
 
 const selectClass =
   "h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -34,6 +37,7 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
   const [visao, setVisao] = useState<VisaoGeral>(visaoInicial)
   const [periodo, setPeriodo] = useState<PeriodoRelatorio>(periodoPadrao(hoje))
   const [atendenteId, setAtendenteId] = useState("")
+  const [aba, setAba] = useState<Aba>("visao-geral")
   const [erro, setErro] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -80,9 +84,18 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
 
       {/* Abas: só a Visão Geral existe; as outras avisam "em breve" (SUP-B32-06 invalidada). */}
       <div role="tablist" aria-label="Relatórios" className="flex flex-wrap gap-1 border-b mb-6">
-        <button type="button" role="tab" aria-selected="true" className="px-3 py-2 text-sm font-medium border-b-2 border-primary -mb-px">
-          Visão Geral
-        </button>
+        {([["visao-geral", "Visão Geral"], ["rfv", "RFV"]] as Array<[Aba, string]>).map(([id, nome]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={aba === id}
+            onClick={() => setAba(id)}
+            className={cn("px-3 py-2 text-sm -mb-px", aba === id ? "font-medium border-b-2 border-primary" : "text-muted-foreground hover:text-foreground")}
+          >
+            {nome}
+          </button>
+        ))}
         {ABAS_FUTURAS.map((aba) => (
           <button
             key={aba}
@@ -98,6 +111,23 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
         ))}
       </div>
 
+      {aba === "rfv" && (
+        <>
+          {podeFiltrarAtendente && (
+            <div className="flex flex-wrap items-center gap-2 mb-6">
+              <select aria-label="Atendente" className={selectClass} value={atendenteId} onChange={(e) => setAtendenteId(e.target.value)}>
+                <option value="">Todos os atendentes</option>
+                {atendentes.map((a) => (
+                  <option key={a.id} value={a.id}>{a.nome}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <RfvClient atendenteId={atendenteId || null} />
+        </>
+      )}
+
+      {aba === "visao-geral" && (<>
       {/* Cabeçalho do período + atalhos */}
       <div className="rounded-lg border p-4 mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -167,6 +197,7 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
         <VariacaoPorUfTabela variacao={visao.porUf} urlExportar={urlDeExportacaoPorUf(periodo, atendenteId || null)} />
         <Grafico25Meses meses={visao.mesesHistorico} />
       </div>
+      </>)}
     </>
   )
 }

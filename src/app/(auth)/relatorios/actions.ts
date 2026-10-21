@@ -19,6 +19,7 @@ import {
   type VendaRow,
   type VisaoGeralCartoes,
 } from "@/lib/relatorios/visao-geral"
+import { calcularRfv, type ResultadoRfv } from "@/lib/relatorios/rfv"
 
 export type { FiltroRelatorio, PeriodoRelatorio, VisaoGeralCartoes } from "@/lib/relatorios/visao-geral"
 
@@ -46,7 +47,7 @@ async function carregarVendas(atendenteId: string | null) {
   const { data } = await supabase
     .from("contact_purchases")
     .select(
-      "id, contact_id, data, valor, desconto, pecas, atendente_id, forma_pagamento, origem, created_at, contato:contacts!inner(name, phone_number, cidade, uf, excluido_em), vendedor:profiles!contact_purchases_atendente_id_fkey(name), pedido:catalog_orders!contact_purchases_catalog_order_id_fkey(number)"
+      "id, contact_id, data, valor, desconto, pecas, atendente_id, forma_pagamento, origem, created_at, contato:contacts!inner(name, phone_number, cidade, uf, excluido_em, atendente:profiles!contacts_atendente_id_fkey(name)), vendedor:profiles!contact_purchases_atendente_id_fkey(name), pedido:catalog_orders!contact_purchases_catalog_order_id_fkey(number)"
     )
     .eq("workspace_id", perfil.workspace_id)
     .is("contato.excluido_em", null)
@@ -69,6 +70,7 @@ async function carregarVendas(atendenteId: string | null) {
     contato_telefone: um(p.contato)?.phone_number ?? null,
     contato_cidade: um(p.contato)?.cidade ?? null,
     contato_uf: um(p.contato)?.uf ?? null,
+    contato_atendente_nome: um(um(p.contato)?.atendente ?? null)?.name ?? null,
   })) as VendaRow[]
 
   if (atendenteId) {
@@ -125,3 +127,28 @@ export async function buscarVendasDoPeriodo(filtro: FiltroRelatorio): Promise<Ve
   if (!dados) return null
   return vendasDoPeriodo(dados.vendas, intervaloDoPeriodo(filtro.periodo, hojeNoFuso()), ROTULOS_DA_TABELA)
 }
+
+/** B33-01: RFV de hoje. Ativos = card da Recompra em etapa ativa; lembrete recente = criado nos últimos 15 dias. */
+export async function buscarRfv(filtro: { atendenteId?: string | null }): Promise<ResultadoRfv | null> {
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return null
+  const atendenteId = perfil.role === "atendente" ? user.id : (filtro.atendenteId ?? null)
+  const dados = await carregarVendas(atendenteId)
+  if (!dados) return null
+
+  const ha15Dias = new Date(Date.now() - 15 * 86_400_000).toISOString()
+  const [{ data: cards }, { data: lembretes }] = await Promise.all([
+    supabase.from("pipeline_cards").select("contact_id").eq("workspace_id", perfil.workspace_id).eq("funil", "recompra").in("etapa", ETAPAS_RECOMPRA_ATIVAS),
+    supabase.from("reminders").select("contact_id").eq("workspace_id", perfil.workspace_id).gte("created_at", ha15Dias),
+  ])
+  const atendenteDoContato = new Map<string, string | null>()
+  for (const v of dados.vendas) if (!atendenteDoContato.has(v.contact_id)) atendenteDoContato.set(v.contact_id, v.contato_atendente_nome ?? null)
+
+  return calcularRfv(dados.vendas, hojeNoFuso(), {
+    ativos: new Set((cards ?? []).map((c) => c.contact_id).filter(Boolean) as string[]),
+    comLembreteRecente: new Set((lembretes ?? []).map((l) => l.contact_id)),
+    atendenteDoContato,
+  })
+}
+
+const ETAPAS_RECOMPRA_ATIVAS = ["onboarding", "reposicao", "ativos"]

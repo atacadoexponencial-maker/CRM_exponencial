@@ -35,6 +35,8 @@ export type VendaRow = {
   contato_telefone?: string | null
   contato_cidade?: string | null
   contato_uf?: string | null
+  /** B33-01: atendente do contato (não da venda). */
+  contato_atendente_nome?: string | null
 }
 
 /** Intervalo fechado de datas, yyyy-mm-dd. */

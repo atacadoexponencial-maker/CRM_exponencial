@@ -35,3 +35,58 @@ Na empresa de teste, abrir Relatórios → RFV mostra a data de hoje, a base com
 ## Perguntas em aberto
 
 Nenhuma.
+
+## Cenários
+
+### Happy Path
+1. O usuário clica na aba "RFV". A tela guarda a aba ativa; a Visão Geral some e o componente do RFV chama `buscarRfv({ atendenteId })`.
+2. A ação carrega as vendas da empresa (mesma função da Visão Geral, agora com o atendente do contato), os contatos com card da Recompra em etapa ativa e os contatos com lembrete criado nos últimos 15 dias, e chama `calcularRfv` com hoje como referência.
+3. A aba mostra o cabeçalho ("Perfis em 21/10/2026 · 312 clientes com compra"), a matriz 5 × 5 colorida e a tabela de indicadores por perfil.
+4. Trocar o atendente no filtro da tela recarrega o RFV só com os clientes dele.
+
+### Edge Cases
+- Base vazia: cabeçalho com "0 clientes com compra", matriz toda zerada, indicadores com "—".
+- Empates nos quintis recebem a mesma nota, a maior; valor zero (sem venda em 12 meses) é nota 1.
+- Clique numa célula marca a célula (anel) e desmarca ao clicar de novo; o filtro da lista chega na B33-02.
+- O Atendente: a ação ignora o `atendenteId` pedido e usa o dele; a RLS já limita vendas, cards e lembretes aos contatos dele.
+
+### Cenário de Erro
+- Ação devolve nulo: "Não foi possível carregar o RFV. Tente novamente."
+
+## Prova
+
+| Critério | Prova | Onde | O que confere |
+|---|---|---|---|
+| CA-B33-02 | automática | `src/test/relatorios-rfv.test.tsx` | Notas R, F, V, FV e perfis dos cinco clientes do exemplo |
+| CA-B33-03 | automática | `src/test/relatorios-rfv.integration.test.ts` | Contato sem venda e contato na lixeira ficam fora da base; venda única há 14 meses dá R 1, F 1, V 1, Perdido |
+| CA-B33-04 | automática | `src/test/relatorios-rfv.test.tsx` | Dez clientes com 2 vendas recebem nota 5 |
+| CA-B33-05 | automática | `src/test/relatorios-rfv.integration.test.ts` | Logada como Atendente, `buscarRfv` devolve só os clientes dela, com quintis entre eles |
+| CA-B33-06 | automática | `src/test/relatorios-rfv.test.tsx` | Célula R 5 / FV 5 com 3, "Campeão" e "67% ativos"; 25 células no total |
+| CA-B33-08 | automática | `src/test/relatorios-rfv.test.tsx` | Linha Campeão: 2, "1 (50%)", 15 dias, 3,0 e R$ 750,00 |
+| CA-B33-09 | automática | `src/test/relatorios-rfv.test.tsx` | Linha Hibernando com 0 e "—" |
+
+## Banco de Dados
+
+Não se aplica: lê `contact_purchases`, `contacts`, `pipeline_cards` e `reminders`.
+
+## Arquivos
+
+- **Criar:** `src/lib/relatorios/rfv.ts` — perfis, matriz, notas (faixas de R, quintis de F e V), clientes, matriz e indicadores. Puro.
+- **Modificar:** `src/lib/relatorios/visao-geral.ts` — `VendaRow` ganha `contato_atendente_nome`.
+- **Modificar:** `src/app/(auth)/relatorios/actions.ts` — `carregarVendas` traz o atendente do contato; `buscarRfv` (ativos, lembretes recentes, cálculo).
+- **Criar:** `src/app/(auth)/relatorios/components/rfv-client.tsx` — cabeçalho, matriz e indicadores.
+- **Modificar:** `src/app/(auth)/relatorios/components/relatorios-client.tsx` — aba RFV ativa; a Visão Geral e o RFV alternam pela aba; o filtro de atendente vale para as duas.
+- **Modificar:** `src/test/relatorios-tela.test.tsx` — o CA-B32-24 passa a esperar três abas futuras (RFV deixou de ser "em breve").
+- **Criar:** `src/test/relatorios-rfv.test.tsx` — testes puros e de tela da tabela Prova.
+- **Criar:** `src/test/relatorios-rfv.integration.test.ts` — CA-B33-03 e CA-B33-05.
+
+## Dependências Externas
+
+Nenhuma.
+
+## Checklist
+
+- [x] Lib pura do RFV com os onze perfis e a matriz do Tailor
+- [x] Ação `buscarRfv` com ativos, lembretes recentes e a regra do atendente
+- [x] Aba RFV com cabeçalho, matriz clicável e indicadores
+- [x] Testes passando
