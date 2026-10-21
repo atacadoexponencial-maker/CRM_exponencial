@@ -624,7 +624,16 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
                         <td className="px-4 py-2.5 text-right text-muted-foreground">{compra.pecas ?? "—"}</td>
                         <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{compra.formaPagamento ? ROTULO_FORMA_PAGAMENTO[compra.formaPagamento] : "—"}</td>
                         <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{compra.atendente ?? "—"}</td>
-                        <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{ROTULO_ORIGEM_COMPRA[compra.origem ?? "manual"]}</td>
+                        <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">
+                          {/* B30-02: o número do pedido abre o pedido do catálogo. */}
+                          {compra.pedidoId && compra.pedidoNumero ? (
+                            <Link href={`/catalogo/pedidos?pedido=${compra.pedidoId}`} className="hover:underline text-foreground">
+                              {ROTULO_ORIGEM_COMPRA.catalogo} · #{compra.pedidoNumero}
+                            </Link>
+                          ) : (
+                            ROTULO_ORIGEM_COMPRA[compra.origem ?? "manual"]
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

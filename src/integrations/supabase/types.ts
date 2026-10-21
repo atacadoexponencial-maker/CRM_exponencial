@@ -767,6 +767,7 @@ export type Database = {
       contact_purchases: {
         Row: {
           atendente_id: string | null
+          catalog_order_id: string | null
           codigo_externo: string | null
           contact_id: string
           created_at: string
@@ -781,6 +782,7 @@ export type Database = {
         }
         Insert: {
           atendente_id?: string | null
+          catalog_order_id?: string | null
           codigo_externo?: string | null
           contact_id: string
           created_at?: string
@@ -795,6 +797,7 @@ export type Database = {
         }
         Update: {
           atendente_id?: string | null
+          catalog_order_id?: string | null
           codigo_externo?: string | null
           contact_id?: string
           created_at?: string
@@ -813,6 +816,13 @@ export type Database = {
             columns: ["atendente_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_purchases_catalog_order_id_fkey"
+            columns: ["catalog_order_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_orders"
             referencedColumns: ["id"]
           },
           {
@@ -1972,6 +1982,7 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: boolean
       }
+      gerar_compras_de_pedidos_fechados: { Args: never; Returns: number }
       get_auth_user_workspace_id: { Args: never; Returns: string }
       importar_produto_catalogo: {
         Args: { p_dados: Json; p_estoque: Json; p_produto: string }

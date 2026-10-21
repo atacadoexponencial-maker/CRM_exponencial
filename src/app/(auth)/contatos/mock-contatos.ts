@@ -46,6 +46,9 @@ export interface Compra {
   /** Nome do atendente responsável pela venda. */
   atendente?: string | null
   origem?: import("@/lib/compras").OrigemCompra
+  /** B30-02: pedido do catálogo que gerou a compra (só quando origem = "catalogo"). */
+  pedidoId?: string | null
+  pedidoNumero?: number | null
 }
 
 export interface CardPipelineMock {

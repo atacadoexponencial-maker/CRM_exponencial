@@ -204,7 +204,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
     supabase
       .from("contact_purchases")
       // B30-01: campos dos relatórios e o nome de quem vendeu.
-      .select("id, data, valor, created_at, pecas, desconto, forma_pagamento, origem, vendedor:profiles!contact_purchases_atendente_id_fkey(name)")
+      .select("id, data, valor, created_at, pecas, desconto, forma_pagamento, origem, catalog_order_id, vendedor:profiles!contact_purchases_atendente_id_fkey(name), pedido:catalog_orders!contact_purchases_catalog_order_id_fkey(number)")
       .eq("contact_id", id)
       .order("data", { ascending: false }),
     supabase
@@ -320,8 +320,9 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
       id: `purchase-${p.id}`,
       created_at: p.created_at,
       tipo: "compra_registrada",
-      descricao: `Compra registrada — ${valor}`,
-      responsavel: "",
+      // B30-02: compra do catálogo leva o número do pedido; aparece uma vez só.
+      descricao: p.pedido?.number ? `Compra registrada — ${valor} — Pedido #${p.pedido.number}` : `Compra registrada — ${valor}`,
+      responsavel: p.vendedor?.name ?? "",
     })
   }
 
@@ -373,6 +374,8 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
       formaPagamento: (p.forma_pagamento ?? null) as FormaPagamento | null,
       atendente: p.vendedor?.name ?? null,
       origem: (p.origem ?? "manual") as OrigemCompra,
+      pedidoId: p.catalog_order_id ?? null,
+      pedidoNumero: p.pedido?.number ?? null,
     })),
     atendenteId: c.atendente_id ?? null,
     timeline,
