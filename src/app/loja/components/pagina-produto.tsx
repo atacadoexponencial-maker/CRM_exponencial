@@ -8,8 +8,9 @@ import { ArrowLeft, Check, ImageOff, Minus, Plus, Share2, X } from "lucide-react
 import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { chaveCombinacao, combinacoes } from "@/lib/catalogo/combinacoes"
 import { blocosDaGrade, limitarQuantidade, totaisDaGrade } from "@/lib/catalogo/grade"
-import { avisoMinimoProduto, precoPorQuantidade, resumoDasRegras, type FaixaPreco } from "@/lib/catalogo/regras-de-venda"
+import { avisoMinimoProduto, detalheDaGrade, pecasDaGrade, precoDaGrade, precoPorQuantidade, resumoDasRegras, unitarioDaGrade, type FaixaPreco, type GradeFechada } from "@/lib/catalogo/regras-de-venda"
 import { GradeQuantidades } from "./grade-quantidades"
+import { ContadorDeGrades } from "./contador-de-grades"
 import { coresDaVitrine, type TemaLoja } from "./tema"
 import { familiaDaFonte } from "./fontes"
 import { CabecalhoLoja } from "./vitrine"
@@ -25,6 +26,8 @@ export interface ProdutoDetalhe {
   /** B31-01: faixas de preço por quantidade e mínimo de peças do produto. */
   faixas: FaixaPreco[]
   minimo: number | null
+  /** B31-03: grade fechada; `null` = venda avulsa. */
+  grade: GradeFechada | null
   fotos: string[]
   tipos: { id: string; nome: string; opcoes: string[] }[]
   /** Estoque por combinação (chave de `chaveCombinacao`). */
@@ -53,6 +56,9 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
   const semVariacao = tipos.length === 0
   const blocos = blocosDaGrade(tipos)
   const [quantidades, setQuantidades] = useState<Record<string, number>>({})
+  // B31-03: grade fechada: pacotes escolhidos por bloco (chave = nome do bloco, "" com um tipo só).
+  const [pacotes, setPacotes] = useState<Record<string, number>>({})
+  const grade = produto.grade
   const [quantidadeUnica, setQuantidadeUnica] = useState(1)
   const [fotoAtiva, setFotoAtiva] = useState(0)
   const [ampliada, setAmpliada] = useState(false)
@@ -81,15 +87,35 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
   const disponivelDe = (combinacao: string) => Math.max(0, estoqueDe(combinacao) - noCarrinho(combinacao))
   const esgotado = combinacoes(tipos).every((c) => estoqueDe(chaveCombinacao(c)) === 0)
   const livreUnica = disponivelDe("")
-  const escolhidas: Record<string, number> = semVariacao ? (livreUnica > 0 ? { "": Math.min(quantidadeUnica, livreUnica) } : {}) : quantidades
+  // Com grade fechada, as quantidades vêm dos pacotes de cada bloco.
+  const escolhidasDaGrade: Record<string, number> = {}
+  if (grade) {
+    for (const bloco of blocos) {
+      const n = pacotes[bloco.nome] ?? 0
+      for (const linha of bloco.linhas) {
+        const q = n * (grade.quantidades[linha.rotulo] ?? 0)
+        if (q > 0) escolhidasDaGrade[linha.combinacao] = q
+      }
+    }
+  }
+  const escolhidas: Record<string, number> = grade ? escolhidasDaGrade : semVariacao ? (livreUnica > 0 ? { "": Math.min(quantidadeUnica, livreUnica) } : {}) : quantidades
   // B31-01: a faixa e o mínimo contam as peças escolhidas mais as que já estão no carrinho.
+  // B31-03: com preço próprio da grade, as faixas não valem.
   const { pecas } = totaisDaGrade(escolhidas, produto.preco)
-  const unitario = precoPorQuantidade(produto.preco, produto.faixas, pecas + noCarrinhoDoProduto)
-  const valor = Math.round(pecas * unitario * 100) / 100
-  const regras = resumoDasRegras(produto.faixas, produto.minimo)
+  const unitarioBase = precoPorQuantidade(produto.preco, grade?.preco ? [] : produto.faixas, pecas + noCarrinhoDoProduto)
+  const unitario = grade ? unitarioDaGrade(grade, unitarioBase) : unitarioBase
+  const totalPacotes = grade ? Object.values(pacotes).reduce((s, n) => s + n, 0) : 0
+  const valor = grade ? Math.round(totalPacotes * precoDaGrade(grade, unitarioBase) * 100) / 100 : Math.round(pecas * unitario * 100) / 100
+  const regras = resumoDasRegras(grade?.preco ? [] : produto.faixas, produto.minimo)
 
   function mudar(combinacao: string, quantidade: number) {
     setQuantidades((atual) => ({ ...atual, [combinacao]: quantidade }))
+    setAdicionadas(null)
+    setAvisoRegra(null)
+  }
+
+  function mudarPacotes(bloco: string, n: number) {
+    setPacotes((atual) => ({ ...atual, [bloco]: n }))
     setAdicionadas(null)
     setAvisoRegra(null)
   }
@@ -108,6 +134,7 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
     onAdicionar(itens)
     setAdicionadas(pecas)
     setQuantidades({})
+    setPacotes({})
     setQuantidadeUnica(1)
   }
 
@@ -179,6 +206,12 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
                 <span className="text-xl font-semibold" style={{ color: cores.principal }}>{formatarPreco(produto.preco)}</span>
                 {produto.precoDe && <span className="text-sm line-through" style={{ color: cores.suave }}>{formatarPreco(produto.precoDe)}</span>}
               </p>
+              {grade && (
+                <p className="text-sm" style={{ color: cores.suave }}>
+                  {formatarPreco(precoDaGrade(grade, unitarioBase))} a grade de {pecasDaGrade(grade)} peças
+                  {grade.preco !== null && ` (${formatarPreco(unitario)} a peça)`} · {detalheDaGrade(grade)}
+                </p>
+              )}
               {regras && <p className="text-sm" style={{ color: cores.suave }}>{regras}</p>}
             </div>
 
@@ -214,6 +247,8 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
                       {livreUnica > 0 ? `${livreUnica} ${livreUnica === 1 ? "disponível" : "disponíveis"}` : "Você já tem todas as peças disponíveis no carrinho"}
                     </span>
                   </div>
+                ) : grade ? (
+                  <ContadorDeGrades cores={cores} grade={grade} blocos={blocos} pacotes={pacotes} disponivel={disponivelDe} onMudar={mudarPacotes} />
                 ) : (
                   <GradeQuantidades cores={cores} blocos={blocos} quantidades={quantidades} estoque={estoqueDe} disponivel={disponivelDe} onMudar={mudar} />
                 )}
@@ -234,7 +269,11 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
                     style={{ background: cores.principal, color: cores.sobrePrincipal }}
                     aria-live="polite"
                   >
-                    {pecas === 0 ? "Escolha as quantidades" : `Adicionar ${pecas} ${pecas === 1 ? "peça" : "peças"} · ${formatarPreco(valor)}`}
+                    {pecas === 0
+                      ? grade ? "Escolha as grades" : "Escolha as quantidades"
+                      : grade
+                        ? `Adicionar ${totalPacotes} ${totalPacotes === 1 ? "grade" : "grades"} (${pecas} peças) · ${formatarPreco(valor)}`
+                        : `Adicionar ${pecas} ${pecas === 1 ? "peça" : "peças"} · ${formatarPreco(valor)}`}
                   </button>
                 </div>
               </div>

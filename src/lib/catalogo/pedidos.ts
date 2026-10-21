@@ -5,8 +5,8 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import { buscarEGuardarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
 import { chaveCombinacao, combinacoes, type TipoVariacao } from "./combinacoes"
 import { carregarLojaPublica } from "./loja-publica"
-import { aplicarDesconto, descontoAlcancado, faixaAlcancada, faixasDoBanco, type FaixaPreco } from "./regras-de-venda"
-import { faltaParaMinimo, linkWhatsapp, montarMensagemPedido, normalizarWhatsapp, totaisDoPedido, type ItemPedido } from "@/app/loja/components/pedido"
+import { aplicarDesconto, blocoDaCombinacao, descontoAlcancado, detalheDaGrade, faixaAlcancada, faixasDoBanco, gradeDoBanco, opcaoDaCombinacao, pacotesDoBloco, unitarioDaGrade, type FaixaPreco } from "./regras-de-venda"
+import { faltaParaMinimo, linkWhatsapp, montarMensagemPedido, normalizarWhatsapp, totaisDoPedido, type GradeNoPedido, type ItemPedido } from "@/app/loja/components/pedido"
 
 /** Mesmo WhatsApp, mesma loja: um pedido a cada 2 minutos. */
 export const INTERVALO_ENTRE_PEDIDOS_MS = 2 * 60 * 1000
@@ -93,7 +93,7 @@ export async function registrarPedido(endereco: string, cliente: { nome: string;
   if (ids.some((id) => !/^[0-9a-f-]{36}$/i.test(id))) return { ok: false, erro: "Um produto do carrinho não existe mais. Tire-o e tente de novo." }
   const { data: produtos } = await svc
     .from("catalog_products")
-    .select("id, name, price, sku, photos, variant_types, price_tiers, min_quantity, catalog_stock(combination, quantity)")
+    .select("id, name, price, sku, photos, variant_types, price_tiers, min_quantity, pack_quantities, pack_price, catalog_stock(combination, quantity)")
     .eq("workspace_id", loja.workspaceId)
     .eq("visible", true)
     .in("id", ids)
@@ -110,9 +110,12 @@ export async function registrarPedido(endereco: string, cliente: { nome: string;
   // B31-01: a faixa de preço e o mínimo contam as peças do produto inteiro, somando as combinações.
   const pecasDoProduto = new Map<string, number>()
   for (const i of agrupados.values()) pecasDoProduto.set(i.produtoId, (pecasDoProduto.get(i.produtoId) ?? 0) + i.quantidade)
-  const unitarioDe = (p: { price: number | string; price_tiers: unknown }, produtoId: string) => {
-    const faixa = faixaAlcancada(faixasDoBanco(p.price_tiers), pecasDoProduto.get(produtoId) ?? 0)
-    return { preco: faixa?.preco ?? Number(p.price), faixaAplicada: faixa?.min ?? null }
+  // B31-03: com preço próprio da grade, as faixas não valem e o unitário é o da grade.
+  const unitarioDe = (p: { price: number | string; price_tiers: unknown; pack_quantities: unknown; pack_price: unknown; variant_types: unknown }, produtoId: string) => {
+    const grade = gradeDoBanco(p.pack_quantities, p.pack_price, p.variant_types)
+    const faixa = faixaAlcancada(grade?.preco ? [] : faixasDoBanco(p.price_tiers), pecasDoProduto.get(produtoId) ?? 0)
+    const base = faixa?.preco ?? Number(p.price)
+    return { preco: grade ? unitarioDaGrade(grade, base) : base, faixaAplicada: faixa?.min ?? null, grade }
   }
 
   const itens: (ItemPedido & { product_id: string; photo_path: string | null })[] = []
@@ -133,6 +136,7 @@ export async function registrarPedido(endereco: string, cliente: { nome: string;
       quantidade: i.quantidade,
       precoUnitario: unitario.preco,
       faixaAplicada: unitario.faixaAplicada,
+      naGrade: !!unitario.grade,
       photo_path: ((p.photos as string[]) ?? [])[0] ?? null,
     })
   }
@@ -159,6 +163,35 @@ export async function registrarPedido(endereco: string, cliente: { nome: string;
   if (precosNovos.length) {
     const nomes = precosNovos.map((n) => porId.get(n.produtoId)!.name)
     return { ok: false, erro: `O preço mudou: ${nomes.join(", ")}. Confira o carrinho e envie de novo.`, precosNovos }
+  }
+
+  // B31-03: produto de grade fechada só sai em pacotes inteiros, por bloco (cor).
+  const grades: GradeNoPedido[] = []
+  for (const produtoId of pecasDoProduto.keys()) {
+    const p = porId.get(produtoId)!
+    const grade = gradeDoBanco(p.pack_quantities, p.pack_price, p.variant_types)
+    if (!grade) continue
+    const porBloco = new Map<string, Record<string, number>>()
+    for (const i of agrupados.values()) {
+      if (i.produtoId !== produtoId) continue
+      const bloco = blocoDaCombinacao(i.combinacao)
+      const q = porBloco.get(bloco) ?? {}
+      q[opcaoDaCombinacao(i.combinacao)] = (q[opcaoDaCombinacao(i.combinacao)] ?? 0) + i.quantidade
+      porBloco.set(bloco, q)
+    }
+    for (const [bloco, quantidades] of porBloco) {
+      const pacotes = pacotesDoBloco(grade, quantidades)
+      if (!pacotes) return { ok: false, erro: `${p.name}: a grade${bloco ? ` de ${bloco}` : ""} está quebrada. Cada grade tem ${detalheDaGrade(grade)}. Refaça a partir do produto.` }
+      const pecas = Object.values(quantidades).reduce((s, q) => s + q, 0)
+      grades.push({
+        nome: p.name,
+        bloco,
+        pacotes,
+        pecas,
+        precoUnitario: unitarioDe(p, produtoId).preco,
+        detalhe: Object.keys(grade.quantidades).filter((o) => (quantidades[o] ?? 0) > 0).map((o) => `${o} ${quantidades[o]}`).join(" · "),
+      })
+    }
   }
 
   // B31-01: mínimo de peças do produto, somando as combinações, além do mínimo da loja.
@@ -192,6 +225,6 @@ export async function registrarPedido(endereco: string, cliente: { nome: string;
   // B29-02: a foto vem pelo canal direto, depois de o pedido estar gravado. Nunca falha.
   await buscarEGuardarFotoDoContato({ svc, workspaceId: loja.workspaceId, contactId: contatoId, telefone: whatsapp })
 
-  const mensagem = montarMensagemPedido({ numero: registrado.numero, nomeCliente: nome, itens, desconto, mensagemFechamento: loja.mensagemFechamento })
+  const mensagem = montarMensagemPedido({ numero: registrado.numero, nomeCliente: nome, itens, desconto, grades, mensagemFechamento: loja.mensagemFechamento })
   return { ok: true, numero: registrado.numero, mensagem, link: linkWhatsapp(loja.whatsapp, mensagem) }
 }

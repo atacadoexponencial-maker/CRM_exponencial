@@ -600,6 +600,8 @@ export type Database = {
           id: string
           min_quantity: number | null
           name: string
+          pack_price: number | null
+          pack_quantities: Json | null
           photos: Json
           position: number
           price: number
@@ -619,6 +621,8 @@ export type Database = {
           id?: string
           min_quantity?: number | null
           name: string
+          pack_price?: number | null
+          pack_quantities?: Json | null
           photos?: Json
           position?: number
           price: number
@@ -638,6 +642,8 @@ export type Database = {
           id?: string
           min_quantity?: number | null
           name?: string
+          pack_price?: number | null
+          pack_quantities?: Json | null
           photos?: Json
           position?: number
           price?: number

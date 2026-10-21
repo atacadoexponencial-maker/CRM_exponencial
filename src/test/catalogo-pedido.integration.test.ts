@@ -242,3 +242,55 @@ describe("B31-02 — desconto por total do pedido no servidor", { timeout: 30_00
     await service.from("catalog_settings").update({ order_discounts: [] }).eq("workspace_id", ws)
   })
 })
+
+describe("B31-03 — grade fechada no servidor", { timeout: 30_000 }, () => {
+  const semNbsp = (t: string) => t.replace(/ /g, " ")
+  let grade = ""
+
+  it("CA-B31-13: P 2, M 4, G 3, GG 2 em Azul é recusado como grade quebrada; P 2, M 4, G 4, GG 2 sai com '2 grades (12 peças)' em Azul", async () => {
+    grade = (await service.from("catalog_products").insert({
+      workspace_id: ws, name: "Jaqueta", price: 29.9,
+      variant_types: [{ id: "t", nome: "Tamanho", opcoes: ["P", "M", "G", "GG"] }, { id: "c", nome: "Cor", opcoes: ["Azul", "Preto"] }],
+      pack_quantities: { P: 1, M: 2, G: 2, GG: 1 },
+    }).select("id").single()).data!.id
+    await service.from("catalog_stock").insert(["P", "M", "G", "GG"].flatMap((t) => ["Azul", "Preto"].map((c) => ({ workspace_id: ws, product_id: grade, combination: `${t} / ${c}`, quantity: 100 }))))
+    const quebrada = await registrarPedido(slug, { nome: "Grade 1", whatsapp: "(21) 94000-0001" }, [
+      { produtoId: grade, combinacao: "P / Azul", quantidade: 2 },
+      { produtoId: grade, combinacao: "M / Azul", quantidade: 4 },
+      { produtoId: grade, combinacao: "G / Azul", quantidade: 3 },
+      { produtoId: grade, combinacao: "GG / Azul", quantidade: 2 },
+    ])
+    expect(quebrada).toMatchObject({ ok: false, erro: expect.stringMatching(/^Jaqueta: a grade de Azul está quebrada\. Cada grade tem P 1 · M 2 · G 2 · GG 1/) })
+
+    const r = await registrarPedido(slug, { nome: "Grade 1", whatsapp: "(21) 94000-0001" }, [
+      { produtoId: grade, combinacao: "P / Azul", quantidade: 2 },
+      { produtoId: grade, combinacao: "M / Azul", quantidade: 4 },
+      { produtoId: grade, combinacao: "G / Azul", quantidade: 4 },
+      { produtoId: grade, combinacao: "GG / Azul", quantidade: 2 },
+    ])
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    const m = semNbsp(r.mensagem)
+    expect(m).toContain("• Jaqueta (Azul): 2 grades (12 peças) — R$ 29,90 cada = R$ 358,80")
+    expect(m).toContain("   P 2 · M 4 · G 4 · GG 2")
+    expect(m).not.toContain("2x Jaqueta")
+    expect(m).toContain("Total: 12 peças · *R$ 358,80*")
+  })
+
+  it("CA-B31-15: 1 grade com preço próprio 150 grava unitário 25,00 e total 150,00; a mensagem traz R$ 25,00 cada", async () => {
+    await service.from("catalog_products").update({ pack_price: 150, price_tiers: [{ min: 6, price: 20 }] }).eq("id", grade)
+    const r = await registrarPedido(slug, { nome: "Grade 2", whatsapp: "(21) 94000-0002" }, [
+      { produtoId: grade, combinacao: "P / Preto", quantidade: 1 },
+      { produtoId: grade, combinacao: "M / Preto", quantidade: 2 },
+      { produtoId: grade, combinacao: "G / Preto", quantidade: 2 },
+      { produtoId: grade, combinacao: "GG / Preto", quantidade: 1 },
+    ])
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    // Com preço próprio da grade, a faixa "a partir de 6: R$ 20" não vale.
+    expect(semNbsp(r.mensagem)).toContain("• Jaqueta (Preto): 1 grade (6 peças) — R$ 25,00 cada = R$ 150,00")
+    const { data: pedido } = await service.from("catalog_orders").select("total, catalog_order_items(unit_price)").eq("workspace_id", ws).eq("number", r.numero).single()
+    expect(pedido?.total).toBe(150)
+    expect(pedido?.catalog_order_items.every((i) => i.unit_price === 25)).toBe(true)
+  })
+})

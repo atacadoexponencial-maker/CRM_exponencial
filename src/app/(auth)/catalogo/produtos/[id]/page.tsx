@@ -7,7 +7,7 @@ import { EditorClient } from "./editor-client"
 export const metadata = { title: "Produto" }
 
 const PRODUTO_NOVO: ProdutoEditavel = {
-  id: null, nome: "", descricao: "", preco: null, precoDe: null, codigo: "", faixas: [], minimo: null, categoriaId: null,
+  id: null, nome: "", descricao: "", preco: null, precoDe: null, codigo: "", faixas: [], minimo: null, grade: null, categoriaId: null,
   visivel: true, destaque: false, fotos: [], tipos: [], estoque: { "": 0 },
 }
 

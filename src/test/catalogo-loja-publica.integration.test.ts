@@ -121,7 +121,7 @@ describe("B16-07 — Configurações do catálogo e vitrine pública", { timeout
 
   it("a vitrine só mostra produtos visíveis, e produto oculto não abre", async () => {
     await entrarComo(emailA)
-    const base = { descricao: "", precoDe: null, codigo: "", faixas: [], minimo: null, categoriaId: null, destaque: false, fotos: [], tipos: [], estoque: { "": 3 } }
+    const base = { descricao: "", precoDe: null, codigo: "", faixas: [], minimo: null, grade: null, categoriaId: null, destaque: false, fotos: [], tipos: [], estoque: { "": 3 } }
     const visivel = (await salvarProduto({ ...base, id: null, nome: "Visível", preco: 10, visivel: true })) as { id: string }
     const oculto = (await salvarProduto({ ...base, id: null, nome: "Oculto", preco: 10, visivel: false })) as { id: string }
     const { produtos } = await carregarVitrine(wsA)

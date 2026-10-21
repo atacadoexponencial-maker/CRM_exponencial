@@ -58,7 +58,7 @@ async function entrarComo(email: string) {
 function produto(parcial: Partial<ProdutoEditavel>): ProdutoEditavel {
   return {
     id: null, nome: "Produto", descricao: "", preco: 10, precoDe: null, codigo: "", categoriaId: null,
-    faixas: [], minimo: null, visivel: true, destaque: false, fotos: [], tipos: [], estoque: { "": 0 }, ...parcial,
+    faixas: [], minimo: null, grade: null, visivel: true, destaque: false, fotos: [], tipos: [], estoque: { "": 0 }, ...parcial,
   }
 }
 
@@ -252,5 +252,31 @@ describe("B31-01 — Regras de venda do produto", { timeout: 30_000 }, () => {
     expect((await salvarProduto(produto({ minimo: Number.NaN }))).erro).toMatch(/inteiro a partir de 1/)
     expect((await salvarProduto(produto({ id: r.id, nome: "Com mínimo", minimo: null }))).erro).toBeUndefined()
     expect((await carregarProduto(r.id))?.minimo).toBeNull()
+  })
+})
+
+describe("B31-03 — Grade fechada no editor", { timeout: 30_000 }, () => {
+  const tipos = [
+    { id: "t1", nome: "Tamanho", opcoes: ["P", "M", "G", "GG"] },
+    { id: "t2", nome: "Cor", opcoes: ["Azul", "Preto"] },
+  ]
+
+  it("CA-B31-03: grade P1 M2 G2 GG1 salva e devolvida; produto sem variação não aceita; toda zero é recusada", async () => {
+    await entrarComo(emailA)
+    const r = (await salvarProduto(produto({ nome: "Com grade", tipos, grade: { quantidades: { P: 1, M: 2, G: 2, GG: 1 }, preco: null } }))) as { id: string }
+    expect((r as { erro?: string }).erro).toBeUndefined()
+    expect((await carregarProduto(r.id))?.grade).toEqual({ quantidades: { P: 1, M: 2, G: 2, GG: 1 }, preco: null })
+    expect((await salvarProduto(produto({ tipos: [], grade: { quantidades: {}, preco: null } }))).erro).toMatch(/precisa ter variação/)
+    expect((await salvarProduto(produto({ tipos, grade: { quantidades: { P: 0, M: 0, G: 0, GG: 0 }, preco: null } }))).erro).toMatch(/ao menos uma quantidade/)
+    expect((await salvarProduto(produto({ id: r.id, nome: "Com grade", tipos, grade: null }))).erro).toBeUndefined()
+    expect((await carregarProduto(r.id))?.grade).toBeNull()
+  })
+
+  it("CA-B31-15: preço da grade 150 salvo; zero e negativo recusados", async () => {
+    await entrarComo(emailA)
+    const r = (await salvarProduto(produto({ nome: "Grade com preço", preco: 29.9, tipos, grade: { quantidades: { P: 1, M: 2, G: 2, GG: 1 }, preco: 150 } }))) as { id: string }
+    expect((await carregarProduto(r.id))?.grade).toEqual({ quantidades: { P: 1, M: 2, G: 2, GG: 1 }, preco: 150 })
+    expect((await salvarProduto(produto({ tipos, grade: { quantidades: { P: 1, M: 2, G: 2, GG: 1 }, preco: 0 } }))).erro).toMatch(/Preço da grade/)
+    expect((await salvarProduto(produto({ tipos, grade: { quantidades: { P: 1, M: 2, G: 2, GG: 1 }, preco: -5 } }))).erro).toMatch(/Preço da grade/)
   })
 })

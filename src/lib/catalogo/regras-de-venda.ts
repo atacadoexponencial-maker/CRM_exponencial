@@ -150,3 +150,115 @@ export function resumoDoDesconto(descontos: DescontoPedido[]): string | null {
   const primeiro = descontos[0]
   return primeiro ? `${primeiro.percent}% a menos a partir de ${primeiro.min} peças` : null
 }
+
+// ---- Grade fechada (B31-03) ----------------------------------------------------------
+
+export interface GradeFechada {
+  /** Quantidade por opção do primeiro tipo de variação (ex.: { P: 1, M: 2, G: 2, GG: 1 }). */
+  quantidades: Record<string, number>
+  /** Preço próprio da grade; `null` = soma das peças pelo unitário. */
+  preco: number | null
+}
+
+/** Grade limpa (só as opções do primeiro tipo, inteiros ≥ 0) ou o aviso do que está errado. */
+export function validarGrade(grade: GradeFechada | null, tipos: { nome: string; opcoes: string[] }[]): { erro: string } | { grade: GradeFechada | null } {
+  if (!grade) return { grade: null }
+  const primeiro = tipos.find((t) => t.opcoes.length > 0)
+  if (!primeiro) return { erro: "Grade fechada: o produto precisa ter variação (ex.: Tamanho)." }
+  const quantidades: Record<string, number> = {}
+  for (const opcao of primeiro.opcoes) {
+    const q = grade.quantidades[opcao] ?? 0
+    if (!Number.isInteger(q) || q < 0 || q > 1000) return { erro: `Grade fechada: ${primeiro.nome} ${opcao}: use um número inteiro de 0 a 1.000.` }
+    quantidades[opcao] = q
+  }
+  if (Object.values(quantidades).every((q) => q === 0)) return { erro: "Grade fechada: informe ao menos uma quantidade." }
+  if (grade.preco !== null && (!Number.isFinite(grade.preco) || grade.preco <= 0)) return { erro: "Preço da grade: informe um valor maior que zero." }
+  return { grade: { quantidades, preco: grade.preco === null ? null : Math.round(grade.preco * 100) / 100 } }
+}
+
+/**
+ * Grade vinda do banco, sem confiar no formato. O jsonb reordena as chaves; `tipos`
+ * devolve as opções na ordem do lojista (P, M, G, GG), que é a ordem de mostrar.
+ */
+export function gradeDoBanco(quantidades: unknown, preco: unknown, tipos?: unknown): GradeFechada | null {
+  if (!quantidades || typeof quantidades !== "object" || Array.isArray(quantidades)) return null
+  const bruto = quantidades as Record<string, unknown>
+  const primeiro = Array.isArray(tipos) ? (tipos as { opcoes?: unknown }[]).find((t) => Array.isArray(t?.opcoes) && t.opcoes.length > 0) : undefined
+  const ordem = primeiro ? [...(primeiro.opcoes as string[]), ...Object.keys(bruto).filter((k) => !(primeiro.opcoes as string[]).includes(k))] : Object.keys(bruto)
+  const limpas: Record<string, number> = {}
+  for (const k of ordem) { const v = bruto[k]; if (typeof v === "number" && Number.isInteger(v) && v >= 0) limpas[k] = v }
+  if (Object.values(limpas).every((q) => q === 0)) return null
+  return { quantidades: limpas, preco: preco === null || preco === undefined ? null : Number(preco) }
+}
+
+/** Peças de um pacote. */
+export function pecasDaGrade(grade: GradeFechada): number {
+  return Object.values(grade.quantidades).reduce((s, q) => s + q, 0)
+}
+
+/** Preço de um pacote: o próprio, ou a soma das peças pelo unitário. */
+export function precoDaGrade(grade: GradeFechada, unitario: number): number {
+  return grade.preco ?? Math.round(pecasDaGrade(grade) * unitario * 100) / 100
+}
+
+/** Unitário que vale com a grade: o próprio ÷ peças (centavos arredondados), ou o unitário normal. */
+export function unitarioDaGrade(grade: GradeFechada, unitario: number): number {
+  const pecas = pecasDaGrade(grade)
+  return grade.preco === null || pecas === 0 ? unitario : Math.round((grade.preco / pecas) * 100) / 100
+}
+
+/** "P 1 · M 2 · G 2 · GG 1" (só as opções com quantidade). */
+export function detalheDaGrade(grade: GradeFechada): string {
+  return Object.entries(grade.quantidades).filter(([, q]) => q > 0).map(([o, q]) => `${o} ${q}`).join(" · ")
+}
+
+/** Para o cartão e a página: "Grade fechada de 6 peças" ou "Grade fechada de 6 peças por R$ 150,00". */
+export function resumoDaGrade(grade: GradeFechada): string {
+  const pecas = pecasDaGrade(grade)
+  const base = `Grade fechada de ${pecas} ${pecas === 1 ? "peça" : "peças"}`
+  return grade.preco === null ? base : `${base} por ${reais(grade.preco)}`
+}
+
+/** Bloco (opção do segundo tipo) de uma combinação "P / Azul" → "Azul"; "" quando há um tipo só. */
+export function blocoDaCombinacao(combinacao: string): string {
+  const partes = combinacao.split(" / ")
+  return partes.length > 1 ? partes.slice(1).join(" / ") : ""
+}
+
+/** Opção do primeiro tipo de uma combinação "P / Azul" → "P". */
+export function opcaoDaCombinacao(combinacao: string): string {
+  return combinacao.split(" / ")[0] ?? ""
+}
+
+/**
+ * Quantos pacotes inteiros as quantidades de um bloco formam: cada opção com quantidade na
+ * grade tem o mesmo múltiplo, e as sem quantidade estão zeradas. `null` = grade quebrada.
+ * `quantidades` é por opção do primeiro tipo (ex.: { P: 2, M: 4, G: 4, GG: 2 }).
+ */
+export function pacotesDoBloco(grade: GradeFechada, quantidades: Record<string, number>): number | null {
+  let pacotes: number | null = null
+  for (const [opcao, porPacote] of Object.entries(grade.quantidades)) {
+    const q = quantidades[opcao] ?? 0
+    if (porPacote === 0) {
+      if (q !== 0) return null
+      continue
+    }
+    if (q % porPacote !== 0) return null
+    const n = q / porPacote
+    if (pacotes === null) pacotes = n
+    else if (n !== pacotes) return null
+  }
+  // Opção fora da grade (não existe mais no produto) com quantidade: quebrada.
+  for (const [opcao, q] of Object.entries(quantidades)) if (!(opcao in grade.quantidades) && q > 0) return null
+  return pacotes ?? 0
+}
+
+/** Quantos pacotes inteiros cabem no estoque de um bloco; 0 quando alguma opção da grade não tem estoque para um pacote. */
+export function pacotesQueCabem(grade: GradeFechada, disponivelDaOpcao: (opcao: string) => number): number {
+  let cabem = Number.POSITIVE_INFINITY
+  for (const [opcao, porPacote] of Object.entries(grade.quantidades)) {
+    if (porPacote === 0) continue
+    cabem = Math.min(cabem, Math.floor(disponivelDaOpcao(opcao) / porPacote))
+  }
+  return Number.isFinite(cabem) ? cabem : 0
+}

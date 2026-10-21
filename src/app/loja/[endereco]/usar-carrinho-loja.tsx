@@ -24,6 +24,7 @@ export function useCarrinhoLoja(endereco: string, tema: TemaLoja, minimo: Minimo
     maximo: i.maximo,
     faixas: i.faixas,
     minimo: i.minimo,
+    grade: i.grade,
   }))
   const pecas = linhas.reduce((s, l) => s + l.quantidade, 0)
 
@@ -53,6 +54,8 @@ export function useCarrinhoLoja(endereco: string, tema: TemaLoja, minimo: Minimo
       onFechar={() => setAberto(false)}
       onMudarQuantidade={carrinho.mudarQuantidade}
       onRemover={carrinho.remover}
+      onMudarQuantidades={carrinho.mudarQuantidades}
+      onRemoverVarios={carrinho.removerVarios}
       onPedidoFeito={carrinho.esvaziar}
       onFazerPedido={enviar}
     />

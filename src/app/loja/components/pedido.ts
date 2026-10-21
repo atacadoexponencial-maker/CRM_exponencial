@@ -18,6 +18,20 @@ export interface ItemPedido {
   precoUnitario: number
   /** B31-01: quantidade da faixa de preço que valeu ("preço de 12+"); ausente sem faixa. */
   faixaAplicada?: number | null
+  /** B31-03: o item faz parte de uma grade fechada (a mensagem o mostra pela linha da grade). */
+  naGrade?: boolean
+}
+
+/** B31-03: uma grade fechada no pedido (um bloco/cor), para a mensagem. */
+export interface GradeNoPedido {
+  nome: string
+  /** Opção do segundo tipo (cor); vazio com um tipo só. */
+  bloco: string
+  pacotes: number
+  pecas: number
+  precoUnitario: number
+  /** "P 2 · M 4 · G 4 · GG 2" */
+  detalhe: string
 }
 
 export interface DescontoAplicado {
@@ -71,6 +85,8 @@ export function montarMensagemPedido(dados: {
   itens: ItemPedido[]
   /** B31-02: desconto por total do pedido, quando valeu. */
   desconto?: DescontoAplicado | null
+  /** B31-03: grades fechadas do pedido (os itens delas não saem linha a linha). */
+  grades?: GradeNoPedido[]
   mensagemFechamento?: string
 }): string {
   const { pecas, valor } = totaisDoPedido(dados.itens)
@@ -86,10 +102,16 @@ export function montarMensagemPedido(dados: {
     `*Pedido #${dados.numero}*`,
     `Cliente: ${dados.nomeCliente}`,
     "",
-    ...dados.itens.map(
-      (i) =>
-        `• ${i.quantidade}x ${i.nome}${i.variacao ? ` (${i.variacao})` : ""}${i.codigo?.trim() ? ` · cód. ${i.codigo.trim()}` : ""} — ${reais(i.precoUnitario)} cada${i.faixaAplicada ? ` (preço de ${i.faixaAplicada}+)` : ""} = ${reais(i.quantidade * i.precoUnitario)}`
-    ),
+    ...dados.itens
+      .filter((i) => !i.naGrade)
+      .map(
+        (i) =>
+          `• ${i.quantidade}x ${i.nome}${i.variacao ? ` (${i.variacao})` : ""}${i.codigo?.trim() ? ` · cód. ${i.codigo.trim()}` : ""} — ${reais(i.precoUnitario)} cada${i.faixaAplicada ? ` (preço de ${i.faixaAplicada}+)` : ""} = ${reais(i.quantidade * i.precoUnitario)}`
+      ),
+    ...(dados.grades ?? []).flatMap((g) => [
+      `• ${g.nome}${g.bloco ? ` (${g.bloco})` : ""}: ${g.pacotes} ${g.pacotes === 1 ? "grade" : "grades"} (${g.pecas} peças) — ${reais(g.precoUnitario)} cada = ${reais(Math.round(g.pecas * g.precoUnitario * 100) / 100)}`,
+      `   ${g.detalhe}`,
+    ]),
     "",
     ...totais,
   ]

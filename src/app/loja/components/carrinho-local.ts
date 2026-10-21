@@ -4,7 +4,7 @@
 // armazenamento (aba anônima, por exemplo), o carrinho vale só enquanto a página está aberta.
 
 import { useCallback, useSyncExternalStore } from "react"
-import type { FaixaPreco } from "@/lib/catalogo/regras-de-venda"
+import type { FaixaPreco, GradeFechada } from "@/lib/catalogo/regras-de-venda"
 
 export interface ItemCarrinho {
   produtoId: string
@@ -21,6 +21,8 @@ export interface ItemCarrinho {
   /** B31-01: faixas de preço e mínimo do produto (carrinho antigo no aparelho pode não ter). */
   faixas?: FaixaPreco[]
   minimo?: number | null
+  /** B31-03: grade fechada do produto (as linhas do bloco andam juntas). */
+  grade?: GradeFechada | null
 }
 
 export type NovoItemCarrinho = Omit<ItemCarrinho, "quantidade">
@@ -92,6 +94,20 @@ export function useCarrinho(endereco: string) {
     atualizar(itens.map((i) => (i.produtoId === produtoId && i.combinacao === combinacao ? { ...i, quantidade: Math.max(0, Math.min(i.maximo, quantidade)) } : i)))
   }
 
+  /** Várias linhas de uma vez (o bloco da grade fechada, B31-03). */
+  function mudarQuantidades(mudancas: { produtoId: string; combinacao: string; quantidade: number }[]) {
+    atualizar(
+      itens.map((i) => {
+        const m = mudancas.find((x) => x.produtoId === i.produtoId && x.combinacao === i.combinacao)
+        return m ? { ...i, quantidade: Math.max(0, Math.min(i.maximo, m.quantidade)) } : i
+      })
+    )
+  }
+
+  function removerVarios(alvos: { produtoId: string; combinacao: string }[]) {
+    atualizar(itens.filter((i) => !alvos.some((a) => a.produtoId === i.produtoId && a.combinacao === i.combinacao)))
+  }
+
   /** O servidor disse que o estoque mudou: limita (ou tira) os itens afetados. */
   function ajustarLimites(mudancas: { produtoId: string; combinacao: string; disponivel: number }[]) {
     atualizar(
@@ -120,5 +136,5 @@ export function useCarrinho(endereco: string) {
     atualizar([])
   }
 
-  return { itens, adicionar, adicionarVarios, mudarQuantidade, ajustarLimites, ajustarPrecos, remover, esvaziar }
+  return { itens, adicionar, adicionarVarios, mudarQuantidade, mudarQuantidades, ajustarLimites, ajustarPrecos, remover, removerVarios, esvaziar }
 }

@@ -39,6 +39,7 @@ export function ProdutoClient({ endereco, tema, minimo, descontos, produto }: Pr
                 maximo: produto.estoque[combinacao] ?? 0,
                 faixas: produto.faixas,
                 minimo: produto.minimo,
+                grade: produto.grade,
               },
               quantidade,
             }))

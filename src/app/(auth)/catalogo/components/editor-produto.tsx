@@ -10,7 +10,7 @@ import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from
 import { cn } from "@/lib/utils"
 import type { CategoriaCatalogo } from "./lista-produtos"
 import { VariacoesEstoque, combinacoes, chaveCombinacao, type EstoquePorCombinacao, type TipoVariacao } from "./variacoes-estoque"
-import { MAX_FAIXAS, type FaixaPreco } from "@/lib/catalogo/regras-de-venda"
+import { MAX_FAIXAS, type FaixaPreco, type GradeFechada } from "@/lib/catalogo/regras-de-venda"
 
 export interface FotoProduto {
   id: string
@@ -28,6 +28,8 @@ export interface ProdutoEditavel {
   faixas: FaixaPreco[]
   /** B31-01: mínimo de peças do produto por pedido; `null` = sem mínimo. */
   minimo: number | null
+  /** B31-03: grade fechada (quantidade por opção do primeiro tipo e preço próprio); `null` = venda avulsa. */
+  grade: GradeFechada | null
   categoriaId: string | null
   visivel: boolean
   destaque: boolean
@@ -104,6 +106,12 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
   const [precoDeTexto, setPrecoDeTexto] = useState(paraTexto(inicial.precoDe))
   const [faixasTexto, setFaixasTexto] = useState<FaixaTexto[]>(faixasParaTexto(inicial.faixas))
   const [minimoTexto, setMinimoTexto] = useState(inicial.minimo === null ? "" : String(inicial.minimo))
+  const [gradeLigada, setGradeLigada] = useState(inicial.grade !== null)
+  const [gradeTexto, setGradeTexto] = useState<Record<string, string>>(
+    Object.fromEntries(Object.entries(inicial.grade?.quantidades ?? {}).map(([o, q]) => [o, String(q)]))
+  )
+  const [precoGradeTexto, setPrecoGradeTexto] = useState(paraTexto(inicial.grade?.preco ?? null))
+  const primeiroTipo = produto.tipos.find((t) => t.opcoes.length > 0) ?? null
   const [erros, setErros] = useState<ErrosCampo>({})
   const [mensagem, setMensagem] = useState<{ tipo: "erro" | "aviso"; texto: string } | null>(null)
   const [salvando, setSalvando] = useState(false)
@@ -183,7 +191,14 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
     if (escolha === "oculto") mudar("visivel", false)
 
     setSalvando(true)
-    const resultado = await onSalvar({ ...final, nome: produto.nome.trim(), preco, precoDe, estoque, faixas: faixasDoTexto(faixasTexto), minimo: minimoDoTexto(minimoTexto) })
+    // Grade fechada: vai o que a pessoa digitou (inválido vira NaN); o servidor confere e avisa.
+    const gradeFechada: GradeFechada | null = gradeLigada && primeiroTipo
+      ? {
+          quantidades: Object.fromEntries(primeiroTipo.opcoes.map((o) => { const t = (gradeTexto[o] ?? "").trim(); return [o, t === "" ? 0 : /^\d+$/.test(t) ? Number(t) : Number.NaN] })),
+          preco: precoGradeTexto.trim() ? (paraNumero(precoGradeTexto) ?? Number.NaN) : null,
+        }
+      : null
+    const resultado = await onSalvar({ ...final, nome: produto.nome.trim(), preco, precoDe, estoque, faixas: faixasDoTexto(faixasTexto), minimo: minimoDoTexto(minimoTexto), grade: gradeFechada })
     setSalvando(false)
     if (resultado.erro) setMensagem({ tipo: "erro", texto: resultado.erro })
     else if (resultado.aviso) setMensagem({ tipo: "aviso", texto: resultado.aviso })
@@ -276,6 +291,33 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
               <Input id="minimo" inputMode="numeric" value={minimoTexto} onChange={(e) => setMinimoTexto(e.target.value)} placeholder="Sem mínimo" />
               <p className="text-xs text-muted-foreground">Vale além do pedido mínimo da loja. Soma todas as cores e tamanhos do produto.</p>
             </div>
+            {comVariacoes && primeiroTipo && (
+              <div className="space-y-2">
+                <label className="flex items-start gap-2 text-sm cursor-pointer">
+                  <input type="checkbox" checked={gradeLigada} onChange={(e) => setGradeLigada(e.target.checked)} className="mt-0.5 accent-primary" />
+                  <span>
+                    Vender só em grade fechada
+                    <span className="block text-xs text-muted-foreground">A cliente escolhe quantas grades leva de cada {produto.tipos.filter((t) => t.opcoes.length > 0)[1]?.nome.toLowerCase() ?? "opção"}; cada grade tem as quantidades abaixo por {primeiroTipo.nome.toLowerCase()}.</span>
+                  </span>
+                </label>
+                {gradeLigada && (
+                  <div className="space-y-2 pl-6">
+                    <div className="flex flex-wrap gap-2">
+                      {primeiroTipo.opcoes.map((o) => (
+                        <label key={o} className="flex items-center gap-1 text-sm">
+                          <span className="w-10 text-right">{o}</span>
+                          <Input inputMode="numeric" value={gradeTexto[o] ?? ""} onChange={(e) => setGradeTexto((atual) => ({ ...atual, [o]: e.target.value }))} placeholder="0" className="w-16" aria-label={`Quantidade de ${o} na grade`} />
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Label htmlFor="precoGrade">Preço da grade (R$, opcional)</Label>
+                      <Input id="precoGrade" inputMode="decimal" value={precoGradeTexto} onChange={(e) => setPrecoGradeTexto(e.target.value)} placeholder="Soma das peças" className="w-32" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
 
           <section className="rounded-lg border p-4 space-y-3">

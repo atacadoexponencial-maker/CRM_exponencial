@@ -62,6 +62,7 @@ describe("B31-01 — mínimo por produto na vitrine", () => {
     precoDe: null,
     faixas: [],
     minimo: 6,
+    grade: null,
     fotos: [],
     tipos: [],
     estoque: { "": 50 },
@@ -112,5 +113,90 @@ describe("B31-02 — desconto por total do pedido no carrinho", () => {
     expect(screen.queryByText(/Desconto de 10%/)).toBeNull()
     expect(screen.getByText("Falta 1 peça para 10% de desconto")).toBeTruthy()
     expect(screen.getByText("R$ 1.220,10")).toBeTruthy() // 49 × 24,90, sem desconto
+  })
+})
+
+describe("B31-03 — grade fechada na página do produto e no carrinho", () => {
+  const grade = { quantidades: { P: 1, M: 2, G: 2, GG: 1 }, preco: null }
+  const camiseta: ProdutoDetalhe = {
+    id: "cam",
+    nome: "Camiseta",
+    descricao: "",
+    codigo: "",
+    preco: 29.9,
+    precoDe: null,
+    faixas: [],
+    minimo: null,
+    grade,
+    fotos: [],
+    tipos: [
+      { id: "t", nome: "Tamanho", opcoes: ["P", "M", "G", "GG"] },
+      { id: "c", nome: "Cor", opcoes: ["Azul", "Preto", "Verde"] },
+    ],
+    // Verde não fecha uma grade: só 1 M.
+    estoque: { "P / Azul": 10, "M / Azul": 10, "G / Azul": 10, "GG / Azul": 10, "P / Preto": 10, "M / Preto": 10, "G / Preto": 10, "GG / Preto": 10, "P / Verde": 10, "M / Verde": 1, "G / Verde": 10, "GG / Verde": 10 },
+  }
+  const linhaGrade = (combinacao: string, quantidade: number): LinhaCarrinho => ({ produtoId: "cam", combinacao, nome: "Camiseta", fotoUrl: null, preco: 29.9, quantidade, maximo: 100, faixas: [], grade })
+
+  it("CA-B31-07: 2 grades de Azul e 1 de Preto viram as linhas da grade; o carrinho mostra por bloco; Verde sem estoque para uma grade fica indisponível", () => {
+    const onAdicionar = vi.fn()
+    const { unmount } = render(<PaginaProduto tema={TEMA_PADRAO} produto={camiseta} onAdicionar={onAdicionar} onVoltar={() => {}} />)
+    expect(screen.getByText(/Cada grade tem 6 peças: P 1 · M 2 · G 2 · GG 1/)).toBeTruthy()
+    expect(screen.getByText(/indisponível \(não há estoque para uma grade inteira\)/).textContent).toContain("Cor: Verde")
+    fireEvent.click(screen.getByRole("button", { name: "Mais uma grade de Azul" }))
+    fireEvent.click(screen.getByRole("button", { name: "Mais uma grade de Azul" }))
+    fireEvent.click(screen.getByRole("button", { name: "Mais uma grade de Preto" }))
+    fireEvent.click(screen.getByRole("button", { name: /Adicionar 3 grades \(18 peças\)/ }))
+    expect(onAdicionar).toHaveBeenCalledWith([
+      { combinacao: "P / Azul", quantidade: 2 },
+      { combinacao: "M / Azul", quantidade: 4 },
+      { combinacao: "G / Azul", quantidade: 4 },
+      { combinacao: "GG / Azul", quantidade: 2 },
+      { combinacao: "P / Preto", quantidade: 1 },
+      { combinacao: "M / Preto", quantidade: 2 },
+      { combinacao: "G / Preto", quantidade: 2 },
+      { combinacao: "GG / Preto", quantidade: 1 },
+    ])
+    unmount()
+
+    const onMudarQuantidades = vi.fn()
+    render(
+      <Carrinho
+        tema={TEMA_PADRAO}
+        aberto
+        linhas={[linhaGrade("P / Azul", 2), linhaGrade("M / Azul", 4), linhaGrade("G / Azul", 4), linhaGrade("GG / Azul", 2), linhaGrade("P / Preto", 1), linhaGrade("M / Preto", 2), linhaGrade("G / Preto", 2), linhaGrade("GG / Preto", 1)]}
+        minimo={{ tipo: "nenhum", valor: null }}
+        onFechar={() => {}}
+        onMudarQuantidade={() => {}}
+        onRemover={() => {}}
+        onMudarQuantidades={onMudarQuantidades}
+        onFazerPedido={vi.fn()}
+        onPedidoFeito={() => {}}
+      />
+    )
+    expect(screen.getByText(/2 grades · 12 peças/)).toBeTruthy()
+    expect(screen.getByText(/1 grade · 6 peças/)).toBeTruthy()
+    expect(screen.getByText("R$ 358,80")).toBeTruthy() // 12 × 29,90
+    fireEvent.click(screen.getByRole("button", { name: "Mais uma grade de Camiseta Preto" }))
+    expect(onMudarQuantidades).toHaveBeenCalledWith([
+      { produtoId: "cam", combinacao: "P / Preto", quantidade: 2 },
+      { produtoId: "cam", combinacao: "M / Preto", quantidade: 4 },
+      { produtoId: "cam", combinacao: "G / Preto", quantidade: 4 },
+      { produtoId: "cam", combinacao: "GG / Preto", quantidade: 2 },
+    ])
+  })
+
+  it("CA-B31-15: com preço próprio a página mostra a grade por R$ 150,00 (R$ 25,00 a peça) e o botão de 1 grade cobra R$ 150,00; sem preço próprio, R$ 179,40", () => {
+    const comPreco = { ...camiseta, grade: { ...grade, preco: 150 } }
+    const { unmount } = render(<PaginaProduto tema={TEMA_PADRAO} produto={comPreco} onAdicionar={vi.fn()} onVoltar={() => {}} />)
+    expect(screen.getByText(/R\$ 150,00 a grade de 6 peças \(R\$ 25,00 a peça\)/)).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Mais uma grade de Azul" }))
+    expect(screen.getByRole("button", { name: /Adicionar 1 grade \(6 peças\) · R\$\s150,00/ })).toBeTruthy()
+    unmount()
+
+    render(<PaginaProduto tema={TEMA_PADRAO} produto={camiseta} onAdicionar={vi.fn()} onVoltar={() => {}} />)
+    expect(screen.getByText(/R\$ 179,40 a grade de 6 peças/)).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Mais uma grade de Azul" }))
+    expect(screen.getByRole("button", { name: /Adicionar 1 grade \(6 peças\) · R\$\s179,40/ })).toBeTruthy()
   })
 })

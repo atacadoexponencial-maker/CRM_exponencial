@@ -10,7 +10,7 @@ import type { CategoriaCatalogo, ProdutoResumo } from "./components/lista-produt
 import type { FotoProduto, ProdutoEditavel } from "./components/editor-produto"
 import { BUCKET_CATALOGO, ESTOQUE_MAXIMO, FORMATOS_FOTO, MAX_FOTOS, MAX_OPCOES_POR_TIPO, TAMANHO_MAX_FOTO } from "@/lib/catalogo/regras"
 import { chaveCombinacao, combinacoes, MAX_TIPOS_VARIACAO, type TipoVariacao } from "@/lib/catalogo/combinacoes"
-import { faixasDoBanco, faixasParaBanco, validarFaixas, validarMinimo } from "@/lib/catalogo/regras-de-venda"
+import { faixasDoBanco, faixasParaBanco, gradeDoBanco, validarFaixas, validarGrade, validarMinimo } from "@/lib/catalogo/regras-de-venda"
 
 export interface Catalogo {
   categorias: CategoriaCatalogo[]
@@ -70,7 +70,7 @@ export async function carregarProduto(id: string): Promise<ProdutoEditavel | nul
   if (!s.ok) return null
   const { data } = await s.supabase
     .from("catalog_products")
-    .select("id, name, description, price, compare_at_price, sku, category_id, visible, featured, photos, variant_types, price_tiers, min_quantity, catalog_stock(combination, quantity)")
+    .select("id, name, description, price, compare_at_price, sku, category_id, visible, featured, photos, variant_types, price_tiers, min_quantity, pack_quantities, pack_price, catalog_stock(combination, quantity)")
     .eq("id", id)
     .eq("workspace_id", s.perfil.workspace_id)
     .maybeSingle()
@@ -84,6 +84,7 @@ export async function carregarProduto(id: string): Promise<ProdutoEditavel | nul
     codigo: data.sku,
     faixas: faixasDoBanco(data.price_tiers),
     minimo: data.min_quantity,
+    grade: gradeDoBanco(data.pack_quantities, data.pack_price, data.variant_types),
     categoriaId: data.category_id,
     visivel: data.visible,
     destaque: data.featured,
@@ -180,6 +181,8 @@ export async function salvarProduto(produto: ProdutoEditavel): Promise<Resultado
   if ("erro" in faixas) return { erro: faixas.erro }
   const minimo = validarMinimo(produto.minimo)
   if ("erro" in minimo) return { erro: minimo.erro }
+  const grade = validarGrade(produto.grade ?? null, variacoes.tipos)
+  if ("erro" in grade) return { erro: grade.erro }
 
   const campos = {
     name: nome,
@@ -189,6 +192,8 @@ export async function salvarProduto(produto: ProdutoEditavel): Promise<Resultado
     sku: produto.codigo.trim(),
     price_tiers: faixasParaBanco(faixas.faixas),
     min_quantity: minimo.minimo,
+    pack_quantities: grade.grade?.quantidades ?? null,
+    pack_price: grade.grade?.preco ?? null,
     category_id: produto.categoriaId,
     visible: produto.visivel,
     featured: produto.destaque,

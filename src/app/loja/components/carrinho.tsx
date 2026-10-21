@@ -10,7 +10,7 @@ import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { coresDaVitrine, type TemaLoja } from "./tema"
 import { familiaDaFonte } from "./fontes"
 import { faltaParaMinimo, normalizarWhatsapp, totaisDoPedido, type MinimoPedido } from "./pedido"
-import { aplicarDesconto, avisoMinimoProduto, avisoProximaFaixa, avisoProximoDesconto, descontoAlcancado, precoPorQuantidade, type DescontoPedido, type FaixaPreco } from "@/lib/catalogo/regras-de-venda"
+import { aplicarDesconto, avisoMinimoProduto, avisoProximaFaixa, avisoProximoDesconto, blocoDaCombinacao, descontoAlcancado, opcaoDaCombinacao, pacotesDoBloco, pecasDaGrade, precoPorQuantidade, unitarioDaGrade, type DescontoPedido, type FaixaPreco, type GradeFechada } from "@/lib/catalogo/regras-de-venda"
 
 export interface LinhaCarrinho {
   produtoId: string
@@ -24,6 +24,8 @@ export interface LinhaCarrinho {
   /** B31-01: faixas de preço e mínimo do produto. */
   faixas?: FaixaPreco[]
   minimo?: number | null
+  /** B31-03: grade fechada do produto. */
+  grade?: GradeFechada | null
 }
 
 /** Peças de cada produto no carrinho, somando cores e tamanhos (faixa e mínimo contam assim). */
@@ -33,9 +35,52 @@ export function pecasPorProduto(linhas: { produtoId: string; quantidade: number 
   return soma
 }
 
-/** Unitário que vale para a linha, pela faixa alcançada pelo produto inteiro. */
-export function unitarioDaLinha(linha: { produtoId: string; preco: number; faixas?: FaixaPreco[] }, porProduto: Map<string, number>): number {
-  return precoPorQuantidade(linha.preco, linha.faixas ?? [], porProduto.get(linha.produtoId) ?? 0)
+/** Unitário que vale para a linha: pela faixa alcançada pelo produto inteiro, ou pelo preço da grade (B31-03). */
+export function unitarioDaLinha(linha: { produtoId: string; preco: number; faixas?: FaixaPreco[]; grade?: GradeFechada | null }, porProduto: Map<string, number>): number {
+  const base = precoPorQuantidade(linha.preco, linha.grade?.preco ? [] : (linha.faixas ?? []), porProduto.get(linha.produtoId) ?? 0)
+  return linha.grade ? unitarioDaGrade(linha.grade, base) : base
+}
+
+/** Linhas de um produto de grade fechada agrupadas por bloco (cor), para mostrar e mudar juntas. */
+interface BlocoNoCarrinho {
+  produtoId: string
+  nome: string
+  fotoUrl: string | null
+  bloco: string
+  grade: GradeFechada
+  linhas: LinhaCarrinho[]
+  /** Pacotes inteiros; `null` quando as quantidades não fecham a grade. */
+  pacotes: number | null
+  pecas: number
+  valor: number
+}
+
+type EntradaCarrinho = { tipo: "linha"; linha: LinhaCarrinho } | { tipo: "bloco"; bloco: BlocoNoCarrinho }
+
+function agruparPorBloco(linhas: LinhaCarrinho[], porProduto: Map<string, number>): EntradaCarrinho[] {
+  const entradas: EntradaCarrinho[] = []
+  const blocos = new Map<string, BlocoNoCarrinho>()
+  for (const l of linhas) {
+    if (!l.grade) {
+      entradas.push({ tipo: "linha", linha: l })
+      continue
+    }
+    const chave = `${l.produtoId}|${blocoDaCombinacao(l.combinacao)}`
+    let b = blocos.get(chave)
+    if (!b) {
+      b = { produtoId: l.produtoId, nome: l.nome, fotoUrl: l.fotoUrl, bloco: blocoDaCombinacao(l.combinacao), grade: l.grade, linhas: [], pacotes: null, pecas: 0, valor: 0 }
+      blocos.set(chave, b)
+      entradas.push({ tipo: "bloco", bloco: b })
+    }
+    b.linhas.push(l)
+  }
+  for (const b of blocos.values()) {
+    const quantidades = Object.fromEntries(b.linhas.map((l) => [opcaoDaCombinacao(l.combinacao), l.quantidade]))
+    b.pacotes = pacotesDoBloco(b.grade, quantidades)
+    b.pecas = b.linhas.reduce((s, l) => s + l.quantidade, 0)
+    b.valor = b.linhas.reduce((s, l) => s + l.quantidade * unitarioDaLinha(l, porProduto), 0)
+  }
+  return entradas
 }
 
 export type ResultadoPedido = { erro: string } | { numero: number | string; mensagem: string; link: string }
@@ -50,12 +95,15 @@ interface CarrinhoProps {
   onFechar: () => void
   onMudarQuantidade: (produtoId: string, combinacao: string, quantidade: number) => void
   onRemover: (produtoId: string, combinacao: string) => void
+  /** B31-03: o bloco da grade muda e sai inteiro. Sem estas, o carrinho chama as de uma linha várias vezes. */
+  onMudarQuantidades?: (mudancas: { produtoId: string; combinacao: string; quantidade: number }[]) => void
+  onRemoverVarios?: (itens: { produtoId: string; combinacao: string }[]) => void
   onFazerPedido: (cliente: { nome: string; whatsapp: string }) => Promise<ResultadoPedido>
   /** Chamado depois que o pedido deu certo (para esvaziar o carrinho). */
   onPedidoFeito: () => void
 }
 
-export function Carrinho({ tema, aberto, linhas, minimo, descontos = [], onFechar, onMudarQuantidade, onRemover, onFazerPedido, onPedidoFeito }: CarrinhoProps) {
+export function Carrinho({ tema, aberto, linhas, minimo, descontos = [], onFechar, onMudarQuantidade, onRemover, onMudarQuantidades, onRemoverVarios, onFazerPedido, onPedidoFeito }: CarrinhoProps) {
   const cores = coresDaVitrine(tema)
   const [nome, setNome] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
@@ -80,6 +128,19 @@ export function Carrinho({ tema, aberto, linhas, minimo, descontos = [], onFecha
     return { faixa: avisoProximaFaixa(l.faixas ?? [], total), minimo: avisoMinimoProduto(l.minimo ?? null, total) }
   })
   const abaixoDoMinimoDoProduto = avisosDoProduto.some((a) => a?.minimo)
+  // B31-03: linhas de um produto de grade fechada aparecem juntas, por bloco (cor).
+  const entradas = agruparPorBloco(linhas, porProduto)
+  const avisoDoProdutoDe = (produtoId: string) => avisosDoProduto[linhas.findIndex((l) => l.produtoId === produtoId)]
+
+  function mudarPacotes(b: BlocoNoCarrinho, n: number) {
+    const mudancas = b.linhas.map((l) => ({ produtoId: l.produtoId, combinacao: l.combinacao, quantidade: n * (b.grade.quantidades[opcaoDaCombinacao(l.combinacao)] ?? 0) }))
+    if (onMudarQuantidades) onMudarQuantidades(mudancas)
+    else for (const m of mudancas) onMudarQuantidade(m.produtoId, m.combinacao, m.quantidade)
+  }
+  function removerBloco(b: BlocoNoCarrinho) {
+    if (onRemoverVarios) onRemoverVarios(b.linhas.map((l) => ({ produtoId: l.produtoId, combinacao: l.combinacao })))
+    else for (const l of b.linhas) onRemover(l.produtoId, l.combinacao)
+  }
   const progresso =
     minimo.tipo === "nenhum" || !minimo.valor ? 1 : Math.min(1, (minimo.tipo === "pecas" ? pecas : valor) / minimo.valor)
 
@@ -161,8 +222,49 @@ export function Carrinho({ tema, aberto, linhas, minimo, descontos = [], onFecha
         ) : (
           <>
             <ul className="flex-1 overflow-y-auto px-4 divide-y" style={{ borderColor: cores.borda }}>
-              {linhas.map((l, idx) => {
-                const avisos = avisosDoProduto[idx]
+              {entradas.map((entrada) => {
+                if (entrada.tipo === "bloco") {
+                  const b = entrada.bloco
+                  const n = b.pacotes
+                  const porPacote = pecasDaGrade(b.grade)
+                  const cabem = Math.min(...b.linhas.map((l) => { const q = b.grade.quantidades[opcaoDaCombinacao(l.combinacao)] ?? 0; return q === 0 ? Number.POSITIVE_INFINITY : Math.floor(l.maximo / q) }))
+                  const avisosB = avisoDoProdutoDe(b.produtoId)
+                  return (
+                    <li key={`${b.produtoId}|${b.bloco}`} className="flex gap-3 py-3" style={{ borderColor: cores.borda }}>
+                      <div className="size-16 shrink-0 rounded-lg overflow-hidden flex items-center justify-center" style={{ background: cores.superficie }}>
+                        {b.fotoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={b.fotoUrl} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
+                        ) : (
+                          <ImageOff className="size-4" style={{ color: cores.suave }} />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <p className="text-sm font-medium leading-snug">{b.nome}{b.bloco && <span style={{ color: cores.suave }}> · {b.bloco}</span>}</p>
+                        <p className="text-xs" style={{ color: cores.suave }}>
+                          {n === null ? "grade quebrada: refaça a partir do produto" : `${n} ${n === 1 ? "grade" : "grades"} · ${b.pecas} peças`}
+                          {" · "}{b.linhas.filter((l) => l.quantidade > 0).map((l) => `${opcaoDaCombinacao(l.combinacao)} ${l.quantidade}`).join(" · ")}
+                        </p>
+                        {avisosB?.minimo && <p className={`text-xs ${erros.minimoProduto ? "text-red-600 font-medium" : ""}`} style={erros.minimoProduto ? undefined : { color: cores.texto }} role="status">{avisosB.minimo} deste produto</p>}
+                        {avisosB?.faixa && <p className="text-xs" style={{ color: cores.principal }}>{avisosB.faixa}</p>}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center rounded-lg border" style={{ borderColor: cores.borda }}>
+                            <button type="button" onClick={() => mudarPacotes(b, Math.max(0, (n ?? 1) - 1))} disabled={n === null} className="size-11 flex items-center justify-center disabled:opacity-30" aria-label={`Menos uma grade de ${b.nome}${b.bloco ? ` ${b.bloco}` : ""}`}><Minus className="size-3.5" /></button>
+                            <span className="w-8 text-center text-sm tabular-nums">{n ?? "?"}</span>
+                            <button type="button" onClick={() => mudarPacotes(b, (n ?? 0) + 1)} disabled={n === null || n >= cabem} className="size-11 flex items-center justify-center disabled:opacity-30" aria-label={`Mais uma grade de ${b.nome}${b.bloco ? ` ${b.bloco}` : ""}`}><Plus className="size-3.5" /></button>
+                          </div>
+                          <span className="text-sm font-semibold">{formatarPreco(b.valor)}</span>
+                        </div>
+                        <p className="sr-only">{porPacote} peças por grade</p>
+                      </div>
+                      <button type="button" onClick={() => removerBloco(b)} className="self-start size-11 -mr-2 -mt-2 flex items-center justify-center" style={{ color: cores.suave }} aria-label={`Remover ${b.nome}${b.bloco ? ` ${b.bloco}` : ""}`}>
+                        <Trash2 className="size-4" />
+                      </button>
+                    </li>
+                  )
+                }
+                const l = entrada.linha
+                const avisos = avisoDoProdutoDe(l.produtoId) && linhas.find((x) => x.produtoId === l.produtoId) === l ? avisoDoProdutoDe(l.produtoId) : null
                 const unitario = unitarioDaLinha(l, porProduto)
                 return (
                 <li key={l.produtoId + l.combinacao} className="flex gap-3 py-3" style={{ borderColor: cores.borda }}>
