@@ -120,7 +120,7 @@ export function WizardConexao({ mostrarNumeroTeste = false }: { mostrarNumeroTes
         tentarFinalizar(10)
       },
       {
-        config_id: "4461281834113539",
+        config_id: process.env.NEXT_PUBLIC_META_CONFIG_ID,
         response_type: "code",
         override_default_response_type: true,
         extras: {
