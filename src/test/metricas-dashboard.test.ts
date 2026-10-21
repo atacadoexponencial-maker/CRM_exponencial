@@ -238,8 +238,18 @@ describe("rangeDoPeriodo", () => {
   it("calcula intervalo de 7 dias", () => {
     const agora = new Date("2026-06-12T15:00:00")
     const r = rangeDoPeriodo({ periodo: "7d" }, agora)
-    expect(r.fim.getTime()).toBe(agora.getTime())
+    // B32-01: o fim é o fim do dia de hoje, não a hora atual
+    expect(r.fim.getTime()).toBe(new Date("2026-06-12T23:59:59.999").getTime())
     expect(r.inicio.getDate()).toBe(5)
+  })
+
+  it("CA-B32-22: compra registrada hoje entra na receita dos últimos 30 dias mesmo com o relógio às 9h", () => {
+    const agora = new Date("2026-10-21T09:00:00")
+    const range = rangeDoPeriodo({ periodo: "30d" }, agora)
+    const compraDeHoje = { contact_id: "c1", data: "2026-10-21", valor: 150 }
+    const m = calcularMetricas([], [], [compraDeHoje], range)
+    expect(m.receita.totalCompras).toBe(150)
+    expect(m.receita.quantidadeCompras).toBe(1)
   })
 
   it("calcula 'este mês' começando no dia 1", () => {

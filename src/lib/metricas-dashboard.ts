@@ -101,7 +101,10 @@ const ETAPA_GANHO_IDX = ETAPAS_FUNIL.length - 1
 const ETAPAS_RECOMPRA_ATIVAS = ["onboarding", "reposicao", "ativos"]
 
 export function rangeDoPeriodo(filtro: FiltroDashboard, agora = new Date()): RangePeriodo {
+  // B32-01: o período vai até o FIM do dia de hoje, não até a hora atual. A compra
+  // guarda só a data e é comparada como meio-dia; de manhã ela ficava de fora.
   const fim = new Date(agora)
+  fim.setHours(23, 59, 59, 999)
   const inicio = new Date(agora)
 
   switch (filtro.periodo) {
