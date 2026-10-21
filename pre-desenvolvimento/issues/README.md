@@ -1,6 +1,6 @@
 # issues
 
-- **Arquivos soltos nesta pasta = issues abertas.** Hoje: B29-01 e B29-03 (foto de perfil) e B30-05 (gráficos do dashboard, aguardando o teste manual).
+- **Arquivos soltos nesta pasta = issues abertas.** Hoje: B29-01 e B29-03 (foto de perfil), B30-05 (gráficos do dashboard, aguardando o teste manual), B31-03 (grade fechada, aguardando o teste manual) e B32-01 a B32-06 (relatórios: Visão Geral).
 - `concluidas_<série>/` = entregues e no ar. Não se mexe mais nelas.
 - `bloqueadas_modulo6/` = escritas, mas sem como fazer (API da Meta não tem grupos).
 
@@ -26,4 +26,5 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B29 | `../spec-foto-de-perfil.md` (em andamento: foto de perfil real do contato, buscada pelo canal direto) | `concluidas_B29/` (quando houver) |
 | B30 | `../spec-fundacao-da-venda.md` (aprovada em 20/10/2026, 5 issues: pedido do catálogo fechado vira compra, compra com peças/desconto/pagamento/atendente/origem, dashboard na fonte unificada, exportação Excel e gráficos para os relatórios) | `concluidas_B30/` (quando houver) |
 | B31 | `../spec-regras-de-venda-do-catalogo.md` (rascunho de 21/10/2026: preço por quantidade, mínimo por produto, grade fechada e repetir último pedido na loja do catálogo) | `concluidas_B31/` (quando houver) |
+| B32 | `../spec-relatorios-visao-geral.md` (aprovada em 21/10/2026: tela Relatórios com a Visão Geral ampliada no modelo Tailor, UF do contato e correção do período do Dashboard) | `concluidas_B32/` (quando houver) |
 | F1 | `docs/specs-arquivadas/spec-fluxo-com-prova.md` (melhoria do fluxo de desenvolvimento: critérios de aceite com código, auditor, lições) | `concluidas_F1/` |
