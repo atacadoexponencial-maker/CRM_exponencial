@@ -11,13 +11,14 @@ import { CartoesResumo } from "./cartoes-resumo"
 import { GraficoFormaPagamento, GraficoProjecao, GraficoVendasDiarias } from "./graficos-visao-geral"
 import { TabelaVendas } from "./tabela-vendas"
 import { RfvClient } from "./rfv-client"
+import { CoorteClient } from "./coorte-client"
 import { urlDeExportacao, urlDeExportacaoPorUf } from "@/lib/relatorios/exportar-vendas"
 import { VariacaoPorUfTabela } from "./variacao-por-uf"
 import { Grafico25Meses } from "./grafico-25-meses"
 
-const ABAS_FUTURAS = ["Coorte", "Funil de clientes", "Carteiras"]
+const ABAS_FUTURAS = ["Funil de clientes", "Carteiras"]
 
-type Aba = "visao-geral" | "rfv"
+type Aba = "visao-geral" | "rfv" | "coorte"
 
 const selectClass =
   "h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -84,7 +85,7 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
 
       {/* Abas: só a Visão Geral existe; as outras avisam "em breve" (SUP-B32-06 invalidada). */}
       <div role="tablist" aria-label="Relatórios" className="flex flex-wrap gap-1 border-b mb-6">
-        {([["visao-geral", "Visão Geral"], ["rfv", "RFV"]] as Array<[Aba, string]>).map(([id, nome]) => (
+        {([["visao-geral", "Visão Geral"], ["rfv", "RFV"], ["coorte", "Coorte"]] as Array<[Aba, string]>).map(([id, nome]) => (
           <button
             key={id}
             type="button"
@@ -111,7 +112,7 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
         ))}
       </div>
 
-      {aba === "rfv" && (
+      {(aba === "rfv" || aba === "coorte") && (
         <>
           {podeFiltrarAtendente && (
             <div className="flex flex-wrap items-center gap-2 mb-6">
@@ -123,7 +124,8 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
               </select>
             </div>
           )}
-          <RfvClient atendenteId={atendenteId || null} />
+          {aba === "rfv" && <RfvClient atendenteId={atendenteId || null} />}
+          {aba === "coorte" && <CoorteClient atendenteId={atendenteId || null} />}
         </>
       )}
 

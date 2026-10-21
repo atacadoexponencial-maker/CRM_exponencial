@@ -49,14 +49,15 @@ describe("B32-03 — tela Relatórios", () => {
     }
   })
 
-  it("CA-B32-24: 'Visão Geral' ativa e Coorte, Funil de clientes e Carteiras desativadas com 'em breve' (RFV abriu na B33)", () => {
+  it("CA-B32-24: 'Visão Geral' ativa e Funil de clientes e Carteiras desativadas com 'em breve' (RFV e Coorte abriram na B33 e B34)", () => {
     renderTela()
     const abas = within(screen.getByRole("tablist")).getAllByRole("tab")
     expect(abas[0]).toHaveTextContent("Visão Geral")
     expect(abas[0]).toHaveAttribute("aria-selected", "true")
     expect(abas[1]).toHaveTextContent("RFV")
-    const futuras = abas.slice(2)
-    expect(futuras.map((a) => a.textContent?.replace(/\s*em breve$/, "").trim())).toEqual(["Coorte", "Funil de clientes", "Carteiras"])
+    expect(abas[2]).toHaveTextContent("Coorte")
+    const futuras = abas.slice(3)
+    expect(futuras.map((a) => a.textContent?.replace(/\s*em breve$/, "").trim())).toEqual(["Funil de clientes", "Carteiras"])
     for (const aba of futuras) {
       expect(aba).toBeDisabled()
       expect(aba).toHaveTextContent(/em breve/)

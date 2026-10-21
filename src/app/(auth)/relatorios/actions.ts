@@ -20,6 +20,7 @@ import {
   type VisaoGeralCartoes,
 } from "@/lib/relatorios/visao-geral"
 import { calcularRfv, type ResultadoRfv } from "@/lib/relatorios/rfv"
+import { calcularCoortes, type ResultadoCoorte } from "@/lib/relatorios/coorte"
 
 export type { FiltroRelatorio, PeriodoRelatorio, VisaoGeralCartoes } from "@/lib/relatorios/visao-geral"
 
@@ -152,3 +153,13 @@ export async function buscarRfv(filtro: { atendenteId?: string | null }): Promis
 }
 
 const ETAPAS_RECOMPRA_ATIVAS = ["onboarding", "reposicao", "ativos"]
+
+/** B34-01: coortes pelo mês da primeira venda, as 12 mais recentes. Mesma regra do atendente. */
+export async function buscarCoorte(filtro: { atendenteId?: string | null }): Promise<ResultadoCoorte | null> {
+  const { user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return null
+  const atendenteId = perfil.role === "atendente" ? user.id : (filtro.atendenteId ?? null)
+  const dados = await carregarVendas(atendenteId)
+  if (!dados) return null
+  return calcularCoortes(dados.vendas, hojeNoFuso())
+}
