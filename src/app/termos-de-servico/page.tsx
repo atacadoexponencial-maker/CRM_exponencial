@@ -1,8 +1,8 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Termos de Serviço — CRM Exponencial",
-  description: "Termos de serviço do CRM Exponencial, desenvolvido por Atacado Exponencial.",
+  title: "Termos de Serviço — crmatacado exp",
+  description: "Termos de serviço do crmatacado exp, desenvolvido por Atacado Exponencial.",
 }
 
 export default function TermosDeServicoPage() {
@@ -14,7 +14,7 @@ export default function TermosDeServicoPage() {
 
         <section className="mb-8">
           <p>
-            Ao acessar ou usar o <strong>CRM Exponencial</strong>, desenvolvido e operado por{" "}
+            Ao acessar ou usar o <strong>crmatacado exp</strong>, desenvolvido e operado por{" "}
             <strong>Atacado Exponencial</strong>, você concorda com estes Termos de Serviço. Leia-os
             com atenção antes de utilizar a plataforma.
           </p>
@@ -23,7 +23,7 @@ export default function TermosDeServicoPage() {
         <section className="mb-8">
           <h2 className="text-base font-semibold mb-3">1. Descrição do serviço</h2>
           <p>
-            O CRM Exponencial é uma plataforma de gestão de relacionamento com clientes voltada para
+            O crmatacado exp é uma plataforma de gestão de relacionamento com clientes voltada para
             atacadistas que utilizam o WhatsApp como canal de vendas. A plataforma permite o
             gerenciamento de contatos, conversas, times de atendimento e pipeline de vendas por meio
             da integração com a WhatsApp Business API da Meta.
@@ -79,7 +79,7 @@ export default function TermosDeServicoPage() {
         <section className="mb-8">
           <h2 className="text-base font-semibold mb-3">5. Propriedade intelectual</h2>
           <p>
-            Todo o código, design, marca e conteúdo da plataforma CRM Exponencial são de
+            Todo o código, design, marca e conteúdo da plataforma crmatacado exp são de
             propriedade exclusiva da Atacado Exponencial. É vedada a reprodução, distribuição ou
             criação de obras derivadas sem autorização expressa por escrito.
           </p>

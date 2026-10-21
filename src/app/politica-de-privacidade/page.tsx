@@ -1,8 +1,8 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Política de Privacidade — CRM Exponencial",
-  description: "Política de privacidade do CRM Exponencial, desenvolvido por Atacado Exponencial.",
+  title: "Política de Privacidade — crmatacado exp",
+  description: "Política de privacidade do crmatacado exp, desenvolvido por Atacado Exponencial.",
 }
 
 export default function PoliticaDePrivacidadePage() {
@@ -14,7 +14,7 @@ export default function PoliticaDePrivacidadePage() {
 
       <section className="mb-8">
         <p>
-          Esta Política de Privacidade descreve como o <strong>CRM Exponencial</strong>, desenvolvido e
+          Esta Política de Privacidade descreve como o <strong>crmatacado exp</strong>, desenvolvido e
           operado por <strong>Atacado Exponencial</strong>, coleta, usa, armazena e compartilha
           informações dos usuários e de seus clientes finais.
         </p>
@@ -22,7 +22,7 @@ export default function PoliticaDePrivacidadePage() {
 
       <section className="mb-8">
         <h2 className="text-base font-semibold mb-3">1. Dados que coletamos</h2>
-        <p className="mb-2">Ao usar o CRM Exponencial, coletamos:</p>
+        <p className="mb-2">Ao usar o crmatacado exp, coletamos:</p>
         <ul className="list-disc pl-5 space-y-1">
           <li>Nome, e-mail e senha dos usuários da plataforma (administradores e atendentes)</li>
           <li>Nome da empresa e informações do workspace</li>
@@ -37,7 +37,7 @@ export default function PoliticaDePrivacidadePage() {
         <h2 className="text-base font-semibold mb-3">2. Como usamos os dados</h2>
         <p className="mb-2">Utilizamos as informações coletadas para:</p>
         <ul className="list-disc pl-5 space-y-1">
-          <li>Operar e manter a plataforma CRM Exponencial</li>
+          <li>Operar e manter a plataforma crmatacado exp</li>
           <li>Facilitar o envio e recebimento de mensagens via WhatsApp Business API</li>
           <li>Organizar conversas, contatos e pipeline de vendas dos usuários</li>
           <li>Garantir a segurança e o isolamento dos dados entre diferentes empresas (workspaces)</li>

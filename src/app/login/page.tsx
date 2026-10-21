@@ -1,6 +1,7 @@
 "use client"
 
 import { use, useState } from "react"
+import Image from "next/image"
 import { unstable_rethrow } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -54,9 +55,10 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<{ mo
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
+          <Image src="/logo-crmatacado-exp.png" alt="crmatacado exp" width={720} height={349} priority className="mx-auto mb-6 h-16 w-auto" />
           <h1 className="text-2xl font-semibold tracking-tight">Entrar</h1>
           <p className="text-sm text-muted-foreground mt-2">
-            Acesse sua conta no CRM Exponencial
+            Acesse sua conta no crmatacado exp
           </p>
         </div>
 

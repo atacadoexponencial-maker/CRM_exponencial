@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -52,9 +53,10 @@ export default function CadastroPage() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
+          <Image src="/logo-crmatacado-exp.png" alt="crmatacado exp" width={720} height={349} priority className="mx-auto mb-6 h-16 w-auto" />
           <h1 className="text-2xl font-semibold tracking-tight">Criar conta</h1>
           <p className="text-sm text-muted-foreground mt-2">
-            Cadastre sua empresa no CRM Exponencial
+            Cadastre sua empresa no crmatacado exp
           </p>
         </div>
 

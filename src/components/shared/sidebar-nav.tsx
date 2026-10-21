@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
   AlarmClock,
@@ -183,10 +184,7 @@ function ConteudoNav({
             onClick={onNavegar}
             className="flex flex-1 min-w-0 items-center gap-2.5"
           >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Zap className="size-4" />
-            </span>
-            <span className="font-semibold text-sm tracking-tight truncate">CRM Exponencial</span>
+            <Image src="/logo-crmatacado-exp.png" alt="crmatacado exp" width={720} height={349} priority className="h-8 w-auto" />
           </Link>
         )}
         {onAlternar && (
@@ -247,10 +245,7 @@ export function SidebarNav({ recolhidoInicial = false, ...props }: SidebarNavPro
       {/* Barra superior + drawer (mobile) */}
       <div className="lg:hidden flex items-center justify-between border-b h-14 px-4 shrink-0">
         <span className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Zap className="size-4" />
-          </span>
-          <span className="font-semibold text-sm">CRM Exponencial</span>
+          <Image src="/logo-crmatacado-exp.png" alt="crmatacado exp" width={720} height={349} priority className="h-8 w-auto" />
         </span>
         <span className="flex items-center gap-2">
         <MenuDoUsuario nome={props.nomeUsuario} email={props.email ?? ""} />
