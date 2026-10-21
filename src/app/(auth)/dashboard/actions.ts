@@ -4,6 +4,7 @@ import { sessaoAtual } from "@/lib/sessao"
 import {
   calcularMetricas,
   calcularPerformanceVendedores,
+  compraEhDoAtendente,
   rangeDoPeriodo,
   type CardRow,
   type FiltroDashboard,
@@ -35,7 +36,8 @@ async function carregarDados(filtro: FiltroDashboard) {
     supabase
       .from("contact_purchases")
       // B13-03: compra de contato na lixeira não conta; volta ao restaurar.
-      .select("contact_id, data, valor, contato:contacts!inner(excluido_em)")
+      // B30-03: atendente da venda, para a performance e o filtro por atendente.
+      .select("contact_id, data, valor, atendente_id, contato:contacts!inner(excluido_em)")
       .eq("workspace_id", perfil.workspace_id)
       .is("contato.excluido_em", null),
   ])
@@ -52,11 +54,11 @@ async function carregarDados(filtro: FiltroDashboard) {
     history = (historyData ?? []) as HistoryRow[]
   }
 
-  // Com filtro de atendente, considera só compras dos contatos daquele atendente
+  // Com filtro de atendente: compras dele e, das sem atendente, as dos contatos dele (B30-03).
   let purchases = (purchasesData ?? []) as PurchaseRow[]
   if (atendenteId) {
     const contatosDoAtendente = new Set(cards.map((c) => c.contact_id).filter(Boolean))
-    purchases = purchases.filter((p) => contatosDoAtendente.has(p.contact_id))
+    purchases = purchases.filter((p) => compraEhDoAtendente(p, atendenteId, contatosDoAtendente))
   }
 
   return { perfil, cards, history, purchases }

@@ -198,6 +198,40 @@ describe("calcularPerformanceVendedores", () => {
     expect(bruno.taxaConversao).toBe(0)
     expect(bruno.ticketMedio).toBeNull()
   })
+
+  // B30-03: a compra é do atendente da venda; sem atendente, do atendente do card.
+  it("CA-B30-17: compra com atendente Bruno de contato cujo card é da Ana entra no ticket de Bruno, não no de Ana", () => {
+    const atendentes = [
+      { id: "ana", nome: "Ana" },
+      { id: "bruno", nome: "Bruno" },
+    ]
+    const cards = [card({ id: "1", atendente_id: "ana", funil: "recompra", etapa: "ativos" })]
+    const purchases: PurchaseRow[] = [
+      { contact_id: "contato-1", data: "2026-06-10", valor: 300, atendente_id: "bruno" },
+    ]
+
+    const [ana, bruno] = calcularPerformanceVendedores(atendentes, cards, [], purchases, range)
+
+    expect(bruno.ticketMedio).toBe(300)
+    expect(ana.ticketMedio).toBeNull()
+  })
+
+  it("CA-B30-18: compra sem atendente de contato cujo card é da Ana conta para Ana", () => {
+    const atendentes = [
+      { id: "ana", nome: "Ana" },
+      { id: "bruno", nome: "Bruno" },
+    ]
+    const cards = [card({ id: "1", atendente_id: "ana", funil: "recompra", etapa: "ativos" })]
+    const purchases: PurchaseRow[] = [
+      { contact_id: "contato-1", data: "2026-06-10", valor: 150, atendente_id: null },
+      { contact_id: "contato-1", data: "2026-06-12", valor: 250 }, // compra antiga, sem a coluna
+    ]
+
+    const [ana, bruno] = calcularPerformanceVendedores(atendentes, cards, [], purchases, range)
+
+    expect(ana.ticketMedio).toBe(200)
+    expect(bruno.ticketMedio).toBeNull()
+  })
 })
 
 describe("rangeDoPeriodo", () => {

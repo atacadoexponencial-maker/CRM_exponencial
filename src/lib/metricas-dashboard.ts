@@ -65,7 +65,26 @@ export type CardRow = {
 
 export type HistoryRow = { card_id: string; para_etapa: string; created_at: string }
 
-export type PurchaseRow = { contact_id: string; data: string; valor: number }
+export type PurchaseRow = {
+  contact_id: string
+  data: string
+  valor: number
+  /** B30-03: atendente responsável pela venda. Nulo = segue o atendente do card do contato. */
+  atendente_id?: string | null
+}
+
+/**
+ * B30-03: a compra é do atendente da venda; sem atendente, do atendente do card do
+ * contato (`contatosDoAtendente`). Mesma regra no dashboard filtrado e na performance.
+ */
+export function compraEhDoAtendente(
+  p: PurchaseRow,
+  atendenteId: string,
+  contatosDoAtendente: Set<string | null>
+): boolean {
+  if (p.atendente_id) return p.atendente_id === atendenteId
+  return contatosDoAtendente.has(p.contact_id)
+}
 
 const ETAPAS_FUNIL: Array<{ id: string; label: string }> = [
   { id: "lead", label: "Lead" },
@@ -315,8 +334,9 @@ export function calcularPerformanceVendedores(
     ).length
 
     const contatos = new Set(cardsDoAtendente.map((c) => c.contact_id).filter(Boolean))
+    // B30-03: compra com atendente conta para ele; sem atendente, para o atendente do card.
     const comprasDoAtendente = purchases.filter(
-      (p) => contatos.has(p.contact_id) && dataCompra(p) >= inicio && dataCompra(p) <= fim
+      (p) => compraEhDoAtendente(p, a.id, contatos) && dataCompra(p) >= inicio && dataCompra(p) <= fim
     )
     const ticketMedio =
       comprasDoAtendente.length > 0
