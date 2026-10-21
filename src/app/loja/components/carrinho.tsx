@@ -133,7 +133,7 @@ export function Carrinho({ tema, aberto, linhas, minimo, onFechar, onMudarQuanti
                   <div className="size-16 shrink-0 rounded-lg overflow-hidden flex items-center justify-center" style={{ background: cores.superficie }}>
                     {l.fotoUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={l.fotoUrl} alt="" className="size-full object-cover" />
+                      <img src={l.fotoUrl} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
                     ) : (
                       <ImageOff className="size-4" style={{ color: cores.suave }} />
                     )}

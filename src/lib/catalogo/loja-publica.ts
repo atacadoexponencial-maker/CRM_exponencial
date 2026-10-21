@@ -3,6 +3,7 @@
 // produtos visíveis, preços, fotos, estoque por combinação e as regras do pedido.
 // Nunca devolver dado de contato, pedido ou configuração interna daqui.
 
+import { cache } from "react"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { chaveCombinacao, combinacoes, type TipoVariacao } from "./combinacoes"
 import { BUCKET_CATALOGO } from "./regras"
@@ -52,8 +53,12 @@ export function temaDasConfiguracoes(cfg: ColunasTema | null, nomeEmpresa: strin
   }
 }
 
-/** A loja do endereço, se estiver publicada e com o número que recebe os pedidos. */
-export async function carregarLojaPublica(endereco: string): Promise<LojaPublica | null> {
+/**
+ * A loja do endereço, se estiver publicada e com o número que recebe os pedidos.
+ * `cache` do React: o layout (metadados) e a página pedem a mesma loja na mesma
+ * requisição, e o banco é consultado uma vez só.
+ */
+export const carregarLojaPublica = cache(async function carregarLojaPublica(endereco: string): Promise<LojaPublica | null> {
   const service = createServiceClient()
   const { data: cfg } = await service
     .from("catalog_settings")
@@ -76,7 +81,7 @@ export async function carregarLojaPublica(endereco: string): Promise<LojaPublica
     mensagemFechamento: cfg.closing_message,
     whatsapp: cfg.orders_whatsapp,
   }
-}
+})
 
 /** Categorias e produtos visíveis da loja, na ordem do lojista. */
 export async function carregarVitrine(workspaceId: string): Promise<{ categorias: CategoriaVitrine[]; produtos: ProdutoVitrine[] }> {
@@ -112,8 +117,8 @@ export async function carregarVitrine(workspaceId: string): Promise<{ categorias
   return { categorias: (cats ?? []).filter((c) => comProduto.has(c.id)).map((c) => ({ id: c.id, nome: c.name })), produtos }
 }
 
-/** Um produto visível da loja, com variações e estoque. */
-export async function carregarProdutoPublico(workspaceId: string, produtoId: string): Promise<ProdutoDetalhe | null> {
+/** Um produto visível da loja, com variações e estoque (uma consulta por requisição, como a loja). */
+export const carregarProdutoPublico = cache(async function carregarProdutoPublico(workspaceId: string, produtoId: string): Promise<ProdutoDetalhe | null> {
   if (!/^[0-9a-f-]{36}$/i.test(produtoId)) return null
   const { data: p } = await createServiceClient()
     .from("catalog_products")
@@ -133,4 +138,4 @@ export async function carregarProdutoPublico(workspaceId: string, produtoId: str
     tipos: (p.variant_types as TipoVariacao[]) ?? [],
     estoque: Object.fromEntries(((p.catalog_stock as { combination: string; quantity: number }[]) ?? []).map((e) => [e.combination, e.quantity])),
   }
-}
+})

@@ -1,6 +1,5 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import { Vitrine, type CategoriaVitrine, type ProdutoVitrine } from "../components/vitrine"
 import { textoDoMinimo, type MinimoPedido } from "../components/pedido"
 import type { TemaLoja } from "../components/tema"
@@ -15,7 +14,6 @@ interface LojaClientProps {
 }
 
 export function LojaClient({ endereco, tema, minimo, categorias, produtos }: LojaClientProps) {
-  const router = useRouter()
   const { pecas, abrir, gaveta } = useCarrinhoLoja(endereco, tema, minimo)
   return (
     <>
@@ -25,7 +23,7 @@ export function LojaClient({ endereco, tema, minimo, categorias, produtos }: Loj
         produtos={produtos}
         quantidadeNoCarrinho={pecas}
         avisoMinimo={textoDoMinimo(minimo)}
-        onAbrirProduto={(id) => router.push(`/loja/${endereco}/p/${id}`)}
+        hrefProduto={(id) => `/loja/${endereco}/p/${id}`}
         onAbrirCarrinho={abrir}
       />
       {gaveta}

@@ -4,7 +4,8 @@
 // É a mesma na prévia da tela de Aparência e na loja pública. Reage à largura do próprio
 // quadro (container queries), não à da janela.
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, type ReactNode } from "react"
+import Link from "next/link"
 import { ImageOff, Search, ShoppingBag } from "lucide-react"
 import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { coresDaVitrine, type TemaLoja } from "./tema"
@@ -37,11 +38,35 @@ interface VitrineProps {
   quantidadeNoCarrinho?: number
   /** Ex.: "Pedido mínimo: 12 peças". */
   avisoMinimo?: string | null
+  /** Endereço da página do produto: o cartão vira link de verdade (abre em nova aba, copia, pré-carrega). */
+  hrefProduto?: (id: string) => string
+  /** Sem `hrefProduto` (a prévia da Aparência), o cartão só chama isto. */
   onAbrirProduto?: (id: string) => void
   onAbrirCarrinho?: () => void
 }
 
 type Cores = ReturnType<typeof coresDaVitrine>
+
+interface Abrir {
+  href?: string
+  onAbrir?: () => void
+}
+
+/** Cartão clicável: link quando a loja é pública, botão na prévia. */
+function Cartao({ href, onAbrir, className, style, children }: Abrir & { className: string; style: React.CSSProperties; children: ReactNode }) {
+  if (href) {
+    return (
+      <Link href={href} onClick={onAbrir} className={`block ${className}`} style={style}>
+        {children}
+      </Link>
+    )
+  }
+  return (
+    <button type="button" onClick={onAbrir} className={className} style={style}>
+      {children}
+    </button>
+  )
+}
 
 function Preco({ produto, cores }: { produto: ProdutoVitrine; cores: Cores }) {
   return (
@@ -57,7 +82,7 @@ function Foto({ produto, cores, className }: { produto: ProdutoVitrine; cores: C
     <div className={`relative overflow-hidden ${className}`} style={{ background: cores.superficie }}>
       {produto.fotoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={produto.fotoUrl} alt={produto.nome} className={`size-full object-cover ${produto.esgotado ? "opacity-50" : ""}`} />
+        <img src={produto.fotoUrl} alt={produto.nome} loading="lazy" decoding="async" className={`size-full object-cover ${produto.esgotado ? "opacity-50" : ""}`} />
       ) : (
         <div className="size-full flex items-center justify-center" style={{ color: cores.suave }}><ImageOff className="size-6" /></div>
       )}
@@ -70,40 +95,42 @@ function Foto({ produto, cores, className }: { produto: ProdutoVitrine; cores: C
   )
 }
 
-function CartaoGrade({ produto, cores, onAbrir }: { produto: ProdutoVitrine; cores: Cores; onAbrir?: () => void }) {
+type CartaoProps = Abrir & { produto: ProdutoVitrine; cores: Cores }
+
+function CartaoGrade({ produto, cores, href, onAbrir }: CartaoProps) {
   return (
-    <button type="button" onClick={onAbrir} className="text-left rounded-xl overflow-hidden border transition-transform active:scale-[0.98]" style={{ borderColor: cores.borda }}>
+    <Cartao href={href} onAbrir={onAbrir} className="text-left rounded-xl overflow-hidden border transition-transform active:scale-[0.98]" style={{ borderColor: cores.borda }}>
       <Foto produto={produto} cores={cores} className="aspect-square" />
       <div className="p-2.5 space-y-1">
         <p className="text-sm leading-snug line-clamp-2">{produto.nome}</p>
         <Preco produto={produto} cores={cores} />
       </div>
-    </button>
+    </Cartao>
   )
 }
 
-function LinhaLista({ produto, cores, onAbrir }: { produto: ProdutoVitrine; cores: Cores; onAbrir?: () => void }) {
+function LinhaLista({ produto, cores, href, onAbrir }: CartaoProps) {
   return (
-    <button type="button" onClick={onAbrir} className="w-full flex gap-3 text-left py-3 border-b" style={{ borderColor: cores.borda }}>
+    <Cartao href={href} onAbrir={onAbrir} className="w-full flex gap-3 text-left py-3 border-b" style={{ borderColor: cores.borda }}>
       <Foto produto={produto} cores={cores} className="size-24 shrink-0 rounded-lg" />
       <div className="min-w-0 flex-1 space-y-1">
         <p className="text-sm font-medium leading-snug">{produto.nome}</p>
         {produto.descricao && <p className="text-xs line-clamp-2" style={{ color: cores.suave }}>{produto.descricao}</p>}
         <Preco produto={produto} cores={cores} />
       </div>
-    </button>
+    </Cartao>
   )
 }
 
-function CartaoDestaque({ produto, cores, onAbrir }: { produto: ProdutoVitrine; cores: Cores; onAbrir?: () => void }) {
+function CartaoDestaque({ produto, cores, href, onAbrir }: CartaoProps) {
   return (
-    <button type="button" onClick={onAbrir} className="w-56 @3xl:w-64 shrink-0 text-left rounded-2xl overflow-hidden border" style={{ borderColor: cores.borda }}>
+    <Cartao href={href} onAbrir={onAbrir} className="w-56 @3xl:w-64 shrink-0 text-left rounded-2xl overflow-hidden border" style={{ borderColor: cores.borda }}>
       <Foto produto={produto} cores={cores} className="aspect-[4/5]" />
       <div className="p-3 space-y-1">
         <p className="font-medium leading-snug line-clamp-2">{produto.nome}</p>
         <Preco produto={produto} cores={cores} />
       </div>
-    </button>
+    </Cartao>
   )
 }
 
@@ -148,7 +175,7 @@ export function CabecalhoLoja({
   )
 }
 
-export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, avisoMinimo, onAbrirProduto, onAbrirCarrinho }: VitrineProps) {
+export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, avisoMinimo, hrefProduto, onAbrirProduto, onAbrirCarrinho }: VitrineProps) {
   const [categoriaAtiva, setCategoriaAtiva] = useState<string | null>(null)
   const [busca, setBusca] = useState("")
   const cores = coresDaVitrine(tema)
@@ -184,6 +211,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
   const destaques = produtos.filter((p) => p.destaque)
   const filtrando = termo !== "" || categoriaAtiva !== null
 
+  // Guarda filtro, busca e rolagem antes de sair; com `hrefProduto`, quem navega é o link.
   function abrir(id: string) {
     try {
       if (chaveDaVitrine) sessionStorage.setItem(chaveDaVitrine, JSON.stringify({ categoria: categoriaAtiva, busca, rolagem: window.scrollY }))
@@ -192,6 +220,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
     }
     onAbrirProduto?.(id)
   }
+  const cartao = (p: ProdutoVitrine) => ({ produto: p, cores, href: hrefProduto?.(p.id), onAbrir: () => abrir(p.id) })
 
   return (
     // O CSS global do CRM fixa a fonte dos títulos; na vitrine eles herdam a fonte da loja.
@@ -200,7 +229,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
 
       {tema.bannerUrl && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={tema.bannerUrl} alt="" className="w-full aspect-[3/1] @3xl:aspect-[4/1] object-cover" />
+        <img src={tema.bannerUrl} alt="" fetchPriority="high" className="w-full aspect-[3/1] @3xl:aspect-[4/1] object-cover" />
       )}
 
       <div className="px-4 pt-5 pb-10 space-y-5 max-w-6xl mx-auto">
@@ -245,7 +274,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold">Destaques</h2>
             <div className="flex gap-3 overflow-x-auto -mx-4 px-4 pb-2">
-              {destaques.map((p) => <CartaoDestaque key={p.id} produto={p} cores={cores} onAbrir={() => abrir(p.id)} />)}
+              {destaques.map((p) => <CartaoDestaque key={p.id} {...cartao(p)} />)}
             </div>
           </section>
         )}
@@ -256,10 +285,10 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
           <section key={g.id ?? "outros"} className="space-y-3">
             <h2 className="text-lg font-semibold">{g.nome}</h2>
             {tema.layout === "lista" ? (
-              <div>{g.itens.map((p) => <LinhaLista key={p.id} produto={p} cores={cores} onAbrir={() => abrir(p.id)} />)}</div>
+              <div>{g.itens.map((p) => <LinhaLista key={p.id} {...cartao(p)} />)}</div>
             ) : (
               <div className="grid grid-cols-2 @xl:grid-cols-3 @3xl:grid-cols-4 gap-3">
-                {g.itens.map((p) => <CartaoGrade key={p.id} produto={p} cores={cores} onAbrir={() => abrir(p.id)} />)}
+                {g.itens.map((p) => <CartaoGrade key={p.id} {...cartao(p)} />)}
               </div>
             )}
           </section>

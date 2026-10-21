@@ -4,7 +4,7 @@
 // Produto com variação compra por grade (B17): todas as combinações de uma vez.
 
 import { useState } from "react"
-import { ArrowLeft, Check, ImageOff, Minus, Plus, X } from "lucide-react"
+import { ArrowLeft, Check, ImageOff, Minus, Plus, Share2, X } from "lucide-react"
 import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { chaveCombinacao, combinacoes } from "@/lib/catalogo/combinacoes"
 import { blocosDaGrade, limitarQuantidade, totaisDaGrade } from "@/lib/catalogo/grade"
@@ -49,6 +49,24 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
   const [fotoAtiva, setFotoAtiva] = useState(0)
   const [ampliada, setAmpliada] = useState(false)
   const [adicionadas, setAdicionadas] = useState<number | null>(null)
+  const [linkCopiado, setLinkCopiado] = useState(false)
+
+  // No celular abre a folha de compartilhar do aparelho (WhatsApp na frente); no
+  // computador copia o link. É o link desta página, que já tem a prévia do produto.
+  async function compartilhar() {
+    const url = window.location.href
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: produto.nome, url })
+        return
+      }
+      await navigator.clipboard.writeText(url)
+      setLinkCopiado(true)
+      setTimeout(() => setLinkCopiado(false), 2000)
+    } catch {
+      // a pessoa cancelou a folha de compartilhar, ou o navegador não deixou copiar
+    }
+  }
 
   const estoqueDe = (combinacao: string) => produto.estoque[combinacao] ?? 0
   const disponivelDe = (combinacao: string) => Math.max(0, estoqueDe(combinacao) - noCarrinho(combinacao))
@@ -80,10 +98,16 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
       <CabecalhoLoja tema={tema} quantidadeNoCarrinho={quantidadeNoCarrinho} onAbrirCarrinho={onAbrirCarrinho} onAbrirLoja={onVoltar} />
 
       <div className={`max-w-5xl mx-auto px-4 py-4 space-y-4 ${onAdicionar && !esgotado ? "pb-24 @3xl:pb-4" : ""}`}>
-        <button type="button" onClick={onVoltar} className="inline-flex items-center gap-1.5 text-sm" style={{ color: cores.suave }}>
-          <ArrowLeft className="size-4" />
-          Voltar
-        </button>
+        <div className="flex items-center justify-between gap-3">
+          <button type="button" onClick={onVoltar} className="inline-flex items-center gap-1.5 min-h-11 text-sm" style={{ color: cores.suave }}>
+            <ArrowLeft className="size-4" />
+            Voltar
+          </button>
+          <button type="button" onClick={compartilhar} className="inline-flex items-center gap-1.5 min-h-11 px-2 text-sm" style={{ color: cores.suave }} aria-live="polite">
+            {linkCopiado ? <Check className="size-4" style={{ color: cores.principal }} /> : <Share2 className="size-4" />}
+            {linkCopiado ? "Link copiado" : "Compartilhar"}
+          </button>
+        </div>
 
         <div className="grid gap-6 @3xl:grid-cols-2">
           <div className="space-y-2">
@@ -98,7 +122,7 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
                     aria-label={`Ampliar foto ${i + 1}`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt={`${produto.nome}, foto ${i + 1}`} className="size-full object-cover" />
+                    <img src={url} alt={`${produto.nome}, foto ${i + 1}`} loading={i === 0 ? "eager" : "lazy"} fetchPriority={i === 0 ? "high" : "auto"} decoding="async" className="size-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -119,7 +143,7 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
                     aria-label={`Ver foto ${i + 1}`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt="" className="size-full object-cover" />
+                    <img src={url} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
                   </button>
                 ))}
               </div>
