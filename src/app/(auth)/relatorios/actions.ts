@@ -21,6 +21,7 @@ import {
 } from "@/lib/relatorios/visao-geral"
 import { calcularRfv, type ResultadoRfv } from "@/lib/relatorios/rfv"
 import { calcularCoortes, type ResultadoCoorte } from "@/lib/relatorios/coorte"
+import { calcularFunilClientes, type ResultadoFunilClientes } from "@/lib/relatorios/funil-clientes"
 
 export type { FiltroRelatorio, PeriodoRelatorio, VisaoGeralCartoes } from "@/lib/relatorios/visao-geral"
 
@@ -162,4 +163,14 @@ export async function buscarCoorte(filtro: { atendenteId?: string | null }): Pro
   const dados = await carregarVendas(atendenteId)
   if (!dados) return null
   return calcularCoortes(dados.vendas, hojeNoFuso())
+}
+
+/** B34-03: funil "1+ a 7+ compras" em toda a história. Mesma regra do atendente. */
+export async function buscarFunilClientes(filtro: { atendenteId?: string | null }): Promise<ResultadoFunilClientes | null> {
+  const { user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return null
+  const atendenteId = perfil.role === "atendente" ? user.id : (filtro.atendenteId ?? null)
+  const dados = await carregarVendas(atendenteId)
+  if (!dados) return null
+  return calcularFunilClientes(dados.vendas, hojeNoFuso())
 }

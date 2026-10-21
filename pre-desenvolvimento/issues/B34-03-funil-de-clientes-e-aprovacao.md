@@ -30,3 +30,55 @@ Na empresa de teste, Relatórios → Funil de clientes mostra o funil com as eta
 ## Perguntas em aberto
 
 Nenhuma.
+
+## Cenários
+
+### Happy Path
+1. O usuário clica na aba "Funil de clientes"; o componente chama `buscarFunilClientes({ atendenteId })`, que carrega as vendas e chama `calcularFunilClientes` com hoje.
+2. A aba mostra o funil (Recharts `FunnelChart`) com as etapas que têm cliente, rótulo "N+ compras: X · conversão", a legenda com clientes e parados por etapa, os seis cartões de taxas, a tabela por etapa (clientes, conversão, ticket médio, parados), o link "O que são clientes parados?" que abre a explicação e as dicas.
+3. Trocar o atendente recalcula.
+
+### Edge Cases
+- Etapa sem cliente: fora do desenho do funil, mas na legenda e na tabela com 0 e "—".
+- Base vazia: "Nenhum cliente com compra."
+- Cliente com venda há exatamente 90 dias não é parado; há 91, é.
+
+### Cenário de Erro
+- Ação devolve nulo: "Não foi possível carregar o funil. Tente novamente."
+
+## Prova
+
+| Critério | Prova | Onde | O que confere |
+|---|---|---|---|
+| CA-B34-09 | automática | `src/test/relatorios-funil-clientes.test.tsx` | 17, 7, 2, 0…; conversões 41,2% e 28,6%; ticket médio de 2+ R$ 228,57 |
+| CA-B34-10 | automática | `src/test/relatorios-funil-clientes.test.tsx` | 91 dias é parado, 90 não: etapa 2+ com 1 parado |
+| CA-B34-11 | automática | `src/test/relatorios-funil-clientes.test.tsx` | Clicar na aba mostra funil, legenda, taxas, tabela e dicas |
+| CA-B34-12 | manual | roteiro abaixo | Abas Coorte e Funil aprovadas em produção |
+
+### Roteiro manual — CA-B34-12
+1. Entrar na "[TESTE] Automações B11" e abrir Relatórios → Coorte, no computador e no celular: retenção média geral, gráfico de recompra, tabelas com cor por intensidade (alternar Retenção / Valor médio), Exportar e o Entenda.
+2. Abrir Relatórios → Funil de clientes: funil colorido com as etapas, legenda com parados, taxas, tabela, "O que são clientes parados?" e dicas.
+3. Tudo legível no tema escuro; números coerentes com a base da empresa de teste.
+
+## Banco de Dados
+
+Não se aplica.
+
+## Arquivos
+
+- **Criar:** `src/lib/relatorios/funil-clientes.ts` — cálculo puro das etapas, conversões, ticket médio e parados.
+- **Modificar:** `src/app/(auth)/relatorios/actions.ts` — `buscarFunilClientes`.
+- **Criar:** `src/app/(auth)/relatorios/components/funil-clientes-client.tsx` — a aba.
+- **Modificar:** `src/app/(auth)/relatorios/components/relatorios-client.tsx` — aba Funil de clientes ativa; só Carteiras fica "em breve".
+- **Modificar:** `src/test/relatorios-tela.test.tsx` — CA-B32-24 passa a esperar uma aba futura.
+- **Criar:** `src/test/relatorios-funil-clientes.test.tsx` — CA-B34-09, 10 e 11.
+
+## Dependências Externas
+
+- `recharts` — `FunnelChart`, já instalado.
+
+## Checklist
+
+- [x] Lib do funil
+- [x] Ação e aba Funil de clientes com funil, legenda, taxas, tabela, explicação e dicas
+- [x] Testes automáticos passando; roteiro manual do CA-B34-12 registrado
