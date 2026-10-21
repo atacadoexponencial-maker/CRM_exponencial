@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { MessageSquare, ArrowLeft, Pencil, X, Zap, Trash2 } from "lucide-react"
+import { MessageSquare, ArrowLeft, Pencil, X, Zap, Trash2, Download } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AvatarContato } from "@/components/shared/avatar-contato"
 import { IniciarSequenciaDialog } from "@/components/shared/iniciar-sequencia-dialog"
@@ -595,9 +595,16 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
           <section className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Histórico de compras</h2>
-              {papel !== "atendente" && (
-                <RegistrarCompraDialog contactId={contato.id} atendentes={atendentes} atendenteSugeridoId={atendenteSugeridoId} />
-              )}
+              <div className="flex items-center gap-2">
+                {/* B30-04: baixa a tabela em Excel. A rota decide o que cada papel vê. */}
+                <Button size="sm" variant="outline" render={<a href={`/contatos/${contato.id}/compras/exportar`} />}>
+                  <Download className="size-3.5" />
+                  Exportar
+                </Button>
+                {papel !== "atendente" && (
+                  <RegistrarCompraDialog contactId={contato.id} atendentes={atendentes} atendenteSugeridoId={atendenteSugeridoId} />
+                )}
+              </div>
             </div>
 
             {contato.compras.length === 0 ? (
