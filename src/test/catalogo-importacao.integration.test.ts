@@ -300,3 +300,35 @@ describe("B18-03 — Fotos por link", { timeout: 60_000 }, () => {
     expect(await fotosDe("FOTO-1")).toEqual(antes)
   })
 })
+
+describe("B31-04 — regras de venda pela planilha", { timeout: 60_000 }, () => {
+  it("CA-B31-04: a prévia aponta só a linha inválida; gravar cria o produto com faixas, mínimo e grade; reimportar com as colunas vazias mantém", async () => {
+    await entrarComo(emailAdmin)
+    const linhas = [
+      { codigo: "REG-1", nome: "Camiseta Regra", preco: "29,90", variacao1: "Tamanho", opcao1: "P", variacao2: "Cor", opcao2: "Azul", estoque: 5, faixas: "12=24,90;48=21,90", minimo: "6", grade: "P1 M2 G2 GG1", precoGrade: "150" },
+      { codigo: "REG-1", variacao1: "Tamanho", opcao1: "M", variacao2: "Cor", opcao2: "Azul", estoque: 5 },
+      { codigo: "REG-1", variacao1: "Tamanho", opcao1: "G", variacao2: "Cor", opcao2: "Azul", estoque: 5 },
+      { codigo: "REG-1", variacao1: "Tamanho", opcao1: "GG", variacao2: "Cor", opcao2: "Azul", estoque: 5 },
+      { codigo: "REG-RUIM", nome: "Regata Ruim", preco: "29,90", estoque: 5, faixas: "12=31,00" },
+    ]
+    const previa = await previaImportacao(planilhaXlsx(linhas))
+    if ("erro" in previa) throw new Error(previa.erro)
+    expect(previa.previa.itens.map((i) => i.codigo)).toEqual(["REG-1"])
+    expect(previa.previa.erros).toHaveLength(1)
+    expect(previa.previa.erros[0]).toMatchObject({ codigo: "REG-RUIM" })
+
+    const lote1 = await importarLote(lote(planilhaXlsx(linhas), ["REG-1"]))
+    if ("erro" in lote1) throw new Error(lote1.erro)
+    expect(lote1.lote).toMatchObject({ novos: 1, falhas: [] })
+    const { data: p } = await service.from("catalog_products").select("price_tiers, min_quantity, pack_quantities, pack_price").eq("workspace_id", ws).eq("sku", "REG-1").single()
+    expect(p).toEqual({ price_tiers: [{ min: 12, price: 24.9 }, { min: 48, price: 21.9 }], min_quantity: 6, pack_quantities: { P: 1, M: 2, G: 2, GG: 1 }, pack_price: 150 })
+
+    // Reimportar sem as colunas: as regras ficam.
+    const semRegras = linhas.slice(0, 4).map((l) => ({ ...l, faixas: undefined, minimo: undefined, grade: undefined, precoGrade: undefined }))
+    const lote2 = await importarLote(lote(planilhaXlsx(semRegras), ["REG-1"]))
+    if ("erro" in lote2) throw new Error(lote2.erro)
+    expect(lote2.lote).toMatchObject({ atualizados: 1, falhas: [] })
+    const { data: depois } = await service.from("catalog_products").select("price_tiers, min_quantity, pack_quantities, pack_price").eq("workspace_id", ws).eq("sku", "REG-1").single()
+    expect(depois).toEqual(p)
+  })
+})

@@ -133,3 +133,51 @@ describe("B18-01 — interpretar a planilha", () => {
     expect(p.fotos).toEqual(["https://a.com/1.jpg", "https://a.com/2.jpg", "https://a.com/3.jpg"])
   })
 })
+
+describe("B31-04 — regras de venda na planilha", () => {
+  it("CA-B31-04: faixas, mínimo e grade viram as regras do produto; faixa acima do preço é erro só daquela linha", () => {
+    const r = interpretarPlanilha([
+      CAB,
+      linha({ codigo: "CAM-1", nome: "Camiseta", preco: "29,90", variacao1: "Tamanho", opcao1: "P", variacao2: "Cor", opcao2: "Azul", estoque: 5, faixas: "12=24,90;48=21,90", minimo: "6", grade: "P1 M2 G2 GG1" }),
+      linha({ codigo: "CAM-1", variacao1: "Tamanho", opcao1: "M", variacao2: "Cor", opcao2: "Azul", estoque: 5 }),
+      linha({ codigo: "CAM-1", variacao1: "Tamanho", opcao1: "G", variacao2: "Cor", opcao2: "Azul", estoque: 5 }),
+      linha({ codigo: "CAM-1", variacao1: "Tamanho", opcao1: "GG", variacao2: "Cor", opcao2: "Azul", estoque: 5 }),
+      linha({ codigo: "RUIM", nome: "Regata", preco: "29,90", estoque: 5, faixas: "12=31,00" }),
+      linha({ codigo: "OK", nome: "Bermuda", preco: "59,90", estoque: 5 }),
+    ])
+    expect(r.produtos.map((p) => p.codigo)).toEqual(["CAM-1", "OK"])
+    expect(r.produtos[0]).toMatchObject({
+      faixas: [{ min: 12, preco: 24.9 }, { min: 48, preco: 21.9 }],
+      minimo: 6,
+      grade: { quantidades: { P: 1, M: 2, G: 2, GG: 1 }, preco: null },
+    })
+    expect(r.produtos[1]).toMatchObject({ faixas: null, minimo: null, grade: null })
+    expect(r.erros).toHaveLength(1)
+    expect(r.erros[0]).toMatchObject({ codigo: "RUIM", linhas: [6] })
+    expect(r.erros[0].texto).toMatch(/menor que o preço do produto/)
+  })
+
+  it("CA-B31-04: formato errado, opção que não existe, grade sem variação e preço da grade sem grade são erros da linha", () => {
+    const r = interpretarPlanilha([
+      CAB,
+      linha({ codigo: "A", nome: "A", preco: "10", estoque: 1, faixas: "12-8,00" }),
+      linha({ codigo: "B", nome: "B", preco: "10", variacao1: "Tamanho", opcao1: "P", estoque: 1, grade: "XG 1" }),
+      linha({ codigo: "C", nome: "C", preco: "10", estoque: 1, grade: "P1" }),
+      linha({ codigo: "D", nome: "D", preco: "10", estoque: 1, precoGrade: "50" }),
+      linha({ codigo: "E", nome: "E", preco: "10", variacao1: "Numeração", opcao1: "38", estoque: 1, grade: "38=2", precoGrade: "18,00" }),
+    ])
+    expect(r.produtos.map((p) => p.codigo)).toEqual(["E"])
+    expect(r.produtos[0].grade).toEqual({ quantidades: { "38": 2 }, preco: 18 })
+    expect(r.erros.map((e) => e.codigo)).toEqual(["A", "B", "C", "D"])
+    expect(r.erros[0].texto).toMatch(/quantidade=preço/)
+    expect(r.erros[1].texto).toMatch(/"XG" da grade fechada não existe em Tamanho/)
+    expect(r.erros[2].texto).toMatch(/precisa ter variação/)
+    expect(r.erros[3].texto).toMatch(/só vale com "Grade fechada"/)
+  })
+
+  it("o modelo de exemplo traz as regras no vestido", () => {
+    const r = interpretarPlanilha([CAB, ...LINHAS_EXEMPLO.map(linha)])
+    expect(r.erros).toEqual([])
+    expect(r.produtos[1]).toMatchObject({ faixas: [{ min: 12, preco: 79.9 }, { min: 48, preco: 69.9 }], minimo: 6, grade: { quantidades: { P: 1, M: 2, G: 1 }, preco: null } })
+  })
+})

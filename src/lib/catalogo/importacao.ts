@@ -9,6 +9,7 @@ import { chaveCombinacao, type TipoVariacao } from "./combinacoes"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { baixarFoto } from "./baixar-foto"
 import { BUCKET_CATALOGO } from "./regras"
+import { detalheDaGrade, faixasDoBanco, faixasParaBanco, gradeDoBanco, validarGrade, type FaixaPreco, type GradeFechada } from "./regras-de-venda"
 
 const formatarPreco = (valor: number) => valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
 
@@ -50,6 +51,10 @@ export interface ProdutoExistente {
   totalFotos: number
   /** Caminhos das fotos no armazenamento, na ordem. */
   fotos: string[]
+  /** B31-04: regras de venda atuais. */
+  faixas: FaixaPreco[]
+  minimo: number | null
+  grade: GradeFechada | null
 }
 
 export interface ItemPrevia {
@@ -78,7 +83,7 @@ export async function buscarExistentes(supabase: SupabaseClient, workspaceId: st
   if (codigos.length === 0) return porCodigo
   const { data } = await supabase
     .from("catalog_products")
-    .select("id, sku, name, price, compare_at_price, description, category_id, visible, photos, variant_types, catalog_stock(combination, quantity)")
+    .select("id, sku, name, price, compare_at_price, description, category_id, visible, photos, variant_types, price_tiers, min_quantity, pack_quantities, pack_price, catalog_stock(combination, quantity)")
     .eq("workspace_id", workspaceId)
     .in("sku", codigos)
   for (const p of data ?? []) {
@@ -95,6 +100,9 @@ export async function buscarExistentes(supabase: SupabaseClient, workspaceId: st
       estoque: Object.fromEntries(((p.catalog_stock as { combination: string; quantity: number }[] | null) ?? []).map((e) => [e.combination, e.quantity])),
       totalFotos: ((p.photos as unknown[] | null) ?? []).length,
       fotos: (p.photos as string[] | null) ?? [],
+      faixas: faixasDoBanco(p.price_tiers),
+      minimo: p.min_quantity,
+      grade: gradeDoBanco(p.pack_quantities, p.pack_price, p.variant_types),
     }
     const chave = normalizarTexto(p.sku)
     porCodigo.set(chave, [...(porCodigo.get(chave) ?? []), existente])
@@ -148,6 +156,13 @@ export async function montarPrevia(supabase: SupabaseClient, workspaceId: string
       continue
     }
 
+    // B31-04: a grade da planilha precisa bater com as opções que o produto vai ter.
+    const gradeConferida = conferirGradeNoProduto(p, e)
+    if (gradeConferida) {
+      erros.push({ linhas: p.linhas, codigo: p.codigo, texto: `${p.codigo}: ${gradeConferida}` })
+      continue
+    }
+
     const mudancas: string[] = []
     if (p.nome !== e.nome) mudancas.push(`Nome "${e.nome}" → "${p.nome}"`)
     if (p.preco !== e.preco) mudancas.push(`Preço ${formatarPreco(e.preco)} → ${formatarPreco(p.preco)}`)
@@ -173,6 +188,9 @@ export async function montarPrevia(supabase: SupabaseClient, workspaceId: string
     if (estoqueDepois !== estoqueAntes) mudancas.push(`Estoque ${estoqueAntes} → ${estoqueDepois}`)
     if (novasCombinacoes > 0) mudancas.push(`${novasCombinacoes} ${novasCombinacoes === 1 ? "combinação nova" : "combinações novas"}`)
     if (p.fotos !== null) mudancas.push(`Fotos substituídas (${fotos})`)
+    if (p.faixas !== null && JSON.stringify(p.faixas) !== JSON.stringify(e.faixas)) mudancas.push("Preço por quantidade muda")
+    if (p.minimo !== null && p.minimo !== e.minimo) mudancas.push(`Mínimo ${e.minimo ?? "—"} → ${p.minimo} peças`)
+    if (p.grade !== null && JSON.stringify(p.grade) !== JSON.stringify(e.grade)) mudancas.push(`Grade fechada ${detalheDaGrade(p.grade)}${p.grade.preco !== null ? ` por ${formatarPreco(p.grade.preco)}` : ""}`)
 
     itens.push({ codigo: p.codigo, nome: p.nome, situacao: "atualiza", combinacoes: Object.keys(e.estoque).length + novasCombinacoes, estoqueTotal: estoqueDepois, fotos: p.fotos === null ? e.totalFotos : fotos, mudancas })
   }
@@ -228,6 +246,14 @@ async function resolverCategorias(supabase: SupabaseClient, workspaceId: string,
   return porNome
 }
 
+/** A grade da planilha, conferida contra as variações que o produto vai ter depois da importação. `null` = ok. */
+function conferirGradeNoProduto(planilha: ProdutoPlanilha, existente: ProdutoExistente | null): string | null {
+  if (planilha.grade === null) return null
+  const tipos = juntarTipos(planilha, existente)
+  const r = validarGrade(planilha.grade, tipos)
+  return "erro" in r ? r.erro : null
+}
+
 /** Junta as variações da planilha às do produto: opções novas entram no fim, com a grafia da planilha. */
 function juntarTipos(planilha: ProdutoPlanilha, existente: ProdutoExistente | null): TipoVariacao[] {
   const base: TipoVariacao[] = existente
@@ -251,7 +277,7 @@ export async function gravarImportacao(supabase: SupabaseClient, workspaceId: st
   for (const p of produtos) {
     const iguais = existentes.get(normalizarTexto(p.codigo)) ?? []
     const e = iguais[0] ?? null
-    if (iguais.length > 1 || (e && !variacoesBatem(p, e))) {
+    if (iguais.length > 1 || (e && !variacoesBatem(p, e)) || conferirGradeNoProduto(p, e)) {
       resultado.falhas.push({ codigo: p.codigo, texto: "O produto mudou no catálogo depois da prévia. Envie a planilha de novo." })
       continue
     }
@@ -282,6 +308,10 @@ export async function gravarImportacao(supabase: SupabaseClient, workspaceId: st
       category_id: p.categoria ? categorias.get(normalizarTexto(p.categoria)) ?? null : e?.categoriaId ?? null,
       visible: p.visivel ?? e?.visivel ?? true,
       variant_types: tipos,
+      // B31-04: regra só vai quando a coluna veio preenchida (sem a chave, o banco mantém).
+      ...(p.faixas !== null ? { price_tiers: faixasParaBanco(p.faixas) } : {}),
+      ...(p.minimo !== null ? { min_quantity: p.minimo } : {}),
+      ...(p.grade !== null ? { pack_quantities: p.grade.quantidades, pack_price: p.grade.preco } : {}),
     }
     const { error } = await supabase.rpc("importar_produto_catalogo", { p_produto: e?.id ?? null, p_dados: dados, p_estoque: estoque })
     const armazenamento = createServiceClient().storage.from(BUCKET_CATALOGO)

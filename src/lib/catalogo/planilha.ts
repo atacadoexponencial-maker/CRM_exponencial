@@ -3,6 +3,7 @@
 
 import { chaveCombinacao, MAX_TIPOS_VARIACAO } from "./combinacoes"
 import { ESTOQUE_MAXIMO, MAX_FOTOS, MAX_OPCOES_POR_TIPO } from "./regras"
+import { MAX_FAIXAS, validarFaixas, validarGrade, validarMinimo, type FaixaPreco, type GradeFechada } from "./regras-de-venda"
 
 export const MAX_LINHAS_PLANILHA = 1000
 export const TAMANHO_MAX_PLANILHA = 4 * 1024 * 1024
@@ -12,6 +13,7 @@ export const EXTENSOES_PLANILHA = ["xlsx", "xls", "csv"]
 export type ChaveColuna =
   | "codigo" | "nome" | "preco" | "precoDe" | "categoria" | "descricao"
   | "variacao1" | "opcao1" | "variacao2" | "opcao2" | "estoque" | "visivel" | "fotos"
+  | "faixas" | "minimo" | "grade" | "precoGrade"
 
 export const COLUNAS_PLANILHA: { chave: ChaveColuna; titulo: string; obrigatoria: boolean; oQueVai: string; exemplo: string }[] = [
   { chave: "codigo", titulo: "Código", obrigatoria: true, oQueVai: "Identifica o produto. Linhas com o mesmo código são o mesmo produto; reimportar com o mesmo código atualiza o produto.", exemplo: "VES-001" },
@@ -27,12 +29,17 @@ export const COLUNAS_PLANILHA: { chave: ChaveColuna; titulo: string; obrigatoria
   { chave: "estoque", titulo: "Estoque", obrigatoria: false, oQueVai: "Peças desta combinação (ou do produto, se não tem variação). Vazio vale 0 num produto novo.", exemplo: "5" },
   { chave: "visivel", titulo: "Visível na loja", obrigatoria: false, oQueVai: "\"sim\" ou \"não\". Vazio vale sim num produto novo.", exemplo: "sim" },
   { chave: "fotos", titulo: "Fotos", obrigatoria: false, oQueVai: `Links das fotos separados por espaço, vírgula ou ponto e vírgula; a primeira é a principal. Até ${MAX_FOTOS}.`, exemplo: "https://exemplo.com/vestido-1.jpg" },
+  // B31-04: regras de venda, todas opcionais. Vazio num produto que já existe mantém a regra.
+  { chave: "faixas", titulo: "Preço por quantidade", obrigatoria: false, oQueVai: `Faixas "quantidade=preço" separadas por ponto e vírgula, até ${MAX_FAIXAS}, com preços abaixo do preço da peça. Basta na primeira linha do produto.`, exemplo: "12=79,90;48=69,90" },
+  { chave: "minimo", titulo: "Mínimo de peças", obrigatoria: false, oQueVai: "Mínimo de peças do produto por pedido (somando cores e tamanhos), além do mínimo da loja.", exemplo: "6" },
+  { chave: "grade", titulo: "Grade fechada", obrigatoria: false, oQueVai: "Quantidade por opção da Variação 1 (ex.: P1 M2 G2 GG1): o produto só sai em grades inteiras. Só com variação.", exemplo: "P1 M2 G1" },
+  { chave: "precoGrade", titulo: "Preço da grade", obrigatoria: false, oQueVai: "Preço próprio da grade fechada; vazio, a grade custa a soma das peças.", exemplo: "300,00" },
 ]
 
 /** Linhas de exemplo do modelo: um produto sem variação e um com 3 tamanhos. */
 export const LINHAS_EXEMPLO: Partial<Record<ChaveColuna, string>>[] = [
   { codigo: "CIN-001", nome: "Cinto Couro", preco: "39,90", categoria: "Acessórios", descricao: "Couro legítimo.", estoque: "20", visivel: "sim" },
-  { codigo: "VES-001", nome: "Vestido Linho", preco: "89,90", precoDe: "119,90", categoria: "Vestidos", descricao: "Linho leve, forrado.", variacao1: "Tamanho", opcao1: "P", estoque: "5", visivel: "sim" },
+  { codigo: "VES-001", nome: "Vestido Linho", preco: "89,90", precoDe: "119,90", categoria: "Vestidos", descricao: "Linho leve, forrado.", variacao1: "Tamanho", opcao1: "P", estoque: "5", visivel: "sim", faixas: "12=79,90;48=69,90", minimo: "6", grade: "P1 M2 G1" },
   { codigo: "VES-001", variacao1: "Tamanho", opcao1: "M", estoque: "8" },
   { codigo: "VES-001", variacao1: "Tamanho", opcao1: "G", estoque: "3" },
 ]
@@ -53,6 +60,10 @@ export interface ProdutoPlanilha {
   tipos: { nome: string; opcoes: string[] }[]
   /** Estoque por combinação; `null` = vazio (novo: 0; atualização: mantém). */
   estoque: Record<string, number | null>
+  /** B31-04: regras de venda; `null` = coluna vazia (novo: sem regra; atualização: mantém). */
+  faixas: FaixaPreco[] | null
+  minimo: number | null
+  grade: GradeFechada | null
 }
 
 export interface ErroPlanilha {
@@ -110,6 +121,36 @@ export function lerSimNao(valor: unknown): boolean | undefined {
 
 function lerFotos(valor: unknown): string[] {
   return texto(valor).split(/[\s,;]+/).filter(Boolean)
+}
+
+/** "12=24,90;48=21,90" → faixas brutas (a conferência de ordem e preço é de `validarFaixas`). `null` se o formato não bate. */
+export function lerFaixas(valor: unknown): FaixaPreco[] | null {
+  const partes = texto(valor).split(/[;\n]+/).map((p) => p.trim()).filter(Boolean)
+  const faixas: FaixaPreco[] = []
+  for (const parte of partes) {
+    const m = /^(\d+)\s*=\s*(.+)$/.exec(parte)
+    if (!m) return null
+    const preco = lerPreco(m[2])
+    if (preco === null) return null
+    faixas.push({ min: Number(m[1]), preco })
+  }
+  return faixas
+}
+
+/** "P1 M2 G2 GG1", "P 1, M 2", "P=1;M=2" ou "38=2 40=2" → quantidade por opção. `null` se o formato não bate. */
+export function lerGrade(valor: unknown): Record<string, number> | null {
+  const tokens = texto(valor).split(/[,;\n\s]+/).filter(Boolean)
+  const quantidades: Record<string, number> = {}
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i]
+    const comIgual = /^(.+?)=(\d+)$/.exec(t)
+    const colado = /^([^\d=]+?)(\d+)$/.exec(t)
+    if (comIgual) quantidades[comIgual[1].trim()] = Number(comIgual[2])
+    else if (colado) quantidades[colado[1].trim()] = Number(colado[2])
+    else if (!/[=\d]/.test(t) && /^\d+$/.test(tokens[i + 1] ?? "")) { quantidades[t] = Number(tokens[i + 1]); i++ }
+    else return null
+  }
+  return Object.keys(quantidades).length > 0 ? quantidades : null
 }
 
 /** Lê a matriz de células (primeira linha = cabeçalho) e agrupa os produtos pelo código. */
@@ -241,6 +282,49 @@ export function interpretarPlanilha(matriz: unknown[][]): PlanilhaInterpretada {
       if (t.opcoes.length > MAX_OPCOES_POR_TIPO) erro(numeros, `${codigo} tem ${t.opcoes.length} opções em ${t.nome}; o limite é ${MAX_OPCOES_POR_TIPO}.`)
     })
 
+    // B31-04: regras de venda, conferidas como no editor.
+    let faixas: FaixaPreco[] | null = null
+    if (texto(v("faixas")) !== "") {
+      const lidas = lerFaixas(v("faixas"))
+      if (lidas === null) erro(primeira.numero, `em "Preço por quantidade", use quantidade=preço separados por ponto e vírgula (ex.: 12=24,90;48=21,90).`)
+      else if (preco !== null) {
+        const conferidas = validarFaixas(lidas, preco)
+        if ("erro" in conferidas) erro(primeira.numero, `${codigo}: ${conferidas.erro}`)
+        else faixas = conferidas.faixas
+      }
+    }
+    let minimo: number | null = null
+    if (texto(v("minimo")) !== "") {
+      const lido = lerInteiro(v("minimo"))
+      const conferido = validarMinimo(lido ?? Number.NaN)
+      if ("erro" in conferido) erro(primeira.numero, `${codigo}: ${conferido.erro}`)
+      else minimo = conferido.minimo
+    }
+    let grade: GradeFechada | null = null
+    if (texto(v("grade")) !== "") {
+      const lida = lerGrade(v("grade"))
+      if (lida === null) erro(primeira.numero, `em "Grade fechada", use opção e quantidade (ex.: P1 M2 G2 GG1).`)
+      else {
+        const primeiroTipo = tipos[0]
+        const desconhecida = primeiroTipo ? Object.keys(lida).find((o) => !primeiroTipo.opcoes.some((x) => normalizarTexto(x) === normalizarTexto(o))) : undefined
+        let precoGrade: number | null = null
+        if (texto(v("precoGrade")) !== "") {
+          precoGrade = lerPreco(v("precoGrade"))
+          if (precoGrade === null) erro(primeira.numero, `o preço da grade "${texto(v("precoGrade"))}" não é um número.`)
+        }
+        if (!primeiroTipo) erro(primeira.numero, `${codigo}: Grade fechada: o produto precisa ter variação (ex.: Tamanho).`)
+        else if (desconhecida) erro(primeira.numero, `${codigo}: a opção "${desconhecida}" da grade fechada não existe em ${primeiroTipo.nome}.`)
+        else {
+          const grafia = (o: string) => primeiroTipo.opcoes.find((x) => normalizarTexto(x) === normalizarTexto(o)) ?? o
+          const conferida = validarGrade({ quantidades: Object.fromEntries(Object.entries(lida).map(([o, q]) => [grafia(o), q])), preco: precoGrade ?? null }, tipos)
+          if ("erro" in conferida) erro(primeira.numero, `${codigo}: ${conferida.erro}`)
+          else grade = conferida.grade
+        }
+      }
+    } else if (texto(v("precoGrade")) !== "") {
+      erro(primeira.numero, `${codigo}: "Preço da grade" só vale com "Grade fechada" preenchida.`)
+    }
+
     if (errosDoProduto.length > 0) {
       erros.push(...errosDoProduto.map((t) => ({ linhas: numeros, codigo, texto: t })))
       continue
@@ -257,6 +341,9 @@ export function interpretarPlanilha(matriz: unknown[][]): PlanilhaInterpretada {
       fotos,
       tipos,
       estoque,
+      faixas,
+      minimo,
+      grade,
     })
   }
 
