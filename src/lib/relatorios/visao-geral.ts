@@ -491,3 +491,133 @@ export function vendasDoPeriodo(
       valor: v.valor,
     }))
 }
+
+// ---------- variação por UF e 25 meses (B32-06) ----------
+
+export const ROTULO_SEM_UF = "Sem UF"
+
+export type LinhaPorUf = {
+  uf: string
+  clientes: number
+  /** % contra o mesmo recorte do ano anterior; nulo sem base. */
+  crescimentoClientes: number | null
+  vendas: number
+  crescimentoVendas: number | null
+  /** Vendas ÷ clientes; nulo sem cliente. */
+  ticketMedio: number | null
+}
+
+export type VariacaoPorUf = {
+  linhas: LinhaPorUf[]
+  total: LinhaPorUf
+  /** Aviso da comparação justa, quando o período inclui hoje. */
+  aviso: string | null
+  /** Rótulo do período comparado (ex.: "Out/2025"). */
+  rotuloBase: string | null
+}
+
+function resumoPorUf(vendas: VendaRow[]): Map<string, { clientes: Set<string>; vendas: number }> {
+  const m = new Map<string, { clientes: Set<string>; vendas: number }>()
+  for (const v of vendas) {
+    const uf = v.contato_uf ?? ROTULO_SEM_UF
+    const r = m.get(uf) ?? { clientes: new Set<string>(), vendas: 0 }
+    r.clientes.add(v.contact_id)
+    r.vendas += v.valor
+    m.set(uf, r)
+  }
+  return m
+}
+
+/**
+ * Variação em relação ao ano anterior, por UF do contato (SUP-B32-05 invalidada: UF).
+ * Comparação justa como nos cartões: com o mês atual incluído, os dois lados vão até ontem.
+ */
+export function variacaoPorUf(vendas: VendaRow[], periodo: PeriodoRelatorio, hoje: string): VariacaoPorUf {
+  const intervalo = intervaloDoPeriodo(periodo, hoje)
+  const justa = comparacaoJusta(intervalo, hoje)
+  const recorte: Intervalo | null = justa.ate ? { de: intervalo.de, ate: justa.ate } : null
+  const base: Intervalo | null = recorte ? { de: deslocarMeses(recorte.de, -12), ate: deslocarFim(recorte.ate, -12) } : null
+
+  type R = { clientes: Set<string>; vendas: number }
+  // Valores exibidos: o período inteiro. Crescimento: o recorte justo contra a base (D-1 nos dois lados).
+  const atual = resumoPorUf(vendas.filter((v) => dentro(v, intervalo)))
+  const justo = recorte ? resumoPorUf(vendas.filter((v) => dentro(v, recorte))) : new Map<string, R>()
+  const anterior = base ? resumoPorUf(vendas.filter((v) => dentro(v, base))) : new Map<string, R>()
+
+  const linha = (uf: string, a: R | undefined, j: R | undefined, b: R | undefined): LinhaPorUf => {
+    const clientes = a?.clientes.size ?? 0
+    const total = arredondar(a?.vendas ?? 0)
+    return {
+      uf,
+      clientes,
+      crescimentoClientes: base ? variacaoPercentual2(j?.clientes.size ?? 0, b?.clientes.size ?? 0) : null,
+      vendas: total,
+      crescimentoVendas: base ? variacaoPercentual2(arredondar(j?.vendas ?? 0), arredondar(b?.vendas ?? 0)) : null,
+      ticketMedio: clientes > 0 ? arredondar(total / clientes) : null,
+    }
+  }
+
+  const linhas = [...atual.keys()]
+    .map((uf) => linha(uf, atual.get(uf), justo.get(uf), anterior.get(uf)))
+    .sort((x, y) => y.vendas - x.vendas || x.uf.localeCompare(y.uf))
+
+  const resumoTotal = (i: Intervalo | null): R | undefined => {
+    if (!i) return undefined
+    const dentroDele = vendas.filter((v) => dentro(v, i))
+    return { clientes: new Set(dentroDele.map((v) => v.contact_id)), vendas: dentroDele.reduce((s, v) => s + v.valor, 0) }
+  }
+
+  return {
+    linhas,
+    total: linha("TOTAL", resumoTotal(intervalo), resumoTotal(recorte), resumoTotal(base)),
+    aviso: justa.aviso,
+    rotuloBase: base ? rotuloDoIntervalo(base) : null,
+  }
+}
+
+/** Variação com duas casas (a tabela do Tailor mostra 55,25%). */
+export function variacaoPercentual2(atual: number, base: number): number | null {
+  if (base === 0) return null
+  return Math.round(((atual - base) / base) * 10000) / 100
+}
+
+export type MesDoHistorico = {
+  /** yyyy-mm */
+  mes: string
+  /** Ex.: "Out/26". */
+  rotulo: string
+  valor: number
+  /** % contra o mesmo mês do ano anterior; nulo sem base. */
+  variacao: number | null
+}
+
+/**
+ * Valor vendido nos últimos 25 meses, do mês de dois anos atrás ao atual, com a variação
+ * contra o mesmo mês do ano anterior. O mês atual conta só até ontem (D-1). Ignora o
+ * período (SUP-B32-08); as vendas já vêm filtradas por atendente.
+ */
+export function historicoDe25Meses(vendas: VendaRow[], hoje: string): MesDoHistorico[] {
+  const ontem = diaAnterior(hoje)
+  const { ano, mes } = partesDaData(hoje)
+  const porMes = new Map<string, number>()
+  for (const v of vendas) {
+    if (v.data > ontem) continue
+    const chave = v.data.slice(0, 7)
+    porMes.set(chave, (porMes.get(chave) ?? 0) + v.valor)
+  }
+  const meses: MesDoHistorico[] = []
+  for (let k = 24; k >= 0; k--) {
+    const { ano: a, mes: m } = partesDaData(deslocarMeses(montarData(ano, mes, 1), -k))
+    const chave = `${a}-${dois(m)}`
+    const valor = arredondar(porMes.get(chave) ?? 0)
+    const chaveAnterior = `${a - 1}-${dois(m)}`
+    const base = porMes.get(chaveAnterior)
+    meses.push({
+      mes: chave,
+      rotulo: `${MESES_CURTOS[m - 1]}/${String(a).slice(2)}`,
+      valor,
+      variacao: base ? variacaoPercentual(valor, arredondar(base)) : null,
+    })
+  }
+  return meses
+}

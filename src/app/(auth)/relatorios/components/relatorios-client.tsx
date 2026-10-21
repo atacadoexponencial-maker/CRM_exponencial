@@ -10,7 +10,9 @@ import { buscarVisaoGeral, type VisaoGeral } from "../actions"
 import { CartoesResumo } from "./cartoes-resumo"
 import { GraficoFormaPagamento, GraficoProjecao, GraficoVendasDiarias } from "./graficos-visao-geral"
 import { TabelaVendas } from "./tabela-vendas"
-import { urlDeExportacao } from "@/lib/relatorios/exportar-vendas"
+import { urlDeExportacao, urlDeExportacaoPorUf } from "@/lib/relatorios/exportar-vendas"
+import { VariacaoPorUfTabela } from "./variacao-por-uf"
+import { Grafico25Meses } from "./grafico-25-meses"
 
 const ABAS_FUTURAS = ["RFV", "Coorte", "Funil de clientes", "Carteiras"]
 
@@ -161,6 +163,9 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
         <GraficoFormaPagamento formas={visao.graficos.porForma} />
         {/* B32-05: a tabela das vendas do período, com o mesmo filtro no Exportar. */}
         <TabelaVendas vendas={visao.tabela} urlExportar={urlDeExportacao(periodo, atendenteId || null)} />
+        {/* B32-06: variação por UF e os últimos 25 meses fecham a Visão Geral. */}
+        <VariacaoPorUfTabela variacao={visao.porUf} urlExportar={urlDeExportacaoPorUf(periodo, atendenteId || null)} />
+        <Grafico25Meses meses={visao.mesesHistorico} />
       </div>
     </>
   )

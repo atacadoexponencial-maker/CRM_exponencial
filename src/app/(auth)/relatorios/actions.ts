@@ -6,11 +6,15 @@ import { ROTULO_FORMA_PAGAMENTO, ROTULO_ORIGEM_COMPRA } from "@/lib/compras"
 import {
   calcularCartoes,
   calcularGraficos,
+  historicoDe25Meses,
   hojeNoFuso,
   intervaloDoPeriodo,
+  variacaoPorUf,
   vendasDoPeriodo,
   type FiltroRelatorio,
   type GraficosVisaoGeral,
+  type MesDoHistorico,
+  type VariacaoPorUf,
   type VendaDaTabela,
   type VendaRow,
   type VisaoGeralCartoes,
@@ -23,6 +27,9 @@ export type VisaoGeral = VisaoGeralCartoes & {
   graficos: GraficosVisaoGeral
   /** B32-05: as vendas do período, da mais recente para a mais antiga. */
   tabela: VendaDaTabela[]
+  /** B32-06: variação por UF e os últimos 25 meses. */
+  porUf: VariacaoPorUf
+  mesesHistorico: MesDoHistorico[]
   /** Atendente que de fato valeu (o Atendente só vê o próprio). */
   atendenteId: string | null
 }
@@ -91,8 +98,20 @@ export async function buscarVisaoGeral(filtro: FiltroRelatorio): Promise<VisaoGe
     ...calcularCartoes(dados.vendas, filtro.periodo, hoje),
     graficos: calcularGraficos(dados.vendas, filtro.periodo, hoje, ROTULO_FORMA_PAGAMENTO),
     tabela: vendasDoPeriodo(dados.vendas, intervaloDoPeriodo(filtro.periodo, hoje), ROTULOS_DA_TABELA),
+    porUf: variacaoPorUf(dados.vendas, filtro.periodo, hoje),
+    mesesHistorico: historicoDe25Meses(dados.vendas, hoje),
     atendenteId,
   }
+}
+
+/** B32-06: só a variação por UF, para a rota de exportação. Mesma regra do atendente. */
+export async function buscarVariacaoPorUf(filtro: FiltroRelatorio): Promise<VariacaoPorUf | null> {
+  const { user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return null
+  const atendenteId = perfil.role === "atendente" ? user.id : (filtro.atendenteId ?? null)
+  const dados = await carregarVendas(atendenteId)
+  if (!dados) return null
+  return variacaoPorUf(dados.vendas, filtro.periodo, hojeNoFuso())
 }
 
 const ROTULOS_DA_TABELA = { origem: ROTULO_ORIGEM_COMPRA, forma: ROTULO_FORMA_PAGAMENTO }

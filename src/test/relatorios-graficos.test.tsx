@@ -6,9 +6,11 @@ import {
   calcularCartoes,
   calcularGraficos,
   faturamentoPorForma,
+  historicoDe25Meses,
   periodoMesAnterior,
   periodoPadrao,
   projecaoDoMes,
+  variacaoPorUf,
   vendasDiarias,
   type VendaRow,
 } from "@/lib/relatorios/visao-geral"
@@ -64,6 +66,8 @@ describe("B32-04 — gráficos da Visão Geral", () => {
       ...calcularCartoes(vendas, periodo, hoje),
       graficos: calcularGraficos(vendas, periodo, hoje, ROTULO_FORMA_PAGAMENTO),
       tabela: [],
+      porUf: variacaoPorUf(vendas, periodo, hoje),
+      mesesHistorico: historicoDe25Meses(vendas, hoje),
       atendenteId: null,
     })
     const atual = render(<RelatoriosClient visaoInicial={montar(periodoPadrao(hoje))} atendentes={[]} papel="admin" hoje={hoje} />)

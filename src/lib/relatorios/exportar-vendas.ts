@@ -2,7 +2,7 @@
 // tradução do período para a URL da rota de download (e de volta).
 
 import type { ColunaPlanilha } from "@/lib/exportar-planilha"
-import type { PeriodoRelatorio, VendaDaTabela } from "./visao-geral"
+import type { LinhaPorUf, PeriodoRelatorio, VendaDaTabela } from "./visao-geral"
 
 function dataLocal(iso: string): Date {
   const [a, m, d] = iso.split("-").map(Number)
@@ -55,4 +55,21 @@ export function nomeDaExportacao(periodo: PeriodoRelatorio): string {
   if (periodo.tipo === "ontem") return "vendas-ontem"
   const meses = [...periodo.meses].sort((a, b) => a - b)
   return meses.length === 1 ? `vendas-${meses[0]}-${periodo.ano}` : `vendas-${meses[0]}-a-${meses[meses.length - 1]}-${periodo.ano}`
+}
+
+// ---------- variação por UF (B32-06) ----------
+
+export const COLUNAS_EXPORTACAO_POR_UF: ColunaPlanilha<LinhaPorUf>[] = [
+  { titulo: "UF", tipo: "texto", valor: (l) => l.uf, largura: 10 },
+  { titulo: "Clientes", tipo: "numero", valor: (l) => l.clientes },
+  { titulo: "Cresc. clientes (ano ant.) %", tipo: "numero", valor: (l) => l.crescimentoClientes, largura: 28 },
+  { titulo: "Vendas", tipo: "moeda", valor: (l) => l.vendas, largura: 16 },
+  { titulo: "Cresc. vendas (ano ant.) %", tipo: "numero", valor: (l) => l.crescimentoVendas, largura: 26 },
+  { titulo: "Ticket médio", tipo: "moeda", valor: (l) => l.ticketMedio, largura: 16 },
+]
+
+export const TITULOS_EXPORTACAO_POR_UF = COLUNAS_EXPORTACAO_POR_UF.map((c) => c.titulo)
+
+export function urlDeExportacaoPorUf(periodo: PeriodoRelatorio, atendenteId: string | null): string {
+  return urlDeExportacao(periodo, atendenteId).replace("/relatorios/vendas/exportar", "/relatorios/variacao-por-uf/exportar")
 }
