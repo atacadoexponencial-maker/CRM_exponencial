@@ -918,6 +918,7 @@ export type Database = {
           photo_checked_at: string | null
           photo_path: string | null
           tipo: string | null
+          uf: string | null
           workspace_id: string
         }
         Insert: {
@@ -936,6 +937,7 @@ export type Database = {
           photo_checked_at?: string | null
           photo_path?: string | null
           tipo?: string | null
+          uf?: string | null
           workspace_id: string
         }
         Update: {
@@ -954,6 +956,7 @@ export type Database = {
           photo_checked_at?: string | null
           photo_path?: string | null
           tipo?: string | null
+          uf?: string | null
           workspace_id?: string
         }
         Relationships: [

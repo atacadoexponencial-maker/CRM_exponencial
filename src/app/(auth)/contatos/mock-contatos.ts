@@ -31,6 +31,8 @@ export interface Contato {
   tipo: TipoContato | null
   nicho: string | null
   cidade: string | null
+  /** B32-02: sigla do estado, ou nula. Opcional no tipo para os dados de teste antigos. */
+  uf?: string | null
   atendente: string | null
   created_at: string
 }
@@ -119,6 +121,7 @@ export const MOCK_CONTATOS: Contato[] = [
     tipo: "lojista",
     nicho: "Alimentação",
     cidade: "São Paulo",
+    uf: null,
     atendente: "Fernanda",
     created_at: "2025-11-15T10:00:00Z",
   },
@@ -130,6 +133,7 @@ export const MOCK_CONTATOS: Contato[] = [
     tipo: "revendedor",
     nicho: "Alimentação",
     cidade: "Fortaleza",
+    uf: null,
     atendente: "Carlos",
     created_at: "2026-05-20T08:45:00Z",
   },
@@ -141,6 +145,7 @@ export const MOCK_CONTATOS: Contato[] = [
     tipo: "lojista",
     nicho: "Floricultura",
     cidade: "Rio de Janeiro",
+    uf: null,
     atendente: "Ana",
     created_at: "2026-02-10T09:00:00Z",
   },
@@ -152,6 +157,7 @@ export const MOCK_CONTATOS: Contato[] = [
     tipo: "empreendedor",
     nicho: "Moda",
     cidade: "Belo Horizonte",
+    uf: null,
     atendente: "Fernanda",
     created_at: "2026-01-05T14:00:00Z",
   },
@@ -163,6 +169,7 @@ export const MOCK_CONTATOS: Contato[] = [
     tipo: "revendedor",
     nicho: "Alimentação",
     cidade: "Salvador",
+    uf: null,
     atendente: "Carlos",
     created_at: "2025-12-20T11:00:00Z",
   },
@@ -174,6 +181,7 @@ export const MOCK_CONTATOS: Contato[] = [
     tipo: "empreendedor",
     nicho: "Artesanato",
     cidade: "Recife",
+    uf: null,
     atendente: "Ana",
     created_at: "2026-03-01T15:30:00Z",
   },
@@ -185,6 +193,7 @@ export const MOCK_CONTATOS: Contato[] = [
     tipo: "revendedor",
     nicho: "Utilidades",
     cidade: "Manaus",
+    uf: null,
     atendente: "Fernanda",
     created_at: "2026-04-12T08:00:00Z",
   },
@@ -196,6 +205,7 @@ export const MOCK_CONTATOS: Contato[] = [
     tipo: "lojista",
     nicho: "Pet",
     cidade: "Curitiba",
+    uf: null,
     atendente: "Carlos",
     created_at: "2026-03-22T16:00:00Z",
   },
@@ -207,6 +217,7 @@ export const MOCK_CONTATOS: Contato[] = [
     tipo: null,
     nicho: null,
     cidade: "Porto Alegre",
+    uf: null,
     atendente: null,
     created_at: "2026-05-30T10:00:00Z",
   },
@@ -218,6 +229,7 @@ export const MOCK_CONTATOS: Contato[] = [
     tipo: "empreendedor",
     nicho: "Papelaria",
     cidade: "Goiânia",
+    uf: null,
     atendente: "Ana",
     created_at: "2026-05-15T13:00:00Z",
   },
@@ -232,6 +244,7 @@ export const MOCK_PERFIS_CONTATO: Record<string, ContatoPerfil> = {
     tipo: "lojista",
     nicho: "Alimentação",
     cidade: "São Paulo",
+    uf: null,
     atendente: "Fernanda",
     created_at: "2025-11-15T10:00:00Z",
     icp: "ja_revende",
@@ -263,6 +276,7 @@ export const MOCK_PERFIS_CONTATO: Record<string, ContatoPerfil> = {
     tipo: "revendedor",
     nicho: "Alimentação",
     cidade: "Fortaleza",
+    uf: null,
     atendente: "Carlos",
     created_at: "2026-05-20T08:45:00Z",
     icp: "primeira_vez",
@@ -285,6 +299,7 @@ export const MOCK_PERFIS_CONTATO: Record<string, ContatoPerfil> = {
     tipo: null,
     nicho: null,
     cidade: "Porto Alegre",
+    uf: null,
     atendente: null,
     created_at: "2026-05-30T10:00:00Z",
     icp: null,

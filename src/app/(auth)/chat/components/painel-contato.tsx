@@ -10,6 +10,7 @@ import { adicionarTagContato, atualizarDadosContato, removerTagContato } from "@
 import type { Conversa } from "../mock-conversas"
 import type { CadastroDoContato } from "../actions"
 import { CLASSIFICACAO_LABEL, ICP_LABEL, TIPO_LABEL, type ClassificacaoContato, type ICP, type TipoContato } from "@/app/(auth)/contatos/mock-contatos"
+import { UFS } from "@/lib/uf"
 
 /** Linha rótulo + valor do cadastro; vazio vira "—", para a pessoa ver o que falta. */
 function Dado({ rotulo, valor }: { rotulo: string; valor: string | null | undefined }) {
@@ -151,7 +152,7 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
   const [erroTag, setErroTag] = useState<string | null>(null)
 
   /** Grava um campo do cadastro mandando os outros como estão (a action regrava todos). */
-  async function salvarCampo(campo: "tipo" | "nicho" | "cidade" | "icp", novo: string | null): Promise<boolean> {
+  async function salvarCampo(campo: "tipo" | "nicho" | "cidade" | "uf" | "icp", novo: string | null): Promise<boolean> {
     if (!cadastro) return false
     const proximo = { ...cadastro, [campo]: novo }
     const r = await atualizarDadosContato(cadastro.contactId, {
@@ -159,6 +160,7 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
       tipo: proximo.tipo,
       nicho: proximo.nicho,
       cidade: proximo.cidade,
+      uf: proximo.uf,
       icp: proximo.icp,
     })
     if (r.erro) return false
@@ -356,6 +358,13 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
                 />
                 <DadoEditavel rotulo="Nicho" valor={cadastro.nicho} podeEditar={podeEditar} onSalvar={(novo) => salvarCampo("nicho", novo)} />
                 <DadoEditavel rotulo="Cidade" valor={cadastro.cidade} podeEditar={podeEditar} onSalvar={(novo) => salvarCampo("cidade", novo)} />
+                <DadoEditavel
+                  rotulo="UF"
+                  valor={cadastro.uf}
+                  opcoes={UFS.map((u) => ({ id: u.sigla, nome: u.sigla }))}
+                  podeEditar={podeEditar}
+                  onSalvar={(novo) => salvarCampo("uf", novo)}
+                />
                 <DadoEditavel
                   rotulo="Perfil"
                   valor={cadastro.icp}

@@ -27,6 +27,7 @@ import { DialogoExcluirContato } from "../../components/dialogo-excluir-contato"
 import { resumoExclusaoContato, excluirContato, restaurarContato, type ResumoExclusao } from "../../lixeira/actions"
 import { atualizarDadosContato, adicionarTagContato, removerTagContato, atualizarObservacoesContato } from "../../actions"
 import { ROTULO_FORMA_PAGAMENTO, ROTULO_ORIGEM_COMPRA } from "@/lib/compras"
+import { UFS } from "@/lib/uf"
 
 const CLASSIFICACAO_BADGE: Record<string, string> = {
   lead: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
@@ -46,6 +47,7 @@ const editSchema = z.object({
   tipo: z.enum(["lojista", "revendedor", "empreendedor", ""]).optional(),
   nicho: z.string().optional(),
   cidade: z.string().optional(),
+  uf: z.string().optional(),
   icp: z.enum(["ja_revende", "primeira_vez", ""]).optional(),
 })
 
@@ -154,6 +156,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
       tipo: (contato!.tipo ?? "") as EditFormData["tipo"],
       nicho: contato!.nicho ?? "",
       cidade: contato!.cidade ?? "",
+      uf: contato!.uf ?? "",
       icp: (contato!.icp ?? "") as EditFormData["icp"],
     })
     setErroEdicao(null)
@@ -219,6 +222,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
       tipo: data.tipo || null,
       nicho: data.nicho || null,
       cidade: data.cidade || null,
+      uf: data.uf || null,
       icp: data.icp || null,
     })
     if (resultado.erro) {
@@ -419,6 +423,16 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
                 </div>
 
                 <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="edit-uf">UF</Label>
+                  <select id="edit-uf" className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" {...register("uf")}>
+                    <option value="">Sem UF</option>
+                    {UFS.map((u) => (
+                      <option key={u.sigla} value={u.sigla}>{u.sigla} · {u.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
                   <Label htmlFor="edit-icp">ICP</Label>
                   <select
                     id="edit-icp"
@@ -447,6 +461,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
                 <Row label="Tipo" value={contato.tipo ? TIPO_LABEL[contato.tipo] : "—"} />
                 <Row label="Nicho" value={contato.nicho ?? "—"} />
                 <Row label="Cidade" value={contato.cidade ?? "—"} />
+                <Row label="UF" value={contato.uf ?? "—"} />
                 <Row label="ICP" value={contato.icp ? ICP_LABEL[contato.icp] : "—"} />
               </div>
             )}

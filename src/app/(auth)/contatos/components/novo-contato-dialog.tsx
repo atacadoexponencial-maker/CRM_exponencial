@@ -17,6 +17,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import { criarContato, verificarNumeroDuplicado } from "../actions"
+import { UFS } from "@/lib/uf"
 
 const schema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
@@ -24,6 +25,7 @@ const schema = z.object({
   tipo: z.enum(["lojista", "revendedor", "empreendedor", ""]).optional(),
   nicho: z.string().optional(),
   cidade: z.string().optional(),
+  uf: z.string().optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -42,7 +44,7 @@ export function NovoContatoDialog() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { nome: "", telefone: "", tipo: "", nicho: "", cidade: "" },
+    defaultValues: { nome: "", telefone: "", tipo: "", nicho: "", cidade: "", uf: "" },
   })
 
   async function onSubmit(data: FormData) {
@@ -53,6 +55,7 @@ export function NovoContatoDialog() {
       tipo: data.tipo || null,
       nicho: data.nicho || null,
       cidade: data.cidade || null,
+      uf: data.uf || null,
     })
     if (resultado.erro) {
       setErroGeral(resultado.erro)
@@ -170,6 +173,16 @@ export function NovoContatoDialog() {
               placeholder="Ex.: São Paulo"
               {...register("cidade")}
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="uf">UF <span className="text-muted-foreground">(opcional)</span></Label>
+            <select id="uf" className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" {...register("uf")}>
+              <option value="">Sem UF</option>
+              {UFS.map((u) => (
+                <option key={u.sigla} value={u.sigla}>{u.sigla} · {u.nome}</option>
+              ))}
+            </select>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

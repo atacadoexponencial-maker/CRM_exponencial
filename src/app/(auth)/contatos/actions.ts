@@ -10,8 +10,9 @@ import { buscarEGuardarFotoDoContato, urlAssinadaDaFoto } from "@/lib/whatsapp/f
 import { dispararDadosAlterados, dispararTagAdicionada } from "@/lib/automacoes/gatilhos-do-crm"
 import { normalizarWhatsapp, TELEFONE_INVALIDO } from "@/lib/telefone"
 import { esquemaCompra, type CompraEntrada, type FormaPagamento, type OrigemCompra } from "@/lib/compras"
+import { normalizarUf, UF_INVALIDA } from "@/lib/uf"
 
-const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, nicho, cidade, created_at, profiles!contacts_atendente_id_fkey(name)"
+const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, nicho, cidade, uf, created_at, profiles!contacts_atendente_id_fkey(name)"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapContato(c: any): Contato {
@@ -23,6 +24,7 @@ function mapContato(c: any): Contato {
     tipo: (c.tipo ?? null) as TipoContato | null,
     nicho: c.nicho ?? null,
     cidade: c.cidade ?? null,
+    uf: c.uf ?? null,
     atendente: c.profiles?.name ?? null,
     created_at: c.created_at,
   }
@@ -62,6 +64,7 @@ export async function criarContato(dados: {
   tipo?: string | null
   nicho?: string | null
   cidade?: string | null
+  uf?: string | null
 }): Promise<{ erro?: string; id?: string; restaurado?: boolean }> {
   const supabase = await createClient()
 
@@ -83,6 +86,9 @@ export async function criarContato(dados: {
   if (nome.length > 120) return { erro: "O nome passa de 120 caracteres." }
   const telefone = normalizarWhatsapp(dados.telefone)
   if (!telefone) return { erro: TELEFONE_INVALIDO }
+  // B32-02: UF só da lista das 27, ou vazia.
+  const uf = normalizarUf(dados.uf)
+  if (uf === undefined) return { erro: UF_INVALIDA }
 
   // B13-05: telefone de contato na lixeira restaura o contato antigo, com o
   // histórico (os dados antigos ficam), em vez de criar outro.
@@ -112,6 +118,7 @@ export async function criarContato(dados: {
       tipo: dados.tipo ?? null,
       nicho: dados.nicho ?? null,
       cidade: dados.cidade ?? null,
+      uf,
     })
     .select("id")
     .single()
@@ -149,7 +156,7 @@ const ETAPA_ENTRADA_LABEL: Record<string, string> = {
 }
 
 
-const PERFIL_SELECT = "id, name, phone_number, tipo, nicho, cidade, icp, observacoes, created_at, atendente_id, photo_path"
+const PERFIL_SELECT = "id, name, phone_number, tipo, nicho, cidade, uf, icp, observacoes, created_at, atendente_id, photo_path"
 
 function formatarDataEvento(iso: string): string {
   const d = new Date(iso)
@@ -358,6 +365,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
     tipo: (c.tipo ?? null) as TipoContato | null,
     nicho: c.nicho ?? null,
     cidade: c.cidade ?? null,
+    uf: c.uf ?? null,
     atendente: null,
     created_at: c.created_at,
     icp: (c.icp ?? null) as ICP | null,
@@ -393,7 +401,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
 
 export async function atualizarDadosContato(
   id: string,
-  dados: { nome: string; tipo?: string | null; nicho?: string | null; cidade?: string | null; icp?: string | null }
+  dados: { nome: string; tipo?: string | null; nicho?: string | null; cidade?: string | null; uf?: string | null; icp?: string | null }
 ): Promise<{ erro?: string }> {
   const supabase = await createClient()
 
@@ -413,6 +421,9 @@ export async function atualizarDadosContato(
   const nome = dados.nome.trim()
   if (!nome) return { erro: "Informe o nome do contato." }
   if (nome.length > 120) return { erro: "O nome passa de 120 caracteres." }
+  // B32-02: UF só da lista das 27, ou vazia.
+  const uf = normalizarUf(dados.uf)
+  if (uf === undefined) return { erro: UF_INVALIDA }
 
   // B11-06: o antes, para o gatilho "dado do contato alterado" só disparar no que mudou
   const { data: antes } = await supabase.from("contacts").select("workspace_id, tipo, nicho, cidade").eq("id", id).maybeSingle()
@@ -420,7 +431,7 @@ export async function atualizarDadosContato(
   const depois = { tipo: dados.tipo ?? null, nicho: dados.nicho ?? null, cidade: dados.cidade ?? null }
   const { error } = await supabase
     .from("contacts")
-    .update({ name: nome, ...depois, icp: dados.icp ?? null })
+    .update({ name: nome, ...depois, uf, icp: dados.icp ?? null })
     .eq("id", id)
 
   if (error) return { erro: "Erro ao salvar. Tente novamente." }
