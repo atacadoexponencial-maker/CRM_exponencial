@@ -22,6 +22,8 @@ import {
 import { calcularRfv, type ResultadoRfv } from "@/lib/relatorios/rfv"
 import { calcularCoortes, type ResultadoCoorte } from "@/lib/relatorios/coorte"
 import { calcularFunilClientes, type ResultadoFunilClientes } from "@/lib/relatorios/funil-clientes"
+import { calcularPainelDeCarteiras, type PainelDeCarteiras } from "@/lib/relatorios/carteiras"
+import type { MotivoDaCarteira } from "@/lib/carteira"
 
 export type { FiltroRelatorio, PeriodoRelatorio, VisaoGeralCartoes } from "@/lib/relatorios/visao-geral"
 
@@ -173,4 +175,70 @@ export async function buscarFunilClientes(filtro: { atendenteId?: string | null 
   const dados = await carregarVendas(atendenteId)
   if (!dados) return null
   return calcularFunilClientes(dados.vendas, hojeNoFuso())
+}
+
+export type LinhaDoHistoricoDeCarteira = {
+  id: string
+  quando: string
+  contato: string
+  de: string | null
+  para: string | null
+  motivo: MotivoDaCarteira
+  por: string | null
+}
+
+export type ResultadoCarteiras = {
+  papel: "admin" | "gerente" | "atendente"
+  painel: PainelDeCarteiras
+  /** Nulo para o Atendente. */
+  historico: LinhaDoHistoricoDeCarteira[] | null
+}
+
+const ETAPAS_ATIVAS = ["onboarding", "reposicao", "ativos"]
+
+/**
+ * B35-01: painel de carteiras. Admin e Gerente veem a empresa inteira e o histórico; o
+ * Atendente só o próprio cartão (a RLS já limita os contatos dele).
+ */
+export async function buscarCarteiras(): Promise<ResultadoCarteiras | null> {
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return null
+  const atendente = perfil.role === "atendente"
+
+  const [{ data: contatos }, { data: compras }, { data: cards }, { data: perfis }] = await Promise.all([
+    supabase.from("contacts").select("id, atendente_id").eq("workspace_id", perfil.workspace_id).is("excluido_em", null),
+    supabase.from("contact_purchases").select("contact_id").eq("workspace_id", perfil.workspace_id),
+    supabase.from("pipeline_cards").select("contact_id").eq("workspace_id", perfil.workspace_id).eq("funil", "recompra").in("etapa", ETAPAS_ATIVAS),
+    atendente
+      ? supabase.from("profiles").select("id, name").eq("id", user.id)
+      : supabase.from("profiles").select("id, name").eq("workspace_id", perfil.workspace_id).eq("status", "active").order("name"),
+  ])
+  const comCompra = new Set((compras ?? []).map((c) => c.contact_id))
+  const ativos = new Set((cards ?? []).map((c) => c.contact_id).filter(Boolean) as string[])
+  const lista = (contatos ?? [])
+    .filter((c) => !atendente || c.atendente_id === user.id)
+    .map((c) => ({ id: c.id, atendenteId: c.atendente_id, temCompra: comCompra.has(c.id), ativo: ativos.has(c.id) }))
+  const vendedores = (perfis ?? []).map((p) => ({ id: p.id, nome: p.name as string }))
+  const painel = calcularPainelDeCarteiras(lista, vendedores)
+
+  let historico: LinhaDoHistoricoDeCarteira[] | null = null
+  if (!atendente) {
+    const { data } = await supabase
+      .from("carteira_historico")
+      .select("id, created_at, motivo, contato:contacts(name, phone_number), de:profiles!carteira_historico_de_atendente_id_fkey(name), para:profiles!carteira_historico_para_atendente_id_fkey(name), por:profiles!carteira_historico_alterado_por_fkey(name)")
+      .eq("workspace_id", perfil.workspace_id)
+      .order("created_at", { ascending: false })
+      .limit(50)
+    const um = <T,>(x: T | T[] | null): T | null => (Array.isArray(x) ? (x[0] ?? null) : x)
+    historico = (data ?? []).map((h) => ({
+      id: h.id,
+      quando: h.created_at,
+      contato: um(h.contato)?.name || um(h.contato)?.phone_number || "—",
+      de: um(h.de)?.name ?? null,
+      para: um(h.para)?.name ?? null,
+      motivo: h.motivo as MotivoDaCarteira,
+      por: um(h.por)?.name ?? null,
+    }))
+  }
+  return { papel: perfil.role as ResultadoCarteiras["papel"], painel, historico }
 }

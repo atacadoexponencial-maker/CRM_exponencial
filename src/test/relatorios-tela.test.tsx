@@ -49,7 +49,7 @@ describe("B32-03 — tela Relatórios", () => {
     }
   })
 
-  it("CA-B32-24: 'Visão Geral' ativa e Carteiras desativada com 'em breve' (RFV, Coorte e Funil abriram na B33 e B34)", () => {
+  it("CA-B32-24: 'Visão Geral' ativa; as outras quatro abas abriram nas séries B33 a B35 e nenhuma fica 'em breve'", () => {
     renderTela()
     const abas = within(screen.getByRole("tablist")).getAllByRole("tab")
     expect(abas[0]).toHaveTextContent("Visão Geral")
@@ -57,13 +57,9 @@ describe("B32-03 — tela Relatórios", () => {
     expect(abas[1]).toHaveTextContent("RFV")
     expect(abas[2]).toHaveTextContent("Coorte")
     expect(abas[3]).toHaveTextContent("Funil de clientes")
-    const futuras = abas.slice(4)
-    expect(futuras.map((a) => a.textContent?.replace(/\s*em breve$/, "").trim())).toEqual(["Carteiras"])
-    for (const aba of futuras) {
-      expect(aba).toBeDisabled()
-      expect(aba).toHaveTextContent(/em breve/)
-      fireEvent.click(aba)
-    }
+    expect(abas[4]).toHaveTextContent("Carteiras")
+    expect(abas).toHaveLength(5)
+    expect(abas.every((a) => !a.hasAttribute("disabled") && !/em breve/.test(a.textContent ?? ""))).toBe(true)
     expect(abas[0]).toHaveAttribute("aria-selected", "true")
     expect(buscarVisaoGeral).not.toHaveBeenCalled()
   })

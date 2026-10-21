@@ -13,13 +13,12 @@ import { TabelaVendas } from "./tabela-vendas"
 import { RfvClient } from "./rfv-client"
 import { CoorteClient } from "./coorte-client"
 import { FunilClientesClient } from "./funil-clientes-client"
+import { CarteirasClient } from "./carteiras-client"
 import { urlDeExportacao, urlDeExportacaoPorUf } from "@/lib/relatorios/exportar-vendas"
 import { VariacaoPorUfTabela } from "./variacao-por-uf"
 import { Grafico25Meses } from "./grafico-25-meses"
 
-const ABAS_FUTURAS = ["Carteiras"]
-
-type Aba = "visao-geral" | "rfv" | "coorte" | "funil"
+type Aba = "visao-geral" | "rfv" | "coorte" | "funil" | "carteiras"
 
 const selectClass =
   "h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -86,7 +85,7 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
 
       {/* Abas: só a Visão Geral existe; as outras avisam "em breve" (SUP-B32-06 invalidada). */}
       <div role="tablist" aria-label="Relatórios" className="flex flex-wrap gap-1 border-b mb-6">
-        {([["visao-geral", "Visão Geral"], ["rfv", "RFV"], ["coorte", "Coorte"], ["funil", "Funil de clientes"]] as Array<[Aba, string]>).map(([id, nome]) => (
+        {([["visao-geral", "Visão Geral"], ["rfv", "RFV"], ["coorte", "Coorte"], ["funil", "Funil de clientes"], ["carteiras", "Carteiras"]] as Array<[Aba, string]>).map(([id, nome]) => (
           <button
             key={id}
             type="button"
@@ -98,24 +97,11 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
             {nome}
           </button>
         ))}
-        {ABAS_FUTURAS.map((aba) => (
-          <button
-            key={aba}
-            type="button"
-            role="tab"
-            aria-selected="false"
-            disabled
-            title="Em breve"
-            className="px-3 py-2 text-sm text-muted-foreground/60 cursor-not-allowed"
-          >
-            {aba} <span className="text-[10px] uppercase tracking-wide">em breve</span>
-          </button>
-        ))}
       </div>
 
       {aba !== "visao-geral" && (
         <>
-          {podeFiltrarAtendente && (
+          {podeFiltrarAtendente && aba !== "carteiras" && (
             <div className="flex flex-wrap items-center gap-2 mb-6">
               <select aria-label="Atendente" className={selectClass} value={atendenteId} onChange={(e) => setAtendenteId(e.target.value)}>
                 <option value="">Todos os atendentes</option>
@@ -128,6 +114,7 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
           {aba === "rfv" && <RfvClient atendenteId={atendenteId || null} />}
           {aba === "coorte" && <CoorteClient atendenteId={atendenteId || null} />}
           {aba === "funil" && <FunilClientesClient atendenteId={atendenteId || null} />}
+          {aba === "carteiras" && <CarteirasClient />}
         </>
       )}
 

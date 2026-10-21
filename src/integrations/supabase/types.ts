@@ -402,6 +402,75 @@ export type Database = {
           },
         ]
       }
+      carteira_historico: {
+        Row: {
+          alterado_por: string | null
+          contact_id: string
+          created_at: string
+          de_atendente_id: string | null
+          id: string
+          motivo: string
+          para_atendente_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          alterado_por?: string | null
+          contact_id: string
+          created_at?: string
+          de_atendente_id?: string | null
+          id?: string
+          motivo: string
+          para_atendente_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          alterado_por?: string | null
+          contact_id?: string
+          created_at?: string
+          de_atendente_id?: string | null
+          id?: string
+          motivo?: string
+          para_atendente_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carteira_historico_alterado_por_fkey"
+            columns: ["alterado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carteira_historico_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carteira_historico_de_atendente_id_fkey"
+            columns: ["de_atendente_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carteira_historico_para_atendente_id_fkey"
+            columns: ["para_atendente_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carteira_historico_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalog_categories: {
         Row: {
           created_at: string

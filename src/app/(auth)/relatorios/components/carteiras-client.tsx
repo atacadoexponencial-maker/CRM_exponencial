@@ -1,0 +1,175 @@
+"use client"
+
+// B35-01: aba Carteiras — visão geral da empresa, carteira por vendedor, quem está sem
+// vendedor e o histórico de alterações. Os botões de ação chegam nas B35-02 e B35-03.
+
+import { useEffect, useState, useTransition } from "react"
+import { Loader2, RefreshCw } from "lucide-react"
+import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
+import type { NumerosDaCarteira } from "@/lib/relatorios/carteiras"
+import { ROTULO_MOTIVO } from "@/lib/carteira"
+import { buscarCarteiras, type ResultadoCarteiras } from "../actions"
+
+const NUMEROS: Array<{ id: keyof NumerosDaCarteira; titulo: string; cor: string }> = [
+  { id: "leads", titulo: "Leads", cor: "text-violet-400" },
+  { id: "base", titulo: "Base de clientes", cor: "text-orange-400" },
+  { id: "ativos", titulo: "Ativos", cor: "text-emerald-400" },
+  { id: "inativos", titulo: "Inativos", cor: "text-red-400" },
+]
+
+function LinhaDeNumeros({ titulo, numeros, testid }: { titulo: string; numeros: NumerosDaCarteira; testid: string }) {
+  return (
+    <div data-testid={testid}>
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">{titulo}</p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {NUMEROS.map((n) => (
+          <div key={n.id} className="rounded-lg border p-3 text-center">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{n.titulo}</p>
+            <p className={`text-2xl font-semibold tabular-nums ${n.cor}`}>{numeros[n.id]}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function PainelDeCarteiras({ resultado, acoesDoVendedor, acoesDosSemVendedor }: {
+  resultado: ResultadoCarteiras
+  /** B35-02: botões de transferir e remover, por vendedor. */
+  acoesDoVendedor?: (vendedorId: string, total: number) => React.ReactNode
+  /** B35-03: botões de distribuir e reprocessar. */
+  acoesDosSemVendedor?: React.ReactNode
+}) {
+  const { painel, papel, historico } = resultado
+  const gestor = papel !== "atendente"
+  return (
+    <div className="flex flex-col gap-4">
+      {gestor && (
+        <section className="rounded-lg border p-4 flex flex-col gap-4">
+          <h2 className="text-sm font-semibold">Visão geral da empresa</h2>
+          <LinhaDeNumeros titulo="Total" numeros={painel.total} testid="numeros-total" />
+          <LinhaDeNumeros titulo="Com carteira atribuída" numeros={painel.comCarteira} testid="numeros-com" />
+          <LinhaDeNumeros titulo="Sem carteira atribuída" numeros={painel.semCarteira} testid="numeros-sem" />
+        </section>
+      )}
+
+      <section className="rounded-lg border p-4">
+        <h2 className="text-sm font-semibold mb-3">
+          {gestor ? "Carteira por vendedor" : "Minha carteira"} <span className="ml-1 rounded-full border px-2 text-xs text-muted-foreground">{painel.vendedores.length}</span>
+        </h2>
+        <div className="flex flex-col gap-3">
+          {painel.vendedores.map((v) => (
+            <div key={v.id} className="rounded-lg border p-4" data-testid={`vendedor-${v.id}`}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold">{v.nome}</p>
+                  <p className="text-sm text-muted-foreground">{v.total} na carteira</p>
+                </div>
+                {gestor && acoesDoVendedor?.(v.id, v.total)}
+              </div>
+              <div className="flex flex-wrap gap-2 mt-3 text-xs">
+                {NUMEROS.map((n) => (
+                  <span key={n.id} className="rounded-full border px-2.5 py-1">
+                    <span className="text-muted-foreground">{n.titulo === "Base de clientes" ? "Base" : n.titulo}</span> <strong className={n.cor}>{v[n.id]}</strong>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {gestor && (
+        <section className="rounded-lg border p-4">
+          <h2 className="text-sm font-semibold mb-3">Sem vendedor</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p data-testid="sem-vendedor">
+              <span className="text-3xl font-semibold text-red-400 tabular-nums mr-2">{painel.semVendedor.total}</span>
+              <span className="text-sm">contatos sem vendedor</span>
+              <span className="block text-xs text-muted-foreground">{painel.semVendedor.comCompra} com compra · {painel.semVendedor.leads} leads</span>
+            </p>
+            {acoesDosSemVendedor}
+          </div>
+        </section>
+      )}
+
+      {gestor && historico && (
+        <section className="rounded-lg border p-4">
+          <h2 className="text-sm font-semibold mb-1">Histórico de alterações</h2>
+          <p className="text-xs text-muted-foreground mb-3">Toda mudança de carteira fica registrada: quem alterou, quando e de quem para quem. As 50 mais recentes.</p>
+          {historico.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma alteração registrada ainda.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm" data-testid="historico-carteira">
+                <thead>
+                  <tr className="text-xs text-muted-foreground border-b text-left">
+                    <th className="py-2 pr-3 font-medium">Quando</th>
+                    <th className="py-2 pr-3 font-medium">Contato</th>
+                    <th className="py-2 pr-3 font-medium">De</th>
+                    <th className="py-2 pr-3 font-medium">Para</th>
+                    <th className="py-2 pr-3 font-medium">Motivo</th>
+                    <th className="py-2 font-medium">Quem fez</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historico.map((h) => (
+                    <tr key={h.id} className="border-b last:border-0">
+                      <td className="py-2 pr-3 whitespace-nowrap tabular-nums">{formatarDataCurta(h.quando)} {formatarHoraDoDia(h.quando)}</td>
+                      <td className="py-2 pr-3">{h.contato}</td>
+                      <td className="py-2 pr-3">{h.de ?? "ninguém"}</td>
+                      <td className="py-2 pr-3">{h.para ?? "ninguém"}</td>
+                      <td className="py-2 pr-3">{ROTULO_MOTIVO[h.motivo]}</td>
+                      <td className="py-2">{h.por ?? "automação"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+    </div>
+  )
+}
+
+export function CarteirasClient({ inicial = null }: { inicial?: ResultadoCarteiras | null }) {
+  const [resultado, setResultado] = useState<ResultadoCarteiras | null>(inicial)
+  const [erro, setErro] = useState(false)
+  const [isPending, startTransition] = useTransition()
+
+  function carregar() {
+    startTransition(async () => {
+      try {
+        const r = await buscarCarteiras()
+        if (r) {
+          setResultado(r)
+          setErro(false)
+        } else setErro(true)
+      } catch {
+        setErro(true)
+      }
+    })
+  }
+
+  useEffect(() => {
+    if (inicial) return
+    carregar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  if (erro) return <p className="text-sm text-destructive">Não foi possível carregar as carteiras. Tente novamente.</p>
+  if (!resultado) return <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> Carregando as carteiras…</p>
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-base font-semibold">Vendedores e carteiras</h2>
+        <button type="button" onClick={carregar} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-input px-3 text-sm hover:bg-muted">
+          {isPending ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Atualizar
+        </button>
+      </div>
+      <PainelDeCarteiras resultado={resultado} />
+    </div>
+  )
+}
