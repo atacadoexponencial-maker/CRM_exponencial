@@ -6,7 +6,7 @@
 
 import { useEffect, useState, type ReactNode } from "react"
 import Link from "next/link"
-import { ImageOff, Search, ShoppingBag } from "lucide-react"
+import { ImageOff, RotateCcw, Search, ShoppingBag } from "lucide-react"
 import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { coresDaVitrine, type TemaLoja } from "./tema"
 import { familiaDaFonte } from "./fontes"
@@ -56,6 +56,8 @@ interface VitrineProps {
   /** Sem `hrefProduto` (a prévia da Aparência), o cartão só chama isto. */
   onAbrirProduto?: (id: string) => void
   onAbrirCarrinho?: () => void
+  /** B31-05: com um pedido anterior guardado no aparelho, o cabeçalho oferece repetir. */
+  onRepetirPedido?: () => void
 }
 
 type Cores = ReturnType<typeof coresDaVitrine>
@@ -163,12 +165,15 @@ export function CabecalhoLoja({
   quantidadeNoCarrinho = 0,
   onAbrirCarrinho,
   onAbrirLoja,
+  onRepetirPedido,
 }: {
   tema: TemaLoja
   quantidadeNoCarrinho?: number
   onAbrirCarrinho?: () => void
   /** Tocar na logo volta para a vitrine. */
   onAbrirLoja?: () => void
+  /** B31-05: só aparece quando há um pedido anterior neste aparelho. */
+  onRepetirPedido?: () => void
 }) {
   const cores = coresDaVitrine(tema)
   return (
@@ -181,6 +186,13 @@ export function CabecalhoLoja({
           <span className="block text-lg font-semibold truncate">{tema.nomeLoja}</span>
         )}
       </button>
+      <div className="flex items-center gap-2 shrink-0">
+      {onRepetirPedido && (
+        <button type="button" onClick={onRepetirPedido} className="inline-flex items-center gap-1.5 h-10 px-3 rounded-full text-sm" style={{ background: cores.superficie }} aria-label="Repetir último pedido">
+          <RotateCcw className="size-4" />
+          <span className="hidden @md:inline">Repetir pedido</span>
+        </button>
+      )}
       {onAbrirCarrinho && <button
         type="button"
         onClick={onAbrirCarrinho}
@@ -195,11 +207,12 @@ export function CabecalhoLoja({
           </span>
         )}
       </button>}
+      </div>
     </header>
   )
 }
 
-export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, avisoMinimo, avisoDesconto, hrefProduto, onAbrirProduto, onAbrirCarrinho }: VitrineProps) {
+export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, avisoMinimo, avisoDesconto, hrefProduto, onAbrirProduto, onAbrirCarrinho, onRepetirPedido }: VitrineProps) {
   const [categoriaAtiva, setCategoriaAtiva] = useState<string | null>(null)
   const [busca, setBusca] = useState("")
   const [ordem, setOrdem] = useState<OrdemVitrine>("loja")
@@ -264,7 +277,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
   return (
     // O CSS global do CRM fixa a fonte dos títulos; na vitrine eles herdam a fonte da loja.
     <div className="@container min-h-full [&_:is(h1,h2,h3)]:[font-family:inherit]" style={{ background: cores.fundo, color: cores.texto, fontFamily: familiaDaFonte(tema.fonteId) }}>
-      <CabecalhoLoja tema={tema} quantidadeNoCarrinho={quantidadeNoCarrinho} onAbrirCarrinho={onAbrirCarrinho} />
+      <CabecalhoLoja tema={tema} quantidadeNoCarrinho={quantidadeNoCarrinho} onAbrirCarrinho={onAbrirCarrinho} onRepetirPedido={onRepetirPedido} />
 
       {tema.bannerUrl && (
         // eslint-disable-next-line @next/next/no-img-element

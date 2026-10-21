@@ -5,7 +5,7 @@
 
 import { useState } from "react"
 import { Dialog } from "@base-ui/react/dialog"
-import { CheckCircle2, ImageOff, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react"
+import { CheckCircle2, ImageOff, Minus, Plus, RotateCcw, ShoppingBag, Trash2, X } from "lucide-react"
 import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { coresDaVitrine, type TemaLoja } from "./tema"
 import { familiaDaFonte } from "./fontes"
@@ -100,10 +100,15 @@ interface CarrinhoProps {
   onRemoverVarios?: (itens: { produtoId: string; combinacao: string }[]) => void
   onFazerPedido: (cliente: { nome: string; whatsapp: string }) => Promise<ResultadoPedido>
   /** Chamado depois que o pedido deu certo (para esvaziar o carrinho). */
-  onPedidoFeito: () => void
+  onPedidoFeito: (pedido: { numero: number | string }) => void
+  /** B31-05: número do último pedido guardado no aparelho; com ele, o carrinho vazio oferece repetir. */
+  ultimoPedido?: { numero: number | string } | null
+  onRepetirPedido?: () => void
+  /** B31-05: o que ficou de fora ao repetir (ou o erro), mostrado no topo. */
+  avisoRepeticao?: string | null
 }
 
-export function Carrinho({ tema, aberto, linhas, minimo, descontos = [], onFechar, onMudarQuantidade, onRemover, onMudarQuantidades, onRemoverVarios, onFazerPedido, onPedidoFeito }: CarrinhoProps) {
+export function Carrinho({ tema, aberto, linhas, minimo, descontos = [], onFechar, onMudarQuantidade, onRemover, onMudarQuantidades, onRemoverVarios, onFazerPedido, onPedidoFeito, ultimoPedido = null, onRepetirPedido, avisoRepeticao = null }: CarrinhoProps) {
   const cores = coresDaVitrine(tema)
   const [nome, setNome] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
@@ -166,7 +171,7 @@ export function Carrinho({ tema, aberto, linhas, minimo, descontos = [], onFecha
       return
     }
     setFeito(r)
-    onPedidoFeito()
+    onPedidoFeito({ numero: r.numero })
     if (aba) aba.location.href = r.link
   }
 
@@ -218,9 +223,17 @@ export function Carrinho({ tema, aberto, linhas, minimo, descontos = [], onFecha
             <p className="text-sm">Seu carrinho está vazio.</p>
             {/* QA M21 (06/10): produto que saiu da loja esvazia o carrinho; o motivo tem de aparecer. */}
             {erros.geral && <p className="text-sm text-red-600" role="alert">{erros.geral}</p>}
+            {avisoRepeticao && <p className="text-sm" style={{ color: cores.texto }} role="status">{avisoRepeticao}</p>}
+            {ultimoPedido && onRepetirPedido && (
+              <button type="button" onClick={onRepetirPedido} className="mt-2 inline-flex items-center gap-2 h-11 px-4 rounded-full border text-sm font-medium" style={{ borderColor: cores.borda, color: cores.texto }}>
+                <RotateCcw className="size-4" />
+                Repetir último pedido (#{ultimoPedido.numero})
+              </button>
+            )}
           </div>
         ) : (
           <>
+            {avisoRepeticao && <p className="mx-4 mt-3 rounded-xl px-3 py-2 text-sm" style={{ background: cores.superficie }} role="status">{avisoRepeticao}</p>}
             <ul className="flex-1 overflow-y-auto px-4 divide-y" style={{ borderColor: cores.borda }}>
               {entradas.map((entrada) => {
                 if (entrada.tipo === "bloco") {

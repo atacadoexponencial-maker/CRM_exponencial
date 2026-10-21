@@ -17,7 +17,7 @@ interface ProdutoClientProps {
 
 export function ProdutoClient({ endereco, tema, minimo, descontos, produto }: ProdutoClientProps) {
   const router = useRouter()
-  const { carrinho, pecas, abrir, gaveta } = useCarrinhoLoja(endereco, tema, minimo, descontos)
+  const { carrinho, pecas, abrir, gaveta, repetir } = useCarrinhoLoja(endereco, tema, minimo, descontos)
   return (
     <>
       <PaginaProduto
@@ -47,6 +47,7 @@ export function ProdutoClient({ endereco, tema, minimo, descontos, produto }: Pr
         }
         onVoltar={() => router.push(`/loja/${endereco}`)}
         onAbrirCarrinho={abrir}
+        onRepetirPedido={repetir}
       />
       {gaveta}
     </>

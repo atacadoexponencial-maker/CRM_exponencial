@@ -4,15 +4,36 @@
 
 import { useState } from "react"
 import { Carrinho, pecasPorProduto, unitarioDaLinha, type LinhaCarrinho, type ResultadoPedido } from "../components/carrinho"
-import { useCarrinho } from "../components/carrinho-local"
+import { guardarUltimoPedido, useCarrinho, useUltimoPedido } from "../components/carrinho-local"
+import { textoDoQueFicouFora } from "@/lib/catalogo/repetir-pedido"
 import type { MinimoPedido } from "../components/pedido"
 import type { TemaLoja } from "../components/tema"
 import type { DescontoPedido } from "@/lib/catalogo/regras-de-venda"
-import { fazerPedido } from "./actions"
+import { fazerPedido, repetirPedido } from "./actions"
 
 export function useCarrinhoLoja(endereco: string, tema: TemaLoja, minimo: MinimoPedido, descontos: DescontoPedido[] = []) {
   const carrinho = useCarrinho(endereco)
   const [aberto, setAberto] = useState(false)
+  // B31-05: o último pedido fica no aparelho (nulo no servidor, para a hidratação bater).
+  const ultimoPedido = useUltimoPedido(endereco)
+  const [avisoRepeticao, setAvisoRepeticao] = useState<string | null>(null)
+  const [repetindo, setRepetindo] = useState(false)
+
+  async function repetir() {
+    if (!ultimoPedido || repetindo) return
+    setRepetindo(true)
+    setAvisoRepeticao(null)
+    const r = await repetirPedido(endereco, ultimoPedido.pecas)
+    setRepetindo(false)
+    setAberto(true)
+    if (!r.ok) {
+      setAvisoRepeticao(r.erro)
+      return
+    }
+    carrinho.substituir(r.itens.map((i) => ({ produtoId: i.produtoId, combinacao: i.combinacao, quantidade: i.quantidade, nome: i.nome, preco: i.preco, fotoUrl: i.fotoUrl, maximo: i.maximo, faixas: i.faixas, minimo: i.minimo, grade: i.grade })))
+    const fora = textoDoQueFicouFora(r.fora)
+    setAvisoRepeticao(fora ? `Pedido #${ultimoPedido.numero} repetido. ${fora}.` : `Pedido #${ultimoPedido.numero} repetido com as peças de hoje.`)
+  }
 
   const linhas: LinhaCarrinho[] = carrinho.itens.map((i) => ({
     produtoId: i.produtoId,
@@ -56,10 +77,17 @@ export function useCarrinhoLoja(endereco: string, tema: TemaLoja, minimo: Minimo
       onRemover={carrinho.remover}
       onMudarQuantidades={carrinho.mudarQuantidades}
       onRemoverVarios={carrinho.removerVarios}
-      onPedidoFeito={carrinho.esvaziar}
+      onPedidoFeito={({ numero }) => {
+        guardarUltimoPedido(endereco, numero, carrinho.itens)
+        setAvisoRepeticao(null)
+        carrinho.esvaziar()
+      }}
+      ultimoPedido={ultimoPedido}
+      onRepetirPedido={repetir}
+      avisoRepeticao={avisoRepeticao}
       onFazerPedido={enviar}
     />
   )
 
-  return { carrinho, pecas, abrir: () => setAberto(true), gaveta }
+  return { carrinho, pecas, abrir: () => setAberto(true), gaveta, repetir: ultimoPedido ? repetir : undefined }
 }

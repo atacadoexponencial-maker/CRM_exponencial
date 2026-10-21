@@ -200,3 +200,29 @@ describe("B31-03 — grade fechada na página do produto e no carrinho", () => {
     expect(screen.getByRole("button", { name: /Adicionar 1 grade \(6 peças\) · R\$\s179,40/ })).toBeTruthy()
   })
 })
+
+describe("B31-05 — repetir o último pedido no carrinho", () => {
+  it("CA-B31-08: o carrinho vazio com um pedido anterior oferece repetir e mostra o que ficou de fora", () => {
+    const onRepetirPedido = vi.fn()
+    const { unmount } = render(
+      <Carrinho tema={TEMA_PADRAO} aberto linhas={[]} minimo={{ tipo: "nenhum", valor: null }} onFechar={() => {}} onMudarQuantidade={() => {}} onRemover={() => {}} onFazerPedido={vi.fn()} onPedidoFeito={() => {}} ultimoPedido={{ numero: 1001 }} onRepetirPedido={onRepetirPedido} />
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Repetir último pedido (#1001)" }))
+    expect(onRepetirPedido).toHaveBeenCalledTimes(1)
+    unmount()
+
+    // Depois de repetir: as peças de hoje e o aviso do que ficou de fora.
+    render(
+      <Carrinho tema={TEMA_PADRAO} aberto linhas={[linha("", 3, { nome: "Camiseta", faixas: [] })]} minimo={{ tipo: "nenhum", valor: null }} onFechar={() => {}} onMudarQuantidade={() => {}} onRemover={() => {}} onFazerPedido={vi.fn()} onPedidoFeito={() => {}} avisoRepeticao="Pedido #1001 repetido. Regata canelada ficou de fora: saiu da loja." />
+    )
+    expect(screen.getByRole("status").textContent).toContain("Regata canelada ficou de fora: saiu da loja")
+    expect(screen.getByText("Camiseta")).toBeTruthy()
+  })
+
+  it("sem pedido anterior, o carrinho vazio não oferece repetir", () => {
+    render(
+      <Carrinho tema={TEMA_PADRAO} aberto linhas={[]} minimo={{ tipo: "nenhum", valor: null }} onFechar={() => {}} onMudarQuantidade={() => {}} onRemover={() => {}} onFazerPedido={vi.fn()} onPedidoFeito={() => {}} />
+    )
+    expect(screen.queryByRole("button", { name: /Repetir último pedido/ })).toBeNull()
+  })
+})

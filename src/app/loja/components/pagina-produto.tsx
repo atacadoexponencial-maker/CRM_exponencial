@@ -48,9 +48,11 @@ interface PaginaProdutoProps {
   onAdicionar?: (itens: { combinacao: string; quantidade: number }[]) => void
   onVoltar: () => void
   onAbrirCarrinho?: () => void
+  /** B31-05: repassado ao cabeçalho. */
+  onRepetirPedido?: () => void
 }
 
-export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarrinho = () => 0, noCarrinhoDoProduto = 0, avisoMinimo = null, onAdicionar, onVoltar, onAbrirCarrinho }: PaginaProdutoProps) {
+export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarrinho = () => 0, noCarrinhoDoProduto = 0, avisoMinimo = null, onAdicionar, onVoltar, onAbrirCarrinho, onRepetirPedido }: PaginaProdutoProps) {
   const cores = coresDaVitrine(tema)
   const tipos = produto.tipos.filter((t) => t.opcoes.length > 0)
   const semVariacao = tipos.length === 0
@@ -142,7 +144,7 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
 
   return (
     <div className="@container min-h-full [&_:is(h1,h2,h3)]:[font-family:inherit]" style={{ background: cores.fundo, color: cores.texto, fontFamily: familiaDaFonte(tema.fonteId) }}>
-      <CabecalhoLoja tema={tema} quantidadeNoCarrinho={quantidadeNoCarrinho} onAbrirCarrinho={onAbrirCarrinho} onAbrirLoja={onVoltar} />
+      <CabecalhoLoja tema={tema} quantidadeNoCarrinho={quantidadeNoCarrinho} onAbrirCarrinho={onAbrirCarrinho} onAbrirLoja={onVoltar} onRepetirPedido={onRepetirPedido} />
 
       <div className={`max-w-5xl mx-auto px-4 py-4 space-y-4 ${onAdicionar && !esgotado ? "pb-24 @3xl:pb-4" : ""}`}>
         <div className="flex items-center justify-between gap-3">

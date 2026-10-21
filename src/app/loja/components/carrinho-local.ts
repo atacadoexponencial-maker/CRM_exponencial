@@ -136,5 +136,62 @@ export function useCarrinho(endereco: string) {
     atualizar([])
   }
 
-  return { itens, adicionar, adicionarVarios, mudarQuantidade, mudarQuantidades, ajustarLimites, ajustarPrecos, remover, removerVarios, esvaziar }
+  /** Troca o carrinho inteiro (repetir o último pedido, B31-05). */
+  function substituir(novos: ItemCarrinho[]) {
+    atualizar(novos)
+  }
+
+  return { itens, adicionar, adicionarVarios, mudarQuantidade, mudarQuantidades, ajustarLimites, ajustarPrecos, remover, removerVarios, esvaziar, substituir }
+}
+
+// ---- Último pedido guardado no aparelho (B31-05) ------------------------------------------
+
+export interface UltimoPedidoGuardado {
+  numero: number | string
+  /** Só o que identifica as peças; nome, preço e estoque vêm do servidor na hora de repetir. */
+  pecas: { produtoId: string; combinacao: string; quantidade: number }[]
+}
+
+const chaveUltimo = (endereco: string) => `ultimo-pedido:${endereco}`
+const memoriaUltimo = new Map<string, UltimoPedidoGuardado | null>()
+const ouvintesUltimo = new Set<() => void>()
+
+export function guardarUltimoPedido(endereco: string, numero: number | string, itens: ItemCarrinho[]) {
+  const pecas = itens.filter((i) => i.quantidade > 0).map((i) => ({ produtoId: i.produtoId, combinacao: i.combinacao, quantidade: i.quantidade }))
+  if (pecas.length === 0) return
+  const guardado: UltimoPedidoGuardado = { numero, pecas }
+  memoriaUltimo.set(chaveUltimo(endereco), guardado)
+  try {
+    localStorage.setItem(chaveUltimo(endereco), JSON.stringify(guardado))
+  } catch {
+    // armazenamento indisponível: vale só enquanto a página está aberta
+  }
+  ouvintesUltimo.forEach((avisar) => avisar())
+}
+
+export function lerUltimoPedido(endereco: string): UltimoPedidoGuardado | null {
+  const chave = chaveUltimo(endereco)
+  if (memoriaUltimo.has(chave)) return memoriaUltimo.get(chave)!
+  let lido: UltimoPedidoGuardado | null = null
+  try {
+    const bruto = localStorage.getItem(chave)
+    if (bruto) {
+      const dados = JSON.parse(bruto) as UltimoPedidoGuardado
+      if (Array.isArray(dados.pecas) && dados.pecas.length > 0) lido = dados
+    }
+  } catch {
+    lido = null
+  }
+  memoriaUltimo.set(chave, lido)
+  return lido
+}
+
+function assinarUltimo(avisar: () => void) {
+  ouvintesUltimo.add(avisar)
+  return () => { ouvintesUltimo.delete(avisar) }
+}
+
+/** O último pedido guardado neste aparelho para a loja; `null` no servidor e quando não há. */
+export function useUltimoPedido(endereco: string): UltimoPedidoGuardado | null {
+  return useSyncExternalStore(assinarUltimo, () => lerUltimoPedido(endereco), () => null)
 }

@@ -16,7 +16,7 @@ interface LojaClientProps {
 }
 
 export function LojaClient({ endereco, tema, minimo, descontos, categorias, produtos }: LojaClientProps) {
-  const { pecas, abrir, gaveta } = useCarrinhoLoja(endereco, tema, minimo, descontos)
+  const { pecas, abrir, gaveta, repetir } = useCarrinhoLoja(endereco, tema, minimo, descontos)
   return (
     <>
       <Vitrine
@@ -28,6 +28,7 @@ export function LojaClient({ endereco, tema, minimo, descontos, categorias, prod
         avisoDesconto={resumoDoDesconto(descontos)}
         hrefProduto={(id) => `/loja/${endereco}/p/${id}`}
         onAbrirCarrinho={abrir}
+        onRepetirPedido={repetir}
       />
       {gaveta}
     </>

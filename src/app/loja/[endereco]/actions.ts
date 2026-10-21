@@ -4,12 +4,22 @@
 // (src/lib/catalogo/pedidos.ts).
 
 import { registrarPedido, type ItemSolicitado, type ResultadoPedido } from "@/lib/catalogo/pedidos"
+import { prepararRepeticao, type PecaGuardada, type ResultadoRepeticao } from "@/lib/catalogo/repetir-pedido"
 import { chaveDoPedidoNaLoja, ipDaRequisicao, passouDoLimite, registrarTentativa } from "@/lib/limite-de-tentativas"
 
 // B21-07: um robô não cria pedidos (e contatos) em massa — no máximo 10 por hora por
 // endereço de internet, em cada loja. Conta só pedido que entrou.
 const PEDIDOS_POR_HORA = 10
 const AVISO_MUITOS_PEDIDOS = "Muitos pedidos em pouco tempo. Aguarde alguns minutos e tente de novo."
+
+/** B31-05: as peças do último pedido guardadas no aparelho, conferidas com o catálogo de hoje. */
+export async function repetirPedido(endereco: string, pecas: PecaGuardada[]): Promise<ResultadoRepeticao> {
+  try {
+    return await prepararRepeticao(endereco, pecas)
+  } catch {
+    return { ok: false, erro: "Não deu para repetir o pedido. Tente de novo." }
+  }
+}
 
 export async function fazerPedido(endereco: string, cliente: { nome: string; whatsapp: string }, itens: ItemSolicitado[]): Promise<ResultadoPedido> {
   try {
