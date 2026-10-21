@@ -29,3 +29,56 @@ Na empresa de teste, distribuir os sem vendedor entre dois usuários divide em r
 ## Perguntas em aberto
 
 Nenhuma.
+
+## Cenários
+
+### Happy Path
+1. No bloco "Sem vendedor", "Distribuir entre vendedores" abre o diálogo com todos os vendedores marcados e a escolha "todos" ou "só com compra"; o Confirmar chama `distribuirSemVendedor(ids, soComCompra)`.
+2. No servidor: Admin ou Gerente; vendedores marcados da mesma empresa e ativos; contatos sem vendedor fora da lixeira (só com compra, se pedido) na ordem de cadastro, um para cada vendedor em rodízio; contatos e cards atualizados; histórico com "distribuição".
+3. "Reprocessar pela última venda" confirma e chama `reprocessarPelaUltimaVenda()`: para cada contato sem vendedor, a última venda (data mais recente; empate pela mais recente registrada) com atendente define o dono; sem venda com atendente, continua sem; histórico com "última venda".
+4. A aba recarrega.
+
+### Edge Cases
+- Nenhum vendedor marcado ou nenhum contato elegível: Confirmar desabilitado; no servidor, "Escolha ao menos um vendedor." ou quantidade 0.
+- Vendedor marcado inativo ou de outra empresa: "Vendedor não encontrado".
+- Atendente: "Sem permissão".
+
+### Cenário de Erro
+- Falha no banco: "Não foi possível distribuir/reprocessar. Tente novamente."
+
+## Prova
+
+| Critério | Prova | Onde | O que confere |
+|---|---|---|---|
+| CA-B35-08 | automática | `src/test/relatorios-carteiras-distribuir.integration.test.ts` | 5 sem vendedor entre Ana e Bruno: 3 e 2 em rodízio pela ordem de cadastro, quem tinha dono não muda, 5 linhas "ninguém → … · distribuição" |
+| CA-B35-09 | automática | `src/test/relatorios-carteiras-distribuir.integration.test.ts` | "Só com compra": os 3 com compra ganham vendedor, os 2 leads não |
+| CA-B35-10 | automática | `src/test/relatorios-carteiras-distribuir.integration.test.ts` | Só o contato com última venda do Bruno passa a ser dele (card incluído); 1 linha "ninguém → Bruno · última venda" |
+| CA-B35-13 | manual | roteiro abaixo | Aba Carteiras aprovada em produção |
+
+### Roteiro manual — CA-B35-13
+1. Entrar na "[TESTE] Automações B11" e abrir Relatórios → Carteiras, no computador e no celular.
+2. Conferir a visão geral, os cartões por usuário e o bloco "Sem vendedor".
+3. Transferir a carteira de um usuário para outro; conferir os números e o histórico; transferir de volta.
+4. Distribuir os sem vendedor entre dois usuários; conferir que os números subiram e o histórico registrou "distribuição". Remover da carteira para voltar ao estado anterior, se quiser.
+5. Tudo legível no tema escuro.
+
+## Banco de Dados
+
+Não se aplica (usa `carteira_historico`).
+
+## Arquivos
+
+- **Modificar:** `src/app/(auth)/relatorios/actions.ts` — `distribuirSemVendedor` e `reprocessarPelaUltimaVenda`.
+- **Criar:** `src/app/(auth)/relatorios/components/acoes-sem-vendedor.tsx` — os dois diálogos.
+- **Modificar:** `src/app/(auth)/relatorios/components/carteiras-client.tsx` — botões no bloco "Sem vendedor" (só gestor) e recarga.
+- **Criar:** `src/test/relatorios-carteiras-distribuir.integration.test.ts` — CA-B35-08, 09 e 10.
+
+## Dependências Externas
+
+Nenhuma.
+
+## Checklist
+
+- [x] Ações de distribuir e reprocessar no servidor, com histórico e sincronia dos cards
+- [x] Diálogos no bloco "Sem vendedor"
+- [x] Testes automáticos passando; roteiro manual do CA-B35-13 registrado

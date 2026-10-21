@@ -10,6 +10,7 @@ import type { NumerosDaCarteira } from "@/lib/relatorios/carteiras"
 import { ROTULO_MOTIVO } from "@/lib/carteira"
 import { buscarCarteiras, type ResultadoCarteiras } from "../actions"
 import { RemoverCarteiraDialog, TransferirCarteiraDialog } from "./acoes-carteira"
+import { DistribuirDialog, ReprocessarDialog } from "./acoes-sem-vendedor"
 
 const NUMEROS: Array<{ id: keyof NumerosDaCarteira; titulo: string; cor: string }> = [
   { id: "leads", titulo: "Leads", cor: "text-violet-400" },
@@ -182,6 +183,12 @@ export function CarteirasClient({ inicial = null }: { inicial?: ResultadoCarteir
             </div>
           )
         }}
+        acoesDosSemVendedor={
+          <div className="flex flex-wrap gap-2" data-testid="acoes-sem-vendedor">
+            <DistribuirDialog vendedores={resultado.painel.vendedores} semVendedor={resultado.painel.semVendedor} onFeito={carregar} />
+            <ReprocessarDialog semVendedor={resultado.painel.semVendedor} onFeito={carregar} />
+          </div>
+        }
       />
     </div>
   )

@@ -289,3 +289,87 @@ export async function transferirCarteira(de: string, para: string): Promise<{ er
 export async function removerCarteira(de: string): Promise<{ erro?: string; quantidade?: number }> {
   return mudarCarteira(de, null, "remocao")
 }
+
+/** Aplica um dono a cada contato (e aos cards dele) e grava no histórico. */
+async function aplicarDonos(
+  supabase: Awaited<ReturnType<typeof sessaoAtual>>["supabase"],
+  workspaceId: string,
+  por: string,
+  atribuicoes: Array<{ contactId: string; para: string }>,
+  motivo: MotivoDaCarteira
+): Promise<boolean> {
+  const porDono = new Map<string, string[]>()
+  for (const a of atribuicoes) porDono.set(a.para, [...(porDono.get(a.para) ?? []), a.contactId])
+  for (const [para, ids] of porDono) {
+    const [{ error: e1 }, { error: e2 }] = await Promise.all([
+      supabase.from("contacts").update({ atendente_id: para }).in("id", ids).eq("workspace_id", workspaceId),
+      supabase.from("pipeline_cards").update({ atendente_id: para }).in("contact_id", ids).eq("workspace_id", workspaceId),
+    ])
+    if (e1 || e2) return false
+  }
+  await registrarMudancasDeCarteira(
+    supabase,
+    atribuicoes.map((a) => ({ workspaceId, contactId: a.contactId, de: null, para: a.para, motivo, por }))
+  )
+  return true
+}
+
+/**
+ * B35-03: contatos sem vendedor (na ordem de cadastro) divididos em rodízio entre os
+ * vendedores marcados. `soComCompra` deixa os leads de fora. Só Admin e Gerente.
+ */
+export async function distribuirSemVendedor(vendedorIds: string[], soComCompra: boolean): Promise<{ erro?: string; quantidade?: number }> {
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return { erro: "Não autenticado" }
+  if (!["admin", "gerente"].includes(perfil.role)) return { erro: "Sem permissão" }
+  const ids = [...new Set(vendedorIds)]
+  if (ids.length === 0) return { erro: "Escolha ao menos um vendedor." }
+
+  const { data: perfis } = await supabase.from("profiles").select("id").in("id", ids).eq("workspace_id", perfil.workspace_id).eq("status", "active")
+  if ((perfis ?? []).length !== ids.length) return { erro: "Vendedor não encontrado" }
+
+  const [{ data: contatos, error: erroLista }, { data: compras }] = await Promise.all([
+    supabase.from("contacts").select("id").eq("workspace_id", perfil.workspace_id).is("atendente_id", null).is("excluido_em", null).order("created_at"),
+    supabase.from("contact_purchases").select("contact_id").eq("workspace_id", perfil.workspace_id),
+  ])
+  if (erroLista) return { erro: "Não foi possível carregar os contatos. Tente novamente." }
+  const comCompra = new Set((compras ?? []).map((c) => c.contact_id))
+  const elegiveis = (contatos ?? []).filter((c) => !soComCompra || comCompra.has(c.id))
+  if (elegiveis.length === 0) return { quantidade: 0 }
+
+  const atribuicoes = elegiveis.map((c, i) => ({ contactId: c.id, para: ids[i % ids.length] }))
+  const ok = await aplicarDonos(supabase, perfil.workspace_id, user.id, atribuicoes, "distribuicao")
+  return ok ? { quantidade: atribuicoes.length } : { erro: "Não foi possível distribuir. Tente novamente." }
+}
+
+/**
+ * B35-03: cada contato sem vendedor passa a ser do atendente da última venda dele, quando
+ * houver. Só Admin e Gerente.
+ */
+export async function reprocessarPelaUltimaVenda(): Promise<{ erro?: string; quantidade?: number }> {
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return { erro: "Não autenticado" }
+  if (!["admin", "gerente"].includes(perfil.role)) return { erro: "Sem permissão" }
+
+  const { data: contatos, error: erroLista } = await supabase
+    .from("contacts").select("id").eq("workspace_id", perfil.workspace_id).is("atendente_id", null).is("excluido_em", null)
+  if (erroLista) return { erro: "Não foi possível carregar os contatos. Tente novamente." }
+  const semDono = new Set((contatos ?? []).map((c) => c.id))
+  if (semDono.size === 0) return { quantidade: 0 }
+
+  const { data: vendas } = await supabase
+    .from("contact_purchases")
+    .select("contact_id, atendente_id, data, created_at")
+    .eq("workspace_id", perfil.workspace_id)
+    .in("contact_id", [...semDono])
+    .order("data", { ascending: false })
+    .order("created_at", { ascending: false })
+  // A primeira venda de cada contato na lista é a última no tempo; só vale se tem atendente.
+  const ultima = new Map<string, string | null>()
+  for (const v of vendas ?? []) if (!ultima.has(v.contact_id)) ultima.set(v.contact_id, v.atendente_id)
+  const atribuicoes = [...ultima.entries()].filter((e): e is [string, string] => e[1] !== null).map(([contactId, para]) => ({ contactId, para }))
+  if (atribuicoes.length === 0) return { quantidade: 0 }
+
+  const ok = await aplicarDonos(supabase, perfil.workspace_id, user.id, atribuicoes, "ultima_venda")
+  return ok ? { quantidade: atribuicoes.length } : { erro: "Não foi possível reprocessar. Tente novamente." }
+}
