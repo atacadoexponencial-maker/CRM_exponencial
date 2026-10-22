@@ -3,7 +3,7 @@
 import { useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { AlarmClock, Bell, Check, ListChecks, MessageSquare, Plus, Search } from "lucide-react"
+import { AlarmClock, Check, MessageSquare, Plus, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,6 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { diasAte, formatarDiaEHora } from "@/lib/datas"
 import { cn } from "@/lib/utils"
 import {
   adiarLembrete,
@@ -27,6 +28,7 @@ import {
   marcarLembreteFeito,
 } from "./actions"
 import type { ItemAgenda } from "./actions"
+import { IconeDaOrigem, RegraDoLembrete } from "./origem-do-lembrete"
 
 type Grupo = "atrasados" | "hoje" | "amanha" | "semana" | "depois"
 
@@ -38,29 +40,19 @@ const GRUPO_LABEL: Record<Grupo, string> = {
   depois: "Mais tarde",
 }
 
-function grupoDoItem(item: ItemAgenda): Grupo {
+export function grupoDoItem(item: ItemAgenda, agora: Date = new Date()): Grupo {
   // QA M5 (06/10): "atrasado" é a mesma regra do selo do menu e da agenda da equipe:
   // a hora já passou. Antes, aqui contava por dia, e as três telas discordavam.
-  const due = new Date(item.dueAt)
-  if (due < new Date()) return "atrasados"
-  const hoje = new Date()
-  hoje.setHours(0, 0, 0, 0)
-  const dueDia = new Date(due)
-  dueDia.setHours(0, 0, 0, 0)
-
-  const diffDias = Math.round((dueDia.getTime() - hoje.getTime()) / 86400000)
+  if (new Date(item.dueAt) < agora) return "atrasados"
+  // B28 (20/10): o dia é contado no fuso da operação. Com o fuso da máquina, o
+  // servidor (UTC) e o navegador discordavam entre 21h e meia-noite, e o React
+  // descartava a página do servidor (erro #418).
+  const diffDias = diasAte(item.dueAt, agora)
   if (diffDias < 0) return "atrasados"
   if (diffDias === 0) return "hoje"
   if (diffDias === 1) return "amanha"
   if (diffDias <= 7) return "semana"
   return "depois"
-}
-
-function formatarHorario(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) +
-    " " +
-    d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
 }
 
 export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgenda[]; papel: string }) {
@@ -223,22 +215,14 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
                         grupo === "atrasados" && "border-destructive/40 bg-destructive/5"
                       )}
                     >
-                      <span
-                        className="mt-0.5 shrink-0 text-muted-foreground"
-                        title={item.origem === "sequencia" ? "Lembrete de sequência" : "Follow-up avulso"}
-                      >
-                        {item.origem === "sequencia" ? (
-                          <ListChecks className="size-4" />
-                        ) : (
-                          <Bell className="size-4" />
-                        )}
-                      </span>
+                      <IconeDaOrigem item={item} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-sm">{item.contatoNome}</span>
-                          <span className="text-xs text-muted-foreground">{formatarHorario(item.dueAt)}</span>
+                          <span className="text-xs text-muted-foreground">{formatarDiaEHora(item.dueAt)}</span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-0.5">{item.instrucao}</p>
+                        <RegraDoLembrete item={item} />
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {item.conversaId && (

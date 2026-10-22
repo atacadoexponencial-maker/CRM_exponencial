@@ -17,7 +17,7 @@ B11 (automações), em 07/10/2026.
 | `.env` | `VERCEL_AUTOMATION_BYPASS_SECRET`: o segredo de **Protection Bypass for Automation** do projeto na Vercel (Settings → Deployment Protection). Sem ele, o preview pede login na Vercel. |
 | `.env` | `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`, para preparar e conferir a empresa de teste. |
 | `.env` | `GATEWAY_WEBHOOK_SECRET`, para assinar as mensagens simuladas (B11-04). Na Vercel, o mesmo valor está numa `GATEWAY_WEBHOOK_SECRET` que vale **só para o Preview do branch `b11-automacoes-v2`**. A de "Production and Preview" guarda o segredo da produção: não troque o valor dela, ou a produção passa a recusar o gateway de verdade. |
-| `.env.local` | `B11_TESTE_EMAIL`, `B11_TESTE_SENHA`, `B11_TESTE_WORKSPACE_ID`. São gravados pelo `criar-empresa-teste.cjs`. |
+| `.env.local` | `B11_TESTE_EMAIL`, `B11_TESTE_SENHA`, `B11_TESTE_WORKSPACE_ID`. O `criar-empresa-teste.cjs` grava os três. Desde 20/10/2026, o e-mail e a senha são de um segundo admin, só dos roteiros (`roteiros-teste-b11@example.com`), porque a senha do admin original foi trocada fora deles. Para achar o admin num roteiro, use `adminDoLogin` do `comum.cjs`, não `role = admin`. |
 | `.env.local` | `B11_TESTE_TELEFONE_REAL`: o número que recebe as mensagens de verdade nos roteiros de envio (B11-05 em diante). Só com DDI e DDD, sem espaço. |
 | Máquina | Chromium do Playwright. Se a versão baixada não for a que o pacote espera, aponte `PLAYWRIGHT_CHROMIUM` para o `chrome.exe` instalado. |
 

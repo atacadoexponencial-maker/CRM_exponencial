@@ -1554,3 +1554,40 @@ porque mudam o que já existe.
   gravar a mensagem (o `wamid` é único). Até ali, já tinha somado "não lida" e, se
   a conversa tivesse sido resolvida no meio, criado outra, com "conversa criada".
   Agora ele confere o `wamid` antes de qualquer coisa e pula a mensagem já gravada.
+
+## 33. Ação "criar lembrete na Agenda" (B28-01, 20/10/2026)
+
+**Por que existe:** a série B28 tira as sequências (spec
+`spec-espera-e-fim-das-sequencias.md`). A única coisa que a sequência fazia e a
+automação não fazia era a etapa de lembrete: uma tarefa na Agenda do vendedor.
+Ela virou uma ação, para não se perder.
+
+**Como ficou** (`src/lib/automacoes/lembrete.ts`):
+
+- Parâmetros: `texto` (obrigatório, até 500 caracteres, com as variáveis das
+  mensagens), `responsavel_id` (vazio = responsável pela conversa) e o vencimento,
+  `vence_em` + `vence_unidade` (horas ou dias; vazio ou 0 vence na hora; até um ano).
+- Quem recebe, no padrão: o responsável pela conversa do contato, se estiver
+  ativo; senão, o primeiro admin ativo (o mais antigo). É o que a sequência fazia
+  (`resolverAtendente`), mais a conferência de ativo, que ela não tinha.
+- Pessoa escolhida no bloco não tem reserva: desativada, a ação falha com o
+  motivo, e o Salvar recusa, como no "atribuir atendente" (B22-02). Quem escolheu
+  alguém de propósito prefere saber a ver o lembrete cair em outra pessoa.
+- O lembrete grava `origem = 'automacao'` e uma cópia do nome da regra
+  (`reminders.automacao_nome`), como o histórico guarda: a Agenda mostra
+  "Lembrete de automação: <regra>" mesmo depois de a regra mudar ou sair.
+- O nome da regra chega à ação pelo contexto da execução (`ContextoDaExecucao.regra`),
+  que o motor monta por regra.
+
+**Alternativas descartadas:**
+
+- *Guardar o id da regra no lembrete, em vez do nome:* a regra excluída deixaria o
+  lembrete sem origem legível. O histórico das execuções já resolveu isso com a cópia.
+- *Vencimento num seletor de prazos fixos (1 hora, 1 dia, 1 semana):* o pedido
+  falava em "N horas ou dias"; o número livre cobre os fixos sem mais uma lista.
+- *Pausar a execução até o lembrete ser feito, como a sequência fazia:* esperar um
+  lembrete não está entre as esperas do bloco "esperar" (spec, fora de escopo).
+
+**Migration:** `20261020000006_lembrete_de_automacao.sql`, só acrescenta (a regra
+de `origem` passa a aceitar `'automacao'`, e a coluna `automacao_nome` é nova).
+Aplicada em 20/10/2026, ainda no branch.
