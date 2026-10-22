@@ -494,11 +494,11 @@ export function ListaContatos({
                   onClick={() => router.push(`/contatos/${contato.id}`)}
                   className="border-b last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
                 >
-                  <td className="px-4 py-3 font-medium max-w-64 [overflow-wrap:anywhere]">{contato.nome}</td>
+                  <td className="px-4 py-3 font-medium min-w-40 max-w-64 [overflow-wrap:anywhere]">{contato.nome}</td>
                   <td className="numero px-4 py-3 text-muted-foreground">{contato.telefone}</td>
                   <td className="px-4 py-3">
                     <span className={cn(
-                      "inline-flex items-center px-2 py-0.5 text-xs rounded-md border font-medium",
+                      "inline-flex items-center whitespace-nowrap px-2 py-0.5 text-xs rounded-md border font-medium",
                       CLASSIFICACAO_BADGE[contato.classificacao]
                     )}>
                       {CLASSIFICACAO_LABEL[contato.classificacao]}
