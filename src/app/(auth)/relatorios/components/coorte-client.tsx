@@ -3,12 +3,13 @@
 // B34-01: aba Coorte — tabelas de retenção e valor médio por coorte, com Excel.
 
 import { useEffect, useState, useTransition } from "react"
-import { ChevronDown, Download, Loader2 } from "lucide-react"
+import { Download, Loader2 } from "lucide-react"
 import { Bar, BarChart, LabelList, XAxis, YAxis } from "recharts"
 import { cn } from "@/lib/utils"
 import { MESES_DA_COORTE, rotuloDoMesK, type Coorte, type ResultadoCoorte, type ResumoCoortes } from "@/lib/relatorios/coorte"
 import { urlDeExportacaoCoorte, type TabelaCoorte } from "@/lib/relatorios/exportar-coorte"
 import { buscarCoorte } from "../actions"
+import { Entenda } from "./entenda"
 
 const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })
 const COLUNAS = Array.from({ length: MESES_DA_COORTE }, (_, k) => k)
@@ -123,25 +124,7 @@ export function ResumoDasCoortes({ resumo }: { resumo: ResumoCoortes }) {
 }
 
 export function EntendaCoortes() {
-  const [aberto, setAberto] = useState(false)
-  return (
-    <section className="rounded-md border bg-card p-5">
-      <button type="button" onClick={() => setAberto((a) => !a)} aria-expanded={aberto} className="flex w-full items-center justify-between text-left">
-        <h2 className="text-sm font-semibold">Entenda a análise de coortes</h2>
-        <ChevronDown className={cn("size-4 transition-transform", aberto && "rotate-180")} />
-      </button>
-      {aberto && (
-        <div className="grid gap-3 mt-3 sm:grid-cols-2">
-          {ENTENDA.map(([titulo, texto]) => (
-            <div key={titulo} className="border-t pt-3">
-              <p className="text-sm font-medium mb-1">{titulo}</p>
-              <p className="text-xs text-muted-foreground">{texto}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  )
+  return <Entenda titulo="Entenda a análise de coortes" itens={ENTENDA} />
 }
 
 export function CoorteClient({ atendenteId, inicial = null }: { atendenteId: string | null; inicial?: ResultadoCoorte | null }) {

@@ -13,14 +13,6 @@ import { buscarFunilClientes } from "../actions"
 const moeda = (v: number | null) => (v === null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }))
 const pct = (v: number | null) => (v === null ? "—" : `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`)
 
-const DICAS = [
-  "Segmente campanhas para clientes que não avançaram de etapa;",
-  "Ofereça promoções especiais para incentivar a próxima compra;",
-  "Personalize a comunicação com base no histórico de compras;",
-  "Envie lembretes e mensagens amigáveis;",
-  "Acompanhe o retorno e melhore o atendimento.",
-]
-
 export function FunilDeClientes({ resultado }: { resultado: ResultadoFunilClientes }) {
   const [explicar, setExplicar] = useState(false)
   const dados = resultado.etapas
@@ -110,15 +102,6 @@ export function FunilDeClientes({ resultado }: { resultado: ResultadoFunilClient
             </tbody>
           </table>
         </div>
-      </section>
-
-      <section className="rounded-md border bg-card p-5">
-        <h2 className="text-sm font-semibold mb-2">Como melhorar suas taxas de conversão</h2>
-        <ul className="list-disc pl-5 text-sm text-muted-foreground flex flex-col gap-1">
-          {DICAS.map((d) => (
-            <li key={d}>{d}</li>
-          ))}
-        </ul>
       </section>
     </div>
   )

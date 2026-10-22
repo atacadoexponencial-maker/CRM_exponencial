@@ -13,7 +13,7 @@ function Delta({ valor, percentual }: { valor: number; percentual: number | null
   const cor = valor > 0 ? "text-sucesso" : valor < 0 ? "text-erro" : "text-muted-foreground"
   const sinal = valor > 0 ? "+" : valor < 0 ? "−" : ""
   const pct = percentual === null ? (valor === 0 ? "0%" : "—") : `${sinal}${Math.abs(percentual)}%`
-  return <span className={cn("text-[11px]", cor)}>{sinal}{Math.abs(valor)} ({pct})</span>
+  return <span className="text-[11px]"><span className={cor}>{sinal}{Math.abs(valor)}</span> <span className="text-muted-foreground">({pct})</span></span>
 }
 
 export function EvolucaoPerfis({ evolucao }: { evolucao: EvolucaoRfv }) {

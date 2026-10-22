@@ -6,10 +6,18 @@ import { useEffect, useState, useTransition } from "react"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatarDataBr } from "@/lib/relatorios/visao-geral"
-import { PERFIL_POR_ID, PERFIS, type CelulaRfv, type IndicadorPerfil, type ResultadoRfv } from "@/lib/relatorios/rfv"
+import { PERFIL_POR_ID, type CelulaRfv, type IndicadorPerfil, type ResultadoRfv } from "@/lib/relatorios/rfv"
 import { buscarRfv } from "../actions"
 import { ListaClientesRfv } from "./lista-clientes-rfv"
 import { EvolucaoPerfis } from "./evolucao-perfis"
+import { Entenda } from "./entenda"
+
+const ENTENDA_RFV = [
+  ["O que é RFV?", "RFV dá a cada cliente três notas, de 1 a 5: Recência (há quanto tempo foi a última compra), Frequência (quantas compras nos últimos 12 meses) e Valor (quanto gastou nos últimos 12 meses). Quanto maior a nota, melhor."],
+  ["Como as notas são dadas", "Recência: 5 até 30 dias sem comprar, 4 até 60, 3 até 90, 2 até 180 e 1 depois disso. Frequência e Valor comparam o cliente com a sua própria base: os 20% que mais compram ganham 5, os 20% seguintes ganham 4, e assim por diante."],
+  ["Como ler a matriz", "As colunas são a Recência e as linhas são o FV, a média entre Frequência e Valor. Cada célula mostra quantos clientes estão nela e o perfil deles. Clique numa célula para ver a lista desses clientes."],
+  ["Perfis e base saudável", "Cada célula da matriz leva a um perfil, de Campeão (comprou há pouco, compra muito e gasta bem) a Perdido (sumiu há muito tempo e comprou pouco). A base saudável soma Campeão, Clientes Fiéis, Potencial Fiel, Clientes Recentes e Clientes Promissores. Veja se ela cresce na evolução, no fim da página."],
+] as const
 
 const moeda = (v: number | null) => (v === null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }))
 const decimal = (v: number | null) => (v === null ? "—" : v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }))
@@ -127,6 +135,7 @@ export function RfvClient({ atendenteId, inicial = null }: RfvClientProps) {
 
   return (
     <div className="flex flex-col gap-4">
+      <Entenda titulo="Entenda o RFV" itens={ENTENDA_RFV} />
       <div className="rounded-lg border p-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm">
           <span className="font-semibold">Perfis em</span> <span data-testid="rfv-referencia">{formatarDataBr(resultado.referencia)}</span>
@@ -143,9 +152,6 @@ export function RfvClient({ atendenteId, inicial = null }: RfvClientProps) {
       <ListaClientesRfv clientes={resultado.clientes} celula={celula} onLimparCelula={() => setCelula(null)} atendenteId={atendenteId} />
       {/* B33-03: evolução semanal e mensal, com a base saudável. */}
       <EvolucaoPerfis evolucao={resultado.evolucao} />
-      <p className="text-[11px] text-muted-foreground">
-        Perfis: {PERFIS.map((p) => `${p.icone} ${p.nome}`).join(" · ")}
-      </p>
     </div>
   )
 }
