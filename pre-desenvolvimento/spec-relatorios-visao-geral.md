@@ -84,7 +84,7 @@ Carteiras desativadas, marcadas "em breve", sem levar a lugar nenhum.
 
 - **Dado** um usuário Admin, Gerente ou Atendente logado
 - **Quando** ele olha o menu lateral
-- **Então** há o item "Relatórios" logo abaixo de "Dashboard", e ele leva a `/relatorios`
+- **Então** há o item "Relatórios" logo abaixo de "Pedidos", e ele leva a `/relatorios` (era abaixo de "Dashboard"; mudado a pedido da Marcelle no preview da B36, 22/10)
 
 #### CA-B32-24 — Abas futuras aparecem desativadas · prova: automática
 
