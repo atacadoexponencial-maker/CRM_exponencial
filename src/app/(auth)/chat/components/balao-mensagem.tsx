@@ -55,12 +55,12 @@ function PlayerAudio({ src, isEnviada }: { src: string; isEnviada?: boolean }) {
   const progresso = duracao > 0 ? (tempoAtual / duracao) * 100 : 0
 
   const btnClass = isEnviada
-    ? "h-8 w-8 rounded-full bg-primary-foreground/20 flex items-center justify-center shrink-0 hover:bg-primary-foreground/30 transition-colors"
+    ? "h-8 w-8 rounded-full bg-foreground/10 flex items-center justify-center shrink-0 hover:bg-foreground/15 transition-colors"
     : "h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 hover:bg-primary/20 transition-colors"
-  const iconClass = isEnviada ? "size-4 text-primary-foreground fill-primary-foreground" : "size-4 text-primary fill-primary"
-  const trackClass = isEnviada ? "flex-1 h-1.5 rounded-full bg-primary-foreground/30 cursor-pointer relative" : "flex-1 h-1.5 rounded-full bg-muted-foreground/30 cursor-pointer relative"
-  const fillClass = isEnviada ? "absolute left-0 top-0 h-full rounded-full bg-primary-foreground/80" : "absolute left-0 top-0 h-full rounded-full bg-primary/60"
-  const timeClass = isEnviada ? "text-xs text-primary-foreground/70 shrink-0 tabular-nums" : "text-xs text-muted-foreground shrink-0 tabular-nums"
+  const iconClass = "size-4 text-primary fill-primary"
+  const trackClass = "flex-1 h-1.5 rounded-full bg-muted-foreground/30 cursor-pointer relative"
+  const fillClass = "absolute left-0 top-0 h-full rounded-full bg-primary/60"
+  const timeClass = "text-xs text-muted-foreground shrink-0 tabular-nums"
 
   return (
     <div className="flex items-center gap-2 w-52">
@@ -302,14 +302,16 @@ export function BalaoMensagem({ mensagem, termoBusca = "", onResponder }: BalaoM
       )}
       <div
         className={cn(
-          "max-w-[70%] rounded-2xl px-3 py-2 text-sm",
+          "max-w-[70%] rounded-lg px-3 py-2 text-sm leading-relaxed",
+          // B36-06: balões do Caderno — o enviado no tom do item ativo, o recebido na
+          // superfície; os dois com a linha fina e o texto do tema.
           isEnviada
-            ? "bg-primary text-primary-foreground rounded-br-sm"
-            : "bg-muted text-foreground rounded-bl-sm"
+            ? "bg-secondary text-secondary-foreground border border-border rounded-br-sm"
+            : "bg-card text-card-foreground border border-border rounded-bl-sm"
         )}
       >
         {isEnviada && mensagem.enviadaPeloCelular && (
-          <span className="flex items-center gap-1 mb-1 text-[10px] font-medium text-primary-foreground/80">
+          <span className="flex items-center gap-1 mb-1 text-[10px] font-medium text-muted-foreground">
             <Smartphone className="size-3" />
             Enviada pelo celular
           </span>
@@ -320,7 +322,7 @@ export function BalaoMensagem({ mensagem, termoBusca = "", onResponder }: BalaoM
             className={cn(
               "text-xs rounded-lg px-2 py-1 mb-1.5 border-l-2 opacity-80",
               isEnviada
-                ? "bg-primary-foreground/10 border-primary-foreground"
+                ? "bg-foreground/5 border-muted-foreground"
                 : "bg-muted-foreground/10 border-muted-foreground"
             )}
           >
@@ -331,7 +333,7 @@ export function BalaoMensagem({ mensagem, termoBusca = "", onResponder }: BalaoM
         <ConteudoMensagem mensagem={mensagem} termoBusca={termoBusca} isEnviada={isEnviada} />
 
         <div className="flex items-center justify-end gap-1 mt-1">
-          <span className={cn("text-[10px]", isEnviada ? "text-primary-foreground/70" : "text-muted-foreground")}>
+          <span className={cn("text-[10px]", "numero text-muted-foreground")}>
             {mensagem.horario}
           </span>
           {isEnviada && <IconeStatus status={mensagem.status} />}
