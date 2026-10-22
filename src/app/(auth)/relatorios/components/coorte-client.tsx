@@ -157,10 +157,10 @@ export function CoorteClient({ atendenteId, inicial = null }: { atendenteId: str
         <h2 className="text-base font-semibold">Análise de coortes</h2>
         {isPending && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
       </div>
-      {/* B34-02: resumo acima das tabelas e o Entenda abaixo. */}
+      {/* Entenda no topo (preview da B36, 22/10), depois o resumo e as tabelas. */}
+      <EntendaCoortes />
       <ResumoDasCoortes resumo={resultado.resumo} />
       <TabelasDeCoorte coortes={resultado.coortes} atendenteId={atendenteId} />
-      <EntendaCoortes />
     </div>
   )
 }
