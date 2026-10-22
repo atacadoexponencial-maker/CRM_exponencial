@@ -11,7 +11,7 @@ import { buscarPainelDashboard } from "../actions"
 import type { ConversaEsperando, PainelDashboard, TarefaDeHoje } from "../actions"
 import { FiltrosDashboard, type FiltrosState } from "./filtros-dashboard"
 import { SecoesMetricas } from "./secoes-metricas"
-import { FaixaDeNumeros } from "./faixa-de-numeros"
+import { FaixaDeNumeros } from "@/components/shared/faixa-de-numeros"
 import { BlocoEsperandoResposta, BlocoFunilEntrada, BlocoParaHoje } from "./blocos-do-dia"
 import { formatarMoeda } from "./graficos"
 

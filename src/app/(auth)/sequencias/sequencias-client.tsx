@@ -74,7 +74,7 @@ export function SequenciasClient({
   return (
     <>
       <div className="flex items-center justify-between mb-2">
-        <h1 className="text-xl font-semibold">Sequências</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Sequências</h1>
         {ehAdmin && (
           <Button size="sm" onClick={() => router.push("/sequencias/nova")}>
             <Plus className="size-4 mr-1.5" />
@@ -88,25 +88,25 @@ export function SequenciasClient({
       </p>
 
       {sequencias.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-16 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-card/60 py-16 text-muted-foreground">
           <ListChecks className="size-8 opacity-40" />
           <p className="text-sm">Nenhuma sequência cadastrada</p>
         </div>
       ) : (
-        <div className="rounded-lg border overflow-x-auto">
+        <div className="overflow-x-auto border-t-2 border-t-foreground">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Sequência</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Gatilho</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Em andamento</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ações</th>
+              <tr className="border-b">
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Sequência</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Gatilho</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Em andamento</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Status</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Ações</th>
               </tr>
             </thead>
             <tbody>
               {sequencias.map((s) => (
-                <tr key={s.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                <tr key={s.id} className="border-b hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{s.nome}</span>
@@ -191,7 +191,7 @@ export function SequenciasClient({
             <p className="text-sm">
               Tem certeza que deseja excluir <strong>{sequenciaExcluindo?.nome}</strong>?
             </p>
-            {erroExcluir && <p className="text-sm text-destructive">{erroExcluir}</p>}
+            {erroExcluir && <p className="text-sm text-erro">{erroExcluir}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
                 Cancelar

@@ -264,7 +264,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
 
   return (
     <>
-      <h1 className="text-xl font-semibold mb-1">
+      <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-1">
         {campanha ? `Editar campanha — ${campanha.nome}` : "Nova campanha"}
       </h1>
       <p className="text-sm text-muted-foreground mb-6">
@@ -471,7 +471,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
                 type="button"
                 onClick={() => arquivoRef.current?.click()}
                 disabled={enviandoArquivo}
-                className="flex items-center gap-2 rounded-lg border border-dashed px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 rounded-md border border-dashed bg-card/60 px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
               >
                 {enviandoArquivo ? <Loader2 className="size-4 animate-spin" /> : <Paperclip className="size-4" />}
                 {arquivoNome ?? "Escolher arquivo…"}
@@ -663,7 +663,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
         </div>
       )}
 
-      {erro && <p className="text-sm text-destructive mt-4">{erro}</p>}
+      {erro && <p className="text-sm text-erro mt-4">{erro}</p>}
 
       {/* Navegação */}
       {/* QA M23 (06/10): no celular, "Confirmar e enviar agora" saía da tela. */}

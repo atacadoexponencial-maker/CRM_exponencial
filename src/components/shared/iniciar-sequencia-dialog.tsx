@@ -118,7 +118,7 @@ export function IniciarSequenciaDialog({
                         type="button"
                         disabled={agindo}
                         onClick={() => handleCancelar(run.runId)}
-                        className="text-xs text-destructive hover:underline disabled:opacity-50"
+                        className="text-xs text-erro hover:underline disabled:opacity-50"
                       >
                         Cancelar
                       </button>
@@ -169,7 +169,7 @@ export function IniciarSequenciaDialog({
             </>
           )}
 
-          {erro && <p className="text-sm text-destructive">{erro}</p>}
+          {erro && <p className="text-sm text-erro">{erro}</p>}
 
           <div className="flex justify-end pt-2">
             <DialogClose render={<Button type="button" variant="outline" />}>

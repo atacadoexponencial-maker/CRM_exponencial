@@ -11,7 +11,7 @@ vi.mock("@/app/(auth)/dashboard/actions", () => ({ buscarPainelDashboard: vi.fn(
 vi.mock("@/app/(auth)/agenda/actions", () => ({ marcarLembreteFeito: vi.fn(async () => ({})) }))
 
 import { DashboardClient } from "@/app/(auth)/dashboard/components/dashboard-client"
-import { FaixaDeNumeros } from "@/app/(auth)/dashboard/components/faixa-de-numeros"
+import { FaixaDeNumeros } from "@/components/shared/faixa-de-numeros"
 import type { PainelDashboard } from "@/app/(auth)/dashboard/actions"
 
 const PAINEL: PainelDashboard = {

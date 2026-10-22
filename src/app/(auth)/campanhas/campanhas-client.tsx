@@ -106,7 +106,7 @@ export function CampanhasClient({ campanhasIniciais }: { campanhasIniciais: Camp
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-        <h1 className="text-xl font-semibold">Campanhas</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Campanhas</h1>
         <Button size="sm" onClick={() => router.push("/campanhas/nova")}>
           <Plus className="size-4 mr-1.5" />
           Nova campanha
@@ -140,26 +140,26 @@ export function CampanhasClient({ campanhasIniciais }: { campanhasIniciais: Camp
       </div>
 
       {filtradas.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-16 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-card/60 py-16 text-muted-foreground">
           <Megaphone className="size-8 opacity-40" />
           <p className="text-sm">Nenhuma campanha encontrada</p>
         </div>
       ) : (
-        <div className="rounded-lg border overflow-x-auto">
+        <div className="overflow-x-auto border-t-2 border-t-foreground">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Campanha</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Destinatários</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Envio</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Criador</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ações</th>
+              <tr className="border-b">
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Campanha</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Status</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Destinatários</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Envio</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Criador</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Ações</th>
               </tr>
             </thead>
             <tbody>
               {filtradas.map((c) => (
-                <tr key={c.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                <tr key={c.id} className="border-b hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-3">
                     <Link href={destinoDaCampanha(c)} className="font-medium hover:underline">
                       {c.nome}
@@ -187,7 +187,7 @@ export function CampanhasClient({ campanhasIniciais }: { campanhasIniciais: Camp
                             setErroCancelar(null)
                             setCancelandoId(c.id)
                           }}
-                          className="text-xs text-destructive hover:underline"
+                          className="text-xs text-erro hover:underline"
                         >
                           Cancelar
                         </button>
@@ -227,7 +227,7 @@ export function CampanhasClient({ campanhasIniciais }: { campanhasIniciais: Camp
               <strong>{campanhaExcluindo?.nome}</strong> será apagada de vez, com a lista de
               destinatários. Isso não pode ser desfeito.
             </p>
-            {erroExcluir && <p className="text-sm text-destructive">{erroExcluir}</p>}
+            {erroExcluir && <p className="text-sm text-erro">{erroExcluir}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
                 Voltar
@@ -253,7 +253,7 @@ export function CampanhasClient({ campanhasIniciais }: { campanhasIniciais: Camp
               <strong>{campanhaCancelando?.nome}</strong> ainda não foi enviada. Ao cancelar,
               nenhuma mensagem será disparada.
             </p>
-            {erroCancelar && <p className="text-sm text-destructive">{erroCancelar}</p>}
+            {erroCancelar && <p className="text-sm text-erro">{erroCancelar}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
                 Voltar

@@ -1,9 +1,9 @@
-// B36-04: grupo de números em faixa única, separada por linhas finas (o livro-caixa do
+// B36-04 (compartilhada na B36-11): grupo de números em faixa única, separada por linhas finas (o livro-caixa do
 // quadro Caderno), no lugar de uma fileira de cartões iguais. Valor em fonte de número;
 // a variação sobre o período anterior em verde quando sobe e vermelho quando cai.
 
 import { cn } from "@/lib/utils"
-import type { Variacao } from "../actions"
+import type { Variacao } from "@/lib/painel-dashboard"
 
 export type NumeroDaFaixa = {
   rotulo: string

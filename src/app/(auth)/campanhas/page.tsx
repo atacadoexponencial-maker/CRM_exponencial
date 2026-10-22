@@ -15,7 +15,7 @@ export default async function CampanhasPage() {
   const campanhas = await listarCampanhas()
 
   return (
-    <div className="max-w-5xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
       <CampanhasClient campanhasIniciais={campanhas} />
     </div>
   )

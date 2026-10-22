@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { ArrowLeft, OctagonPause, Play, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { CardMetrica } from "../../../dashboard/components/graficos"
+import { FaixaDeNumeros } from "@/components/shared/faixa-de-numeros"
 import {
   criarReenvioParaFalhos,
   interromperCampanha,
@@ -130,7 +130,7 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
       </Link>
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
-        <h1 className="text-xl font-semibold">{relatorio.nome}</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">{relatorio.nome}</h1>
         {/* B8-03: parar e continuar um disparo de horas. */}
         {relatorio.status === "enviando" && (
           <Button size="sm" variant="outline" onClick={handleInterromper} disabled={mudandoEstado}>
@@ -164,7 +164,7 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
         · {relatorio.total} destinatários
       </p>
 
-      {erro && <p className="text-sm text-destructive mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-erro mb-4">{erro}</p>}
 
       {/* B8-03: por que parou, e o que isso significa de verdade. */}
       {relatorio.status === "interrompida" && (
@@ -228,16 +228,19 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-        <CardMetrica titulo="Total enviado" valor={relatorio.enviados} />
-        <CardMetrica titulo="Entregues" valor={relatorio.entregues} />
-        <CardMetrica titulo="Lidos" valor={relatorio.lidos} />
-        <CardMetrica titulo="Falhos" valor={relatorio.falhos} />
-      </div>
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <CardMetrica titulo="Taxa de entrega" valor={taxaEntrega} sufixo="%" />
-        <CardMetrica titulo="Taxa de leitura" valor={taxaLeitura} sufixo="%" />
-      </div>
+      {/* B36-11: os números da entrega em faixa de números do Caderno. */}
+      <FaixaDeNumeros
+        destaque
+        className="mb-7"
+        itens={[
+          { rotulo: "Total enviado", valor: relatorio.enviados },
+          { rotulo: "Entregues", valor: relatorio.entregues },
+          { rotulo: "Lidos", valor: relatorio.lidos },
+          { rotulo: "Falhos", valor: relatorio.falhos },
+          { rotulo: "Taxa de entrega", valor: taxaEntrega, sufixo: "%" },
+          { rotulo: "Taxa de leitura", valor: taxaLeitura, sufixo: "%" },
+        ]}
+      />
 
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold">Destinatários ({filtrados.length})</h2>
@@ -254,16 +257,16 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
         </select>
       </div>
 
-      <div className="rounded-lg border overflow-x-auto">
+      <div className="overflow-x-auto border-t-2 border-t-foreground">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Contato</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Número</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+            <tr className="border-b">
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Contato</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Número</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Status</th>
               {/* B8-04: "falhou" sozinho não diz o que fazer a seguir. */}
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Motivo</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Atualizado</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Motivo</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Atualizado</th>
             </tr>
           </thead>
           <tbody>
@@ -275,7 +278,7 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
               </tr>
             )}
             {filtrados.map((d, i) => (
-              <tr key={i} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+              <tr key={i} className="border-b hover:bg-muted/50 transition-colors">
                 <td className="px-4 py-2.5 font-medium">{d.nome}</td>
                 <td className="px-4 py-2.5 text-muted-foreground">{d.telefone}</td>
                 <td className="px-4 py-2.5">

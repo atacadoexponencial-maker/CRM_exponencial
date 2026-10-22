@@ -72,7 +72,7 @@ export function EditorSequenciaClient({ sequencia }: { sequencia: SequenciaDetal
 
   return (
     <>
-      <h1 className="text-xl font-semibold mb-6">
+      <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-6">
         {sequencia ? `Editar sequência — ${sequencia.nome}` : "Nova sequência"}
       </h1>
 
@@ -207,7 +207,7 @@ export function EditorSequenciaClient({ sequencia }: { sequencia: SequenciaDetal
           </Button>
         </div>
 
-        {erro && <p className="text-sm text-destructive">{erro}</p>}
+        {erro && <p className="text-sm text-erro">{erro}</p>}
 
         <div className="flex justify-end gap-2 pt-2 border-t">
           <Button type="button" variant="outline" onClick={() => router.push("/sequencias")}>

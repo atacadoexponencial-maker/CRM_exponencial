@@ -7,7 +7,7 @@
 
 import type { MetricasDashboard } from "../actions"
 import { GraficoBarras, GraficoDonut, GraficoFunil, formatarMoeda } from "./graficos"
-import { FaixaDeNumeros, type NumeroDaFaixa } from "./faixa-de-numeros"
+import { FaixaDeNumeros, type NumeroDaFaixa } from "@/components/shared/faixa-de-numeros"
 
 function Secao({ titulo, numeros, children }: { titulo: string; numeros: NumeroDaFaixa[]; children?: React.ReactNode }) {
   return (
