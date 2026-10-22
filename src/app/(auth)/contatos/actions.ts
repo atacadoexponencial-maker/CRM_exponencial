@@ -3,6 +3,16 @@
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import type { Contato, ContatoPerfil, ClassificacaoContato, TipoContato, ICP } from "./mock-contatos"
+import { TAMANHO_PAGINA_CONTATOS } from "./mock-contatos"
+import type { Database, Json } from "@/integrations/supabase/types"
+import {
+  esquemaFiltro,
+  esquemaRapidos,
+  limparFiltro,
+  FILTRO_VAZIO,
+  type Condicao,
+  type Filtro,
+} from "@/lib/filtro-contatos"
 import { calcularClassificacao } from "./classificacao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { tirarDaLixeira } from "@/lib/lixeira"
@@ -514,6 +524,73 @@ export async function listarContatos(opcoes: OpcoesListagemContatos = {}): Promi
   )
 
   return (data ?? []).map(mapContato)
+}
+
+export type OrdemDaLista = "recente" | "nome" | "classificacao"
+
+export type OpcoesDoFiltro = {
+  filtro?: Filtro
+  /** Botões fixos da lista: valem com E junto do filtro. */
+  rapidos?: Condicao[]
+  busca?: string
+  ordem?: OrdemDaLista
+  limite?: number
+  offset?: number
+}
+
+/**
+ * B37-01: uma página da lista de contatos com o filtro avançado, a busca e os
+ * botões fixos aplicados no banco, sobre a base inteira, e o total do resultado.
+ * A RLS de contacts decide o que cada papel vê (o Atendente, só os dele).
+ */
+export async function filtrarContatos(
+  opcoes: OpcoesDoFiltro = {}
+): Promise<{ contatos: Contato[]; total: number } | { erro: string }> {
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return { contatos: [], total: 0 }
+
+  const filtro = esquemaFiltro.safeParse(opcoes.filtro ?? FILTRO_VAZIO)
+  const rapidos = esquemaRapidos.safeParse(opcoes.rapidos ?? [])
+  if (!filtro.success || !rapidos.success) return { erro: "Filtro inválido." }
+
+  const ordem: OrdemDaLista = opcoes.ordem === "nome" || opcoes.ordem === "classificacao" ? opcoes.ordem : "recente"
+  const { data, error } = await supabase.rpc("filtrar_contatos", {
+    p_filtro: limparFiltro(filtro.data as Filtro) as unknown as Json,
+    p_rapidos: rapidos.data as unknown as Json,
+    p_busca: opcoes.busca?.trim() ?? "",
+    p_ordem: ordem,
+    p_limite: opcoes.limite ?? TAMANHO_PAGINA_CONTATOS,
+    p_offset: opcoes.offset ?? 0,
+  })
+  if (error) return { erro: "Não foi possível aplicar o filtro." }
+
+  const linhas = (data ?? []) as Database["public"]["Functions"]["filtrar_contatos"]["Returns"]
+  return {
+    contatos: linhas.map((c) => mapContato({ ...c, profiles: c.atendente_nome ? { name: c.atendente_nome } : null })),
+    // Página além do fim vem vazia e sem total: aí o total é o que já se sabia.
+    total: linhas.length > 0 ? Number(linhas[0].total) : (opcoes.offset ?? 0),
+  }
+}
+
+/** B37-01: valores dos campos de lista que vêm da empresa (nicho e atendente). */
+export async function valoresDoFiltro(): Promise<{ nichos: string[]; atendentes: Array<{ id: string; nome: string }> }> {
+  const { supabase, perfil } = await sessaoAtual()
+  if (!perfil) return { nichos: [], atendentes: [] }
+  const [{ data: nichos }, atendentes] = await Promise.all([
+    supabase
+      .from("contacts")
+      .select("nicho")
+      .eq("workspace_id", perfil.workspace_id)
+      .is("excluido_em", null)
+      .not("nicho", "is", null),
+    listarAtendentesAtivos(),
+  ])
+  return {
+    nichos: Array.from(new Set((nichos ?? []).map((n) => (n.nicho as string).trim()).filter(Boolean))).sort((a, b) =>
+      a.localeCompare(b, "pt-BR")
+    ),
+    atendentes,
+  }
 }
 
 export async function adicionarTagContato(

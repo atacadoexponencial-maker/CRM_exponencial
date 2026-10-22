@@ -395,3 +395,5 @@ filtro avançado (E).
 | PER-B37-04 | Dá para salvar filtros, e quem vê? | respondida | Sim, filtros salvos com nome, visíveis para a empresa toda. Marcelle, 22/10/2026. |
 | PER-B37-05 | Quem pode montar filtros? | respondida | Todos os papéis; o atendente só dentro dos próprios contatos. Marcelle, 22/10/2026. |
 | PER-B37-06 | Quem salva, renomeia e apaga filtro salvo? | respondida | Admin e Gerente; o atendente só usa. Marcelle, 22/10/2026. |
+| PER-B37-07 | Ao montar o filtro, a lista atualiza na hora ou num botão "Aplicar"? | respondida | Botão "Aplicar": a lista só muda ao aplicar; "Limpar filtro" aplica na hora. Marcelle, 22/10/2026. |
+| PER-B37-08 | Em texto, a comparação ignora maiúscula e acento? | respondida | Ignora os dois ("sao paulo" acha "São Paulo"), e a busca por nome passa a ignorar acento também. Marcelle, 22/10/2026. |

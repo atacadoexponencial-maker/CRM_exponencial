@@ -2073,6 +2073,7 @@ export type Database = {
         }
         Returns: string
       }
+      condicao_de_contato_sql: { Args: { p_cond: Json }; Returns: string }
       contato_na_lixeira: { Args: { p_contact_id: string }; Returns: boolean }
       conversa_na_lixeira: {
         Args: { p_conversation_id: string }
@@ -2089,6 +2090,29 @@ export type Database = {
           telefone: string
           tipo: string
           trecho: string
+        }[]
+      }
+      filtrar_contatos: {
+        Args: {
+          p_busca?: string
+          p_filtro?: Json
+          p_limite?: number
+          p_offset?: number
+          p_ordem?: string
+          p_rapidos?: Json
+        }
+        Returns: {
+          atendente_nome: string
+          cidade: string
+          classificacao: string
+          created_at: string
+          id: string
+          name: string
+          nicho: string
+          phone_number: string
+          tipo: string
+          total: number
+          uf: string
         }[]
       }
       gerar_compras_de_pedidos_fechados: { Args: never; Returns: number }

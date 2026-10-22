@@ -1,15 +1,16 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Search, ChevronDown, Loader2, Trash2 } from "lucide-react"
+import { Search, ChevronDown, Loader2, Trash2, SlidersHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { contemTermo } from "@/lib/normalizar-busca"
 import { NovoContatoDialog } from "./novo-contato-dialog"
 import { DialogoExcluirContato } from "./dialogo-excluir-contato"
+import { PainelFiltro } from "./painel-filtro"
 import { resumoExclusaoContato, excluirContato, type ResumoExclusao } from "../lixeira/actions"
-import { listarContatos } from "../actions"
+import { filtrarContatos, type OrdemDaLista } from "../actions"
+import { contarCondicoes, limparFiltro, FILTRO_VAZIO, type Condicao, type Filtro } from "@/lib/filtro-contatos"
 import {
   type Contato,
   type ClassificacaoContato,
@@ -40,7 +41,7 @@ const ORDENACOES = [
   { label: "Mais recente", valor: "recente" },
   { label: "Nome (A–Z)", valor: "nome" },
   { label: "Classificação", valor: "classificacao" },
-] as const
+] as const satisfies ReadonlyArray<{ label: string; valor: OrdemDaLista }>
 
 type Ordenacao = typeof ORDENACOES[number]["valor"]
 
@@ -53,68 +54,103 @@ const CLASSIFICACAO_BADGE: Record<ClassificacaoContato, string> = {
   sem_historico: "bg-secondary text-muted-foreground border-border",
 }
 
-const ORDEM_CLASSIFICACAO: Record<ClassificacaoContato, number> = {
-  ativo: 0,
-  lead: 1,
-  em_risco: 2,
-  inativo: 3,
-  perdido: 4,
-  sem_historico: 5,
-}
-
 interface ListaContatosProps {
   contatos: Contato[]
-  /** A primeira página veio cheia: há mais no servidor (B10-06). */
-  temMais?: boolean
+  /** B37-01: total de contatos que a pessoa vê, contado no servidor. */
+  total?: number
+  /** B37-01: nichos e atendentes da empresa, para os botões fixos e o filtro. */
+  nichos?: string[]
+  atendentes?: Array<{ id: string; nome: string }>
   papel: string
   /** B13-04: quantos contatos o usuário vê na lixeira. */
   totalLixeira?: number
 }
 
-export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInicial = false, papel, totalLixeira = 0 }: ListaContatosProps) {
+export function ListaContatos({
+  contatos: contatosIniciais,
+  total: totalInicial = contatosIniciais.length,
+  nichos = [],
+  atendentes = [],
+  papel,
+  totalLixeira = 0,
+}: ListaContatosProps) {
   const router = useRouter()
   const [busca, setBusca] = useState("")
+  const [classificacao, setClassificacao] = useState<ClassificacaoContato | "todas">("todas")
+  const [tipo, setTipo] = useState<TipoContato | "todos">("todos")
+  const [nicho, setNicho] = useState<string | null>(null)
+  const [atendente, setAtendente] = useState<string | null>(null)
+  const [ordenacao, setOrdenacao] = useState<Ordenacao>("recente")
+  const [ordenacaoAberta, setOrdenacaoAberta] = useState(false)
+  // B37-01: filtro avançado aplicado (o painel edita um rascunho e só muda isto no "Aplicar").
+  const [filtro, setFiltro] = useState<Filtro>(FILTRO_VAZIO)
+  const [painelAberto, setPainelAberto] = useState(false)
 
-  // B10-06: páginas carregadas e, quando há busca, o resultado vindo do servidor.
+  // B10-06 / B37-01: páginas do resultado do servidor e o total dele.
   const [paginas, setPaginas] = useState<Contato[]>(contatosIniciais)
-  const [temMais, setTemMais] = useState(temMaisInicial)
+  const [total, setTotal] = useState(totalInicial)
   // QA A10 (06/10): depois de "Novo contato", o router.refresh() traz a lista nova
   // nas props; sem isto, o estado ficava com a lista antiga até o F5.
   const [recebidos, setRecebidos] = useState(contatosIniciais)
   if (contatosIniciais !== recebidos) {
     setRecebidos(contatosIniciais)
     setPaginas(contatosIniciais)
-    setTemMais(temMaisInicial)
+    setTotal(totalInicial)
   }
+  const [carregando, setCarregando] = useState(false)
   const [carregandoMais, setCarregandoMais] = useState(false)
-  // Resultado guardado junto com o termo: só vale enquanto o termo for o mesmo.
-  const [respostaBusca, setRespostaBusca] = useState<{ termo: string; lista: Contato[] } | null>(null)
+  const [erroLista, setErroLista] = useState<string | null>(null)
 
-  const termoServidor = busca.trim().length >= 2 ? busca.trim() : ""
-  const resultadoBusca = termoServidor && respostaBusca?.termo === termoServidor ? respostaBusca.lista : null
-  const buscando = !!termoServidor && resultadoBusca === null
+  // Tudo o que decide o resultado vai ao servidor; nada se filtra aqui.
+  const consulta = useMemo(() => {
+    const rapidos: Condicao[] = []
+    if (classificacao !== "todas") rapidos.push({ campo: "classificacao", comparacao: "e", valores: [classificacao] })
+    if (tipo !== "todos") rapidos.push({ campo: "tipo", comparacao: "e", valores: [tipo] })
+    if (nicho) rapidos.push({ campo: "nicho", comparacao: "e", valores: [nicho] })
+    if (atendente) rapidos.push({ campo: "atendente", comparacao: "e", valores: [atendente] })
+    const termo = busca.trim()
+    return { filtro: limparFiltro(filtro), rapidos, busca: termo.length >= 2 ? termo : "", ordem: ordenacao }
+  }, [filtro, classificacao, tipo, nicho, atendente, busca, ordenacao])
+  const chave = JSON.stringify(consulta)
+  const chaveInicial = useRef(chave)
+  const pedido = useRef(0)
 
   useEffect(() => {
-    if (!termoServidor) return
-    let cancelado = false
+    // A primeira página sem nada aplicado já veio do servidor.
+    if (chave === chaveInicial.current) return
+    chaveInicial.current = ""
+    const meu = ++pedido.current
+    setCarregando(true)
     const t = setTimeout(() => {
-      listarContatos({ busca: termoServidor, limite: TAMANHO_PAGINA_CONTATOS })
-        .then((lista) => { if (!cancelado) setRespostaBusca({ termo: termoServidor, lista }) })
-        .catch(() => { /* mantém o que está na tela */ })
-    }, 300)
-    return () => { cancelado = true; clearTimeout(t) }
-  }, [termoServidor])
+      filtrarContatos({ ...consulta, limite: TAMANHO_PAGINA_CONTATOS, offset: 0 })
+        .then((r) => {
+          if (meu !== pedido.current) return
+          if ("erro" in r) { setErroLista(r.erro); return }
+          setErroLista(null)
+          setPaginas(r.contatos)
+          setTotal(r.total)
+        })
+        .catch(() => { if (meu === pedido.current) setErroLista("Não foi possível aplicar o filtro.") })
+        .finally(() => { if (meu === pedido.current) setCarregando(false) })
+    }, 250)
+    return () => clearTimeout(t)
+    // `consulta` muda junto com `chave`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chave])
 
   async function carregarMais() {
-    if (carregandoMais || !temMais) return
+    if (carregandoMais || paginas.length >= total) return
+    const meu = pedido.current
     setCarregandoMais(true)
     try {
-      const pagina = await listarContatos({ limite: TAMANHO_PAGINA_CONTATOS, offset: paginas.length })
+      const r = await filtrarContatos({ ...consulta, limite: TAMANHO_PAGINA_CONTATOS, offset: paginas.length })
+      if (meu !== pedido.current) return
+      if ("erro" in r) { setErroLista(r.erro); return }
       setPaginas((prev) => {
         const ids = new Set(prev.map((c) => c.id))
-        return [...prev, ...pagina.filter((c) => !ids.has(c.id))]
+        return [...prev, ...r.contatos.filter((c) => !ids.has(c.id))]
       })
-      if (pagina.length < TAMANHO_PAGINA_CONTATOS) setTemMais(false)
+      if (r.contatos.length < TAMANHO_PAGINA_CONTATOS) setTotal(paginas.length + r.contatos.length)
     } catch {
       // Mantém o que já tem; o botão permite tentar de novo.
     } finally {
@@ -156,47 +192,21 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
       .finally(() => setExcluindo(false))
   }
 
-  const contatos = useMemo(
-    () => (resultadoBusca ?? paginas).filter((c) => !excluidos.has(c.id)),
-    [resultadoBusca, paginas, excluidos]
-  )
-  const [classificacao, setClassificacao] = useState<ClassificacaoContato | "todas">("todas")
-  const [tipo, setTipo] = useState<TipoContato | "todos">("todos")
-  const [nicho, setNicho] = useState<string | null>(null)
-  const [atendente, setAtendente] = useState<string | null>(null)
-  const [ordenacao, setOrdenacao] = useState<Ordenacao>("recente")
-  const [ordenacaoAberta, setOrdenacaoAberta] = useState(false)
+  const contatosFiltrados = useMemo(() => paginas.filter((c) => !excluidos.has(c.id)), [paginas, excluidos])
+  const totalVisivel = Math.max(0, total - (paginas.length - contatosFiltrados.length))
+  const temMais = paginas.length < total
+  const condicoes = contarCondicoes(filtro)
+  const algoAplicado = condicoes > 0 || consulta.rapidos.length > 0 || !!consulta.busca
 
-  const nichos = useMemo(
-    () => Array.from(new Set(contatos.map((c) => c.nicho).filter(Boolean) as string[])).sort(),
-    [contatos]
-  )
-  const atendentes = useMemo(
-    () => Array.from(new Set(contatos.map((c) => c.atendente).filter(Boolean) as string[])).sort(),
-    [contatos]
-  )
+  function aplicarFiltro(novo: Filtro) {
+    setFiltro(novo)
+    setPainelAberto(false)
+  }
 
-  const contatosFiltrados = useMemo(() => {
-    let lista = contatos.filter((c) => {
-      // QA M29 (06/10): sem acento e sem formatação de telefone
-      if (busca.trim() && !contemTermo(c.nome, busca) && !contemTermo(c.telefone, busca)) return false
-      if (classificacao !== "todas" && c.classificacao !== classificacao) return false
-      if (tipo !== "todos" && c.tipo !== tipo) return false
-      if (nicho && c.nicho !== nicho) return false
-      if (atendente && c.atendente !== atendente) return false
-      return true
-    })
-
-    if (ordenacao === "recente") {
-      lista = [...lista].sort((a, b) => b.created_at.localeCompare(a.created_at))
-    } else if (ordenacao === "nome") {
-      lista = [...lista].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
-    } else if (ordenacao === "classificacao") {
-      lista = [...lista].sort((a, b) => ORDEM_CLASSIFICACAO[a.classificacao] - ORDEM_CLASSIFICACAO[b.classificacao])
-    }
-
-    return lista
-  }, [contatos, busca, classificacao, tipo, nicho, atendente, ordenacao])
+  function limparFiltroAplicado() {
+    setFiltro(FILTRO_VAZIO)
+    setPainelAberto(false)
+  }
 
   const ordenacaoLabel = ORDENACOES.find((o) => o.valor === ordenacao)?.label ?? "Ordenar"
 
@@ -258,7 +268,41 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
             </div>
           )}
         </div>
+
+        {/* B37-01: filtro avançado */}
+        <button
+          type="button"
+          onClick={() => setPainelAberto(true)}
+          className={cn(
+            "h-9 flex items-center gap-1.5 px-3 text-sm rounded-md border transition-colors",
+            condicoes > 0
+              ? "border-primary text-foreground"
+              : "border-input bg-card text-muted-foreground hover:text-foreground hover:bg-muted"
+          )}
+        >
+          <SlidersHorizontal className="size-3.5" aria-hidden />
+          {condicoes > 0 ? `Filtrar · ${condicoes}` : "Filtrar"}
+        </button>
+        {condicoes > 0 && (
+          <button
+            type="button"
+            onClick={limparFiltroAplicado}
+            className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground"
+          >
+            Limpar filtro
+          </button>
+        )}
       </div>
+
+      <PainelFiltro
+        aberto={painelAberto}
+        onAbertoChange={setPainelAberto}
+        filtro={filtro}
+        nichos={nichos}
+        atendentes={atendentes}
+        onAplicar={aplicarFiltro}
+        onLimpar={limparFiltroAplicado}
+      />
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-x-6 gap-y-2 mb-5">
@@ -345,16 +389,16 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
             </button>
             {atendentes.map((a) => (
               <button
-                key={a}
-                onClick={() => setAtendente(atendente === a ? null : a)}
+                key={a.id}
+                onClick={() => setAtendente(atendente === a.id ? null : a.id)}
                 className={cn(
                   "px-2.5 py-1 text-xs rounded-md border transition-colors",
-                  atendente === a
+                  atendente === a.id
                     ? "bg-primary text-primary-foreground border-primary"
                     : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
               >
-                {a}
+                {a.nome}
               </button>
             ))}
           </div>
@@ -363,8 +407,10 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
 
       {/* Indicador de total */}
       <p className="text-xs text-muted-foreground mb-3">
-        {contatosFiltrados.length} {contatosFiltrados.length === 1 ? "contato" : "contatos"}
+        <span className="numero">{totalVisivel}</span> {totalVisivel === 1 ? "contato" : "contatos"}
+        {algoAplicado && (totalVisivel === 1 ? " encontrado" : " encontrados")}
       </p>
+      {erroLista && <p className="mb-3 text-xs text-erro">{erroLista}</p>}
 
       {/* Tabela */}
       {contatosFiltrados.length === 0 ? (
@@ -452,13 +498,13 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
         />
       )}
 
-      {buscando && (
+      {carregando && (
         <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
           <Loader2 className="size-3.5 animate-spin" /> Buscando…
         </p>
       )}
 
-      {!resultadoBusca && temMais && (
+      {!carregando && temMais && (
         <div className="flex justify-center mt-4">
           <button
             type="button"
