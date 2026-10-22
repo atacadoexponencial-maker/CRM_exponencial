@@ -30,4 +30,5 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B33 | `../spec-relatorios-rfv.md` (aprovada em 21/10/2026: aba RFV dos Relatórios, modelo Tailor: matriz, indicadores por perfil, clientes por perfil e evolução semanal/mensal) | `concluidas_B33/` (quando houver) |
 | B34 | `../spec-relatorios-coorte-e-funil.md` (aprovada em 21/10/2026: abas Coorte e Funil de clientes dos Relatórios, modelo Tailor) | `concluidas_B34/` (quando houver) |
 | B35 | `../spec-relatorios-carteiras.md` (aprovada em 21/10/2026: aba Carteiras dos Relatórios: painel, carteira por vendedor, transferir, remover, distribuir, reprocessar e histórico) | `concluidas_B35/` (quando houver) |
+| B36 | `../spec-tema-claro-caderno.md` (aprovada em 21/10/2026: tema claro padrão e escuro por usuário, linguagem visual Caderno na cor Grafite em todas as telas, aprovação no preview) | `concluidas_B36/` (quando houver) |
 | F1 | `docs/specs-arquivadas/spec-fluxo-com-prova.md` (melhoria do fluxo de desenvolvimento: critérios de aceite com código, auditor, lições) | `concluidas_F1/` |
