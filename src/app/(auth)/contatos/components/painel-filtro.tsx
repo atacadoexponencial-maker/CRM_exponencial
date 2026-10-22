@@ -23,6 +23,8 @@ import {
   type Grupo,
   type Juncao,
   type Opcao,
+  type ValoresDaEmpresa,
+  valorSumiu,
 } from "@/lib/filtro-contatos"
 
 const selectClass =
@@ -45,15 +47,58 @@ interface PainelFiltroProps {
   etiquetas: string[]
   onAplicar: (filtro: Filtro) => void
   onLimpar: () => void
+  /** B37-03: Admin e Gerente salvam e atualizam filtros (o servidor confere de novo). */
+  podeSalvar?: boolean
+  /** Nome do filtro salvo ligado agora, se algum: habilita "Atualizar filtro salvo". */
+  salvoAtivo?: string | null
+  /** Devolvem a mensagem de erro do servidor, ou null quando deu certo. */
+  onSalvar?: (nome: string, filtro: Filtro) => Promise<string | null>
+  onAtualizar?: (filtro: Filtro) => Promise<string | null>
 }
 
-export function PainelFiltro({ aberto, onAbertoChange, filtro, nichos, atendentes, etiquetas, onAplicar, onLimpar }: PainelFiltroProps) {
+export function PainelFiltro({
+  aberto,
+  onAbertoChange,
+  filtro,
+  nichos,
+  atendentes,
+  etiquetas,
+  onAplicar,
+  onLimpar,
+  podeSalvar = false,
+  salvoAtivo = null,
+  onSalvar,
+  onAtualizar,
+}: PainelFiltroProps) {
   const [rascunho, setRascunho] = useState<Filtro>(() => paraEditar(filtro))
+  // B37-03: nome do filtro novo, enquanto a pessoa salva.
+  const [nomeNovo, setNomeNovo] = useState<string | null>(null)
+  const [erroSalvar, setErroSalvar] = useState<string | null>(null)
+  const [salvando, setSalvando] = useState(false)
+  const daEmpresa: ValoresDaEmpresa = { nichos, atendentes: atendentes.map((a) => a.id), etiquetas }
+
+  async function enviar(acao: () => Promise<string | null>) {
+    setSalvando(true)
+    setErroSalvar(null)
+    try {
+      const erro = await acao()
+      if (erro) setErroSalvar(erro)
+      else setNomeNovo(null)
+    } catch {
+      setErroSalvar("Não foi possível salvar. Tente de novo.")
+    } finally {
+      setSalvando(false)
+    }
+  }
   // Reabrir o painel recomeça do filtro aplicado.
   const [abertoAntes, setAbertoAntes] = useState(aberto)
   if (aberto !== abertoAntes) {
     setAbertoAntes(aberto)
-    if (aberto) setRascunho(paraEditar(filtro))
+    if (aberto) {
+      setRascunho(paraEditar(filtro))
+      setNomeNovo(null)
+      setErroSalvar(null)
+    }
   }
 
   function opcoesDoCampo(campo: CampoDoFiltro): Opcao[] {
@@ -134,6 +179,7 @@ export function PainelFiltro({ aberto, onAbertoChange, filtro, nichos, atendente
                       )}
                       <LinhaCondicao
                         condicao={condicao}
+                        daEmpresa={daEmpresa}
                         opcoesDoCampo={opcoesDoCampo}
                         onChange={(c) => mudarCondicao(i, k, () => c)}
                         onRemover={() => removerCondicao(i, k)}
@@ -162,10 +208,49 @@ export function PainelFiltro({ aberto, onAbertoChange, filtro, nichos, atendente
           </button>
         </div>
 
-        <div className="flex items-center justify-between gap-2 border-t px-5 py-3">
-          <Button type="button" variant="ghost" onClick={onLimpar}>
-            Limpar filtro
-          </Button>
+        {podeSalvar && nomeNovo !== null && (
+          <form
+            className="flex flex-wrap items-center gap-2 border-t px-5 py-3"
+            onSubmit={(e) => {
+              e.preventDefault()
+              if (onSalvar) enviar(() => onSalvar(nomeNovo, rascunho))
+            }}
+          >
+            <input
+              aria-label="Nome do filtro"
+              placeholder="Nome do filtro"
+              maxLength={60}
+              autoFocus
+              className={cn(inputClass, "h-9 min-w-0 flex-1")}
+              value={nomeNovo}
+              onChange={(e) => setNomeNovo(e.target.value)}
+            />
+            <Button type="button" variant="ghost" onClick={() => { setNomeNovo(null); setErroSalvar(null) }}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={salvando}>
+              Salvar
+            </Button>
+          </form>
+        )}
+        {erroSalvar && <p className="px-5 pb-2 text-xs text-erro">{erroSalvar}</p>}
+
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t px-5 py-3">
+          <div className="flex flex-wrap gap-1">
+            <Button type="button" variant="ghost" onClick={onLimpar}>
+              Limpar filtro
+            </Button>
+            {podeSalvar && salvoAtivo && onAtualizar && (
+              <Button type="button" variant="outline" disabled={salvando} onClick={() => enviar(() => onAtualizar(rascunho))}>
+                Atualizar filtro salvo
+              </Button>
+            )}
+            {podeSalvar && nomeNovo === null && (
+              <Button type="button" variant="outline" onClick={() => { setErroSalvar(null); setNomeNovo("") }}>
+                Salvar filtro
+              </Button>
+            )}
+          </div>
           <Button type="button" onClick={() => onAplicar(rascunho)}>
             Aplicar
           </Button>
@@ -218,18 +303,22 @@ function ChaveJuncao({
 
 function LinhaCondicao({
   condicao,
+  daEmpresa,
   opcoesDoCampo,
   onChange,
   onRemover,
 }: {
   condicao: Condicao
+  daEmpresa: ValoresDaEmpresa
   opcoesDoCampo: (campo: CampoDoFiltro) => Opcao[]
   onChange: (condicao: Condicao) => void
   onRemover: () => void
 }) {
   const campo = campoDoFiltro(condicao.campo)
   const comparacao = condicao.comparacao || null
-  const incompleta = !!campo && !condicaoCompleta(condicao)
+  // B37-03: em filtro salvo, o valor pode ter deixado de existir (SUP-B37-05).
+  const sumiu = valorSumiu(condicao, daEmpresa)
+  const incompleta = !!campo && !sumiu && !condicaoCompleta(condicao)
 
   function escolherCampo(id: string) {
     const novo = campoDoFiltro(id)
@@ -291,6 +380,7 @@ function LinhaCondicao({
       )}
 
       {incompleta && <span className="text-xs text-aviso">Incompleta</span>}
+      {sumiu && <span className="text-xs text-erro">Valor não existe mais</span>}
 
       <button
         type="button"

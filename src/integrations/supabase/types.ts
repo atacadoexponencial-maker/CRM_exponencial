@@ -1177,6 +1177,57 @@ export type Database = {
         }
         Relationships: []
       }
+      filtros_salvos: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          filtro: Json
+          id: string
+          nome: string
+          nome_chave: string
+          posicao: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          filtro: Json
+          id?: string
+          nome: string
+          nome_chave: string
+          posicao?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          filtro?: Json
+          id?: string
+          nome?: string
+          nome_chave?: string
+          posicao?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "filtros_salvos_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "filtros_salvos_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gateway_events: {
         Row: {
           event_at: string | null

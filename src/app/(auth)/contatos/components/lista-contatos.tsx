@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils"
 import { NovoContatoDialog } from "./novo-contato-dialog"
 import { DialogoExcluirContato } from "./dialogo-excluir-contato"
 import { PainelFiltro } from "./painel-filtro"
+import { FaixaFiltrosSalvos } from "./faixa-filtros-salvos"
+import { atualizarFiltroSalvo, salvarFiltro, type FiltroSalvo } from "../filtros-salvos"
 import { resumoExclusaoContato, excluirContato, type ResumoExclusao } from "../lixeira/actions"
 import { filtrarContatos, type OrdemDaLista } from "../actions"
 import { contarCondicoes, limparFiltro, FILTRO_VAZIO, type Condicao, type Filtro } from "@/lib/filtro-contatos"
@@ -63,6 +65,8 @@ interface ListaContatosProps {
   atendentes?: Array<{ id: string; nome: string }>
   /** B37-02: etiquetas da empresa, para o filtro. */
   etiquetas?: string[]
+  /** B37-03: filtros salvos da empresa, na ordem da faixa. */
+  filtrosSalvos?: FiltroSalvo[]
   papel: string
   /** B13-04: quantos contatos o usuário vê na lixeira. */
   totalLixeira?: number
@@ -74,6 +78,7 @@ export function ListaContatos({
   nichos = [],
   atendentes = [],
   etiquetas = [],
+  filtrosSalvos: filtrosSalvosIniciais = [],
   papel,
   totalLixeira = 0,
 }: ListaContatosProps) {
@@ -88,6 +93,9 @@ export function ListaContatos({
   // B37-01: filtro avançado aplicado (o painel edita um rascunho e só muda isto no "Aplicar").
   const [filtro, setFiltro] = useState<Filtro>(FILTRO_VAZIO)
   const [painelAberto, setPainelAberto] = useState(false)
+  // B37-03: filtros salvos da empresa; o ligado é o que tem as mesmas condições do aplicado.
+  const [filtrosSalvos, setFiltrosSalvos] = useState<FiltroSalvo[]>(filtrosSalvosIniciais)
+  const podeGerirSalvos = papel === "admin" || papel === "gerente"
 
   // B10-06 / B37-01: páginas do resultado do servidor e o total dele.
   const [paginas, setPaginas] = useState<Contato[]>(contatosIniciais)
@@ -201,6 +209,31 @@ export function ListaContatos({
   const condicoes = contarCondicoes(filtro)
   const algoAplicado = condicoes > 0 || consulta.rapidos.length > 0 || !!consulta.busca
 
+  const chaveDoAplicado = JSON.stringify(limparFiltro(filtro))
+  const salvoAtivo =
+    condicoes > 0 ? filtrosSalvos.find((f) => JSON.stringify(limparFiltro(f.filtro)) === chaveDoAplicado) ?? null : null
+
+  function alternarSalvo(salvo: FiltroSalvo) {
+    setFiltro(salvoAtivo?.id === salvo.id ? FILTRO_VAZIO : salvo.filtro)
+  }
+
+  async function salvarNovo(nome: string, rascunho: Filtro): Promise<string | null> {
+    const r = await salvarFiltro(nome, rascunho)
+    if (r.erro) return r.erro
+    if (r.filtros) setFiltrosSalvos(r.filtros)
+    aplicarFiltro(rascunho)
+    return null
+  }
+
+  async function atualizarSalvo(rascunho: Filtro): Promise<string | null> {
+    if (!salvoAtivo) return null
+    const r = await atualizarFiltroSalvo(salvoAtivo.id, rascunho)
+    if (r.erro) return r.erro
+    if (r.filtros) setFiltrosSalvos(r.filtros)
+    aplicarFiltro(rascunho)
+    return null
+  }
+
   function aplicarFiltro(novo: Filtro) {
     setFiltro(novo)
     setPainelAberto(false)
@@ -306,10 +339,26 @@ export function ListaContatos({
         etiquetas={etiquetas}
         onAplicar={aplicarFiltro}
         onLimpar={limparFiltroAplicado}
+        podeSalvar={podeGerirSalvos}
+        salvoAtivo={salvoAtivo?.nome ?? null}
+        onSalvar={salvarNovo}
+        onAtualizar={atualizarSalvo}
       />
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-x-6 gap-y-2 mb-5">
+        {/* B37-03: filtros salvos, ao lado dos botões fixos */}
+        <FaixaFiltrosSalvos
+          filtros={filtrosSalvos}
+          ativoId={salvoAtivo?.id ?? null}
+          podeGerir={podeGerirSalvos}
+          onAlternar={alternarSalvo}
+          onMudou={(lista, apagadoId) => {
+            setFiltrosSalvos(lista)
+            if (apagadoId && salvoAtivo?.id === apagadoId) setFiltro(FILTRO_VAZIO)
+          }}
+        />
+
         {/* Classificação */}
         <div className="flex gap-1 flex-wrap">
           {CLASSIFICACOES.map((f) => (

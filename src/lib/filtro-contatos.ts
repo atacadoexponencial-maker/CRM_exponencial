@@ -13,6 +13,7 @@ import { z } from "zod"
 import { CLASSIFICACAO_LABEL, TIPO_LABEL, ICP_LABEL } from "@/app/(auth)/contatos/mock-contatos"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
 import { UFS } from "@/lib/uf"
+import { normalizarTexto } from "@/lib/catalogo/planilha"
 
 export type Juncao = "e" | "ou"
 
@@ -243,17 +244,56 @@ export function condicaoCompleta(condicao: Condicao): boolean {
   }
 }
 
-/** Deixa só o que filtra: tira condições incompletas e grupos que ficaram vazios (CA-B37-13). */
-export function limparFiltro(filtro: Filtro): Filtro {
+/** B37-03: campo interno que nunca vale; o banco o traduz para `false`. */
+export const CAMPO_NUNCA = "nunca"
+
+/** Valores dos campos de lista que vêm da empresa (nicho, atendente por id, etiqueta). */
+export type ValoresDaEmpresa = { nichos: string[]; atendentes: string[]; etiquetas: string[] }
+
+/**
+ * B37-03: a condição usa um valor que não existe mais (etiqueta apagada, atendente
+ * removido, etapa fora da lista). Sem os valores da empresa, só confere as opções fixas.
+ */
+export function valorSumiu(condicao: Condicao, daEmpresa?: ValoresDaEmpresa): boolean {
+  const campo = campoDoFiltro(condicao.campo)
+  if (!campo || !condicao.comparacao || valoresPedidos(condicao.comparacao) === "nenhum") return false
+  const valores = condicao.valores.filter((v) => v.trim())
+  if (valores.length === 0) return false
+  const existentes = campo.opcoes
+    ? campo.opcoes.map((o) => o.valor)
+    : daEmpresa && campo.id === "nicho"
+      ? daEmpresa.nichos
+      : daEmpresa && campo.id === "atendente"
+        ? daEmpresa.atendentes
+        : daEmpresa && campo.id === "etiqueta"
+          ? daEmpresa.etiquetas
+          : null
+  return existentes !== null && valores.some((v) => !existentes.includes(v))
+}
+
+/**
+ * Deixa só o que filtra: tira condições incompletas e grupos que ficaram vazios
+ * (CA-B37-13). Condição com valor que sumiu vira uma que nunca vale (SUP-B37-05):
+ * ignorá-la mostraria mais contatos do que o filtro pede.
+ */
+export function limparFiltro(filtro: Filtro, daEmpresa?: ValoresDaEmpresa): Filtro {
   return {
     juncao: filtro.juncao,
     grupos: filtro.grupos
       .map((g) => ({
         juncao: g.juncao,
-        condicoes: g.condicoes.filter(condicaoCompleta).map(paraOBanco),
+        condicoes: g.condicoes.flatMap((c): Condicao[] => {
+          if (c.campo === CAMPO_NUNCA || valorSumiu(c, daEmpresa)) return [{ campo: CAMPO_NUNCA, comparacao: "", valores: [] }]
+          return condicaoCompleta(c) ? [paraOBanco(c)] : []
+        }),
       }))
       .filter((g) => g.condicoes.length > 0),
   }
+}
+
+/** B37-03: nome do filtro salvo sem maiúscula, acento e espaços repetidos (nome único). */
+export function chaveDoNome(nome: string): string {
+  return normalizarTexto(nome)
 }
 
 /** No telefone, só os dígitos contam (QA M29): "(11) 9" procura "119". */
@@ -290,6 +330,7 @@ export const esquemaFiltro = z
   .superRefine((filtro, ctx) => {
     for (const grupo of filtro.grupos) {
       for (const condicao of grupo.condicoes) {
+        if (condicao.campo === CAMPO_NUNCA) continue
         const campo = campoDoFiltro(condicao.campo)
         if (!campo) {
           ctx.addIssue({ code: "custom", message: `Campo desconhecido: ${condicao.campo}` })

@@ -554,8 +554,15 @@ export async function filtrarContatos(
   if (!filtro.success || !rapidos.success) return { erro: "Filtro inválido." }
 
   const ordem: OrdemDaLista = opcoes.ordem === "nome" || opcoes.ordem === "classificacao" ? opcoes.ordem : "recente"
+  // B37-03: filtro salvo pode citar etiqueta, nicho ou atendente que não existe mais.
+  const citaValorDaEmpresa = (filtro.data as Filtro).grupos.some((g) =>
+    g.condicoes.some((c) => c.campo === "etiqueta" || c.campo === "nicho" || c.campo === "atendente")
+  )
+  const daEmpresa = citaValorDaEmpresa
+    ? await valoresDoFiltro().then((v) => ({ ...v, atendentes: v.atendentes.map((a) => a.id) }))
+    : undefined
   const { data, error } = await supabase.rpc("filtrar_contatos", {
-    p_filtro: limparFiltro(filtro.data as Filtro) as unknown as Json,
+    p_filtro: limparFiltro(filtro.data as Filtro, daEmpresa) as unknown as Json,
     p_rapidos: rapidos.data as unknown as Json,
     p_busca: opcoes.busca?.trim() ?? "",
     p_ordem: ordem,

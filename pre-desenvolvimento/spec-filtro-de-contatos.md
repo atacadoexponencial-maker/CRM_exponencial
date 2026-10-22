@@ -399,3 +399,4 @@ filtro avançado (E).
 | PER-B37-08 | Em texto, a comparação ignora maiúscula e acento? | respondida | Ignora os dois ("sao paulo" acha "São Paulo"), e a busca por nome passa a ignorar acento também. Marcelle, 22/10/2026. |
 | PER-B37-09 | "Etiqueta não tem VIP" traz o contato sem nenhuma etiqueta? | respondida | Traz: a etiqueta marca quem tem, então "não tem VIP" é todo mundo sem a VIP, inclusive quem não tem etiqueta. Exceção à regra do campo vazio (SUP-B37-01). Marcelle, 22/10/2026. |
 | PER-B37-10 | "Não está na etapa X" traz o contato que não tem card naquele funil? | respondida | Não traz: só quem está no funil, em outra etapa; para quem não tem card existe "não está no funil". Marcelle, 22/10/2026. |
+| PER-B37-11 | Como Admin e Gerente mudam a ordem dos filtros salvos? | respondida | Pelo menu de cada filtro (⋯): "Mover para a esquerda" e "Mover para a direita", junto de renomear, atualizar e apagar. Marcelle, 22/10/2026. |
