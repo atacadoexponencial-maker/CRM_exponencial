@@ -93,7 +93,7 @@ export function RegistrarCompraDialog({ contactId, atendentes = [], atendenteSug
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           {erroGeral && (
-            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
               {erroGeral}
             </p>
           )}
@@ -107,7 +107,7 @@ export function RegistrarCompraDialog({ contactId, atendentes = [], atendenteSug
                 aria-invalid={!!errors.data}
                 {...register("data")}
               />
-              {errors.data && <p className="text-sm text-destructive">{errors.data.message}</p>}
+              {errors.data && <p className="text-sm text-erro">{errors.data.message}</p>}
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -121,7 +121,7 @@ export function RegistrarCompraDialog({ contactId, atendentes = [], atendenteSug
                 aria-invalid={!!errors.valor}
                 {...register("valor")}
               />
-              {errors.valor && <p className="text-sm text-destructive">{errors.valor.message}</p>}
+              {errors.valor && <p className="text-sm text-erro">{errors.valor.message}</p>}
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -135,7 +135,7 @@ export function RegistrarCompraDialog({ contactId, atendentes = [], atendenteSug
                 aria-invalid={!!errors.pecas}
                 {...register("pecas")}
               />
-              {errors.pecas && <p className="text-sm text-destructive">{errors.pecas.message}</p>}
+              {errors.pecas && <p className="text-sm text-erro">{errors.pecas.message}</p>}
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -149,7 +149,7 @@ export function RegistrarCompraDialog({ contactId, atendentes = [], atendenteSug
                 aria-invalid={!!errors.desconto}
                 {...register("desconto")}
               />
-              {errors.desconto && <p className="text-sm text-destructive">{errors.desconto.message}</p>}
+              {errors.desconto && <p className="text-sm text-erro">{errors.desconto.message}</p>}
             </div>
           </div>
 
@@ -166,7 +166,7 @@ export function RegistrarCompraDialog({ contactId, atendentes = [], atendenteSug
                 <option key={f} value={f}>{ROTULO_FORMA_PAGAMENTO[f]}</option>
               ))}
             </select>
-            {errors.formaPagamento && <p className="text-sm text-destructive">{errors.formaPagamento.message}</p>}
+            {errors.formaPagamento && <p className="text-sm text-erro">{errors.formaPagamento.message}</p>}
           </div>
 
           <div className="flex flex-col gap-1.5">

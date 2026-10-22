@@ -215,7 +215,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
         </Link>
         <div className="flex gap-2">
           {onExcluir && (
-            <Button size="sm" variant="destructive" className="text-red-400" onClick={() => setConfirmarExclusao(true)}>
+            <Button size="sm" variant="destructive" className="text-erro" onClick={() => setConfirmarExclusao(true)}>
               <Trash2 className="size-4" />
               Excluir produto
             </Button>
@@ -230,7 +230,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
           role="status"
           className={cn(
             "rounded-lg border px-3 py-2 text-sm",
-            mensagem.tipo === "erro" ? "border-destructive/40 text-destructive" : "border-emerald-500/40 text-emerald-300"
+            mensagem.tipo === "erro" ? "border-destructive/40 text-destructive" : "border-sucesso/40 text-sucesso"
           )}
         >
           {mensagem.texto}
@@ -239,11 +239,11 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-6">
-          <section className="rounded-lg border p-4 space-y-4">
+          <section className="rounded-md border bg-card p-5 space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="nome">Nome</Label>
               <Input id="nome" value={produto.nome} onChange={(e) => mudar("nome", e.target.value)} aria-invalid={!!erros.nome} />
-              {erros.nome && <p className="text-xs text-destructive">{erros.nome}</p>}
+              {erros.nome && <p className="text-xs text-erro">{erros.nome}</p>}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="descricao">Descrição</Label>
@@ -253,12 +253,12 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
               <div className="space-y-1.5">
                 <Label htmlFor="preco">Preço (R$)</Label>
                 <Input id="preco" inputMode="decimal" value={precoTexto} onChange={(e) => setPrecoTexto(e.target.value)} placeholder="0,00" aria-invalid={!!erros.preco} />
-                {erros.preco && <p className="text-xs text-destructive">{erros.preco}</p>}
+                {erros.preco && <p className="text-xs text-erro">{erros.preco}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="precoDe">Preço &quot;de&quot; (opcional)</Label>
                 <Input id="precoDe" inputMode="decimal" value={precoDeTexto} onChange={(e) => setPrecoDeTexto(e.target.value)} placeholder="Aparece riscado" aria-invalid={!!erros.precoDe} />
-                {erros.precoDe && <p className="text-xs text-destructive">{erros.precoDe}</p>}
+                {erros.precoDe && <p className="text-xs text-erro">{erros.precoDe}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="codigo">Código (opcional)</Label>
@@ -267,7 +267,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
             </div>
           </section>
 
-          <section className="rounded-lg border p-4 space-y-3">
+          <section className="rounded-md border bg-card p-5 space-y-3">
             <h2 className="text-sm font-semibold">Regras de venda <span className="font-normal text-muted-foreground">· opcional</span></h2>
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">Preço por quantidade: a peça fica mais barata a partir de tantas unidades do mesmo produto no pedido, somando cores e tamanhos.</p>
@@ -320,7 +320,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
             )}
           </section>
 
-          <section className="rounded-lg border p-4 space-y-3">
+          <section className="rounded-md border bg-card p-5 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold">Fotos <span className="font-normal text-muted-foreground">· {produto.fotos.length}/{MAX_FOTOS}</span></h2>
               <Button size="sm" variant="outline" onClick={() => entradaFotos.current?.click()} disabled={produto.fotos.length >= MAX_FOTOS || enviandoFotos > 0}>
@@ -337,7 +337,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
               />
             </div>
             <p className="text-xs text-muted-foreground">JPG, PNG ou WebP, até 5 MB cada. Arraste para mudar a ordem; a primeira é a principal.</p>
-            {erros.fotos && <p className="text-xs text-destructive">{erros.fotos}</p>}
+            {erros.fotos && <p className="text-xs text-erro">{erros.fotos}</p>}
             {produto.fotos.length > 0 && (
               <ul className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {produto.fotos.map((f, i) => (
@@ -381,7 +381,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
         </div>
 
         <aside className="space-y-4">
-          <section className="rounded-lg border p-4 space-y-4">
+          <section className="rounded-md border bg-card p-5 space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="categoria">Categoria</Label>
               <select
@@ -447,7 +447,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
           </DialogDescription>
           <div className="mt-5 flex justify-end gap-2">
             <DialogClose render={<Button variant="outline" size="sm" />}>Cancelar</DialogClose>
-            <Button size="sm" variant="destructive" className="text-red-400" onClick={() => { setConfirmarExclusao(false); onExcluir?.() }}>Excluir produto</Button>
+            <Button size="sm" variant="destructive" className="text-erro" onClick={() => { setConfirmarExclusao(false); onExcluir?.() }}>Excluir produto</Button>
           </div>
         </DialogPopup>
       </Dialog>

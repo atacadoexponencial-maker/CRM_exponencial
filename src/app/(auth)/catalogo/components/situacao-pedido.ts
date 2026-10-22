@@ -11,9 +11,9 @@ export const ROTULO_SITUACAO: Record<SituacaoPedido, string> = {
 
 /** Classes do selo de cada situação (tema escuro do CRM). */
 export const COR_SITUACAO: Record<SituacaoPedido, string> = {
-  novo: "bg-sky-500/15 text-sky-300 border-sky-500/30",
-  em_atendimento: "bg-amber-500/15 text-amber-300 border-amber-500/30",
-  fechado: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+  novo: "bg-info-fundo text-info border-info/30",
+  em_atendimento: "bg-aviso-fundo text-aviso border-aviso/30",
+  fechado: "bg-sucesso-fundo text-sucesso border-sucesso/30",
   cancelado: "bg-muted text-muted-foreground border-border",
 }
 

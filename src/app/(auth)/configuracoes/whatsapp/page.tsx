@@ -58,8 +58,8 @@ export default async function WhatsAppPage() {
   }))
 
   return (
-    <div className="max-w-5xl mx-auto w-full px-4 py-8">
-      <h1 className="text-xl font-semibold mb-6">WhatsApp</h1>
+    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+      <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-6">WhatsApp</h1>
 
       <ListaNumeros
         numeros={numeros}

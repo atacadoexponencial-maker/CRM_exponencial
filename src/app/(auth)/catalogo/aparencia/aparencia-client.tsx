@@ -29,10 +29,10 @@ export function AparenciaClient({ inicial, categorias, produtos, avisoMinimo }: 
 
   return (
     <div className={`max-w-7xl mx-auto w-full px-4 py-8 ${ALVOS_TOQUE_CELULAR}`}>
-      <h1 className="text-xl font-semibold mb-4">Catálogo</h1>
+      <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-4">Catálogo</h1>
       <AbasCatalogo ativa="aparencia" hrefs={HREFS_CATALOGO} />
       {produtos.length === 0 && (
-        <p className="mb-4 rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">
+        <p className="mb-4 rounded-md border border-dashed bg-card/60 px-3 py-2 text-sm text-muted-foreground">
           A prévia fica mais fiel com produtos visíveis cadastrados na aba Produtos.
         </p>
       )}

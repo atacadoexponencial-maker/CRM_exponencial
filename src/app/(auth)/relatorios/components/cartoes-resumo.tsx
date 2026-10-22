@@ -19,7 +19,7 @@ export function formatarPercentual(p: number | null): string {
 
 function LinhaComparativo({ rotulo, comparativo, formato }: { rotulo: string; comparativo: Comparativo; formato: FormatoCartao }) {
   const p = comparativo.percentual
-  const cor = p === null || p === 0 ? "text-muted-foreground" : p > 0 ? "text-emerald-400" : "text-red-400"
+  const cor = p === null || p === 0 ? "text-muted-foreground" : p > 0 ? "text-alta" : "text-queda"
   return (
     <span
       className="text-xs text-muted-foreground"
@@ -32,11 +32,12 @@ function LinhaComparativo({ rotulo, comparativo, formato }: { rotulo: string; co
 
 export function CartoesResumo({ cartoes }: { cartoes: Cartao[] }) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3" data-testid="cartoes-resumo">
+    // B36-07: faixa de números do Caderno — linha grossa em cima, linhas finas entre as linhas.
+    <div className="grid grid-cols-2 border-t-2 border-t-foreground lg:grid-cols-5" data-testid="cartoes-resumo">
       {cartoes.map((c) => (
-        <div key={c.id} className="rounded-lg border p-4 flex flex-col gap-1" data-testid={`cartao-${c.id}`}>
+        <div key={c.id} className="flex flex-col gap-1 border-b py-4 pr-4" data-testid={`cartao-${c.id}`}>
           <span className="text-xs text-muted-foreground">{c.titulo}</span>
-          <span className="text-xl font-semibold">{formatarValor(c.valor, c.formato)}</span>
+          <span className="numero text-[22px] font-medium leading-tight tracking-tight">{formatarValor(c.valor, c.formato)}</span>
           {c.vsMesPassado && <LinhaComparativo rotulo="vs mês passado" comparativo={c.vsMesPassado} formato={c.formato} />}
           {c.vsAnoPassado && <LinhaComparativo rotulo="vs ano passado" comparativo={c.vsAnoPassado} formato={c.formato} />}
         </div>

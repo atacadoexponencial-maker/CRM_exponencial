@@ -13,14 +13,6 @@ import { buscarFunilClientes } from "../actions"
 const moeda = (v: number | null) => (v === null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }))
 const pct = (v: number | null) => (v === null ? "—" : `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`)
 
-const DICAS = [
-  "Segmente campanhas para clientes que não avançaram de etapa;",
-  "Ofereça promoções especiais para incentivar a próxima compra;",
-  "Personalize a comunicação com base no histórico de compras;",
-  "Envie lembretes e mensagens amigáveis;",
-  "Acompanhe o retorno e melhore o atendimento.",
-]
-
 export function FunilDeClientes({ resultado }: { resultado: ResultadoFunilClientes }) {
   const [explicar, setExplicar] = useState(false)
   const dados = resultado.etapas
@@ -29,18 +21,18 @@ export function FunilDeClientes({ resultado }: { resultado: ResultadoFunilClient
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="rounded-lg border p-4">
+      <section className="rounded-md border bg-card p-5">
         <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
           <div>
             <h2 className="text-sm font-semibold">Funil de clientes</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Quantos clientes já fizeram pelo menos N compras, em toda a história</p>
           </div>
-          <button type="button" onClick={() => setExplicar((v) => !v)} aria-expanded={explicar} className="inline-flex items-center gap-1.5 text-xs text-sky-400 hover:underline">
+          <button type="button" onClick={() => setExplicar((v) => !v)} aria-expanded={explicar} className="inline-flex items-center gap-1.5 text-xs text-info hover:underline">
             <Info className="size-3.5" /> O que são clientes parados?
           </button>
         </div>
         {explicar && (
-          <p className="text-xs text-muted-foreground rounded-md bg-muted/40 p-3 mb-3" data-testid="explicacao-parados">
+          <p className="text-xs text-muted-foreground border-t pt-3 mb-3" data-testid="explicacao-parados">
             Cliente parado é o que está em uma etapa do funil mas não compra há mais de {DIAS_PARADO} dias. Quanto mais parados numa etapa, mais clientes para reativar antes que avancem para a próxima compra.
           </p>
         )}
@@ -65,26 +57,26 @@ export function FunilDeClientes({ resultado }: { resultado: ResultadoFunilClient
             {resultado.etapas.map((e) => (
               <li key={e.n} className="flex items-center gap-2">
                 <span className="h-3 w-5 rounded-sm shrink-0" style={{ backgroundColor: e.cor }} />
-                <span className="tabular-nums">{e.rotulo}: <strong>{e.clientes}</strong> <span className="text-muted-foreground">· parados: {e.parados}</span></span>
+                <span className="numero">{e.rotulo}: <strong>{e.clientes}</strong> <span className="text-muted-foreground">· parados: {e.parados}</span></span>
               </li>
             ))}
           </ul>
         </div>
       </section>
 
-      <section className="rounded-lg border p-4">
+      <section className="rounded-md border bg-card p-5">
         <h2 className="text-sm font-semibold mb-3">Taxas de conversão</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" data-testid="taxas-conversao">
           {resultado.taxas.map((t) => (
-            <div key={t.de} className="rounded-lg border p-3">
+            <div key={t.de} className="border-t pt-3">
               <p className="text-xs text-muted-foreground">{t.de}ª → {t.para}ª</p>
-              <p className="text-lg font-semibold tabular-nums">{pct(t.percentual)}</p>
+              <p className="text-lg font-semibold numero">{pct(t.percentual)}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="rounded-lg border p-4">
+      <section className="rounded-md border bg-card p-5">
         <h2 className="text-sm font-semibold mb-3">Por etapa</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm" data-testid="tabela-funil">
@@ -101,24 +93,15 @@ export function FunilDeClientes({ resultado }: { resultado: ResultadoFunilClient
               {resultado.etapas.map((e) => (
                 <tr key={e.n} className="border-b last:border-0" data-testid={`etapa-${e.n}`}>
                   <td className="py-2 pr-3"><span className="inline-block h-2.5 w-2.5 rounded-sm mr-2 align-middle" style={{ backgroundColor: e.cor }} />{e.rotulo}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{e.clientes}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{pct(e.conversao)}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{moeda(e.ticketMedio)}</td>
-                  <td className="py-2 text-right tabular-nums">{e.parados}</td>
+                  <td className="py-2 pr-3 text-right numero">{e.clientes}</td>
+                  <td className="py-2 pr-3 text-right numero">{pct(e.conversao)}</td>
+                  <td className="py-2 pr-3 text-right numero">{moeda(e.ticketMedio)}</td>
+                  <td className="py-2 text-right numero">{e.parados}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </section>
-
-      <section className="rounded-lg border p-4">
-        <h2 className="text-sm font-semibold mb-2">Como melhorar suas taxas de conversão</h2>
-        <ul className="list-disc pl-5 text-sm text-muted-foreground flex flex-col gap-1">
-          {DICAS.map((d) => (
-            <li key={d}>{d}</li>
-          ))}
-        </ul>
       </section>
     </div>
   )

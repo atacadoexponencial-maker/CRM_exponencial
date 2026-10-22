@@ -32,9 +32,9 @@ export default async function TemplatesPage() {
   // conectado"). Agora diz logo o que falta e aonde ir.
   if (canais.length === 0) {
     return (
-      <div className="max-w-5xl mx-auto w-full px-4 py-8">
-        <h1 className="text-xl font-semibold mb-2">Templates de mensagem</h1>
-        <p className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+      <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-2">Templates de mensagem</h1>
+        <p className="rounded-md border bg-card p-4 text-sm text-muted-foreground">
           Nenhum número de WhatsApp conectado. Os templates valem para o número da API Oficial:{" "}
           <Link href="/configuracoes/whatsapp" className="underline text-foreground">conecte um número</Link> para gerenciá-los.
         </p>
@@ -44,9 +44,9 @@ export default async function TemplatesPage() {
 
   if (nenhumNumeroSuportaTemplates) {
     return (
-      <div className="max-w-5xl mx-auto w-full px-4 py-8">
-        <h1 className="text-xl font-semibold mb-2">Templates de mensagem</h1>
-        <p className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+      <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-2">Templates de mensagem</h1>
+        <p className="rounded-md border bg-card p-4 text-sm text-muted-foreground">
           {motivoDoRecursoIndisponivel("templates", semTemplates[0])}
         </p>
       </div>
@@ -56,9 +56,9 @@ export default async function TemplatesPage() {
   const templates = await listarTemplates()
 
   return (
-    <div className="max-w-5xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
       {semTemplates.length > 0 && comTemplates.length > 0 && (
-        <p className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-900 dark:bg-amber-950/40">
+        <p className="mb-5 rounded-lg border border-aviso/30 bg-aviso-fundo p-4 text-sm">
           Este workspace tem número no canal direto e número na API Oficial. Os templates
           abaixo valem <strong>apenas para o número da API Oficial</strong> — no canal direto
           qualquer texto pode ser enviado, sem template.

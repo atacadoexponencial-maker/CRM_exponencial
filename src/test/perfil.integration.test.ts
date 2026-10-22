@@ -9,6 +9,8 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vites
 vi.mock("@/integrations/supabase/server", () => ({
   createClient: vi.fn(),
 }))
+// B36-01: sair apaga o cookie do tema; fora de uma requisição do Next não há cookies.
+vi.mock("next/headers", () => ({ cookies: async () => ({ delete: vi.fn(), set: vi.fn(), get: () => undefined }) }))
 
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { alterarSenha, realizarLogout } from "@/app/(auth)/perfil/actions"

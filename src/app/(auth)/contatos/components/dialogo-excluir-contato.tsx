@@ -91,7 +91,7 @@ export function DialogoExcluirContato({
         )}
 
         {erro && (
-          <p className="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p className="mb-4 rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
             {erro}
           </p>
         )}

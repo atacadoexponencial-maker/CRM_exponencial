@@ -73,7 +73,7 @@ export function AgendaEquipeClient({
     <>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold">Agenda da Equipe</h1>
+          <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Agenda da Equipe</h1>
           {isPending && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
         </div>
         <div className="flex items-center gap-3">
@@ -111,12 +111,12 @@ export function AgendaEquipeClient({
         </div>
       )}
 
-      {erro && <p className="text-sm text-destructive mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-erro mb-4">{erro}</p>}
 
       <section className="mb-8">
         <h2 className="text-sm font-semibold mb-2">Lembretes e follow-ups pendentes ({itens.length})</h2>
         {itens.length === 0 ? (
-          <p className="text-sm text-muted-foreground rounded-lg border border-dashed py-8 text-center">
+          <p className="text-sm text-muted-foreground rounded-md border border-dashed bg-card/60 py-8 text-center">
             Nenhum item pendente
           </p>
         ) : (
@@ -176,24 +176,24 @@ export function AgendaEquipeClient({
       <section>
         <h2 className="text-sm font-semibold mb-2">Sequências em andamento ({sequencias.length})</h2>
         {sequencias.length === 0 ? (
-          <p className="text-sm text-muted-foreground rounded-lg border border-dashed py-8 text-center">
+          <p className="text-sm text-muted-foreground rounded-md border border-dashed bg-card/60 py-8 text-center">
             Nenhuma sequência em andamento
           </p>
         ) : (
-          <div className="rounded-lg border overflow-x-auto">
+          <div className="overflow-x-auto border-t-2 border-t-foreground">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Sequência</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Contato</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Atendente</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Etapa</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Próxima etapa</th>
+                <tr className="border-b">
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Sequência</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Contato</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Atendente</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Etapa</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Próxima etapa</th>
                 </tr>
               </thead>
               <tbody>
                 {sequencias.map((s) => (
-                  <tr key={s.runId} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                  <tr key={s.runId} className="border-b hover:bg-muted/50 transition-colors">
                     <td className="px-4 py-3 font-medium">{s.sequenciaNome}</td>
                     <td className="px-4 py-3">{s.contatoNome}</td>
                     <td className="px-4 py-3 text-muted-foreground">{s.atendenteNome}</td>

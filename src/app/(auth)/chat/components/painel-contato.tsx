@@ -11,6 +11,29 @@ import type { Conversa } from "../mock-conversas"
 import type { CadastroDoContato } from "../actions"
 import { CLASSIFICACAO_LABEL, ICP_LABEL, TIPO_LABEL, type ClassificacaoContato, type ICP, type TipoContato } from "@/app/(auth)/contatos/mock-contatos"
 import { UFS } from "@/lib/uf"
+import { textoDaUltimaCompra, type ResumoDeCompras } from "@/lib/resumo-de-compras"
+
+const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+
+/** B36-06: o resumo das compras do cliente, em faixa de números do Caderno. */
+function ResumoCompras({ compras }: { compras: ResumoDeCompras }) {
+  const itens = [
+    { rotulo: "Total comprado", valor: moeda(compras.total) },
+    { rotulo: "Pedidos", valor: String(compras.quantidade) },
+    { rotulo: "Ticket médio", valor: compras.ticketMedio === null ? "—" : moeda(compras.ticketMedio) },
+    { rotulo: "Última compra", valor: textoDaUltimaCompra(compras.diasDesdeUltima) ?? "—" },
+  ]
+  return (
+    <dl aria-label="Compras" className="grid grid-cols-2 gap-x-3 gap-y-3 border-y py-3">
+      {itens.map((i) => (
+        <div key={i.rotulo} className="flex flex-col-reverse gap-0.5" data-resumo={i.rotulo}>
+          <dt className="text-[11px] text-muted-foreground">{i.rotulo}</dt>
+          <dd className="numero text-[15px] font-medium leading-tight">{i.valor}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
 
 /** Linha rótulo + valor do cadastro; vazio vira "—", para a pessoa ver o que falta. */
 function Dado({ rotulo, valor }: { rotulo: string; valor: string | null | undefined }) {
@@ -118,7 +141,7 @@ function DadoEditavel({
             className={campoClasse}
           />
         )}
-        <button type="button" onClick={() => void salvar()} disabled={salvando} aria-label={`Salvar ${rotulo.toLowerCase()}`} className="h-5 w-5 flex items-center justify-center rounded-md hover:bg-muted text-green-600 disabled:opacity-40">
+        <button type="button" onClick={() => void salvar()} disabled={salvando} aria-label={`Salvar ${rotulo.toLowerCase()}`} className="h-5 w-5 flex items-center justify-center rounded-md hover:bg-muted text-sucesso disabled:opacity-40">
           {salvando ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
         </button>
         <button type="button" onClick={() => setEditando(false)} disabled={salvando} aria-label={`Cancelar ${rotulo.toLowerCase()}`} className="h-5 w-5 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground">
@@ -148,6 +171,7 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
   const inputRef = useRef<HTMLInputElement>(null)
   const [dataPrimeiroContato, setDataPrimeiroContato] = useState<string | null>(null)
   const [cadastro, setCadastro] = useState<CadastroDoContato | null>(null)
+  const [compras, setCompras] = useState<ResumoDeCompras | null>(null)
   const [novaTag, setNovaTag] = useState("")
   const [erroTag, setErroTag] = useState<string | null>(null)
 
@@ -205,6 +229,7 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
         const info = await buscarInfoContato(conversaId)
         setDataPrimeiroContato(info.dataPrimeiroContato)
         setCadastro(info.cadastro)
+        setCompras(info.compras ?? null)
       } catch {
         setErroInfo(true)
       }
@@ -254,11 +279,12 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
   }
 
   return (
-    <aside className="w-full md:w-72 shrink-0 border-r bg-background flex flex-col overflow-hidden">
+    <aside aria-label="Ficha do cliente" className="w-full md:w-72 shrink-0 border-r bg-sidebar flex flex-col overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-        <span className="text-sm font-semibold">Informações do contato</span>
+        <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Ficha do cliente</span>
         <button
           onClick={onFechar}
+          aria-label="Fechar ficha"
           className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted transition-colors"
         >
           <ChevronRight className="size-4" />
@@ -286,7 +312,7 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
                 <button
                   onClick={confirmarEdicao}
                   disabled={!valorEdicao.trim() || salvando}
-                  className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted transition-colors text-green-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted transition-colors text-sucesso disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {salvando ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
                 </button>
@@ -318,6 +344,8 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
             <p className="text-xs text-muted-foreground">{conversa.contato.telefone}</p>
           )}
         </div>
+
+        {compras && <ResumoCompras compras={compras} />}
 
         {/* Data do primeiro contato */}
         <div className="flex flex-col gap-1">

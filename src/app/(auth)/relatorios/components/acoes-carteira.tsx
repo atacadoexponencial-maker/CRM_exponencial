@@ -52,7 +52,7 @@ export function TransferirCarteiraDialog({ vendedor, total, vendedores, onFeito 
           ))}
         </select>
         {alvo && <p className="text-sm mt-3" data-testid="confirmacao-transferir">Transferir {total} contatos de {vendedor.nome} para {alvo.nome}?</p>}
-        {erro && <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive mt-3">{erro}</p>}
+        {erro && <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro mt-3">{erro}</p>}
         <div className="flex justify-end gap-2 pt-4">
           <DialogClose render={<Button type="button" variant="outline" size="sm" />}>Cancelar</DialogClose>
           <Button type="button" size="sm" disabled={!alvo || salvando || total === 0} onClick={confirmar}>{salvando ? "Transferindo..." : "Confirmar"}</Button>
@@ -88,7 +88,7 @@ export function RemoverCarteiraDialog({ vendedor, total, onFeito }: { vendedor: 
       <DialogPopup>
         <DialogTitle className="mb-1">Remover da carteira</DialogTitle>
         <DialogDescription className="mb-4" data-testid="confirmacao-remover">Deixar {total} contatos de {vendedor.nome} sem vendedor? Os cards deles também ficam sem atendente.</DialogDescription>
-        {erro && <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive mb-3">{erro}</p>}
+        {erro && <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro mb-3">{erro}</p>}
         <div className="flex justify-end gap-2">
           <DialogClose render={<Button type="button" variant="outline" size="sm" />}>Cancelar</DialogClose>
           <Button type="button" size="sm" variant="destructive" disabled={salvando || total === 0} onClick={confirmar}>{salvando ? "Removendo..." : "Confirmar"}</Button>

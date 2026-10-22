@@ -161,26 +161,6 @@ export function GraficoDonut({ dados }: { dados: Array<{ label: string; valor: n
   )
 }
 
-export function CardMetrica({
-  titulo,
-  valor,
-  sufixo,
-}: {
-  titulo: string
-  valor: string | number | null
-  sufixo?: string
-}) {
-  return (
-    <div className="rounded-lg border p-4 flex flex-col gap-1">
-      <span className="text-xs text-muted-foreground">{titulo}</span>
-      <span className="text-2xl font-semibold">
-        {valor === null ? "—" : valor}
-        {valor !== null && sufixo ? <span className="text-base font-normal text-muted-foreground ml-0.5">{sufixo}</span> : null}
-      </span>
-    </div>
-  )
-}
-
 export function formatarMoeda(valor: number | null): string | null {
   if (valor === null) return null
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })

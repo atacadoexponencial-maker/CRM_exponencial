@@ -21,7 +21,7 @@ export function TabelaVendas({ vendas, urlExportar }: { vendas: VendaDaTabela[];
   const visiveis = todas ? filtradas : filtradas.slice(0, POR_PAGINA)
 
   return (
-    <section className="rounded-lg border p-4">
+    <section className="rounded-md border bg-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <h2 className="text-sm font-semibold">Vendas</h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -71,15 +71,15 @@ export function TabelaVendas({ vendas, urlExportar }: { vendas: VendaDaTabela[];
                   <td className="py-2 pr-3">
                     <Link href={`/contatos/${v.contatoId}`} className="hover:underline">{v.contato}</Link>
                   </td>
-                  <td className="py-2 pr-3 whitespace-nowrap tabular-nums">{v.telefone ? formatarWhatsapp(v.telefone) : "—"}</td>
-                  <td className="py-2 pr-3 whitespace-nowrap tabular-nums">{formatarDataBr(v.data)}</td>
+                  <td className="py-2 pr-3 whitespace-nowrap numero">{v.telefone ? formatarWhatsapp(v.telefone) : "—"}</td>
+                  <td className="py-2 pr-3 whitespace-nowrap numero">{formatarDataBr(v.data)}</td>
                   <td className="py-2 pr-3 whitespace-nowrap">{v.origem}</td>
                   <td className="py-2 pr-3">{v.atendente ?? "—"}</td>
                   <td className="py-2 pr-3">{v.cidade ?? "—"}</td>
                   <td className="py-2 pr-3">{v.uf ?? "—"}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{v.pecas ?? "—"}</td>
+                  <td className="py-2 pr-3 text-right numero">{v.pecas ?? "—"}</td>
                   <td className="py-2 pr-3">{v.formaPagamento ?? "—"}</td>
-                  <td className="py-2 text-right tabular-nums font-medium">{moeda(v.valor)}</td>
+                  <td className="py-2 text-right numero font-medium">{moeda(v.valor)}</td>
                 </tr>
               ))}
             </tbody>

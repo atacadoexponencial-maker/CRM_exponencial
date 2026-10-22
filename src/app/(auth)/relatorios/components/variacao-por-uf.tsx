@@ -21,7 +21,7 @@ const moeda = (v: number | null) => (v === null ? "—" : v.toLocaleString("pt-B
 
 function Percentual({ valor }: { valor: number | null }) {
   if (valor === null) return <span className="text-muted-foreground">—</span>
-  const cor = valor > 0 ? "text-emerald-400" : valor < 0 ? "text-red-400" : "text-muted-foreground"
+  const cor = valor > 0 ? "text-sucesso" : valor < 0 ? "text-erro" : "text-muted-foreground"
   const sinal = valor < 0 ? "−" : ""
   return <span className={cor}>{sinal}{Math.abs(valor).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</span>
 }
@@ -48,7 +48,7 @@ export function VariacaoPorUfTabela({ variacao, urlExportar }: { variacao: Varia
   })
 
   return (
-    <section className="rounded-lg border p-4">
+    <section className="rounded-md border bg-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
         <div>
           <h2 className="text-sm font-semibold">Variação em relação ao ano anterior</h2>
@@ -81,13 +81,13 @@ export function VariacaoPorUfTabela({ variacao, urlExportar }: { variacao: Varia
               {linhas.map((l) => (
                 <tr key={l.uf} className="border-b">
                   {COLUNAS.map((c) => (
-                    <td key={c.id} className={`py-2 pr-3 tabular-nums ${c.alinhar === "right" ? "text-right" : ""}`}><Celula coluna={c.id} linha={l} /></td>
+                    <td key={c.id} className={`py-2 pr-3 numero ${c.alinhar === "right" ? "text-right" : ""}`}><Celula coluna={c.id} linha={l} /></td>
                   ))}
                 </tr>
               ))}
               <tr className="font-semibold" data-testid="linha-total">
                 {COLUNAS.map((c) => (
-                  <td key={c.id} className={`py-2 pr-3 tabular-nums ${c.alinhar === "right" ? "text-right" : ""}`}><Celula coluna={c.id} linha={variacao.total} /></td>
+                  <td key={c.id} className={`py-2 pr-3 numero ${c.alinhar === "right" ? "text-right" : ""}`}><Celula coluna={c.id} linha={variacao.total} /></td>
                 ))}
               </tr>
             </tbody>

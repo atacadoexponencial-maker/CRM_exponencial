@@ -112,9 +112,9 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
   }
 
   return (
-    <div className="max-w-5xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">Mensagens Rápidas</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Mensagens Rápidas</h1>
         <Button onClick={abrirCriar} size="sm">
           <Plus className="size-4 mr-1.5" />
           Nova mensagem
@@ -122,23 +122,23 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
       </div>
 
       {mensagens.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-16 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-card/60 py-16 text-muted-foreground">
           <Zap className="size-8 opacity-40" />
           <p className="text-sm">Nenhuma mensagem rápida cadastrada</p>
         </div>
       ) : (
-        <div className="rounded-lg border overflow-hidden">
+        <div className="overflow-x-auto border-t-2 border-t-foreground">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground w-40">Título</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Conteúdo</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground w-20">Ações</th>
+              <tr className="border-b">
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground w-40">Título</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Conteúdo</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground w-20">Ações</th>
               </tr>
             </thead>
             <tbody>
               {mensagens.map((msg) => (
-                <tr key={msg.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                <tr key={msg.id} className="border-b hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-3 font-mono text-xs font-medium text-muted-foreground">
                     {msg.titulo}
                   </td>
@@ -197,7 +197,7 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
                 className="resize-none text-sm rounded-md border border-input px-3 py-2 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground"
               />
             </div>
-            {erroCriar && <p className="text-sm text-destructive">{erroCriar}</p>}
+            {erroCriar && <p className="text-sm text-erro">{erroCriar}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
                 Cancelar
@@ -237,7 +237,7 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
                 className="resize-none text-sm rounded-md border border-input px-3 py-2 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground"
               />
             </div>
-            {erroEditar && <p className="text-sm text-destructive">{erroEditar}</p>}
+            {erroEditar && <p className="text-sm text-erro">{erroEditar}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
                 Cancelar
@@ -262,7 +262,7 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
               Tem certeza que deseja excluir{" "}
               <strong>{mensagemExcluindo?.titulo}</strong>?
             </p>
-            {erroExcluir && <p className="text-sm text-destructive">{erroExcluir}</p>}
+            {erroExcluir && <p className="text-sm text-erro">{erroExcluir}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
                 Cancelar

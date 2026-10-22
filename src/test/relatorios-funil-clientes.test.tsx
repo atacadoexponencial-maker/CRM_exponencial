@@ -81,7 +81,7 @@ describe("B34-03 — funil de clientes", () => {
     expect(buscarFunilClientes).toHaveBeenCalledWith({ atendenteId: null })
     expect(screen.getByText("Taxas de conversão")).toBeTruthy()
     expect(screen.getByTestId("tabela-funil")).toBeTruthy()
-    expect(screen.getByText("Como melhorar suas taxas de conversão")).toBeTruthy()
+    expect(screen.queryByText("Como melhorar suas taxas de conversão")).toBeNull()
     fireEvent.click(screen.getByRole("button", { name: /O que são clientes parados/ }))
     expect(screen.getByTestId("explicacao-parados")).toHaveTextContent("90 dias")
     expect(screen.queryByText("Vendas diárias")).toBeNull()

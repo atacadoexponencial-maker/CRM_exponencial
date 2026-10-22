@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { carregarLojaPublica } from "@/lib/catalogo/loja-publica"
+import { TemaClaro } from "@/components/shared/tema-claro"
 
 // A aba do navegador e a prévia do link no WhatsApp mostram a loja, nunca o CRM.
 export async function generateMetadata({ params }: { params: Promise<{ endereco: string }> }): Promise<Metadata> {
@@ -21,5 +22,6 @@ export async function generateMetadata({ params }: { params: Promise<{ endereco:
 
 export default function LojaLayout({ children }: { children: React.ReactNode }) {
   // [&>*]:flex-1: o fundo da loja cobre a tela mesmo com poucos produtos.
-  return <div className="min-h-screen flex flex-col [&>*]:flex-1">{children}</div>
+  // B36-01: a loja é sempre clara, qualquer que seja o tema de quem abriu o link.
+  return <TemaClaro className="min-h-screen [&>*]:flex-1">{children}</TemaClaro>
 }

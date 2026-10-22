@@ -28,9 +28,9 @@ export default async function TimesPage() {
   const [times, todosUsuarios] = await Promise.all([listarTimes(), listarUsuariosDoWorkspace()])
 
   return (
-    <div className="max-w-5xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">Times</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Times</h1>
         <CriarTimeDialog />
       </div>
 
@@ -43,8 +43,8 @@ export default async function TimesPage() {
                 <Badge
                   className={
                     time.isDefault
-                      ? "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
-                      : "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800"
+                      ? "bg-info-fundo text-info border-info/30"
+                      : "bg-purple-100 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-500/30"
                   }
                 >
                   {time.isDefault ? "Padrão" : "Personalizado"}

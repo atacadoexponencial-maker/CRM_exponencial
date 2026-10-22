@@ -26,7 +26,7 @@ export default async function AgendaEquipePage() {
   const atendentes = (atendentesData ?? []).map((a) => ({ id: a.id, nome: a.name }))
 
   return (
-    <div className="max-w-5xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
       <AgendaEquipeClient
         itensIniciais={dados.itens}
         sequenciasIniciais={dados.sequencias}

@@ -264,7 +264,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
 
   return (
     <>
-      <h1 className="text-xl font-semibold mb-1">
+      <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-1">
         {campanha ? `Editar campanha — ${campanha.nome}` : "Nova campanha"}
       </h1>
       <p className="text-sm text-muted-foreground mb-6">
@@ -471,7 +471,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
                 type="button"
                 onClick={() => arquivoRef.current?.click()}
                 disabled={enviandoArquivo}
-                className="flex items-center gap-2 rounded-lg border border-dashed px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 rounded-md border border-dashed bg-card/60 px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
               >
                 {enviandoArquivo ? <Loader2 className="size-4 animate-spin" /> : <Paperclip className="size-4" />}
                 {arquivoNome ?? "Escolher arquivo…"}
@@ -500,7 +500,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
           {conteudo.trim() && (
             <div className="rounded-lg border p-3">
               <span className="text-xs text-muted-foreground block mb-1.5">Preview</span>
-              <div className="rounded-lg bg-green-500/10 px-3 py-2 text-sm whitespace-pre-wrap max-w-sm">
+              <div className="rounded-lg bg-sucesso-fundo px-3 py-2 text-sm whitespace-pre-wrap max-w-sm">
                 {previewMensagem}
               </div>
             </div>
@@ -547,14 +547,14 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
                 </select>
                 {/* B8-01: o aviso e a estimativa vêm prontos do servidor. */}
                 {avaliacao?.aviso && (
-                  <p className="flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 p-3 text-xs ">
+                  <p className="flex gap-2 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-3 text-xs ">
                     <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
                     <span>{avaliacao.aviso}</span>
                   </p>
                 )}
                 {/* B26-03: número em aquecimento, com o dia e os limites que a fila usa */}
                 {avaliacao?.aquecimento && (
-                  <p className="flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 p-3 text-xs">
+                  <p className="flex gap-2 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-3 text-xs">
                     <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
                     <span>{avaliacao.aquecimento}</span>
                   </p>
@@ -663,7 +663,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
         </div>
       )}
 
-      {erro && <p className="text-sm text-destructive mt-4">{erro}</p>}
+      {erro && <p className="text-sm text-erro mt-4">{erro}</p>}
 
       {/* Navegação */}
       {/* QA M23 (06/10): no celular, "Confirmar e enviar agora" saía da tela. */}

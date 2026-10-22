@@ -1,9 +1,11 @@
 "use server"
 
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { AVISO_CONTA_DESATIVADA, AVISO_MUITAS_TENTATIVAS } from "./avisos"
 import { destinoSeguro } from "./destino"
+import { COOKIE_TEMA, OPCOES_COOKIE_TEMA, temaValido } from "@/lib/tema"
 import { chaveDoEmail, chaveDoIp, ipDaRequisicao, passouDoLimite, registrarTentativa } from "@/lib/limite-de-tentativas"
 
 // B20-05: senhas erradas em 15 minutos — por e-mail e por endereço de internet.
@@ -37,7 +39,7 @@ export async function realizarLogin(email: string, senha: string, voltar?: strin
 
   const { data: perfil } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, tema")
     .eq("id", data.user.id)
     .single()
 
@@ -46,6 +48,9 @@ export async function realizarLogin(email: string, senha: string, voltar?: strin
     await supabase.auth.signOut()
     return { erro: AVISO_CONTA_DESATIVADA }
   }
+
+  // B36-01: o tema do perfil vem junto para qualquer aparelho em que a pessoa entrar.
+  ;(await cookies()).set(COOKIE_TEMA, temaValido((perfil as { tema?: string }).tema), OPCOES_COOKIE_TEMA)
 
   // QA baixos (06/10): volta para a página que a pessoa tentou abrir; sem ela, o
   // Dashboard, que todo papel vê. Antes, atendente caía em /perfil e admin em

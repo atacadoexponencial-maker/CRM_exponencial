@@ -25,7 +25,7 @@ export default async function RelatoriosPage() {
   const atendentes = (atendentesData ?? []).map((a) => ({ id: a.id, nome: a.name }))
 
   return (
-    <div className="max-w-6xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-8 lg:px-10">
       <RelatoriosClient visaoInicial={visao} atendentes={atendentes} papel={perfil.role} hoje={hoje} />
     </div>
   )

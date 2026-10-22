@@ -24,7 +24,7 @@ export default async function EditorCampanhaPage({ params }: { params: Promise<{
   const [opcoes, numeros] = await Promise.all([opcoesSegmentacao(), numerosParaCampanha()])
 
   return (
-    <div className="max-w-3xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-3xl px-4 py-7 sm:px-8 lg:px-10">
       <EditorCampanhaClient campanha={campanha} opcoes={opcoes} numeros={numeros} />
     </div>
   )

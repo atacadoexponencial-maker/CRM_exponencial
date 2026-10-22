@@ -30,11 +30,11 @@ import { ROTULO_FORMA_PAGAMENTO, ROTULO_ORIGEM_COMPRA } from "@/lib/compras"
 import { UFS } from "@/lib/uf"
 
 const CLASSIFICACAO_BADGE: Record<string, string> = {
-  lead: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
-  ativo: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
-  em_risco: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
+  lead: "bg-info-fundo text-info border-info/30",
+  ativo: "bg-sucesso-fundo text-sucesso border-sucesso/30",
+  em_risco: "bg-orange-100 dark:bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-500/30",
   inativo: "bg-secondary text-muted-foreground border-border",
-  perdido: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+  perdido: "bg-erro-fundo text-erro border-erro/30",
   sem_historico: "bg-secondary text-muted-foreground border-border",
 }
 
@@ -107,7 +107,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
             Excluído por {naLixeira.excluidoPor} em {naLixeira.excluidoEm}. {prazo}
           </p>
           {erroRestaurar && (
-            <p className="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{erroRestaurar}</p>
+            <p className="mb-3 rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">{erroRestaurar}</p>
           )}
           <div className="flex gap-2">
             <Button
@@ -250,7 +250,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
         {/* B29: a foto de perfil, ou as iniciais, ao lado do nome. */}
         <AvatarContato nome={contato.nome} fotoUrl={contato.fotoUrl ?? null} tamanho="lg" />
         <div className="flex flex-col gap-1">
-          <h1 className="text-xl font-semibold">{contato.nome}</h1>
+          <h1 className="text-[26px] font-semibold leading-tight tracking-tight">{contato.nome}</h1>
           <p className="text-sm text-muted-foreground">{formatarWhatsapp(contato.telefone.replace(/\D/g, ""))}</p>
           <span className={cn(
             "inline-flex items-center self-start px-2 py-0.5 text-xs rounded-md border font-medium mt-1",
@@ -299,7 +299,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
       </div>
 
       {erroExclusao && !resumoExclusao && (
-        <p className="text-sm text-destructive">{erroExclusao}</p>
+        <p className="text-sm text-erro">{erroExclusao}</p>
       )}
 
       {resumoExclusao && (
@@ -382,7 +382,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
             {editando ? (
               <form onSubmit={handleSubmit(onSubmitEdicao)} className="rounded-lg border p-4 space-y-4 text-sm">
                 {erroEdicao && (
-                  <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
                     {erroEdicao}
                   </p>
                 )}
@@ -395,7 +395,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
                     aria-invalid={!!errors.nome}
                     {...register("nome")}
                   />
-                  {errors.nome && <p className="text-sm text-destructive">{errors.nome.message}</p>}
+                  {errors.nome && <p className="text-sm text-erro">{errors.nome.message}</p>}
                 </div>
 
                 <div className="flex flex-col gap-1.5">
@@ -526,7 +526,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
               </Button>
             </div>
             {erroTag && (
-              <p className="text-sm text-destructive">{erroTag}</p>
+              <p className="text-sm text-erro">{erroTag}</p>
             )}
           </section>
 
@@ -545,7 +545,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
             {editandoObs ? (
               <div className="space-y-3">
                 {erroObs && (
-                  <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
                     {erroObs}
                   </p>
                 )}
@@ -625,10 +625,10 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
             {contato.compras.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nenhuma compra registrada</p>
             ) : (
-              <div className="rounded-lg border overflow-x-auto">
+              <div className="overflow-x-auto border-t-2 border-t-foreground">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b bg-muted/50">
+                    <tr className="border-b">
                       <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Data</th>
                       <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">Valor</th>
                       {/* B30-01: campos dos relatórios */}

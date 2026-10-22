@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { useTemaDaTela } from "@/lib/use-tema-da-tela"
 import {
   formaLaco,
   gatilhoDoFluxo,
@@ -175,6 +176,8 @@ function EditorFluxoInterno({
   regraNova,
   avisoInicial,
 }: EditorFluxoProps) {
+  // B36-12: o canvas segue o tema da tela (era sempre escuro).
+  const modoDeCor = useTemaDaTela()
   const [nos, setNos, onNodesChange] = useNodesState<NoFluxo>(paraNos(regraInicial.fluxo))
   const [ligacoes, setLigacoes, onEdgesChange] = useEdgesState<LigacaoFluxo>(paraLigacoes(regraInicial.fluxo))
   const [nome, setNome] = useState(regraInicial.nome)
@@ -559,7 +562,7 @@ function EditorFluxoInterno({
             onConnect={onConnect}
             isValidConnection={ligacaoValida}
             deleteKeyCode={null}
-            colorMode="dark"
+            colorMode={modoDeCor}
             fitView
             fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
             minZoom={0.3}
@@ -571,7 +574,7 @@ function EditorFluxoInterno({
                 {rascunhoAchado && (
                   <div
                     role="status"
-                    className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-amber-500/40 bg-background px-3 py-2 text-sm text-amber-200 shadow-sm"
+                    className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-aviso/40 bg-background px-3 py-2 text-sm text-aviso shadow-sm"
                   >
                     <span>
                       Há alterações não salvas de {quandoFoiGuardado(rascunhoAchado.guardadoEm)}.
@@ -595,7 +598,7 @@ function EditorFluxoInterno({
                       "flex items-center gap-3 rounded-lg border px-3 py-2 text-sm shadow-sm",
                       aviso.tipo === "erro"
                         ? "border-destructive/50 bg-background text-destructive"
-                        : "border-emerald-500/40 bg-background text-emerald-300"
+                        : "border-sucesso/40 bg-background text-sucesso"
                     )}
                   >
                     <span>{aviso.texto}</span>
@@ -605,7 +608,7 @@ function EditorFluxoInterno({
                   </div>
                 )}
                 {simulacao && simulacaoVelha && (
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-amber-500/40 bg-background px-3 py-2 text-sm text-amber-200 shadow-sm">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-aviso/40 bg-background px-3 py-2 text-sm text-aviso shadow-sm">
                     <span>
                       <strong>Simulação para {simulacao.contato.nome}:</strong> o fluxo mudou depois do teste.
                     </span>
@@ -620,7 +623,7 @@ function EditorFluxoInterno({
                   </div>
                 )}
                 {simulacao && !simulacaoVelha && (
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-emerald-500/40 bg-background px-3 py-2 text-sm text-emerald-300 shadow-sm">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-sucesso/40 bg-background px-3 py-2 text-sm text-sucesso shadow-sm">
                     <span>
                       <strong>Simulação para {simulacao.contato.nome}:</strong>{" "}
                       {acoesNoCaminho === 0

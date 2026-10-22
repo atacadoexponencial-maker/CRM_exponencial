@@ -21,6 +21,11 @@ export interface CardCliente {
   tempoNoFunil: string
   etiquetas: Array<{ id: string; nome: string; cor: string }>
   conversaId: string | null
+  /** B36-05: cidade e UF do contato, total já comprado, entrada na etapa e limite de "parado". */
+  cidade?: string | null
+  totalComprado?: number
+  etapaDesde?: string
+  limiteParadoDias?: number | null
 }
 
 export const ETAPAS_RECOMPRA: { id: EtapaRecompra; label: string; cor?: CorColuna }[] = [
@@ -178,6 +183,11 @@ export interface CardLead {
   tempoNoFunil: string
   etiquetas: Array<{ id: string; nome: string; cor: string }>
   conversaId: string | null
+  /** B36-05: cidade e UF do contato, total já comprado, entrada na etapa e limite de "parado". */
+  cidade?: string | null
+  totalComprado?: number
+  etapaDesde?: string
+  limiteParadoDias?: number | null
 }
 
 export const ETAPAS_ENTRADA: { id: EtapaEntrada; label: string; alerta?: boolean }[] = [

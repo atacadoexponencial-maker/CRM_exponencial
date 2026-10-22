@@ -46,6 +46,8 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
   // B13-02: contatos que foram para a lixeira enquanto a caixa estava aberta.
   const [contatosExcluidos, setContatosExcluidos] = useState<Set<string>>(new Set())
   const [caixaRecolhida, setCaixaRecolhida] = useState(caixaRecolhidaInicial)
+  // Ajuste do preview da B36 (22/10): a ficha do cliente fica entre a lista e a conversa
+  // e só abre ao clicar no nome do contato; no celular, cobre a tela.
   const [fichaAberta, setFichaAberta] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -348,11 +350,11 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
   const carregando = isPending && conversaAtivaId !== null && mensagensLocais[conversaAtivaId] === undefined
 
   return (
-    <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 57px)" }}>
+    <div className="flex flex-1 overflow-hidden h-[calc(100dvh-57px)] lg:h-dvh">
       {/* QA M23 (06/10): no celular, uma coluna por vez: lista, depois a conversa aberta,
           com "voltar" no cabeçalho dela; a ficha do contato vira uma gaveta por cima. */}
       {caixaRecolhida ? (
-        <aside className="hidden md:flex w-12 shrink-0 border-r flex-col items-center gap-2 py-2">
+        <aside className="hidden md:flex w-12 shrink-0 border-r bg-card flex-col items-center gap-2 py-2">
           <button
             type="button"
             onClick={alternarCaixa}
@@ -374,10 +376,10 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
       ) : (
       <aside
         data-testid="lista-de-conversas"
-        className={`${conversaAtivaId ? "hidden md:flex" : "flex"} w-full md:w-80 shrink-0 border-r flex-col overflow-hidden`}
+        className={`${conversaAtivaId ? "hidden md:flex" : "flex"} w-full md:w-80 shrink-0 border-r bg-card flex-col overflow-hidden`}
       >
-        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b">
-          <h1 className="text-sm font-semibold">Caixa de Entrada</h1>
+        <div className="flex items-center justify-between gap-2 px-4 pt-5 pb-3">
+          <h1 className="text-[22px] font-semibold leading-tight tracking-tight">Chat</h1>
           <button
             type="button"
             onClick={alternarCaixa}
@@ -402,7 +404,8 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
       </aside>
       )}
 
-      {/* Ficha do contato: entre a lista e a conversa. */}
+
+      {/* Ficha do cliente entre a lista e a conversa; abre pelo nome do contato. */}
       {fichaAberta && conversaAtiva && !ativaFoiExcluida && (
         <div className="fixed inset-0 z-40 flex bg-background md:static md:z-auto md:inset-auto">
           <PainelContato
@@ -427,7 +430,7 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
             Carregando mensagens...
           </div>
         ) : conversaAtiva && erroConversaId === conversaAtiva.id ? (
-          <div className="flex-1 flex items-center justify-center text-sm text-destructive">
+          <div className="flex-1 flex items-center justify-center text-sm text-erro">
             Erro ao carregar mensagens
           </div>
         ) : conversaAtiva ? (

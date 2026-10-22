@@ -24,10 +24,10 @@ import type { AlertaComConversa, ConfigAlertas, TipoAlerta } from "./actions"
  * uma venda, o outro custa o canal inteiro. Por isso vermelho e no topo.
  */
 const COR_ALERTA_DE_NUMERO: Record<TipoAlertaDeNumero, string> = {
-  numero_banido: "text-red-600 bg-red-500/10",
-  numero_freado: "text-red-600 bg-red-500/10",
-  numero_desconectado: "text-orange-600 bg-orange-500/10",
-  risco_alto: "text-amber-600 bg-amber-500/10",
+  numero_banido: "text-erro bg-erro-fundo",
+  numero_freado: "text-erro bg-erro-fundo",
+  numero_desconectado: "text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-500/15",
+  risco_alto: "text-aviso bg-aviso-fundo",
 }
 
 function rotuloDoNumero(alerta: AlertaDeNumero): string {
@@ -46,10 +46,10 @@ const TIPOS: Array<{ id: TipoAlerta | ""; label: string }> = [
 ]
 
 const COR_TIPO: Record<TipoAlerta, string> = {
-  lead_sem_resposta: "text-amber-600 bg-amber-500/10",
-  sem_recompra: "text-orange-600 bg-orange-500/10",
-  em_risco: "text-red-600 bg-red-500/10",
-  inativo: "text-gray-600 bg-gray-500/10",
+  lead_sem_resposta: "text-aviso bg-aviso-fundo",
+  sem_recompra: "text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-500/15",
+  em_risco: "text-erro bg-erro-fundo",
+  inativo: "text-muted-foreground bg-muted",
 }
 
 export function AlertasClient({
@@ -105,7 +105,7 @@ export function AlertasClient({
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-        <h1 className="text-xl font-semibold">Central de Alertas</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Central de Alertas</h1>
         <div className="flex items-center gap-2">
           <select
             aria-label="Filtrar por tipo"
@@ -120,7 +120,7 @@ export function AlertasClient({
           {papel === "admin" && (
             <Button size="sm" variant="outline" onClick={() => setConfigAberta(true)}>
               <Settings2 className="size-4 mr-1.5" />
-              Limiares
+              Ajustes
             </Button>
           )}
         </div>
@@ -129,7 +129,7 @@ export function AlertasClient({
         Leads e clientes que atingiram o limite de dias sem atividade.
       </p>
 
-      {erro && <p className="text-sm text-destructive mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-erro mb-4">{erro}</p>}
 
       {/* B4-03: alertas de número. Não têm card, contato nem etapa, e por isso
           não entram na lista abaixo nem no filtro por tipo dela. */}
@@ -140,7 +140,7 @@ export function AlertasClient({
               <span
                 className={cn(
                   "mt-0.5 shrink-0 rounded-full p-1.5",
-                  COR_ALERTA_DE_NUMERO[alerta.tipo] ?? "text-red-600 bg-red-500/10"
+                  COR_ALERTA_DE_NUMERO[alerta.tipo] ?? "text-erro bg-erro-fundo"
                 )}
               >
                 <Activity className="size-3.5" />
@@ -151,7 +151,7 @@ export function AlertasClient({
                   <span
                     className={cn(
                       "text-xs rounded-full px-2 py-0.5",
-                      COR_ALERTA_DE_NUMERO[alerta.tipo] ?? "text-red-600 bg-red-500/10"
+                      COR_ALERTA_DE_NUMERO[alerta.tipo] ?? "text-erro bg-erro-fundo"
                     )}
                   >
                     {TIPO_ALERTA_NUMERO_LABEL[alerta.tipo] ?? "Alerta do número"}
@@ -179,7 +179,7 @@ export function AlertasClient({
       )}
 
       {filtrados.length === 0 && alertasDeNumero.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-16 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-card/60 py-16 text-muted-foreground">
           <Check className="size-8 opacity-40" />
           <p className="text-sm">Nenhum alerta ativo</p>
         </div>
@@ -249,7 +249,7 @@ export function AlertasClient({
         }}
       >
         <DialogPopup>
-          <DialogTitle className="mb-4">Limiares de alerta</DialogTitle>
+          <DialogTitle className="mb-4">Ajustes dos alertas</DialogTitle>
           <div className="flex flex-col gap-4">
             <p className="text-sm text-muted-foreground">
               Número de dias sem atividade que dispara cada tipo de alerta.
@@ -277,7 +277,7 @@ export function AlertasClient({
                 />
               </div>
             ))}
-            {erroConfig && <p className="text-sm text-destructive">{erroConfig}</p>}
+            {erroConfig && <p className="text-sm text-erro">{erroConfig}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
                 Cancelar

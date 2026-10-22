@@ -293,7 +293,7 @@ export function ListaNumeros({
       {recemConectado && (
         <p
           role="status"
-          className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 p-3 text-sm"
+          className="flex items-center gap-2 rounded-lg border border-sucesso/30 bg-sucesso-fundo text-sucesso p-3 text-sm"
         >
           <CheckCircle2 className="size-4 shrink-0" aria-hidden />
           Número conectado. Ele já pode receber e enviar mensagens.
@@ -301,14 +301,14 @@ export function ListaNumeros({
       )}
 
       {erro && (
-        <p className="rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 p-3 text-sm ">
+        <p className="rounded-lg border border-erro/30 bg-erro-fundo text-erro p-3 text-sm ">
           {erro}
         </p>
       )}
 
       {conectando === null ? (
         numeros.length === 0 ? (
-          <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+          <p className="rounded-md border border-dashed bg-card/60 p-8 text-center text-sm text-muted-foreground">
             Nenhum número conectado ainda.
           </p>
         ) : (
@@ -362,7 +362,7 @@ export function ListaNumeros({
       ) : (
         <div className="space-y-6">
           {!reconectando && (
-            <div className="rounded-lg border p-6">
+            <div className="rounded-md border bg-card p-5">
               <EscolhaCanal
                 ocupado={criando}
                 onEscolher={(canal) =>
@@ -390,7 +390,7 @@ export function ListaNumeros({
             (fluxoMeta ? (
               <div className="flex justify-center rounded-lg border py-8">{fluxoMeta}</div>
             ) : (
-              <p className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+              <p className="rounded-md border bg-card p-4 text-sm text-muted-foreground">
                 Já existe um número na API Oficial; gerencie-o abaixo.
               </p>
             ))}

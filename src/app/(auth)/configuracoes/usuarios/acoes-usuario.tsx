@@ -174,7 +174,7 @@ export function AcoesUsuario({
 
           <div className="flex flex-col gap-4">
             {erro && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
                 {erro}
               </p>
             )}
@@ -210,7 +210,7 @@ export function AcoesUsuario({
 
           <div className="flex flex-col gap-4">
             {erroTimes && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
                 {erroTimes}
               </p>
             )}
@@ -250,7 +250,7 @@ export function AcoesUsuario({
 
           <div className="flex flex-col gap-4">
             {erroDesativar && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
                 {erroDesativar}
               </p>
             )}
@@ -276,7 +276,7 @@ export function AcoesUsuario({
 
           <div className="flex flex-col gap-4">
             {erroReativar && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
                 {erroReativar}
               </p>
             )}

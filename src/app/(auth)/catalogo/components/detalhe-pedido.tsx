@@ -101,7 +101,7 @@ export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedi
 
         <section className="space-y-2">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Itens</h3>
-          <ul className="divide-y rounded-lg border">
+          <ul className="divide-y border-y">
             {pedido.itens.map((i, n) => (
               <li key={n} className="flex items-center gap-3 p-2.5">
                 <div className="size-11 rounded-md bg-muted overflow-hidden shrink-0 flex items-center justify-center">
@@ -140,7 +140,7 @@ export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedi
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Situação</h3>
             <div className="flex flex-wrap gap-2">
               {PROXIMAS_SITUACOES[pedido.situacao].map((s) => (
-                <Button key={s} size="sm" variant={s === "cancelado" ? "destructive" : s === "fechado" ? "default" : "outline"} className={s === "cancelado" ? "text-red-400" : undefined} onClick={() => pedir(s)} disabled={mudando}>
+                <Button key={s} size="sm" variant={s === "cancelado" ? "destructive" : s === "fechado" ? "default" : "outline"} className={s === "cancelado" ? "text-erro" : undefined} onClick={() => pedir(s)} disabled={mudando}>
                   {rotuloBotao(pedido.situacao, s)}
                 </Button>
               ))}
@@ -150,7 +150,7 @@ export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedi
                 ? "O estoque deste pedido já foi baixado. Voltar para Em atendimento ou cancelar devolve as peças ao estoque."
                 : "Ao marcar como Fechado, o estoque das peças do pedido baixa."}
             </p>
-            {erro && <p className="text-xs text-destructive" role="alert">{erro}</p>}
+            {erro && <p className="text-xs text-erro" role="alert">{erro}</p>}
           </section>
         )}
 
@@ -171,7 +171,7 @@ export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedi
         <DialogPopup className="max-w-md">
           {confirmar === "fechado" ? (
             <>
-              <DialogTitle className="flex items-center gap-2"><AlertTriangle className="size-4 text-amber-400" />Estoque insuficiente</DialogTitle>
+              <DialogTitle className="flex items-center gap-2"><AlertTriangle className="size-4 text-aviso" />Estoque insuficiente</DialogTitle>
               <DialogDescription className="mt-2">Estas peças têm menos estoque do que o pedido. Ao fechar, o estoque delas vai a zero.</DialogDescription>
               <ul className="mt-3 space-y-1 text-sm">
                 {faltando.map((i, n) => (
@@ -191,7 +191,7 @@ export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedi
           )}
           <div className="mt-5 flex justify-end gap-2">
             <DialogClose render={<Button variant="outline" size="sm" />}>Voltar</DialogClose>
-            <Button size="sm" variant={confirmar === "cancelado" ? "destructive" : "default"} className={confirmar === "cancelado" ? "text-red-400" : undefined} onClick={() => confirmar && mudar(confirmar)}>
+            <Button size="sm" variant={confirmar === "cancelado" ? "destructive" : "default"} className={confirmar === "cancelado" ? "text-erro" : undefined} onClick={() => confirmar && mudar(confirmar)}>
               {confirmar === "fechado" ? "Fechar mesmo assim" : "Cancelar pedido"}
             </Button>
           </div>

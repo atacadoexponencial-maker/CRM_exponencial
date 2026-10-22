@@ -33,7 +33,7 @@ export function PareamentoPorCodigo() {
   }
 
   return (
-    <div className="rounded-lg border p-6">
+    <div className="rounded-md border bg-card p-5">
       <h3 className="font-medium">Não consegue ler o código?</h3>
       <p className="text-sm text-muted-foreground mt-0.5 mb-4">
         Informe o número e digite no aparelho o código que aparecer aqui.
@@ -57,7 +57,7 @@ export function PareamentoPorCodigo() {
       </div>
 
       {erro && (
-        <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 p-3 text-sm ">
+        <p className="mt-4 rounded-lg border border-erro/30 bg-erro-fundo text-erro p-3 text-sm ">
           {erro}
         </p>
       )}
@@ -68,7 +68,7 @@ export function PareamentoPorCodigo() {
             No aparelho, toque em <strong className="text-foreground">Conectar com número</strong> e
             digite:
           </p>
-          <p className="text-2xl font-semibold tracking-[0.2em] tabular-nums">{codigo}</p>
+          <p className="text-2xl font-semibold tracking-[0.2em] numero">{codigo}</p>
         </div>
       )}
     </div>

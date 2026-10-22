@@ -79,12 +79,12 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
   return (
     <>
       <div className="flex items-center gap-3 mb-4">
-        <h1 className="text-xl font-semibold">Relatórios</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Relatórios</h1>
         {isPending && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
       </div>
 
       {/* Abas: só a Visão Geral existe; as outras avisam "em breve" (SUP-B32-06 invalidada). */}
-      <div role="tablist" aria-label="Relatórios" className="flex flex-wrap gap-1 border-b mb-6">
+      <div role="tablist" aria-label="Relatórios" className="flex flex-wrap border-b mb-7">
         {([["visao-geral", "Visão Geral"], ["rfv", "RFV"], ["coorte", "Coorte"], ["funil", "Funil de clientes"], ["carteiras", "Carteiras"]] as Array<[Aba, string]>).map(([id, nome]) => (
           <button
             key={id}
@@ -92,7 +92,7 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
             role="tab"
             aria-selected={aba === id}
             onClick={() => setAba(id)}
-            className={cn("px-3 py-2 text-sm -mb-px", aba === id ? "font-medium border-b-2 border-primary" : "text-muted-foreground hover:text-foreground")}
+            className={cn("mr-5 py-2.5 text-sm -mb-px", aba === id ? "font-semibold text-foreground shadow-[inset_0_-2px_0_var(--foreground)]" : "text-muted-foreground hover:text-foreground")}
           >
             {nome}
           </button>
@@ -126,7 +126,7 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
             <span className="font-semibold">Visualização:</span> <span data-testid="titulo-periodo">{visao.cabecalho.titulo}</span>
           </p>
           {visao.cabecalho.aviso && (
-            <p className="text-xs text-sky-400 mt-1" data-testid="aviso-comparacao">{visao.cabecalho.aviso}</p>
+            <p className="text-xs text-info mt-1" data-testid="aviso-comparacao">{visao.cabecalho.aviso}</p>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">

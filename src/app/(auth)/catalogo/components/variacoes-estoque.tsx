@@ -125,10 +125,10 @@ export function VariacoesEstoque({ tipos, estoque, onMudarTipos, onMudarEstoque,
         </Button>
       )}
 
-      <div className="rounded-lg border overflow-hidden">
+      <div className="overflow-x-auto border-t-2 border-t-foreground">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-muted/50">
+            <tr className="border-b">
               <th className="px-3 py-2 text-left font-medium text-muted-foreground">
                 {linhas.length === 1 && linhas[0].length === 0 ? "Produto sem variação" : "Combinação"}
               </th>
@@ -148,7 +148,7 @@ export function VariacoesEstoque({ tipos, estoque, onMudarTipos, onMudarEstoque,
                       inputMode="numeric"
                       value={estoque[chave] ?? 0}
                       onChange={(e) => onMudarEstoque(chave, Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-                      className="h-7 text-right tabular-nums"
+                      className="h-7 text-right numero"
                       aria-label={`Estoque de ${chave || "produto"}`}
                     />
                   </td>
@@ -171,7 +171,7 @@ export function VariacoesEstoque({ tipos, estoque, onMudarTipos, onMudarEstoque,
             <DialogClose render={<Button variant="outline" size="sm" />}>Cancelar</DialogClose>
             <Button
               size="sm"
-              variant="destructive" className="text-red-400"
+              variant="destructive" className="text-erro"
               onClick={() => { if (removendo) { if (removendo.opcao === null) removerTipo(removendo.tipoId); else removerOpcao(removendo.tipoId, removendo.opcao) } setRemovendo(null) }}
             >
               Remover

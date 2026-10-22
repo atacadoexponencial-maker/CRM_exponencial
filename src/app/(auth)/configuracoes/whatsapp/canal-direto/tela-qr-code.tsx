@@ -60,7 +60,7 @@ export function TelaQrCode({
   const expirado = restam === 0
 
   return (
-    <div className="rounded-lg border p-6">
+    <div className="rounded-md border bg-card p-5">
       <div className="flex items-start justify-between gap-4 mb-5">
         <div>
           <h3 className="font-medium">Leia o código no aparelho</h3>
@@ -100,7 +100,7 @@ export function TelaQrCode({
               <span className="text-muted-foreground">Código expirado</span>
             ) : (
               <>
-                Expira em <span className="font-medium tabular-nums">{restam}s</span>
+                Expira em <span className="font-medium numero">{restam}s</span>
               </>
             )}
           </p>
@@ -124,20 +124,20 @@ export function TelaQrCode({
           <ol className="space-y-2 text-sm text-muted-foreground">
             {PASSOS.map((passo, i) => (
               <li key={passo} className="flex gap-2">
-                <span className="tabular-nums text-foreground">{i + 1}.</span>
+                <span className="numero text-foreground">{i + 1}.</span>
                 {passo}
               </li>
             ))}
           </ol>
 
           {erro && (
-            <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 p-3 text-sm ">
+            <p className="mt-4 rounded-lg border border-erro/30 bg-erro-fundo text-erro p-3 text-sm ">
               {erro}
             </p>
           )}
 
           {estado === "disconnected" && motivo && (
-            <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 p-3 text-sm ">
+            <p className="mt-4 rounded-lg border border-erro/30 bg-erro-fundo text-erro p-3 text-sm ">
               Não foi possível conectar. {TEXTO_DO_MOTIVO[motivo]}
             </p>
           )}

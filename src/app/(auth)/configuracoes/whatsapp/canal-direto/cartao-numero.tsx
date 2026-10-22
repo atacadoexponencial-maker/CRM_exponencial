@@ -37,7 +37,7 @@ export function CartaoNumero({
   aviso?: React.ReactNode
 }) {
   return (
-    <div className="rounded-lg border p-5">
+    <div className="rounded-md border bg-card p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-lg font-semibold truncate">{formatarNumero(numero.phone_number)}</p>
@@ -55,8 +55,8 @@ export function CartaoNumero({
       </div>
 
       {numero.state === "banned" && (
-        <p className="mt-4 flex gap-2 rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 p-3 text-sm ">
-          <Ban className="size-4 shrink-0 mt-0.5 text-red-300" aria-hidden />
+        <p className="mt-4 flex gap-2 rounded-lg border border-erro/30 bg-erro-fundo text-erro p-3 text-sm ">
+          <Ban className="size-4 shrink-0 mt-0.5 text-erro" aria-hidden />
           <span>
             O WhatsApp bloqueou este número. Ler o código de novo não desfaz o bloqueio: é preciso
             conectar outro número.

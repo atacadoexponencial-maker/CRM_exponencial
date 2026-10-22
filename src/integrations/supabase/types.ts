@@ -1177,6 +1177,57 @@ export type Database = {
         }
         Relationships: []
       }
+      filtros_salvos: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          filtro: Json
+          id: string
+          nome: string
+          nome_chave: string
+          posicao: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          filtro: Json
+          id?: string
+          nome: string
+          nome_chave: string
+          posicao?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          filtro?: Json
+          id?: string
+          nome?: string
+          nome_chave?: string
+          posicao?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "filtros_salvos_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "filtros_salvos_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gateway_events: {
         Row: {
           event_at: string | null
@@ -1601,6 +1652,7 @@ export type Database = {
           name: string
           role: string
           status: string
+          tema: string
           workspace_id: string
         }
         Insert: {
@@ -1609,6 +1661,7 @@ export type Database = {
           name: string
           role: string
           status?: string
+          tema?: string
           workspace_id: string
         }
         Update: {
@@ -1617,6 +1670,7 @@ export type Database = {
           name?: string
           role?: string
           status?: string
+          tema?: string
           workspace_id?: string
         }
         Relationships: [
@@ -2070,10 +2124,63 @@ export type Database = {
         }
         Returns: string
       }
+      condicao_de_contato_sql: { Args: { p_cond: Json }; Returns: string }
       contato_na_lixeira: { Args: { p_contact_id: string }; Returns: boolean }
       conversa_na_lixeira: {
         Args: { p_conversation_id: string }
         Returns: boolean
+      }
+      conversas_esperando_resposta: {
+        Args: { p_limite?: number }
+        Returns: {
+          contato_id: string
+          contato_nome: string
+          conversa_id: string
+          desde: string
+          funil: string
+          telefone: string
+          tipo: string
+          trecho: string
+        }[]
+      }
+      filtrar_contatos: {
+        Args: {
+          p_busca?: string
+          p_filtro?: Json
+          p_limite?: number
+          p_offset?: number
+          p_ordem?: string
+          p_rapidos?: Json
+        }
+        Returns: {
+          atendente_nome: string
+          cidade: string
+          classificacao: string
+          created_at: string
+          id: string
+          name: string
+          nicho: string
+          phone_number: string
+          tipo: string
+          total: number
+          uf: string
+        }[]
+      }
+      filtrar_pedidos: {
+        Args: { p_filtros?: Json; p_limite?: number; p_offset?: number }
+        Returns: {
+          created_at: string
+          customer_name: string
+          customer_whatsapp: string
+          discount: number
+          discount_percent: number
+          id: string
+          number: number
+          pieces: number
+          status: string
+          total: number
+          total_resultado: number
+        }[]
       }
       gerar_compras_de_pedidos_fechados: { Args: never; Returns: number }
       get_auth_user_workspace_id: { Args: never; Returns: string }
@@ -2089,6 +2196,14 @@ export type Database = {
       pode_ver_conversa: {
         Args: { p_conversation_id: string }
         Returns: boolean
+      }
+      produtos_dos_pedidos: {
+        Args: never
+        Returns: {
+          apagado: boolean
+          id: string
+          nome: string
+        }[]
       }
       recalcular_classificacao_do_contato: {
         Args: { p_contact: string }

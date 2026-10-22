@@ -53,7 +53,7 @@ export function PainelCategorias({ categorias, contagem, onCriar, onRenomear, on
   }
 
   return (
-    <aside className="rounded-lg border p-4 space-y-3">
+    <aside className="rounded-md border bg-card p-5 space-y-3">
       <h2 className="text-sm font-semibold">Categorias</h2>
       <p className="text-xs text-muted-foreground">Arraste para mudar a ordem em que aparecem na loja.</p>
 
@@ -92,7 +92,7 @@ export function PainelCategorias({ categorias, contagem, onCriar, onRenomear, on
             ) : (
               <>
                 <span className="flex-1 text-sm truncate">{c.nome}</span>
-                <span className="text-xs text-muted-foreground tabular-nums">{contagem[c.id] ?? 0}</span>
+                <span className="text-xs text-muted-foreground numero">{contagem[c.id] ?? 0}</span>
                 <Button size="icon-xs" variant="ghost" onClick={() => { setErro(null); setEditando({ id: c.id, nome: c.nome }) }} aria-label={`Renomear ${c.nome}`}>
                   <Pencil />
                 </Button>
@@ -119,7 +119,7 @@ export function PainelCategorias({ categorias, contagem, onCriar, onRenomear, on
           Criar
         </Button>
       </div>
-      {erro && <p className="text-xs text-destructive">{erro}</p>}
+      {erro && <p className="text-xs text-erro">{erro}</p>}
 
       <Dialog open={excluindo !== null} onOpenChange={(aberto) => { if (!aberto) setExcluindo(null) }}>
         <DialogPopup className="max-w-sm">
@@ -135,7 +135,7 @@ export function PainelCategorias({ categorias, contagem, onCriar, onRenomear, on
             <DialogClose render={<Button variant="outline" size="sm" />}>Cancelar</DialogClose>
             <Button
               size="sm"
-              variant="destructive" className="text-red-400"
+              variant="destructive" className="text-erro"
               onClick={() => { if (excluindo) onExcluir(excluindo.id); setExcluindo(null) }}
             >
               Excluir categoria

@@ -1,15 +1,18 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Search, ChevronDown, Loader2, Trash2 } from "lucide-react"
+import { Search, ChevronDown, Loader2, Trash2, SlidersHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { contemTermo } from "@/lib/normalizar-busca"
 import { NovoContatoDialog } from "./novo-contato-dialog"
 import { DialogoExcluirContato } from "./dialogo-excluir-contato"
+import { PainelFiltro } from "./painel-filtro"
+import { FaixaFiltrosSalvos } from "./faixa-filtros-salvos"
+import { atualizarFiltroSalvo, salvarFiltro, type FiltroSalvo } from "../filtros-salvos"
 import { resumoExclusaoContato, excluirContato, type ResumoExclusao } from "../lixeira/actions"
-import { listarContatos } from "../actions"
+import { filtrarContatos, type OrdemDaLista } from "../actions"
+import { contarCondicoes, limparFiltro, FILTRO_VAZIO, type Condicao, type Filtro } from "@/lib/filtro-contatos"
 import {
   type Contato,
   type ClassificacaoContato,
@@ -40,81 +43,125 @@ const ORDENACOES = [
   { label: "Mais recente", valor: "recente" },
   { label: "Nome (A–Z)", valor: "nome" },
   { label: "Classificação", valor: "classificacao" },
-] as const
+] as const satisfies ReadonlyArray<{ label: string; valor: OrdemDaLista }>
 
 type Ordenacao = typeof ORDENACOES[number]["valor"]
 
 const CLASSIFICACAO_BADGE: Record<ClassificacaoContato, string> = {
-  lead: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
-  ativo: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
-  em_risco: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
+  lead: "bg-info-fundo text-info border-info/30",
+  ativo: "bg-sucesso-fundo text-sucesso border-sucesso/30",
+  em_risco: "bg-orange-100 dark:bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-500/30",
   inativo: "bg-secondary text-muted-foreground border-border",
-  perdido: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+  perdido: "bg-erro-fundo text-erro border-erro/30",
   sem_historico: "bg-secondary text-muted-foreground border-border",
-}
-
-const ORDEM_CLASSIFICACAO: Record<ClassificacaoContato, number> = {
-  ativo: 0,
-  lead: 1,
-  em_risco: 2,
-  inativo: 3,
-  perdido: 4,
-  sem_historico: 5,
 }
 
 interface ListaContatosProps {
   contatos: Contato[]
-  /** A primeira página veio cheia: há mais no servidor (B10-06). */
-  temMais?: boolean
+  /** B37-01: total de contatos que a pessoa vê, contado no servidor. */
+  total?: number
+  /** B37-01: nichos e atendentes da empresa, para os botões fixos e o filtro. */
+  nichos?: string[]
+  atendentes?: Array<{ id: string; nome: string }>
+  /** B37-02: etiquetas da empresa, para o filtro. */
+  etiquetas?: string[]
+  /** B37-03: filtros salvos da empresa, na ordem da faixa. */
+  filtrosSalvos?: FiltroSalvo[]
   papel: string
   /** B13-04: quantos contatos o usuário vê na lixeira. */
   totalLixeira?: number
 }
 
-export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInicial = false, papel, totalLixeira = 0 }: ListaContatosProps) {
+export function ListaContatos({
+  contatos: contatosIniciais,
+  total: totalInicial = contatosIniciais.length,
+  nichos = [],
+  atendentes = [],
+  etiquetas = [],
+  filtrosSalvos: filtrosSalvosIniciais = [],
+  papel,
+  totalLixeira = 0,
+}: ListaContatosProps) {
   const router = useRouter()
   const [busca, setBusca] = useState("")
+  const [classificacao, setClassificacao] = useState<ClassificacaoContato | "todas">("todas")
+  const [tipo, setTipo] = useState<TipoContato | "todos">("todos")
+  const [nicho, setNicho] = useState<string | null>(null)
+  const [atendente, setAtendente] = useState<string | null>(null)
+  const [ordenacao, setOrdenacao] = useState<Ordenacao>("recente")
+  const [ordenacaoAberta, setOrdenacaoAberta] = useState(false)
+  // B37-01: filtro avançado aplicado (o painel edita um rascunho e só muda isto no "Aplicar").
+  const [filtro, setFiltro] = useState<Filtro>(FILTRO_VAZIO)
+  const [painelAberto, setPainelAberto] = useState(false)
+  // B37-03: filtros salvos da empresa; o ligado é o que tem as mesmas condições do aplicado.
+  const [filtrosSalvos, setFiltrosSalvos] = useState<FiltroSalvo[]>(filtrosSalvosIniciais)
+  const podeGerirSalvos = papel === "admin" || papel === "gerente"
 
-  // B10-06: páginas carregadas e, quando há busca, o resultado vindo do servidor.
+  // B10-06 / B37-01: páginas do resultado do servidor e o total dele.
   const [paginas, setPaginas] = useState<Contato[]>(contatosIniciais)
-  const [temMais, setTemMais] = useState(temMaisInicial)
+  const [total, setTotal] = useState(totalInicial)
   // QA A10 (06/10): depois de "Novo contato", o router.refresh() traz a lista nova
   // nas props; sem isto, o estado ficava com a lista antiga até o F5.
   const [recebidos, setRecebidos] = useState(contatosIniciais)
   if (contatosIniciais !== recebidos) {
     setRecebidos(contatosIniciais)
     setPaginas(contatosIniciais)
-    setTemMais(temMaisInicial)
+    setTotal(totalInicial)
   }
+  const [carregando, setCarregando] = useState(false)
   const [carregandoMais, setCarregandoMais] = useState(false)
-  // Resultado guardado junto com o termo: só vale enquanto o termo for o mesmo.
-  const [respostaBusca, setRespostaBusca] = useState<{ termo: string; lista: Contato[] } | null>(null)
+  const [erroLista, setErroLista] = useState<string | null>(null)
 
-  const termoServidor = busca.trim().length >= 2 ? busca.trim() : ""
-  const resultadoBusca = termoServidor && respostaBusca?.termo === termoServidor ? respostaBusca.lista : null
-  const buscando = !!termoServidor && resultadoBusca === null
+  // Tudo o que decide o resultado vai ao servidor; nada se filtra aqui.
+  const consulta = useMemo(() => {
+    const rapidos: Condicao[] = []
+    if (classificacao !== "todas") rapidos.push({ campo: "classificacao", comparacao: "e", valores: [classificacao] })
+    if (tipo !== "todos") rapidos.push({ campo: "tipo", comparacao: "e", valores: [tipo] })
+    if (nicho) rapidos.push({ campo: "nicho", comparacao: "e", valores: [nicho] })
+    if (atendente) rapidos.push({ campo: "atendente", comparacao: "e", valores: [atendente] })
+    const termo = busca.trim()
+    return { filtro: limparFiltro(filtro), rapidos, busca: termo.length >= 2 ? termo : "", ordem: ordenacao }
+  }, [filtro, classificacao, tipo, nicho, atendente, busca, ordenacao])
+  const chave = JSON.stringify(consulta)
+  const chaveInicial = useRef(chave)
+  const pedido = useRef(0)
 
   useEffect(() => {
-    if (!termoServidor) return
-    let cancelado = false
+    // A primeira página sem nada aplicado já veio do servidor.
+    if (chave === chaveInicial.current) return
+    chaveInicial.current = ""
+    const meu = ++pedido.current
+    setCarregando(true)
     const t = setTimeout(() => {
-      listarContatos({ busca: termoServidor, limite: TAMANHO_PAGINA_CONTATOS })
-        .then((lista) => { if (!cancelado) setRespostaBusca({ termo: termoServidor, lista }) })
-        .catch(() => { /* mantém o que está na tela */ })
-    }, 300)
-    return () => { cancelado = true; clearTimeout(t) }
-  }, [termoServidor])
+      filtrarContatos({ ...consulta, limite: TAMANHO_PAGINA_CONTATOS, offset: 0 })
+        .then((r) => {
+          if (meu !== pedido.current) return
+          if ("erro" in r) { setErroLista(r.erro); return }
+          setErroLista(null)
+          setPaginas(r.contatos)
+          setTotal(r.total)
+        })
+        .catch(() => { if (meu === pedido.current) setErroLista("Não foi possível aplicar o filtro.") })
+        .finally(() => { if (meu === pedido.current) setCarregando(false) })
+    }, 250)
+    return () => clearTimeout(t)
+    // `consulta` muda junto com `chave`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chave])
 
   async function carregarMais() {
-    if (carregandoMais || !temMais) return
+    if (carregandoMais || paginas.length >= total) return
+    const meu = pedido.current
     setCarregandoMais(true)
     try {
-      const pagina = await listarContatos({ limite: TAMANHO_PAGINA_CONTATOS, offset: paginas.length })
+      const r = await filtrarContatos({ ...consulta, limite: TAMANHO_PAGINA_CONTATOS, offset: paginas.length })
+      if (meu !== pedido.current) return
+      if ("erro" in r) { setErroLista(r.erro); return }
       setPaginas((prev) => {
         const ids = new Set(prev.map((c) => c.id))
-        return [...prev, ...pagina.filter((c) => !ids.has(c.id))]
+        return [...prev, ...r.contatos.filter((c) => !ids.has(c.id))]
       })
-      if (pagina.length < TAMANHO_PAGINA_CONTATOS) setTemMais(false)
+      if (r.contatos.length < TAMANHO_PAGINA_CONTATOS) setTotal(paginas.length + r.contatos.length)
     } catch {
       // Mantém o que já tem; o botão permite tentar de novo.
     } finally {
@@ -156,55 +203,54 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
       .finally(() => setExcluindo(false))
   }
 
-  const contatos = useMemo(
-    () => (resultadoBusca ?? paginas).filter((c) => !excluidos.has(c.id)),
-    [resultadoBusca, paginas, excluidos]
-  )
-  const [classificacao, setClassificacao] = useState<ClassificacaoContato | "todas">("todas")
-  const [tipo, setTipo] = useState<TipoContato | "todos">("todos")
-  const [nicho, setNicho] = useState<string | null>(null)
-  const [atendente, setAtendente] = useState<string | null>(null)
-  const [ordenacao, setOrdenacao] = useState<Ordenacao>("recente")
-  const [ordenacaoAberta, setOrdenacaoAberta] = useState(false)
+  const contatosFiltrados = useMemo(() => paginas.filter((c) => !excluidos.has(c.id)), [paginas, excluidos])
+  const totalVisivel = Math.max(0, total - (paginas.length - contatosFiltrados.length))
+  const temMais = paginas.length < total
+  const condicoes = contarCondicoes(filtro)
+  const algoAplicado = condicoes > 0 || consulta.rapidos.length > 0 || !!consulta.busca
 
-  const nichos = useMemo(
-    () => Array.from(new Set(contatos.map((c) => c.nicho).filter(Boolean) as string[])).sort(),
-    [contatos]
-  )
-  const atendentes = useMemo(
-    () => Array.from(new Set(contatos.map((c) => c.atendente).filter(Boolean) as string[])).sort(),
-    [contatos]
-  )
+  const chaveDoAplicado = JSON.stringify(limparFiltro(filtro))
+  const salvoAtivo =
+    condicoes > 0 ? filtrosSalvos.find((f) => JSON.stringify(limparFiltro(f.filtro)) === chaveDoAplicado) ?? null : null
 
-  const contatosFiltrados = useMemo(() => {
-    let lista = contatos.filter((c) => {
-      // QA M29 (06/10): sem acento e sem formatação de telefone
-      if (busca.trim() && !contemTermo(c.nome, busca) && !contemTermo(c.telefone, busca)) return false
-      if (classificacao !== "todas" && c.classificacao !== classificacao) return false
-      if (tipo !== "todos" && c.tipo !== tipo) return false
-      if (nicho && c.nicho !== nicho) return false
-      if (atendente && c.atendente !== atendente) return false
-      return true
-    })
+  function alternarSalvo(salvo: FiltroSalvo) {
+    setFiltro(salvoAtivo?.id === salvo.id ? FILTRO_VAZIO : salvo.filtro)
+  }
 
-    if (ordenacao === "recente") {
-      lista = [...lista].sort((a, b) => b.created_at.localeCompare(a.created_at))
-    } else if (ordenacao === "nome") {
-      lista = [...lista].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
-    } else if (ordenacao === "classificacao") {
-      lista = [...lista].sort((a, b) => ORDEM_CLASSIFICACAO[a.classificacao] - ORDEM_CLASSIFICACAO[b.classificacao])
-    }
+  async function salvarNovo(nome: string, rascunho: Filtro): Promise<string | null> {
+    const r = await salvarFiltro(nome, rascunho)
+    if (r.erro) return r.erro
+    if (r.filtros) setFiltrosSalvos(r.filtros)
+    aplicarFiltro(rascunho)
+    return null
+  }
 
-    return lista
-  }, [contatos, busca, classificacao, tipo, nicho, atendente, ordenacao])
+  async function atualizarSalvo(rascunho: Filtro): Promise<string | null> {
+    if (!salvoAtivo) return null
+    const r = await atualizarFiltroSalvo(salvoAtivo.id, rascunho)
+    if (r.erro) return r.erro
+    if (r.filtros) setFiltrosSalvos(r.filtros)
+    aplicarFiltro(rascunho)
+    return null
+  }
+
+  function aplicarFiltro(novo: Filtro) {
+    setFiltro(novo)
+    setPainelAberto(false)
+  }
+
+  function limparFiltroAplicado() {
+    setFiltro(FILTRO_VAZIO)
+    setPainelAberto(false)
+  }
 
   const ordenacaoLabel = ORDENACOES.find((o) => o.valor === ordenacao)?.label ?? "Ordenar"
 
   return (
-    <div className="max-w-6xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-8 lg:px-10">
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">Contatos</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Contatos</h1>
         <div className="flex items-center gap-3">
           <Link
             href="/contatos/lixeira"
@@ -228,7 +274,7 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
             placeholder="Buscar por nome ou número..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            className="h-8 w-64 pl-8 pr-3 text-sm rounded-lg border border-input bg-transparent outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground"
+            className="h-9 w-64 pl-8 pr-3 text-sm rounded-md border border-input bg-card outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground"
           />
         </div>
 
@@ -236,7 +282,7 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
         <div className="relative">
           <button
             onClick={() => setOrdenacaoAberta((v) => !v)}
-            className="h-8 flex items-center gap-1.5 px-3 text-sm rounded-lg border border-input text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="h-9 flex items-center gap-1.5 px-3 text-sm rounded-md border border-input bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             {ordenacaoLabel}
             <ChevronDown className="size-3" />
@@ -258,10 +304,61 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
             </div>
           )}
         </div>
+
+        {/* B37-01: filtro avançado */}
+        <button
+          type="button"
+          onClick={() => setPainelAberto(true)}
+          className={cn(
+            "h-9 flex items-center gap-1.5 px-3 text-sm rounded-md border transition-colors",
+            condicoes > 0
+              ? "border-primary text-foreground"
+              : "border-input bg-card text-muted-foreground hover:text-foreground hover:bg-muted"
+          )}
+        >
+          <SlidersHorizontal className="size-3.5" aria-hidden />
+          {condicoes > 0 ? `Filtrar · ${condicoes}` : "Filtrar"}
+        </button>
+        {condicoes > 0 && (
+          <button
+            type="button"
+            onClick={limparFiltroAplicado}
+            className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground"
+          >
+            Limpar filtro
+          </button>
+        )}
       </div>
+
+      <PainelFiltro
+        aberto={painelAberto}
+        onAbertoChange={setPainelAberto}
+        filtro={filtro}
+        nichos={nichos}
+        atendentes={atendentes}
+        etiquetas={etiquetas}
+        onAplicar={aplicarFiltro}
+        onLimpar={limparFiltroAplicado}
+        podeSalvar={podeGerirSalvos}
+        salvoAtivo={salvoAtivo?.nome ?? null}
+        onSalvar={salvarNovo}
+        onAtualizar={atualizarSalvo}
+      />
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-x-6 gap-y-2 mb-5">
+        {/* B37-03: filtros salvos, ao lado dos botões fixos */}
+        <FaixaFiltrosSalvos
+          filtros={filtrosSalvos}
+          ativoId={salvoAtivo?.id ?? null}
+          podeGerir={podeGerirSalvos}
+          onAlternar={alternarSalvo}
+          onMudou={(lista, apagadoId) => {
+            setFiltrosSalvos(lista)
+            if (apagadoId && salvoAtivo?.id === apagadoId) setFiltro(FILTRO_VAZIO)
+          }}
+        />
+
         {/* Classificação */}
         <div className="flex gap-1 flex-wrap">
           {CLASSIFICACOES.map((f) => (
@@ -345,16 +442,16 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
             </button>
             {atendentes.map((a) => (
               <button
-                key={a}
-                onClick={() => setAtendente(atendente === a ? null : a)}
+                key={a.id}
+                onClick={() => setAtendente(atendente === a.id ? null : a.id)}
                 className={cn(
                   "px-2.5 py-1 text-xs rounded-md border transition-colors",
-                  atendente === a
+                  atendente === a.id
                     ? "bg-primary text-primary-foreground border-primary"
                     : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
               >
-                {a}
+                {a.nome}
               </button>
             ))}
           </div>
@@ -363,8 +460,10 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
 
       {/* Indicador de total */}
       <p className="text-xs text-muted-foreground mb-3">
-        {contatosFiltrados.length} {contatosFiltrados.length === 1 ? "contato" : "contatos"}
+        <span className="numero">{totalVisivel}</span> {totalVisivel === 1 ? "contato" : "contatos"}
+        {algoAplicado && (totalVisivel === 1 ? " encontrado" : " encontrados")}
       </p>
+      {erroLista && <p className="mb-3 text-xs text-erro">{erroLista}</p>}
 
       {/* Tabela */}
       {contatosFiltrados.length === 0 ? (
@@ -372,18 +471,18 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
           Nenhum contato encontrado
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="overflow-x-auto border-t-2 border-t-foreground">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Nome</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">WhatsApp</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Classificação</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Tipo</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Nicho</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Cidade</th>
+              <tr className="border-b">
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Nome</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">WhatsApp</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Classificação</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Tipo</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Nicho</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Cidade</th>
                 {papel !== "atendente" && (
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Atendente</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Atendente</th>
                 )}
                 <th className="px-4 py-3" />
               </tr>
@@ -395,11 +494,11 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
                   onClick={() => router.push(`/contatos/${contato.id}`)}
                   className="border-b last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
                 >
-                  <td className="px-4 py-3 font-medium max-w-64 [overflow-wrap:anywhere]">{contato.nome}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{contato.telefone}</td>
+                  <td className="px-4 py-3 font-medium min-w-40 max-w-64 [overflow-wrap:anywhere]">{contato.nome}</td>
+                  <td className="numero px-4 py-3 text-muted-foreground">{contato.telefone}</td>
                   <td className="px-4 py-3">
                     <span className={cn(
-                      "inline-flex items-center px-2 py-0.5 text-xs rounded-md border font-medium",
+                      "inline-flex items-center whitespace-nowrap px-2 py-0.5 text-xs rounded-md border font-medium",
                       CLASSIFICACAO_BADGE[contato.classificacao]
                     )}>
                       {CLASSIFICACAO_LABEL[contato.classificacao]}
@@ -419,7 +518,7 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
                       aria-label={`Excluir ${contato.nome}`}
                       disabled={preparandoExclusao === contato.id}
                       onClick={(e) => { e.stopPropagation(); abrirExclusao(contato.id) }}
-                      className="inline-flex size-7 items-center justify-center rounded-md text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                      className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-erro hover:bg-erro-fundo disabled:opacity-50"
                     >
                       {preparandoExclusao === contato.id
                         ? <Loader2 className="size-3.5 animate-spin" />
@@ -434,7 +533,7 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
       )}
 
       {erroExclusao && !resumoExclusao && (
-        <p className="mt-3 text-xs text-destructive">{erroExclusao}</p>
+        <p className="mt-3 text-xs text-erro">{erroExclusao}</p>
       )}
 
       {resumoExclusao && (
@@ -452,13 +551,13 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
         />
       )}
 
-      {buscando && (
+      {carregando && (
         <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
           <Loader2 className="size-3.5 animate-spin" /> Buscando…
         </p>
       )}
 
-      {!resultadoBusca && temMais && (
+      {!carregando && temMais && (
         <div className="flex justify-center mt-4">
           <button
             type="button"

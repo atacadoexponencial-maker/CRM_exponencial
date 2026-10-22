@@ -8,6 +8,10 @@ import { urlPublicaImagem } from "@/lib/catalogo/loja-publica"
 import type { PedidoResumo } from "../components/lista-pedidos"
 import type { PedidoDetalhe } from "../components/detalhe-pedido"
 import type { SituacaoPedido } from "../components/situacao-pedido"
+import { listarAtendentesAtivos } from "@/app/(auth)/contatos/actions"
+import type { Database } from "@/integrations/supabase/types"
+import { esquemaFiltrosPedidos, FILTROS_PADRAO, type FiltrosPedidos } from "@/lib/catalogo/filtros-pedidos"
+import type { ItemExportado } from "@/lib/catalogo/exportar-pedidos"
 
 const LIMITE_LISTA = 500
 
@@ -49,6 +53,104 @@ export async function listarPedidos(): Promise<PedidoResumo[]> {
     .order("created_at", { ascending: false })
     .limit(LIMITE_LISTA)
   return ((data ?? []) as LinhaPedido[]).map(paraResumo)
+}
+
+type Funcoes = Database["public"]["Functions"]
+
+/** B39-01: produto que aparece no filtro; o apagado vem só pelo nome. */
+export type ProdutoDoFiltro = { id: string | null; nome: string; apagado: boolean }
+
+/**
+ * B39-01: uma página dos pedidos com os filtros aplicados no banco, sobre todos os
+ * pedidos da empresa, e o total do resultado.
+ */
+export async function filtrarPedidos(
+  filtros: FiltrosPedidos = FILTROS_PADRAO,
+  offset = 0
+): Promise<{ pedidos: PedidoResumo[]; total: number } | { erro: string }> {
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return { pedidos: [], total: 0 }
+  const validado = esquemaFiltrosPedidos.safeParse(filtros)
+  if (!validado.success) return { erro: "Não foi possível aplicar os filtros." }
+
+  const { data, error } = await supabase.rpc("filtrar_pedidos", {
+    p_filtros: validado.data,
+    p_limite: LIMITE_LISTA,
+    p_offset: Math.max(0, offset),
+  })
+  if (error) return { erro: "Não foi possível aplicar os filtros." }
+  const linhas = (data ?? []) as Funcoes["filtrar_pedidos"]["Returns"]
+  return {
+    pedidos: linhas.map((l) => paraResumo(l as unknown as LinhaPedido)),
+    total: linhas.length > 0 ? Number(linhas[0].total_resultado) : offset,
+  }
+}
+
+/**
+ * B39-02: pedidos para exportar, com os itens. Com filtros, os mesmos da tela; sem
+ * (null), todos os pedidos da empresa. Junta todas as páginas de `filtrar_pedidos`.
+ */
+export async function pedidosParaExportar(
+  filtros: FiltrosPedidos | null
+): Promise<{ pedidos: PedidoResumo[]; itens: ItemExportado[] } | { erro: string; status: number }> {
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return { erro: "Sessão expirada.", status: 401 }
+  const usados = filtros ?? { ...FILTROS_PADRAO, periodo: "tudo" as const }
+  const validado = esquemaFiltrosPedidos.safeParse(usados)
+  if (!validado.success) return { erro: "Período inválido.", status: 400 }
+
+  const pedidos: PedidoResumo[] = []
+  for (let pagina = 0; pagina < 200; pagina++) {
+    const { data, error } = await supabase.rpc("filtrar_pedidos", {
+      p_filtros: validado.data,
+      p_limite: LIMITE_LISTA,
+      p_offset: pagina * LIMITE_LISTA,
+    })
+    if (error) return { erro: "Não foi possível exportar.", status: 500 }
+    const linhas = (data ?? []) as Funcoes["filtrar_pedidos"]["Returns"]
+    pedidos.push(...linhas.map((l) => paraResumo(l as unknown as LinhaPedido)))
+    if (linhas.length < LIMITE_LISTA) break
+  }
+
+  // Itens em lotes, para a lista de ids não estourar o tamanho do pedido ao banco.
+  const porId = new Map(pedidos.map((p) => [p.id, p]))
+  const itens: ItemExportado[] = []
+  const ids = [...porId.keys()]
+  for (let i = 0; i < ids.length; i += 150) {
+    const { data, error } = await supabase
+      .from("catalog_order_items")
+      .select("order_id, product_name, combination, quantity, unit_price, position")
+      .in("order_id", ids.slice(i, i + 150))
+    if (error) return { erro: "Não foi possível exportar.", status: 500 }
+    for (const item of data ?? []) {
+      const p = porId.get(item.order_id)!
+      itens.push({
+        numero: p.numero,
+        criadoEm: p.criadoEm,
+        cliente: p.cliente.nome,
+        produto: item.product_name,
+        variacao: item.combination ?? "",
+        quantidade: item.quantity,
+        precoUnitario: Number(item.unit_price),
+        posicao: item.position,
+      })
+    }
+  }
+  // Na ordem da aba Pedidos, e dentro do pedido na ordem em que a cliente pôs no carrinho.
+  const ordem = new Map(pedidos.map((p, i) => [p.numero, i]))
+  itens.sort((a, b) => ordem.get(a.numero)! - ordem.get(b.numero)! || a.posicao - b.posicao)
+  return { pedidos, itens }
+}
+
+/** B39-01: opções dos filtros de produto (com os apagados) e de atendente da cliente. */
+export async function opcoesDosFiltros(): Promise<{ produtos: ProdutoDoFiltro[]; atendentes: Array<{ id: string; nome: string }> }> {
+  const { supabase, perfil } = await sessaoAtual()
+  if (!perfil) return { produtos: [], atendentes: [] }
+  const [{ data: produtos }, atendentes] = await Promise.all([supabase.rpc("produtos_dos_pedidos"), listarAtendentesAtivos()])
+  return {
+    produtos: ((produtos ?? []) as Funcoes["produtos_dos_pedidos"]["Returns"]).map((p) => ({ id: p.id, nome: p.nome, apagado: p.apagado })),
+    atendentes,
+  }
 }
 
 export async function listarPedidosDoContato(contatoId: string): Promise<PedidoResumo[]> {

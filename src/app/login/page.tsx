@@ -1,7 +1,6 @@
 "use client"
 
 import { use, useState } from "react"
-import Image from "next/image"
 import { unstable_rethrow } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -12,6 +11,8 @@ import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 import { realizarLogin } from "./actions"
 import { AVISO_CONTA_DESATIVADA } from "./avisos"
+import { TemaClaro } from "@/components/shared/tema-claro"
+import { LogoDaMarca } from "@/components/shared/logo-da-marca"
 
 const schema = z.object({
   email: z.string().min(1, "E-mail é obrigatório").email("E-mail inválido"),
@@ -52,10 +53,11 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<{ mo
   }
 
   return (
+    <TemaClaro>
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <Image src="/logo-crmatacado-exp.png" alt="crmatacado exp" width={720} height={349} priority className="mx-auto mb-6 h-16 w-auto" />
+          <LogoDaMarca className="mx-auto mb-6 h-16" />
           <h1 className="text-2xl font-semibold tracking-tight">Entrar</h1>
           <p className="text-sm text-muted-foreground mt-2">
             Acesse sua conta no crmatacado exp
@@ -73,7 +75,7 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<{ mo
               {...register("email")}
             />
             {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
+              <p className="text-sm text-erro">{errors.email.message}</p>
             )}
           </div>
 
@@ -87,16 +89,16 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<{ mo
               {...register("senha")}
             />
             {errors.senha && (
-              <p className="text-sm text-destructive">{errors.senha.message}</p>
+              <p className="text-sm text-erro">{errors.senha.message}</p>
             )}
           </div>
 
           {motivo === "desativada" && !errors.root && (
-            <p className="text-sm text-destructive text-center">{AVISO_CONTA_DESATIVADA}</p>
+            <p className="text-sm text-erro text-center">{AVISO_CONTA_DESATIVADA}</p>
           )}
 
           {errors.root && (
-            <p className="text-sm text-destructive text-center">{errors.root.message}</p>
+            <p className="text-sm text-erro text-center">{errors.root.message}</p>
           )}
 
           <Button type="submit" className="mt-2 w-full" disabled={entrando}>
@@ -113,5 +115,6 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<{ mo
         </p>
       </div>
     </div>
+    </TemaClaro>
   )
 }

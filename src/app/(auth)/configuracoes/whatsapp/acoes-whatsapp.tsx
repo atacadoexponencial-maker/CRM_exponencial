@@ -92,10 +92,10 @@ export function AcoesWhatsApp({
     <>
       <div className="flex flex-col gap-3">
         {erroCorrigir && (
-          <p className="text-xs text-destructive">{erroCorrigir}</p>
+          <p className="text-xs text-erro">{erroCorrigir}</p>
         )}
         {corrigidoOk && (
-          <p className="text-xs text-green-600">Recebimento de mensagens corrigido com sucesso.</p>
+          <p className="text-xs text-sucesso">Recebimento de mensagens corrigido com sucesso.</p>
         )}
         <Button
           variant="outline"
@@ -136,7 +136,7 @@ export function AcoesWhatsApp({
 
           <div className="flex flex-col gap-4">
             {erroDesconectar && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
                 {erroDesconectar}
               </p>
             )}
@@ -163,7 +163,7 @@ export function AcoesWhatsApp({
 
           <div className="flex flex-col gap-4">
             {erroReconectar && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
                 {erroReconectar}
               </p>
             )}
@@ -189,7 +189,7 @@ export function AcoesWhatsApp({
 
           <div className="flex flex-col gap-4">
             {erroRemover && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
                 {erroRemover}
               </p>
             )}

@@ -154,7 +154,7 @@ export function WizardConexao({ mostrarNumeroTeste = false }: { mostrarNumeroTes
             className={cn(
               "w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold",
               stepAtivo > 1
-                ? "bg-green-500 text-white"
+                ? "bg-sucesso text-background"
                 : "bg-primary text-primary-foreground"
             )}
           >
@@ -183,8 +183,8 @@ export function WizardConexao({ mostrarNumeroTeste = false }: { mostrarNumeroTes
       </div>
 
       <div className="flex flex-col items-center text-center gap-6">
-        <div className="w-20 h-20 rounded-2xl bg-green-500 flex items-center justify-center">
-          <MessageSquare className="w-10 h-10 text-white fill-white" />
+        <div className="w-20 h-20 rounded-2xl bg-sucesso flex items-center justify-center">
+          <MessageSquare className="w-10 h-10 text-background fill-background" />
         </div>
 
         <div>
@@ -198,7 +198,7 @@ export function WizardConexao({ mostrarNumeroTeste = false }: { mostrarNumeroTes
         </div>
 
         {erro && (
-          <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive w-full text-left">
+          <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro w-full text-left">
             {erro}
           </p>
         )}
@@ -218,7 +218,7 @@ export function WizardConexao({ mostrarNumeroTeste = false }: { mostrarNumeroTes
               Ambiente de teste (aguardando aprovação da Meta)
             </p>
             {erroTeste && (
-              <p className="text-xs text-destructive">{erroTeste}</p>
+              <p className="text-xs text-erro">{erroTeste}</p>
             )}
             <button
               onClick={handleConectarTeste}

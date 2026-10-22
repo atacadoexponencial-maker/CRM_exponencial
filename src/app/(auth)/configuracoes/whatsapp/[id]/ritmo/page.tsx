@@ -32,7 +32,7 @@ export default async function RitmoDoNumeroPage({
   const [resultado, saude] = await Promise.all([lerRitmoDoNumero(id), lerSaude(id)])
 
   return (
-    <div className="max-w-5xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
       <Link
         href={`/configuracoes/whatsapp/${id}/saude`}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
@@ -41,7 +41,7 @@ export default async function RitmoDoNumeroPage({
         Saúde do número
       </Link>
 
-      <h1 className="text-xl font-semibold mb-1">Ritmo de envio</h1>
+      <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-1">Ritmo de envio</h1>
       <p className="text-sm text-muted-foreground mb-6">
         Quanto mais devagar, menor o risco de o WhatsApp bloquear o número. O sistema não
         permite ultrapassar os limites mostrados ao lado de cada campo.
@@ -55,9 +55,9 @@ export default async function RitmoDoNumeroPage({
           emAquecimento={saude.ok ? saude.saude.aquecimento.ativo : false}
         />
       ) : (
-        <div className="flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 p-5 ">
+        <div className="flex gap-3 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-5 ">
           <TriangleAlert
-            className="size-4 shrink-0 mt-0.5 text-amber-300"
+            className="size-4 shrink-0 mt-0.5 text-aviso"
             aria-hidden
           />
           <div>

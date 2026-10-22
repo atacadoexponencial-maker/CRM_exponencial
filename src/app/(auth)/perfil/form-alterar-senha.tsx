@@ -70,13 +70,13 @@ export function FormAlterarSenha() {
       </div>
 
       {erro && (
-        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
           {erro}
         </p>
       )}
 
       {sucesso && (
-        <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700 dark:bg-green-900/20 dark:text-green-400">
+        <p className="rounded-md bg-sucesso-fundo px-3 py-2 text-sm text-sucesso">
           Senha alterada com sucesso.
         </p>
       )}

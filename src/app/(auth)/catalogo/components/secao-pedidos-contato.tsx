@@ -6,7 +6,7 @@ import { SeloSituacao, type PedidoResumo } from "./lista-pedidos"
 /** Seção "Pedidos do catálogo" do perfil do contato. */
 export function SecaoPedidosContato({ pedidos, hrefPedido }: { pedidos: PedidoResumo[]; hrefPedido: (id: string) => string }) {
   return (
-    <section className="rounded-lg border p-4 space-y-3">
+    <section className="rounded-md border bg-card p-5 space-y-3">
       <h2 className="text-sm font-semibold">Pedidos do catálogo</h2>
       {pedidos.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nenhum pedido feito pela loja.</p>

@@ -77,8 +77,8 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 const STATUS_CLASS: Record<string, string> = {
-  em_espera: "bg-amber-100 text-amber-700 border-amber-200",
-  em_atendimento: "bg-green-100 text-green-700 border-green-200",
+  em_espera: "bg-aviso-fundo text-aviso border-aviso/30",
+  em_atendimento: "bg-sucesso-fundo text-sucesso border-sucesso/30",
   resolvida: "bg-muted text-muted-foreground border-border",
 }
 
@@ -772,13 +772,13 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
         <div
           className={cn(
             "border-t px-3 py-2 shrink-0 transition-colors",
-            modoNota && "bg-amber-50/60 dark:bg-amber-950/20"
+            modoNota && "bg-aviso-fundo"
           )}
         >
           {erroEnvio && (
             <div
               role="alert"
-              className="flex items-start gap-2 mb-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 px-2.5 py-1.5 text-xs"
+              className="flex items-start gap-2 mb-1.5 rounded-lg border border-erro/30 bg-erro-fundo text-erro px-2.5 py-1.5 text-xs"
             >
               <span className="flex-1">{erroEnvio}</span>
               <button
@@ -803,13 +803,13 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
             </div>
           )}
           {modoNota && (
-            <div className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-1.5 flex items-center gap-1">
+            <div className="text-xs text-aviso font-medium mb-1.5 flex items-center gap-1">
               <StickyNote className="size-3" />
               Nota interna — não enviada ao cliente
             </div>
           )}
           {semMidia && (
-            <p className="mb-2 rounded-md border border-amber-500/30 bg-amber-500/10 text-amber-100 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+            <p className="mb-2 rounded-md border border-aviso/30 bg-aviso-fundo text-aviso px-3 py-2 text-xs text-aviso">
               {semMidia} Envie como texto ou responda por outro número.
             </p>
           )}
@@ -868,7 +868,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
                 className={cn(
                   "h-7 w-7 flex items-center justify-center rounded-md transition-colors",
                   modoNota
-                    ? "bg-amber-200 text-amber-700 dark:bg-amber-800 dark:text-amber-200"
+                    ? "bg-aviso-fundo text-aviso"
                     : "text-muted-foreground hover:bg-muted"
                 )}
               >
@@ -886,7 +886,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
               className={cn(
                 "flex-1 resize-none text-sm rounded-lg border px-3 py-1.5 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground max-h-32 leading-relaxed",
                 modoNota
-                  ? "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800"
+                  ? "bg-aviso-fundo border-aviso/30"
                   : "bg-transparent border-input"
               )}
               style={{ fieldSizing: "content" } as React.CSSProperties}

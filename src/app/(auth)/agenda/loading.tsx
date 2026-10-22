@@ -2,9 +2,9 @@ import { Esqueleto } from "@/components/shared/esqueleto"
 
 export default function Loading() {
   return (
-    <div className="max-w-4xl mx-auto w-full px-4 py-8" role="status" aria-label="Carregando agenda">
+    <div className="mx-auto w-full max-w-4xl px-4 py-7 sm:px-8 lg:px-10" role="status" aria-label="Carregando agenda">
       <div className="flex items-center justify-between mb-2">
-        <h1 className="text-xl font-semibold">Minha Agenda</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Minha Agenda</h1>
         <Esqueleto className="h-8 w-32" />
       </div>
       <Esqueleto className="h-4 w-64 mb-6" />

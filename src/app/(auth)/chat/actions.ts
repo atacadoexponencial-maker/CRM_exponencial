@@ -3,6 +3,7 @@
 import { createClient } from "@/integrations/supabase/server"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
+import { resumoDeCompras, type ResumoDeCompras } from "@/lib/resumo-de-compras"
 import { resolverProviderDaConversa, statusInicialDoEnvio } from "@/lib/whatsapp"
 import type { Mensagem, TipoMensagem, DirecaoMensagem, StatusMensagem } from "./mock-mensagens"
 import type { Conversa } from "./mock-conversas"
@@ -694,6 +695,8 @@ export interface CadastroDoContato {
 
 export interface InfoContato {
   dataPrimeiroContato: string
+  /** B36-06: resumo das compras do cliente para a ficha (total, pedidos, ticket, última). */
+  compras?: ResumoDeCompras
   cadastro: CadastroDoContato
 }
 
@@ -732,9 +735,12 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
   const dataPrimeiroContato = formatarDataCurta(contact.created_at)
 
   // Mesmas regras de acesso das outras telas: a RLS filtra cards e tags.
-  const [{ data: cards }, { data: tags }] = await Promise.all([
+  // B36-06: as compras vêm pelo servidor; a conversa acima já passou pela RLS de quem
+  // pede, e o Atendente nem sempre lê as compras do contato pela RLS.
+  const [{ data: cards }, { data: tags }, { data: compras }] = await Promise.all([
     supabase.from("pipeline_cards").select("funil, etapa").eq("contact_id", contact_id),
     supabase.from("contact_tags").select("tag").eq("contact_id", contact_id).order("created_at"),
+    createServiceClient().from("contact_purchases").select("valor, data").eq("contact_id", contact_id),
   ])
 
   const atendente = Array.isArray(contact.atendente) ? contact.atendente[0] : contact.atendente
@@ -753,7 +759,7 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
       .map((c) => ({ funil: c.funil as "entrada" | "recompra", etapa: ROTULO_DA_ETAPA[c.etapa] ?? c.etapa })),
   }
 
-  return { dataPrimeiroContato, cadastro }
+  return { dataPrimeiroContato, cadastro, compras: resumoDeCompras(compras ?? []) }
 }
 
 export async function atualizarNomeContato(contactId: string, nome: string): Promise<void> {

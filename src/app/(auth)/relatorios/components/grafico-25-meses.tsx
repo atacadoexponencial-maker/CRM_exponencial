@@ -13,7 +13,7 @@ const TICK = { fill: "var(--muted-foreground)", fontSize: 11 }
 
 export function Grafico25Meses({ meses }: { meses: MesDoHistorico[] }) {
   return (
-    <section className="rounded-lg border p-4">
+    <section className="rounded-md border bg-card p-5">
       <h2 className="text-sm font-semibold">Valor vendido ao longo do tempo</h2>
       <p className="text-xs text-muted-foreground mt-0.5 mb-3">
         Sempre os últimos 25 meses, com a variação contra o mesmo mês do ano anterior. Ignora o período; segue o atendente. O mês atual conta até ontem.
@@ -31,11 +31,11 @@ export function Grafico25Meses({ meses }: { meses: MesDoHistorico[] }) {
           }}
         />
         <Bar yAxisId="valor" dataKey="valor" name="Valor vendido" fill="var(--primary)" fillOpacity={0.8} radius={3} isAnimationActive={false} activeBar={{ fillOpacity: 1 }} />
-        <Line yAxisId="variacao" type="monotone" dataKey="variacao" name="Variação (%)" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} connectNulls isAnimationActive={false} />
+        <Line yAxisId="variacao" type="monotone" dataKey="variacao" name="Variação (%)" stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 3 }} connectNulls isAnimationActive={false} />
       </ComposedChart>
       <div className="flex flex-wrap gap-4 mt-2 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-primary" /> Valor vendido</span>
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: "#22c55e" }} /> Variação (%)</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: "var(--chart-2)" }} /> Variação (%)</span>
       </div>
     </section>
   )

@@ -16,7 +16,7 @@ export default async function PerformancePage() {
   if (!linhas) redirect("/dashboard")
 
   return (
-    <div className="max-w-6xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-8 lg:px-10">
       <PerformanceClient linhasIniciais={linhas} />
     </div>
   )

@@ -55,12 +55,12 @@ export function FormPerfil({ nome, email }: { nome: string; email: string }) {
       </div>
 
       {erro && (
-        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
           {erro}
         </p>
       )}
       {salvo && (
-        <p className="rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-500" role="status">
+        <p className="rounded-md bg-sucesso-fundo px-3 py-2 text-sm text-sucesso" role="status">
           Nome salvo.
         </p>
       )}

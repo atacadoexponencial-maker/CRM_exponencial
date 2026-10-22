@@ -37,7 +37,7 @@ export function AbasCatalogo({ ativa, hrefs, contadores }: AbasCatalogoProps) {
           <>
             {aba.label}
             {contador ? (
-              <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground tabular-nums" aria-label={`${contador} novos`}>
+              <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground numero" aria-label={`${contador} novos`}>
                 {contador}
               </span>
             ) : null}

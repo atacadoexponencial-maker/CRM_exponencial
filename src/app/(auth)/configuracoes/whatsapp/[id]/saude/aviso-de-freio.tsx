@@ -40,9 +40,9 @@ export function AvisoDeFreio({
   const Icone = banido ? Ban : OctagonPause
 
   return (
-    <div className="rounded-lg border-2 border-red-500/40 bg-red-500/10 p-5 text-red-100">
+    <div className="rounded-lg border-2 border-erro/40 bg-erro-fundo p-5 text-erro">
       <p className="flex items-center gap-2 font-medium">
-        <Icone className="size-4 shrink-0 text-red-300" aria-hidden />
+        <Icone className="size-4 shrink-0 text-erro" aria-hidden />
         Envios interrompidos
       </p>
 
@@ -50,7 +50,7 @@ export function AvisoDeFreio({
         {freio.motivo ? TEXTO_DO_MOTIVO_DO_FREIO[freio.motivo] : "Os envios deste número estão parados."}
       </p>
 
-      <p className="text-sm mt-2 tabular-nums">
+      <p className="text-sm mt-2 numero">
         {freio.mensagensParadas.toLocaleString("pt-BR")}{" "}
         {freio.mensagensParadas === 1 ? "mensagem parada" : "mensagens paradas"} na fila
         {freio.desde && (
@@ -61,7 +61,7 @@ export function AvisoDeFreio({
         )}
       </p>
 
-      {erro && <p className="text-sm mt-3 text-red-300">{erro}</p>}
+      {erro && <p className="text-sm mt-3 text-erro">{erro}</p>}
 
       <div className="mt-4">
         {banido ? (

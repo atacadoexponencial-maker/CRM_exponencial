@@ -1,8 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { Receipt, Search } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import { Loader2, Receipt } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
 import { formatarPreco } from "./lista-produtos"
@@ -21,8 +19,6 @@ export interface PedidoResumo {
   situacao: SituacaoPedido
 }
 
-type Periodo = "hoje" | "7" | "30" | "tudo"
-
 export function SeloSituacao({ situacao }: { situacao: SituacaoPedido }) {
   return (
     <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap", COR_SITUACAO[situacao])}>
@@ -37,55 +33,41 @@ export function formatarWhatsapp(digitos: string): string {
 }
 
 interface ListaPedidosProps {
-  /** Do mais novo para o mais antigo. */
+  /** Do mais novo para o mais antigo, já filtrados pelo servidor (B39-01). */
   pedidos: PedidoResumo[]
+  /** B39-01: total do resultado no servidor, além dos já carregados. */
+  total: number
+  /** Algum filtro diferente do padrão: muda a mensagem da lista vazia. */
+  comFiltros: boolean
   selecionadoId: string | null
   onSelecionar: (id: string) => void
-  agora?: Date
+  onCarregarMais?: () => void
+  carregandoMais?: boolean
 }
 
-export function ListaPedidos({ pedidos, selecionadoId, onSelecionar, agora = new Date() }: ListaPedidosProps) {
-  const [situacao, setSituacao] = useState<SituacaoPedido | "todas">("todas")
-  const [periodo, setPeriodo] = useState<Periodo>("30")
-  const [busca, setBusca] = useState("")
-
-  const termo = busca.trim().toLowerCase()
-  const termoDigitos = termo.replace(/\D/g, "")
-  const limite = periodo === "tudo" ? null : periodo === "hoje" ? 1 : Number(periodo)
-  const filtrados = pedidos.filter((p) => {
-    if (situacao !== "todas" && p.situacao !== situacao) return false
-    if (limite !== null && agora.getTime() - new Date(p.criadoEm).getTime() > limite * 86_400_000) return false
-    if (termo && !p.cliente.nome.toLowerCase().includes(termo) && !(termoDigitos && p.cliente.whatsapp.includes(termoDigitos))) return false
-    return true
-  })
-
+export function ListaPedidos({
+  pedidos,
+  total,
+  comFiltros,
+  selecionadoId,
+  onSelecionar,
+  onCarregarMais,
+  carregandoMais = false,
+}: ListaPedidosProps) {
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
-        <div className="relative flex-1 min-w-44">
-          <Search className="size-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome ou WhatsApp" className="pl-8" aria-label="Buscar pedido por nome ou WhatsApp" />
-        </div>
-        <select value={situacao} onChange={(e) => setSituacao(e.target.value as SituacaoPedido | "todas")} className="h-8 rounded-lg border border-input bg-input/30 px-2 text-sm" aria-label="Filtrar por situação">
-          <option value="todas">Todas as situações</option>
-          {(Object.keys(ROTULO_SITUACAO) as SituacaoPedido[]).map((s) => <option key={s} value={s}>{ROTULO_SITUACAO[s]}</option>)}
-        </select>
-        <select value={periodo} onChange={(e) => setPeriodo(e.target.value as Periodo)} className="h-8 rounded-lg border border-input bg-input/30 px-2 text-sm" aria-label="Filtrar por período">
-          <option value="hoje">Hoje</option>
-          <option value="7">Últimos 7 dias</option>
-          <option value="30">Últimos 30 dias</option>
-          <option value="tudo">Tudo</option>
-        </select>
-      </div>
+      <p className="text-xs text-muted-foreground">
+        <span className="numero">{total}</span> {total === 1 ? "pedido" : "pedidos"}
+      </p>
 
-      {filtrados.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-14 text-center text-sm text-muted-foreground">
+      {pedidos.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 rounded-md border border-dashed bg-card/60 py-14 text-center text-sm text-muted-foreground">
           <Receipt className="size-7 opacity-40" />
-          {pedidos.length === 0 ? "Nenhum pedido ainda. Eles chegam aqui quando uma cliente faz o pedido pela loja." : "Nenhum pedido com esses filtros."}
+          {comFiltros ? "Nenhum pedido com esses filtros." : "Nenhum pedido ainda. Eles chegam aqui quando uma cliente faz o pedido pela loja."}
         </div>
       ) : (
-        <ul className="rounded-lg border overflow-hidden">
-          {filtrados.map((p) => (
+        <ul className="overflow-x-auto border-t-2 border-t-foreground">
+          {pedidos.map((p) => (
             <li key={p.id}>
               <button
                 type="button"
@@ -109,6 +91,20 @@ export function ListaPedidos({ pedidos, selecionadoId, onSelecionar, agora = new
             </li>
           ))}
         </ul>
+      )}
+
+      {onCarregarMais && pedidos.length < total && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={onCarregarMais}
+            disabled={carregandoMais}
+            className="h-8 flex items-center gap-2 px-4 text-sm rounded-lg border border-input text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-60"
+          >
+            {carregandoMais && <Loader2 className="size-3.5 animate-spin" />}
+            {carregandoMais ? "Carregando…" : "Carregar mais"}
+          </button>
+        </div>
       )}
     </div>
   )

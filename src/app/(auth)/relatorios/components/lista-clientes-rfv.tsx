@@ -39,7 +39,7 @@ export function ListaClientesRfv({
   const ate = Math.min(filtrados.length, (atual + 1) * POR_PAGINA)
 
   return (
-    <section className="rounded-lg border p-4" data-testid="lista-rfv">
+    <section className="rounded-md border bg-card p-5" data-testid="lista-rfv">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
           <h2 className="text-sm font-semibold">Clientes por perfil RFV</h2>
@@ -105,14 +105,14 @@ export function ListaClientesRfv({
                     <td className="py-2 pr-3 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-white" style={{ backgroundColor: p.cor }}>{p.icone} {p.nome}</span>
                     </td>
-                    <td className="py-2 pr-2 text-right tabular-nums">{c.r}</td>
-                    <td className="py-2 pr-2 text-right tabular-nums">{c.f}</td>
-                    <td className="py-2 pr-2 text-right tabular-nums">{c.v}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums">{c.fv}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums">{c.diasSemCompra}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums">{c.vendas12m}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums">{moeda(c.valor12m)}</td>
-                    <td className="py-2 pr-3 whitespace-nowrap tabular-nums">{formatarDataBr(c.ultimaVenda)}</td>
+                    <td className="py-2 pr-2 text-right numero">{c.r}</td>
+                    <td className="py-2 pr-2 text-right numero">{c.f}</td>
+                    <td className="py-2 pr-2 text-right numero">{c.v}</td>
+                    <td className="py-2 pr-3 text-right numero">{c.fv}</td>
+                    <td className="py-2 pr-3 text-right numero">{c.diasSemCompra}</td>
+                    <td className="py-2 pr-3 text-right numero">{c.vendas12m}</td>
+                    <td className="py-2 pr-3 text-right numero">{moeda(c.valor12m)}</td>
+                    <td className="py-2 pr-3 whitespace-nowrap numero">{formatarDataBr(c.ultimaVenda)}</td>
                     <td className="py-2 pr-3">{c.atendente ?? "—"}</td>
                     <td className="py-2 pr-3">{c.cidade ?? "—"}</td>
                     <td className="py-2">{c.uf ?? "—"}</td>

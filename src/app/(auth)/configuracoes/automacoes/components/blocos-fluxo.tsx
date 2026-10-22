@@ -53,9 +53,9 @@ function ligacaoPercorrida(simulacao: ResultadoSimulacao, de: string, para: stri
 }
 
 const CABECALHO = {
-  gatilho: { rotulo: "Gatilho", classe: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
-  condicao: { rotulo: "Condição", classe: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
-  acao: { rotulo: "Ação", classe: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
+  gatilho: { rotulo: "Gatilho", classe: "bg-aviso-fundo text-aviso border-aviso/30" },
+  condicao: { rotulo: "Condição", classe: "bg-info-fundo text-info border-info/30" },
+  acao: { rotulo: "Ação", classe: "bg-sucesso-fundo text-sucesso border-sucesso/30" },
 } as const
 
 const classeAlca = "size-3! border-2! border-background! bg-muted-foreground!"
@@ -107,7 +107,7 @@ function BlocoDoFluxo({ id, data, selected }: NodeProps<NoFluxo>) {
         "relative w-64 rounded-xl border bg-card text-card-foreground shadow-sm transition-[opacity,box-shadow]",
         selected && "ring-2 ring-primary",
         destacarErros && problemas.length > 0 && "border-destructive ring-1 ring-destructive/40",
-        noCaminho === true && "ring-2 ring-emerald-500",
+        noCaminho === true && "ring-2 ring-sucesso",
         noCaminho === false && "opacity-35"
       )}
     >
@@ -142,14 +142,14 @@ function BlocoDoFluxo({ id, data, selected }: NodeProps<NoFluxo>) {
         <div className="flex justify-between border-t px-3 py-1.5 text-xs font-medium">
           <span
             className={cn(
-              "rounded px-1.5 text-emerald-400",
-              saidaSimulada === "sim" && "bg-emerald-500/20 ring-1 ring-emerald-500"
+              "rounded px-1.5 text-sucesso",
+              saidaSimulada === "sim" && "bg-sucesso-fundo ring-1 ring-sucesso"
             )}
           >
             sim
           </span>
           <span
-            className={cn("rounded px-1.5 text-rose-400", saidaSimulada === "nao" && "bg-rose-500/20 ring-1 ring-rose-500")}
+            className={cn("rounded px-1.5 text-erro", saidaSimulada === "nao" && "bg-erro-fundo ring-1 ring-erro")}
           >
             não
           </span>
@@ -208,7 +208,7 @@ function LigacaoComBotao({
         path={caminho}
         markerEnd={markerEnd}
         style={{
-          stroke: percorrida ? "#10b981" : undefined,
+          stroke: percorrida ? "var(--sucesso)" : undefined,
           strokeWidth: percorrida ? 2.5 : 1.5,
           opacity: percorrida === false ? 0.3 : 1,
         }}

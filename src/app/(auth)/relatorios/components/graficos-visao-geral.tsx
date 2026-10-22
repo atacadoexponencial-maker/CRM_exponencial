@@ -13,13 +13,13 @@ const eixoMoeda = (v: number) => (v >= 1000 ? `${(v / 1000).toLocaleString("pt-B
 
 const TICK = { fill: "var(--muted-foreground)", fontSize: 11 }
 const COR_VALOR = "var(--primary)"
-const COR_PECAS = "#f59e0b"
-const COR_TICKET = "#22d3ee"
-const COR_PROJECAO = "#f97316"
+const COR_PECAS = "var(--chart-3)"
+const COR_TICKET = "var(--chart-2)"
+const COR_PROJECAO = "var(--chart-4)"
 
 function Cartao({ titulo, children, lado }: { titulo: string; children: React.ReactNode; lado?: React.ReactNode }) {
   return (
-    <section className="rounded-lg border p-4">
+    <section className="rounded-md border bg-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
         <h2 className="text-sm font-semibold">{titulo}</h2>
         {lado}

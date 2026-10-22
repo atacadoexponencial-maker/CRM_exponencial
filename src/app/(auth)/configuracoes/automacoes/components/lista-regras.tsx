@@ -62,7 +62,7 @@ const EXEMPLOS = [
 function AvisoDeReferencia({ fluxo, opcoes }: { fluxo: Fluxo; opcoes: OpcoesEditor }) {
   const [primeiro] = Object.values(referenciasQueSumiram(fluxo, opcoes)).flat()
   if (!primeiro) return null
-  return <span className="mt-0.5 block text-xs text-amber-300">Atenção: {primeiro}</span>
+  return <span className="mt-0.5 block text-xs text-aviso">Atenção: {primeiro}</span>
 }
 
 export function ListaRegras({
@@ -112,7 +112,7 @@ export function ListaRegras({
   return (
     <>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Automações</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Automações</h1>
         <div className="flex flex-wrap gap-2">
           {onAbrirHorario && (
             <Button onClick={onAbrirHorario} size="sm" variant="outline">
@@ -137,7 +137,7 @@ export function ListaRegras({
       </p>
 
       {regras.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed px-4 py-12 text-center">
+        <div className="flex flex-col items-center gap-4 rounded-md border border-dashed bg-card/60 px-4 py-12 text-center">
           <Zap className="size-8 text-muted-foreground/50" />
           <div>
             <p className="font-medium">Nenhuma automação ainda</p>
@@ -159,11 +159,11 @@ export function ListaRegras({
           </Button>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="overflow-x-auto border-t-2 border-t-foreground">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Automação</th>
+              <tr className="border-b">
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Automação</th>
                 {historicoDisponivel && (
                   <>
                     <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground sm:table-cell">
@@ -174,7 +174,7 @@ export function ListaRegras({
                     </th>
                   </>
                 )}
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ativa</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Ativa</th>
                 <th className="px-2 py-3" aria-label="Ações" />
               </tr>
             </thead>
@@ -195,13 +195,13 @@ export function ListaRegras({
                       {r.fluxo && <span className="block text-muted-foreground">{resumoRegra(r.fluxo, opcoes)}</span>}
                     </button>
                     {r.problema && (
-                      <span className="mt-0.5 block text-xs text-amber-300">Não roda: {r.problema}</span>
+                      <span className="mt-0.5 block text-xs text-aviso">Não roda: {r.problema}</span>
                     )}
                     {!r.problema && r.fluxo && <AvisoDeReferencia fluxo={r.fluxo} opcoes={opcoes} />}
                   </td>
                   {historicoDisponivel && (
                     <>
-                      <td className="hidden px-4 py-3 tabular-nums sm:table-cell">{r.execucoes7dias}</td>
+                      <td className="hidden px-4 py-3 numero sm:table-cell">{r.execucoes7dias}</td>
                       <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
                         {r.ultimaExecucao ? formatarHorarioDaLista(r.ultimaExecucao) : "Nunca"}
                       </td>
@@ -226,8 +226,8 @@ export function ListaRegras({
                       <span
                         className={cn(
                           "inline-block h-4 w-4 transform rounded-full transition-transform",
-                          // No tema escuro o primary é branco: a bolinha ligada usa a cor de texto dele
-                          r.ativa ? "translate-x-[18px] bg-primary-foreground" : "translate-x-0.5 bg-white"
+                          // A bolinha usa a cor de texto do trilho: contrasta nos dois temas (B36-02)
+                          r.ativa ? "translate-x-[18px] bg-primary-foreground" : "translate-x-0.5 bg-card shadow-sm"
                         )}
                       />
                     </button>
@@ -276,7 +276,7 @@ export function ListaRegras({
               Excluir <strong>{excluindo?.nome}</strong>? A regra para de rodar. O histórico do que ela já fez
               continua disponível.
             </p>
-            {erroExcluir && <p className="text-sm text-destructive">{erroExcluir}</p>}
+            {erroExcluir && <p className="text-sm text-erro">{erroExcluir}</p>}
             <div className="flex justify-end gap-2">
               <DialogClose render={<Button type="button" variant="outline" />}>Cancelar</DialogClose>
               <Button variant="destructive" onClick={confirmarExclusao} disabled={aguardando}>

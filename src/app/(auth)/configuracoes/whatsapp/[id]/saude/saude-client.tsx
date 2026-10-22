@@ -91,7 +91,7 @@ export function SaudeClient({
 
       <CartaoSaude saude={saude} />
 
-      <div className="rounded-lg border p-5">
+      <div className="rounded-md border bg-card p-5">
         <h2 className="text-sm font-medium mb-4">Consumo dos tetos vigentes</h2>
         <div className="space-y-5">
           <MedidorConsumo

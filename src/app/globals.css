@@ -1,50 +1,29 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/montserrat";
 /* Canvas do editor de automações. Depois do Tailwind, como pede a documentação do React Flow */
 @import "@xyflow/react/dist/style.css";
 
-@font-face {
-  font-family: 'Satoshi';
-  src: url('/fonts/Satoshi-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Satoshi';
-  src: url('/fonts/Satoshi-Medium.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Satoshi';
-  src: url('/fonts/Satoshi-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Satoshi';
-  src: url('/fonts/Satoshi-Black.woff2') format('woff2');
-  font-weight: 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@custom-variant dark (&:is(.dark *));
+/* B36-01: `dark:` vale com o tema escuro, menos dentro de `.tema-claro` (páginas que
+   são sempre claras: login, cadastro, páginas legais e a loja pública). */
+@custom-variant dark (&:where(.dark, .dark *):not(:where(.tema-claro, .tema-claro *)));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --font-heading: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --color-alta: var(--alta);
+  --color-queda: var(--queda);
+  --color-aviso: var(--aviso);
+  --color-aviso-fundo: var(--aviso-fundo);
+  --color-sucesso: var(--sucesso);
+  --color-sucesso-fundo: var(--sucesso-fundo);
+  --color-erro: var(--erro);
+  --color-erro-fundo: var(--erro-fundo);
+  --color-info: var(--info);
+  --color-info-fundo: var(--info-fundo);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -84,57 +63,116 @@
 }
 
 /*
-  Atacado Exponencial — Design Tokens
-  Paleta: monocromática escura — sempre dark mode
-  #1e1e1e = preto quente (fundo principal)
-  #242424 = card (levemente mais claro)
-  #393536 = cinza quente (elementos secundários)
-  #ffffff = branco (texto, ícones, logo)
+  crmatacado exp — linguagem Caderno, cor Grafite (B36-01, quadro aprovado em 21/10/2026).
+  Claro é o padrão (:root); escuro quando o <html> tem a classe .dark.
+  .tema-claro redeclara o claro para as páginas que nunca escurecem.
+  Todo par texto/fundo daqui tem contraste de pelo menos 4,5:1 (src/test/tema.test.tsx).
 */
-:root {
-  color-scheme: dark;                      /* controles nativos (<select>, scrollbars) no esquema escuro */
-  --background: oklch(0.148 0 0);          /* #1e1e1e */
-  --foreground: oklch(1 0 0);              /* #ffffff */
+:root,
+.tema-claro {
+  color-scheme: light;
 
-  --card: oklch(0.173 0 0);               /* #242424 levemente mais claro que o fundo */
-  --card-foreground: oklch(1 0 0);
+  --background: #F6F4EF;            /* papel */
+  --foreground: #1C1B18;            /* tinta */
+  --card: #FBFAF7;                  /* superfície: caixas, campos */
+  --card-foreground: #1C1B18;
+  --popover: #FBFAF7;
+  --popover-foreground: #1C1B18;
+  --primary: #2B2A27;               /* grafite: botão principal, item ativo */
+  --primary-foreground: #FBFAF7;
+  --secondary: #E6E2D8;
+  --secondary-foreground: #1C1B18;
+  --muted: #EFECE4;
+  --muted-foreground: #635F56;      /* texto secundário */
+  --accent: #E6E2D8;
+  --accent-foreground: #1C1B18;
+  --destructive: #A3361F;
+  --border: #DDD8CC;                /* linhas finas */
+  --input: #DDD8CC;
+  --ring: #2B2A27;
 
-  --popover: oklch(0.148 0 0);
-  --popover-foreground: oklch(1 0 0);
+  --alta: #17694F;                  /* número que subiu */
+  --queda: #A3361F;                 /* número que caiu, atraso */
+  --aviso: #8A4B0C;
+  --aviso-fundo: #F6E3C8;
+  --sucesso: #17694F;
+  --sucesso-fundo: #DCE9E1;
+  --erro: #A3361F;
+  --erro-fundo: #F6DDD6;
+  --info: #2D4C9C;
+  --info-fundo: #E1E6F2;
 
-  --primary: oklch(1 0 0);                /* branco — elemento principal */
-  --primary-foreground: oklch(0.148 0 0);
-
-  --secondary: oklch(0.26 0.004 345);     /* #393536 cinza quente */
-  --secondary-foreground: oklch(1 0 0);
-
-  --muted: oklch(0.26 0.004 345);
-  --muted-foreground: oklch(0.65 0 0);    /* cinza claro para texto secundário */
-
-  --accent: oklch(0.26 0.004 345);
-  --accent-foreground: oklch(1 0 0);
-
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.26 0.004 345);        /* #393536 */
-  --input: oklch(0.26 0.004 345);
-  --ring: oklch(1 0 0);
-
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.65 0 0);
-  --chart-3: oklch(0.45 0 0);
-  --chart-4: oklch(0.35 0 0);
-  --chart-5: oklch(0.26 0 0);
+  --chart-1: #2B2A27;
+  --chart-2: #17694F;
+  --chart-3: #B07A2A;
+  --chart-4: #2D4C9C;
+  --chart-5: #A39E92;
 
   --radius: 0.375rem;
 
-  --sidebar: oklch(0.13 0 0);
-  --sidebar-foreground: oklch(1 0 0);
-  --sidebar-primary: oklch(1 0 0);
-  --sidebar-primary-foreground: oklch(0.148 0 0);
-  --sidebar-accent: oklch(0.26 0.004 345);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(0.26 0.004 345);
-  --sidebar-ring: oklch(1 0 0);
+  --sidebar: #EFECE4;
+  --sidebar-foreground: #1C1B18;
+  --sidebar-primary: #2B2A27;
+  --sidebar-primary-foreground: #FBFAF7;
+  --sidebar-accent: #E6E2D8;
+  --sidebar-accent-foreground: #1C1B18;
+  --sidebar-border: #DDD8CC;
+  --sidebar-ring: #2B2A27;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #171714;
+  --foreground: #EDEAE2;
+  --card: #201F1B;
+  --card-foreground: #EDEAE2;
+  --popover: #201F1B;
+  --popover-foreground: #EDEAE2;
+  --primary: #E6E2D8;
+  --primary-foreground: #1C1B18;
+  --secondary: #2E2C27;
+  --secondary-foreground: #EDEAE2;
+  --muted: #26251F;
+  --muted-foreground: #A39E92;
+  --accent: #2E2C27;
+  --accent-foreground: #EDEAE2;
+  --destructive: #EE8A70;
+  --border: #33312B;
+  --input: #33312B;
+  --ring: #E6E2D8;
+
+  --alta: #5DBB97;
+  --queda: #EE8A70;
+  --aviso: #F0B46A;
+  --aviso-fundo: #3A2B17;
+  --sucesso: #5DBB97;
+  --sucesso-fundo: #1F3329;
+  --erro: #EE8A70;
+  --erro-fundo: #3D1F18;
+  --info: #86A2E8;
+  --info-fundo: #232B40;
+
+  --chart-1: #E6E2D8;
+  --chart-2: #5DBB97;
+  --chart-3: #E0B045;
+  --chart-4: #86A2E8;
+  --chart-5: #6E6A60;
+
+  --sidebar: #1D1D19;
+  --sidebar-foreground: #EDEAE2;
+  --sidebar-primary: #E6E2D8;
+  --sidebar-primary-foreground: #1C1B18;
+  --sidebar-accent: #2E2C27;
+  --sidebar-accent-foreground: #EDEAE2;
+  --sidebar-border: #33312B;
+  --sidebar-ring: #E6E2D8;
+}
+
+/* A loja e as páginas públicas ficam claras mesmo com o <html> escuro. */
+.tema-claro {
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 @layer base {
@@ -147,20 +185,26 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Satoshi', 'Montserrat Variable', sans-serif;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
+  /* Lista aberta dos <select> nativos: sem isto o navegador pinta a letra branca
+     sobre o fundo claro (preview da B36, 22/10). */
+  select option,
+  select optgroup {
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+  }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Satoshi', 'Montserrat Variable', sans-serif;
-    @apply font-bold;
+    font-family: var(--font-heading);
+    @apply font-semibold tracking-tight;
   }
 }
 
 @layer utilities {
-  .font-satoshi {
-    font-family: 'Satoshi', sans-serif;
-  }
-  .font-montserrat {
-    font-family: 'Montserrat Variable', sans-serif;
+  /* Números que a pessoa compara (valores, contagens, horários): IBM Plex Mono. */
+  .numero {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
   }
 }

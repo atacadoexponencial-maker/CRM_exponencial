@@ -15,7 +15,7 @@ Na empresa de teste, com vendas semeadas neste mês, no mês passado e no mesmo 
 
 ## Critérios de aceite
 
-- **CA-B32-01** (automática) — Relatórios aparece no menu para todos os papéis. Dado um usuário Admin, Gerente ou Atendente logado, quando ele olha o menu lateral, então há o item "Relatórios" logo abaixo de "Dashboard", e ele leva a `/relatorios`.
+- **CA-B32-01** (automática) — Relatórios aparece no menu para todos os papéis. Dado um usuário Admin, Gerente ou Atendente logado, quando ele olha o menu lateral, então há o item "Relatórios" logo abaixo de "Pedidos", e ele leva a `/relatorios` (era abaixo de "Dashboard"; mudado a pedido da Marcelle no preview da B36, 22/10).
 - **CA-B32-24** (automática) — Abas futuras aparecem desativadas. Dado a tela Relatórios aberta, quando o usuário olha as abas, então "Visão Geral" está ativa e "RFV", "Coorte", "Funil de clientes" e "Carteiras" aparecem desativadas com "em breve", e clicar nelas não muda a tela.
 - **CA-B32-02** (automática) — Abrir a tela mostra o mês atual até hoje. Dado vendas registradas neste mês e no mês passado, quando o usuário abre `/relatorios`, então o cabeçalho diz o mês e o ano atuais e os números só contam as vendas de 1º do mês até hoje.
 - **CA-B32-03** (automática) — Atalhos Ontem, Mês anterior e Este mês. Dado a tela aberta, quando o usuário clica em "Ontem", "Mês anterior" ou "Este mês", então o cabeçalho e os números passam a refletir, respectivamente, só o dia de ontem, o mês passado inteiro e o mês atual até hoje.
@@ -67,7 +67,7 @@ Na empresa de teste, com vendas semeadas neste mês, no mês passado e no mesmo 
 
 | Critério | Prova | Onde | O que confere |
 |---|---|---|---|
-| CA-B32-01 | automática | `src/test/relatorios-tela.test.tsx` | O menu renderizado para admin, gerente e atendente tem o link "Relatórios" para `/relatorios`, logo depois de "Dashboard" |
+| CA-B32-01 | automática | `src/test/relatorios-tela.test.tsx` | O menu renderizado para admin, gerente e atendente tem o link "Relatórios" para `/relatorios`, logo depois de "Pedidos" |
 | CA-B32-24 | automática | `src/test/relatorios-tela.test.tsx` | A tela tem a aba "Visão Geral" selecionada e as outras quatro desativadas com "em breve"; clicar nelas não muda a aba |
 | CA-B32-02 | automática | `src/test/relatorios-visao-geral.test.ts` | `periodoPadrao(hoje)` é o mês/ano de hoje e o cálculo com ele só conta as vendas de 1º até hoje |
 | CA-B32-03 | automática | `src/test/relatorios-tela.test.tsx` | Clicar em "Ontem", "Mês anterior" e "Este mês" chama a ação com o período certo e o cabeçalho acompanha |

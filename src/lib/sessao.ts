@@ -7,6 +7,7 @@ export type PerfilDaSessao = {
   role: string
   name: string
   workspace_id: string
+  tema?: string
 }
 
 /**
@@ -31,7 +32,7 @@ export const sessaoAtual = cache(async () => {
 
   const { data: perfil } = await supabase
     .from("profiles")
-    .select("id, role, name, workspace_id")
+    .select("id, role, name, workspace_id, tema")
     .eq("id", user.id)
     .single()
 

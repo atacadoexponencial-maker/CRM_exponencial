@@ -121,7 +121,7 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
               </div>
               <span className={cn(
                 "text-sm",
-                semAtendente ? "text-amber-400 font-medium" : "text-muted-foreground"
+                semAtendente ? "text-aviso font-medium" : "text-muted-foreground"
               )}>
                 {semAtendente ? "Sem atendente" : card.atendente}
               </span>

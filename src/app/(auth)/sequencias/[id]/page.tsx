@@ -17,7 +17,7 @@ export default async function EditorSequenciaPage({ params }: { params: Promise<
   if (id !== "nova" && !sequencia) redirect("/sequencias")
 
   return (
-    <div className="max-w-3xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-3xl px-4 py-7 sm:px-8 lg:px-10">
       <EditorSequenciaClient sequencia={sequencia} />
     </div>
   )

@@ -13,22 +13,22 @@ export default async function PerfilPage({ searchParams }: { searchParams: Promi
   const { motivo } = await searchParams
 
   return (
-    <div className="max-w-5xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
       <div className="max-w-lg flex flex-col gap-10">
-        <h1 className="text-xl font-semibold -mb-4">Meu perfil</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight -mb-2">Meu perfil</h1>
         {/* QA M30 (06/10): quem abre uma tela que o papel não permite cai aqui e sabe por quê. */}
         {motivo === "sem-permissao" && (
-          <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-500" role="status">
+          <p className="rounded-lg border border-aviso/40 bg-aviso-fundo px-4 py-3 text-sm text-aviso" role="status">
             Essa tela não está disponível para o seu papel. Fale com o administrador da sua empresa se precisar dela.
           </p>
         )}
         <section>
-          <h2 className="text-lg font-semibold mb-4">Dados do perfil</h2>
+          <h2 className="text-[15px] font-semibold mb-4 border-t pt-5">Dados do perfil</h2>
           <FormPerfil nome={perfil?.name ?? ""} email={user.email ?? ""} />
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-4">Segurança</h2>
+          <h2 className="text-[15px] font-semibold mb-4 border-t pt-5">Segurança</h2>
           <FormAlterarSenha />
         </section>
 

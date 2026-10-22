@@ -89,7 +89,7 @@ export function AdicionarUsuarioDialog({
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           {erroGeral && (
-            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
               {erroGeral}
             </p>
           )}
@@ -103,7 +103,7 @@ export function AdicionarUsuarioDialog({
               aria-invalid={!!errors.nome}
               {...register("nome")}
             />
-            {errors.nome && <p className="text-sm text-destructive">{errors.nome.message}</p>}
+            {errors.nome && <p className="text-sm text-erro">{errors.nome.message}</p>}
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -115,7 +115,7 @@ export function AdicionarUsuarioDialog({
               aria-invalid={!!errors.email}
               {...register("email")}
             />
-            {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+            {errors.email && <p className="text-sm text-erro">{errors.email.message}</p>}
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -127,7 +127,7 @@ export function AdicionarUsuarioDialog({
               aria-invalid={!!errors.senha}
               {...register("senha")}
             />
-            {errors.senha && <p className="text-sm text-destructive">{errors.senha.message}</p>}
+            {errors.senha && <p className="text-sm text-erro">{errors.senha.message}</p>}
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -142,7 +142,7 @@ export function AdicionarUsuarioDialog({
               <option value="gerente">Gerente</option>
               <option value="atendente">Atendente</option>
             </select>
-            {errors.papel && <p className="text-sm text-destructive">{errors.papel.message}</p>}
+            {errors.papel && <p className="text-sm text-erro">{errors.papel.message}</p>}
           </div>
 
           {times.length > 0 && (

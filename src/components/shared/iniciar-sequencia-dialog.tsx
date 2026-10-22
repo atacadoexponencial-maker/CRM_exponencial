@@ -108,7 +108,7 @@ export function IniciarSequenciaDialog({
                       className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
                     >
                       <span>
-                        <Zap className="size-3.5 inline mr-1.5 text-amber-500" />
+                        <Zap className="size-3.5 inline mr-1.5 text-aviso" />
                         {run.nome}{" "}
                         <span className="text-muted-foreground">
                           (etapa {run.etapaAtual} de {run.totalEtapas})
@@ -118,7 +118,7 @@ export function IniciarSequenciaDialog({
                         type="button"
                         disabled={agindo}
                         onClick={() => handleCancelar(run.runId)}
-                        className="text-xs text-destructive hover:underline disabled:opacity-50"
+                        className="text-xs text-erro hover:underline disabled:opacity-50"
                       >
                         Cancelar
                       </button>
@@ -169,7 +169,7 @@ export function IniciarSequenciaDialog({
             </>
           )}
 
-          {erro && <p className="text-sm text-destructive">{erro}</p>}
+          {erro && <p className="text-sm text-erro">{erro}</p>}
 
           <div className="flex justify-end pt-2">
             <DialogClose render={<Button type="button" variant="outline" />}>

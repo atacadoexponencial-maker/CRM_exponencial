@@ -99,36 +99,37 @@ export function PerformanceClient({ linhasIniciais }: { linhasIniciais: Performa
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-7">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold">Performance por Vendedor</h1>
+          <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Performance por vendedor</h1>
           {isPending && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
         </div>
         <div className="flex items-center gap-3">
           <FiltrosDashboard filtros={filtros} onChange={aplicarFiltros} mostrarAtendente={false} />
           <Link
             href="/dashboard"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+            className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline transition-colors whitespace-nowrap"
           >
-            ← Dashboard
+            Voltar ao Dashboard
           </Link>
         </div>
       </div>
 
       {erro && (
-        <p className="text-sm text-destructive mb-4">
+        <p role="alert" className="text-sm text-erro mb-4">
           Não foi possível carregar os dados. Tente novamente.
         </p>
       )}
 
-      <div className="rounded-lg border overflow-x-auto">
+      {/* B36-04: tabela do Caderno — linha grossa em cima, linhas finas entre vendedores. */}
+      <div className="overflow-x-auto border-t-2 border-t-foreground">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-muted/50">
+            <tr className="border-b">
               {COLUNAS.map((c) => (
                 <th
                   key={c.id}
-                  className="px-3 py-3 text-left font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors whitespace-nowrap"
+                  className="px-3 py-3 text-left text-xs font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors whitespace-nowrap"
                   onClick={() => ordenarPor(c.id)}
                 >
                   <span className="inline-flex items-center gap-1">
@@ -182,7 +183,7 @@ function FragmentLinha({
     <>
       <tr
         className={cn(
-          "border-b last:border-0 hover:bg-muted/30 transition-colors cursor-pointer",
+          "border-b hover:bg-muted/40 transition-colors cursor-pointer",
           expandido && "bg-muted/30"
         )}
         onClick={onClick}
@@ -193,17 +194,17 @@ function FragmentLinha({
             {linha.nome}
           </span>
         </td>
-        <td className="px-3 py-3">{linha.leadsCriados}</td>
-        <td className="px-3 py-3">{linha.convertidos}</td>
-        <td className="px-3 py-3">{linha.taxaConversao !== null ? `${linha.taxaConversao}%` : "—"}</td>
-        <td className="px-3 py-3">{linha.clientesAtivos}</td>
-        <td className="px-3 py-3">{linha.emRisco}</td>
-        <td className="px-3 py-3">{linha.recompras}</td>
-        <td className="px-3 py-3 whitespace-nowrap">{formatarMoeda(linha.ticketMedio) ?? "—"}</td>
+        <td className="numero px-3 py-3">{linha.leadsCriados}</td>
+        <td className="numero px-3 py-3">{linha.convertidos}</td>
+        <td className="numero px-3 py-3">{linha.taxaConversao !== null ? `${linha.taxaConversao}%` : "—"}</td>
+        <td className="numero px-3 py-3">{linha.clientesAtivos}</td>
+        <td className="numero px-3 py-3">{linha.emRisco}</td>
+        <td className="numero px-3 py-3">{linha.recompras}</td>
+        <td className="numero px-3 py-3 whitespace-nowrap">{formatarMoeda(linha.ticketMedio) ?? "—"}</td>
       </tr>
       {expandido && (
-        <tr className="border-b last:border-0 bg-muted/10">
-          <td colSpan={8} className="px-4 py-4">
+        <tr className="border-b bg-card">
+          <td colSpan={8} className="px-4 py-6">
             {carregando && (
               <div className="flex items-center gap-2 text-muted-foreground text-sm py-4">
                 <Loader2 className="size-4 animate-spin" /> Carregando métricas…

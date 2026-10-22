@@ -31,7 +31,7 @@ export default async function SaudeDoNumeroPage({
   const resultado = await lerSaude(id)
 
   return (
-    <div className="max-w-5xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
       <Link
         href="/configuracoes/whatsapp"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
@@ -41,7 +41,7 @@ export default async function SaudeDoNumeroPage({
       </Link>
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <h1 className="text-xl font-semibold">Saúde do número</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Saúde do número</h1>
         {perfil?.role === "admin" && (
           <Link
             href={`/configuracoes/whatsapp/${id}/ritmo`}
@@ -60,9 +60,9 @@ export default async function SaudeDoNumeroPage({
         />
       ) : (
         /* Leitura que falhou não vira zero: sem números, com o motivo. */
-        <div className="flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 p-5 ">
+        <div className="flex gap-3 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-5 ">
           <TriangleAlert
-            className="size-4 shrink-0 mt-0.5 text-amber-300"
+            className="size-4 shrink-0 mt-0.5 text-aviso"
             aria-hidden
           />
           <div>

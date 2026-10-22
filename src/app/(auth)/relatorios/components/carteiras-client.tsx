@@ -13,10 +13,10 @@ import { RemoverCarteiraDialog, TransferirCarteiraDialog } from "./acoes-carteir
 import { DistribuirDialog, ReprocessarDialog } from "./acoes-sem-vendedor"
 
 const NUMEROS: Array<{ id: keyof NumerosDaCarteira; titulo: string; cor: string }> = [
-  { id: "leads", titulo: "Leads", cor: "text-violet-400" },
-  { id: "base", titulo: "Base de clientes", cor: "text-orange-400" },
-  { id: "ativos", titulo: "Ativos", cor: "text-emerald-400" },
-  { id: "inativos", titulo: "Inativos", cor: "text-red-400" },
+  { id: "leads", titulo: "Leads", cor: "text-violet-700 dark:text-violet-300" },
+  { id: "base", titulo: "Base de clientes", cor: "text-orange-700 dark:text-orange-300" },
+  { id: "ativos", titulo: "Ativos", cor: "text-sucesso" },
+  { id: "inativos", titulo: "Inativos", cor: "text-erro" },
 ]
 
 function LinhaDeNumeros({ titulo, numeros, testid }: { titulo: string; numeros: NumerosDaCarteira; testid: string }) {
@@ -25,9 +25,9 @@ function LinhaDeNumeros({ titulo, numeros, testid }: { titulo: string; numeros: 
       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">{titulo}</p>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {NUMEROS.map((n) => (
-          <div key={n.id} className="rounded-lg border p-3 text-center">
+          <div key={n.id} className="border-t pt-3">
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{n.titulo}</p>
-            <p className={`text-2xl font-semibold tabular-nums ${n.cor}`}>{numeros[n.id]}</p>
+            <p className={`text-2xl font-semibold numero ${n.cor}`}>{numeros[n.id]}</p>
           </div>
         ))}
       </div>
@@ -47,7 +47,7 @@ export function PainelDeCarteiras({ resultado, acoesDoVendedor, acoesDosSemVende
   return (
     <div className="flex flex-col gap-4">
       {gestor && (
-        <section className="rounded-lg border p-4 flex flex-col gap-4">
+        <section className="rounded-md border bg-card p-5 flex flex-col gap-4">
           <h2 className="text-sm font-semibold">Visão geral da empresa</h2>
           <LinhaDeNumeros titulo="Total" numeros={painel.total} testid="numeros-total" />
           <LinhaDeNumeros titulo="Com carteira atribuída" numeros={painel.comCarteira} testid="numeros-com" />
@@ -55,13 +55,13 @@ export function PainelDeCarteiras({ resultado, acoesDoVendedor, acoesDosSemVende
         </section>
       )}
 
-      <section className="rounded-lg border p-4">
+      <section className="rounded-md border bg-card p-5">
         <h2 className="text-sm font-semibold mb-3">
           {gestor ? "Carteira por vendedor" : "Minha carteira"} <span className="ml-1 rounded-full border px-2 text-xs text-muted-foreground">{painel.vendedores.length}</span>
         </h2>
         <div className="flex flex-col gap-3">
           {painel.vendedores.map((v) => (
-            <div key={v.id} className="rounded-lg border p-4" data-testid={`vendedor-${v.id}`}>
+            <div key={v.id} className="rounded-md border bg-background p-4" data-testid={`vendedor-${v.id}`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold">{v.nome}</p>
@@ -82,11 +82,11 @@ export function PainelDeCarteiras({ resultado, acoesDoVendedor, acoesDosSemVende
       </section>
 
       {gestor && (
-        <section className="rounded-lg border p-4">
+        <section className="rounded-md border bg-card p-5">
           <h2 className="text-sm font-semibold mb-3">Sem vendedor</h2>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p data-testid="sem-vendedor">
-              <span className="text-3xl font-semibold text-red-400 tabular-nums mr-2">{painel.semVendedor.total}</span>
+              <span className="text-3xl font-semibold text-erro numero mr-2">{painel.semVendedor.total}</span>
               <span className="text-sm">contatos sem vendedor</span>
               <span className="block text-xs text-muted-foreground">{painel.semVendedor.comCompra} com compra · {painel.semVendedor.leads} leads</span>
             </p>
@@ -96,7 +96,7 @@ export function PainelDeCarteiras({ resultado, acoesDoVendedor, acoesDosSemVende
       )}
 
       {gestor && historico && (
-        <section className="rounded-lg border p-4">
+        <section className="rounded-md border bg-card p-5">
           <h2 className="text-sm font-semibold mb-1">Histórico de alterações</h2>
           <p className="text-xs text-muted-foreground mb-3">Toda mudança de carteira fica registrada: quem alterou, quando e de quem para quem. As 50 mais recentes.</p>
           {historico.length === 0 ? (
@@ -117,7 +117,7 @@ export function PainelDeCarteiras({ resultado, acoesDoVendedor, acoesDosSemVende
                 <tbody>
                   {historico.map((h) => (
                     <tr key={h.id} className="border-b last:border-0">
-                      <td className="py-2 pr-3 whitespace-nowrap tabular-nums">{formatarDataCurta(h.quando)} {formatarHoraDoDia(h.quando)}</td>
+                      <td className="py-2 pr-3 whitespace-nowrap numero">{formatarDataCurta(h.quando)} {formatarHoraDoDia(h.quando)}</td>
                       <td className="py-2 pr-3">{h.contato}</td>
                       <td className="py-2 pr-3">{h.de ?? "ninguém"}</td>
                       <td className="py-2 pr-3">{h.para ?? "ninguém"}</td>

@@ -174,7 +174,7 @@ export function FormularioRitmo({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {ritmo.effective.warmup_applied && (
-        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 p-4 text-sm ">
+        <p className="rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-4 text-sm ">
           Este número está em aquecimento. Enquanto estiver, valem{" "}
           <strong>{ritmo.effective.hourly_cap} por hora</strong> e{" "}
           <strong>{ritmo.effective.daily_cap} por dia</strong>, mesmo que você configure mais —
@@ -182,7 +182,7 @@ export function FormularioRitmo({
         </p>
       )}
 
-      <div className="rounded-lg border p-5">
+      <div className="rounded-md border bg-card p-5">
         <h2 className="flex items-center gap-2 text-sm font-medium mb-4">
           <Gauge className="size-4 shrink-0" aria-hidden />
           Ritmo de envio
@@ -202,7 +202,7 @@ export function FormularioRitmo({
               Mínimo {limites.send_interval_seconds_min}s
             </p>
             {errors.send_interval_seconds && (
-              <p className="text-xs text-destructive mt-1">{errors.send_interval_seconds.message}</p>
+              <p className="text-xs text-erro mt-1">{errors.send_interval_seconds.message}</p>
             )}
           </div>
 
@@ -217,7 +217,7 @@ export function FormularioRitmo({
             />
             <p className="text-xs text-muted-foreground mt-1">Máximo {limites.hourly_cap_max}</p>
             {errors.hourly_cap && (
-              <p className="text-xs text-destructive mt-1">{errors.hourly_cap.message}</p>
+              <p className="text-xs text-erro mt-1">{errors.hourly_cap.message}</p>
             )}
           </div>
 
@@ -232,13 +232,13 @@ export function FormularioRitmo({
             />
             <p className="text-xs text-muted-foreground mt-1">Máximo {limites.daily_cap_max}</p>
             {errors.daily_cap && (
-              <p className="text-xs text-destructive mt-1">{errors.daily_cap.message}</p>
+              <p className="text-xs text-erro mt-1">{errors.daily_cap.message}</p>
             )}
           </div>
         </div>
       </div>
 
-      <div className="rounded-lg border p-5">
+      <div className="rounded-md border bg-card p-5">
         <h2 className="flex items-center gap-2 text-sm font-medium mb-4">
           <Clock className="size-4 shrink-0" aria-hidden />
           Janela de envio
@@ -257,7 +257,7 @@ export function FormularioRitmo({
               Não antes de {limites.send_window_earliest}
             </p>
             {errors.send_window_start && (
-              <p className="text-xs text-destructive mt-1">{errors.send_window_start.message}</p>
+              <p className="text-xs text-erro mt-1">{errors.send_window_start.message}</p>
             )}
           </div>
 
@@ -273,7 +273,7 @@ export function FormularioRitmo({
               Não depois de {limites.send_window_latest}
             </p>
             {errors.send_window_end && (
-              <p className="text-xs text-destructive mt-1">{errors.send_window_end.message}</p>
+              <p className="text-xs text-erro mt-1">{errors.send_window_end.message}</p>
             )}
           </div>
         </div>
@@ -284,13 +284,13 @@ export function FormularioRitmo({
       <p className="rounded-lg border bg-muted/40 p-4 text-sm">{estimativa.texto}</p>
 
       {erroGeral && (
-        <p className="rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 p-3 text-sm ">
+        <p className="rounded-lg border border-erro/30 bg-erro-fundo text-erro p-3 text-sm ">
           {erroGeral}
         </p>
       )}
 
       {salvo && !erroGeral && (
-        <p className="text-sm text-green-700">Ritmo salvo.</p>
+        <p className="text-sm text-sucesso">Ritmo salvo.</p>
       )}
 
       <div className="flex flex-wrap items-center gap-3">

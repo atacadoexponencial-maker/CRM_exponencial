@@ -113,6 +113,8 @@ código de saída 0 só se tudo passou.
 | `roteiro-b11-05.cjs` | ⚠️ Envia 2 mensagens de verdade. Gatilho "mensagem enviada pelo time": a resposta do chat move o card e põe a tag; a mesma frase mandada por uma automação não dispara. |
 | `roteiro-b11-07.cjs` | ⚠️ Envia 5 mensagens de verdade. Texto com variáveis, mensagem rápida e PDF escolhido no editor (B11-07); condição de canal com mensagem (B11-02); mensagem de ausência fora do horário, e nada dentro dele (B11-08); a mensagem da regra entregue ao gateway em até 30 segundos (B11-09). |
 | `roteiro-menus.cjs` | Itens de menu do chat, de etiquetas e de times fazendo o que prometem. Protege contra a volta do `onSelect` (decisões da B11, seção 9.4). |
+| `popular-empresa-teste-b36.cjs` | B36: dá conteúdo a todas as telas para a aprovação visual — conversas (com e sem resposta), tarefas da Agenda do admin de teste, cards no funil de Recompra, mensagens rápidas, uma sequência, uma campanha em rascunho e uma automação pausada. Pode rodar de novo (apaga o que criou antes). Não envia nada. |
+| `fotos-das-telas.cjs` | B36: fotografa as telas no tema claro e no escuro (`LARGURAS=390,1400` para celular e computador), trocando o tema pelo menu do usuário. Uso: `node e2e/preview/fotos-das-telas.cjs <endereço> [pasta] [rota1,rota2]`. No Git Bash, rode com `MSYS_NO_PATHCONV=1` para as rotas não virarem caminhos do Windows. |
 
 ## A empresa de teste
 

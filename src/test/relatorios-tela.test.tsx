@@ -36,13 +36,13 @@ beforeEach(() => {
 })
 
 describe("B32-03 — tela Relatórios", () => {
-  it("CA-B32-01: o menu tem 'Relatórios' logo abaixo de 'Dashboard', para admin, gerente e atendente", () => {
+  it("CA-B32-01: o menu tem 'Relatórios' logo abaixo de 'Pedidos', para admin, gerente e atendente", () => {
     for (const papel of ["admin", "gerente", "atendente"] as const) {
       const { unmount, container } = render(
         <SidebarNav papel={papel} nomeUsuario="X" email="x@x" atrasados={0} pedidosNovos={0} recolhidoInicial={false} />
       )
       const links = Array.from(container.querySelectorAll("a")).map((a) => [a.textContent?.trim(), a.getAttribute("href")])
-      const i = links.findIndex(([t]) => t === "Dashboard")
+      const i = links.findIndex(([t]) => t === "Pedidos")
       expect(i).toBeGreaterThanOrEqual(0)
       expect(links[i + 1]).toEqual(["Relatórios", "/relatorios"])
       unmount()
