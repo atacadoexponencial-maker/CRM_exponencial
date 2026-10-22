@@ -6,6 +6,7 @@ import { AbasCatalogo } from "../components/abas-catalogo"
 import { ListaPedidos, type PedidoResumo } from "../components/lista-pedidos"
 import { DetalhePedido, type PedidoDetalhe } from "../components/detalhe-pedido"
 import { BarraFiltrosPedidos } from "../components/filtros-pedidos"
+import { ExportarPedidos } from "../components/exportar-pedidos"
 import { hrefsDoCatalogo } from "../produtos-client"
 import { carregarPedido, filtrarPedidos, mudarSituacaoPedido, type ProdutoDoFiltro } from "./actions"
 import { ALVOS_TOQUE_CELULAR } from "../components/alvos-toque"
@@ -97,6 +98,10 @@ export function PedidosClient({ inicial, totalInicial, novos, abertoInicial, pap
             produtos={produtos}
             atendentes={atendentes}
           />
+          {/* B39-02: exportar, com os filtros e o total de agora */}
+          <div className="flex justify-end">
+            <ExportarPedidos filtros={filtros} totalFiltrado={total} />
+          </div>
           {erro && <p className="text-xs text-erro">{erro}</p>}
           <ListaPedidos
             pedidos={pedidos}
