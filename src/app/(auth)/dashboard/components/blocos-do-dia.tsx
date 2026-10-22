@@ -7,7 +7,7 @@ import { useState, useTransition } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { formatarHoraDoDia, formatarDataCurta } from "@/lib/datas"
-import { tempoDeEspera } from "@/lib/painel-dashboard"
+import { textoDaEspera } from "@/lib/painel-dashboard"
 import { marcarLembreteFeito } from "@/app/(auth)/agenda/actions"
 import type { ConversaEsperando, EtapaComQuantidade, TarefaDeHoje } from "../actions"
 
@@ -132,8 +132,8 @@ export function BlocoEsperandoResposta({ conversas, total }: { conversas: Conver
         <div className="overflow-x-auto">
           <ul className="min-w-[560px]">
             {conversas.map((c) => {
-              const espera = tempoDeEspera(c.desde)
-              const minutos = (Date.now() - new Date(c.desde).getTime()) / 60000
+              const espera = textoDaEspera(c.minutosEsperando)
+              const minutos = c.minutosEsperando
               return (
                 <li key={c.conversaId}>
                   <Link
@@ -150,7 +150,7 @@ export function BlocoEsperandoResposta({ conversas, total }: { conversas: Conver
                         </span>
                       )}
                     </span>
-                    <span data-espera suppressHydrationWarning className={cn("numero text-right text-xs", minutos >= 30 ? "text-queda" : "text-muted-foreground")}>{espera}</span>
+                    <span data-espera className={cn("numero text-right text-xs", minutos >= 30 ? "text-queda" : "text-muted-foreground")}>{espera}</span>
                   </Link>
                 </li>
               )

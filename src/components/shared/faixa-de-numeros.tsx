@@ -22,7 +22,8 @@ export function FaixaDeNumeros({ itens, destaque = false, className }: { itens: 
   return (
     <dl
       className={cn(
-        "grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] border-b",
+        // B36-14: no celular cada número pega a largura que precisa (nada se sobrepõe).
+        "grid grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] border-b",
         destaque ? "border-t-2 border-t-foreground" : "border-t",
         className
       )}
@@ -43,7 +44,7 @@ export function FaixaDeNumeros({ itens, destaque = false, className }: { itens: 
               </span>
             )}
           </dt>
-          <dd className={cn("numero font-medium tracking-tight", destaque ? "text-[28px] leading-none" : "text-2xl leading-none")}>
+          <dd className={cn("numero font-medium tracking-tight break-words", destaque ? "text-[22px] leading-tight sm:text-[28px] sm:leading-none" : "text-xl leading-tight sm:text-2xl sm:leading-none")}>
             {n.valor === null ? "—" : `${n.valor}${n.sufixo ?? ""}`}
           </dd>
         </div>

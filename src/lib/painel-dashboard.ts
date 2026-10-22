@@ -79,9 +79,17 @@ export function filtrarParaHoje<T extends { dueAt: string }>(
     .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime())
 }
 
+/** Minutos inteiros desde um instante (nunca negativo). */
+export function minutosDesde(desde: string, agora: Date = new Date()): number {
+  return Math.max(0, Math.floor((agora.getTime() - new Date(desde).getTime()) / 60000))
+}
+
 /** "agora", "12 min", "3 h", "2 dias": há quanto tempo o cliente espera. */
 export function tempoDeEspera(desde: string, agora: Date = new Date()): string {
-  const minutos = Math.max(0, Math.floor((agora.getTime() - new Date(desde).getTime()) / 60000))
+  return textoDaEspera(minutosDesde(desde, agora))
+}
+
+export function textoDaEspera(minutos: number): string {
   if (minutos < 1) return "agora"
   if (minutos < 60) return `${minutos} min`
   const horas = Math.floor(minutos / 60)

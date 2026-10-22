@@ -18,6 +18,7 @@ import {
   calcularVariacoes,
   contarCardsPorEtapa,
   filtrarParaHoje,
+  minutosDesde,
   rangeAnterior,
   type EtapaComQuantidade,
   type VariacoesDashboard,
@@ -151,6 +152,8 @@ export type ConversaEsperando = {
   contatoNome: string
   trecho: string
   desde: string
+  /** Minutos de espera, contados no servidor quando a tela abre. */
+  minutosEsperando: number
   funil: "entrada" | "recompra" | null
 }
 
@@ -172,6 +175,7 @@ export async function listarEsperandoResposta(): Promise<{ conversas: ConversaEs
       contatoNome: l.contato_nome || l.telefone || "—",
       trecho: l.tipo === "texto" || l.tipo === "text" ? (l.trecho ?? "") : `[${l.tipo}] ${l.trecho ?? ""}`.trim(),
       desde: l.desde,
+      minutosEsperando: minutosDesde(l.desde),
       funil: l.funil === "entrada" || l.funil === "recompra" ? l.funil : null,
     })),
   }
