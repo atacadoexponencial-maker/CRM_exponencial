@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import {
-  CAMPOS_DO_FILTRO,
+  TODOS_OS_CAMPOS,
   campoDoFiltro,
   comparacoesDoCampo,
   condicaoCompleta,
@@ -32,7 +32,7 @@ const inputClass = selectClass
 const CONDICAO_NOVA: Condicao = { campo: "", comparacao: "", valores: [] }
 const grupoNovo = (): Grupo => ({ juncao: "e", condicoes: [{ ...CONDICAO_NOVA }] })
 
-const ASSUNTOS = Array.from(new Set(CAMPOS_DO_FILTRO.map((c) => c.assunto)))
+const ASSUNTOS = Array.from(new Set(TODOS_OS_CAMPOS.map((c) => c.assunto)))
 
 interface PainelFiltroProps {
   aberto: boolean
@@ -41,11 +41,13 @@ interface PainelFiltroProps {
   filtro: Filtro
   nichos: string[]
   atendentes: Array<{ id: string; nome: string }>
+  /** B37-02: etiquetas da empresa. */
+  etiquetas: string[]
   onAplicar: (filtro: Filtro) => void
   onLimpar: () => void
 }
 
-export function PainelFiltro({ aberto, onAbertoChange, filtro, nichos, atendentes, onAplicar, onLimpar }: PainelFiltroProps) {
+export function PainelFiltro({ aberto, onAbertoChange, filtro, nichos, atendentes, etiquetas, onAplicar, onLimpar }: PainelFiltroProps) {
   const [rascunho, setRascunho] = useState<Filtro>(() => paraEditar(filtro))
   // Reabrir o painel recomeça do filtro aplicado.
   const [abertoAntes, setAbertoAntes] = useState(aberto)
@@ -58,6 +60,7 @@ export function PainelFiltro({ aberto, onAbertoChange, filtro, nichos, atendente
     if (campo.opcoes) return campo.opcoes
     if (campo.id === "nicho") return nichos.map((n) => ({ valor: n, rotulo: n }))
     if (campo.id === "atendente") return atendentes.map((a) => ({ valor: a.id, rotulo: a.nome }))
+    if (campo.id === "etiqueta") return etiquetas.map((e) => ({ valor: e, rotulo: e }))
     return []
   }
 
@@ -252,7 +255,7 @@ function LinhaCondicao({
         </option>
         {ASSUNTOS.map((assunto) => (
           <optgroup key={assunto} label={assunto}>
-            {CAMPOS_DO_FILTRO.filter((c) => c.assunto === assunto).map((c) => (
+            {TODOS_OS_CAMPOS.filter((c) => c.assunto === assunto).map((c) => (
               <option key={c.id} value={c.id}>
                 {c.rotulo}
               </option>
@@ -350,7 +353,39 @@ function CampoDeValor({
     )
   }
 
-  if (campo.tipo === "lista" && forma === "varios") {
+  if (campo.tipo === "numero") {
+    return (
+      <span className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+        <input
+          aria-label="Valor"
+          type="number"
+          min={0}
+          step={campo.id === "total_comprado" ? "0.01" : "1"}
+          inputMode="decimal"
+          className={cn(inputClass, "numero w-28")}
+          value={valores[0] ?? ""}
+          onChange={(e) => onValor(0, e.target.value)}
+        />
+        {forma === "dois" && (
+          <>
+            e
+            <input
+              aria-label="Até"
+              type="number"
+              min={0}
+              step={campo.id === "total_comprado" ? "0.01" : "1"}
+              inputMode="decimal"
+              className={cn(inputClass, "numero w-28")}
+              value={valores[1] ?? ""}
+              onChange={(e) => onValor(1, e.target.value)}
+            />
+          </>
+        )}
+      </span>
+    )
+  }
+
+  if (forma === "varios") {
     return (
       <fieldset aria-label="Valores" className="flex max-h-32 w-full flex-wrap gap-x-3 gap-y-1 overflow-y-auto rounded-lg border p-2">
         {opcoes.map((o) => (
@@ -369,7 +404,7 @@ function CampoDeValor({
     )
   }
 
-  if (campo.tipo === "lista") {
+  if (campo.tipo === "lista" || campo.tipo === "etiqueta" || campo.tipo === "funil") {
     return (
       <select aria-label="Valor" className={cn(selectClass, "max-sm:flex-1")} value={valores[0] ?? ""} onChange={(e) => onValor(0, e.target.value)}>
         <option value="" disabled>

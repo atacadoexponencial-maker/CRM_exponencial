@@ -248,3 +248,84 @@ describe("B37-01 — filtro avançado de contatos no banco", { timeout: 30_000 }
     expect(vazio.ids).toEqual([A["Sem Cidade"]])
   })
 })
+
+describe("B37-02 — filtro por etiquetas, compras e funil no banco", { timeout: 30_000 }, () => {
+  let C: Record<string, string>
+  let wsC: string
+  const diaAtras = (n: number) => diasAtras(n).slice(0, 10)
+
+  beforeAll(async () => {
+    wsC = await criarWorkspace("Empresa Filtro C")
+    await criarUsuario(wsC, "admin-c", "admin")
+    C = await criarContatos(wsC, [
+      { name: "So VIP", phone_number: `5585${ts % 1e7}21` },
+      { name: "VIP e Atacado", phone_number: `5585${ts % 1e7}22` },
+      { name: "Sem Etiqueta", phone_number: `5585${ts % 1e7}23` },
+      { name: "Comprador", phone_number: `5585${ts % 1e7}24` },
+      { name: "Em Negociacao", phone_number: `5585${ts % 1e7}25` },
+    ])
+    await serviceClient.from("contact_tags").insert([
+      { workspace_id: wsC, contact_id: C["So VIP"], tag: "vip" },
+      { workspace_id: wsC, contact_id: C["VIP e Atacado"], tag: "vip" },
+      { workspace_id: wsC, contact_id: C["VIP e Atacado"], tag: "atacado" },
+    ])
+    await serviceClient.from("contact_purchases").insert([
+      { workspace_id: wsC, contact_id: C["Comprador"], valor: 2000, data: diaAtras(120) },
+      { workspace_id: wsC, contact_id: C["Comprador"], valor: 2000, data: diaAtras(90) },
+      { workspace_id: wsC, contact_id: C["Comprador"], valor: 2000, data: diaAtras(70) },
+    ])
+    const { data: card } = await serviceClient
+      .from("pipeline_cards")
+      .insert({ workspace_id: wsC, contact_id: C["Em Negociacao"], etapa: "negociacao", funil: "entrada" })
+      .select()
+      .single()
+    if (card) criados.cardIds.push(card.id)
+  }, 60_000)
+
+  afterAll(async () => {
+    await serviceClient.from("contact_tags").delete().eq("workspace_id", wsC)
+    await serviceClient.from("contact_purchases").delete().eq("workspace_id", wsC)
+  })
+
+  it("CA-B37-18: should filtrar por etiqueta com tem, não tem e tem todas", async () => {
+    await entrarComo("admin-c")
+    const doTrio = (ids: string[]) => ids.filter((id) => [C["So VIP"], C["VIP e Atacado"], C["Sem Etiqueta"]].includes(id))
+
+    const tem = await filtrar({ filtro: umGrupo("e", cond("etiqueta", "tem", "vip")) })
+    expect(ordenados(tem.ids)).toEqual(ordenados([C["So VIP"], C["VIP e Atacado"]]))
+
+    const naoTem = await filtrar({ filtro: umGrupo("e", cond("etiqueta", "nao_tem", "vip")) })
+    expect(doTrio(naoTem.ids)).toEqual([C["Sem Etiqueta"]])
+
+    const todas = await filtrar({ filtro: umGrupo("e", cond("etiqueta", "tem_todas", "vip", "atacado")) })
+    expect(todas.ids).toEqual([C["VIP e Atacado"]])
+  })
+
+  it("CA-B37-19: should filtrar por total, quantidade e data da última compra", async () => {
+    await entrarComo("admin-c")
+    const doPar = (ids: string[]) => ids.filter((id) => [C["Comprador"], C["Sem Etiqueta"]].includes(id))
+
+    const total = await filtrar({ filtro: umGrupo("e", cond("total_comprado", "maior", "5000")) })
+    expect(total.ids).toEqual([C["Comprador"]])
+
+    const quantidade = await filtrar({ filtro: umGrupo("e", cond("qtd_compras", "igual", "3")) })
+    expect(quantidade.ids).toEqual([C["Comprador"]])
+
+    const ultima = await filtrar({ filtro: umGrupo("e", cond("ultima_compra", "ha_mais_de_dias", "60")) })
+    expect(ultima.ids).toEqual([C["Comprador"]])
+
+    const nunca = await filtrar({ filtro: umGrupo("e", cond("ultima_compra", "vazio")) })
+    expect(doPar(nunca.ids)).toEqual([C["Sem Etiqueta"]])
+    expect(nunca.ids).not.toContain(C["Comprador"])
+  })
+
+  it("CA-B37-20: should filtrar pela etapa no funil e por quem não está no funil", async () => {
+    await entrarComo("admin-c")
+    const naEtapa = await filtrar({ filtro: umGrupo("e", cond("etapa_entrada", "na_etapa", "negociacao")) })
+    expect(naEtapa.ids).toEqual([C["Em Negociacao"]])
+
+    const foraDoFunil = await filtrar({ filtro: umGrupo("e", cond("etapa_entrada", "fora_do_funil")) })
+    expect(foraDoFunil.ids).toContain(C["Sem Etiqueta"])
+    expect(foraDoFunil.ids).not.toContain(C["Em Negociacao"])
+  })
+})

@@ -61,6 +61,8 @@ interface ListaContatosProps {
   /** B37-01: nichos e atendentes da empresa, para os botões fixos e o filtro. */
   nichos?: string[]
   atendentes?: Array<{ id: string; nome: string }>
+  /** B37-02: etiquetas da empresa, para o filtro. */
+  etiquetas?: string[]
   papel: string
   /** B13-04: quantos contatos o usuário vê na lixeira. */
   totalLixeira?: number
@@ -71,6 +73,7 @@ export function ListaContatos({
   total: totalInicial = contatosIniciais.length,
   nichos = [],
   atendentes = [],
+  etiquetas = [],
   papel,
   totalLixeira = 0,
 }: ListaContatosProps) {
@@ -300,6 +303,7 @@ export function ListaContatos({
         filtro={filtro}
         nichos={nichos}
         atendentes={atendentes}
+        etiquetas={etiquetas}
         onAplicar={aplicarFiltro}
         onLimpar={limparFiltroAplicado}
       />

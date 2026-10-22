@@ -158,3 +158,50 @@ describe("B37-01 — filtro avançado na lista de contatos", () => {
     expect(opcoes()).not.toContain("não está vazio")
   })
 })
+
+describe("B37-02 — campos de etiquetas, compras e funil no painel", () => {
+  const comparacoesDe = (painel: HTMLElement, campo: string) => {
+    fireEvent.change(within(painel).getByLabelText("Campo"), { target: { value: campo } })
+    return Array.from((within(painel).getByLabelText("Comparação") as HTMLSelectElement).options).map((o) => o.textContent)
+  }
+
+  it("CA-B37-02: should mostrar só as comparações do tipo de cada campo", () => {
+    renderizar()
+    const painel = abrirPainel()
+
+    expect(comparacoesDe(painel, "cidade")).toEqual(["contém", "não contém", "é igual a", "está vazio", "não está vazio"])
+    expect(comparacoesDe(painel, "tipo")).toEqual(["é", "não é", "é qualquer um de", "está vazio", "não está vazio"])
+    expect(comparacoesDe(painel, "total_comprado")).toEqual(["maior que", "menor que", "entre", "igual a"])
+    expect(comparacoesDe(painel, "ultima_compra")).toEqual([
+      "antes de", "depois de", "entre", "nos últimos N dias", "há mais de N dias", "está vazia", "não está vazia",
+    ])
+    expect(comparacoesDe(painel, "etiqueta")).toEqual([
+      "tem", "não tem", "tem qualquer uma de", "tem todas de", "sem etiqueta", "com alguma etiqueta",
+    ])
+    expect(comparacoesDe(painel, "etapa_entrada")).toEqual([
+      "está na etapa", "não está na etapa", "está no funil (qualquer etapa)", "não está no funil",
+    ])
+  })
+
+  it("CA-B37-03: should listar todos os campos da spec, agrupados por assunto", () => {
+    renderizar()
+    const painel = abrirPainel()
+    const grupos = Array.from(within(painel).getByLabelText("Campo").querySelectorAll("optgroup")).map((g) => ({
+      assunto: g.label,
+      campos: Array.from(g.querySelectorAll("option")).map((o) => o.textContent),
+    }))
+
+    expect(grupos).toEqual([
+      {
+        assunto: "Cadastro",
+        campos: [
+          "Nome", "Telefone", "Classificação", "Tipo", "Nicho", "Cidade", "UF", "Perfil de cliente (ICP)",
+          "Atendente", "Observações", "Data de cadastro",
+        ],
+      },
+      { assunto: "Etiquetas", campos: ["Etiqueta"] },
+      { assunto: "Compras", campos: ["Total já comprado", "Quantidade de compras", "Data da última compra"] },
+      { assunto: "Funil", campos: ["Etapa no funil de Entrada", "Etapa no funil de Recompra"] },
+    ])
+  })
+})

@@ -397,3 +397,5 @@ filtro avançado (E).
 | PER-B37-06 | Quem salva, renomeia e apaga filtro salvo? | respondida | Admin e Gerente; o atendente só usa. Marcelle, 22/10/2026. |
 | PER-B37-07 | Ao montar o filtro, a lista atualiza na hora ou num botão "Aplicar"? | respondida | Botão "Aplicar": a lista só muda ao aplicar; "Limpar filtro" aplica na hora. Marcelle, 22/10/2026. |
 | PER-B37-08 | Em texto, a comparação ignora maiúscula e acento? | respondida | Ignora os dois ("sao paulo" acha "São Paulo"), e a busca por nome passa a ignorar acento também. Marcelle, 22/10/2026. |
+| PER-B37-09 | "Etiqueta não tem VIP" traz o contato sem nenhuma etiqueta? | respondida | Traz: a etiqueta marca quem tem, então "não tem VIP" é todo mundo sem a VIP, inclusive quem não tem etiqueta. Exceção à regra do campo vazio (SUP-B37-01). Marcelle, 22/10/2026. |
+| PER-B37-10 | "Não está na etapa X" traz o contato que não tem card naquele funil? | respondida | Não traz: só quem está no funil, em outra etapa; para quem não tem card existe "não está no funil". Marcelle, 22/10/2026. |

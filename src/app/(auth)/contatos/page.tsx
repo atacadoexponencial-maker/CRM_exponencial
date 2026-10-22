@@ -25,6 +25,7 @@ export default async function ContatosPage() {
       total={total}
       nichos={valores.nichos}
       atendentes={valores.atendentes}
+      etiquetas={valores.etiquetas}
       papel={perfil?.role ?? "atendente"}
       totalLixeira={totalLixeira}
     />

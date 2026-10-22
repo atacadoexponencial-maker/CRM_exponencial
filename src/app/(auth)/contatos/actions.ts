@@ -573,10 +573,15 @@ export async function filtrarContatos(
 }
 
 /** B37-01: valores dos campos de lista que vêm da empresa (nicho e atendente). */
-export async function valoresDoFiltro(): Promise<{ nichos: string[]; atendentes: Array<{ id: string; nome: string }> }> {
+export async function valoresDoFiltro(): Promise<{
+  nichos: string[]
+  atendentes: Array<{ id: string; nome: string }>
+  /** B37-02: etiquetas usadas nos contatos da empresa. */
+  etiquetas: string[]
+}> {
   const { supabase, perfil } = await sessaoAtual()
-  if (!perfil) return { nichos: [], atendentes: [] }
-  const [{ data: nichos }, atendentes] = await Promise.all([
+  if (!perfil) return { nichos: [], atendentes: [], etiquetas: [] }
+  const [{ data: nichos }, atendentes, { data: etiquetas }] = await Promise.all([
     supabase
       .from("contacts")
       .select("nicho")
@@ -584,12 +589,14 @@ export async function valoresDoFiltro(): Promise<{ nichos: string[]; atendentes:
       .is("excluido_em", null)
       .not("nicho", "is", null),
     listarAtendentesAtivos(),
+    supabase.from("contact_tags").select("tag").eq("workspace_id", perfil.workspace_id),
   ])
+  const unicos = (valores: string[]) =>
+    Array.from(new Set(valores.map((v) => v.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"))
   return {
-    nichos: Array.from(new Set((nichos ?? []).map((n) => (n.nicho as string).trim()).filter(Boolean))).sort((a, b) =>
-      a.localeCompare(b, "pt-BR")
-    ),
+    nichos: unicos((nichos ?? []).map((n) => n.nicho as string)),
     atendentes,
+    etiquetas: unicos((etiquetas ?? []).map((t) => t.tag)),
   }
 }
 

@@ -5,14 +5,20 @@
 // grupo dentro de grupo). Quem filtra de verdade é o banco (`filtrar_contatos`, que
 // tem o mesmo catálogo de campos e comparações): este arquivo descreve o que a tela
 // oferece e valida, no servidor, o que chega dela.
+//
+// B37-02: além do cadastro, etiquetas, compras e etapa do funil. Esses campos não
+// são colunas de `contacts` (ficam em `CAMPOS_LIGADOS`); o banco os calcula.
 
 import { z } from "zod"
 import { CLASSIFICACAO_LABEL, TIPO_LABEL, ICP_LABEL } from "@/app/(auth)/contatos/mock-contatos"
+import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
 import { UFS } from "@/lib/uf"
 
 export type Juncao = "e" | "ou"
 
-export type TipoDeCampo = "texto" | "lista" | "data"
+export type TipoDeCampo = "texto" | "lista" | "data" | "numero" | "etiqueta" | "funil"
+
+export type Assunto = "Cadastro" | "Etiquetas" | "Compras" | "Funil"
 
 export type Comparacao =
   | "contem"
@@ -28,6 +34,18 @@ export type Comparacao =
   | "ha_mais_de_dias"
   | "vazio"
   | "nao_vazio"
+  | "maior"
+  | "menor"
+  | "tem"
+  | "nao_tem"
+  | "tem_qualquer"
+  | "tem_todas"
+  | "sem_etiqueta"
+  | "com_etiqueta"
+  | "na_etapa"
+  | "fora_da_etapa"
+  | "no_funil"
+  | "fora_do_funil"
 
 export interface Condicao {
   campo: string
@@ -51,21 +69,26 @@ export type Opcao = { valor: string; rotulo: string }
 export interface CampoDoFiltro {
   id: string
   rotulo: string
-  /** Assunto em que o campo aparece na lista (B37-02 acrescenta Etiquetas, Compras e Funil). */
-  assunto: "Cadastro"
+  /** Assunto em que o campo aparece na lista de campos. */
+  assunto: Assunto
   tipo: TipoDeCampo
-  /** Coluna de `contacts` que o campo lê. */
-  coluna: string
   /** Obrigatório no cadastro: sem "está vazio" nem "não está vazio" (CA-B37-36). */
   obrigatorio: boolean
-  /** Opções fixas de um campo de lista. Sem elas, as opções vêm do servidor (nicho, atendente). */
+  /** Opções fixas de um campo de lista. Sem elas, as opções vêm do servidor (nicho, atendente, etiqueta). */
   opcoes?: Opcao[]
+}
+
+/** Campo que é uma coluna de `contacts`. */
+export interface CampoDoCadastro extends CampoDoFiltro {
+  assunto: "Cadastro"
+  /** Coluna de `contacts` que o campo lê. */
+  coluna: string
 }
 
 const opcoesDe = (rotulos: Record<string, string>): Opcao[] =>
   Object.entries(rotulos).map(([valor, rotulo]) => ({ valor, rotulo }))
 
-export const CAMPOS_DO_FILTRO: CampoDoFiltro[] = [
+export const CAMPOS_DO_FILTRO: CampoDoCadastro[] = [
   { id: "nome", rotulo: "Nome", assunto: "Cadastro", tipo: "texto", coluna: "name", obrigatorio: false },
   { id: "telefone", rotulo: "Telefone", assunto: "Cadastro", tipo: "texto", coluna: "phone_number", obrigatorio: true },
   {
@@ -80,13 +103,35 @@ export const CAMPOS_DO_FILTRO: CampoDoFiltro[] = [
     opcoes: UFS.map((u) => ({ valor: u.sigla, rotulo: `${u.sigla} — ${u.nome}` })),
   },
   {
-    id: "icp", rotulo: "Perfil de cliente", assunto: "Cadastro", tipo: "lista", coluna: "icp", obrigatorio: false,
+    id: "icp", rotulo: "Perfil de cliente (ICP)", assunto: "Cadastro", tipo: "lista", coluna: "icp", obrigatorio: false,
     opcoes: opcoesDe(ICP_LABEL),
   },
   { id: "atendente", rotulo: "Atendente", assunto: "Cadastro", tipo: "lista", coluna: "atendente_id", obrigatorio: false },
   { id: "observacoes", rotulo: "Observações", assunto: "Cadastro", tipo: "texto", coluna: "observacoes", obrigatorio: false },
   { id: "data_cadastro", rotulo: "Data de cadastro", assunto: "Cadastro", tipo: "data", coluna: "created_at", obrigatorio: true },
 ]
+
+const opcoesDasEtapas = (etapas: ReadonlyArray<{ id: string; label: string }>): Opcao[] =>
+  etapas.map((e) => ({ valor: e.id, rotulo: e.label }))
+
+/** B37-02: campos calculados de outras tabelas (etiquetas, compras e cards do funil). */
+export const CAMPOS_LIGADOS: CampoDoFiltro[] = [
+  { id: "etiqueta", rotulo: "Etiqueta", assunto: "Etiquetas", tipo: "etiqueta", obrigatorio: false },
+  { id: "total_comprado", rotulo: "Total já comprado", assunto: "Compras", tipo: "numero", obrigatorio: true },
+  { id: "qtd_compras", rotulo: "Quantidade de compras", assunto: "Compras", tipo: "numero", obrigatorio: true },
+  { id: "ultima_compra", rotulo: "Data da última compra", assunto: "Compras", tipo: "data", obrigatorio: false },
+  {
+    id: "etapa_entrada", rotulo: "Etapa no funil de Entrada", assunto: "Funil", tipo: "funil", obrigatorio: true,
+    opcoes: opcoesDasEtapas(ETAPAS_ENTRADA),
+  },
+  {
+    id: "etapa_recompra", rotulo: "Etapa no funil de Recompra", assunto: "Funil", tipo: "funil", obrigatorio: true,
+    opcoes: opcoesDasEtapas(ETAPAS_RECOMPRA),
+  },
+]
+
+/** Todos os campos que a tela oferece, na ordem dos assuntos. */
+export const TODOS_OS_CAMPOS: CampoDoFiltro[] = [...CAMPOS_DO_FILTRO, ...CAMPOS_LIGADOS]
 
 /**
  * Colunas de `contacts` que ficam fora do filtro de propósito. Coluna nova no
@@ -115,16 +160,31 @@ export const ROTULO_DA_COMPARACAO: Record<Comparacao, string> = {
   ha_mais_de_dias: "há mais de N dias",
   vazio: "está vazio",
   nao_vazio: "não está vazio",
+  maior: "maior que",
+  menor: "menor que",
+  tem: "tem",
+  nao_tem: "não tem",
+  tem_qualquer: "tem qualquer uma de",
+  tem_todas: "tem todas de",
+  sem_etiqueta: "sem etiqueta",
+  com_etiqueta: "com alguma etiqueta",
+  na_etapa: "está na etapa",
+  fora_da_etapa: "não está na etapa",
+  no_funil: "está no funil (qualquer etapa)",
+  fora_do_funil: "não está no funil",
 }
 
 const COMPARACOES_DO_TIPO: Record<TipoDeCampo, Comparacao[]> = {
   texto: ["contem", "nao_contem", "igual", "vazio", "nao_vazio"],
   lista: ["e", "nao_e", "qualquer_de", "vazio", "nao_vazio"],
   data: ["antes", "depois", "entre", "ultimos_dias", "ha_mais_de_dias", "vazio", "nao_vazio"],
+  numero: ["maior", "menor", "entre", "igual"],
+  etiqueta: ["tem", "nao_tem", "tem_qualquer", "tem_todas", "sem_etiqueta", "com_etiqueta"],
+  funil: ["na_etapa", "fora_da_etapa", "no_funil", "fora_do_funil"],
 }
 
 export function campoDoFiltro(id: string): CampoDoFiltro | undefined {
-  return CAMPOS_DO_FILTRO.find((c) => c.id === id)
+  return TODOS_OS_CAMPOS.find((c) => c.id === id)
 }
 
 /** Comparações que o campo oferece; campo obrigatório não tem "está vazio". */
@@ -137,25 +197,29 @@ export function comparacoesDoCampo(campo: CampoDoFiltro): Comparacao[] {
 export function rotuloDaComparacao(campo: CampoDoFiltro, comparacao: Comparacao): string {
   if (campo.tipo === "data" && comparacao === "vazio") return "está vazia"
   if (campo.tipo === "data" && comparacao === "nao_vazio") return "não está vazia"
+  if (campo.tipo === "numero" && comparacao === "igual") return "igual a"
   return ROTULO_DA_COMPARACAO[comparacao]
 }
 
 /** Quantos valores a comparação pede. */
 export function valoresPedidos(comparacao: Comparacao): "nenhum" | "um" | "dois" | "varios" {
-  if (comparacao === "vazio" || comparacao === "nao_vazio") return "nenhum"
+  if (["vazio", "nao_vazio", "sem_etiqueta", "com_etiqueta", "no_funil", "fora_do_funil"].includes(comparacao)) return "nenhum"
   if (comparacao === "entre") return "dois"
-  if (comparacao === "qualquer_de") return "varios"
+  if (comparacao === "qualquer_de" || comparacao === "tem_qualquer" || comparacao === "tem_todas") return "varios"
   return "um"
 }
 
 const DATA = /^\d{4}-\d{2}-\d{2}$/
 const DIAS = /^\d{1,5}$/
+/** Reais com até dois centavos, com ponto (o campo numérico do navegador usa ponto). */
+const NUMERO = /^\d{1,12}(\.\d{1,2})?$/
 
 function valorValido(campo: CampoDoFiltro, comparacao: Comparacao, valor: string): boolean {
   if (!valor.trim()) return false
   if (campo.id === "telefone") return valor.replace(/\D/g, "").length > 0
   if (comparacao === "ultimos_dias" || comparacao === "ha_mais_de_dias") return DIAS.test(valor) && Number(valor) > 0
   if (campo.tipo === "data") return DATA.test(valor) && !Number.isNaN(Date.parse(valor))
+  if (campo.tipo === "numero") return NUMERO.test(valor)
   if (campo.opcoes) return campo.opcoes.some((o) => o.valor === valor)
   return true
 }
