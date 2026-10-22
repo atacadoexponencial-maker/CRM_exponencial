@@ -201,10 +201,10 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
   const ordenacaoLabel = ORDENACOES.find((o) => o.valor === ordenacao)?.label ?? "Ordenar"
 
   return (
-    <div className="max-w-6xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-8 lg:px-10">
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">Contatos</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Contatos</h1>
         <div className="flex items-center gap-3">
           <Link
             href="/contatos/lixeira"
@@ -228,7 +228,7 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
             placeholder="Buscar por nome ou número..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            className="h-8 w-64 pl-8 pr-3 text-sm rounded-lg border border-input bg-transparent outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground"
+            className="h-9 w-64 pl-8 pr-3 text-sm rounded-md border border-input bg-card outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground"
           />
         </div>
 
@@ -236,7 +236,7 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
         <div className="relative">
           <button
             onClick={() => setOrdenacaoAberta((v) => !v)}
-            className="h-8 flex items-center gap-1.5 px-3 text-sm rounded-lg border border-input text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="h-9 flex items-center gap-1.5 px-3 text-sm rounded-md border border-input bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             {ordenacaoLabel}
             <ChevronDown className="size-3" />
@@ -372,18 +372,18 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
           Nenhum contato encontrado
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="overflow-x-auto border-t-2 border-t-foreground">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Nome</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">WhatsApp</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Classificação</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Tipo</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Nicho</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Cidade</th>
+              <tr className="border-b">
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Nome</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">WhatsApp</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Classificação</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Tipo</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Nicho</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Cidade</th>
                 {papel !== "atendente" && (
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Atendente</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Atendente</th>
                 )}
                 <th className="px-4 py-3" />
               </tr>
@@ -396,7 +396,7 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
                   className="border-b last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
                 >
                   <td className="px-4 py-3 font-medium max-w-64 [overflow-wrap:anywhere]">{contato.nome}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{contato.telefone}</td>
+                  <td className="numero px-4 py-3 text-muted-foreground">{contato.telefone}</td>
                   <td className="px-4 py-3">
                     <span className={cn(
                       "inline-flex items-center px-2 py-0.5 text-xs rounded-md border font-medium",
@@ -419,7 +419,7 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
                       aria-label={`Excluir ${contato.nome}`}
                       disabled={preparandoExclusao === contato.id}
                       onClick={(e) => { e.stopPropagation(); abrirExclusao(contato.id) }}
-                      className="inline-flex size-7 items-center justify-center rounded-md text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                      className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-erro hover:bg-erro-fundo disabled:opacity-50"
                     >
                       {preparandoExclusao === contato.id
                         ? <Loader2 className="size-3.5 animate-spin" />
@@ -434,7 +434,7 @@ export function ListaContatos({ contatos: contatosIniciais, temMais: temMaisInic
       )}
 
       {erroExclusao && !resumoExclusao && (
-        <p className="mt-3 text-xs text-destructive">{erroExclusao}</p>
+        <p className="mt-3 text-xs text-erro">{erroExclusao}</p>
       )}
 
       {resumoExclusao && (

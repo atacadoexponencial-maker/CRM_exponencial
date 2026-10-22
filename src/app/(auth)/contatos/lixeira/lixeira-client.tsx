@@ -40,14 +40,14 @@ export function LixeiraClient({ itens }: { itens: ItemLixeira[] }) {
           <ArrowLeft className="size-3.5" aria-hidden />
           Contatos
         </Link>
-        <h1 className="text-xl font-semibold">Lixeira</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Lixeira</h1>
       </div>
       <p className="mb-4 text-xs text-muted-foreground">
         Itens na lixeira são apagados de vez após 30 dias.
       </p>
 
       {erro && (
-        <p className="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{erro}</p>
+        <p className="mb-4 rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">{erro}</p>
       )}
 
       <ListaLixeira

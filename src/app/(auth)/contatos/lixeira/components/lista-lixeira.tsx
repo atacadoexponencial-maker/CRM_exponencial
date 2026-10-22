@@ -57,14 +57,14 @@ export function ListaLixeira({ itens, onRestaurar, onApagarDeVez }: ListaLixeira
 
   return (
     <>
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="overflow-x-auto border-t-2 border-t-foreground">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Contato</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Funis</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Excluído</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Prazo</th>
+            <tr className="border-b">
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Contato</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Funis</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Excluído</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Prazo</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>

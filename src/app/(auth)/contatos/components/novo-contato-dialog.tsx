@@ -109,7 +109,7 @@ export function NovoContatoDialog() {
             </p>
           )}
           {erroGeral && (
-            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
               {erroGeral}
             </p>
           )}
@@ -123,7 +123,7 @@ export function NovoContatoDialog() {
               aria-invalid={!!errors.nome}
               {...register("nome")}
             />
-            {errors.nome && <p className="text-sm text-destructive">{errors.nome.message}</p>}
+            {errors.nome && <p className="text-sm text-erro">{errors.nome.message}</p>}
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -137,8 +137,8 @@ export function NovoContatoDialog() {
               onBlur={handleTelefoneBlur}
               onChange={handleTelefoneChange}
             />
-            {errors.telefone && <p className="text-sm text-destructive">{errors.telefone.message}</p>}
-            {!errors.telefone && erroTelefone && <p className="text-sm text-destructive">{erroTelefone}</p>}
+            {errors.telefone && <p className="text-sm text-erro">{errors.telefone.message}</p>}
+            {!errors.telefone && erroTelefone && <p className="text-sm text-erro">{erroTelefone}</p>}
           </div>
 
           <div className="flex flex-col gap-1.5">
