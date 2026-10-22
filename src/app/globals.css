@@ -188,6 +188,13 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
+  /* Lista aberta dos <select> nativos: sem isto o navegador pinta a letra branca
+     sobre o fundo claro (preview da B36, 22/10). */
+  select option,
+  select optgroup {
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+  }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
     @apply font-semibold tracking-tight;
