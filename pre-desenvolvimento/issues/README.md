@@ -33,4 +33,5 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B36 | `../spec-tema-claro-caderno.md` (aprovada em 21/10/2026: tema claro padrão e escuro por usuário, linguagem visual Caderno na cor Grafite em todas as telas, aprovação no preview) | `concluidas_B36/` (quando houver) |
 | B37 | `../spec-filtro-de-contatos.md` (aprovada em 22/10/2026: filtro avançado na lista de contatos, por todos os campos, etiquetas, compras e etapa do funil, com grupos E/OU e filtros salvos da empresa) | `concluidas_B37/` (quando houver) |
 | B38 | reservada em 22/10/2026 para a spec de campos personalizados do contato (a escrever depois da B37) | `concluidas_B38/` (quando houver) |
+| B39 | `../spec-pedidos-exportar-e-filtrar.md` (aprovada em 22/10/2026: pedidos do catálogo com exportação em Excel e CSV, filtros novos e período personalizado com calendário) | `concluidas_B39/` (quando houver) |
 | F1 | `docs/specs-arquivadas/spec-fluxo-com-prova.md` (melhoria do fluxo de desenvolvimento: critérios de aceite com código, auditor, lições) | `concluidas_F1/` |
