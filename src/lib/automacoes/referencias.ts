@@ -68,6 +68,11 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
       atendentes.add(p.atendente_id)
       atendentesAtribuidos.add(p.atendente_id)
     }
+    // B28-01: quem recebe o lembrete também precisa estar ativo
+    if (bloco.tipo === "acao" && bloco.acao === "criar_lembrete" && p.responsavel_id) {
+      atendentes.add(p.responsavel_id)
+      atendentesAtribuidos.add(p.responsavel_id)
+    }
     if (p.time_id) times.add(p.time_id)
     if (p.sequencia_id) sequencias.add(p.sequencia_id)
     // Funil sozinho também é conferido: o gatilho "card movido" aceita "qualquer etapa"

@@ -17,6 +17,7 @@ import {
   VERIFICACOES_DE_MENSAGEM,
   VERIFICACOES_DISPONIVEIS,
   horasValidas,
+  vencimentoDoLembrete,
   type AcaoTipo,
   type Bloco,
   type BlocoCondicao,
@@ -324,6 +325,8 @@ function CamposParametros({
                 guardarArquivo={guardarArquivo}
                 onGuardado={(guardado) => onMudar({ ...parametros, ...guardado })}
               />
+            ) : campo.tipo === "vencimento" ? (
+              <CampoVencimento id={id} parametros={parametros} onMudar={(mudanca) => onMudar({ ...parametros, ...mudanca })} />
             ) : (
               <CampoParametro id={id} campo={campo} valor={valor} parametros={parametros} opcoes={opcoes} onMudar={mudar} />
             )}
@@ -493,7 +496,57 @@ function CampoParametro({
     case "arquivo":
       // Desenhado por `CampoArquivo`, que sobe o arquivo e grava três parâmetros de uma vez
       return null
+    case "vencimento":
+      // Desenhado por `CampoVencimento`, que grava o número e a unidade
+      return null
   }
+}
+
+const ITENS_UNIDADE_DO_VENCIMENTO: ItemSelecao[] = [
+  { valor: "horas", rotulo: "horas depois" },
+  { valor: "dias", rotulo: "dias depois" },
+]
+
+/**
+ * Vencimento do lembrete (B28-01): um número e a unidade. Vazio ou 0 vence na
+ * hora em que a regra roda. Fora do limite, o aviso aparece aqui e o Salvar recusa.
+ */
+function CampoVencimento({
+  id,
+  parametros,
+  onMudar,
+}: {
+  id: string
+  parametros: Parametros
+  onMudar: (mudanca: Parametros) => void
+}) {
+  const valido = vencimentoDoLembrete(parametros) !== null
+  return (
+    <>
+      <div className="flex items-center gap-1.5">
+        <Input
+          id={id}
+          aria-invalid={!valido}
+          inputMode="numeric"
+          className="w-20"
+          placeholder="0"
+          value={parametros.vence_em ?? ""}
+          onChange={(e) => onMudar({ vence_em: e.target.value.trim() })}
+        />
+        <CampoSelecao
+          aria-label="Unidade do vencimento"
+          valor={parametros.vence_unidade || "dias"}
+          itens={ITENS_UNIDADE_DO_VENCIMENTO}
+          onMudar={(unidade) => onMudar({ vence_unidade: unidade })}
+        />
+      </div>
+      {valido ? (
+        <p className="text-xs text-muted-foreground">Vazio ou 0: vence na hora em que a regra roda.</p>
+      ) : (
+        <p className="text-xs text-destructive">Use um número inteiro, até 365 dias ou 8760 horas.</p>
+      )}
+    </>
+  )
 }
 
 /**

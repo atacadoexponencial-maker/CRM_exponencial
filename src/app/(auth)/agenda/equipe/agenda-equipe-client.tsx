@@ -2,26 +2,21 @@
 
 import { useState, useTransition } from "react"
 import Link from "next/link"
-import { AlarmClock, Bell, ListChecks, Loader2, MessageSquare } from "lucide-react"
+import { AlarmClock, Loader2, MessageSquare } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { formatarDiaEHora } from "@/lib/datas"
 import { cn } from "@/lib/utils"
 import { listarAgendaEquipe, reatribuirLembrete } from "../actions"
 import type { ItemAgenda, SequenciaEmAndamento } from "../actions"
+import { IconeDaOrigem, RegraDoLembrete } from "../origem-do-lembrete"
 
 const selectClass =
   "h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-
-function formatarHorario(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) +
-    " " +
-    d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-}
 
 export function AgendaEquipeClient({
   itensIniciais,
@@ -136,16 +131,15 @@ export function AgendaEquipeClient({
                     atrasado && "border-destructive/40 bg-destructive/5"
                   )}
                 >
-                  <span className="mt-0.5 shrink-0 text-muted-foreground">
-                    {item.origem === "sequencia" ? <ListChecks className="size-4" /> : <Bell className="size-4" />}
-                  </span>
+                  <IconeDaOrigem item={item} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-sm">{item.contatoNome}</span>
-                      <span className="text-xs text-muted-foreground">{formatarHorario(item.dueAt)}</span>
+                      <span className="text-xs text-muted-foreground">{formatarDiaEHora(item.dueAt)}</span>
                       <span className="text-xs rounded-full bg-muted px-2 py-0.5">{item.atendenteNome}</span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-0.5">{item.instrucao}</p>
+                    <RegraDoLembrete item={item} />
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {item.conversaId && (
@@ -208,7 +202,7 @@ export function AgendaEquipeClient({
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {s.proximaExecucao
-                        ? formatarHorario(s.proximaExecucao)
+                        ? formatarDiaEHora(s.proximaExecucao)
                         : "Aguardando lembrete ser concluído"}
                     </td>
                   </tr>

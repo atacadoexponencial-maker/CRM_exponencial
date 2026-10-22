@@ -53,7 +53,7 @@ async function abrirPreview(urlPreview, login) {
   )
   const page = await browser.newPage({ viewport: { width: 1400, height: 860 } })
   const erros = []
-  page.on("pageerror", (e) => erros.push(String(e)))
+  page.on("pageerror", (e) => erros.push(`${new URL(page.url()).pathname}: ${String(e).slice(0, 60)}`))
 
   const bypass = new URLSearchParams({
     "x-vercel-protection-bypass": env.VERCEL_AUTOMATION_BYPASS_SECRET,
@@ -67,6 +67,20 @@ async function abrirPreview(urlPreview, login) {
     page.locator("#senha").press("Enter"),
   ])
   return { browser, page, erros, workspaceId: env.B11_TESTE_WORKSPACE_ID }
+}
+
+/**
+ * Perfil de quem o roteiro usa para entrar (`B11_TESTE_EMAIL`). A empresa de teste
+ * tem dois admins desde 20/10/2026: o original e o dos roteiros.
+ */
+async function adminDoLogin(db, env = lerEnv()) {
+  const { data, error } = await db.auth.admin.listUsers({ perPage: 1000 })
+  if (error) throw new Error(error.message)
+  const usuario = data.users.find((u) => u.email === env.B11_TESTE_EMAIL)
+  if (!usuario) throw new Error("a conta de B11_TESTE_EMAIL não existe")
+  const { data: perfil } = await db.from("profiles").select("id, name").eq("workspace_id", env.B11_TESTE_WORKSPACE_ID).eq("id", usuario.id).single()
+  if (!perfil) throw new Error("a conta de B11_TESTE_EMAIL não é da empresa de teste")
+  return perfil
 }
 
 /** Lista de verificações de um roteiro: cada uma vira uma linha "OK" ou "FALHOU". */
@@ -233,6 +247,8 @@ async function apagarAtendente(db, ws, id) {
     ["histórico do card", () => db.from("pipeline_card_history").delete().eq("alterado_por", id).in("card_id", idsCards)],
     ["cards", () => db.from("pipeline_cards").update({ atendente_id: null }).eq("workspace_id", ws).eq("atendente_id", id)],
     ["conversas", () => db.from("conversations").update({ assigned_to: null }).eq("workspace_id", ws).eq("assigned_to", id)],
+    // B28-01: lembrete da Agenda aponta para o perfil (`atendente_id`, sem `on delete`)
+    ["lembretes", () => db.from("reminders").delete().eq("workspace_id", ws).eq("atendente_id", id)],
     ["perfil", () => db.from("profiles").delete().eq("workspace_id", ws).eq("id", id)],
     ["login", () => db.auth.admin.deleteUser(id)],
   ]
@@ -248,6 +264,7 @@ module.exports = {
   bancoDeServico,
   conferirEmpresaDeTeste,
   abrirPreview,
+  adminDoLogin,
   criarRelatorio,
   esperarAutomacoes,
   enviarEventoDoGateway,

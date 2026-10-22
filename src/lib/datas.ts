@@ -25,6 +25,12 @@ const HORA = new Intl.DateTimeFormat("pt-BR", {
   minute: "2-digit",
 })
 
+const DIA_E_MES = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: FUSO_DA_OPERACAO,
+  day: "2-digit",
+  month: "2-digit",
+})
+
 const DATA_CURTA = new Intl.DateTimeFormat("pt-BR", {
   timeZone: FUSO_DA_OPERACAO,
   day: "2-digit",
@@ -62,6 +68,20 @@ function diasDeDiferenca(quando: Date, agora: Date): number {
 /** Só a hora: `14:32`. É o que aparece embaixo de cada balão de mensagem. */
 export function formatarHoraDoDia(iso: string): string {
   return HORA.format(new Date(iso))
+}
+
+/** Dia, mês e hora: `22/10 14:30`. É o vencimento de cada item da Agenda. */
+export function formatarDiaEHora(iso: string): string {
+  return `${DIA_E_MES.format(new Date(iso))} ${formatarHoraDoDia(iso)}`
+}
+
+/**
+ * Quantos dias de calendário faltam até a data, no fuso da operação: 0 é hoje,
+ * 1 é amanhã, negativo é um dia que já passou. A Agenda agrupa por ele.
+ */
+export function diasAte(iso: string, agora: Date = new Date()): number {
+  // A diferença ao contrário: de agora até a data
+  return diasDeDiferenca(agora, new Date(iso))
 }
 
 /** Data curta: `15 abr. 2026`. */

@@ -23,6 +23,7 @@ import {
 import { SEQUENCIA_JA_EM_ANDAMENTO, iniciarExecucaoSequencia, processarGatilhoSequencia } from "@/lib/sequencias"
 import { conversaDoEvento, type ContextoDaExecucao } from "./contexto"
 import { enviarArquivo, enviarMensagemRapida, enviarTexto } from "./envio"
+import { criarLembrete } from "./lembrete"
 import { dadoDoContatoValido } from "./referencias"
 import { atendenteDoContato, registrarMudancasDeCarteira } from "@/lib/carteira"
 
@@ -219,6 +220,8 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
     }
     case "reabrir_conversa":
       return reabrirConversa(contexto, contactId)
+    case "criar_lembrete":
+      return criarLembrete(contexto, contactId, parametros)
     default:
       return falhou("Esta ação ainda não está disponível")
   }

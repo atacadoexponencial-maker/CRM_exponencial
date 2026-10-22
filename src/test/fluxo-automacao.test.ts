@@ -331,3 +331,36 @@ describe("tag no gatilho 'tag adicionada' (B11-06)", () => {
     expect(pendenciasDoFluxo(comTag("cliente vip")).porBloco.g).toContain(PENDENCIA)
   })
 })
+
+describe("vencimento e texto do 'criar lembrete' (B28-01)", () => {
+  const comLembrete = (parametros: Record<string, string>): Fluxo => ({
+    blocos: [gatilho(), { id: "a", tipo: "acao", acao: "criar_lembrete", parametros, posicao }],
+    ligacoes: [liga("g", "a")],
+  })
+  const pendencias = (parametros: Record<string, string>) => pendenciasDoFluxo(comLembrete(parametros)).porBloco.a ?? []
+
+  it("aceita vencimento vazio, zero e inteiros até um ano, em horas ou em dias", () => {
+    const validos: Array<Record<string, string>> = [{}, { vence_em: "0" }, { vence_em: "365" }, { vence_em: "8760", vence_unidade: "horas" }]
+    for (const p of validos) {
+      expect(pendencias({ texto: "Ligar", ...p })).toEqual([])
+    }
+  })
+
+  it("recusa vencimento com fração, negativo, acima de um ano ou unidade estranha", () => {
+    const invalidos: Array<Record<string, string>> = [
+      { vence_em: "1.5" },
+      { vence_em: "-1" },
+      { vence_em: "366" },
+      { vence_em: "8761", vence_unidade: "horas" },
+      { vence_em: "2", vence_unidade: "semanas" },
+    ]
+    for (const p of invalidos) {
+      expect(pendencias({ texto: "Ligar", ...p })).toContain("O vencimento é um número inteiro, até 365 dias (ou 8760 horas)")
+    }
+  })
+
+  it("pede o texto e limita a 500 caracteres", () => {
+    expect(pendencias({})).toContain("Complete a configuração da ação")
+    expect(pendencias({ texto: "x".repeat(501) })).toContain("O lembrete vai até 500 caracteres")
+  })
+})

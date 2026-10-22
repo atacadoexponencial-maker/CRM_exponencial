@@ -2,7 +2,7 @@
 // resumo da regra inteira, na lista.
 
 import type { Bloco, BlocoAcao, BlocoGatilho, Fluxo, Repeticao, Verificacao } from "@/lib/fluxo-automacao"
-import { SEQUENCIA_DA_ETAPA, gatilhoDoFluxo } from "@/lib/fluxo-automacao"
+import { SEQUENCIA_DA_ETAPA, gatilhoDoFluxo, vencimentoDoLembrete } from "@/lib/fluxo-automacao"
 import {
   ACOES,
   FUNIS,
@@ -130,6 +130,16 @@ export function fraseAcao(bloco: BlocoAcao, opcoes: OpcoesEditor): string {
     case "resolver_conversa":
     case "reabrir_conversa":
       return rotulo
+    case "criar_lembrete": {
+      if (!p.texto) return rotulo
+      const para = p.responsavel_id ? nomeOuApagado(opcoes.atendentes, p.responsavel_id) : "o responsável"
+      const vencimento = vencimentoDoLembrete(p)
+      const quando =
+        !vencimento || vencimento.quantidade === 0
+          ? ""
+          : `, vence em ${plural(vencimento.quantidade, vencimento.unidade === "horas" ? "hora" : "dia", vencimento.unidade)}`
+      return `Lembrete para ${para}: "${trecho(p.texto, 40)}"${quando}`
+    }
   }
 }
 

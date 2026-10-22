@@ -708,3 +708,88 @@ describe("atribuir põe a conversa em espera em atendimento, como o chat (B22-03
     expect(b.gravacoes("pipeline_cards")[0].args[0]).toEqual({ atendente_id: "u-1" })
   })
 })
+
+describe("criar lembrete na Agenda (B28-01)", () => {
+  const regra = { id: "regra-1", nome: "Pós-venda" }
+  const lembrete = (parametros: Record<string, string>) => acao("criar_lembrete", parametros)
+
+  it("CA-B28-27: cria o lembrete na Agenda do responsável, com as variáveis e o vencimento", async () => {
+    const b = banco({
+      conversations: { um: { assigned_to: "ana" } },
+      profiles: { um: { status: "active", name: "Ana" } },
+      contacts: { um: { name: "Bruno", phone_number: "5500000000102" } },
+    })
+    const antes = Date.now()
+    const ok = await executarAcao(
+      { ...b.contexto(conversaCriada), regra },
+      lembrete({ texto: "Ligar para {{nome_contato}}", vence_em: "2", vence_unidade: "dias" })
+    )
+
+    expect(ok).toEqual({ ok: true })
+    const [gravado] = b.gravacoes("reminders")
+    const linha = gravado.args[0] as Record<string, string>
+    expect(linha).toMatchObject({
+      workspace_id: "ws-1",
+      contact_id: "contato-1",
+      atendente_id: "ana",
+      origem: "automacao",
+      automacao_nome: "Pós-venda",
+      instrucao: "Ligar para Bruno",
+    })
+    const vence = new Date(linha.due_at).getTime()
+    expect(vence - antes).toBeGreaterThanOrEqual(2 * 86_400_000)
+    expect(vence - antes).toBeLessThan(2 * 86_400_000 + 60_000)
+  })
+
+  it("CA-B28-28: sem responsável na conversa, o lembrete vai para o primeiro admin ativo", async () => {
+    const b = banco({
+      conversations: { um: { assigned_to: null } },
+      profiles: { um: { id: "admin-1" } },
+      contacts: { um: { name: "Bruno", phone_number: "5500000000102" } },
+    })
+    const ok = await executarAcao({ ...b.contexto(conversaCriada), regra }, lembrete({ texto: "Ligar" }))
+
+    expect(ok).toEqual({ ok: true })
+    expect((b.gravacoes("reminders")[0].args[0] as Record<string, string>).atendente_id).toBe("admin-1")
+    expect(b.filtros("profiles")).toEqual(
+      expect.arrayContaining([
+        ["workspace_id", "ws-1"],
+        ["role", "admin"],
+        ["status", "active"],
+      ])
+    )
+    // "Primeiro": o mais antigo, um só
+    const doPerfil = b.chamadas.filter((c) => c.tabela === "profiles")
+    expect(doPerfil).toContainEqual(expect.objectContaining({ metodo: "order", args: ["created_at"] }))
+    expect(doPerfil).toContainEqual(expect.objectContaining({ metodo: "limit", args: [1] }))
+  })
+
+  it("vencimento vazio vence na hora", async () => {
+    const b = banco({
+      conversations: { um: { assigned_to: "ana" } },
+      profiles: { um: { status: "active" } },
+      contacts: { um: { name: "Bruno" } },
+    })
+    const antes = Date.now()
+    await executarAcao(b.contexto(conversaCriada), lembrete({ texto: "Ligar" }))
+    const vence = new Date((b.gravacoes("reminders")[0].args[0] as Record<string, string>).due_at).getTime()
+    expect(vence - antes).toBeLessThan(60_000)
+  })
+
+  it("CA-B28-29: pessoa escolhida desativada faz a ação falhar com o motivo, sem gravar", async () => {
+    const b = banco({ profiles: { um: { status: "inactive" } } })
+    const ok = await executarAcao(
+      { ...b.contexto(conversaCriada), regra },
+      lembrete({ texto: "Ligar", responsavel_id: "pessoa-1" })
+    )
+
+    expect(ok).toEqual({ ok: false, motivo: "A pessoa escolhida está desativada" })
+    expect(b.gravacoes("reminders")).toEqual([])
+  })
+
+  it("empresa sem admin ativo e sem responsável: falha com o motivo", async () => {
+    const b = banco({ conversations: { um: null }, profiles: { um: null } })
+    const ok = await executarAcao(b.contexto(cardMovido), lembrete({ texto: "Ligar" }))
+    expect(ok).toEqual({ ok: false, motivo: "Ninguém para receber o lembrete: a empresa não tem admin ativo" })
+  })
+})

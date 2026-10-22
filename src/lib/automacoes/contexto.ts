@@ -78,6 +78,8 @@ export type ServiceClient = ReturnType<typeof createServiceClient>
 export interface ContextoDaExecucao {
   supabase: ServiceClient
   gatilho: GatilhoAutomacao
+  /** A regra que está rodando: o lembrete criado por automação diz de qual veio (B28-01). Fora do motor (simulação), não há. */
+  regra?: { id: string; nome: string }
 }
 
 /**
