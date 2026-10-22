@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -10,6 +9,8 @@ import { Label } from "@/components/ui/label"
 import { cadastrarEmpresa } from "./actions"
 import { schema, type DadosCadastro } from "./schema"
 import { AVISO_MUITAS_TENTATIVAS } from "../login/avisos"
+import { TemaClaro } from "@/components/shared/tema-claro"
+import { LogoDaMarca } from "@/components/shared/logo-da-marca"
 
 export { schema }
 
@@ -50,10 +51,11 @@ export default function CadastroPage() {
   }
 
   return (
+    <TemaClaro>
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <Image src="/logo-crmatacado-exp.png" alt="crmatacado exp" width={720} height={349} priority className="mx-auto mb-6 h-16 w-auto" />
+          <LogoDaMarca className="mx-auto mb-6 h-16" />
           <h1 className="text-2xl font-semibold tracking-tight">Criar conta</h1>
           <p className="text-sm text-muted-foreground mt-2">
             Cadastre sua empresa no crmatacado exp
@@ -144,5 +146,6 @@ export default function CadastroPage() {
         </p>
       </div>
     </div>
+    </TemaClaro>
   )
 }

@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
   AlarmClock,
@@ -32,6 +31,8 @@ import {
 import { cn } from "@/lib/utils"
 import { COOKIE_MENU_RECOLHIDO, gravarPreferencia } from "@/lib/preferencias-layout"
 import { MenuDoUsuario } from "./menu-do-usuario"
+import { LogoDaMarca } from "./logo-da-marca"
+import type { Tema } from "@/lib/tema"
 
 type Papel = "admin" | "gerente" | "atendente"
 
@@ -56,6 +57,8 @@ interface SidebarNavProps {
   atrasados: number
   /** Pedidos do catálogo ainda Novos (B16-10). */
   pedidosNovos?: number
+  /** Tema escolhido no perfil, para o menu do usuário (B36-01). */
+  tema?: Tema
 }
 
 function montarSecoes(atrasados: number, pedidosNovos: number): SecaoNav[] {
@@ -187,7 +190,7 @@ function ConteudoNav({
             onClick={onNavegar}
             className="flex flex-1 min-w-0 items-center gap-2.5"
           >
-            <Image src="/logo-crmatacado-exp.png" alt="crmatacado exp" width={720} height={349} priority className="h-8 w-auto" />
+            <LogoDaMarca className="h-8" />
           </Link>
         )}
         {onAlternar && (
@@ -248,10 +251,10 @@ export function SidebarNav({ recolhidoInicial = false, ...props }: SidebarNavPro
       {/* Barra superior + drawer (mobile) */}
       <div className="lg:hidden flex items-center justify-between border-b h-14 px-4 shrink-0">
         <span className="flex items-center gap-2">
-          <Image src="/logo-crmatacado-exp.png" alt="crmatacado exp" width={720} height={349} priority className="h-8 w-auto" />
+          <LogoDaMarca className="h-8" />
         </span>
         <span className="flex items-center gap-2">
-        <MenuDoUsuario nome={props.nomeUsuario} email={props.email ?? ""} />
+        <MenuDoUsuario nome={props.nomeUsuario} email={props.email ?? ""} tema={props.tema} />
         <button
           type="button"
           onClick={() => setAberto(true)}

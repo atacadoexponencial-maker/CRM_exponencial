@@ -1601,6 +1601,7 @@ export type Database = {
           name: string
           role: string
           status: string
+          tema: string
           workspace_id: string
         }
         Insert: {
@@ -1609,6 +1610,7 @@ export type Database = {
           name: string
           role: string
           status?: string
+          tema?: string
           workspace_id: string
         }
         Update: {
@@ -1617,6 +1619,7 @@ export type Database = {
           name?: string
           role?: string
           status?: string
+          tema?: string
           workspace_id?: string
         }
         Relationships: [

@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { TemaClaro } from "@/components/shared/tema-claro"
 
 export const metadata: Metadata = {
   title: "Política de Privacidade — crmatacado exp",
@@ -7,6 +8,7 @@ export const metadata: Metadata = {
 
 export default function PoliticaDePrivacidadePage() {
   return (
+    <TemaClaro>
     <main className="min-h-screen bg-white">
       <div className="max-w-3xl mx-auto px-6 py-16 text-sm text-gray-800">
       <h1 className="text-2xl font-semibold mb-2">Política de Privacidade</h1>
@@ -132,5 +134,6 @@ export default function PoliticaDePrivacidadePage() {
       </section>
       </div>
     </main>
+    </TemaClaro>
   )
 }

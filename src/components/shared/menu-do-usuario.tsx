@@ -4,16 +4,20 @@
 // clicar um menu com nome, e-mail, "Meu perfil" e "Sair". Antes, sair exigia abrir o
 // perfil e clicar em Sair lá.
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { LogOut, UserCircle } from "lucide-react"
+import { LogOut, Moon, Sun, UserCircle } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { realizarLogout } from "@/app/(auth)/perfil/actions"
+import { realizarLogout, trocarTema } from "@/app/(auth)/perfil/actions"
+import { aplicarTemaNoNavegador, temaValido, type Tema } from "@/lib/tema"
 
 /** Duas iniciais do nome; sem nome, a primeira letra do e-mail. */
 export function iniciaisDe(nome: string, email: string): string {
@@ -23,9 +27,28 @@ export function iniciaisDe(nome: string, email: string): string {
   return (email[0] ?? "?").toUpperCase()
 }
 
-export function MenuDoUsuario({ nome, email }: { nome: string; email: string }) {
+export function MenuDoUsuario({ nome, email, tema = "claro" }: { nome: string; email: string; tema?: Tema }) {
   const router = useRouter()
   const iniciais = iniciaisDe(nome, email)
+  const [temaAtual, setTemaAtual] = useState<Tema>(tema)
+  const [erroTema, setErroTema] = useState("")
+
+  // B36-01: a tela muda na hora (sem recarregar); o perfil grava em seguida. Se a
+  // gravação falhar, volta ao tema anterior e avisa.
+  async function escolherTema(valor: string) {
+    const novo = temaValido(valor)
+    const anterior = temaAtual
+    if (novo === anterior) return
+    setErroTema("")
+    setTemaAtual(novo)
+    aplicarTemaNoNavegador(novo)
+    const { erro } = await trocarTema(novo)
+    if (erro) {
+      setTemaAtual(anterior)
+      aplicarTemaNoNavegador(anterior)
+      setErroTema(erro)
+    }
+  }
 
   return (
     <DropdownMenu>
@@ -46,6 +69,19 @@ export function MenuDoUsuario({ nome, email }: { nome: string; email: string }) 
             <span className="truncate text-xs text-muted-foreground">{email}</span>
           </span>
         </div>
+        <DropdownMenuSeparator />
+        <div className="px-2 pt-1 pb-0.5 text-xs text-muted-foreground">Tema</div>
+        <DropdownMenuRadioGroup value={temaAtual} onValueChange={(v) => void escolherTema(String(v))}>
+          <DropdownMenuRadioItem value="claro" closeOnClick={false}>
+            <Sun className="size-4" />
+            Claro
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="escuro" closeOnClick={false}>
+            <Moon className="size-4" />
+            Escuro
+          </DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+        {erroTema && <p role="alert" className="px-2 py-1 text-xs text-erro">{erroTema}</p>}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push("/perfil")}>
           <UserCircle className="size-4" />

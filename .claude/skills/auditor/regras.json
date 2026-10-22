@@ -4,8 +4,12 @@
     "nome": "segredo ou chave de servidor em arquivo que roda no navegador",
     "origem": "CLAUDE.md, regra 5: nunca exponha chaves de API ou secrets no frontend",
     "tipo": "conteudo",
-    "arquivos": ["src/**/*.{ts,tsx}"],
-    "excluir": ["src/test/**"],
+    "arquivos": [
+      "src/**/*.{ts,tsx}"
+    ],
+    "excluir": [
+      "src/test/**"
+    ],
     "somenteSe": "^\\s*['\"]use client['\"]",
     "padrao": "process\\.env\\.(?!NEXT_PUBLIC_|NODE_ENV\\b)\\w+|SUPABASE_SERVICE_ROLE_KEY|META_APP_SECRET|CRON_SECRET|WHATSAPP_VERIFY_TOKEN|META_TEST_ACCESS_TOKEN",
     "oQueFazer": "leve a leitura do segredo para o servidor (actions.ts ou rota de API)"
@@ -15,8 +19,12 @@
     "nome": "arquivo de tipos gerado do banco mudou sem migration junto",
     "origem": "CLAUDE.md, Backend: types.ts é auto-gerado, não editar",
     "tipo": "intocavel",
-    "arquivos": ["src/integrations/supabase/types.ts"],
-    "salvoSeMudar": ["supabase/migrations/**"],
+    "arquivos": [
+      "src/integrations/supabase/types.ts"
+    ],
+    "salvoSeMudar": [
+      "supabase/migrations/**"
+    ],
     "oQueFazer": "desfaça a edição à mão; o arquivo só muda quando é gerado de novo depois de uma migration"
   },
   {
@@ -24,17 +32,9 @@
     "nome": "componente pronto de interface modificado",
     "origem": "CLAUDE.md, Key Directories: não modificar componentes gerados pelo shadcn",
     "tipo": "intocavel",
-    "arquivos": ["src/components/ui/**"],
+    "arquivos": [
+      "src/components/ui/**"
+    ],
     "oQueFazer": "desfaça a mudança e monte a variação em src/components/shared/"
-  },
-  {
-    "id": "variante-dark",
-    "nome": "variante dark: do Tailwind, que nunca ativa porque o tema é sempre escuro",
-    "origem": "tema sempre escuro no CRM (decisão da Marcelle)",
-    "tipo": "conteudo",
-    "arquivos": ["src/**/*.{ts,tsx}"],
-    "excluir": ["src/components/ui/**", "src/test/**"],
-    "padrao": "\\bdark:[a-z\\[]",
-    "oQueFazer": "use a cor direta, sem o prefixo dark:"
   }
 ]
