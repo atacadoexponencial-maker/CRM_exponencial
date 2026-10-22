@@ -22,7 +22,7 @@ function Celula({ coorte, k, tabela, max }: { coorte: Coorte; k: number; tabela:
   const balao = tabela === "retencao" ? `${rotuloDoMesK(coorte, k)}: ${coorte.clientesPorMes[k]} de ${coorte.clientes} clientes` : `${rotuloDoMesK(coorte, k)}: ${coorte.vendasPorMes[k]} vendas`
   return (
     // B36-02: célula clara (pouca intensidade) leva texto do tema; a forte, texto branco.
-    <td className={`px-2 py-1.5 text-center tabular-nums ${intensidade > 0.5 ? "text-white" : "text-foreground"}`} style={{ backgroundColor: cor }} title={balao} data-testid={`celula-${coorte.mes}-${k}`}>
+    <td className={`px-2 py-1.5 text-center numero ${intensidade > 0.5 ? "text-white" : "text-foreground"}`} style={{ backgroundColor: cor }} title={balao} data-testid={`celula-${coorte.mes}-${k}`}>
       {texto}
     </td>
   )
@@ -34,7 +34,7 @@ export function TabelasDeCoorte({ coortes, atendenteId }: { coortes: Coorte[]; a
   const max = valores.length ? Math.max(...valores) : 0
 
   return (
-    <section className="rounded-lg border p-4">
+    <section className="rounded-md border bg-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div className="flex gap-1" role="tablist" aria-label="Tabela de coorte">
           {([["retencao", "Retenção de clientes"], ["valor", "Valor médio de venda"]] as Array<[TabelaCoorte, string]>).map(([id, nome]) => (
@@ -65,7 +65,7 @@ export function TabelasDeCoorte({ coortes, atendenteId }: { coortes: Coorte[]; a
             {coortes.map((c) => (
               <tr key={c.mes} className="border-b last:border-0" data-testid={`coorte-${c.mes}`}>
                 <td className="py-1.5 pr-3 whitespace-nowrap">{c.rotulo}</td>
-                <td className="py-1.5 pr-3 text-right tabular-nums">{c.clientes}</td>
+                <td className="py-1.5 pr-3 text-right numero">{c.clientes}</td>
                 {COLUNAS.map((k) => (
                   <Celula key={k} coorte={c} k={k} tabela={tabela} max={max} />
                 ))}
@@ -90,7 +90,7 @@ export function ResumoDasCoortes({ resumo }: { resumo: ResumoCoortes }) {
   const temBarra = dados.some((d) => d.valor !== null)
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <section className="rounded-lg border p-4">
+      <section className="rounded-md border bg-card p-5">
         <h2 className="text-sm font-semibold">Retenção média geral</h2>
         <p className="text-xs text-muted-foreground mt-0.5 mb-3">Média ponderada pelo tamanho das coortes, dos meses 1 a 11 que já chegaram</p>
         <p className="text-4xl font-semibold" data-testid="retencao-media-geral">
@@ -98,14 +98,14 @@ export function ResumoDasCoortes({ resumo }: { resumo: ResumoCoortes }) {
         </p>
         <p className="text-xs text-muted-foreground mt-2">Taxa média de clientes que voltam a comprar, considerando todas as coortes</p>
       </section>
-      <section className="rounded-lg border p-4">
+      <section className="rounded-md border bg-card p-5">
         <h2 className="text-sm font-semibold">Recompra geral por mês</h2>
         <p className="text-xs text-muted-foreground mt-0.5 mb-3">% de clientes que fizeram ao menos uma nova compra em cada mês depois da primeira</p>
         {temBarra ? (
           <BarChart data={dados} width={520} height={180} margin={{ top: 16, right: 8, bottom: 0, left: 0 }} responsive style={{ width: "100%", maxWidth: "100%" }}>
             <XAxis dataKey="rotulo" tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10 }} interval={0} />
             <YAxis tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10 }} tickFormatter={(v: number) => `${v}%`} width={36} domain={[0, 100]} />
-            <Bar dataKey="valor" fill="#4caf7d" fillOpacity={0.85} radius={3} isAnimationActive={false}>
+            <Bar dataKey="valor" fill="var(--chart-2)" fillOpacity={0.85} radius={3} isAnimationActive={false}>
               <LabelList dataKey="texto" position="top" fill="var(--foreground)" fontSize={10} />
             </Bar>
           </BarChart>
@@ -125,7 +125,7 @@ export function ResumoDasCoortes({ resumo }: { resumo: ResumoCoortes }) {
 export function EntendaCoortes() {
   const [aberto, setAberto] = useState(false)
   return (
-    <section className="rounded-lg border p-4">
+    <section className="rounded-md border bg-card p-5">
       <button type="button" onClick={() => setAberto((a) => !a)} aria-expanded={aberto} className="flex w-full items-center justify-between text-left">
         <h2 className="text-sm font-semibold">Entenda a análise de coortes</h2>
         <ChevronDown className={cn("size-4 transition-transform", aberto && "rotate-180")} />
@@ -133,7 +133,7 @@ export function EntendaCoortes() {
       {aberto && (
         <div className="grid gap-3 mt-3 sm:grid-cols-2">
           {ENTENDA.map(([titulo, texto]) => (
-            <div key={titulo} className="rounded-md bg-muted/40 p-3">
+            <div key={titulo} className="border-t pt-3">
               <p className="text-sm font-medium mb-1">{titulo}</p>
               <p className="text-xs text-muted-foreground">{texto}</p>
             </div>

@@ -18,7 +18,7 @@ export type CelulaSelecionada = { r: number; fv: number } | null
 
 export function MatrizRfv({ celulas, selecionada, onSelecionar }: { celulas: CelulaRfv[]; selecionada: CelulaSelecionada; onSelecionar: (c: CelulaSelecionada) => void }) {
   return (
-    <section className="rounded-lg border p-4">
+    <section className="rounded-md border bg-card p-5">
       <h2 className="text-sm font-semibold">Matriz RFV: Recência × FV</h2>
       <p className="text-xs text-muted-foreground mt-0.5 mb-3">Clique numa célula para filtrar (FV = Frequência + Valor)</p>
       <div className="grid gap-1.5" style={{ gridTemplateColumns: "2.5rem repeat(5, minmax(0, 1fr))" }} role="group" aria-label="Matriz RFV">
@@ -58,7 +58,7 @@ export function MatrizRfv({ celulas, selecionada, onSelecionar }: { celulas: Cel
 
 export function IndicadoresPorPerfil({ indicadores }: { indicadores: IndicadorPerfil[] }) {
   return (
-    <section className="rounded-lg border p-4">
+    <section className="rounded-md border bg-card p-5">
       <h2 className="text-sm font-semibold">Indicadores por perfil</h2>
       <p className="text-xs text-muted-foreground mt-0.5 mb-3">Média de dias sem compra, vendas e valor por cliente nos últimos 12 meses</p>
       <div className="overflow-x-auto">
@@ -79,11 +79,11 @@ export function IndicadoresPorPerfil({ indicadores }: { indicadores: IndicadorPe
               return (
                 <tr key={i.perfil} className="border-b last:border-0" data-testid={`indicador-${i.perfil}`}>
                   <td className="py-2 pr-3 whitespace-nowrap"><span className="mr-1.5">{perfil.icone}</span>{perfil.nome}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{i.clientes}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{i.clientes ? `${i.semLembrete} (${i.percentualSemLembrete}%)` : "—"}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{i.diasSemCompraMedio === null ? "—" : `${i.diasSemCompraMedio} dias`}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{decimal(i.vendasMedias)}</td>
-                  <td className="py-2 text-right tabular-nums">{moeda(i.valorMedioPorCliente)}</td>
+                  <td className="py-2 pr-3 text-right numero">{i.clientes}</td>
+                  <td className="py-2 pr-3 text-right numero">{i.clientes ? `${i.semLembrete} (${i.percentualSemLembrete}%)` : "—"}</td>
+                  <td className="py-2 pr-3 text-right numero">{i.diasSemCompraMedio === null ? "—" : `${i.diasSemCompraMedio} dias`}</td>
+                  <td className="py-2 pr-3 text-right numero">{decimal(i.vendasMedias)}</td>
+                  <td className="py-2 text-right numero">{moeda(i.valorMedioPorCliente)}</td>
                 </tr>
               )
             })}

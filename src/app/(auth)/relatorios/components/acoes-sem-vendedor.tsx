@@ -59,7 +59,7 @@ export function DistribuirDialog({ vendedores, semVendedor, onFeito }: { vendedo
           <label className="flex items-center gap-2 text-sm"><input type="radio" name="quais" checked={soComCompra} onChange={() => setSoComCompra(true)} /> Só os com compra ({semVendedor.comCompra})</label>
         </fieldset>
         <p className="text-sm" data-testid="confirmacao-distribuir">Distribuir {quantos} contatos entre {marcados.length} {marcados.length === 1 ? "vendedor" : "vendedores"}?</p>
-        {erro && <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive mt-3">{erro}</p>}
+        {erro && <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro mt-3">{erro}</p>}
         <div className="flex justify-end gap-2 pt-4">
           <DialogClose render={<Button type="button" variant="outline" size="sm" />}>Cancelar</DialogClose>
           <Button type="button" size="sm" disabled={salvando || marcados.length === 0 || quantos === 0} onClick={confirmar}>{salvando ? "Distribuindo..." : "Confirmar"}</Button>
@@ -97,7 +97,7 @@ export function ReprocessarDialog({ semVendedor, onFeito }: { semVendedor: { tot
         <DialogDescription className="mb-4" data-testid="confirmacao-reprocessar">
           Cada um dos {semVendedor.total} contatos sem vendedor passa a ser do atendente da última venda dele, quando houver. Quem não tem venda com atendente continua sem vendedor.
         </DialogDescription>
-        {erro && <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive mb-3">{erro}</p>}
+        {erro && <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro mb-3">{erro}</p>}
         <div className="flex justify-end gap-2">
           <DialogClose render={<Button type="button" variant="outline" size="sm" />}>Cancelar</DialogClose>
           <Button type="button" size="sm" disabled={salvando || semVendedor.total === 0} onClick={confirmar}>{salvando ? "Reprocessando..." : "Confirmar"}</Button>

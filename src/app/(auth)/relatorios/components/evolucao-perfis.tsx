@@ -24,7 +24,7 @@ export function EvolucaoPerfis({ evolucao }: { evolucao: EvolucaoRfv }) {
   const variacao = atual && anterior && anterior.saudavel > 0 && crescimento !== null ? Math.round((crescimento / anterior.saudavel) * 100) : null
 
   return (
-    <section className="rounded-lg border p-4">
+    <section className="rounded-md border bg-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
         <div>
           <h2 className="text-sm font-semibold">Evolução dos perfis</h2>
@@ -64,7 +64,7 @@ export function EvolucaoPerfis({ evolucao }: { evolucao: EvolucaoRfv }) {
                   const n = c.porPerfil[p.id as PerfilRfv]
                   const base = colunas[i + 1]?.porPerfil[p.id as PerfilRfv]
                   return (
-                    <td key={c.referencia} className="py-2 px-2 text-right tabular-nums align-top" title={`Perfis em ${formatarDataBr(c.referencia)}`}>
+                    <td key={c.referencia} className="py-2 px-2 text-right numero align-top" title={`Perfis em ${formatarDataBr(c.referencia)}`}>
                       <div className="font-medium">{n}</div>
                       {base !== undefined && <Delta valor={n - base} percentual={base > 0 ? Math.round(((n - base) / base) * 100) : null} />}
                     </td>
@@ -81,10 +81,10 @@ export function EvolucaoPerfis({ evolucao }: { evolucao: EvolucaoRfv }) {
           Base saudável <span className="font-normal text-muted-foreground text-xs">({PERFIS.filter((p) => p.saudavel).map((p) => `${p.icone} ${p.nome}`).join(", ")})</span>
         </p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" data-testid="base-saudavel">
-          <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{atual?.rotulo ?? "—"}</p><p className="text-lg font-semibold">{atual?.saudavel ?? "—"} <span className="text-sm font-normal text-muted-foreground">clientes</span></p></div>
-          <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{anterior?.rotulo ?? "—"}</p><p className="text-lg font-semibold">{anterior?.saudavel ?? "—"} <span className="text-sm font-normal text-muted-foreground">clientes</span></p></div>
-          <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Crescimento</p><p className={cn("text-lg font-semibold", crescimento === null ? "" : crescimento > 0 ? "text-sucesso" : crescimento < 0 ? "text-erro" : "")}>{crescimento === null ? "—" : `${crescimento > 0 ? "+" : crescimento < 0 ? "−" : ""}${Math.abs(crescimento)}`}</p></div>
-          <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Variação</p><p className={cn("text-lg font-semibold", variacao === null ? "" : variacao > 0 ? "text-sucesso" : variacao < 0 ? "text-erro" : "")}>{variacao === null ? "—" : `${variacao > 0 ? "+" : variacao < 0 ? "−" : ""}${Math.abs(variacao)}%`}</p></div>
+          <div className="border-t pt-3"><p className="text-xs text-muted-foreground">{atual?.rotulo ?? "—"}</p><p className="text-lg font-semibold">{atual?.saudavel ?? "—"} <span className="text-sm font-normal text-muted-foreground">clientes</span></p></div>
+          <div className="border-t pt-3"><p className="text-xs text-muted-foreground">{anterior?.rotulo ?? "—"}</p><p className="text-lg font-semibold">{anterior?.saudavel ?? "—"} <span className="text-sm font-normal text-muted-foreground">clientes</span></p></div>
+          <div className="border-t pt-3"><p className="text-xs text-muted-foreground">Crescimento</p><p className={cn("text-lg font-semibold", crescimento === null ? "" : crescimento > 0 ? "text-alta" : crescimento < 0 ? "text-queda" : "")}>{crescimento === null ? "—" : `${crescimento > 0 ? "+" : crescimento < 0 ? "−" : ""}${Math.abs(crescimento)}`}</p></div>
+          <div className="border-t pt-3"><p className="text-xs text-muted-foreground">Variação</p><p className={cn("text-lg font-semibold", variacao === null ? "" : variacao > 0 ? "text-alta" : variacao < 0 ? "text-queda" : "")}>{variacao === null ? "—" : `${variacao > 0 ? "+" : variacao < 0 ? "−" : ""}${Math.abs(variacao)}%`}</p></div>
         </div>
       </div>
       <p className="sr-only">{PERFIL_POR_ID.campeao.nome}</p>

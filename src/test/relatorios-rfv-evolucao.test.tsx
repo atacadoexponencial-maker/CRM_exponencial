@@ -85,8 +85,8 @@ describe("B33-03 — evolução dos perfis", () => {
     expect(cartoes[1]).toBe("S3571 clientes")
     expect(cartoes[2]).toBe("Crescimento−7")
     expect(cartoes[3]).toBe("Variação−10%")
-    expect(bloco.children[2].querySelector("p.text-lg")).toHaveClass("text-erro")
-    expect(bloco.children[3].querySelector("p.text-lg")).toHaveClass("text-erro")
+    expect(bloco.children[2].querySelector("p.text-lg")).toHaveClass("text-queda")
+    expect(bloco.children[3].querySelector("p.text-lg")).toHaveClass("text-queda")
   })
 
   it("CA-B33-01: clicar na aba RFV mostra o cabeçalho, a matriz, os indicadores, a lista e a evolução", async () => {
