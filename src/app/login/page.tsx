@@ -75,7 +75,7 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<{ mo
               {...register("email")}
             />
             {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
+              <p className="text-sm text-erro">{errors.email.message}</p>
             )}
           </div>
 
@@ -89,16 +89,16 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<{ mo
               {...register("senha")}
             />
             {errors.senha && (
-              <p className="text-sm text-destructive">{errors.senha.message}</p>
+              <p className="text-sm text-erro">{errors.senha.message}</p>
             )}
           </div>
 
           {motivo === "desativada" && !errors.root && (
-            <p className="text-sm text-destructive text-center">{AVISO_CONTA_DESATIVADA}</p>
+            <p className="text-sm text-erro text-center">{AVISO_CONTA_DESATIVADA}</p>
           )}
 
           {errors.root && (
-            <p className="text-sm text-destructive text-center">{errors.root.message}</p>
+            <p className="text-sm text-erro text-center">{errors.root.message}</p>
           )}
 
           <Button type="submit" className="mt-2 w-full" disabled={entrando}>

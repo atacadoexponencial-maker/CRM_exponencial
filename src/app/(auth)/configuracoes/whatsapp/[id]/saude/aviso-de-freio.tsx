@@ -50,7 +50,7 @@ export function AvisoDeFreio({
         {freio.motivo ? TEXTO_DO_MOTIVO_DO_FREIO[freio.motivo] : "Os envios deste número estão parados."}
       </p>
 
-      <p className="text-sm mt-2 tabular-nums">
+      <p className="text-sm mt-2 numero">
         {freio.mensagensParadas.toLocaleString("pt-BR")}{" "}
         {freio.mensagensParadas === 1 ? "mensagem parada" : "mensagens paradas"} na fila
         {freio.desde && (

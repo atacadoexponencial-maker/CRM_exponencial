@@ -11,7 +11,7 @@ export default function TermosDeServicoPage() {
     <TemaClaro>
     <main className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-6 py-16 text-sm text-foreground">
-        <h1 className="text-2xl font-semibold mb-2">Termos de Serviço</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-2">Termos de Serviço</h1>
         <p className="text-muted-foreground mb-10">Última atualização: 2 de junho de 2025</p>
 
         <section className="mb-8">

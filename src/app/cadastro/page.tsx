@@ -73,7 +73,7 @@ export default function CadastroPage() {
               {...register("nomeEmpresa")}
             />
             {errors.nomeEmpresa && (
-              <p className="text-sm text-destructive">{errors.nomeEmpresa.message}</p>
+              <p className="text-sm text-erro">{errors.nomeEmpresa.message}</p>
             )}
           </div>
 
@@ -87,7 +87,7 @@ export default function CadastroPage() {
               {...register("nomeResponsavel")}
             />
             {errors.nomeResponsavel && (
-              <p className="text-sm text-destructive">{errors.nomeResponsavel.message}</p>
+              <p className="text-sm text-erro">{errors.nomeResponsavel.message}</p>
             )}
           </div>
 
@@ -101,7 +101,7 @@ export default function CadastroPage() {
               {...register("email")}
             />
             {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
+              <p className="text-sm text-erro">{errors.email.message}</p>
             )}
           </div>
 
@@ -115,7 +115,7 @@ export default function CadastroPage() {
               {...register("senha")}
             />
             {errors.senha && (
-              <p className="text-sm text-destructive">{errors.senha.message}</p>
+              <p className="text-sm text-erro">{errors.senha.message}</p>
             )}
           </div>
 
@@ -129,7 +129,7 @@ export default function CadastroPage() {
               {...register("confirmarSenha")}
             />
             {errors.confirmarSenha && (
-              <p className="text-sm text-destructive">{errors.confirmarSenha.message}</p>
+              <p className="text-sm text-erro">{errors.confirmarSenha.message}</p>
             )}
           </div>
 

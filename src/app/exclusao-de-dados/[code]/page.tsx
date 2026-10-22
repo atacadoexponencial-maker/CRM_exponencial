@@ -15,7 +15,7 @@ export default async function StatusExclusaoDados({ params }: { params: Promise<
     <TemaClaro>
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="max-w-md w-full text-center">
-        <h1 className="text-2xl font-semibold mb-4">Exclusão de dados</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-4">Exclusão de dados</h1>
 
         {!data ? (
           <p className="text-muted-foreground">Código de confirmação não encontrado.</p>

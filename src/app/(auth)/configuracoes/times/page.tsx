@@ -28,9 +28,9 @@ export default async function TimesPage() {
   const [times, todosUsuarios] = await Promise.all([listarTimes(), listarUsuariosDoWorkspace()])
 
   return (
-    <div className="max-w-5xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">Times</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Times</h1>
         <CriarTimeDialog />
       </div>
 

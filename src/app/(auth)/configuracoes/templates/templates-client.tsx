@@ -87,19 +87,19 @@ export function TemplatesClient({ templates: initial }: { templates: Template[] 
   return (
     <>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">Templates de mensagem</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Templates de mensagem</h1>
         <Button onClick={abrirDialog}>Novo template</Button>
       </div>
 
       {templates.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-12 flex flex-col items-center gap-3 text-center">
+        <div className="rounded-md border border-dashed bg-card/60 p-12 flex flex-col items-center gap-3 text-center">
           <p className="text-muted-foreground text-sm">Nenhum template criado ainda.</p>
           <Button variant="outline" onClick={abrirDialog}>Criar primeiro template</Button>
         </div>
       ) : (
-        <div className="rounded-lg border overflow-hidden">
+        <div className="overflow-x-auto border-t-2 border-t-foreground">
           <table className="w-full text-sm">
-            <thead className="bg-muted/50">
+            <thead>
               <tr>
                 <th className="text-left px-4 py-3 font-medium">Nome</th>
                 <th className="text-left px-4 py-3 font-medium">Categoria</th>
@@ -185,7 +185,7 @@ export function TemplatesClient({ templates: initial }: { templates: Template[] 
             </div>
 
             {erro && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{erro}</p>
+              <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">{erro}</p>
             )}
 
             <div className="flex justify-end gap-2 pt-2">

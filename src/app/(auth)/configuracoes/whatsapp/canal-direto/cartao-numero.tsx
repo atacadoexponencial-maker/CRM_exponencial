@@ -37,7 +37,7 @@ export function CartaoNumero({
   aviso?: React.ReactNode
 }) {
   return (
-    <div className="rounded-lg border p-5">
+    <div className="rounded-md border bg-card p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-lg font-semibold truncate">{formatarNumero(numero.phone_number)}</p>

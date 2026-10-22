@@ -35,27 +35,27 @@ export default async function UsuariosPage() {
   ])
 
   return (
-    <div className="max-w-5xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">Usuários</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Usuários</h1>
         <AdicionarUsuarioDialog times={times ?? []} />
       </div>
 
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="overflow-x-auto border-t-2 border-t-foreground">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Nome</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">E-mail</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Papel</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Times</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ações</th>
+            <tr className="border-b">
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Nome</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">E-mail</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Papel</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Times</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Status</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Ações</th>
             </tr>
           </thead>
           <tbody>
             {usuarios.map((usuario) => (
-              <tr key={usuario.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+              <tr key={usuario.id} className="border-b hover:bg-muted/50 transition-colors">
                 <td className="px-4 py-3 font-medium">{usuario.name}</td>
                 <td className="px-4 py-3 text-muted-foreground">{usuario.email || "—"}</td>
                 <td className="px-4 py-3">

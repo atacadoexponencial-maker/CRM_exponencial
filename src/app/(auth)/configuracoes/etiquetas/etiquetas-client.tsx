@@ -159,7 +159,7 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
   return (
     <>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">Etiquetas</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Etiquetas</h1>
         <Button onClick={abrirCriar} size="sm">
           <Plus className="size-4 mr-1.5" />
           Nova etiqueta
@@ -167,23 +167,23 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
       </div>
 
       {etiquetas.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-16 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-card/60 py-16 text-muted-foreground">
           <Tag className="size-8 opacity-40" />
           <p className="text-sm">Nenhuma etiqueta cadastrada</p>
         </div>
       ) : (
-        <div className="rounded-lg border overflow-hidden">
+        <div className="overflow-x-auto border-t-2 border-t-foreground">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Etiqueta</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Conversas</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ações</th>
+              <tr className="border-b">
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Etiqueta</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Conversas</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Ações</th>
               </tr>
             </thead>
             <tbody>
               {etiquetas.map((etiqueta) => (
-                <tr key={etiqueta.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                <tr key={etiqueta.id} className="border-b hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
                       <span
@@ -248,7 +248,7 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
               <SeletorCor corSelecionada={novaCor} onChange={setNovaCor} />
             </div>
             {erroCriar && (
-              <p className="text-sm text-destructive">{erroCriar}</p>
+              <p className="text-sm text-erro">{erroCriar}</p>
             )}
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
@@ -290,7 +290,7 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
               <SeletorCor corSelecionada={editCor} onChange={setEditCor} />
             </div>
             {erroEditar && (
-              <p className="text-sm text-destructive">{erroEditar}</p>
+              <p className="text-sm text-erro">{erroEditar}</p>
             )}
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
@@ -324,7 +324,7 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
               etiqueta perderão a associação.
             </p>
             {erroExcluir && (
-              <p className="text-sm text-destructive">{erroExcluir}</p>
+              <p className="text-sm text-erro">{erroExcluir}</p>
             )}
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>

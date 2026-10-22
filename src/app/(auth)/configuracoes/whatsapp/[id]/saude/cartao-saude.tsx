@@ -25,7 +25,7 @@ export function CartaoSaude({ saude }: { saude: SaudeDoNumero }) {
   const percentualDoDia = Math.round((saude.tempoConectado24hMs / (24 * 60 * 60 * 1000)) * 100)
 
   return (
-    <div className="rounded-lg border p-5">
+    <div className="rounded-md border bg-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-lg font-semibold truncate">{formatarNumero(saude.numero)}</p>
@@ -42,7 +42,7 @@ export function CartaoSaude({ saude }: { saude: SaudeDoNumero }) {
             <Plug className="size-3.5 shrink-0" aria-hidden />
             Conectado nas últimas 24h
           </dt>
-          <dd className="mt-1 text-base font-medium tabular-nums">
+          <dd className="mt-1 text-base font-medium numero">
             {duracaoHumana(saude.tempoConectado24hMs)}
             <span className="ml-1.5 text-xs font-normal text-muted-foreground">
               ({percentualDoDia}% do dia)
@@ -55,7 +55,7 @@ export function CartaoSaude({ saude }: { saude: SaudeDoNumero }) {
             <Clock className="size-3.5 shrink-0" aria-hidden />
             Enviadas na última hora
           </dt>
-          <dd className="mt-1 text-base font-medium tabular-nums">{saude.enviadasNaHora}</dd>
+          <dd className="mt-1 text-base font-medium numero">{saude.enviadasNaHora}</dd>
         </div>
 
         <div>
@@ -63,7 +63,7 @@ export function CartaoSaude({ saude }: { saude: SaudeDoNumero }) {
             <MessageSquare className="size-3.5 shrink-0" aria-hidden />
             Enviadas nas últimas 24h
           </dt>
-          <dd className="mt-1 text-base font-medium tabular-nums">
+          <dd className="mt-1 text-base font-medium numero">
             {saude.enviadasNoDia}
             <span className="ml-1.5 text-xs font-normal text-muted-foreground">
               · {saude.recebidasNoDia} recebidas

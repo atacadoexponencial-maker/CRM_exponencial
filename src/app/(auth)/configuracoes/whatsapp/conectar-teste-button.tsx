@@ -27,7 +27,7 @@ export function ConectarTesteButton() {
   return (
     <div className="flex flex-col gap-2 items-end">
       {erro && (
-        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive max-w-sm text-right">
+        <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro max-w-sm text-right">
           {erro}
         </p>
       )}

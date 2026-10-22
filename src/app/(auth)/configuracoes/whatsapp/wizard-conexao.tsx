@@ -198,7 +198,7 @@ export function WizardConexao({ mostrarNumeroTeste = false }: { mostrarNumeroTes
         </div>
 
         {erro && (
-          <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive w-full text-left">
+          <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro w-full text-left">
             {erro}
           </p>
         )}
@@ -218,7 +218,7 @@ export function WizardConexao({ mostrarNumeroTeste = false }: { mostrarNumeroTes
               Ambiente de teste (aguardando aprovação da Meta)
             </p>
             {erroTeste && (
-              <p className="text-xs text-destructive">{erroTeste}</p>
+              <p className="text-xs text-erro">{erroTeste}</p>
             )}
             <button
               onClick={handleConectarTeste}

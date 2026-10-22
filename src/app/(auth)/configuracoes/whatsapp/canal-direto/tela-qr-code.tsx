@@ -60,7 +60,7 @@ export function TelaQrCode({
   const expirado = restam === 0
 
   return (
-    <div className="rounded-lg border p-6">
+    <div className="rounded-md border bg-card p-5">
       <div className="flex items-start justify-between gap-4 mb-5">
         <div>
           <h3 className="font-medium">Leia o código no aparelho</h3>
@@ -100,7 +100,7 @@ export function TelaQrCode({
               <span className="text-muted-foreground">Código expirado</span>
             ) : (
               <>
-                Expira em <span className="font-medium tabular-nums">{restam}s</span>
+                Expira em <span className="font-medium numero">{restam}s</span>
               </>
             )}
           </p>
@@ -124,7 +124,7 @@ export function TelaQrCode({
           <ol className="space-y-2 text-sm text-muted-foreground">
             {PASSOS.map((passo, i) => (
               <li key={passo} className="flex gap-2">
-                <span className="tabular-nums text-foreground">{i + 1}.</span>
+                <span className="numero text-foreground">{i + 1}.</span>
                 {passo}
               </li>
             ))}

@@ -8,7 +8,7 @@ export default function NotFound() {
     <main className="min-h-screen flex items-center justify-center bg-background text-foreground px-4">
       <div className="max-w-md w-full text-center space-y-4">
         <p className="text-sm text-muted-foreground">Erro 404</p>
-        <h1 className="text-2xl font-semibold">Página não encontrada</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Página não encontrada</h1>
         <p className="text-sm text-muted-foreground">
           O endereço pode estar errado, ou a página foi movida.
         </p>

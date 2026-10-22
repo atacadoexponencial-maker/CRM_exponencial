@@ -31,7 +31,7 @@ export default async function SaudeDoNumeroPage({
   const resultado = await lerSaude(id)
 
   return (
-    <div className="max-w-5xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
       <Link
         href="/configuracoes/whatsapp"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
@@ -41,7 +41,7 @@ export default async function SaudeDoNumeroPage({
       </Link>
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <h1 className="text-xl font-semibold">Saúde do número</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Saúde do número</h1>
         {perfil?.role === "admin" && (
           <Link
             href={`/configuracoes/whatsapp/${id}/ritmo`}

@@ -65,7 +65,7 @@ export function CriarTimeDialog() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           {erroGeral && (
-            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
               {erroGeral}
             </p>
           )}
@@ -79,7 +79,7 @@ export function CriarTimeDialog() {
               aria-invalid={!!errors.nome}
               {...register("nome")}
             />
-            {errors.nome && <p className="text-sm text-destructive">{errors.nome.message}</p>}
+            {errors.nome && <p className="text-sm text-erro">{errors.nome.message}</p>}
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
