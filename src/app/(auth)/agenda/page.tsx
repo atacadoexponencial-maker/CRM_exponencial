@@ -12,7 +12,7 @@ export default async function AgendaPage() {
   const itens = await listarMinhaAgenda()
 
   return (
-    <div className="max-w-4xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-4xl px-4 py-7 sm:px-8 lg:px-10">
       <AgendaClient itensIniciais={itens} papel={perfil?.role ?? "atendente"} />
     </div>
   )

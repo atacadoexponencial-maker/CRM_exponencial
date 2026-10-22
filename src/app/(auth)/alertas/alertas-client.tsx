@@ -105,7 +105,7 @@ export function AlertasClient({
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-        <h1 className="text-xl font-semibold">Central de Alertas</h1>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Central de Alertas</h1>
         <div className="flex items-center gap-2">
           <select
             aria-label="Filtrar por tipo"
@@ -129,7 +129,7 @@ export function AlertasClient({
         Leads e clientes que atingiram o limite de dias sem atividade.
       </p>
 
-      {erro && <p className="text-sm text-destructive mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-erro mb-4">{erro}</p>}
 
       {/* B4-03: alertas de número. Não têm card, contato nem etapa, e por isso
           não entram na lista abaixo nem no filtro por tipo dela. */}
@@ -179,7 +179,7 @@ export function AlertasClient({
       )}
 
       {filtrados.length === 0 && alertasDeNumero.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-16 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-card/60 py-16 text-muted-foreground">
           <Check className="size-8 opacity-40" />
           <p className="text-sm">Nenhum alerta ativo</p>
         </div>
@@ -277,7 +277,7 @@ export function AlertasClient({
                 />
               </div>
             ))}
-            {erroConfig && <p className="text-sm text-destructive">{erroConfig}</p>}
+            {erroConfig && <p className="text-sm text-erro">{erroConfig}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
                 Cancelar

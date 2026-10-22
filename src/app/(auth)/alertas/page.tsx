@@ -13,7 +13,7 @@ export default async function AlertasPage() {
   if (!dados) redirect("/login")
 
   return (
-    <div className="max-w-4xl mx-auto w-full px-4 py-8">
+    <div className="mx-auto w-full max-w-4xl px-4 py-7 sm:px-8 lg:px-10">
       <AlertasClient
         alertasIniciais={dados.alertas}
         alertasDeNumero={dados.alertasDeNumero}

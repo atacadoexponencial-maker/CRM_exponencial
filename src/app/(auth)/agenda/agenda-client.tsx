@@ -165,7 +165,7 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
     <>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold">Minha Agenda</h1>
+          <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Minha Agenda</h1>
           {atrasados > 0 && (
             <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 text-destructive px-2.5 py-0.5 text-xs font-medium">
               <AlarmClock className="size-3" />
@@ -192,10 +192,10 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
         Lembretes das sequências e follow-ups que você agendou.
       </p>
 
-      {erro && <p className="text-sm text-destructive mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-erro mb-4">{erro}</p>}
 
       {itens.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-16 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-card/60 py-16 text-muted-foreground">
           <Check className="size-8 opacity-40" />
           <p className="text-sm">Tudo em dia! Nenhum lembrete pendente.</p>
         </div>
@@ -349,7 +349,7 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
               />
             </div>
 
-            {erroFU && <p className="text-sm text-destructive">{erroFU}</p>}
+            {erroFU && <p className="text-sm text-erro">{erroFU}</p>}
 
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
