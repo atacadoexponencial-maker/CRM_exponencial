@@ -207,8 +207,7 @@ menu do usuário (onde fica a troca de tema).
 
 **Comportamentos:**
 - Ver em que tela está: o item ativo tem fundo destacado e texto em negrito.
-- Ver pendências: Pedidos novos, Agenda atrasada e conversas sem resposta mostram crachá com o
-  número.
+- Ver pendências: Pedidos novos e Agenda atrasada mostram crachá com o número, como hoje.
 - Recolher e expandir o menu, como hoje.
 - No celular, abrir o menu pela barra do topo, como hoje.
 

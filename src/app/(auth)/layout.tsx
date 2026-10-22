@@ -1,7 +1,6 @@
 import { cookies } from "next/headers"
 import { sessaoAtual } from "@/lib/sessao"
 import { SidebarNav } from "@/components/shared/sidebar-nav"
-import { MenuDoUsuario } from "@/components/shared/menu-do-usuario"
 import { COOKIE_MENU_RECOLHIDO } from "@/lib/preferencias-layout"
 import { SincronizarTema } from "@/components/shared/sincronizar-tema"
 import { temaValido, type Tema } from "@/lib/tema"
@@ -52,11 +51,8 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
       <SincronizarTema tema={tema} />
       <SidebarNav papel={papel} nomeUsuario={nome} email={email} atrasados={atrasados} pedidosNovos={pedidosNovos} tema={tema} recolhidoInicial={menuRecolhido} />
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        {/* Barra superior do computador (20/10/2026): a bolinha do usuário, com perfil e sair.
-            No celular ela fica na barra que o menu já tem. 56 px + borda = os 57 px que o chat desconta. */}
-        <div className="hidden lg:flex h-14 shrink-0 items-center justify-end border-b px-4">
-          <MenuDoUsuario nome={nome} email={email} tema={tema} />
-        </div>
+        {/* B36-03: no computador o usuário fica no pé do menu lateral; a barra de cima saiu.
+            No celular ele continua na barra do menu (56 px + borda = os 57 px que o chat desconta). */}
         <main className="flex-1 min-w-0 flex flex-col overflow-y-auto">
           {children}
         </main>

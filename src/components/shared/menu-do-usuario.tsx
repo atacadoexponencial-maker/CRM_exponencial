@@ -27,7 +27,25 @@ export function iniciaisDe(nome: string, email: string): string {
   return (email[0] ?? "?").toUpperCase()
 }
 
-export function MenuDoUsuario({ nome, email, tema = "claro" }: { nome: string; email: string; tema?: Tema }) {
+const NOME_DO_PAPEL = { admin: "Admin", gerente: "Gerente", atendente: "Atendente" } as const
+
+/**
+ * `bolinha`: só as iniciais (barra do celular, menu recolhido).
+ * `linha`: iniciais, nome e papel, no pé do menu lateral (B36-03).
+ */
+export function MenuDoUsuario({
+  nome,
+  email,
+  tema = "claro",
+  papel,
+  variante = "bolinha",
+}: {
+  nome: string
+  email: string
+  tema?: Tema
+  papel?: keyof typeof NOME_DO_PAPEL
+  variante?: "bolinha" | "linha"
+}) {
   const router = useRouter()
   const iniciais = iniciaisDe(nome, email)
   const [temaAtual, setTemaAtual] = useState<Tema>(tema)
@@ -52,14 +70,30 @@ export function MenuDoUsuario({ nome, email, tema = "claro" }: { nome: string; e
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-        aria-label="Menu do usuário"
-        title={nome || email}
-      >
-        {iniciais}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
+      {variante === "linha" ? (
+        <DropdownMenuTrigger
+          className="flex w-full items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left outline-none hover:bg-sidebar-accent/60 focus-visible:ring-2 focus-visible:ring-ring/50"
+          aria-label="Menu do usuário"
+          title={nome || email}
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-accent-foreground">
+            {iniciais}
+          </span>
+          <span className="flex min-w-0 flex-col leading-tight">
+            <span className="truncate text-sm font-medium">{nome || email}</span>
+            {papel && <span className="truncate text-xs text-muted-foreground">{NOME_DO_PAPEL[papel]}</span>}
+          </span>
+        </DropdownMenuTrigger>
+      ) : (
+        <DropdownMenuTrigger
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          aria-label="Menu do usuário"
+          title={nome || email}
+        >
+          {iniciais}
+        </DropdownMenuTrigger>
+      )}
+      <DropdownMenuContent align={variante === "linha" ? "start" : "end"} side={variante === "linha" ? "top" : "bottom"} className="w-64">
         <div className="flex items-center gap-3 px-2 py-2">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
             {iniciais}

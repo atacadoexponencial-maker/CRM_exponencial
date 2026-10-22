@@ -125,25 +125,24 @@ function ItemLink({
       onClick={onNavegar}
       title={recolhido ? item.label : undefined}
       aria-label={recolhido ? item.label : undefined}
+      aria-current={ativo ? "page" : undefined}
       className={cn(
-        "group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+        // B36-03: item do Caderno — o ativo ganha fundo e negrito, sem barra lateral.
+        "group relative flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-sm transition-colors",
         recolhido && "justify-center px-0 py-2",
         ativo
-          ? "bg-primary/10 text-primary font-medium"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+          ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+          : "text-sidebar-foreground hover:bg-sidebar-accent/60"
       )}
     >
-      {ativo && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 rounded-full bg-primary" />
-      )}
-      <Icone className={cn("size-4 shrink-0", ativo ? "text-primary" : "text-muted-foreground/70 group-hover:text-foreground")} />
+      <Icone className={cn("size-4 shrink-0", ativo ? "text-sidebar-accent-foreground" : "text-muted-foreground group-hover:text-sidebar-foreground")} />
       {recolhido ? (
-        temBadge && <span className="absolute top-1 right-2 h-2 w-2 rounded-full bg-destructive" />
+        temBadge && <span data-badge={item.badge} className="absolute top-1 right-2 h-2 w-2 rounded-full bg-aviso" />
       ) : (
         <span className="truncate">{item.label}</span>
       )}
       {!recolhido && temBadge && (
-        <span className="ml-auto flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-background">
+        <span data-badge={item.badge} className="numero ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-aviso-fundo px-1.5 text-[11px] font-medium text-aviso">
           {item.badge! > 9 ? "9+" : item.badge}
         </span>
       )}
@@ -159,11 +158,13 @@ function ConteudoNav({
   recolhido = false,
   onAlternar,
   onNavegar,
+  menuDoUsuario,
 }: SidebarNavProps & {
   pathname: string
   recolhido?: boolean
   onAlternar?: () => void
   onNavegar?: () => void
+  menuDoUsuario?: React.ReactNode
 }) {
   const secoes = montarSecoes(atrasados, pedidosNovos)
 
@@ -183,7 +184,7 @@ function ConteudoNav({
   return (
     <div className="flex h-full flex-col">
       {/* Marca */}
-      <div className={cn("flex items-center h-14 border-b shrink-0", recolhido ? "justify-center" : "px-4 gap-2")}>
+      <div className={cn("flex items-center h-16 shrink-0", recolhido ? "justify-center" : "px-4 gap-2")}>
         {!recolhido && (
           <Link
             href="/dashboard"
@@ -207,14 +208,14 @@ function ConteudoNav({
       </div>
 
       {/* Seções */}
-      <nav className="flex-1 overflow-y-auto px-2.5 py-3 flex flex-col gap-4">
+      <nav aria-label="Menu principal" className="flex-1 overflow-y-auto px-3 pb-3 flex flex-col gap-5">
         {secoes.map((secao, i) => {
           const itens = secao.itens.filter(visivel)
           if (itens.length === 0) return null
           return (
             <div key={i} className="flex flex-col gap-0.5">
               {secao.titulo && !recolhido && (
-                <span className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                <span className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                   {secao.titulo}
                 </span>
               )}
@@ -226,6 +227,12 @@ function ConteudoNav({
         })}
       </nav>
 
+      {/* B36-03: o usuário no pé do menu, com perfil, tema e sair. */}
+      {menuDoUsuario && (
+        <div className={cn("shrink-0 border-t border-sidebar-border", recolhido ? "flex justify-center py-3" : "px-3 py-3")}>
+          {menuDoUsuario}
+        </div>
+      )}
     </div>
   )
 }
@@ -244,12 +251,20 @@ export function SidebarNav({ recolhidoInicial = false, ...props }: SidebarNavPro
   return (
     <>
       {/* Sidebar fixa (desktop) */}
-      <aside className={cn("hidden lg:flex shrink-0 border-r bg-background flex-col", recolhido ? "w-14" : "w-60")}>
-        <ConteudoNav {...props} pathname={pathname} recolhido={recolhido} onAlternar={alternarRecolhido} />
+      <aside className={cn("hidden lg:flex shrink-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground flex-col", recolhido ? "w-16" : "w-60")}>
+        <ConteudoNav
+          {...props}
+          pathname={pathname}
+          recolhido={recolhido}
+          onAlternar={alternarRecolhido}
+          menuDoUsuario={
+            <MenuDoUsuario nome={props.nomeUsuario} email={props.email ?? ""} tema={props.tema} papel={props.papel} variante={recolhido ? "bolinha" : "linha"} />
+          }
+        />
       </aside>
 
       {/* Barra superior + drawer (mobile) */}
-      <div className="lg:hidden flex items-center justify-between border-b h-14 px-4 shrink-0">
+      <div className="lg:hidden flex items-center justify-between border-b border-sidebar-border bg-sidebar h-14 px-4 shrink-0">
         <span className="flex items-center gap-2">
           <LogoDaMarca className="h-8" />
         </span>
@@ -274,7 +289,7 @@ export function SidebarNav({ recolhidoInicial = false, ...props }: SidebarNavPro
       {aberto && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/40" onClick={() => setAberto(false)} />
-          <div className="relative w-64 max-w-[80vw] bg-background border-r shadow-xl">
+          <div className="relative w-64 max-w-[80vw] bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-xl">
             <button
               type="button"
               onClick={() => setAberto(false)}

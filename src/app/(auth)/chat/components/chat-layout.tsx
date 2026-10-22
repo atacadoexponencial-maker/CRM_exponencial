@@ -348,7 +348,7 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
   const carregando = isPending && conversaAtivaId !== null && mensagensLocais[conversaAtivaId] === undefined
 
   return (
-    <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 57px)" }}>
+    <div className="flex flex-1 overflow-hidden h-[calc(100dvh-57px)] lg:h-dvh">
       {/* QA M23 (06/10): no celular, uma coluna por vez: lista, depois a conversa aberta,
           com "voltar" no cabeçalho dela; a ficha do contato vira uma gaveta por cima. */}
       {caixaRecolhida ? (

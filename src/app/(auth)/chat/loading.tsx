@@ -3,8 +3,7 @@ import { Esqueleto } from "@/components/shared/esqueleto"
 export default function Loading() {
   return (
     <div
-      className="flex flex-1 overflow-hidden"
-      style={{ height: "calc(100vh - 57px)" }}
+      className="flex flex-1 overflow-hidden h-[calc(100dvh-57px)] lg:h-dvh"
       role="status"
       aria-label="Carregando conversas"
     >
