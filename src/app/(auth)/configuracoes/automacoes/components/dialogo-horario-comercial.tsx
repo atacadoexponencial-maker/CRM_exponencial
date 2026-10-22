@@ -125,7 +125,7 @@ function Formulario({
         </div>
       )}
 
-      {erro && <p className="text-sm text-destructive">{erro}</p>}
+      {erro && <p className="text-sm text-erro">{erro}</p>}
 
       <div className="flex justify-end gap-2">
         <DialogClose render={<Button type="button" variant="outline" />}>Cancelar</DialogClose>

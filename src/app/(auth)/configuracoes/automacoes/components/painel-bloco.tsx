@@ -114,7 +114,7 @@ function CampoHoras({ horas, onMudar }: { horas: number; onMudar: (horas: number
         <span className="text-sm text-muted-foreground">horas</span>
       </div>
       {!horasValidas(horas) && (
-        <p className="text-xs text-destructive">Use um número inteiro de 1 a {HORAS_MAXIMAS} horas.</p>
+        <p className="text-xs text-erro">Use um número inteiro de 1 a {HORAS_MAXIMAS} horas.</p>
       )}
     </>
   )
@@ -432,7 +432,7 @@ function CampoParametro({
       // B22-34: lista da empresa vazia diz onde criar, em vez de um seletor sem opção
       if (lista.length === 0 && !valor && semNada) {
         return (
-          <p className="rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground">
+          <p className="rounded-md border border-dashed bg-card/60 px-3 py-2 text-xs text-muted-foreground">
             {semNada.texto}{" "}
             <a href={semNada.onde} target="_blank" rel="noreferrer" className="underline underline-offset-2">
               {semNada.link}
@@ -546,7 +546,7 @@ function CampoArquivo({
         onChange={(e) => escolher(e.target.files?.[0])}
       />
       {enviando && <p className="text-xs text-muted-foreground">Enviando o arquivo…</p>}
-      {erro && <p className="text-xs text-destructive">{erro}</p>}
+      {erro && <p className="text-xs text-erro">{erro}</p>}
       {!enviando && parametros.arquivo && (
         <p className="text-xs text-muted-foreground">
           {parametros.arquivo_tipo === "imagem" ? "Imagem" : "Documento"}: {parametros.arquivo_nome}
@@ -633,7 +633,7 @@ function EditorVerificacoes({
               }}
             />
             {invalida && (
-              <p className="text-xs text-destructive">Não vale para este gatilho. Remova ou troque a verificação.</p>
+              <p className="text-xs text-erro">Não vale para este gatilho. Remova ou troque a verificação.</p>
             )}
             <CampoSelecao
               aria-label="Operador"

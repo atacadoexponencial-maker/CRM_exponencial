@@ -87,7 +87,7 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes, aviso }: H
         <ArrowLeft className="size-4" />
         Automações
       </Link>
-      <h1 className="text-xl font-semibold">Histórico das automações</h1>
+      <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Histórico das automações</h1>
       <p className="mb-5 text-sm text-muted-foreground">
         O que cada automação fez, para quem e se deu certo. Clique numa linha para ver o caminho.
       </p>
@@ -125,7 +125,7 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes, aviso }: H
       )}
 
       {execucoes.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-12 text-center">
+        <div className="flex flex-col items-center gap-2 rounded-md border border-dashed bg-card/60 px-4 py-12 text-center">
           <History className="size-8 text-muted-foreground/50" />
           {/* Com filtro de automação ou de resultado, o vazio é do filtro (B22-20) */}
           {filtros.regraId || filtros.resultado ? (
@@ -145,7 +145,7 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes, aviso }: H
           )}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="overflow-x-auto border-t-2 border-t-foreground">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50 text-left text-muted-foreground">
@@ -164,7 +164,7 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes, aviso }: H
                   onClick={() => setAberta(e)}
                   className="cursor-pointer border-b transition-colors last:border-0 hover:bg-muted/30"
                 >
-                  <td className="px-3 py-3 tabular-nums text-muted-foreground sm:px-4">
+                  <td className="px-3 py-3 numero text-muted-foreground sm:px-4">
                     <span className="block whitespace-nowrap sm:inline">{formatarDataCurta(e.quando)}</span>
                     <span className="hidden sm:inline">, </span>
                     <span className="block whitespace-nowrap sm:inline">{formatarHoraDoDia(e.quando)}</span>
@@ -185,7 +185,7 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes, aviso }: H
                   <td className="px-3 py-3 sm:px-4">
                     <SeloResultado resultado={e.resultado} />
                   </td>
-                  <td className="hidden px-4 py-3 tabular-nums sm:table-cell">{acoesFeitas(e.caminho)}</td>
+                  <td className="hidden px-4 py-3 numero sm:table-cell">{acoesFeitas(e.caminho)}</td>
                 </tr>
               ))}
             </tbody>

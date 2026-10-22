@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { useTemaDaTela } from "@/lib/use-tema-da-tela"
 import {
   formaLaco,
   gatilhoDoFluxo,
@@ -175,6 +176,8 @@ function EditorFluxoInterno({
   regraNova,
   avisoInicial,
 }: EditorFluxoProps) {
+  // B36-12: o canvas segue o tema da tela (era sempre escuro).
+  const modoDeCor = useTemaDaTela()
   const [nos, setNos, onNodesChange] = useNodesState<NoFluxo>(paraNos(regraInicial.fluxo))
   const [ligacoes, setLigacoes, onEdgesChange] = useEdgesState<LigacaoFluxo>(paraLigacoes(regraInicial.fluxo))
   const [nome, setNome] = useState(regraInicial.nome)
@@ -559,7 +562,7 @@ function EditorFluxoInterno({
             onConnect={onConnect}
             isValidConnection={ligacaoValida}
             deleteKeyCode={null}
-            colorMode="dark"
+            colorMode={modoDeCor}
             fitView
             fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
             minZoom={0.3}
