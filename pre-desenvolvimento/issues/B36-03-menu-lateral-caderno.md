@@ -72,3 +72,9 @@ O menu lateral ganha o fundo do menu (#EFECE4 no claro), a marca no topo, os gru
 - [x] Usuário no pé do menu (aberto e recolhido)
 - [x] Barra de cima do computador removida e altura do Chat ajustada
 - [x] Teste dos itens por papel
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B36-14 | Marcelle | 22/10/2026 |

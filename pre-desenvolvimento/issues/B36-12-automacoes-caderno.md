@@ -67,3 +67,9 @@ Nenhuma.
 
 - [x] Editor em fluxo seguindo o tema
 - [x] Título, margens, tabelas e caixas do Caderno na lista e no histórico
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B36-34 | Marcelle | 22/10/2026 |

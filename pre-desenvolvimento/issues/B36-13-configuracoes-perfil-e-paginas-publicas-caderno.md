@@ -107,3 +107,10 @@ Nenhuma.
 - [x] Tabelas em livro-caixa e caixas na superfície
 - [x] Avisos de erro no tom do tema
 - [x] Páginas públicas com o mesmo acabamento
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B36-35 | Marcelle | 22/10/2026 |
+| CA-B36-36 | Marcelle | 22/10/2026 |

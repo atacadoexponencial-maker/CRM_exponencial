@@ -81,3 +81,9 @@ Nenhuma.
 - [x] Caixas na superfície e tabelas em livro-caixa
 - [x] Números em fonte de número
 - [x] Avisos de erro no tom do tema
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B36-31 | Marcelle | 22/10/2026 |

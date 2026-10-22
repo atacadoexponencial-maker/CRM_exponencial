@@ -73,3 +73,9 @@ Nenhuma.
 - [x] Lint sem erro novo
 - [x] Empresa de teste preenchida
 - [x] Branch publicado para o preview
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B36-37 | Marcelle | 22/10/2026 |

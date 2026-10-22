@@ -78,3 +78,9 @@ Nenhuma.
 - [x] Ficha do cliente à direita, com o resumo
 - [x] Lista e balões no estilo Caderno
 - [x] Testes da tabela Prova
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B36-27 | Marcelle | 22/10/2026 |

@@ -88,3 +88,9 @@ Os dois funis seguem o quadro, com soma por coluna e tempo parado nos cards, e t
 - [x] Cabeçalho e abas sublinhadas
 - [x] Colunas e cards do Caderno
 - [x] Testes da tabela Prova
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B36-25 | Marcelle | 22/10/2026 |
