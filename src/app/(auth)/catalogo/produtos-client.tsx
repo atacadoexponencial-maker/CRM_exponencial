@@ -47,7 +47,7 @@ export function ProdutosClient({ inicial, hrefLoja }: { inicial: Catalogo; hrefL
 
   return (
     <div className={`max-w-6xl mx-auto w-full px-4 py-8 ${ALVOS_TOQUE_CELULAR}`}>
-      <h1 className="text-xl font-semibold mb-4">Catálogo</h1>
+      <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-4">Catálogo</h1>
       <AbasCatalogo ativa="produtos" hrefs={HREFS_CATALOGO} />
       {erro && <p role="alert" className="mb-4 rounded-lg border border-destructive/40 px-3 py-2 text-sm text-destructive">{erro}</p>}
       <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">

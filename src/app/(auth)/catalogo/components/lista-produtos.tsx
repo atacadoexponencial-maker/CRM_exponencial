@@ -83,7 +83,7 @@ export function ListaProdutos({
 
   if (produtos.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-16 text-center text-muted-foreground">
+      <div className="flex flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-card/60 py-16 text-center text-muted-foreground">
         <Package className="size-8 opacity-40" />
         <div>
           <p className="text-sm font-medium text-foreground">Seu catálogo ainda está vazio</p>
@@ -170,7 +170,7 @@ export function ListaProdutos({
       )}
 
       {grupos.map((grupo) => (
-        <section key={grupo.id ?? "sem"} className="rounded-lg border overflow-hidden">
+        <section key={grupo.id ?? "sem"} className="overflow-x-auto border-t-2 border-t-foreground">
           <h2 className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground bg-muted/50 border-b">
             {grupo.nome} <span className="font-normal">· {grupo.itens.length}</span>
           </h2>

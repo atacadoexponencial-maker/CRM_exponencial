@@ -79,12 +79,12 @@ export function ListaPedidos({ pedidos, selecionadoId, onSelecionar, agora = new
       </div>
 
       {filtrados.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-14 text-center text-sm text-muted-foreground">
+        <div className="flex flex-col items-center gap-2 rounded-md border border-dashed bg-card/60 py-14 text-center text-sm text-muted-foreground">
           <Receipt className="size-7 opacity-40" />
           {pedidos.length === 0 ? "Nenhum pedido ainda. Eles chegam aqui quando uma cliente faz o pedido pela loja." : "Nenhum pedido com esses filtros."}
         </div>
       ) : (
-        <ul className="rounded-lg border overflow-hidden">
+        <ul className="overflow-x-auto border-t-2 border-t-foreground">
           {filtrados.map((p) => (
             <li key={p.id}>
               <button

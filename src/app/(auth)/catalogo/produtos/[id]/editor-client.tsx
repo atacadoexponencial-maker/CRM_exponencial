@@ -41,7 +41,7 @@ export function EditorClient({ inicial, categorias }: { inicial: ProdutoEditavel
 
   return (
     <div className={`max-w-6xl mx-auto w-full px-4 py-8 ${ALVOS_TOQUE_CELULAR}`}>
-      <h1 className="text-xl font-semibold mb-4">{inicial.id ? inicial.nome : "Novo produto"}</h1>
+      <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-4">{inicial.id ? inicial.nome : "Novo produto"}</h1>
       <AbasCatalogo ativa="produtos" hrefs={HREFS_CATALOGO} />
       <EditorProduto
         inicial={inicial}

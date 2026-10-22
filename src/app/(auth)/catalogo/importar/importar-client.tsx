@@ -87,7 +87,7 @@ export function ImportarClient() {
 
   return (
     <div className={`max-w-6xl mx-auto w-full px-4 py-8 ${ALVOS_TOQUE_CELULAR}`}>
-      <h1 className="text-xl font-semibold mb-4">Catálogo</h1>
+      <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-4">Catálogo</h1>
       <AbasCatalogo ativa="produtos" hrefs={HREFS_CATALOGO} />
 
       <div className="max-w-3xl space-y-6">
@@ -100,7 +100,7 @@ export function ImportarClient() {
           <p className="text-sm text-muted-foreground mt-1">Cadastre ou atualize vários produtos de uma vez. Nada é gravado antes de você conferir a prévia.</p>
         </div>
 
-        <section className="rounded-lg border p-4 space-y-3">
+        <section className="rounded-md border bg-card p-5 space-y-3">
           <h3 className="text-sm font-semibold">1. Baixe o modelo</h3>
           <p className="text-sm text-muted-foreground">
             Preencha no Excel ou no Google Planilhas. Só <strong className="text-foreground">Código, Nome e Preço</strong> são obrigatórios. Produto com variação ocupa uma linha por combinação, todas com o mesmo código.
@@ -135,12 +135,12 @@ export function ImportarClient() {
           </details>
         </section>
 
-        <section className="rounded-lg border p-4 space-y-3">
+        <section className="rounded-md border bg-card p-5 space-y-3">
           <h3 className="text-sm font-semibold">2. Envie a planilha</h3>
           {!previa && (
             <label
               className={cn(
-                "flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-8 text-center cursor-pointer transition-colors",
+                "flex flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-card/60 px-4 py-8 text-center cursor-pointer transition-colors",
                 arrastando ? "border-primary bg-primary/5" : "hover:bg-muted/40"
               )}
               onDragOver={(e) => { e.preventDefault(); setArrastando(true) }}
@@ -175,7 +175,7 @@ export function ImportarClient() {
         </section>
 
         {previa && !resultado && (
-          <section className="rounded-lg border p-4 space-y-4">
+          <section className="rounded-md border bg-card p-5 space-y-4">
             <h3 className="text-sm font-semibold">3. Confira antes de importar</h3>
             <PreviaImportacao previa={previa} />
             {prontos === 0 ? (
@@ -196,7 +196,7 @@ export function ImportarClient() {
         )}
 
         {resultado && (
-          <section className="rounded-lg border p-4 space-y-3" role="status">
+          <section className="rounded-md border bg-card p-5 space-y-3" role="status">
             <h3 className="flex items-center gap-1.5 text-sm font-semibold">
               <CheckCircle2 className="size-4 text-sucesso" />
               {resultado.novos + resultado.atualizados} {resultado.novos + resultado.atualizados === 1 ? "produto importado" : "produtos importados"}: {resultado.novos} {resultado.novos === 1 ? "novo" : "novos"} e {resultado.atualizados} {resultado.atualizados === 1 ? "atualizado" : "atualizados"}.

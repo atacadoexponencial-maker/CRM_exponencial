@@ -9,7 +9,7 @@ import { ALVOS_TOQUE_CELULAR } from "../components/alvos-toque"
 export function ConfiguracoesClient({ inicial, prefixoLink }: { inicial: ConfigCatalogo; prefixoLink: string }) {
   return (
     <div className={`max-w-6xl mx-auto w-full px-4 py-8 ${ALVOS_TOQUE_CELULAR}`}>
-      <h1 className="text-xl font-semibold mb-4">Catálogo</h1>
+      <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-4">Catálogo</h1>
       <AbasCatalogo ativa="configuracoes" hrefs={HREFS_CATALOGO} />
       <FormConfiguracoes
         inicial={inicial}

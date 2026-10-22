@@ -101,7 +101,7 @@ export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedi
 
         <section className="space-y-2">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Itens</h3>
-          <ul className="divide-y rounded-lg border">
+          <ul className="divide-y border-y">
             {pedido.itens.map((i, n) => (
               <li key={n} className="flex items-center gap-3 p-2.5">
                 <div className="size-11 rounded-md bg-muted overflow-hidden shrink-0 flex items-center justify-center">
@@ -150,7 +150,7 @@ export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedi
                 ? "O estoque deste pedido já foi baixado. Voltar para Em atendimento ou cancelar devolve as peças ao estoque."
                 : "Ao marcar como Fechado, o estoque das peças do pedido baixa."}
             </p>
-            {erro && <p className="text-xs text-destructive" role="alert">{erro}</p>}
+            {erro && <p className="text-xs text-erro" role="alert">{erro}</p>}
           </section>
         )}
 

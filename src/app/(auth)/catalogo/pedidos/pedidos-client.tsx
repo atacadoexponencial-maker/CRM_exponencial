@@ -28,7 +28,7 @@ export function PedidosClient({ inicial, abertoInicial, papel }: PedidosClientPr
 
   return (
     <div className={`max-w-6xl mx-auto w-full px-4 py-8 ${ALVOS_TOQUE_CELULAR}`}>
-      <h1 className="text-xl font-semibold mb-4">{papel === "atendente" ? "Pedidos" : "Catálogo"}</h1>
+      <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-4">{papel === "atendente" ? "Pedidos" : "Catálogo"}</h1>
       <AbasCatalogo ativa="pedidos" hrefs={hrefsDoCatalogo(papel)} contadores={{ pedidos: novos }} />
       <div className="grid gap-6 lg:grid-cols-[1fr_24rem] items-start">
         <ListaPedidos pedidos={pedidos} selecionadoId={aberto?.id ?? null} onSelecionar={abrir} />
@@ -51,7 +51,7 @@ export function PedidosClient({ inicial, abertoInicial, papel }: PedidosClientPr
             />
           </div>
         ) : (
-          <p className="hidden lg:block rounded-lg border border-dashed p-6 text-sm text-muted-foreground text-center">
+          <p className="hidden lg:block rounded-md border border-dashed bg-card/60 p-6 text-sm text-muted-foreground text-center">
             {carregando ? "Abrindo o pedido..." : "Escolha um pedido para ver os detalhes."}
           </p>
         )}

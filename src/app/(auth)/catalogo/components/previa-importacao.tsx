@@ -38,7 +38,7 @@ export function PreviaImportacao({ previa }: { previa: Previa }) {
       )}
 
       {previa.itens.length > 0 && (
-        <ul className="divide-y rounded-lg border" aria-label="Produtos da planilha">
+        <ul className="divide-y border-y" aria-label="Produtos da planilha">
           {previa.itens.map((item) => (
             <li key={item.codigo} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
               <div className="min-w-0 space-y-0.5">

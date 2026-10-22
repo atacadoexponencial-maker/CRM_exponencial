@@ -213,7 +213,7 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
         <p className="text-xs text-muted-foreground">
           {tipo === "logo" ? "PNG, JPG, SVG ou WebP, até 2 MB. Sem logo, aparece o nome da loja." : "PNG, JPG ou WebP, até 5 MB. Formato largo (ex.: 1500 × 500)."}
         </p>
-        {erroImagem[tipo] && <p className="text-xs text-destructive">{erroImagem[tipo]}</p>}
+        {erroImagem[tipo] && <p className="text-xs text-erro">{erroImagem[tipo]}</p>}
         {tipo === "logo" && avisoLogo && (
           <p className="flex items-start gap-1.5 text-xs text-aviso" role="status">
             <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
@@ -252,7 +252,7 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
           </p>
         )}
 
-        <section className="rounded-lg border p-4 space-y-4">
+        <section className="rounded-md border bg-card p-5 space-y-4">
           <h2 className="text-sm font-semibold">Marca</h2>
           {seletorImagem("logo")}
           {seletorImagem("banner")}
@@ -266,7 +266,7 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
           </div>
         </section>
 
-        <section className="rounded-lg border p-4 space-y-4">
+        <section className="rounded-md border bg-card p-5 space-y-4">
           <h2 className="text-sm font-semibold">Cores</h2>
           <div className="flex flex-wrap gap-4">
             {seletorCor("corPrincipal", "Cor principal")}
@@ -281,7 +281,7 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
           )}
         </section>
 
-        <section className="rounded-lg border p-4 space-y-3">
+        <section className="rounded-md border bg-card p-5 space-y-3">
           <h2 className="text-sm font-semibold">Fonte</h2>
           <div className="grid grid-cols-2 gap-2">
             {FONTES.map((f) => (
@@ -299,7 +299,7 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
           </div>
         </section>
 
-        <section className="rounded-lg border p-4 space-y-3">
+        <section className="rounded-md border bg-card p-5 space-y-3">
           <h2 className="text-sm font-semibold">Modelo de layout</h2>
           <div className="grid grid-cols-3 gap-2">
             {LAYOUTS.map((l) => (

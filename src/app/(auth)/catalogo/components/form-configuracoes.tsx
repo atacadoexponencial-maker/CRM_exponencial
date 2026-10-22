@@ -128,7 +128,7 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
         </p>
       )}
 
-      <section className="rounded-lg border p-4 space-y-3">
+      <section className="rounded-md border bg-card p-5 space-y-3">
         <h2 className="text-sm font-semibold">Endereço da loja</h2>
         <div className="flex items-center rounded-lg border border-input bg-input/30 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
           <span className="pl-2.5 text-sm text-muted-foreground whitespace-nowrap">{prefixoLink}</span>
@@ -161,7 +161,7 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
         )}
       </section>
 
-      <section className="rounded-lg border p-4 space-y-3">
+      <section className="rounded-md border bg-card p-5 space-y-3">
         <h2 className="text-sm font-semibold">WhatsApp que recebe os pedidos</h2>
         <Input
           type="tel"
@@ -178,7 +178,7 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
         </p>
       </section>
 
-      <section className="rounded-lg border p-4 space-y-3">
+      <section className="rounded-md border bg-card p-5 space-y-3">
         <h2 className="text-sm font-semibold">Pedido mínimo</h2>
         <div className="flex flex-wrap gap-4 text-sm">
           {([
@@ -214,7 +214,7 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
         )}
       </section>
 
-      <section className="rounded-lg border p-4 space-y-3">
+      <section className="rounded-md border bg-card p-5 space-y-3">
         <h2 className="text-sm font-semibold">Desconto por total do pedido <span className="font-normal text-muted-foreground">· opcional</span></h2>
         <p className="text-xs text-muted-foreground">Vale sobre o pedido inteiro, contando todas as peças de todos os produtos. Entra depois do preço por quantidade de cada produto.</p>
         {config.descontos.map((d, i) => (
@@ -244,7 +244,7 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
         )}
       </section>
 
-      <section className="rounded-lg border p-4 space-y-2">
+      <section className="rounded-md border bg-card p-5 space-y-2">
         <Label htmlFor="fechamento">Mensagem de fechamento (opcional)</Label>
         <textarea
           id="fechamento"
