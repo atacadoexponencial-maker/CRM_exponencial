@@ -46,10 +46,9 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
   // B13-02: contatos que foram para a lixeira enquanto a caixa estava aberta.
   const [contatosExcluidos, setContatosExcluidos] = useState<Set<string>>(new Set())
   const [caixaRecolhida, setCaixaRecolhida] = useState(caixaRecolhidaInicial)
+  // Ajuste do preview da B36 (22/10): a ficha do cliente fica entre a lista e a conversa
+  // e só abre ao clicar no nome do contato; no celular, cobre a tela.
   const [fichaAberta, setFichaAberta] = useState(false)
-  // B36-06: em tela larga a ficha do cliente fica aberta à direita, como no quadro Caderno;
-  // em tela menor ela continua abrindo pelo botão, por cima da conversa.
-  const [fichaNaTelaLarga, setFichaNaTelaLarga] = useState(true)
   const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
@@ -406,6 +405,20 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
       )}
 
 
+      {/* Ficha do cliente entre a lista e a conversa; abre pelo nome do contato. */}
+      {fichaAberta && conversaAtiva && !ativaFoiExcluida && (
+        <div className="fixed inset-0 z-40 flex bg-background md:static md:z-auto md:inset-auto">
+          <PainelContato
+            key={conversaAtiva.id}
+            conversa={conversaAtiva}
+            conversaId={conversaAtiva.id}
+            onFechar={() => setFichaAberta(false)}
+            onConversaAtualizada={handleConversaAtualizada}
+            podeEditar={papel !== "atendente"}
+          />
+        </div>
+      )}
+
       <main data-testid="area-da-conversa" className={`${conversaAtivaId ? "flex" : "hidden md:flex"} flex-1 overflow-hidden`}>
         {ativaFoiExcluida ? (
           <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
@@ -436,7 +449,7 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
             nomeUsuario={nomeUsuario}
             etiquetasDisponiveis={etiquetasDisponiveis}
             mensagensRapidas={mensagensRapidas}
-            onAbrirFicha={() => { setFichaAberta(true); setFichaNaTelaLarga(true) }}
+            onAbrirFicha={() => setFichaAberta(true)}
             onVoltar={() => setConversaAtivaId(null)}
           />
         ) : (
@@ -445,26 +458,6 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
           </div>
         )}
       </main>
-
-      {/* Ficha do cliente à direita da conversa (B36-06). */}
-      {(fichaAberta || fichaNaTelaLarga) && conversaAtiva && !ativaFoiExcluida && (
-        <div
-          className={
-            fichaAberta
-              ? "fixed inset-0 z-40 flex bg-background md:static md:z-auto md:inset-auto"
-              : "hidden xl:flex"
-          }
-        >
-          <PainelContato
-            key={conversaAtiva.id}
-            conversa={conversaAtiva}
-            conversaId={conversaAtiva.id}
-            onFechar={() => { setFichaAberta(false); setFichaNaTelaLarga(false) }}
-            onConversaAtualizada={handleConversaAtualizada}
-            podeEditar={papel !== "atendente"}
-          />
-        </div>
-      )}
     </div>
   )
 }

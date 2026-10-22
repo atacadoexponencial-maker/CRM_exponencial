@@ -14,18 +14,18 @@ type Papel = "admin" | "gerente" | "atendente"
 /** O que cada papel via no menu antes da B36, grupo por grupo. */
 const ESPERADO: Record<Papel, Record<string, string[]>> = {
   admin: {
-    "": ["Dashboard", "Relatórios", "Pipeline", "Chat", "Contatos", "Catálogo", "Pedidos"],
+    "": ["Dashboard", "Pipeline", "Chat", "Contatos", "Catálogo", "Pedidos", "Relatórios"],
     Rotina: ["Agenda", "Alertas"],
     Automação: ["Sequências", "Campanhas", "Automações"],
     Configurações: ["Mensagens Rápidas", "Etiquetas", "Templates", "Usuários", "Times", "WhatsApp"],
   },
   gerente: {
-    "": ["Dashboard", "Relatórios", "Pipeline", "Chat", "Contatos", "Catálogo", "Pedidos"],
+    "": ["Dashboard", "Pipeline", "Chat", "Contatos", "Catálogo", "Pedidos", "Relatórios"],
     Rotina: ["Agenda", "Alertas"],
     Automação: ["Sequências", "Campanhas"],
   },
   atendente: {
-    "": ["Dashboard", "Relatórios", "Pipeline", "Chat", "Contatos", "Pedidos"],
+    "": ["Dashboard", "Pipeline", "Chat", "Contatos", "Pedidos", "Relatórios"],
     Rotina: ["Agenda", "Alertas"],
   },
 }

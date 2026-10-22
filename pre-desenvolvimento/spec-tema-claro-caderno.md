@@ -353,6 +353,10 @@ tempo o card está parado.
 abas, conversa aberta e ficha do cliente à direita (total comprado, pedidos, ticket médio,
 última compra, etapa e etiquetas, com link para o perfil completo).
 
+> **Mudou em 22/10/2026 (ajuste pedido pela Marcelle no preview):** a ficha do cliente
+> fica **entre a lista e a conversa**, não à direita, e só abre quando a pessoa clica no
+> nome do contato (não abre sozinha em tela larga).
+
 **Comportamentos:**
 - Filtrar conversas pelas abas (Minhas, Sem resposta, Todas e as que existem hoje).
 - Ver na lista há quanto tempo cada conversa espera resposta; espera longa em vermelho.

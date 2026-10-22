@@ -279,7 +279,7 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
   }
 
   return (
-    <aside aria-label="Ficha do cliente" className="w-full md:w-72 shrink-0 border-l bg-sidebar flex flex-col overflow-hidden">
+    <aside aria-label="Ficha do cliente" className="w-full md:w-72 shrink-0 border-r bg-sidebar flex flex-col overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
         <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Ficha do cliente</span>
         <button

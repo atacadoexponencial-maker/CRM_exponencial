@@ -120,7 +120,7 @@ export function AlertasClient({
           {papel === "admin" && (
             <Button size="sm" variant="outline" onClick={() => setConfigAberta(true)}>
               <Settings2 className="size-4 mr-1.5" />
-              Limiares
+              Ajustes
             </Button>
           )}
         </div>
@@ -249,7 +249,7 @@ export function AlertasClient({
         }}
       >
         <DialogPopup>
-          <DialogTitle className="mb-4">Limiares de alerta</DialogTitle>
+          <DialogTitle className="mb-4">Ajustes dos alertas</DialogTitle>
           <div className="flex flex-col gap-4">
             <p className="text-sm text-muted-foreground">
               Número de dias sem atividade que dispara cada tipo de alerta.

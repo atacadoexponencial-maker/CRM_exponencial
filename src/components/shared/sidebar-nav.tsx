@@ -67,14 +67,15 @@ function montarSecoes(atrasados: number, pedidosNovos: number): SecaoNav[] {
       titulo: null,
       itens: [
         { href: "/dashboard", label: "Dashboard", icone: LayoutDashboard },
-        // B32-03: relatórios para todos; o Atendente vê só os próprios números.
-        { href: "/relatorios", label: "Relatórios", icone: BarChart3 },
         { href: "/pipeline", label: "Pipeline", icone: Kanban },
         { href: "/chat", label: "Chat", icone: MessageSquare },
         { href: "/contatos", label: "Contatos", icone: Contact },
         { href: "/catalogo", label: "Catálogo", icone: Store, papeis: ["admin", "gerente"] },
         // Atendente vê só os pedidos do catálogo; os outros papéis veem o catálogo e os pedidos.
         { href: "/catalogo/pedidos", label: "Pedidos", icone: ShoppingBag, badge: pedidosNovos },
+        // B32-03: relatórios para todos; o Atendente vê só os próprios números.
+        // Logo abaixo de Pedidos (ajuste do preview da B36, 22/10).
+        { href: "/relatorios", label: "Relatórios", icone: BarChart3 },
       ],
     },
     {
