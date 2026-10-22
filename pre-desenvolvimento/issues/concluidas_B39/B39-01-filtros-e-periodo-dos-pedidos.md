@@ -123,3 +123,9 @@ Na tela Pedidos, a pessoa combina busca, situação, período (atalhos ou de/at�
 - [x] `lista-pedidos.tsx` sem filtragem local, com a contagem
 - [x] Testes da tabela Prova escritos e passando
 - [x] `tsc --noEmit`, lint, build e os testes antigos de pedidos passando
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B39-11 | Marcelle | 22/10/2026 |

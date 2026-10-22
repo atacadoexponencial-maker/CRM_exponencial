@@ -71,3 +71,9 @@ Nenhuma.
 - [x] Tabelas em livro-caixa com cabeçalho discreto
 - [x] Avisos de erro no tom do tema
 - [x] Ações de excluir discretas
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B36-30 | Marcelle | 22/10/2026 |

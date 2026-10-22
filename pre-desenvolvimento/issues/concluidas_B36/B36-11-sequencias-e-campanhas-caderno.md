@@ -79,3 +79,9 @@ Nenhuma.
 - [x] Faixa de números compartilhada
 - [x] Relatório da campanha com a faixa
 - [x] Título, margens, tabelas e caixas do Caderno nas telas de sequências e campanhas
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B36-33 | Marcelle | 22/10/2026 |

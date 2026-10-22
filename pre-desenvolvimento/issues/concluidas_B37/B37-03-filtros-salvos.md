@@ -135,3 +135,9 @@ No topo da lista de contatos aparece a faixa de filtros salvos da empresa ao lad
 - [x] Painel com "Salvar filtro", "Atualizar filtro salvo" e a marca de valor que sumiu
 - [x] Testes da tabela Prova escritos e passando
 - [x] `tsc --noEmit`, lint e testes da B37-01 e B37-02 passando
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B37-35 | Marcelle | 22/10/2026 |
