@@ -44,3 +44,82 @@ Na tela Pedidos, a pessoa combina busca, situação, período (atalhos ou de/at�
 | PER-B39-01 | Quais filtros novos entram? | respondida | Valor do pedido, produto no pedido, cliente nova ou antiga e atendente da cliente. Marcelle, 22/10/2026. |
 | PER-B39-05 | O que é "cliente nova"? | respondida | Antes deste pedido ela não tinha nenhum pedido fechado nem compra registrada; "antiga" já tinha. Marcelle, 22/10/2026. |
 | PER-B39-06 | Como fica o período? | respondida | Continuam os atalhos (Hoje, 7 dias, 30 dias, Tudo) e entra "Personalizado" com calendário de/até. Marcelle, 22/10/2026. |
+
+## Cenários
+
+### Happy Path
+1. A tela Pedidos abre com o padrão (situação Todas, Últimos 30 dias). A primeira página e a contagem "N pedidos" vêm do servidor, sobre todos os pedidos da empresa.
+2. A pessoa muda qualquer filtro (busca, situação, período, valor mínimo/máximo, produto, cliente nova/antiga, atendente da cliente). Depois de uma pausa curta, a lista e a contagem são pedidas de novo ao servidor, com todos os filtros juntos.
+3. Em "Personalizado", aparecem dois campos de data (calendário do navegador): de e até. A lista muda quando os dois estão preenchidos e válidos.
+4. Mais de 500 resultados: "Carregar mais" traz a próxima página do mesmo filtro.
+5. "Limpar filtros" volta tudo ao padrão.
+
+### Edge Cases
+- Períodos contados em dias no horário de Brasília: "Hoje" é o dia de hoje; "Últimos 7 dias" é hoje e os 6 anteriores; "Últimos 30 dias", hoje e os 29 anteriores; o Personalizado inclui o dia inicial e o final inteiros.
+- Dia final antes do inicial: aviso "O dia final precisa ser depois do inicial" e nada é pedido ao servidor (o servidor também recusa).
+- Personalizado com só um dos dias: a lista não muda até o outro ser preenchido.
+- Valor: mínimo maior que o máximo traz lista vazia (não é erro); vale o total que a cliente paga, já com desconto.
+- Produto apagado do catálogo: aparece na escolha como "Nome (apagado)", e o filtro procura os itens com aquele nome e sem produto ligado (SUP-B39-03).
+- Cliente nova: pedido sem contato ligado conta como nova; com contato, é nova se não havia compra registrada (de outro pedido) antes do dia do pedido nem compra no mesmo dia registrada antes da hora do pedido, nem pedido fechado anterior (PER-B39-05, SUP-B39-04).
+- Atendente da cliente: o atendente do contato (carteira, SUP-B39-02); "Sem atendente" pega pedido sem contato e contato sem atendente.
+- O Atendente (papel) vê e filtra todos os pedidos da empresa, como hoje; os filtros de cliente e atendente olham a carteira inteira da empresa, não só os contatos dele (a função lê com a permissão do banco e confere a empresa de quem chama).
+- Trocar filtro descarta as páginas carregadas; resposta atrasada de um pedido antigo é ignorada.
+- Mudar a situação de um pedido aberto continua atualizando a linha dele na lista.
+
+### Cenário de Erro
+- Filtro inválido vindo da tela (data malformada, valor negativo, situação desconhecida): o servidor recusa e a tela mostra "Não foi possível aplicar os filtros.", mantendo a lista anterior.
+- Falha de rede ou banco: mesma mensagem; a lista anterior continua.
+
+## Prova
+
+| Critério | Prova | Onde | O que confere |
+|---|---|---|---|
+| CA-B39-01 | automática | `src/test/pedidos-filtros.integration.test.ts` | Personalizado de 05/10 a 15/10 traz só o pedido de 10/10; pedido às 23h de 15/10 em Brasília entra e às 00h30 de 16/10 não |
+| CA-B39-02 | automática | `src/test/pedidos-filtros-tela.test.tsx` | Dia final antes do inicial mostra o aviso e não pede nada ao servidor |
+| CA-B39-03 | automática | `src/test/pedidos-filtros.integration.test.ts` | "Hoje" traz só o de hoje; "Últimos 7 dias" traz o de hoje e o de 5 dias atrás, sem o de 20 dias |
+| CA-B39-04 | automática | `src/test/pedidos-filtros.integration.test.ts` | Mínimo 500 traz 800 e 1.500; com máximo 1.000, só 800 |
+| CA-B39-05 | automática | `src/test/pedidos-filtros.integration.test.ts` | Produto "Blusa Lisa" traz só o pedido que tem ela |
+| CA-B39-19 | automática | `src/test/pedidos-filtros.integration.test.ts` | O produto apagado aparece nas opções marcado como apagado e o filtro por ele traz o pedido antigo |
+| CA-B39-06 | automática | `src/test/pedidos-filtros.integration.test.ts` | "Nova" traz só o pedido da cliente sem compra anterior; "Antiga", só o da que já tinha |
+| CA-B39-07 | automática | `src/test/pedidos-filtros.integration.test.ts` | "Ana" traz só o pedido da cliente da Ana; "Sem atendente", só o da cliente sem atendente |
+| CA-B39-08 | automática | `src/test/pedidos-filtros.integration.test.ts` | Fechado + mínimo 500 + Nova traz só os que satisfazem os três |
+| CA-B39-09 | automática | `src/test/pedidos-filtros.integration.test.ts` | Com 501 pedidos, o mais antigo é achado pelo valor só dele, e o total é 1 |
+| CA-B39-10 | automática | `src/test/pedidos-filtros-tela.test.tsx` | "Limpar filtros" volta os campos ao padrão e pede a lista com Todas e Últimos 30 dias |
+| CA-B39-11 | manual | roteiro abaixo | Filtros e calendário cabem no celular, no estilo Caderno |
+
+### Roteiro manual — CA-B39-11
+1. No celular (ou no navegador com 390 px de largura), entre no preview com o login da empresa de teste e abra Pedidos.
+2. Escolha o período "Personalizado" e marque de/até no calendário.
+3. Preencha valor mínimo e máximo, escolha um produto, "Cliente nova" e um atendente.
+4. Confira: nada exige rolar para o lado, o calendário abre e fecha bem, "Limpar filtros" funciona e o visual segue o estilo Caderno, no claro e no escuro.
+
+## Banco de Dados
+
+- Função nova `public.filtrar_pedidos(p_filtros jsonb, p_limite int, p_offset int)`: `security definer`, `set search_path = public`. Confere a empresa de quem chama (perfil ativo) e só lê pedidos dela. Filtros: busca (nome ou dígitos do WhatsApp), situação, período (`hoje`, `7`, `30`, `tudo`, ou `personalizado` com `de`/`ate`, em dias de Brasília), valor mínimo/máximo, produto (`id` do produto, ou `nome` de produto apagado), cliente (`nova`/`antiga`), atendente (id ou `sem`). Devolve as colunas do resumo de hoje e `total bigint` (`count(*) over ()`), do mais novo para o mais antigo.
+- Função nova `public.produtos_dos_pedidos()`: `security definer`; produtos do catálogo da empresa mais os nomes de itens de pedido sem produto ligado (apagados), com a marca `apagado`.
+- Migration `supabase/migrations/20261022000004_filtrar_pedidos.sql`, aplicada com `npx supabase db push --linked`; tipos regenerados.
+- Nenhuma tabela nem coluna nova.
+
+## Arquivos
+
+- **Criar:** `supabase/migrations/20261022000004_filtrar_pedidos.sql` — as duas funções.
+- **Modificar:** `src/integrations/supabase/types.ts` — regenerado depois da migration.
+- **Criar:** `src/lib/catalogo/filtros-pedidos.ts` — tipo `FiltrosPedidos`, `FILTROS_PADRAO`, esquema Zod, validação do período personalizado (`erroDoPeriodo`) e se os filtros estão prontos para pedir.
+- **Modificar:** `src/app/(auth)/catalogo/pedidos/actions.ts` — `filtrarPedidos(filtros, offset)` (valida e chama a função; devolve `{ pedidos, total }` ou `{ erro }`) e `opcoesDosFiltros()` (produtos com apagados e atendentes ativos, reusando `listarAtendentesAtivos` de `src/app/(auth)/contatos/actions.ts`).
+- **Modificar:** `src/app/(auth)/catalogo/pedidos/page.tsx` — primeira página com o padrão, total e opções dos filtros.
+- **Modificar:** `src/app/(auth)/catalogo/pedidos/pedidos-client.tsx` — guarda os filtros e as páginas, pede ao servidor quando os filtros mudam, "Carregar mais".
+- **Criar:** `src/app/(auth)/catalogo/components/filtros-pedidos.tsx` — a barra de filtros (busca, situação, período com de/até, valor, produto, cliente, atendente, "Limpar filtros", aviso do período).
+- **Modificar:** `src/app/(auth)/catalogo/components/lista-pedidos.tsx` — sai a filtragem local; mostra a contagem e as linhas recebidas.
+- **Criar:** `src/test/pedidos-filtros.integration.test.ts` — CA-B39-01, 03, 04, 05, 19, 06, 07, 08 e 09.
+- **Criar:** `src/test/pedidos-filtros-tela.test.tsx` — CA-B39-02 e 10.
+
+## Checklist
+
+- [x] Migration com `filtrar_pedidos` e `produtos_dos_pedidos`, aplicada e com os tipos regenerados
+- [x] `src/lib/catalogo/filtros-pedidos.ts` com padrão, esquema e validação do período
+- [x] Actions `filtrarPedidos` e `opcoesDosFiltros`
+- [x] `page.tsx` e `pedidos-client.tsx` pedindo ao servidor, com "Carregar mais"
+- [x] `filtros-pedidos.tsx` com todos os filtros e o aviso do período
+- [x] `lista-pedidos.tsx` sem filtragem local, com a contagem
+- [x] Testes da tabela Prova escritos e passando
+- [x] `tsc --noEmit`, lint, build e os testes antigos de pedidos passando

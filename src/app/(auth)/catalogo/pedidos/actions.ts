@@ -8,6 +8,9 @@ import { urlPublicaImagem } from "@/lib/catalogo/loja-publica"
 import type { PedidoResumo } from "../components/lista-pedidos"
 import type { PedidoDetalhe } from "../components/detalhe-pedido"
 import type { SituacaoPedido } from "../components/situacao-pedido"
+import { listarAtendentesAtivos } from "@/app/(auth)/contatos/actions"
+import type { Database } from "@/integrations/supabase/types"
+import { esquemaFiltrosPedidos, FILTROS_PADRAO, type FiltrosPedidos } from "@/lib/catalogo/filtros-pedidos"
 
 const LIMITE_LISTA = 500
 
@@ -49,6 +52,48 @@ export async function listarPedidos(): Promise<PedidoResumo[]> {
     .order("created_at", { ascending: false })
     .limit(LIMITE_LISTA)
   return ((data ?? []) as LinhaPedido[]).map(paraResumo)
+}
+
+type Funcoes = Database["public"]["Functions"]
+
+/** B39-01: produto que aparece no filtro; o apagado vem só pelo nome. */
+export type ProdutoDoFiltro = { id: string | null; nome: string; apagado: boolean }
+
+/**
+ * B39-01: uma página dos pedidos com os filtros aplicados no banco, sobre todos os
+ * pedidos da empresa, e o total do resultado.
+ */
+export async function filtrarPedidos(
+  filtros: FiltrosPedidos = FILTROS_PADRAO,
+  offset = 0
+): Promise<{ pedidos: PedidoResumo[]; total: number } | { erro: string }> {
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return { pedidos: [], total: 0 }
+  const validado = esquemaFiltrosPedidos.safeParse(filtros)
+  if (!validado.success) return { erro: "Não foi possível aplicar os filtros." }
+
+  const { data, error } = await supabase.rpc("filtrar_pedidos", {
+    p_filtros: validado.data,
+    p_limite: LIMITE_LISTA,
+    p_offset: Math.max(0, offset),
+  })
+  if (error) return { erro: "Não foi possível aplicar os filtros." }
+  const linhas = (data ?? []) as Funcoes["filtrar_pedidos"]["Returns"]
+  return {
+    pedidos: linhas.map((l) => paraResumo(l as unknown as LinhaPedido)),
+    total: linhas.length > 0 ? Number(linhas[0].total_resultado) : offset,
+  }
+}
+
+/** B39-01: opções dos filtros de produto (com os apagados) e de atendente da cliente. */
+export async function opcoesDosFiltros(): Promise<{ produtos: ProdutoDoFiltro[]; atendentes: Array<{ id: string; nome: string }> }> {
+  const { supabase, perfil } = await sessaoAtual()
+  if (!perfil) return { produtos: [], atendentes: [] }
+  const [{ data: produtos }, atendentes] = await Promise.all([supabase.rpc("produtos_dos_pedidos"), listarAtendentesAtivos()])
+  return {
+    produtos: ((produtos ?? []) as Funcoes["produtos_dos_pedidos"]["Returns"]).map((p) => ({ id: p.id, nome: p.nome, apagado: p.apagado })),
+    atendentes,
+  }
 }
 
 export async function listarPedidosDoContato(contatoId: string): Promise<PedidoResumo[]> {

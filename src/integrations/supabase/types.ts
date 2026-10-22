@@ -2166,6 +2166,22 @@ export type Database = {
           uf: string
         }[]
       }
+      filtrar_pedidos: {
+        Args: { p_filtros?: Json; p_limite?: number; p_offset?: number }
+        Returns: {
+          created_at: string
+          customer_name: string
+          customer_whatsapp: string
+          discount: number
+          discount_percent: number
+          id: string
+          number: number
+          pieces: number
+          status: string
+          total: number
+          total_resultado: number
+        }[]
+      }
       gerar_compras_de_pedidos_fechados: { Args: never; Returns: number }
       get_auth_user_workspace_id: { Args: never; Returns: string }
       importar_produto_catalogo: {
@@ -2180,6 +2196,14 @@ export type Database = {
       pode_ver_conversa: {
         Args: { p_conversation_id: string }
         Returns: boolean
+      }
+      produtos_dos_pedidos: {
+        Args: never
+        Returns: {
+          apagado: boolean
+          id: string
+          nome: string
+        }[]
       }
       recalcular_classificacao_do_contato: {
         Args: { p_contact: string }
