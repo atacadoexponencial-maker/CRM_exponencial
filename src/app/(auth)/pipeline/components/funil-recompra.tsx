@@ -3,9 +3,9 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Search, ChevronDown } from "lucide-react"
-import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { ColunaKanban } from "./coluna-kanban"
+import { CabecalhoDoPipeline } from "./cabecalho-do-pipeline"
 import { PainelCard } from "./painel-card"
 import { ETAPAS_RECOMPRA, type CardCliente } from "../mock-pipeline"
 import { moverCard } from "../actions"
@@ -49,20 +49,7 @@ export function FunilRecompra({ cards, papel, atendentes }: FunilRecompraProps) 
     <div className="flex flex-col h-full overflow-hidden">
       <PainelCard key={cardSelecionado?.id ?? "fechado"} card={cardSelecionado} funil="recompra" onFechar={() => setCardSelecionado(null)} onMover={() => router.refresh()} papel={papel} atendentes={atendentes} />
       {/* Cabeçalho */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
-        <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
-          <Link
-            href="/pipeline"
-            className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md"
-          >
-            Entrada
-          </Link>
-          <span className="px-3 py-1.5 text-sm font-medium rounded-md bg-background text-foreground shadow-sm">
-            Recompra
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
+      <CabecalhoDoPipeline atual="recompra" quantidade={cardsFiltrados.length}>
           {/* Busca */}
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
@@ -71,7 +58,7 @@ export function FunilRecompra({ cards, papel, atendentes }: FunilRecompraProps) 
               placeholder="Buscar cliente..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="h-8 w-52 pl-8 pr-3 text-sm rounded-lg border border-input bg-transparent outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground"
+              className="h-9 w-52 pl-8 pr-3 text-sm rounded-md border border-input bg-card outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground"
             />
           </div>
 
@@ -81,7 +68,7 @@ export function FunilRecompra({ cards, papel, atendentes }: FunilRecompraProps) 
             <button
               onClick={() => setFiltroAberto((v) => !v)}
               className={cn(
-                "h-8 flex items-center gap-1.5 px-3 text-sm rounded-lg border transition-colors",
+                "h-9 flex items-center gap-1.5 px-3 text-sm rounded-md border bg-card transition-colors",
                 atendenteFiltro !== null
                   ? "border-primary bg-primary/10 text-primary"
                   : "border-input text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -131,12 +118,11 @@ export function FunilRecompra({ cards, papel, atendentes }: FunilRecompraProps) 
             )}
           </div>
           )}
-        </div>
-      </div>
+      </CabecalhoDoPipeline>
 
       {/* Kanban */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
-        <div className="flex gap-3 p-4 h-full items-start">
+        <div className="flex h-full items-start px-4 pt-5 sm:px-6 lg:px-8">
           {ETAPAS_RECOMPRA.map((etapa) => {
             const cardsColuna = cardsFiltrados.filter((c) => c.etapa === etapa.id)
             return (

@@ -315,12 +315,13 @@ próprios números).
 ### Pipeline
 
 **Descrição:** Funis de Entrada e Recompra no estilo Caderno: colunas separadas por linhas
-finas, título da coluna com a quantidade e a soma dos valores, abas Entrada/Recompra
-sublinhadas, cards com nome, cidade, valor e há quanto tempo o card está parado.
+finas, título da coluna com a quantidade e a soma do que os clientes dela já compraram, abas
+Entrada/Recompra sublinhadas, cards com nome, cidade, total já comprado pelo cliente e há quanto
+tempo o card está parado.
 
 **Comportamentos:**
 - Trocar entre Entrada e Recompra pelas abas.
-- Ver a quantidade e a soma de valores de cada coluna.
+- Ver a quantidade de cards e a soma do que os clientes de cada coluna já compraram.
 - Ver, em cada card, há quanto tempo ele está parado na etapa; parado demais aparece em vermelho.
 - Arrastar cards, abrir cards, filtrar por vendedor e criar negócio, como hoje.
 
@@ -328,9 +329,9 @@ sublinhadas, cards com nome, cidade, valor e há quanto tempo o card está parad
 
 #### CA-B36-23 — Coluna mostra quantidade e soma · prova: automática
 
-- **Dado** uma etapa com 3 cards de R$ 100, R$ 250 e sem valor
+- **Dado** uma etapa com 3 cards, de clientes que já compraram R$ 100, R$ 250 e nada
 - **Quando** o pipeline abre
-- **Então** o título da coluna mostra 3 e R$ 350
+- **Então** o título da coluna mostra 3 e R$ 350, e cada card mostra o total já comprado pelo cliente
 
 #### CA-B36-24 — Card mostra há quanto tempo está parado · prova: automática
 
@@ -515,3 +516,4 @@ aprovar todas as telas de uma vez com a empresa de teste "[TESTE] Automações B
 | PER-B36-05 | O Dashboard troca os gráficos de hoje pelos blocos do quadro? | respondida | Junta os dois: blocos novos em cima, gráficos de hoje embaixo (Marcelle, 21/10/2026) |
 | PER-B36-06 | O item "Dashboard" do menu vira "Painel"? | respondida | Não, continua "Dashboard" (Marcelle, 21/10/2026) |
 | PER-B36-07 | De onde vem a logo escura? | respondida | A Marcelle já tem o arquivo (21/10/2026); ver SUP-B36-08 |
+| PER-B36-08 | O card do funil não tem valor do negócio: o que o card e a coluna mostram? | respondida | O total já comprado pelo cliente (compras registradas); a coluna soma esse total (Marcelle, 22/10/2026) |

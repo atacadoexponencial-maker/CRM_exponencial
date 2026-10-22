@@ -11,6 +11,8 @@ import { tirarDaLixeira } from "@/lib/lixeira"
 import { normalizarWhatsapp, TELEFONE_INVALIDO } from "@/lib/telefone"
 import { type CardLead, type EtapaEntrada, type CardCliente, type EtapaRecompra, type HistoricoEtapa, type NotaInterna, ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "./mock-pipeline"
 import { atendenteDoContato, registrarMudancasDeCarteira } from "@/lib/carteira"
+import { buscarConfigAlertas } from "@/app/(auth)/alertas/actions"
+import { limiteDeParado } from "@/lib/card-parado"
 
 // QA M4 (06/10): o histórico do painel mostrava "sondagem → catalogo_enviado".
 const ROTULO_DA_ETAPA: Record<string, string> = Object.fromEntries(
@@ -433,6 +435,30 @@ export async function buscarDadosPainel(cardId: string): Promise<{ historico: Hi
   return { historico, notas }
 }
 
+/**
+ * B36-05: o que o card do Caderno mostra além do de antes — cidade, total já comprado
+ * pelo cliente e o limite de "parado" da etapa (o mesmo dos Alertas).
+ * O total vem pelo servidor: o card já é um que a pessoa pode ver, e o Atendente
+ * nem sempre lê as compras do contato pela RLS.
+ */
+async function extrasDosCards(contactIds: string[]) {
+  const [config, compras] = await Promise.all([
+    buscarConfigAlertas(),
+    contactIds.length > 0
+      ? createServiceClient().from("contact_purchases").select("contact_id, valor").in("contact_id", contactIds)
+      : Promise.resolve({ data: [] as Array<{ contact_id: string; valor: number }> }),
+  ])
+  const totalPorContato: Record<string, number> = {}
+  for (const c of compras.data ?? []) totalPorContato[c.contact_id] = (totalPorContato[c.contact_id] ?? 0) + Number(c.valor)
+  return { config, totalPorContato }
+}
+
+function cidadeDoContato(contato: { cidade?: string | null; uf?: string | null } | null): string | null {
+  if (!contato) return null
+  const partes = [contato.cidade?.trim(), contato.uf?.trim()].filter(Boolean)
+  return partes.length > 0 ? partes.join(" · ") : null
+}
+
 export async function listarCardsEntrada(): Promise<CardLead[]> {
   const { supabase } = await sessaoAtual()
 
@@ -445,7 +471,7 @@ export async function listarCardsEntrada(): Promise<CardLead[]> {
       created_at,
       contact_id,
       atendente:profiles!atendente_id (name),
-      contato:contacts!contact_id (name, phone_number),
+      contato:contacts!contact_id (name, phone_number, cidade, uf),
       pipeline_card_labels (
         label:labels!label_id (id, name, color)
       )
@@ -469,6 +495,7 @@ export async function listarCardsEntrada(): Promise<CardLead[]> {
       if (c.contact_id) conversasPorContato[c.contact_id] = c.id
     }
   }
+  const { config, totalPorContato } = await extrasDosCards(contactIds)
 
   return (data ?? []).map((row) => ({
     id: row.id,
@@ -486,6 +513,10 @@ export async function listarCardsEntrada(): Promise<CardLead[]> {
       ({ label }) => ({ id: label.id, nome: label.name, cor: label.color })
     ),
     conversaId: row.contact_id ? (conversasPorContato[row.contact_id] ?? null) : null,
+    cidade: cidadeDoContato(row.contato as unknown as { cidade: string | null; uf: string | null } | null),
+    totalComprado: row.contact_id ? (totalPorContato[row.contact_id] ?? 0) : 0,
+    etapaDesde: row.etapa_changed_at,
+    limiteParadoDias: limiteDeParado("entrada", row.etapa, config),
   }))
 }
 
@@ -502,7 +533,7 @@ export async function listarCardsRecompra(): Promise<CardCliente[]> {
       created_at,
       contact_id,
       atendente:profiles!atendente_id (name),
-      contato:contacts!contact_id (name, phone_number),
+      contato:contacts!contact_id (name, phone_number, cidade, uf),
       pipeline_card_labels (
         label:labels!label_id (id, name, color)
       )
@@ -526,6 +557,7 @@ export async function listarCardsRecompra(): Promise<CardCliente[]> {
       if (c.contact_id) conversasPorContato[c.contact_id] = c.id
     }
   }
+  const { config, totalPorContato } = await extrasDosCards(contactIds)
 
   return (data ?? []).map((row) => ({
     id: row.id,
@@ -543,5 +575,9 @@ export async function listarCardsRecompra(): Promise<CardCliente[]> {
       ({ label }) => ({ id: label.id, nome: label.name, cor: label.color })
     ),
     conversaId: row.contact_id ? (conversasPorContato[row.contact_id] ?? null) : null,
+    cidade: cidadeDoContato(row.contato as unknown as { cidade: string | null; uf: string | null } | null),
+    totalComprado: row.contact_id ? (totalPorContato[row.contact_id] ?? 0) : 0,
+    etapaDesde: row.etapa_changed_at,
+    limiteParadoDias: limiteDeParado("recompra", row.etapa, config),
   }))
 }

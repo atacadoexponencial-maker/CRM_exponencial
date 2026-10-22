@@ -4,17 +4,21 @@ import { useState } from "react"
 import { AlertTriangle } from "lucide-react"
 import { CardLeadItem } from "./card-lead"
 import { cn } from "@/lib/utils"
+import { resumoDaColuna } from "@/lib/card-parado"
 import type { CardLead, CardCliente, CorColuna } from "../mock-pipeline"
 
 type CardQualquer = CardLead | CardCliente
 
-// Classes inteiras (o Tailwind só gera o que encontra escrito). Tema sempre escuro.
-const CLASSES_COR: Record<CorColuna, { borda: string; titulo: string }> = {
-  verde: { borda: "border-sucesso/40", titulo: "text-sucesso" },
-  amarelo: { borda: "border-aviso/40", titulo: "text-aviso" },
-  cinza: { borda: "border-border", titulo: "text-muted-foreground" },
-  laranja: { borda: "border-orange-200 dark:border-orange-500/30", titulo: "text-orange-700 dark:text-orange-300" },
-  vermelho: { borda: "border-erro/40", titulo: "text-erro" },
+const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })
+
+// B36-05: a cor da etapa (B15-02) vira o traço embaixo do título da coluna, como no quadro
+// Caderno. Classes inteiras: o Tailwind só gera o que encontra escrito.
+const TRACO_COR: Record<CorColuna, { traco: string; titulo: string }> = {
+  verde: { traco: "border-b-sucesso", titulo: "text-sucesso" },
+  amarelo: { traco: "border-b-aviso", titulo: "text-aviso" },
+  cinza: { traco: "border-b-muted-foreground/50", titulo: "text-muted-foreground" },
+  laranja: { traco: "border-b-orange-600 dark:border-b-orange-400", titulo: "text-orange-700 dark:text-orange-300" },
+  vermelho: { traco: "border-b-erro", titulo: "text-erro" },
 }
 
 interface ColunaKanbanProps {
@@ -23,17 +27,22 @@ interface ColunaKanbanProps {
   cards: CardQualquer[]
   alertaVisual?: boolean
   cor?: CorColuna
+  /** A etapa final de sucesso (Ganho) leva o traço grafite. */
+  destaque?: boolean
   mensagemVazia?: string
   onCardClick?: (card: CardQualquer) => void
   onCardDrop?: (cardId: string, deEtapa: string, paraEtapa: string) => void
 }
 
-export function ColunaKanban({ titulo, etapaId, cards, alertaVisual, cor, mensagemVazia = "Nenhum lead nesta etapa", onCardClick, onCardDrop }: ColunaKanbanProps) {
+export function ColunaKanban({ titulo, etapaId, cards, alertaVisual, cor, destaque, mensagemVazia = "Nenhum lead nesta etapa", onCardClick, onCardDrop }: ColunaKanbanProps) {
   const [isDragOver, setIsDragOver] = useState(false)
-  const classesCor = alertaVisual ? CLASSES_COR.vermelho : cor ? CLASSES_COR[cor] : null
+  const estilo = alertaVisual ? TRACO_COR.vermelho : cor ? TRACO_COR[cor] : null
+  const { quantidade, soma } = resumoDaColuna(cards)
 
   return (
-    <div
+    <section
+      aria-label={titulo}
+      data-etapa={etapaId}
       onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
       onDragLeave={() => setIsDragOver(false)}
       onDrop={(e) => {
@@ -46,32 +55,29 @@ export function ColunaKanban({ titulo, etapaId, cards, alertaVisual, cor, mensag
         }
       }}
       className={cn(
-        "flex flex-col w-64 shrink-0 bg-muted/30 rounded-lg border overflow-hidden transition-all",
-        classesCor ? classesCor.borda : "border-border",
-        isDragOver && "ring-2 ring-primary/40"
+        "flex w-64 shrink-0 flex-col border-r px-3 transition-colors first:border-l",
+        isDragOver && "bg-muted/60"
       )}
     >
-      <div className={cn(
-        "flex items-center justify-between px-3 py-2.5 border-b bg-muted/50",
-        classesCor ? classesCor.borda : "border-border"
-      )}>
-        <div className="flex items-center gap-1.5">
-          {alertaVisual && <AlertTriangle className="size-3 text-erro shrink-0" />}
-          <span className={cn(
-            "text-xs font-semibold uppercase tracking-wide",
-            classesCor ? classesCor.titulo : "text-muted-foreground"
-          )}>
+      <header
+        className={cn(
+          "flex flex-col gap-0.5 border-b-2 px-0.5 pb-2.5 pt-1",
+          estilo ? estilo.traco : destaque ? "border-b-primary" : "border-b-border"
+        )}
+      >
+        <span className="flex items-center justify-between gap-2">
+          <span className={cn("flex items-center gap-1.5 text-sm font-semibold", estilo?.titulo)}>
+            {alertaVisual && <AlertTriangle className="size-3.5 shrink-0" />}
             {titulo}
           </span>
-        </div>
-        <span className="text-xs font-medium bg-secondary text-secondary-foreground rounded-full px-2 py-0.5 tabular-nums">
-          {cards.length}
+          <span className="numero text-xs text-muted-foreground" data-quantidade>{quantidade}</span>
         </span>
-      </div>
+        <span className="numero text-xs text-muted-foreground" data-soma={soma}>{soma > 0 ? moeda(soma) : "—"}</span>
+      </header>
 
-      <div className="flex-1 overflow-y-auto p-2 space-y-2 min-h-0" style={{ maxHeight: "calc(100vh - 200px)" }}>
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto py-3" style={{ maxHeight: "calc(100vh - 210px)" }}>
         {cards.length === 0 ? (
-          <div className="flex items-center justify-center h-16 text-xs text-muted-foreground/60">
+          <div className="flex h-16 items-center justify-center text-xs text-muted-foreground">
             {mensagemVazia}
           </div>
         ) : (
@@ -80,6 +86,6 @@ export function ColunaKanban({ titulo, etapaId, cards, alertaVisual, cor, mensag
           ))
         )}
       </div>
-    </div>
+    </section>
   )
 }

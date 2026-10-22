@@ -3,11 +3,11 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Search, Plus, ChevronDown } from "lucide-react"
-import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { contemTermo } from "@/lib/normalizar-busca"
 import { Button } from "@/components/ui/button"
 import { ColunaKanban } from "./coluna-kanban"
+import { CabecalhoDoPipeline } from "./cabecalho-do-pipeline"
 import { PainelCard } from "./painel-card"
 import { ModalNovoLead } from "./modal-novo-lead"
 import { ETAPAS_ENTRADA, type CardLead } from "../mock-pipeline"
@@ -69,27 +69,13 @@ export function FunilEntrada({ cards, papel, atendentes }: FunilEntradaProps) {
       {(movendo || erroMover) && (
         <div
           role={erroMover ? "alert" : "status"}
-          className={cn("px-6 py-2 text-sm border-b border-border", erroMover ? "text-destructive" : "text-muted-foreground")}
+          className={cn("px-6 py-2 text-sm border-b border-border", erroMover ? "text-erro" : "text-muted-foreground")}
         >
           {erroMover ?? "Movendo o card…"}
         </div>
       )}
-      {/* Cabeçalho */}
-      {/* QA M23 (06/10): no celular, "Atendente" e "Novo lead" saíam da tela; agora quebram a linha. */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-4 border-b border-border shrink-0">
-        <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
-          <span className="px-3 py-1.5 text-sm font-medium rounded-md bg-background text-foreground shadow-sm">
-            Entrada
-          </span>
-          <Link
-            href="/pipeline/recompra"
-            className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md"
-          >
-            Recompra
-          </Link>
-        </div>
-
-        <div className="flex items-center gap-2">
+      {/* Cabeçalho (B36-05). QA M23 (06/10): no celular, "Atendente" e "Novo lead" quebram a linha. */}
+      <CabecalhoDoPipeline atual="entrada" quantidade={cardsFiltrados.length}>
           {/* Busca */}
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
@@ -98,7 +84,7 @@ export function FunilEntrada({ cards, papel, atendentes }: FunilEntradaProps) {
               placeholder="Buscar lead..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="h-8 w-52 pl-8 pr-3 text-sm rounded-lg border border-input bg-transparent outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground"
+              className="h-9 w-52 pl-8 pr-3 text-sm rounded-md border border-input bg-card outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground"
             />
           </div>
 
@@ -108,7 +94,7 @@ export function FunilEntrada({ cards, papel, atendentes }: FunilEntradaProps) {
             <button
               onClick={() => setFiltroAberto((v) => !v)}
               className={cn(
-                "h-8 flex items-center gap-1.5 px-3 text-sm rounded-lg border transition-colors",
+                "h-9 flex items-center gap-1.5 px-3 text-sm rounded-md border bg-card transition-colors",
                 atendenteFiltro !== null
                   ? "border-primary bg-primary/10 text-primary"
                   : "border-input text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -165,12 +151,11 @@ export function FunilEntrada({ cards, papel, atendentes }: FunilEntradaProps) {
               Novo lead
             </Button>
           )}
-        </div>
-      </div>
+      </CabecalhoDoPipeline>
 
       {/* Kanban */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
-        <div className="flex gap-3 p-4 h-full items-start">
+        <div className="flex h-full items-start px-4 pt-5 sm:px-6 lg:px-8">
           {ETAPAS_ENTRADA.map((etapa) => {
             const cardsColuna = cardsFiltrados.filter((c) => c.etapa === etapa.id)
             return (
@@ -180,6 +165,7 @@ export function FunilEntrada({ cards, papel, atendentes }: FunilEntradaProps) {
                 etapaId={etapa.id}
                 cards={cardsColuna}
                 alertaVisual={etapa.alerta}
+                destaque={etapa.id === "ganho"}
                 onCardClick={(card) => setCardSelecionado(card as CardLead)}
                 onCardDrop={handleMoverCard}
               />

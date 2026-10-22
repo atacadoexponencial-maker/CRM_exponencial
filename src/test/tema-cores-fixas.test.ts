@@ -39,8 +39,8 @@ const SEMANTICAS = "amber|yellow|red|rose|emerald|green|teal|sky|blue|cyan|zinc|
 const CATEGORICAS = "orange|purple|violet|indigo|fuchsia|pink|lime"
 const PROIBIDAS: { nome: string; rx: RegExp }[] = [
   // Cor de aviso, erro, sucesso, informação ou cinza: tem que vir do tema (text-aviso, bg-erro-fundo...).
-  { nome: "cor da paleta no lugar da cor do tema", rx: new RegExp(`(?<![\\w-])(?:[a-z-]+:)*(?:bg|text|border|ring|fill|stroke)-(?:${SEMANTICAS})-\\d{2,3}(?:/\\d+)?(?![\\w-])`, "g") },
-  { nome: "branco ou preto fixo", rx: /(?<![\w-])(?:[a-z-]+:)*(?:bg|text|border|ring|fill|stroke)-(?:white|black)(?:\/\d+)?(?![\w-])/g },
+  { nome: "cor da paleta no lugar da cor do tema", rx: new RegExp(`(?<![\\w-])(?:[a-z-]+:)*(?:bg|text|border(?:-[trblxyse])?|ring|fill|stroke|outline|divide|decoration)-(?:${SEMANTICAS})-\\d{2,3}(?:/\\d+)?(?![\\w-])`, "g") },
+  { nome: "branco ou preto fixo", rx: /(?<![\w-])(?:[a-z-]+:)*(?:bg|text|border(?:-[trblxyse])?|ring|fill|stroke|outline|divide)-(?:white|black)(?:\/\d+)?(?![\w-])/g },
   { nome: "cor escrita em código", rx: /#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b(?!\d)|rgba?\(/g },
 ]
 
@@ -82,7 +82,7 @@ describe("B36-02 — Telas legíveis nos dois temas", () => {
           }
         }
         // Cor categórica (laranja, roxo...) só vale com o par do tema escuro na mesma linha.
-        for (const m of linha.matchAll(new RegExp(`(?<![\\w-])((?:[a-z-]+:)*)(bg|text|border)-(${CATEGORICAS})-\\d{2,3}(?:/\\d+)?(?![\\w-])`, "g"))) {
+        for (const m of linha.matchAll(new RegExp(`(?<![\\w-])((?:[a-z-]+:)*)(bg|text|border(?:-[trblxyse])?)-(${CATEGORICAS})-\\d{2,3}(?:/\\d+)?(?![\\w-])`, "g"))) {
           if (m[1].includes("dark:")) continue
           if (!linha.includes(`dark:${m[2]}-${m[3]}-`)) achados.push(`${relativo}:${i + 1} cor sem o par do escuro: ${m[0]}`)
         }
