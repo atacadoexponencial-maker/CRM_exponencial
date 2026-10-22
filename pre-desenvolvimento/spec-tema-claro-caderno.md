@@ -501,6 +501,8 @@ aprovar todas as telas de uma vez com a empresa de teste "[TESTE] Automações B
 | SUP-B36-07 | No celular, a organização nova se adapta à tela pequena (colunas viram uma embaixo da outra, o Chat mostra uma coluna por vez, como hoje) | confirmada | Marcelle, 21/10/2026 |
 | SUP-B36-08 | A logo escura usada é `Logo crmatacado exp em grafite1.png` (horizontal, fundo transparente), da pasta Downloads da Marcelle | confirmada | Marcelle, 21/10/2026 |
 | SUP-B36-09 | O favicon (o "exp" sobre fundo escuro) não muda | confirmada | Marcelle, 21/10/2026 |
+| SUP-B36-10 | No funil de Entrada em barras, a etapa em destaque é Ganho (a última etapa de sucesso), e não Perdido, que é a última da lista | confirmada | Marcelle, 22/10/2026 |
+| SUP-B36-11 | A faixa do topo do Dashboard mostra faturado (com o número de compras), ticket médio, novos leads e taxa de recompra, com a variação sobre o período anterior de mesmo tamanho; os outros números de hoje ficam nas seções de baixo | confirmada | Marcelle, 22/10/2026 |
 
 ## Perguntas em aberto
 

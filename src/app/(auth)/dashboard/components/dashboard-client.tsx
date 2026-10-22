@@ -1,21 +1,31 @@
 "use client"
 
+// B36-04: Dashboard no estilo Caderno — cabeçalho do dia, faixa de números com a
+// variação sobre o período anterior, funil de Entrada em barras, "Para hoje",
+// "Esperando resposta" e, embaixo, as seções e gráficos que o Dashboard já tinha.
+
 import { useState, useTransition } from "react"
 import Link from "next/link"
 import { Loader2 } from "lucide-react"
-import { buscarMetricasDashboard } from "../actions"
-import type { MetricasDashboard } from "../actions"
+import { buscarPainelDashboard } from "../actions"
+import type { ConversaEsperando, PainelDashboard, TarefaDeHoje } from "../actions"
 import { FiltrosDashboard, type FiltrosState } from "./filtros-dashboard"
 import { SecoesMetricas } from "./secoes-metricas"
+import { FaixaDeNumeros } from "./faixa-de-numeros"
+import { BlocoEsperandoResposta, BlocoFunilEntrada, BlocoParaHoje } from "./blocos-do-dia"
+import { formatarMoeda } from "./graficos"
 
 interface DashboardClientProps {
-  metricasIniciais: MetricasDashboard
+  painelInicial: PainelDashboard
   atendentes: Array<{ id: string; nome: string }>
   papel: string
+  cabecalho: { data: string; saudacao: string }
+  paraHoje: TarefaDeHoje[]
+  esperando: { conversas: ConversaEsperando[]; total: number }
 }
 
-export function DashboardClient({ metricasIniciais, atendentes, papel }: DashboardClientProps) {
-  const [metricas, setMetricas] = useState<MetricasDashboard>(metricasIniciais)
+export function DashboardClient({ painelInicial, atendentes, papel, cabecalho, paraHoje, esperando }: DashboardClientProps) {
+  const [painel, setPainel] = useState<PainelDashboard>(painelInicial)
   const [filtros, setFiltros] = useState<FiltrosState>({
     periodo: "30d",
     inicio: "",
@@ -26,6 +36,7 @@ export function DashboardClient({ metricasIniciais, atendentes, papel }: Dashboa
   const [isPending, startTransition] = useTransition()
 
   const podeFiltrarAtendente = papel === "admin" || papel === "gerente"
+  const { metricas, variacoes } = painel
 
   function aplicarFiltros(novos: FiltrosState) {
     setFiltros(novos)
@@ -33,13 +44,13 @@ export function DashboardClient({ metricasIniciais, atendentes, papel }: Dashboa
     setErro(false)
     startTransition(async () => {
       try {
-        const resultado = await buscarMetricasDashboard({
+        const resultado = await buscarPainelDashboard({
           periodo: novos.periodo,
           inicio: novos.inicio || undefined,
           fim: novos.fim || undefined,
           atendenteId: novos.atendenteId || null,
         })
-        if (resultado) setMetricas(resultado)
+        if (resultado) setPainel(resultado)
         else setErro(true)
       } catch {
         setErro(true)
@@ -48,11 +59,14 @@ export function DashboardClient({ metricasIniciais, atendentes, papel }: Dashboa
   }
 
   return (
-    <>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold">Dashboard</h1>
-          {isPending && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
+    <div className="flex flex-col gap-8">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <span className="text-sm text-muted-foreground">{cabecalho.data}</span>
+          <div className="flex items-center gap-3">
+            <h1 className="text-[26px] font-semibold leading-tight tracking-tight">{cabecalho.saudacao}</h1>
+            {isPending && <Loader2 className="size-4 animate-spin text-muted-foreground" aria-label="Atualizando" />}
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <FiltrosDashboard
@@ -64,21 +78,44 @@ export function DashboardClient({ metricasIniciais, atendentes, papel }: Dashboa
           {podeFiltrarAtendente && (
             <Link
               href="/dashboard/performance"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+              className="whitespace-nowrap text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
             >
-              Performance por vendedor →
+              Performance por vendedor
             </Link>
           )}
         </div>
-      </div>
+      </header>
 
       {erro && (
-        <p className="text-sm text-destructive mb-4">
+        <p role="alert" className="text-sm text-erro">
           Não foi possível carregar as métricas. Tente novamente.
         </p>
       )}
 
-      <SecoesMetricas metricas={metricas} />
-    </>
+      <FaixaDeNumeros
+        destaque
+        itens={[
+          { rotulo: `Faturado no período (${metricas.receita.quantidadeCompras} compras)`, valor: formatarMoeda(metricas.receita.totalCompras), variacao: variacoes.totalCompras },
+          { rotulo: "Ticket médio", valor: formatarMoeda(metricas.receita.ticketMedioGeral), variacao: variacoes.ticketMedioGeral },
+          { rotulo: "Novos leads", valor: metricas.entrada.novosLeads, variacao: variacoes.novosLeads },
+          { rotulo: "Taxa de recompra", valor: metricas.recompra.taxaRecompra, sufixo: "%", variacao: variacoes.taxaRecompra },
+        ]}
+      />
+
+      <div className="flex flex-wrap gap-8">
+        <div className="min-w-0 flex-[3_1_420px]">
+          <BlocoFunilEntrada etapas={painel.funilEntrada} />
+        </div>
+        <div className="min-w-0 flex-[2_1_300px]">
+          <BlocoParaHoje tarefasIniciais={paraHoje} />
+        </div>
+      </div>
+
+      <BlocoEsperandoResposta conversas={esperando.conversas} total={esperando.total} />
+
+      <div className="flex flex-col gap-6 border-t pt-8">
+        <SecoesMetricas metricas={metricas} semResumo />
+      </div>
+    </div>
   )
 }

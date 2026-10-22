@@ -2078,6 +2078,19 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: boolean
       }
+      conversas_esperando_resposta: {
+        Args: { p_limite?: number }
+        Returns: {
+          contato_id: string
+          contato_nome: string
+          conversa_id: string
+          desde: string
+          funil: string
+          telefone: string
+          tipo: string
+          trecho: string
+        }[]
+      }
       gerar_compras_de_pedidos_fechados: { Args: never; Returns: number }
       get_auth_user_workspace_id: { Args: never; Returns: string }
       importar_produto_catalogo: {
