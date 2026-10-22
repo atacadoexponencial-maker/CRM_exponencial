@@ -116,3 +116,9 @@ O Dashboard abre com a faixa de números, os três blocos novos funcionando (inc
 - [x] Seções de antes em faixa, com os gráficos
 - [x] Performance no estilo Caderno
 - [x] Testes da tabela Prova
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B36-22 | Marcelle | 22/10/2026 |

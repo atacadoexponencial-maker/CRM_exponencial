@@ -83,3 +83,9 @@ Nenhuma.
 - [x] Caixas e células com linha fina nas cinco abas
 - [x] Números em fonte de número
 - [x] Cores dos gráficos pelo tema
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B36-29 | Marcelle | 22/10/2026 |

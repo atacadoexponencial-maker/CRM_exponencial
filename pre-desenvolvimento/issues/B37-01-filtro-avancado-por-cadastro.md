@@ -141,3 +141,9 @@ Na lista de contatos, qualquer papel abre "Filtrar", monta grupos de condições
 - [x] `lista-contatos.tsx` com tudo no servidor, contagem e botão "Filtrar · K"
 - [x] Testes da tabela Prova escritos e passando
 - [x] `tsc --noEmit`, lint e teste de cores fixas do tema passando
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B37-22 | Marcelle | 22/10/2026 |
