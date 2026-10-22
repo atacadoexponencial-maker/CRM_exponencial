@@ -215,7 +215,7 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
         </p>
         {erroImagem[tipo] && <p className="text-xs text-destructive">{erroImagem[tipo]}</p>}
         {tipo === "logo" && avisoLogo && (
-          <p className="flex items-start gap-1.5 text-xs text-amber-300" role="status">
+          <p className="flex items-start gap-1.5 text-xs text-aviso" role="status">
             <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
             {avisoLogo}
           </p>
@@ -247,7 +247,7 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
     <div className="grid gap-6 lg:grid-cols-[22rem_1fr]">
       <div className="space-y-5">
         {mensagem && (
-          <p role="status" className={cn("rounded-lg border px-3 py-2 text-sm", mensagem.tipo === "erro" ? "border-destructive/40 text-destructive" : "border-emerald-500/40 text-emerald-300")}>
+          <p role="status" className={cn("rounded-lg border px-3 py-2 text-sm", mensagem.tipo === "erro" ? "border-destructive/40 text-destructive" : "border-sucesso/40 text-sucesso")}>
             {mensagem.texto}
           </p>
         )}
@@ -274,7 +274,7 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
           </div>
           <p className="text-xs text-muted-foreground">A cor dos textos acompanha o fundo sozinha, para sempre dar para ler.</p>
           {contraste && (
-            <p className="flex gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+            <p className="flex gap-2 rounded-lg border border-aviso/40 bg-aviso-fundo px-3 py-2 text-xs text-aviso">
               <AlertTriangle className="size-4 shrink-0" />
               {contraste}
             </p>
@@ -320,7 +320,7 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
         </section>
 
         <div className="sticky bottom-0 flex items-center justify-end gap-2 bg-background/95 py-3 border-t">
-          {alterado && <span className="mr-auto text-xs text-amber-300">Alterações não salvas</span>}
+          {alterado && <span className="mr-auto text-xs text-aviso">Alterações não salvas</span>}
           <Button variant="outline" size="sm" onClick={() => { setTema(salvo); setMensagem(null) }} disabled={!alterado}>Descartar alterações</Button>
           <Button size="sm" onClick={salvar} disabled={!alterado || salvando}>{salvando ? "Salvando..." : "Salvar"}</Button>
         </div>

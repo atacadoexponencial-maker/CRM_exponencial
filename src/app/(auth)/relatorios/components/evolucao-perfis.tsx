@@ -10,7 +10,7 @@ import { PERFIL_POR_ID, PERFIS, type EvolucaoRfv, type PerfilRfv } from "@/lib/r
 type Modo = "semanal" | "mensal"
 
 function Delta({ valor, percentual }: { valor: number; percentual: number | null }) {
-  const cor = valor > 0 ? "text-emerald-400" : valor < 0 ? "text-red-400" : "text-muted-foreground"
+  const cor = valor > 0 ? "text-sucesso" : valor < 0 ? "text-erro" : "text-muted-foreground"
   const sinal = valor > 0 ? "+" : valor < 0 ? "−" : ""
   const pct = percentual === null ? (valor === 0 ? "0%" : "—") : `${sinal}${Math.abs(percentual)}%`
   return <span className={cn("text-[11px]", cor)}>{sinal}{Math.abs(valor)} ({pct})</span>
@@ -83,8 +83,8 @@ export function EvolucaoPerfis({ evolucao }: { evolucao: EvolucaoRfv }) {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" data-testid="base-saudavel">
           <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{atual?.rotulo ?? "—"}</p><p className="text-lg font-semibold">{atual?.saudavel ?? "—"} <span className="text-sm font-normal text-muted-foreground">clientes</span></p></div>
           <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{anterior?.rotulo ?? "—"}</p><p className="text-lg font-semibold">{anterior?.saudavel ?? "—"} <span className="text-sm font-normal text-muted-foreground">clientes</span></p></div>
-          <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Crescimento</p><p className={cn("text-lg font-semibold", crescimento === null ? "" : crescimento > 0 ? "text-emerald-400" : crescimento < 0 ? "text-red-400" : "")}>{crescimento === null ? "—" : `${crescimento > 0 ? "+" : crescimento < 0 ? "−" : ""}${Math.abs(crescimento)}`}</p></div>
-          <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Variação</p><p className={cn("text-lg font-semibold", variacao === null ? "" : variacao > 0 ? "text-emerald-400" : variacao < 0 ? "text-red-400" : "")}>{variacao === null ? "—" : `${variacao > 0 ? "+" : variacao < 0 ? "−" : ""}${Math.abs(variacao)}%`}</p></div>
+          <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Crescimento</p><p className={cn("text-lg font-semibold", crescimento === null ? "" : crescimento > 0 ? "text-sucesso" : crescimento < 0 ? "text-erro" : "")}>{crescimento === null ? "—" : `${crescimento > 0 ? "+" : crescimento < 0 ? "−" : ""}${Math.abs(crescimento)}`}</p></div>
+          <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Variação</p><p className={cn("text-lg font-semibold", variacao === null ? "" : variacao > 0 ? "text-sucesso" : variacao < 0 ? "text-erro" : "")}>{variacao === null ? "—" : `${variacao > 0 ? "+" : variacao < 0 ? "−" : ""}${Math.abs(variacao)}%`}</p></div>
         </div>
       </div>
       <p className="sr-only">{PERFIL_POR_ID.campeao.nome}</p>

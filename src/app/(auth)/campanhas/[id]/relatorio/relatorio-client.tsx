@@ -36,11 +36,11 @@ const INTERVALO_DO_PROGRESSO = 10_000
 
 const STATUS_CLASS: Record<string, string> = {
   pendente: "bg-secondary text-muted-foreground",
-  na_fila: "bg-amber-500/10 text-amber-700",
-  enviado: "bg-blue-500/10 text-blue-600",
-  entregue: "bg-teal-500/10 text-teal-600",
-  lido: "bg-green-500/10 text-green-600",
-  falhou: "bg-red-500/10 text-red-600",
+  na_fila: "bg-aviso-fundo text-aviso",
+  enviado: "bg-info-fundo text-info",
+  entregue: "bg-sucesso-fundo text-sucesso",
+  lido: "bg-sucesso-fundo text-sucesso",
+  falhou: "bg-erro-fundo text-erro",
   excluido: "bg-secondary text-muted-foreground",
 }
 
@@ -168,7 +168,7 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
 
       {/* B8-03: por que parou, e o que isso significa de verdade. */}
       {relatorio.status === "interrompida" && (
-        <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 p-4 text-sm ">
+        <div className="mb-4 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-4 text-sm ">
           <p className="font-medium">Disparo interrompido</p>
           <p className="mt-1 text-muted-foreground">
             {relatorio.interrompidaMotivo === "banned"

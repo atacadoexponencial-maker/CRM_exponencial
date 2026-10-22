@@ -102,8 +102,8 @@ export function EscolhaCanal({
       </div>
 
       {selecionado === "gateway" && (
-        <div className="mt-4 flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 p-4 text-sm ">
-          <ShieldAlert className="size-4 shrink-0 mt-0.5 text-amber-300" aria-hidden />
+        <div className="mt-4 flex gap-3 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-4 text-sm ">
+          <ShieldAlert className="size-4 shrink-0 mt-0.5 text-aviso" aria-hidden />
           <p>
             O canal direto opera fora dos Termos de Serviço do WhatsApp. O número pode ser
             bloqueado, e a responsabilidade por ele é sua. Ao continuar, o termo de

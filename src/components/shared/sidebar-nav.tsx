@@ -143,7 +143,7 @@ function ItemLink({
         <span className="truncate">{item.label}</span>
       )}
       {!recolhido && temBadge && (
-        <span className="ml-auto flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-white">
+        <span className="ml-auto flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-background">
           {item.badge! > 9 ? "9+" : item.badge}
         </span>
       )}
@@ -263,7 +263,7 @@ export function SidebarNav({ recolhidoInicial = false, ...props }: SidebarNavPro
         >
           <Menu className="size-5" />
           {props.atrasados > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[9px] font-semibold text-white">
+            <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[9px] font-semibold text-background">
               <AlarmClock className="size-2.5" />
             </span>
           )}

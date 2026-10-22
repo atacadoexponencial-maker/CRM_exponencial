@@ -126,7 +126,7 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
             <span className="font-semibold">Visualização:</span> <span data-testid="titulo-periodo">{visao.cabecalho.titulo}</span>
           </p>
           {visao.cabecalho.aviso && (
-            <p className="text-xs text-sky-400 mt-1" data-testid="aviso-comparacao">{visao.cabecalho.aviso}</p>
+            <p className="text-xs text-info mt-1" data-testid="aviso-comparacao">{visao.cabecalho.aviso}</p>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">

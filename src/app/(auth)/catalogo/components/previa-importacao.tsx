@@ -20,14 +20,14 @@ export function PreviaImportacao({ previa }: { previa: Previa }) {
         {previa.comErro > 0 && (
           <>
             {" · "}
-            <span className="font-semibold text-amber-300">{plural(previa.comErro, "com erro", "com erro")}</span>
+            <span className="font-semibold text-aviso">{plural(previa.comErro, "com erro", "com erro")}</span>
           </>
         )}
       </p>
 
       {previa.erros.length > 0 && (
-        <section className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-2" aria-label="Erros da planilha">
-          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-amber-300">
+        <section className="rounded-lg border border-aviso/30 bg-aviso-fundo p-4 space-y-2" aria-label="Erros da planilha">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-aviso">
             <AlertTriangle className="size-4" />
             O que corrigir na planilha
           </h3>
@@ -53,7 +53,7 @@ export function PreviaImportacao({ previa }: { previa: Previa }) {
                   <p className="text-xs text-muted-foreground">{item.mudancas.length > 0 ? item.mudancas.join(" · ") : "Sem mudanças"}</p>
                 )}
               </div>
-              <Badge variant="outline" className={item.situacao === "novo" ? "shrink-0 border-emerald-500/30 bg-emerald-500/15 text-emerald-300" : "shrink-0 border-sky-500/30 bg-sky-500/15 text-sky-300"}>
+              <Badge variant="outline" className={item.situacao === "novo" ? "shrink-0 border-sucesso/30 bg-sucesso-fundo text-sucesso" : "shrink-0 border-info/30 bg-info-fundo text-info"}>
                 {item.situacao === "novo" ? "Novo" : "Atualiza"}
               </Badge>
             </li>

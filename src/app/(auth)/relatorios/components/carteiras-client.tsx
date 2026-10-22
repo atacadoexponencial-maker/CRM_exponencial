@@ -13,10 +13,10 @@ import { RemoverCarteiraDialog, TransferirCarteiraDialog } from "./acoes-carteir
 import { DistribuirDialog, ReprocessarDialog } from "./acoes-sem-vendedor"
 
 const NUMEROS: Array<{ id: keyof NumerosDaCarteira; titulo: string; cor: string }> = [
-  { id: "leads", titulo: "Leads", cor: "text-violet-400" },
-  { id: "base", titulo: "Base de clientes", cor: "text-orange-400" },
-  { id: "ativos", titulo: "Ativos", cor: "text-emerald-400" },
-  { id: "inativos", titulo: "Inativos", cor: "text-red-400" },
+  { id: "leads", titulo: "Leads", cor: "text-violet-700 dark:text-violet-300" },
+  { id: "base", titulo: "Base de clientes", cor: "text-orange-700 dark:text-orange-300" },
+  { id: "ativos", titulo: "Ativos", cor: "text-sucesso" },
+  { id: "inativos", titulo: "Inativos", cor: "text-erro" },
 ]
 
 function LinhaDeNumeros({ titulo, numeros, testid }: { titulo: string; numeros: NumerosDaCarteira; testid: string }) {
@@ -86,7 +86,7 @@ export function PainelDeCarteiras({ resultado, acoesDoVendedor, acoesDosSemVende
           <h2 className="text-sm font-semibold mb-3">Sem vendedor</h2>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p data-testid="sem-vendedor">
-              <span className="text-3xl font-semibold text-red-400 tabular-nums mr-2">{painel.semVendedor.total}</span>
+              <span className="text-3xl font-semibold text-erro tabular-nums mr-2">{painel.semVendedor.total}</span>
               <span className="text-sm">contatos sem vendedor</span>
               <span className="block text-xs text-muted-foreground">{painel.semVendedor.comCompra} com compra · {painel.semVendedor.leads} leads</span>
             </p>

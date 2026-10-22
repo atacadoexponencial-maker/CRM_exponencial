@@ -210,7 +210,7 @@ export function ListaProdutos({
                     </p>
                   </Link>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {esgotado && <Badge variant="outline" className="border-amber-500/30 bg-amber-500/15 text-amber-300">Esgotado</Badge>}
+                    {esgotado && <Badge variant="outline" className="border-aviso/30 bg-aviso-fundo text-aviso">Esgotado</Badge>}
                     {!p.visivel && <Badge variant="secondary">Oculto</Badge>}
                     <Button
                       size="icon-sm"

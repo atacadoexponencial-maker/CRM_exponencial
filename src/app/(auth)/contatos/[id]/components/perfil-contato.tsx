@@ -30,11 +30,11 @@ import { ROTULO_FORMA_PAGAMENTO, ROTULO_ORIGEM_COMPRA } from "@/lib/compras"
 import { UFS } from "@/lib/uf"
 
 const CLASSIFICACAO_BADGE: Record<string, string> = {
-  lead: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
-  ativo: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
-  em_risco: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
+  lead: "bg-info-fundo text-info border-info/30",
+  ativo: "bg-sucesso-fundo text-sucesso border-sucesso/30",
+  em_risco: "bg-orange-100 dark:bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-500/30",
   inativo: "bg-secondary text-muted-foreground border-border",
-  perdido: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+  perdido: "bg-erro-fundo text-erro border-erro/30",
   sem_historico: "bg-secondary text-muted-foreground border-border",
 }
 

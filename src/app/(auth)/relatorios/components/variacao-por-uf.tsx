@@ -21,7 +21,7 @@ const moeda = (v: number | null) => (v === null ? "—" : v.toLocaleString("pt-B
 
 function Percentual({ valor }: { valor: number | null }) {
   if (valor === null) return <span className="text-muted-foreground">—</span>
-  const cor = valor > 0 ? "text-emerald-400" : valor < 0 ? "text-red-400" : "text-muted-foreground"
+  const cor = valor > 0 ? "text-sucesso" : valor < 0 ? "text-erro" : "text-muted-foreground"
   const sinal = valor < 0 ? "−" : ""
   return <span className={cor}>{sinal}{Math.abs(valor).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</span>
 }

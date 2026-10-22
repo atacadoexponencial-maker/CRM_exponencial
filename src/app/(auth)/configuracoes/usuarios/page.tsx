@@ -68,7 +68,7 @@ export default async function UsuariosPage() {
                 </td>
                 <td className="px-4 py-3">
                   {usuario.status === "active" ? (
-                    <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
+                    <Badge className="bg-sucesso-fundo text-sucesso border-sucesso/30">
                       Ativo
                     </Badge>
                   ) : (

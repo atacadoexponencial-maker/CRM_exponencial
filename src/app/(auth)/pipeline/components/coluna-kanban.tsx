@@ -10,11 +10,11 @@ type CardQualquer = CardLead | CardCliente
 
 // Classes inteiras (o Tailwind só gera o que encontra escrito). Tema sempre escuro.
 const CLASSES_COR: Record<CorColuna, { borda: string; titulo: string }> = {
-  verde: { borda: "border-emerald-500/40", titulo: "text-emerald-400" },
-  amarelo: { borda: "border-yellow-500/40", titulo: "text-yellow-400" },
-  cinza: { borda: "border-zinc-400/40", titulo: "text-zinc-300" },
-  laranja: { borda: "border-orange-500/40", titulo: "text-orange-400" },
-  vermelho: { borda: "border-red-500/40", titulo: "text-red-400" },
+  verde: { borda: "border-sucesso/40", titulo: "text-sucesso" },
+  amarelo: { borda: "border-aviso/40", titulo: "text-aviso" },
+  cinza: { borda: "border-border", titulo: "text-muted-foreground" },
+  laranja: { borda: "border-orange-200 dark:border-orange-500/30", titulo: "text-orange-700 dark:text-orange-300" },
+  vermelho: { borda: "border-erro/40", titulo: "text-erro" },
 }
 
 interface ColunaKanbanProps {
@@ -56,7 +56,7 @@ export function ColunaKanban({ titulo, etapaId, cards, alertaVisual, cor, mensag
         classesCor ? classesCor.borda : "border-border"
       )}>
         <div className="flex items-center gap-1.5">
-          {alertaVisual && <AlertTriangle className="size-3 text-red-400 shrink-0" />}
+          {alertaVisual && <AlertTriangle className="size-3 text-erro shrink-0" />}
           <span className={cn(
             "text-xs font-semibold uppercase tracking-wide",
             classesCor ? classesCor.titulo : "text-muted-foreground"

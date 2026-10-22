@@ -123,7 +123,7 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
   return (
     <div className="space-y-6 max-w-2xl">
       {mensagem && (
-        <p role="status" className={cn("rounded-lg border px-3 py-2 text-sm", mensagem.tipo === "erro" ? "border-destructive/40 text-destructive" : "border-emerald-500/40 text-emerald-300")}>
+        <p role="status" className={cn("rounded-lg border px-3 py-2 text-sm", mensagem.tipo === "erro" ? "border-destructive/40 text-destructive" : "border-sucesso/40 text-sucesso")}>
           {mensagem.texto}
         </p>
       )}
@@ -142,7 +142,7 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
           />
         </div>
         <div className="flex flex-wrap items-center gap-3 text-xs">
-          {disponibilidade === "disponivel" && <span className="text-emerald-300">Disponível</span>}
+          {disponibilidade === "disponivel" && <span className="text-sucesso">Disponível</span>}
           {disponibilidade === "em_uso" && <span className="text-destructive">Já está em uso por outra loja</span>}
           {disponibilidade === "reservado" && <span className="text-destructive">Esse endereço é reservado pelo sistema</span>}
           {disponibilidade === "invalido" && <span className="text-destructive">Use de 3 a 40 letras minúsculas, números e hífen</span>}
@@ -157,7 +157,7 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
           </Button>
         </div>
         {enderecoNaoSalvo && config.endereco !== "" && (
-          <p className="text-xs text-amber-300">Salve para copiar o novo link.</p>
+          <p className="text-xs text-aviso">Salve para copiar o novo link.</p>
         )}
       </section>
 
@@ -263,9 +263,9 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
             {salvo.publicado ? "Hoje a loja está aberta no link acima." : "Hoje a loja está fechada: o link mostra \"Catálogo indisponível no momento\"."}
           </p>
           {config.publicado && faltaParaPublicar.length > 0 ? (
-            <p className="text-xs text-amber-300 mt-1">Para publicar, falta preencher {faltaParaPublicar.join(" e ")}.</p>
+            <p className="text-xs text-aviso mt-1">Para publicar, falta preencher {faltaParaPublicar.join(" e ")}.</p>
           ) : config.publicado !== salvo.publicado ? (
-            <p className="text-xs text-amber-300 mt-1">{config.publicado ? "Salve para abrir a loja." : "Salve para fechar a loja."}</p>
+            <p className="text-xs text-aviso mt-1">{config.publicado ? "Salve para abrir a loja." : "Salve para fechar a loja."}</p>
           ) : null}
         </div>
         <label className="flex items-center gap-2 text-sm cursor-pointer shrink-0">
@@ -275,7 +275,7 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
       </section>
 
       <div className="flex items-center justify-end gap-3">
-        {alterado && <span className="mr-auto text-xs text-amber-300">Alterações não salvas</span>}
+        {alterado && <span className="mr-auto text-xs text-aviso">Alterações não salvas</span>}
         <Button onClick={() => salvar()} disabled={salvando}>{salvando ? "Salvando..." : "Salvar configurações"}</Button>
       </div>
 

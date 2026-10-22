@@ -27,11 +27,11 @@ const IDIOMAS = [
 
 function statusBadge(status: string) {
   if (status === "APPROVED")
-    return <Badge className="bg-green-100 text-green-700 border-green-200">Aprovado</Badge>
+    return <Badge className="bg-sucesso-fundo text-sucesso border-sucesso/30">Aprovado</Badge>
   if (status === "PENDING" || status === "PENDING_DELETION")
-    return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">Pendente</Badge>
+    return <Badge className="bg-aviso-fundo text-aviso border-aviso/30">Pendente</Badge>
   if (status === "REJECTED")
-    return <Badge className="bg-red-100 text-red-700 border-red-200">Rejeitado</Badge>
+    return <Badge className="bg-erro-fundo text-erro border-erro/30">Rejeitado</Badge>
   return <Badge variant="outline">{status}</Badge>
 }
 

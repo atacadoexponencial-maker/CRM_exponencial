@@ -23,8 +23,8 @@ import type { OpcoesEditor } from "../components/catalogo"
 import { fraseBloco, fraseDoEvento } from "../components/frases-fluxo"
 
 const RESULTADO: Record<ResultadoExecucao, { rotulo: string; classe: string }> = {
-  concluida: { rotulo: "Concluída", classe: "bg-emerald-500/15 text-emerald-300" },
-  falhou: { rotulo: "Falhou", classe: "bg-rose-500/15 text-rose-300" },
+  concluida: { rotulo: "Concluída", classe: "bg-sucesso-fundo text-sucesso" },
+  falhou: { rotulo: "Falhou", classe: "bg-erro-fundo text-erro" },
   ignorada: { rotulo: "Ignorada", classe: "bg-muted text-muted-foreground" },
 }
 
@@ -119,7 +119,7 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes, aviso }: H
       </div>
 
       {aviso && (
-        <p role="alert" className="mb-4 rounded-lg border border-amber-500/40 px-3 py-2 text-sm text-amber-200">
+        <p role="alert" className="mb-4 rounded-lg border border-aviso/40 px-3 py-2 text-sm text-aviso">
           {aviso}
         </p>
       )}
@@ -237,7 +237,7 @@ function DetalheDaExecucao({ execucao, opcoes }: { execucao: ExecucaoListada; op
         <p
           className={cn(
             "mb-3 rounded-lg px-3 py-2 text-sm",
-            execucao.resultado === "ignorada" ? "bg-muted text-muted-foreground" : "bg-rose-500/10 text-rose-300"
+            execucao.resultado === "ignorada" ? "bg-muted text-muted-foreground" : "bg-erro-fundo text-erro"
           )}
         >
           {execucao.motivo}
@@ -260,7 +260,7 @@ const TIPO_DO_BLOCO = { gatilho: "Gatilho", condicao: "Condição", acao: "Açã
 function PassoDoCaminho({ passo, opcoes }: { passo: PassoGravado; opcoes: OpcoesEditor }) {
   const falhou = passo.ok === false
   return (
-    <li className={cn("rounded-lg border px-3 py-2", falhou && "border-rose-500/40 bg-rose-500/5")}>
+    <li className={cn("rounded-lg border px-3 py-2", falhou && "border-erro/40 bg-erro-fundo")}>
       <div className="flex items-start gap-2">
         <span className="mt-0.5 w-16 shrink-0 text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground">
           {TIPO_DO_BLOCO[passo.bloco.tipo]}
@@ -270,7 +270,7 @@ function PassoDoCaminho({ passo, opcoes }: { passo: PassoGravado; opcoes: Opcoes
           <span
             className={cn(
               "shrink-0 rounded px-1.5 text-xs font-medium",
-              passo.saida === "sim" ? "bg-emerald-500/15 text-emerald-300" : "bg-rose-500/15 text-rose-300"
+              passo.saida === "sim" ? "bg-sucesso-fundo text-sucesso" : "bg-erro-fundo text-erro"
             )}
           >
             {passo.saida === "sim" ? "sim" : "não"}
@@ -278,12 +278,12 @@ function PassoDoCaminho({ passo, opcoes }: { passo: PassoGravado; opcoes: Opcoes
         )}
         {passo.bloco.tipo === "acao" &&
           (falhou ? (
-            <X className="size-4 shrink-0 text-rose-400" aria-label="Falhou" />
+            <X className="size-4 shrink-0 text-erro" aria-label="Falhou" />
           ) : (
-            <Check className="size-4 shrink-0 text-emerald-400" aria-label="Feita" />
+            <Check className="size-4 shrink-0 text-sucesso" aria-label="Feita" />
           ))}
       </div>
-      {passo.motivo && <p className="mt-1 pl-[4.5rem] text-xs text-rose-300">{passo.motivo}</p>}
+      {passo.motivo && <p className="mt-1 pl-[4.5rem] text-xs text-erro">{passo.motivo}</p>}
     </li>
   )
 }

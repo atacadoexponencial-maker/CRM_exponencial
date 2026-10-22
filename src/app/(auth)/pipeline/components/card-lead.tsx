@@ -7,9 +7,9 @@ import { ETAPAS_RECOMPRA, type CardLead, type CardCliente, type CorColuna } from
 
 // Cards das colunas de risco da Recompra levam a cor da coluna (B15-02). Classes inteiras para o Tailwind.
 const DESTAQUE_RISCO: Partial<Record<CorColuna, string>> = {
-  amarelo: "border-l-2 border-l-yellow-500 bg-yellow-500/5",
-  cinza: "border-l-2 border-l-zinc-400 bg-zinc-400/5",
-  laranja: "border-l-2 border-l-orange-500 bg-orange-500/5",
+  amarelo: "border-l-2 border-l-yellow-500 bg-aviso-fundo",
+  cinza: "border-l-2 border-l-zinc-400 bg-muted",
+  laranja: "border-l-2 border-l-orange-500 bg-orange-100 dark:bg-orange-500/15",
 }
 
 interface CardLeadProps {
@@ -66,7 +66,7 @@ export function CardLeadItem({ card, onPainelAbrir }: CardLeadProps) {
         <span
           className={cn(
             "text-xs truncate",
-            semAtendente ? "text-amber-400 font-medium" : "text-muted-foreground"
+            semAtendente ? "text-aviso font-medium" : "text-muted-foreground"
           )}
         >
           {semAtendente ? "Sem atendente" : card.atendente}

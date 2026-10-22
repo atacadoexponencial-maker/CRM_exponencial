@@ -9,10 +9,10 @@ export const metadata: Metadata = {
 export default function TermosDeServicoPage() {
   return (
     <TemaClaro>
-    <main className="min-h-screen bg-white">
-      <div className="max-w-3xl mx-auto px-6 py-16 text-sm text-gray-800">
+    <main className="min-h-screen bg-background">
+      <div className="max-w-3xl mx-auto px-6 py-16 text-sm text-foreground">
         <h1 className="text-2xl font-semibold mb-2">Termos de Serviço</h1>
-        <p className="text-gray-500 mb-10">Última atualização: 2 de junho de 2025</p>
+        <p className="text-muted-foreground mb-10">Última atualização: 2 de junho de 2025</p>
 
         <section className="mb-8">
           <p>
@@ -56,7 +56,7 @@ export default function TermosDeServicoPage() {
                 href="https://www.whatsapp.com/legal/business-policy"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 underline"
+                className="text-info underline"
               >
                 Políticas Comerciais do WhatsApp
               </a>
@@ -137,7 +137,7 @@ export default function TermosDeServicoPage() {
             <br />
             <a
               href="mailto:atacadoexponencial@gmail.com"
-              className="text-blue-600 underline"
+              className="text-info underline"
             >
               atacadoexponencial@gmail.com
             </a>

@@ -18,7 +18,7 @@ export default async function PerfilPage({ searchParams }: { searchParams: Promi
         <h1 className="text-xl font-semibold -mb-4">Meu perfil</h1>
         {/* QA M30 (06/10): quem abre uma tela que o papel não permite cai aqui e sabe por quê. */}
         {motivo === "sem-permissao" && (
-          <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-500" role="status">
+          <p className="rounded-lg border border-aviso/40 bg-aviso-fundo px-4 py-3 text-sm text-aviso" role="status">
             Essa tela não está disponível para o seu papel. Fale com o administrador da sua empresa se precisar dela.
           </p>
         )}

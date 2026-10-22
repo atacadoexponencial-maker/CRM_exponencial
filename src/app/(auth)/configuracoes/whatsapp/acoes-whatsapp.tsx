@@ -95,7 +95,7 @@ export function AcoesWhatsApp({
           <p className="text-xs text-destructive">{erroCorrigir}</p>
         )}
         {corrigidoOk && (
-          <p className="text-xs text-green-600">Recebimento de mensagens corrigido com sucesso.</p>
+          <p className="text-xs text-sucesso">Recebimento de mensagens corrigido com sucesso.</p>
         )}
         <Button
           variant="outline"

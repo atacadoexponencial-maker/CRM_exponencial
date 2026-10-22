@@ -55,9 +55,9 @@ export default async function RitmoDoNumeroPage({
           emAquecimento={saude.ok ? saude.saude.aquecimento.ativo : false}
         />
       ) : (
-        <div className="flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 p-5 ">
+        <div className="flex gap-3 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-5 ">
           <TriangleAlert
-            className="size-4 shrink-0 mt-0.5 text-amber-300"
+            className="size-4 shrink-0 mt-0.5 text-aviso"
             aria-hidden
           />
           <div>

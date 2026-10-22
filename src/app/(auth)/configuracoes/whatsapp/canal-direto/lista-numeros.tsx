@@ -293,7 +293,7 @@ export function ListaNumeros({
       {recemConectado && (
         <p
           role="status"
-          className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 p-3 text-sm"
+          className="flex items-center gap-2 rounded-lg border border-sucesso/30 bg-sucesso-fundo text-sucesso p-3 text-sm"
         >
           <CheckCircle2 className="size-4 shrink-0" aria-hidden />
           Número conectado. Ele já pode receber e enviar mensagens.
@@ -301,7 +301,7 @@ export function ListaNumeros({
       )}
 
       {erro && (
-        <p className="rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 p-3 text-sm ">
+        <p className="rounded-lg border border-erro/30 bg-erro-fundo text-erro p-3 text-sm ">
           {erro}
         </p>
       )}

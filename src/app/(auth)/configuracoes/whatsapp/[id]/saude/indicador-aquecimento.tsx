@@ -14,7 +14,7 @@ export function IndicadorAquecimento({ aquecimento }: { aquecimento: SaudeDoNume
   if (!aquecimento.ativo) {
     return (
       <div className="flex gap-3 rounded-lg border p-4">
-        <ShieldCheck className="size-4 shrink-0 mt-0.5 text-green-700" aria-hidden />
+        <ShieldCheck className="size-4 shrink-0 mt-0.5 text-sucesso" aria-hidden />
         <div>
           <p className="text-sm font-medium">Número maduro</p>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -32,8 +32,8 @@ export function IndicadorAquecimento({ aquecimento }: { aquecimento: SaudeDoNume
     aquecimento.ultimoDia === null ? null : Math.max(0, aquecimento.ultimoDia - aquecimento.dia + 1)
 
   return (
-    <div className="flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 p-4 ">
-      <Flame className="size-4 shrink-0 mt-0.5 text-amber-300" aria-hidden />
+    <div className="flex gap-3 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-4 ">
+      <Flame className="size-4 shrink-0 mt-0.5 text-aviso" aria-hidden />
       <div>
         <p className="text-sm font-medium">
           Em aquecimento · dia {aquecimento.dia}

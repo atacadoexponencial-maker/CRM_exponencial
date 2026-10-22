@@ -11,11 +11,11 @@ export type VarianteDoAviso = "pausa_longa" | "voltou" | "tentando_voltar" | "se
 
 const ESTILO: Record<VarianteDoAviso, { classe: string; icone: typeof Clock }> = {
   pausa_longa: {
-    classe: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+    classe: "border-aviso/30 bg-aviso-fundo text-aviso",
     icone: Clock,
   },
   voltou: {
-    classe: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+    classe: "border-sucesso/30 bg-sucesso-fundo text-sucesso",
     icone: CheckCircle2,
   },
   tentando_voltar: {
@@ -23,7 +23,7 @@ const ESTILO: Record<VarianteDoAviso, { classe: string; icone: typeof Clock }> =
     icone: RefreshCw,
   },
   sessao_acabou: {
-    classe: "border-red-500/30 bg-red-500/10 text-red-200",
+    classe: "border-erro/30 bg-erro-fundo text-erro",
     icone: AlertTriangle,
   },
 }

@@ -108,7 +108,7 @@ export function IniciarSequenciaDialog({
                       className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
                     >
                       <span>
-                        <Zap className="size-3.5 inline mr-1.5 text-amber-500" />
+                        <Zap className="size-3.5 inline mr-1.5 text-aviso" />
                         {run.nome}{" "}
                         <span className="text-muted-foreground">
                           (etapa {run.etapaAtual} de {run.totalEtapas})

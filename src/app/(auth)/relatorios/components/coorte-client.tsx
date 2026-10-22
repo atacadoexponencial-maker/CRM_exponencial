@@ -21,7 +21,8 @@ function Celula({ coorte, k, tabela, max }: { coorte: Coorte; k: number; tabela:
   const texto = tabela === "retencao" ? `${valor.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : moeda(valor)
   const balao = tabela === "retencao" ? `${rotuloDoMesK(coorte, k)}: ${coorte.clientesPorMes[k]} de ${coorte.clientes} clientes` : `${rotuloDoMesK(coorte, k)}: ${coorte.vendasPorMes[k]} vendas`
   return (
-    <td className="px-2 py-1.5 text-center tabular-nums text-white" style={{ backgroundColor: cor }} title={balao} data-testid={`celula-${coorte.mes}-${k}`}>
+    // B36-02: célula clara (pouca intensidade) leva texto do tema; a forte, texto branco.
+    <td className={`px-2 py-1.5 text-center tabular-nums ${intensidade > 0.5 ? "text-white" : "text-foreground"}`} style={{ backgroundColor: cor }} title={balao} data-testid={`celula-${coorte.mes}-${k}`}>
       {texto}
     </td>
   )

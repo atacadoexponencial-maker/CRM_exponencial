@@ -24,10 +24,10 @@ import type { AlertaComConversa, ConfigAlertas, TipoAlerta } from "./actions"
  * uma venda, o outro custa o canal inteiro. Por isso vermelho e no topo.
  */
 const COR_ALERTA_DE_NUMERO: Record<TipoAlertaDeNumero, string> = {
-  numero_banido: "text-red-600 bg-red-500/10",
-  numero_freado: "text-red-600 bg-red-500/10",
-  numero_desconectado: "text-orange-600 bg-orange-500/10",
-  risco_alto: "text-amber-600 bg-amber-500/10",
+  numero_banido: "text-erro bg-erro-fundo",
+  numero_freado: "text-erro bg-erro-fundo",
+  numero_desconectado: "text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-500/15",
+  risco_alto: "text-aviso bg-aviso-fundo",
 }
 
 function rotuloDoNumero(alerta: AlertaDeNumero): string {
@@ -46,10 +46,10 @@ const TIPOS: Array<{ id: TipoAlerta | ""; label: string }> = [
 ]
 
 const COR_TIPO: Record<TipoAlerta, string> = {
-  lead_sem_resposta: "text-amber-600 bg-amber-500/10",
-  sem_recompra: "text-orange-600 bg-orange-500/10",
-  em_risco: "text-red-600 bg-red-500/10",
-  inativo: "text-gray-600 bg-gray-500/10",
+  lead_sem_resposta: "text-aviso bg-aviso-fundo",
+  sem_recompra: "text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-500/15",
+  em_risco: "text-erro bg-erro-fundo",
+  inativo: "text-muted-foreground bg-muted",
 }
 
 export function AlertasClient({
@@ -140,7 +140,7 @@ export function AlertasClient({
               <span
                 className={cn(
                   "mt-0.5 shrink-0 rounded-full p-1.5",
-                  COR_ALERTA_DE_NUMERO[alerta.tipo] ?? "text-red-600 bg-red-500/10"
+                  COR_ALERTA_DE_NUMERO[alerta.tipo] ?? "text-erro bg-erro-fundo"
                 )}
               >
                 <Activity className="size-3.5" />
@@ -151,7 +151,7 @@ export function AlertasClient({
                   <span
                     className={cn(
                       "text-xs rounded-full px-2 py-0.5",
-                      COR_ALERTA_DE_NUMERO[alerta.tipo] ?? "text-red-600 bg-red-500/10"
+                      COR_ALERTA_DE_NUMERO[alerta.tipo] ?? "text-erro bg-erro-fundo"
                     )}
                   >
                     {TIPO_ALERTA_NUMERO_LABEL[alerta.tipo] ?? "Alerta do número"}

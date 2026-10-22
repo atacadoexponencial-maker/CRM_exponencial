@@ -29,10 +29,10 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_CLASS: Record<string, string> = {
   rascunho: "bg-secondary text-muted-foreground",
-  agendada: "bg-blue-500/10 text-blue-600",
-  enviando: "bg-amber-500/10 text-amber-600",
-  enviada: "bg-green-500/10 text-green-600",
-  cancelada: "bg-red-500/10 text-red-600",
+  agendada: "bg-info-fundo text-info",
+  enviando: "bg-aviso-fundo text-aviso",
+  enviada: "bg-sucesso-fundo text-sucesso",
+  cancelada: "bg-erro-fundo text-erro",
 }
 
 /** QA M10: enviada ou em envio fica, porque o relatório é histórico. */

@@ -28,17 +28,17 @@ const ESTILO: Record<EstadoConexao, { texto: string; classe: string }> = {
   pairing: {
     texto: "Aguardando leitura",
     classe:
-      "bg-amber-500/15 text-amber-300 border-amber-500/30",
+      "bg-aviso-fundo text-aviso border-aviso/30",
   },
   connecting: {
     texto: "Conectando",
     classe:
-      "bg-blue-500/15 text-blue-300 border-blue-500/30",
+      "bg-info-fundo text-info border-info/30",
   },
   connected: {
     texto: "Conectado",
     classe:
-      "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+      "bg-sucesso-fundo text-sucesso border-sucesso/30",
   },
   disconnected: {
     texto: "Desconectado",
@@ -48,7 +48,7 @@ const ESTILO: Record<EstadoConexao, { texto: string; classe: string }> = {
   banned: {
     texto: "Banido",
     classe:
-      "bg-red-500/15 text-red-300 border-red-500/30",
+      "bg-erro-fundo text-erro border-erro/30",
   },
   removed: {
     texto: "Removido",

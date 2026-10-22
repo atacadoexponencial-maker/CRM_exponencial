@@ -95,7 +95,7 @@ function textoComDestaque(texto: string, termo: string) {
     <>
       {partes.map((parte, i) =>
         parte.toLowerCase() === termo.toLowerCase() ? (
-          <mark key={i} className="bg-yellow-200 dark:bg-yellow-800 rounded-sm px-0.5">
+          <mark key={i} className="bg-aviso-fundo rounded-sm px-0.5">
             {parte}
           </mark>
         ) : (
@@ -118,7 +118,7 @@ function IconeStatus({ status }: { status?: StatusMensagem }) {
       </span>
     )
   }
-  if (status === "lido") return <CheckCheck className="size-3 text-blue-400" />
+  if (status === "lido") return <CheckCheck className="size-3 text-info" />
   if (status === "entregue") return <CheckCheck className="size-3 opacity-60" />
   return <Check className="size-3 opacity-60" />
 }
@@ -276,8 +276,8 @@ export function BalaoMensagem({ mensagem, termoBusca = "", onResponder }: BalaoM
   if (isNota) {
     return (
       <div className="flex justify-center my-1">
-        <div className="max-w-[80%] rounded-lg px-3 py-2 text-xs bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-200">
-          <span className="font-medium block mb-0.5 text-amber-600 dark:text-amber-400">Nota interna</span>
+        <div className="max-w-[80%] rounded-lg px-3 py-2 text-xs bg-aviso-fundo border border-aviso/30 text-aviso">
+          <span className="font-medium block mb-0.5 text-aviso">Nota interna</span>
           {textoComDestaque(mensagem.conteudo, termoBusca)}
           <span className="block text-right text-[10px] opacity-60 mt-0.5">{mensagem.horario}</span>
         </div>
@@ -337,7 +337,7 @@ export function BalaoMensagem({ mensagem, termoBusca = "", onResponder }: BalaoM
           {isEnviada && <IconeStatus status={mensagem.status} />}
         </div>
         {mensagem.status === "falhou" && mensagem.motivoFalha && (
-          <p className="mt-1 text-[11px] text-red-200">{mensagem.motivoFalha}</p>
+          <p className="mt-1 text-[11px] text-erro">{mensagem.motivoFalha}</p>
         )}
       </div>
       {podeResponder && isEnviada && hover && (

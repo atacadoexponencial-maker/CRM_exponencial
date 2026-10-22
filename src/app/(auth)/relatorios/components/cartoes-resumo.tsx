@@ -19,7 +19,7 @@ export function formatarPercentual(p: number | null): string {
 
 function LinhaComparativo({ rotulo, comparativo, formato }: { rotulo: string; comparativo: Comparativo; formato: FormatoCartao }) {
   const p = comparativo.percentual
-  const cor = p === null || p === 0 ? "text-muted-foreground" : p > 0 ? "text-emerald-400" : "text-red-400"
+  const cor = p === null || p === 0 ? "text-muted-foreground" : p > 0 ? "text-sucesso" : "text-erro"
   return (
     <span
       className="text-xs text-muted-foreground"

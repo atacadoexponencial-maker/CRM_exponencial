@@ -58,7 +58,7 @@ export default async function TemplatesPage() {
   return (
     <div className="max-w-5xl mx-auto w-full px-4 py-8">
       {semTemplates.length > 0 && comTemplates.length > 0 && (
-        <p className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-900 dark:bg-amber-950/40">
+        <p className="mb-5 rounded-lg border border-aviso/30 bg-aviso-fundo p-4 text-sm">
           Este workspace tem número no canal direto e número na API Oficial. Os templates
           abaixo valem <strong>apenas para o número da API Oficial</strong> — no canal direto
           qualquer texto pode ser enviado, sem template.

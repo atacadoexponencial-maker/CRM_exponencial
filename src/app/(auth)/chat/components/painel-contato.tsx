@@ -118,7 +118,7 @@ function DadoEditavel({
             className={campoClasse}
           />
         )}
-        <button type="button" onClick={() => void salvar()} disabled={salvando} aria-label={`Salvar ${rotulo.toLowerCase()}`} className="h-5 w-5 flex items-center justify-center rounded-md hover:bg-muted text-green-600 disabled:opacity-40">
+        <button type="button" onClick={() => void salvar()} disabled={salvando} aria-label={`Salvar ${rotulo.toLowerCase()}`} className="h-5 w-5 flex items-center justify-center rounded-md hover:bg-muted text-sucesso disabled:opacity-40">
           {salvando ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
         </button>
         <button type="button" onClick={() => setEditando(false)} disabled={salvando} aria-label={`Cancelar ${rotulo.toLowerCase()}`} className="h-5 w-5 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground">
@@ -286,7 +286,7 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
                 <button
                   onClick={confirmarEdicao}
                   disabled={!valorEdicao.trim() || salvando}
-                  className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted transition-colors text-green-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted transition-colors text-sucesso disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {salvando ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
                 </button>

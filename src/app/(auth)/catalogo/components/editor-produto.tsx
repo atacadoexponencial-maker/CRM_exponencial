@@ -215,7 +215,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
         </Link>
         <div className="flex gap-2">
           {onExcluir && (
-            <Button size="sm" variant="destructive" className="text-red-400" onClick={() => setConfirmarExclusao(true)}>
+            <Button size="sm" variant="destructive" className="text-erro" onClick={() => setConfirmarExclusao(true)}>
               <Trash2 className="size-4" />
               Excluir produto
             </Button>
@@ -230,7 +230,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
           role="status"
           className={cn(
             "rounded-lg border px-3 py-2 text-sm",
-            mensagem.tipo === "erro" ? "border-destructive/40 text-destructive" : "border-emerald-500/40 text-emerald-300"
+            mensagem.tipo === "erro" ? "border-destructive/40 text-destructive" : "border-sucesso/40 text-sucesso"
           )}
         >
           {mensagem.texto}
@@ -447,7 +447,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
           </DialogDescription>
           <div className="mt-5 flex justify-end gap-2">
             <DialogClose render={<Button variant="outline" size="sm" />}>Cancelar</DialogClose>
-            <Button size="sm" variant="destructive" className="text-red-400" onClick={() => { setConfirmarExclusao(false); onExcluir?.() }}>Excluir produto</Button>
+            <Button size="sm" variant="destructive" className="text-erro" onClick={() => { setConfirmarExclusao(false); onExcluir?.() }}>Excluir produto</Button>
           </div>
         </DialogPopup>
       </Dialog>

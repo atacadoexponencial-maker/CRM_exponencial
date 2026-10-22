@@ -245,7 +245,7 @@ export function PainelBloco({
               </label>
             )}
             {bloco.acao === "mover_card" && bloco.parametros.funil === "recompra" && (
-              <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+              <p className="rounded-lg bg-aviso-fundo px-3 py-2 text-xs text-aviso">
                 Só move quem já tem card na Recompra. Um lead da Entrada ganha esse card quando chega em
                 Ganho: para levá-lo à Recompra, mova para Ganho no Funil de Entrada.
               </p>
@@ -764,7 +764,7 @@ function CampoTag({
         </div>
       )}
       {tirouEspaco && (
-        <p className="text-xs text-amber-300">Tag não tem espaço: o espaço foi tirado. Use hífen para separar (ex.: cliente-vip).</p>
+        <p className="text-xs text-aviso">Tag não tem espaço: o espaço foi tirado. Use hífen para separar (ex.: cliente-vip).</p>
       )}
       <p className="text-xs text-muted-foreground">
         {vazio ? `Em branco: ${vazio.toLowerCase()}. ` : ""}Pode ser uma tag nova. Minúsculas e sem espaço.

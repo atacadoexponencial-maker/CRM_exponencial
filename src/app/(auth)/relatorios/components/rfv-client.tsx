@@ -40,7 +40,7 @@ export function MatrizRfv({ celulas, selecionada, onSelecionar }: { celulas: Cel
                   aria-label={`R ${c.r} FV ${c.fv}: ${c.clientes} ${perfil.nome}`}
                   data-testid={`celula-${c.r}-${c.fv}`}
                   onClick={() => onSelecionar(ativa ? null : { r: c.r, fv: c.fv })}
-                  className={cn("rounded-md px-1 py-2 text-center text-white transition-opacity hover:opacity-90", ativa ? "ring-2 ring-white" : "", c.clientes === 0 && "opacity-60")}
+                  className={cn("rounded-md px-1 py-2 text-center text-white transition-opacity hover:opacity-90", ativa ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : "", c.clientes === 0 && "opacity-60")}
                   style={{ backgroundColor: perfil.cor }}
                 >
                   <div className="text-lg font-semibold leading-tight">{c.clientes}</div>

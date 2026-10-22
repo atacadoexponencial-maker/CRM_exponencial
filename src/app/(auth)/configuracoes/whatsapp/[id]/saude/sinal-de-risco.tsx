@@ -17,21 +17,21 @@ const ESTILO: Record<
 > = {
   baixo: {
     rotulo: "Risco baixo",
-    classe: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100 ",
+    classe: "border-sucesso/30 bg-sucesso-fundo text-sucesso ",
     icone: ShieldCheck,
-    corIcone: "text-green-700",
+    corIcone: "text-sucesso",
   },
   medio: {
     rotulo: "Risco médio",
-    classe: "border-amber-500/30 bg-amber-500/10 text-amber-100 ",
+    classe: "border-aviso/30 bg-aviso-fundo text-aviso ",
     icone: TriangleAlert,
-    corIcone: "text-amber-300",
+    corIcone: "text-aviso",
   },
   alto: {
     rotulo: "Risco alto",
-    classe: "border-red-500/30 bg-red-500/10 text-red-200 ",
+    classe: "border-erro/30 bg-erro-fundo text-erro ",
     icone: ShieldAlert,
-    corIcone: "text-red-300",
+    corIcone: "text-erro",
   },
 }
 

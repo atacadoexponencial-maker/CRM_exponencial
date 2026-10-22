@@ -500,7 +500,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
           {conteudo.trim() && (
             <div className="rounded-lg border p-3">
               <span className="text-xs text-muted-foreground block mb-1.5">Preview</span>
-              <div className="rounded-lg bg-green-500/10 px-3 py-2 text-sm whitespace-pre-wrap max-w-sm">
+              <div className="rounded-lg bg-sucesso-fundo px-3 py-2 text-sm whitespace-pre-wrap max-w-sm">
                 {previewMensagem}
               </div>
             </div>
@@ -547,14 +547,14 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
                 </select>
                 {/* B8-01: o aviso e a estimativa vêm prontos do servidor. */}
                 {avaliacao?.aviso && (
-                  <p className="flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 p-3 text-xs ">
+                  <p className="flex gap-2 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-3 text-xs ">
                     <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
                     <span>{avaliacao.aviso}</span>
                   </p>
                 )}
                 {/* B26-03: número em aquecimento, com o dia e os limites que a fila usa */}
                 {avaliacao?.aquecimento && (
-                  <p className="flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-100 p-3 text-xs">
+                  <p className="flex gap-2 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-3 text-xs">
                     <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
                     <span>{avaliacao.aquecimento}</span>
                   </p>

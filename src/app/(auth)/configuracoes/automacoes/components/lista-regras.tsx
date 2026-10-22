@@ -62,7 +62,7 @@ const EXEMPLOS = [
 function AvisoDeReferencia({ fluxo, opcoes }: { fluxo: Fluxo; opcoes: OpcoesEditor }) {
   const [primeiro] = Object.values(referenciasQueSumiram(fluxo, opcoes)).flat()
   if (!primeiro) return null
-  return <span className="mt-0.5 block text-xs text-amber-300">Atenção: {primeiro}</span>
+  return <span className="mt-0.5 block text-xs text-aviso">Atenção: {primeiro}</span>
 }
 
 export function ListaRegras({
@@ -195,7 +195,7 @@ export function ListaRegras({
                       {r.fluxo && <span className="block text-muted-foreground">{resumoRegra(r.fluxo, opcoes)}</span>}
                     </button>
                     {r.problema && (
-                      <span className="mt-0.5 block text-xs text-amber-300">Não roda: {r.problema}</span>
+                      <span className="mt-0.5 block text-xs text-aviso">Não roda: {r.problema}</span>
                     )}
                     {!r.problema && r.fluxo && <AvisoDeReferencia fluxo={r.fluxo} opcoes={opcoes} />}
                   </td>
@@ -226,8 +226,8 @@ export function ListaRegras({
                       <span
                         className={cn(
                           "inline-block h-4 w-4 transform rounded-full transition-transform",
-                          // No tema escuro o primary é branco: a bolinha ligada usa a cor de texto dele
-                          r.ativa ? "translate-x-[18px] bg-primary-foreground" : "translate-x-0.5 bg-white"
+                          // A bolinha usa a cor de texto do trilho: contrasta nos dois temas (B36-02)
+                          r.ativa ? "translate-x-[18px] bg-primary-foreground" : "translate-x-0.5 bg-card shadow-sm"
                         )}
                       />
                     </button>

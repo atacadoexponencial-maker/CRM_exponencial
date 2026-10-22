@@ -16,12 +16,12 @@ const EVENTO_ICONE: Record<TipoEvento, React.ReactNode> = {
 }
 
 const EVENTO_COR: Record<TipoEvento, string> = {
-  conversa_iniciada: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
-  card_criado: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
-  mudanca_etapa: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
-  nota_interna: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-  compra_registrada: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
-  pedido_catalogo: "bg-sky-500/15 text-sky-300",
+  conversa_iniciada: "bg-info-fundo text-info",
+  card_criado: "bg-purple-100 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300",
+  mudanca_etapa: "bg-orange-100 dark:bg-orange-500/15 text-orange-700 dark:text-orange-300",
+  nota_interna: "bg-aviso-fundo text-aviso",
+  compra_registrada: "bg-sucesso-fundo text-sucesso",
+  pedido_catalogo: "bg-info-fundo text-info",
   dados_editados: "bg-secondary text-muted-foreground",
 }
 

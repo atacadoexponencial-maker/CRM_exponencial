@@ -35,7 +35,7 @@ export function FunilDeClientes({ resultado }: { resultado: ResultadoFunilClient
             <h2 className="text-sm font-semibold">Funil de clientes</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Quantos clientes já fizeram pelo menos N compras, em toda a história</p>
           </div>
-          <button type="button" onClick={() => setExplicar((v) => !v)} aria-expanded={explicar} className="inline-flex items-center gap-1.5 text-xs text-sky-400 hover:underline">
+          <button type="button" onClick={() => setExplicar((v) => !v)} aria-expanded={explicar} className="inline-flex items-center gap-1.5 text-xs text-info hover:underline">
             <Info className="size-3.5" /> O que são clientes parados?
           </button>
         </div>

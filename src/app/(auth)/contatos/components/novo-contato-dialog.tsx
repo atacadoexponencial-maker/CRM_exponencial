@@ -104,7 +104,7 @@ export function NovoContatoDialog() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           {aviso && (
-            <p className="rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-500" role="status">
+            <p className="rounded-md bg-aviso-fundo px-3 py-2 text-sm text-aviso" role="status">
               {aviso}
             </p>
           )}

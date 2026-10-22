@@ -171,7 +171,7 @@ export function VariacoesEstoque({ tipos, estoque, onMudarTipos, onMudarEstoque,
             <DialogClose render={<Button variant="outline" size="sm" />}>Cancelar</DialogClose>
             <Button
               size="sm"
-              variant="destructive" className="text-red-400"
+              variant="destructive" className="text-erro"
               onClick={() => { if (removendo) { if (removendo.opcao === null) removerTipo(removendo.tipoId); else removerOpcao(removendo.tipoId, removendo.opcao) } setRemovendo(null) }}
             >
               Remover

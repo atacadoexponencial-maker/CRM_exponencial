@@ -57,7 +57,7 @@ export function PareamentoPorCodigo() {
       </div>
 
       {erro && (
-        <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 p-3 text-sm ">
+        <p className="mt-4 rounded-lg border border-erro/30 bg-erro-fundo text-erro p-3 text-sm ">
           {erro}
         </p>
       )}

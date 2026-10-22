@@ -123,7 +123,7 @@ export function ImportarClient() {
                 <tbody className="divide-y">
                   {COLUNAS_PLANILHA.map((c) => (
                     <tr key={c.chave} className="align-top">
-                      <td className="py-2 pr-3 whitespace-nowrap font-medium">{c.titulo}{c.obrigatoria && <span className="text-amber-300"> *</span>}</td>
+                      <td className="py-2 pr-3 whitespace-nowrap font-medium">{c.titulo}{c.obrigatoria && <span className="text-aviso"> *</span>}</td>
                       <td className="py-2 pr-3 text-muted-foreground">{c.oQueVai}</td>
                       <td className="py-2 font-mono text-xs break-all">{c.exemplo}</td>
                     </tr>
@@ -166,7 +166,7 @@ export function ImportarClient() {
               <span className="truncate">{arquivo.name}</span>
             </p>
           )}
-          {erro && <p className="text-sm text-amber-300" role="alert">{erro}</p>}
+          {erro && <p className="text-sm text-aviso" role="alert">{erro}</p>}
           {(previa || erro) && !resultado && progresso === null && (
             <button type="button" onClick={recomecar} data-slot="button" className={buttonVariants({ size: "sm", variant: "outline" })}>
               Enviar outro arquivo
@@ -179,7 +179,7 @@ export function ImportarClient() {
             <h3 className="text-sm font-semibold">3. Confira antes de importar</h3>
             <PreviaImportacao previa={previa} />
             {prontos === 0 ? (
-              <p className="text-sm text-amber-300">Nenhum produto pode ser importado. Corrija a planilha.</p>
+              <p className="text-sm text-aviso">Nenhum produto pode ser importado. Corrija a planilha.</p>
             ) : (
               <div className="flex flex-wrap items-center gap-3 border-t pt-4">
                 <Button onClick={importar} disabled={progresso !== null}>
@@ -198,12 +198,12 @@ export function ImportarClient() {
         {resultado && (
           <section className="rounded-lg border p-4 space-y-3" role="status">
             <h3 className="flex items-center gap-1.5 text-sm font-semibold">
-              <CheckCircle2 className="size-4 text-emerald-300" />
+              <CheckCircle2 className="size-4 text-sucesso" />
               {resultado.novos + resultado.atualizados} {resultado.novos + resultado.atualizados === 1 ? "produto importado" : "produtos importados"}: {resultado.novos} {resultado.novos === 1 ? "novo" : "novos"} e {resultado.atualizados} {resultado.atualizados === 1 ? "atualizado" : "atualizados"}.
             </h3>
             {resultado.falhas.length > 0 && (
               <div className="space-y-1">
-                <p className="text-sm text-amber-300">Não entraram:</p>
+                <p className="text-sm text-aviso">Não entraram:</p>
                 <ul className="space-y-1 text-sm text-muted-foreground">
                   {resultado.falhas.map((f, i) => <li key={i}>{f.codigo ? `${f.codigo}: ` : ""}{f.texto.startsWith(`${f.codigo}:`) ? f.texto.slice(f.codigo.length + 1).trim() : f.texto}</li>)}
                 </ul>
@@ -211,7 +211,7 @@ export function ImportarClient() {
             )}
             {resultado.avisos.length > 0 && (
               <div className="space-y-1">
-                <p className="text-sm text-amber-300">Fotos que não entraram (o produto entrou sem elas):</p>
+                <p className="text-sm text-aviso">Fotos que não entraram (o produto entrou sem elas):</p>
                 <ul className="space-y-1 text-sm text-muted-foreground">
                   {resultado.avisos.map((a, i) => <li key={i}>{a.codigo}: {a.texto}</li>)}
                 </ul>
