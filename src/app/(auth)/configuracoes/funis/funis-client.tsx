@@ -3,12 +3,12 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Plus, Trash2, X } from "lucide-react"
+import { ArrowDown, ArrowUp, Plus, Trash2, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { CORES_PRONTAS, LIMITE_DE_ETAPAS, NOME_MAXIMO, ehCorPropria } from "@/lib/funis"
-import { adicionarEtapa, criarFunil, editarEtapa, renomearFunil, type FunilParaGerenciar, type FunisParaGerenciar } from "./actions"
+import { adicionarEtapa, apagarEtapa, apagarFunil, criarFunil, editarEtapa, moverEtapa, renomearFunil, type FunilParaGerenciar, type FunisParaGerenciar } from "./actions"
 
 // Amostra das cores prontas com as mesmas cores das colunas do quadro (B15-02).
 const AMOSTRA: Record<string, string> = {
@@ -140,10 +140,30 @@ function NovoFunil({ onFechar, onCriado }: { onFechar: () => void; onCriado: () 
   )
 }
 
-function EtapaEditavel({ etapa, onSalvo }: { etapa: FunilParaGerenciar["etapas"][number]; onSalvo: () => void }) {
+type EtapaDoEditor = FunilParaGerenciar["etapas"][number]
+
+function EtapaEditavel({ etapa, posicao, outras, onSalvo }: { etapa: EtapaDoEditor; posicao: number; outras: EtapaDoEditor[]; onSalvo: () => void }) {
   const [nome, setNome] = useState(etapa.nome)
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
+  const [apagando, setApagando] = useState(false)
+  const [destino, setDestino] = useState("")
+  const total = outras.length + 1
+
+  async function executar(acao: () => Promise<{ erro?: string }>) {
+    setErro(null)
+    setSalvando(true)
+    try {
+      const r = await acao()
+      if (r.erro) { setErro(r.erro); return }
+      setApagando(false)
+      onSalvo()
+    } catch {
+      setErro("Não foi possível salvar. Tente de novo.")
+    } finally {
+      setSalvando(false)
+    }
+  }
 
   async function salvar(mudancas: { nome?: string; cor?: string | null }) {
     setErro(null)
@@ -171,8 +191,61 @@ function EtapaEditavel({ etapa, onSalvo }: { etapa: FunilParaGerenciar["etapas"]
           className="sm:max-w-56"
         />
         <SeletorDeCor rotulo={etapa.nome} cor={etapa.cor} onChange={(cor) => void salvar({ cor })} />
+        <span className="numero text-xs text-muted-foreground">{etapa.cards} {etapa.cards === 1 ? "card" : "cards"}</span>
+        <span className="flex items-center gap-1 sm:ml-auto">
+          <Button type="button" size="icon-sm" variant="ghost" aria-label={`Subir ${etapa.nome}`} disabled={salvando || posicao === 0} onClick={() => executar(() => moverEtapa(etapa.id, "subir"))}>
+            <ArrowUp className="size-3.5" />
+          </Button>
+          <Button type="button" size="icon-sm" variant="ghost" aria-label={`Descer ${etapa.nome}`} disabled={salvando || posicao === total - 1} onClick={() => executar(() => moverEtapa(etapa.id, "descer"))}>
+            <ArrowDown className="size-3.5" />
+          </Button>
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="ghost"
+            aria-label={`Apagar ${etapa.nome}`}
+            title={total === 1 ? "O funil precisa de ao menos uma etapa" : undefined}
+            disabled={salvando || total === 1}
+            onClick={() => { setErro(null); setDestino(""); setApagando(true) }}
+          >
+            <Trash2 className="size-3.5" />
+          </Button>
+        </span>
         {salvando && <span className="text-xs text-muted-foreground">Salvando...</span>}
       </div>
+      {apagando && (
+        <div role="group" aria-label={`Apagar ${etapa.nome}`} className="space-y-2 rounded-md bg-muted/60 p-3 text-sm">
+          {etapa.cards > 0 ? (
+            <label className="block space-y-1.5">
+              <span>
+                {etapa.cards === 1 ? "1 card está" : `${etapa.cards} cards estão`} nesta etapa. Para qual etapa {etapa.cards === 1 ? "ele vai" : "eles vão"}?
+              </span>
+              <select
+                value={destino}
+                onChange={(e) => setDestino(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-card px-2 text-sm sm:max-w-56"
+              >
+                <option value="">Escolha a etapa</option>
+                {outras.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
+              </select>
+            </label>
+          ) : (
+            <p>Apagar a etapa {etapa.nome}? Ela não tem cards.</p>
+          )}
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              disabled={salvando || (etapa.cards > 0 && !destino)}
+              onClick={() => executar(() => apagarEtapa(etapa.id, etapa.cards > 0 ? destino : null))}
+            >
+              Apagar etapa
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setApagando(false)}>Cancelar</Button>
+          </div>
+        </div>
+      )}
       {erro && <p role="alert" className="text-xs text-destructive">{erro}</p>}
     </li>
   )
@@ -219,8 +292,8 @@ function EditorDoFunil({ funil, onFechar, onSalvo }: { funil: FunilParaGerenciar
       <div className="space-y-2">
         <span className="text-sm">Etapas</span>
         <ul className="space-y-2">
-          {funil.etapas.map((e) => (
-            <EtapaEditavel key={e.id} etapa={e} onSalvo={onSalvo} />
+          {funil.etapas.map((e, i) => (
+            <EtapaEditavel key={e.id} etapa={e} posicao={i} outras={funil.etapas.filter((o) => o.id !== e.id)} onSalvo={onSalvo} />
           ))}
         </ul>
         {funil.etapas.length < LIMITE_DE_ETAPAS && (
@@ -253,10 +326,44 @@ function EditorDoFunil({ funil, onFechar, onSalvo }: { funil: FunilParaGerenciar
   )
 }
 
+function ApagarFunil({ funil, onCancelar, onApagado }: { funil: FunilParaGerenciar; onCancelar: () => void; onApagado: () => void }) {
+  const [apagando, setApagando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+  return (
+    <div role="group" aria-label={`Apagar ${funil.nome}`} className="w-full space-y-2 rounded-md bg-muted/60 p-3 text-sm">
+      <p>
+        Apagar o funil {funil.nome}?{" "}
+        {funil.cards === 0 ? "Ele não tem cards." : `${funil.cards === 1 ? "1 card sai" : `${funil.cards} cards saem`} junto.`} Os contatos continuam.
+      </p>
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="destructive"
+          disabled={apagando}
+          onClick={() => {
+            setErro(null)
+            setApagando(true)
+            apagarFunil(funil.id)
+              .then((r) => { if (r.erro) setErro(r.erro); else onApagado() })
+              .catch(() => setErro("Não foi possível apagar o funil. Tente de novo."))
+              .finally(() => setApagando(false))
+          }}
+        >
+          {apagando ? "Apagando..." : "Apagar funil"}
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onCancelar}>Cancelar</Button>
+      </div>
+      {erro && <p role="alert" className="text-xs text-destructive">{erro}</p>}
+    </div>
+  )
+}
+
 export function FunisClient({ dados }: { dados: FunisParaGerenciar }) {
   const router = useRouter()
   const [criando, setCriando] = useState(false)
   const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [apagandoId, setApagandoId] = useState<string | null>(null)
   const editando = dados.funis.find((f) => f.id === editandoId) ?? null
 
   return (
@@ -295,7 +402,17 @@ export function FunisClient({ dados }: { dados: FunisParaGerenciar }) {
                 {f.etapas.length} {f.etapas.length === 1 ? "etapa" : "etapas"} · {f.cards} {f.cards === 1 ? "card" : "cards"}
               </span>
               <Button size="sm" variant="ghost" onClick={() => { setEditandoId(f.id); setCriando(false) }}>Editar</Button>
+              <Button size="sm" variant="ghost" aria-label={`Apagar o funil ${f.nome}`} onClick={() => setApagandoId(f.id)}>
+                <Trash2 className="size-3.5" />
+              </Button>
             </span>
+            {apagandoId === f.id && (
+              <ApagarFunil
+                funil={f}
+                onCancelar={() => setApagandoId(null)}
+                onApagado={() => { setApagandoId(null); if (editandoId === f.id) setEditandoId(null); router.refresh() }}
+              />
+            )}
           </li>
         ))}
       </ul>

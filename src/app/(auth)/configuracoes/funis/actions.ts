@@ -7,7 +7,7 @@ import { LIMITE_DE_ETAPAS, LIMITE_DE_FUNIS, NOME_MAXIMO, chaveDoNome, corDaEtapa
 // B41-01: Admin e Gerente criam e editam os funis da empresa. Entrada e Recompra
 // são fixos e não passam por aqui.
 
-export type EtapaParaGerenciar = { id: string; nome: string; cor: string | null; ordem: number }
+export type EtapaParaGerenciar = { id: string; nome: string; cor: string | null; ordem: number; cards: number }
 export type FunilParaGerenciar = { id: string; nome: string; etapas: EtapaParaGerenciar[]; cards: number }
 export type FunisParaGerenciar = {
   fixos: Array<{ id: "entrada" | "recompra"; nome: string; etapas: number }>
@@ -82,17 +82,21 @@ export async function listarFunisParaGerenciar(): Promise<FunisParaGerenciar> {
     .order("created_at")
   const ids = (funis ?? []).map((f) => f.id)
   const { data: cards } = ids.length > 0
-    ? await supabase.from("pipeline_cards").select("funil").in("funil", ids)
-    : { data: [] as Array<{ funil: string }> }
+    ? await supabase.from("pipeline_cards").select("funil, etapa").in("funil", ids)
+    : { data: [] as Array<{ funil: string; etapa: string }> }
   const cardsPorFunil: Record<string, number> = {}
-  for (const c of cards ?? []) cardsPorFunil[c.funil] = (cardsPorFunil[c.funil] ?? 0) + 1
+  const cardsPorEtapa: Record<string, number> = {}
+  for (const c of cards ?? []) {
+    cardsPorFunil[c.funil] = (cardsPorFunil[c.funil] ?? 0) + 1
+    cardsPorEtapa[c.etapa] = (cardsPorEtapa[c.etapa] ?? 0) + 1
+  }
 
   return {
     fixos,
     funis: (funis ?? []).map((f) => ({
       id: f.id,
       nome: f.nome,
-      etapas: [...(f.funil_etapas ?? [])].sort((a, b) => a.ordem - b.ordem).map((e) => ({ id: e.id, nome: e.nome, cor: e.cor, ordem: e.ordem })),
+      etapas: [...(f.funil_etapas ?? [])].sort((a, b) => a.ordem - b.ordem).map((e) => ({ id: e.id, nome: e.nome, cor: e.cor, ordem: e.ordem, cards: cardsPorEtapa[e.id] ?? 0 })),
       cards: cardsPorFunil[f.id] ?? 0,
     })),
   }
@@ -217,4 +221,81 @@ export async function editarEtapa(etapaId: string, mudancas: { nome?: string; co
 
   revalidar()
   return {}
+}
+
+// ---------------------------------------------------------------------------
+// B41-02: mudar a ordem, apagar etapa e apagar funil.
+// ---------------------------------------------------------------------------
+
+/** Troca a etapa de lugar com a vizinha de cima ou de baixo. Nas pontas, não faz nada. */
+export async function moverEtapa(etapaId: string, direcao: "subir" | "descer"): Promise<Resultado> {
+  const quem = await quemGerencia()
+  if (!quem) return { erro: SEM_PERMISSAO }
+  if (!UUID.test(etapaId)) return { erro: "Etapa não encontrada" }
+  const { supabase, perfil } = quem
+
+  const { data: etapa } = await supabase
+    .from("funil_etapas")
+    .select("id, funil_id")
+    .eq("id", etapaId)
+    .eq("workspace_id", perfil.workspace_id)
+    .maybeSingle()
+  if (!etapa) return { erro: "Etapa não encontrada" }
+
+  const { data: irmas } = await supabase.from("funil_etapas").select("id, ordem, created_at").eq("funil_id", etapa.funil_id)
+  const lista = [...(irmas ?? [])].sort((a, b) => a.ordem - b.ordem || a.created_at.localeCompare(b.created_at))
+  const i = lista.findIndex((e) => e.id === etapaId)
+  const j = direcao === "subir" ? i - 1 : i + 1
+  if (i < 0 || j < 0 || j >= lista.length) return {}
+
+  // Renumera o funil inteiro (0, 1, 2…) já com a troca: ordens repetidas de antes somem.
+  ;[lista[i], lista[j]] = [lista[j], lista[i]]
+  for (const [ordem, e] of lista.entries()) {
+    const { error } = await supabase.from("funil_etapas").update({ ordem }).eq("id", e.id)
+    if (error) return { erro: "Não foi possível mudar a ordem. Tente de novo." }
+  }
+
+  revalidar()
+  return {}
+}
+
+/** Apaga a etapa. Com cards, `destinoId` é a etapa do mesmo funil para onde eles vão. */
+export async function apagarEtapa(etapaId: string, destinoId: string | null): Promise<Resultado> {
+  const quem = await quemGerencia()
+  if (!quem) return { erro: SEM_PERMISSAO }
+  if (!UUID.test(etapaId) || (destinoId !== null && !UUID.test(destinoId))) return { erro: "Etapa não encontrada" }
+  const { supabase, perfil } = quem
+
+  const { data: etapa } = await supabase
+    .from("funil_etapas")
+    .select("id, funil_id")
+    .eq("id", etapaId)
+    .eq("workspace_id", perfil.workspace_id)
+    .maybeSingle()
+  if (!etapa) return { erro: "Etapa não encontrada" }
+
+  const { error } = await supabase.rpc("apagar_etapa", { p_etapa: etapaId, p_destino: destinoId as string })
+  if (error?.code === "P0001") return { erro: error.message }
+  if (error) return { erro: "Não foi possível apagar a etapa. Tente de novo." }
+
+  revalidar()
+  return {}
+}
+
+/** Apaga o funil, as etapas e os cards dele. Os contatos ficam. */
+export async function apagarFunil(funilId: string): Promise<{ erro?: string; cards?: number }> {
+  const quem = await quemGerencia()
+  if (!quem) return { erro: SEM_PERMISSAO }
+  if (ehFunilFixo(funilId)) return { erro: FUNIL_FIXO }
+  if (!UUID.test(funilId)) return { erro: FUNIL_NAO_ENCONTRADO }
+  const { supabase, perfil } = quem
+
+  const { data: funil } = await supabase.from("funis").select("id").eq("id", funilId).eq("workspace_id", perfil.workspace_id).maybeSingle()
+  if (!funil) return { erro: FUNIL_NAO_ENCONTRADO }
+
+  const { data, error } = await supabase.rpc("apagar_funil", { p_funil: funilId })
+  if (error) return { erro: "Não foi possível apagar o funil. Tente de novo." }
+
+  revalidar()
+  return { cards: data ?? 0 }
 }

@@ -2176,6 +2176,11 @@ export type Database = {
         Args: { p_contact_id: string }
         Returns: boolean
       }
+      apagar_etapa: {
+        Args: { p_destino: string; p_etapa: string }
+        Returns: undefined
+      }
+      apagar_funil: { Args: { p_funil: string }; Returns: number }
       atribuir_conversa_ao_time: {
         Args: {
           p_conversation_id: string
