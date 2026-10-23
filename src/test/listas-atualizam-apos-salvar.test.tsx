@@ -21,7 +21,7 @@ import { ListaContatos } from "@/app/(auth)/contatos/components/lista-contatos"
 import { AgendaClient } from "@/app/(auth)/agenda/agenda-client"
 
 const contato = (id: string, nome: string): Contato => ({
-  id, nome, telefone: `5511${id.padStart(8, "0")}`, classificacao: "lead", tipo: null, nicho: null, cidade: null, atendente: null, created_at: "2026-10-20T10:00:00Z",
+  id, nome, telefone: `5511${id.padStart(8, "0")}`, classificacao: "lead", tipo: null, cidade: null, atendente: null, created_at: "2026-10-20T10:00:00Z",
 })
 
 const item = (id: string, instrucao: string): ItemAgenda => ({

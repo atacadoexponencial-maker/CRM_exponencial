@@ -41,7 +41,6 @@ interface PainelFiltroProps {
   onAbertoChange: (aberto: boolean) => void
   /** Filtro aplicado hoje; o painel abre com uma cópia dele. */
   filtro: Filtro
-  nichos: string[]
   atendentes: Array<{ id: string; nome: string }>
   /** B37-02: etiquetas da empresa. */
   etiquetas: string[]
@@ -60,7 +59,6 @@ export function PainelFiltro({
   aberto,
   onAbertoChange,
   filtro,
-  nichos,
   atendentes,
   etiquetas,
   onAplicar,
@@ -75,7 +73,7 @@ export function PainelFiltro({
   const [nomeNovo, setNomeNovo] = useState<string | null>(null)
   const [erroSalvar, setErroSalvar] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
-  const daEmpresa: ValoresDaEmpresa = { nichos, atendentes: atendentes.map((a) => a.id), etiquetas }
+  const daEmpresa: ValoresDaEmpresa = { atendentes: atendentes.map((a) => a.id), etiquetas }
 
   async function enviar(acao: () => Promise<string | null>) {
     setSalvando(true)
@@ -103,7 +101,6 @@ export function PainelFiltro({
 
   function opcoesDoCampo(campo: CampoDoFiltro): Opcao[] {
     if (campo.opcoes) return campo.opcoes
-    if (campo.id === "nicho") return nichos.map((n) => ({ valor: n, rotulo: n }))
     if (campo.id === "atendente") return atendentes.map((a) => ({ valor: a.id, rotulo: a.nome }))
     if (campo.id === "etiqueta") return etiquetas.map((e) => ({ valor: e, rotulo: e }))
     return []

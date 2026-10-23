@@ -23,7 +23,6 @@ const schema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   telefone: z.string().min(1, "Número de WhatsApp é obrigatório"),
   tipo: z.enum(["lojista", "revendedor", "empreendedor", ""]).optional(),
-  nicho: z.string().optional(),
   cidade: z.string().optional(),
   uf: z.string().optional(),
 })
@@ -44,7 +43,7 @@ export function NovoContatoDialog() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { nome: "", telefone: "", tipo: "", nicho: "", cidade: "", uf: "" },
+    defaultValues: { nome: "", telefone: "", tipo: "", cidade: "", uf: "" },
   })
 
   async function onSubmit(data: FormData) {
@@ -53,7 +52,6 @@ export function NovoContatoDialog() {
       nome: data.nome,
       telefone: data.telefone,
       tipo: data.tipo || null,
-      nicho: data.nicho || null,
       cidade: data.cidade || null,
       uf: data.uf || null,
     })
@@ -153,16 +151,6 @@ export function NovoContatoDialog() {
               <option value="revendedor">Revendedor</option>
               <option value="empreendedor">Empreendedor</option>
             </select>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nicho">Nicho <span className="text-muted-foreground">(opcional)</span></Label>
-            <Input
-              id="nicho"
-              type="text"
-              placeholder="Ex.: Alimentação, Moda…"
-              {...register("nicho")}
-            />
           </div>
 
           <div className="flex flex-col gap-1.5">

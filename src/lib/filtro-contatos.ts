@@ -75,7 +75,7 @@ export interface CampoDoFiltro {
   tipo: TipoDeCampo
   /** Obrigatório no cadastro: sem "está vazio" nem "não está vazio" (CA-B37-36). */
   obrigatorio: boolean
-  /** Opções fixas de um campo de lista. Sem elas, as opções vêm do servidor (nicho, atendente, etiqueta). */
+  /** Opções fixas de um campo de lista. Sem elas, as opções vêm do servidor (atendente, etiqueta). */
   opcoes?: Opcao[]
 }
 
@@ -97,7 +97,6 @@ export const CAMPOS_DO_FILTRO: CampoDoCadastro[] = [
     obrigatorio: true, opcoes: opcoesDe(CLASSIFICACAO_LABEL),
   },
   { id: "tipo", rotulo: "Tipo", assunto: "Cadastro", tipo: "lista", coluna: "tipo", obrigatorio: false, opcoes: opcoesDe(TIPO_LABEL) },
-  { id: "nicho", rotulo: "Nicho", assunto: "Cadastro", tipo: "lista", coluna: "nicho", obrigatorio: false },
   { id: "cidade", rotulo: "Cidade", assunto: "Cadastro", tipo: "texto", coluna: "cidade", obrigatorio: false },
   {
     id: "uf", rotulo: "UF", assunto: "Cadastro", tipo: "lista", coluna: "uf", obrigatorio: false,
@@ -145,6 +144,8 @@ export const COLUNAS_FORA_DO_FILTRO = [
   "excluido_por",
   "photo_path",
   "photo_checked_at",
+  // B40-01: o nicho saiu do filtro; a coluna é apagada na B40-02.
+  "nicho",
 ] as const
 
 export const ROTULO_DA_COMPARACAO: Record<Comparacao, string> = {
@@ -247,8 +248,8 @@ export function condicaoCompleta(condicao: Condicao): boolean {
 /** B37-03: campo interno que nunca vale; o banco o traduz para `false`. */
 export const CAMPO_NUNCA = "nunca"
 
-/** Valores dos campos de lista que vêm da empresa (nicho, atendente por id, etiqueta). */
-export type ValoresDaEmpresa = { nichos: string[]; atendentes: string[]; etiquetas: string[] }
+/** Valores dos campos de lista que vêm da empresa (atendente por id, etiqueta). */
+export type ValoresDaEmpresa = { atendentes: string[]; etiquetas: string[] }
 
 /**
  * B37-03: a condição usa um valor que não existe mais (etiqueta apagada, atendente
@@ -261,13 +262,11 @@ export function valorSumiu(condicao: Condicao, daEmpresa?: ValoresDaEmpresa): bo
   if (valores.length === 0) return false
   const existentes = campo.opcoes
     ? campo.opcoes.map((o) => o.valor)
-    : daEmpresa && campo.id === "nicho"
-      ? daEmpresa.nichos
-      : daEmpresa && campo.id === "atendente"
-        ? daEmpresa.atendentes
-        : daEmpresa && campo.id === "etiqueta"
-          ? daEmpresa.etiquetas
-          : null
+    : daEmpresa && campo.id === "atendente"
+      ? daEmpresa.atendentes
+      : daEmpresa && campo.id === "etiqueta"
+        ? daEmpresa.etiquetas
+        : null
   return existentes !== null && valores.some((v) => !existentes.includes(v))
 }
 
@@ -343,11 +342,11 @@ export const esquemaFiltro = z
     }
   })
 
-/** Botões fixos da lista (classificação, tipo, nicho, atendente): valem junto com o filtro. */
+/** Botões fixos da lista (classificação, tipo, atendente): valem junto com o filtro. */
 export const esquemaRapidos = z
   .array(
     z.object({
-      campo: z.enum(["classificacao", "tipo", "nicho", "atendente"]),
+      campo: z.enum(["classificacao", "tipo", "atendente"]),
       comparacao: z.literal("e"),
       valores: z.array(z.string().min(1).max(200)).length(1),
     })

@@ -33,7 +33,6 @@ const contato = (n: number): Contato => ({
   telefone: `55119${String(n).padStart(8, "0")}`,
   classificacao: "lead",
   tipo: "lojista",
-  nicho: null,
   cidade: "Fortaleza",
   atendente: null,
   created_at: "2026-10-20T10:00:00Z",
@@ -58,7 +57,6 @@ function renderizar(papel = "admin", filtrosSalvos: FiltroSalvo[] = [SALVO], eti
     <ListaContatos
       contatos={[contato(1), contato(2)]}
       total={120}
-      nichos={[]}
       atendentes={[]}
       etiquetas={etiquetas}
       filtrosSalvos={filtrosSalvos}

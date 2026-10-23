@@ -24,7 +24,6 @@ const contato = (n: number): Contato => ({
   telefone: `55119${String(n).padStart(8, "0")}`,
   classificacao: "lead",
   tipo: null,
-  nicho: null,
   cidade: "Fortaleza",
   atendente: null,
   created_at: "2026-10-20T10:00:00Z",
@@ -32,7 +31,7 @@ const contato = (n: number): Contato => ({
 const pagina = (de: number, quantos: number) => Array.from({ length: quantos }, (_, i) => contato(de + i))
 
 function renderizar() {
-  return render(<ListaContatos contatos={pagina(1, 50)} total={120} nichos={[]} atendentes={[]} papel="admin" />)
+  return render(<ListaContatos contatos={pagina(1, 50)} total={120} atendentes={[]} papel="admin" />)
 }
 
 function abrirPainel() {
@@ -195,7 +194,7 @@ describe("B37-02 — campos de etiquetas, compras e funil no painel", () => {
       {
         assunto: "Cadastro",
         campos: [
-          "Nome", "Telefone", "Classificação", "Tipo", "Nicho", "Cidade", "UF", "Perfil de cliente (ICP)",
+          "Nome", "Telefone", "Classificação", "Tipo", "Cidade", "UF", "Perfil de cliente (ICP)",
           "Atendente", "Observações", "Data de cadastro",
         ],
       },

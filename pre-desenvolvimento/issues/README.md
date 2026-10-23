@@ -34,4 +34,5 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B37 | `docs/specs-arquivadas/spec-filtro-de-contatos.md` (concluída em 22/10/2026: filtro avançado na lista de contatos, por todos os campos, etiquetas, compras e etapa do funil, com grupos E/OU e filtros salvos da empresa) | `concluidas_B37/` |
 | B38 | reservada em 22/10/2026 para a spec de campos personalizados do contato (a escrever depois da B37) | `concluidas_B38/` (quando houver) |
 | B39 | `docs/specs-arquivadas/spec-pedidos-exportar-e-filtrar.md` (concluída em 22/10/2026: pedidos do catálogo com exportação em Excel e CSV, filtros novos e período personalizado com calendário) | `concluidas_B39/` |
+| B40 | `../spec-remover-nicho.md` (aprovada em 22/10/2026: apagar o campo nicho do contato, das telas, do banco, das automações, das campanhas e dos filtros) | `concluidas_B40/` (quando houver) |
 | F1 | `docs/specs-arquivadas/spec-fluxo-com-prova.md` (melhoria do fluxo de desenvolvimento: critérios de aceite com código, auditor, lições) | `concluidas_F1/` |

@@ -24,7 +24,7 @@ vi.mock("@/app/(auth)/chat/actions", () => ({
     dataPrimeiroContato: "20 de out. de 2026",
     compras: resumoDeCompras(COMPRAS, AGORA),
     cadastro: {
-      contactId: "c-1", classificacao: "ativo", tipo: "lojista", nicho: "Moda", cidade: "Uberlândia", uf: "MG",
+      contactId: "c-1", classificacao: "ativo", tipo: "lojista", cidade: "Uberlândia", uf: "MG",
       icp: null, atendente: "Ana", tags: ["vip", "feira"], funis: [{ funil: "recompra", etapa: "Ativos" }],
     },
   })),

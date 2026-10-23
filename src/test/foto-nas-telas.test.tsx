@@ -19,7 +19,7 @@ vi.mock("@/app/(auth)/contatos/lixeira/actions", () => ({
   restaurarContato: vi.fn(),
 }))
 vi.mock("@/app/(auth)/chat/actions", () => ({
-  buscarInfoContato: vi.fn(async () => ({ dataPrimeiroContato: "20 de out.", cadastro: { contactId: "c-1", classificacao: "lead", tipo: null, nicho: null, cidade: null, icp: null, atendente: null, tags: [], funis: [] } })),
+  buscarInfoContato: vi.fn(async () => ({ dataPrimeiroContato: "20 de out.", cadastro: { contactId: "c-1", classificacao: "lead", tipo: null, cidade: null, icp: null, atendente: null, tags: [], funis: [] } })),
   atualizarNomeContato: vi.fn(),
 }))
 
@@ -45,7 +45,7 @@ function conversa(contato: Conversa["contato"]): Conversa {
 
 function perfil(fotoUrl: string | null, nome = "Ana Souza"): ContatoPerfil {
   return {
-    id: "c-1", nome, telefone: "5511999998888", classificacao: "lead", tipo: null, nicho: null, cidade: null, atendente: null,
+    id: "c-1", nome, telefone: "5511999998888", classificacao: "lead", tipo: null, cidade: null, atendente: null,
     created_at: "2026-10-20T00:00:00Z", icp: null, fotoUrl, tags: [], observacoes: "", conversaId: null, cards: [], compras: [], timeline: [],
   }
 }

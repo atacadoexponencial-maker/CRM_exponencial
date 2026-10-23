@@ -60,8 +60,7 @@ interface ListaContatosProps {
   contatos: Contato[]
   /** B37-01: total de contatos que a pessoa vê, contado no servidor. */
   total?: number
-  /** B37-01: nichos e atendentes da empresa, para os botões fixos e o filtro. */
-  nichos?: string[]
+  /** B37-01: atendentes da empresa, para os botões fixos e o filtro. */
   atendentes?: Array<{ id: string; nome: string }>
   /** B37-02: etiquetas da empresa, para o filtro. */
   etiquetas?: string[]
@@ -75,7 +74,6 @@ interface ListaContatosProps {
 export function ListaContatos({
   contatos: contatosIniciais,
   total: totalInicial = contatosIniciais.length,
-  nichos = [],
   atendentes = [],
   etiquetas = [],
   filtrosSalvos: filtrosSalvosIniciais = [],
@@ -86,7 +84,6 @@ export function ListaContatos({
   const [busca, setBusca] = useState("")
   const [classificacao, setClassificacao] = useState<ClassificacaoContato | "todas">("todas")
   const [tipo, setTipo] = useState<TipoContato | "todos">("todos")
-  const [nicho, setNicho] = useState<string | null>(null)
   const [atendente, setAtendente] = useState<string | null>(null)
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("recente")
   const [ordenacaoAberta, setOrdenacaoAberta] = useState(false)
@@ -117,11 +114,10 @@ export function ListaContatos({
     const rapidos: Condicao[] = []
     if (classificacao !== "todas") rapidos.push({ campo: "classificacao", comparacao: "e", valores: [classificacao] })
     if (tipo !== "todos") rapidos.push({ campo: "tipo", comparacao: "e", valores: [tipo] })
-    if (nicho) rapidos.push({ campo: "nicho", comparacao: "e", valores: [nicho] })
     if (atendente) rapidos.push({ campo: "atendente", comparacao: "e", valores: [atendente] })
     const termo = busca.trim()
     return { filtro: limparFiltro(filtro), rapidos, busca: termo.length >= 2 ? termo : "", ordem: ordenacao }
-  }, [filtro, classificacao, tipo, nicho, atendente, busca, ordenacao])
+  }, [filtro, classificacao, tipo, atendente, busca, ordenacao])
   const chave = JSON.stringify(consulta)
   const chaveInicial = useRef(chave)
   const pedido = useRef(0)
@@ -334,7 +330,6 @@ export function ListaContatos({
         aberto={painelAberto}
         onAbertoChange={setPainelAberto}
         filtro={filtro}
-        nichos={nichos}
         atendentes={atendentes}
         etiquetas={etiquetas}
         onAplicar={aplicarFiltro}
@@ -395,37 +390,6 @@ export function ListaContatos({
           ))}
         </div>
 
-        {/* Nicho */}
-        {nichos.length > 0 && (
-          <div className="flex gap-1 flex-wrap">
-            <button
-              onClick={() => setNicho(null)}
-              className={cn(
-                "px-2.5 py-1 text-xs rounded-md border transition-colors",
-                nicho === null
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
-              )}
-            >
-              Todos nichos
-            </button>
-            {nichos.map((n) => (
-              <button
-                key={n}
-                onClick={() => setNicho(nicho === n ? null : n)}
-                className={cn(
-                  "px-2.5 py-1 text-xs rounded-md border transition-colors",
-                  nicho === n
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
-                )}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        )}
-
         {/* Atendente — apenas admin e gerente */}
         {papel !== "atendente" && atendentes.length > 0 && (
           <div className="flex gap-1 flex-wrap">
@@ -479,7 +443,6 @@ export function ListaContatos({
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">WhatsApp</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Classificação</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Tipo</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Nicho</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Cidade</th>
                 {papel !== "atendente" && (
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Atendente</th>
@@ -507,7 +470,6 @@ export function ListaContatos({
                   <td className="px-4 py-3 text-muted-foreground">
                     {contato.tipo ? TIPO_LABEL[contato.tipo] : "—"}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{contato.nicho ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{contato.cidade ?? "—"}</td>
                   {papel !== "atendente" && (
                     <td className="px-4 py-3 text-muted-foreground">{contato.atendente ?? "—"}</td>

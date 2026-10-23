@@ -45,7 +45,6 @@ function formatarMoeda(valor: number) {
 const editSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   tipo: z.enum(["lojista", "revendedor", "empreendedor", ""]).optional(),
-  nicho: z.string().optional(),
   cidade: z.string().optional(),
   uf: z.string().optional(),
   icp: z.enum(["ja_revende", "primeira_vez", ""]).optional(),
@@ -154,7 +153,6 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
     reset({
       nome: contato!.nome,
       tipo: (contato!.tipo ?? "") as EditFormData["tipo"],
-      nicho: contato!.nicho ?? "",
       cidade: contato!.cidade ?? "",
       uf: contato!.uf ?? "",
       icp: (contato!.icp ?? "") as EditFormData["icp"],
@@ -220,7 +218,6 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
     const resultado = await atualizarDadosContato(contato!.id, {
       nome: data.nome,
       tipo: data.tipo || null,
-      nicho: data.nicho || null,
       cidade: data.cidade || null,
       uf: data.uf || null,
       icp: data.icp || null,
@@ -413,11 +410,6 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="edit-nicho">Nicho</Label>
-                  <Input id="edit-nicho" type="text" {...register("nicho")} />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
                   <Label htmlFor="edit-cidade">Cidade</Label>
                   <Input id="edit-cidade" type="text" {...register("cidade")} />
                 </div>
@@ -459,7 +451,6 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
                 <Row label="Nome" value={contato.nome} />
                 <Row label="WhatsApp" value={formatarWhatsapp(contato.telefone.replace(/\D/g, ""))} />
                 <Row label="Tipo" value={contato.tipo ? TIPO_LABEL[contato.tipo] : "—"} />
-                <Row label="Nicho" value={contato.nicho ?? "—"} />
                 <Row label="Cidade" value={contato.cidade ?? "—"} />
                 <Row label="UF" value={contato.uf ?? "—"} />
                 <Row label="ICP" value={contato.icp ? ICP_LABEL[contato.icp] : "—"} />

@@ -1,5 +1,5 @@
 // Ficha do contato no chat (pedido dela em 20/10/2026): além de nome, número e
-// mostra o cadastro (classificação, tipo, nicho, cidade,
+// mostra o cadastro (classificação, tipo, cidade, UF,
 // perfil, atendente, tags), a etapa em cada funil e o link para o perfil completo.
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
@@ -20,8 +20,7 @@ vi.mock("@/app/(auth)/chat/actions", () => ({
       contactId: "c-1",
       classificacao: "lead",
       tipo: "lojista",
-      nicho: "Moda",
-      cidade: null,
+      cidade: "Fortaleza",
       icp: "primeira_vez",
       atendente: "Ana",
       tags: ["vip", "feira"],
@@ -50,27 +49,27 @@ describe("ficha do contato no chat", () => {
     render(<PainelContato conversa={CONVERSA} conversaId="conv-1" onFechar={vi.fn()} onConversaAtualizada={vi.fn()} />)
     await waitFor(() => expect(screen.getByText("Lead")).toBeTruthy())
     expect(screen.getByText("Lojista")).toBeTruthy()
-    expect(screen.getByText("Moda")).toBeTruthy()
+    expect(screen.getByText("Fortaleza")).toBeTruthy()
     expect(screen.getByText("Primeira vez no nicho")).toBeTruthy()
     expect(screen.getByText("Ana")).toBeTruthy()
     expect(screen.getByText("Funil de Entrada")).toBeTruthy()
     expect(screen.getByText("Negociação")).toBeTruthy()
     expect(screen.getByText("vip")).toBeTruthy()
-    // Cidade vazia
-    expect(screen.getByText("Cidade").nextElementSibling?.textContent).toBe("—")
+    // UF vazia
+    expect(screen.getByText("UF").nextElementSibling?.textContent).toBe("—")
     expect(screen.getByText("Abrir perfil completo").closest("a")?.getAttribute("href")).toBe("/contatos/c-1")
   })
 
-  it("admin e gerente editam no lugar: nicho salvo com os outros campos como estão; tag nova adicionada", async () => {
+  it("admin e gerente editam no lugar: cidade salva com os outros campos como estão; tag nova adicionada", async () => {
     render(<PainelContato conversa={CONVERSA} conversaId="conv-1" onFechar={vi.fn()} onConversaAtualizada={vi.fn()} podeEditar />)
-    await waitFor(() => expect(screen.getByText("Moda")).toBeTruthy())
+    await waitFor(() => expect(screen.getByText("Fortaleza")).toBeTruthy())
 
-    fireEvent.click(screen.getByLabelText("Editar nicho"))
-    const campo = screen.getByLabelText("Nicho") as HTMLInputElement
-    fireEvent.change(campo, { target: { value: "Fitness" } })
+    fireEvent.click(screen.getByLabelText("Editar cidade"))
+    const campo = screen.getByLabelText("Cidade") as HTMLInputElement
+    fireEvent.change(campo, { target: { value: "Recife" } })
     fireEvent.keyDown(campo, { key: "Enter" })
-    await waitFor(() => expect(screen.getByText("Fitness")).toBeTruthy())
-    expect(atualizar).toHaveBeenCalledWith("c-1", { nome: "Marcelle", tipo: "lojista", nicho: "Fitness", cidade: null, icp: "primeira_vez" })
+    await waitFor(() => expect(screen.getByText("Recife")).toBeTruthy())
+    expect(atualizar).toHaveBeenCalledWith("c-1", { nome: "Marcelle", tipo: "lojista", cidade: "Recife", icp: "primeira_vez" })
 
     const tag = screen.getByLabelText("Nova tag") as HTMLInputElement
     fireEvent.change(tag, { target: { value: "Atacado" } })
@@ -81,8 +80,8 @@ describe("ficha do contato no chat", () => {
 
   it("atendente não vê lápis nem campo de tag", async () => {
     render(<PainelContato conversa={CONVERSA} conversaId="conv-1" onFechar={vi.fn()} onConversaAtualizada={vi.fn()} />)
-    await waitFor(() => expect(screen.getByText("Moda")).toBeTruthy())
-    expect(screen.queryByLabelText("Editar nicho")).toBeNull()
+    await waitFor(() => expect(screen.getByText("Fortaleza")).toBeTruthy())
+    expect(screen.queryByLabelText("Editar cidade")).toBeNull()
     expect(screen.queryByLabelText("Nova tag")).toBeNull()
   })
 

@@ -682,7 +682,6 @@ export interface CadastroDoContato {
   contactId: string
   classificacao: string
   tipo: string | null
-  nicho: string | null
   cidade: string | null
   /** B32-02: sigla do estado, ou nula. */
   uf: string | null
@@ -709,7 +708,7 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
 
   const { data: conversa, error: errConversa } = await supabase
     .from("conversations")
-    .select("contact_id, contact:contacts(created_at, classificacao, tipo, nicho, cidade, uf, icp, atendente:profiles!contacts_atendente_id_fkey(name))")
+    .select("contact_id, contact:contacts(created_at, classificacao, tipo, cidade, uf, icp, atendente:profiles!contacts_atendente_id_fkey(name))")
     .eq("id", conversaId)
     .single()
 
@@ -721,7 +720,6 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
       created_at: string
       classificacao: string | null
       tipo: string | null
-      nicho: string | null
       cidade: string | null
       uf: string | null
       icp: string | null
@@ -748,7 +746,6 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
     contactId: contact_id,
     classificacao: contact.classificacao ?? "sem_historico",
     tipo: contact.tipo,
-    nicho: contact.nicho,
     cidade: contact.cidade,
     uf: contact.uf,
     icp: contact.icp,

@@ -22,7 +22,7 @@ import { normalizarWhatsapp, TELEFONE_INVALIDO } from "@/lib/telefone"
 import { esquemaCompra, type CompraEntrada, type FormaPagamento, type OrigemCompra } from "@/lib/compras"
 import { normalizarUf, UF_INVALIDA } from "@/lib/uf"
 
-const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, nicho, cidade, uf, created_at, profiles!contacts_atendente_id_fkey(name)"
+const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, cidade, uf, created_at, profiles!contacts_atendente_id_fkey(name)"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapContato(c: any): Contato {
@@ -32,7 +32,6 @@ function mapContato(c: any): Contato {
     telefone: c.phone_number,
     classificacao: (c.classificacao ?? "sem_historico") as ClassificacaoContato,
     tipo: (c.tipo ?? null) as TipoContato | null,
-    nicho: c.nicho ?? null,
     cidade: c.cidade ?? null,
     uf: c.uf ?? null,
     atendente: c.profiles?.name ?? null,
@@ -72,7 +71,6 @@ export async function criarContato(dados: {
   nome: string
   telefone: string
   tipo?: string | null
-  nicho?: string | null
   cidade?: string | null
   uf?: string | null
 }): Promise<{ erro?: string; id?: string; restaurado?: boolean }> {
@@ -126,7 +124,6 @@ export async function criarContato(dados: {
       phone_number: telefone,
       name: nome,
       tipo: dados.tipo ?? null,
-      nicho: dados.nicho ?? null,
       cidade: dados.cidade ?? null,
       uf,
     })
@@ -166,7 +163,7 @@ const ETAPA_ENTRADA_LABEL: Record<string, string> = {
 }
 
 
-const PERFIL_SELECT = "id, name, phone_number, tipo, nicho, cidade, uf, icp, observacoes, created_at, atendente_id, photo_path"
+const PERFIL_SELECT = "id, name, phone_number, tipo, cidade, uf, icp, observacoes, created_at, atendente_id, photo_path"
 
 function formatarDataEvento(iso: string): string {
   const d = new Date(iso)
@@ -373,7 +370,6 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
     fotoUrl,
     classificacao: calcularClassificacao(rawCards),
     tipo: (c.tipo ?? null) as TipoContato | null,
-    nicho: c.nicho ?? null,
     cidade: c.cidade ?? null,
     uf: c.uf ?? null,
     atendente: null,
@@ -411,7 +407,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
 
 export async function atualizarDadosContato(
   id: string,
-  dados: { nome: string; tipo?: string | null; nicho?: string | null; cidade?: string | null; uf?: string | null; icp?: string | null }
+  dados: { nome: string; tipo?: string | null; cidade?: string | null; uf?: string | null; icp?: string | null }
 ): Promise<{ erro?: string }> {
   const supabase = await createClient()
 
@@ -436,9 +432,9 @@ export async function atualizarDadosContato(
   if (uf === undefined) return { erro: UF_INVALIDA }
 
   // B11-06: o antes, para o gatilho "dado do contato alterado" só disparar no que mudou
-  const { data: antes } = await supabase.from("contacts").select("workspace_id, tipo, nicho, cidade").eq("id", id).maybeSingle()
+  const { data: antes } = await supabase.from("contacts").select("workspace_id, tipo, cidade").eq("id", id).maybeSingle()
 
-  const depois = { tipo: dados.tipo ?? null, nicho: dados.nicho ?? null, cidade: dados.cidade ?? null }
+  const depois = { tipo: dados.tipo ?? null, cidade: dados.cidade ?? null }
   const { error } = await supabase
     .from("contacts")
     .update({ name: nome, ...depois, uf, icp: dados.icp ?? null })
@@ -554,9 +550,9 @@ export async function filtrarContatos(
   if (!filtro.success || !rapidos.success) return { erro: "Filtro inválido." }
 
   const ordem: OrdemDaLista = opcoes.ordem === "nome" || opcoes.ordem === "classificacao" ? opcoes.ordem : "recente"
-  // B37-03: filtro salvo pode citar etiqueta, nicho ou atendente que não existe mais.
+  // B37-03: filtro salvo pode citar etiqueta ou atendente que não existe mais.
   const citaValorDaEmpresa = (filtro.data as Filtro).grupos.some((g) =>
-    g.condicoes.some((c) => c.campo === "etiqueta" || c.campo === "nicho" || c.campo === "atendente")
+    g.condicoes.some((c) => c.campo === "etiqueta" || c.campo === "atendente")
   )
   const daEmpresa = citaValorDaEmpresa
     ? await valoresDoFiltro().then((v) => ({ ...v, atendentes: v.atendentes.map((a) => a.id) }))
@@ -579,29 +575,21 @@ export async function filtrarContatos(
   }
 }
 
-/** B37-01: valores dos campos de lista que vêm da empresa (nicho e atendente). */
+/** B37-01: valores dos campos de lista que vêm da empresa (atendente). */
 export async function valoresDoFiltro(): Promise<{
-  nichos: string[]
   atendentes: Array<{ id: string; nome: string }>
   /** B37-02: etiquetas usadas nos contatos da empresa. */
   etiquetas: string[]
 }> {
   const { supabase, perfil } = await sessaoAtual()
-  if (!perfil) return { nichos: [], atendentes: [], etiquetas: [] }
-  const [{ data: nichos }, atendentes, { data: etiquetas }] = await Promise.all([
-    supabase
-      .from("contacts")
-      .select("nicho")
-      .eq("workspace_id", perfil.workspace_id)
-      .is("excluido_em", null)
-      .not("nicho", "is", null),
+  if (!perfil) return { atendentes: [], etiquetas: [] }
+  const [atendentes, { data: etiquetas }] = await Promise.all([
     listarAtendentesAtivos(),
     supabase.from("contact_tags").select("tag").eq("workspace_id", perfil.workspace_id),
   ])
   const unicos = (valores: string[]) =>
     Array.from(new Set(valores.map((v) => v.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"))
   return {
-    nichos: unicos((nichos ?? []).map((n) => n.nicho as string)),
     atendentes,
     etiquetas: unicos((etiquetas ?? []).map((t) => t.tag)),
   }

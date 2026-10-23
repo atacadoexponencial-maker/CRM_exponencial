@@ -176,13 +176,12 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
   const [erroTag, setErroTag] = useState<string | null>(null)
 
   /** Grava um campo do cadastro mandando os outros como estão (a action regrava todos). */
-  async function salvarCampo(campo: "tipo" | "nicho" | "cidade" | "uf" | "icp", novo: string | null): Promise<boolean> {
+  async function salvarCampo(campo: "tipo" | "cidade" | "uf" | "icp", novo: string | null): Promise<boolean> {
     if (!cadastro) return false
     const proximo = { ...cadastro, [campo]: novo }
     const r = await atualizarDadosContato(cadastro.contactId, {
       nome: nomeLocal ?? conversa.contato.telefone,
       tipo: proximo.tipo,
-      nicho: proximo.nicho,
       cidade: proximo.cidade,
       uf: proximo.uf,
       icp: proximo.icp,
@@ -384,7 +383,6 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
                   podeEditar={podeEditar}
                   onSalvar={(novo) => salvarCampo("tipo", novo)}
                 />
-                <DadoEditavel rotulo="Nicho" valor={cadastro.nicho} podeEditar={podeEditar} onSalvar={(novo) => salvarCampo("nicho", novo)} />
                 <DadoEditavel rotulo="Cidade" valor={cadastro.cidade} podeEditar={podeEditar} onSalvar={(novo) => salvarCampo("cidade", novo)} />
                 <DadoEditavel
                   rotulo="UF"
