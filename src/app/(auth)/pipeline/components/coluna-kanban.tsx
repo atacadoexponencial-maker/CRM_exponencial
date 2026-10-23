@@ -5,15 +5,16 @@ import { AlertTriangle } from "lucide-react"
 import { CardLeadItem } from "./card-lead"
 import { cn } from "@/lib/utils"
 import { resumoDaColuna } from "@/lib/card-parado"
-import type { CardLead, CardCliente, CorColuna } from "../mock-pipeline"
+import { ehCorPronta, ehCorPropria, estiloDaCorPropria } from "@/lib/funis"
+import type { CardLead, CardCliente, CardDoFunil } from "../mock-pipeline"
 
-type CardQualquer = CardLead | CardCliente
+type CardQualquer = CardLead | CardCliente | CardDoFunil
 
 const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })
 
 // B36-05: a cor da etapa (B15-02) vira o traço embaixo do título da coluna, como no quadro
 // Caderno. Classes inteiras: o Tailwind só gera o que encontra escrito.
-const TRACO_COR: Record<CorColuna, { traco: string; titulo: string }> = {
+const TRACO_COR: Record<"verde" | "amarelo" | "cinza" | "laranja" | "vermelho", { traco: string; titulo: string }> = {
   verde: { traco: "border-b-sucesso", titulo: "text-sucesso" },
   amarelo: { traco: "border-b-aviso", titulo: "text-aviso" },
   cinza: { traco: "border-b-muted-foreground/50", titulo: "text-muted-foreground" },
@@ -26,7 +27,8 @@ interface ColunaKanbanProps {
   etapaId: string
   cards: CardQualquer[]
   alertaVisual?: boolean
-  cor?: CorColuna
+  /** Cor pronta da paleta ou, nos funis da empresa (B41-01), cor própria "#rrggbb". */
+  cor?: string | null
   /** A etapa final de sucesso (Ganho) leva o traço grafite. */
   destaque?: boolean
   mensagemVazia?: string
@@ -36,7 +38,10 @@ interface ColunaKanbanProps {
 
 export function ColunaKanban({ titulo, etapaId, cards, alertaVisual, cor, destaque, mensagemVazia = "Nenhum lead nesta etapa", onCardClick, onCardDrop }: ColunaKanbanProps) {
   const [isDragOver, setIsDragOver] = useState(false)
-  const estilo = alertaVisual ? TRACO_COR.vermelho : cor ? TRACO_COR[cor] : null
+  const estilo = alertaVisual ? TRACO_COR.vermelho : cor && ehCorPronta(cor) ? TRACO_COR[cor] : null
+  // B41-01: cor própria pinta o título da coluna; o texto fica preto ou branco, o que
+  // ler melhor sobre a cor (CA-B41-42).
+  const propria = !alertaVisual && cor && ehCorPropria(cor) ? estiloDaCorPropria(cor) : null
   const { quantidade, soma } = resumoDaColuna(cards)
 
   return (
@@ -60,9 +65,11 @@ export function ColunaKanban({ titulo, etapaId, cards, alertaVisual, cor, destaq
       )}
     >
       <header
+        data-cor-propria={propria ? propria.fundo : undefined}
+        style={propria ? { backgroundColor: propria.fundo, color: propria.texto, borderBottomColor: propria.fundo } : undefined}
         className={cn(
           "flex flex-col gap-0.5 border-b-2 px-0.5 pb-2.5 pt-1",
-          estilo ? estilo.traco : destaque ? "border-b-primary" : "border-b-border"
+          propria ? "rounded-t-md px-2" : estilo ? estilo.traco : destaque ? "border-b-primary" : "border-b-border"
         )}
       >
         <span className="flex items-center justify-between gap-2">
@@ -70,9 +77,9 @@ export function ColunaKanban({ titulo, etapaId, cards, alertaVisual, cor, destaq
             {alertaVisual && <AlertTriangle className="size-3.5 shrink-0" />}
             {titulo}
           </span>
-          <span className="numero text-xs text-muted-foreground" data-quantidade>{quantidade}</span>
+          <span className={cn("numero text-xs", !propria && "text-muted-foreground")} data-quantidade>{quantidade}</span>
         </span>
-        <span className="numero text-xs text-muted-foreground" data-soma={soma}>{soma > 0 ? moeda(soma) : "—"}</span>
+        <span className={cn("numero text-xs", !propria && "text-muted-foreground")} data-soma={soma}>{soma > 0 ? moeda(soma) : "—"}</span>
       </header>
 
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto py-3" style={{ maxHeight: "calc(100vh - 210px)" }}>

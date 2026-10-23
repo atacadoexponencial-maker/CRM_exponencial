@@ -14,9 +14,11 @@ interface FunilRecompraProps {
   cards: CardCliente[]
   papel: string
   atendentes: { id: string; nome: string }[]
+  /** B41-01: funis da empresa, para as abas do cabeçalho. */
+  funis?: Array<{ id: string; nome: string }>
 }
 
-export function FunilRecompra({ cards, papel, atendentes }: FunilRecompraProps) {
+export function FunilRecompra({ cards, papel, atendentes, funis = [] }: FunilRecompraProps) {
   const router = useRouter()
   const [busca, setBusca] = useState("")
   const [atendenteFiltro, setAtendenteFiltro] = useState<string | null>(null)
@@ -49,7 +51,7 @@ export function FunilRecompra({ cards, papel, atendentes }: FunilRecompraProps) 
     <div className="flex flex-col h-full overflow-hidden">
       <PainelCard key={cardSelecionado?.id ?? "fechado"} card={cardSelecionado} funil="recompra" onFechar={() => setCardSelecionado(null)} onMover={() => router.refresh()} papel={papel} atendentes={atendentes} />
       {/* Cabeçalho */}
-      <CabecalhoDoPipeline atual="recompra" quantidade={cardsFiltrados.length}>
+      <CabecalhoDoPipeline atual="recompra" quantidade={cardsFiltrados.length} funis={funis} papel={papel}>
           {/* Busca */}
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />

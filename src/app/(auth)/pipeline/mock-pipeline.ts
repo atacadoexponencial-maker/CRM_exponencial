@@ -201,6 +201,23 @@ export const ETAPAS_ENTRADA: { id: EtapaEntrada; label: string; alerta?: boolean
   { id: "perdido", label: "Perdido", alerta: true },
 ]
 
+/** B41-01: etapa de funil da empresa. `id` é o id da etapa; `cor`, cor pronta ou "#rrggbb". */
+export interface EtapaDoFunil {
+  id: string
+  label: string
+  cor?: string | null
+}
+
+/** B41-01: funil criado pela empresa, além de Entrada e Recompra. */
+export interface FunilDaEmpresa {
+  id: string
+  nome: string
+  etapas: EtapaDoFunil[]
+}
+
+/** B41-01: card de funil da empresa; `etapa` é o id da etapa. */
+export type CardDoFunil = Omit<CardLead, "etapa"> & { etapa: string }
+
 export interface HistoricoEtapa {
   deEtapa: string
   etapa: string

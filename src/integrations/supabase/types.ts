@@ -1225,6 +1225,80 @@ export type Database = {
           },
         ]
       }
+      funil_etapas: {
+        Row: {
+          cor: string | null
+          created_at: string
+          funil_id: string
+          id: string
+          nome: string
+          ordem: number
+          workspace_id: string
+        }
+        Insert: {
+          cor?: string | null
+          created_at?: string
+          funil_id: string
+          id?: string
+          nome: string
+          ordem?: number
+          workspace_id: string
+        }
+        Update: {
+          cor?: string | null
+          created_at?: string
+          funil_id?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funil_etapas_funil_id_fkey"
+            columns: ["funil_id"]
+            isOneToOne: false
+            referencedRelation: "funis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funil_etapas_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funis: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funis_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gateway_events: {
         Row: {
           event_at: string | null
@@ -2140,6 +2214,7 @@ export type Database = {
           trecho: string
         }[]
       }
+      criar_funil: { Args: { p_etapas: Json; p_nome: string }; Returns: string }
       filtrar_contatos: {
         Args: {
           p_busca?: string

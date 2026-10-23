@@ -27,6 +27,7 @@ import {
   UsersRound,
   X,
   Zap,
+  Columns3,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { COOKIE_MENU_RECOLHIDO, gravarPreferencia } from "@/lib/preferencias-layout"
@@ -96,6 +97,7 @@ function montarSecoes(atrasados: number, pedidosNovos: number): SecaoNav[] {
     {
       titulo: "Configurações",
       itens: [
+        { href: "/configuracoes/funis", label: "Funis", icone: Columns3, papeis: ["admin", "gerente"] },
         { href: "/configuracoes/mensagens-rapidas", label: "Mensagens Rápidas", icone: MessageSquareText, papeis: ["admin"] },
         { href: "/configuracoes/etiquetas", label: "Etiquetas", icone: Tags, papeis: ["admin"] },
         { href: "/configuracoes/templates", label: "Templates", icone: FileBadge, papeis: ["admin"] },

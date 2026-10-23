@@ -9,7 +9,8 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import { buscarEGuardarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
 import { tirarDaLixeira } from "@/lib/lixeira"
 import { normalizarWhatsapp, TELEFONE_INVALIDO } from "@/lib/telefone"
-import { type CardLead, type EtapaEntrada, type CardCliente, type EtapaRecompra, type HistoricoEtapa, type NotaInterna, ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "./mock-pipeline"
+import { type CardLead, type EtapaEntrada, type CardCliente, type EtapaRecompra, type HistoricoEtapa, type NotaInterna, type FunilDaEmpresa, type CardDoFunil, ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "./mock-pipeline"
+import { escaparLike } from "@/lib/escapar-like"
 import { atendenteDoContato, registrarMudancasDeCarteira } from "@/lib/carteira"
 import { buscarConfigAlertas } from "@/app/(auth)/alertas/actions"
 import { limiteDeParado } from "@/lib/card-parado"
@@ -418,9 +419,19 @@ export async function buscarDadosPainel(cardId: string): Promise<{ historico: Hi
       .order("created_at", { ascending: true }),
   ])
 
+  // B41-01: no funil da empresa, a etapa é o id dela; o nome vem de funil_etapas.
+  const idsDeEtapasNovas = [...new Set((historicoResult.data ?? []).flatMap((row) => [row.de_etapa, row.para_etapa]))]
+    .filter((e): e is string => !!e && !ROTULO_DA_ETAPA[e] && UUID.test(e))
+  const nomesDasEtapasNovas: Record<string, string> = {}
+  if (idsDeEtapasNovas.length > 0) {
+    const { data: etapasNovas } = await supabase.from("funil_etapas").select("id, nome").in("id", idsDeEtapasNovas)
+    for (const e of etapasNovas ?? []) nomesDasEtapasNovas[e.id] = e.nome
+  }
+  const rotulo = (etapa: string | null | undefined) => (etapa && nomesDasEtapasNovas[etapa]) || rotuloDaEtapa(etapa)
+
   const historico: HistoricoEtapa[] = (historicoResult.data ?? []).map((row) => ({
-    deEtapa: rotuloDaEtapa(row.de_etapa),
-    etapa: rotuloDaEtapa(row.para_etapa),
+    deEtapa: rotulo(row.de_etapa),
+    etapa: rotulo(row.para_etapa),
     data: new Date(row.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }),
     responsavel: (row.alterado_por as unknown as { name: string } | null)?.name,
   }))
@@ -459,7 +470,10 @@ function cidadeDoContato(contato: { cidade?: string | null; uf?: string | null }
   return partes.length > 0 ? partes.join(" · ") : null
 }
 
-export async function listarCardsEntrada(): Promise<CardLead[]> {
+type CardBase = Omit<CardLead, "etapa"> & { etapa: string; limiteParadoDias: number | null }
+
+/** Os cards de um funil, como o quadro mostra. `funil`: "entrada", "recompra" ou o id do funil da empresa. */
+async function lerCardsDoFunil(funil: string): Promise<CardBase[]> {
   const { supabase } = await sessaoAtual()
 
   const { data, error } = await supabase
@@ -476,11 +490,11 @@ export async function listarCardsEntrada(): Promise<CardLead[]> {
         label:labels!label_id (id, name, color)
       )
     `)
-    .eq("funil", "entrada")
+    .eq("funil", funil)
     .order("etapa_changed_at", { ascending: false })
     .limit(LIMITE_CARDS)
 
-  if (error) throw new Error("Erro ao carregar cards do pipeline")
+  if (error) throw new Error(funil === "recompra" ? "Erro ao carregar cards do funil de recompra" : "Erro ao carregar cards do pipeline")
 
   const contactIds = (data ?? []).map((row) => row.contact_id).filter(Boolean) as string[]
   const conversasPorContato: Record<string, string> = {}
@@ -500,7 +514,7 @@ export async function listarCardsEntrada(): Promise<CardLead[]> {
   return (data ?? []).map((row) => ({
     id: row.id,
     contactId: row.contact_id,
-    etapa: row.etapa as EtapaEntrada,
+    etapa: row.etapa,
     tempoNaEtapa: calcularTempoNaEtapa(row.etapa_changed_at),
     dataEntradaEtapa: new Date(row.etapa_changed_at).toLocaleDateString("pt-BR"),
     tempoNoFunil: calcularTempoNaEtapa(row.created_at),
@@ -516,68 +530,130 @@ export async function listarCardsEntrada(): Promise<CardLead[]> {
     cidade: cidadeDoContato(row.contato as unknown as { cidade: string | null; uf: string | null } | null),
     totalComprado: row.contact_id ? (totalPorContato[row.contact_id] ?? 0) : 0,
     etapaDesde: row.etapa_changed_at,
-    limiteParadoDias: limiteDeParado("entrada", row.etapa, config),
+    limiteParadoDias: limiteDeParado(funil, row.etapa, config),
   }))
 }
 
+export async function listarCardsEntrada(): Promise<CardLead[]> {
+  return (await lerCardsDoFunil("entrada")).map((c) => ({ ...c, etapa: c.etapa as EtapaEntrada }))
+}
+
 export async function listarCardsRecompra(): Promise<CardCliente[]> {
+  const { user } = await sessaoAtual()
+  if (!user) return []
+  return (await lerCardsDoFunil("recompra")).map((c) => ({ ...c, etapa: c.etapa as EtapaRecompra }))
+}
+
+// ---------------------------------------------------------------------------
+// B41-01: funis da empresa, além de Entrada e Recompra.
+// ---------------------------------------------------------------------------
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const JA_NESTE_FUNIL = "Este contato já está neste funil."
+
+/** Funis da empresa com as etapas na ordem, por ordem de criação. A RLS limita à empresa. */
+export async function listarFunisDaEmpresa(): Promise<FunilDaEmpresa[]> {
   const { supabase, user } = await sessaoAtual()
   if (!user) return []
+  const { data } = await supabase
+    .from("funis")
+    .select("id, nome, created_at, funil_etapas (id, nome, cor, ordem)")
+    .order("created_at")
+  return (data ?? []).map((f) => ({
+    id: f.id,
+    nome: f.nome,
+    etapas: [...(f.funil_etapas ?? [])].sort((a, b) => a.ordem - b.ordem).map((e) => ({ id: e.id, label: e.nome, cor: e.cor })),
+  }))
+}
+
+export async function listarCardsDoFunil(funilId: string): Promise<CardDoFunil[]> {
+  if (!UUID.test(funilId)) return []
+  return lerCardsDoFunil(funilId)
+}
+
+/** Contatos da empresa, fora da lixeira, para "Adicionar contato". Só Admin e Gerente. */
+export async function buscarContatosParaFunil(termo: string): Promise<Array<{ id: string; nome: string; telefone: string }>> {
+  const { supabase, perfil } = await sessaoAtual()
+  if (!perfil || !["admin", "gerente"].includes(perfil.role)) return []
+
+  let query = supabase
+    .from("contacts")
+    .select("id, name, phone_number")
+    .eq("workspace_id", perfil.workspace_id)
+    .is("excluido_em", null)
+    .order("name")
+    .limit(10)
+  // Vírgula, parênteses e aspas quebrariam o filtro "or" do PostgREST.
+  const limpo = termo.trim().replace(/[,()"]/g, " ").trim()
+  if (limpo) {
+    const like = escaparLike(limpo)
+    const digitos = limpo.replace(/\D/g, "")
+    query = digitos
+      ? query.or(`name.ilike.%${like}%,phone_number.ilike.%${digitos}%`)
+      : query.ilike("name", `%${like}%`)
+  }
+  const { data } = await query
+  return (data ?? []).map((c) => ({ id: c.id, nome: c.name || c.phone_number, telefone: c.phone_number }))
+}
+
+/** Cria o card do contato na primeira etapa do funil, sem atendente (SUP-B41-05). */
+export async function adicionarContatoAoFunil(funilId: string, contactId: string): Promise<{ erro?: string }> {
+  const { supabase, perfil } = await sessaoAtual()
+  if (!perfil) throw new Error("Usuário não autenticado")
+  if (!["admin", "gerente"].includes(perfil.role)) return { erro: "Sem permissão" }
+  if (!UUID.test(funilId)) return { erro: "Funil não encontrado" }
+
+  const { data: funil } = await supabase
+    .from("funis")
+    .select("id, funil_etapas (id, ordem)")
+    .eq("id", funilId)
+    .eq("workspace_id", perfil.workspace_id)
+    .maybeSingle()
+  if (!funil) return { erro: "Funil não encontrado" }
+  const primeira = [...(funil.funil_etapas ?? [])].sort((a, b) => a.ordem - b.ordem)[0]
+  if (!primeira) return { erro: "O funil não tem etapas." }
+
+  const { data: contato } = await supabase
+    .from("contacts")
+    .select("id")
+    .eq("id", contactId)
+    .eq("workspace_id", perfil.workspace_id)
+    .is("excluido_em", null)
+    .maybeSingle()
+  if (!contato) return { erro: "Contato não encontrado" }
+
+  const { data: jaTem } = await supabase
+    .from("pipeline_cards")
+    .select("id")
+    .eq("workspace_id", perfil.workspace_id)
+    .eq("contact_id", contactId)
+    .eq("funil", funilId)
+    .limit(1)
+    .maybeSingle()
+  if (jaTem) return { erro: JA_NESTE_FUNIL }
+
+  const { error } = await supabase
+    .from("pipeline_cards")
+    .insert({ workspace_id: perfil.workspace_id, contact_id: contactId, funil: funilId, etapa: primeira.id })
+  if (error?.code === "23505") return { erro: JA_NESTE_FUNIL }
+  if (error) return { erro: "Não foi possível adicionar o contato. Tente de novo." }
+  return {}
+}
+
+/** "Tirar do funil": apaga só este card, de funil da empresa. Entrada e Recompra não passam por aqui. */
+export async function removerCardDoFunil(cardId: string): Promise<{ erro?: string }> {
+  const { supabase, perfil } = await sessaoAtual()
+  if (!perfil) throw new Error("Usuário não autenticado")
+  if (!["admin", "gerente"].includes(perfil.role)) return { erro: "Sem permissão" }
 
   const { data, error } = await supabase
     .from("pipeline_cards")
-    .select(`
-      id,
-      etapa,
-      etapa_changed_at,
-      created_at,
-      contact_id,
-      atendente:profiles!atendente_id (name),
-      contato:contacts!contact_id (name, phone_number, cidade, uf),
-      pipeline_card_labels (
-        label:labels!label_id (id, name, color)
-      )
-    `)
-    .eq("funil", "recompra")
-    .order("etapa_changed_at", { ascending: false })
-    .limit(LIMITE_CARDS)
-
-  if (error) throw new Error("Erro ao carregar cards do funil de recompra")
-
-  const contactIds = (data ?? []).map((row) => row.contact_id).filter(Boolean) as string[]
-  const conversasPorContato: Record<string, string> = {}
-
-  if (contactIds.length > 0) {
-    const { data: conversas } = await supabase
-      .from("conversations")
-      .select("id, contact_id")
-      .in("contact_id", contactIds)
-
-    for (const c of conversas ?? []) {
-      if (c.contact_id) conversasPorContato[c.contact_id] = c.id
-    }
-  }
-  const { config, totalPorContato } = await extrasDosCards(contactIds)
-
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    contactId: row.contact_id,
-    etapa: row.etapa as EtapaRecompra,
-    tempoNaEtapa: calcularTempoNaEtapa(row.etapa_changed_at),
-    dataEntradaEtapa: new Date(row.etapa_changed_at).toLocaleDateString("pt-BR"),
-    tempoNoFunil: calcularTempoNaEtapa(row.created_at),
-    atendente: (row.atendente as unknown as { name: string } | null)?.name ?? null,
-    contato: {
-      nome: (row.contato as unknown as { name: string | null; phone_number: string }).name ?? "Sem nome",
-      telefone: (row.contato as unknown as { name: string | null; phone_number: string }).phone_number,
-    },
-    etiquetas: (row.pipeline_card_labels as unknown as Array<{ label: { id: string; name: string; color: string } }>).map(
-      ({ label }) => ({ id: label.id, nome: label.name, cor: label.color })
-    ),
-    conversaId: row.contact_id ? (conversasPorContato[row.contact_id] ?? null) : null,
-    cidade: cidadeDoContato(row.contato as unknown as { cidade: string | null; uf: string | null } | null),
-    totalComprado: row.contact_id ? (totalPorContato[row.contact_id] ?? 0) : 0,
-    etapaDesde: row.etapa_changed_at,
-    limiteParadoDias: limiteDeParado("recompra", row.etapa, config),
-  }))
+    .delete()
+    .eq("id", cardId)
+    .not("funil", "in", "(entrada,recompra)")
+    .select("id")
+    .maybeSingle()
+  if (error) return { erro: "Não foi possível tirar o card do funil. Tente de novo." }
+  if (!data) return { erro: "Card não encontrado" }
+  return {}
 }

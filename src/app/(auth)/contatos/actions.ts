@@ -284,7 +284,20 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
     })
   }
 
+  // B41-01: card de funil da empresa guarda o id do funil e o id da etapa.
+  const idsDeFunisNovos = [...new Set(rawCards.map((card) => card.funil as string).filter((f) => f !== "entrada" && f !== "recompra"))]
+  const nomesDosFunisNovos: Record<string, string> = {}
+  const nomesDasEtapasNovas: Record<string, string> = {}
+  if (idsDeFunisNovos.length > 0) {
+    const { data: funisNovos } = await supabase.from("funis").select("id, nome, funil_etapas (id, nome)").in("id", idsDeFunisNovos)
+    for (const f of funisNovos ?? []) {
+      nomesDosFunisNovos[f.id] = f.nome
+      for (const e of f.funil_etapas ?? []) nomesDasEtapasNovas[e.id] = e.nome
+    }
+  }
+
   for (const card of rawCards) {
+    const funilNovo = card.funil !== "entrada" && card.funil !== "recompra"
     const funilLabel = card.funil === "recompra" ? "Recompra" : "Entrada"
     // QA M3 (06/10): a etapa em que o card nasceu é a "de" da primeira movimentação;
     // sem movimentação, é a atual. Antes mostrava sempre a atual ("criado em Perdido").
@@ -292,12 +305,14 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
       .filter((h) => h.card_id === card.id)
       .sort((a, b) => a.created_at.localeCompare(b.created_at))[0]
     const etapaInicial = primeiraMovimentacao?.de_etapa ?? card.etapa
-    const etapaLabel = ETAPA_LABEL_ALL[etapaInicial] ?? etapaInicial
+    const etapaLabel = ETAPA_LABEL_ALL[etapaInicial] ?? nomesDasEtapasNovas[etapaInicial] ?? etapaInicial
     eventos.push({
       id: card.id,
       created_at: card.created_at,
       tipo: "card_criado",
-      descricao: `Card criado no Funil de ${funilLabel} — etapa: ${etapaLabel}`,
+      descricao: funilNovo
+        ? `Card criado no funil ${nomesDosFunisNovos[card.funil] ?? "apagado"} — etapa: ${etapaLabel}`
+        : `Card criado no Funil de ${funilLabel} — etapa: ${etapaLabel}`,
       responsavel: card.profiles?.name ?? "",
     })
   }

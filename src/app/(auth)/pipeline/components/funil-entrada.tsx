@@ -17,9 +17,11 @@ interface FunilEntradaProps {
   cards: CardLead[]
   papel: string
   atendentes: { id: string; nome: string }[]
+  /** B41-01: funis da empresa, para as abas do cabeçalho. */
+  funis?: Array<{ id: string; nome: string }>
 }
 
-export function FunilEntrada({ cards, papel, atendentes }: FunilEntradaProps) {
+export function FunilEntrada({ cards, papel, atendentes, funis = [] }: FunilEntradaProps) {
   const router = useRouter()
   const [busca, setBusca] = useState("")
   const [atendenteFiltro, setAtendenteFiltro] = useState<string | null>(null)
@@ -75,7 +77,7 @@ export function FunilEntrada({ cards, papel, atendentes }: FunilEntradaProps) {
         </div>
       )}
       {/* Cabeçalho (B36-05). QA M23 (06/10): no celular, "Atendente" e "Novo lead" quebram a linha. */}
-      <CabecalhoDoPipeline atual="entrada" quantidade={cardsFiltrados.length}>
+      <CabecalhoDoPipeline atual="entrada" quantidade={cardsFiltrados.length} funis={funis} papel={papel}>
           {/* Busca */}
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />

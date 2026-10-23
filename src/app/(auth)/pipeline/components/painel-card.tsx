@@ -4,8 +4,8 @@ import { useState, useEffect } from "react"
 import { X, MessageSquare, ChevronDown, Phone, Clock, Tag, FileText, History, Zap, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA, type CardLead, type CardCliente, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
-import { buscarDadosPainel, moverCard, atribuirAtendente, adicionarNota } from "../actions"
+import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA, type CardLead, type CardCliente, type CardDoFunil, type EtapaDoFunil, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
+import { buscarDadosPainel, moverCard, atribuirAtendente, adicionarNota, removerCardDoFunil } from "../actions"
 import { IniciarSequenciaDialog } from "@/components/shared/iniciar-sequencia-dialog"
 import { Button } from "@/components/ui/button"
 import { DialogoExcluirContato } from "../../contatos/components/dialogo-excluir-contato"
@@ -14,15 +14,17 @@ import { TagsDoContato } from "./tags-do-contato"
 import { formatarNumero } from "@/lib/whatsapp"
 
 interface PainelCardProps {
-  card: CardLead | CardCliente | null
+  card: CardLead | CardCliente | CardDoFunil | null
   onFechar: () => void
   funil?: "entrada" | "recompra"
   onMover?: () => void
   papel?: string
   atendentes?: { id: string; nome: string }[]
+  /** B41-01: no funil da empresa, o nome e as etapas dele. */
+  funilDaEmpresa?: { nome: string; etapas: EtapaDoFunil[] }
 }
 
-export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, atendentes }: PainelCardProps) {
+export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, atendentes, funilDaEmpresa }: PainelCardProps) {
   const [novaNota, setNovaNota] = useState("")
   const [etapaDropdownAberto, setEtapaDropdownAberto] = useState(false)
   const [atribuirDropdownAberto, setAtribuirDropdownAberto] = useState(false)
@@ -35,6 +37,8 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
   const [preparandoExclusao, setPreparandoExclusao] = useState(false)
   const [excluindo, setExcluindo] = useState(false)
   const [erroExclusao, setErroExclusao] = useState<string | null>(null)
+  const [tirandoDoFunil, setTirandoDoFunil] = useState(false)
+  const [confirmarTirar, setConfirmarTirar] = useState(false)
   const [painelData, setPainelData] = useState<{ historico: HistoricoEtapa[]; notas: NotaInterna[] }>({ historico: [], notas: [] })
   // Montado com key={card.id} nos funis — cada card abre uma instância nova,
   // então o estado começa como "carregando" e não precisa de reset em effect.
@@ -53,9 +57,9 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
   if (!card) return null
 
   const semAtendente = card.atendente === null
-  const etapas = funil === "recompra" ? ETAPAS_RECOMPRA : ETAPAS_ENTRADA
+  const etapas: Array<{ id: string; label: string }> = funilDaEmpresa ? funilDaEmpresa.etapas : funil === "recompra" ? ETAPAS_RECOMPRA : ETAPAS_ENTRADA
   const etapaLabel = etapas.find((e) => e.id === card.etapa)?.label ?? card.etapa
-  const funilLabel = funil === "recompra" ? "Recompra" : "Entrada"
+  const funilLabel = funilDaEmpresa ? funilDaEmpresa.nome : funil === "recompra" ? "Recompra" : "Entrada"
 
   return (
     <>
@@ -283,6 +287,44 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
             </button>
           </div>
 
+          {funilDaEmpresa ? (
+            papel !== "atendente" && (
+              <div className="px-4 py-3 border-b border-border space-y-2">
+                {!confirmarTirar ? (
+                  <Button variant="destructive" size="sm" onClick={() => { setErroExclusao(null); setConfirmarTirar(true) }}>
+                    <Trash2 className="size-3.5" aria-hidden />
+                    Tirar do funil
+                  </Button>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">O card sai só deste funil. O contato e os outros cards dele continuam.</p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        disabled={tirandoDoFunil}
+                        onClick={() => {
+                          setTirandoDoFunil(true)
+                          removerCardDoFunil(card.id)
+                            .then((r) => {
+                              if (r.erro) { setErroExclusao(r.erro); return }
+                              onFechar()
+                              onMover?.()
+                            })
+                            .catch(() => setErroExclusao("Não foi possível tirar o card do funil. Tente de novo."))
+                            .finally(() => setTirandoDoFunil(false))
+                        }}
+                      >
+                        {tirandoDoFunil ? "Tirando..." : "Confirmar"}
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setConfirmarTirar(false)}>Cancelar</Button>
+                    </div>
+                  </div>
+                )}
+                {erroExclusao && <p className="text-xs text-destructive">{erroExclusao}</p>}
+              </div>
+            )
+          ) : (
           <div className="px-4 py-3 border-b border-border">
             <Button
               variant="destructive"
@@ -307,6 +349,7 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
               <p className="mt-2 text-xs text-destructive">{erroExclusao}</p>
             )}
           </div>
+          )}
 
           {resumoExclusao && (
             <DialogoExcluirContato
