@@ -103,6 +103,7 @@ Não se aplica.
 - **Criar:** `src/app/_landing/landing.tsx` — a página inteira (servidor): cabeçalho, seções, rodapé, textos e prints.
 - **Criar:** `src/app/_landing/conteudo.ts` — textos da landing (título, dores, passos, módulos, perfis, perguntas, dados da empresa, link do WhatsApp), para a página e o teste lerem a mesma fonte.
 - **Criar:** `src/app/_landing/perguntas.tsx` — sanfona (cliente) com `<details>`, uma aberta por vez.
+- **Criar:** `src/app/_landing/revelar.tsx` — entrada suave ao rolar (cliente), pedida por ela no preview de 23/10 junto com faixas escuras, logo maior e textos maiores.
 - **Criar:** `public/landing/caixa-de-entrada.png` — print do chat da [TESTE] com uma conversa aberta, 1440 px, otimizado com `sharp`.
 - **Criar:** `public/landing/funil.png` — print do Pipeline (Entrada) da [TESTE].
 - **Criar:** `public/landing/catalogo.png` — print do Catálogo da [TESTE].
