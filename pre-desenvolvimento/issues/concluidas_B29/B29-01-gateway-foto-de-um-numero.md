@@ -1,4 +1,4 @@
-# B29-01: Gateway responde a foto de perfil de um número
+uais # B29-01: Gateway responde a foto de perfil de um número
 
 **Tipo:** Implementação
 **Página:** Gateway (rota da instância, ao lado de "este número existe?")
@@ -110,9 +110,11 @@ Todos no repositório `whatsapp-gateway`:
 | CRITERIO_SEM_TESTE | CA-B29-03 | Teste no repo whatsapp-gateway, que o auditor não lê; resultado na seção Resultado (mesmo motivo da B25-01) | Marcelle | 20/10/2026 |
 | CRITERIO_SEM_TESTE | CA-B29-04 | Teste no repo whatsapp-gateway, que o auditor não lê; resultado na seção Resultado (mesmo motivo da B25-01) | Marcelle | 20/10/2026 |
 
+As quatro exceções acima foram confirmadas pela Marcelle em 23/10/2026, depois de ver os testes rodarem (8 passando).
+
 ## Resultado
 
-Implementada em 20/10/2026 no `whatsapp-gateway`, commit `e7837e7`. Testes com o código
+Implementada em 20/10/2026 no `whatsapp-gateway`, commit `ecbdebc`. Testes com o código
 do critério no nome em `src/envio/rotas.test.ts` (CA-B29-01 a 04) e o download em
 `src/envio/foto-de-perfil.test.ts`. Suíte do gateway: 62 arquivos, 940 testes passando;
 `npm run build` ok. Rota: `GET /v1/instances/:id/contacts/:phone/photo`.
