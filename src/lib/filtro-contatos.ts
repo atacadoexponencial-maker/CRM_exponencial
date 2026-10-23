@@ -133,6 +133,29 @@ export const CAMPOS_LIGADOS: CampoDoFiltro[] = [
 /** Todos os campos que a tela oferece, na ordem dos assuntos. */
 export const TODOS_OS_CAMPOS: CampoDoFiltro[] = [...CAMPOS_DO_FILTRO, ...CAMPOS_LIGADOS]
 
+// B41-06: um campo por funil da empresa, com o id do funil no id do campo.
+
+/** Funil da empresa para o filtro: o nome e as etapas, na ordem. */
+export type FunilParaFiltro = { id: string; nome: string; etapas: Opcao[] }
+
+const PREFIXO_FUNIL = "funil:"
+const CAMPO_DE_FUNIL = /^funil:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export const ehCampoDeFunil = (id: string) => CAMPO_DE_FUNIL.test(id)
+export const campoDoFunil = (funilId: string) => `${PREFIXO_FUNIL}${funilId}`
+
+/** "Etapa no funil <nome>", com as etapas do funil como opções. */
+export function camposDosFunis(funis: FunilParaFiltro[] = []): CampoDoFiltro[] {
+  return funis.map((f) => ({
+    id: campoDoFunil(f.id),
+    rotulo: `Etapa no funil ${f.nome}`,
+    assunto: "Funil",
+    tipo: "funil",
+    obrigatorio: true,
+    opcoes: f.etapas,
+  }))
+}
+
 /**
  * Colunas de `contacts` que ficam fora do filtro de propósito. Coluna nova no
  * contato precisa entrar no catálogo ou aqui, senão o teste do CA-B37-04 falha.
@@ -183,8 +206,16 @@ const COMPARACOES_DO_TIPO: Record<TipoDeCampo, Comparacao[]> = {
   funil: ["na_etapa", "fora_da_etapa", "no_funil", "fora_do_funil"],
 }
 
-export function campoDoFiltro(id: string): CampoDoFiltro | undefined {
-  return TODOS_OS_CAMPOS.find((c) => c.id === id)
+/**
+ * O campo pelo id. Campo de funil da empresa vem dos `funis`; sem eles, ou com o funil
+ * apagado, é um campo genérico, sem opções fixas: quem confere se o funil e a etapa
+ * existem é `valorSumiu`, com os valores da empresa.
+ */
+export function campoDoFiltro(id: string, funis?: FunilParaFiltro[]): CampoDoFiltro | undefined {
+  const fixo = TODOS_OS_CAMPOS.find((c) => c.id === id)
+  if (fixo || !ehCampoDeFunil(id)) return fixo
+  const doFunil = camposDosFunis(funis).find((c) => c.id === id)
+  return doFunil ?? { id, rotulo: "Etapa num funil apagado", assunto: "Funil", tipo: "funil", obrigatorio: true }
 }
 
 /** Comparações que o campo oferece; campo obrigatório não tem "está vazio". */
@@ -246,14 +277,21 @@ export function condicaoCompleta(condicao: Condicao): boolean {
 /** B37-03: campo interno que nunca vale; o banco o traduz para `false`. */
 export const CAMPO_NUNCA = "nunca"
 
-/** Valores dos campos de lista que vêm da empresa (atendente por id, etiqueta). */
-export type ValoresDaEmpresa = { atendentes: string[]; etiquetas: string[] }
+/** Valores dos campos de lista que vêm da empresa (atendente por id, etiqueta e, na B41-06, os funis). */
+export type ValoresDaEmpresa = { atendentes: string[]; etiquetas: string[]; funis?: FunilParaFiltro[] }
 
 /**
  * B37-03: a condição usa um valor que não existe mais (etiqueta apagada, atendente
  * removido, etapa fora da lista). Sem os valores da empresa, só confere as opções fixas.
  */
 export function valorSumiu(condicao: Condicao, daEmpresa?: ValoresDaEmpresa): boolean {
+  // B41-06: funil da empresa apagado, ou etapa que não é mais dele
+  if (ehCampoDeFunil(condicao.campo) && daEmpresa?.funis) {
+    const funil = daEmpresa.funis.find((f) => campoDoFunil(f.id) === condicao.campo)
+    if (!funil) return true
+    if (!condicao.comparacao || valoresPedidos(condicao.comparacao) === "nenhum") return false
+    return condicao.valores.filter((v) => v.trim()).some((v) => !funil.etapas.some((e) => e.valor === v))
+  }
   const campo = campoDoFiltro(condicao.campo)
   if (!campo || !condicao.comparacao || valoresPedidos(condicao.comparacao) === "nenhum") return false
   const valores = condicao.valores.filter((v) => v.trim())
@@ -308,7 +346,8 @@ export function contarCondicoes(filtro: Filtro): number {
 export const FILTRO_VAZIO: Filtro = { juncao: "e", grupos: [] }
 
 const esquemaCondicao = z.object({
-  campo: z.string().max(40),
+  // B41-06: "funil:<uuid>" tem 42 caracteres
+  campo: z.string().max(60),
   comparacao: z.string().max(20),
   valores: z.array(z.string().max(200)).max(100),
 })

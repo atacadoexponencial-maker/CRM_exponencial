@@ -12,7 +12,7 @@ import { FaixaFiltrosSalvos } from "./faixa-filtros-salvos"
 import { atualizarFiltroSalvo, salvarFiltro, type FiltroSalvo } from "../filtros-salvos"
 import { resumoExclusaoContato, excluirContato, type ResumoExclusao } from "../lixeira/actions"
 import { filtrarContatos, type OrdemDaLista } from "../actions"
-import { contarCondicoes, limparFiltro, FILTRO_VAZIO, type Condicao, type Filtro } from "@/lib/filtro-contatos"
+import { contarCondicoes, limparFiltro, FILTRO_VAZIO, type Condicao, type Filtro, type FunilParaFiltro } from "@/lib/filtro-contatos"
 import {
   type Contato,
   type ClassificacaoContato,
@@ -64,6 +64,8 @@ interface ListaContatosProps {
   atendentes?: Array<{ id: string; nome: string }>
   /** B37-02: etiquetas da empresa, para o filtro. */
   etiquetas?: string[]
+  /** B41-06: funis da empresa, para o filtro. */
+  funis?: FunilParaFiltro[]
   /** B37-03: filtros salvos da empresa, na ordem da faixa. */
   filtrosSalvos?: FiltroSalvo[]
   papel: string
@@ -76,6 +78,7 @@ export function ListaContatos({
   total: totalInicial = contatosIniciais.length,
   atendentes = [],
   etiquetas = [],
+  funis = [],
   filtrosSalvos: filtrosSalvosIniciais = [],
   papel,
   totalLixeira = 0,
@@ -332,6 +335,7 @@ export function ListaContatos({
         filtro={filtro}
         atendentes={atendentes}
         etiquetas={etiquetas}
+        funis={funis}
         onAplicar={aplicarFiltro}
         onLimpar={limparFiltroAplicado}
         podeSalvar={podeGerirSalvos}

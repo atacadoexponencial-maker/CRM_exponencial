@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import {
   TODOS_OS_CAMPOS,
+  camposDosFunis,
+  type FunilParaFiltro,
   campoDoFiltro,
   comparacoesDoCampo,
   condicaoCompleta,
@@ -44,6 +46,8 @@ interface PainelFiltroProps {
   atendentes: Array<{ id: string; nome: string }>
   /** B37-02: etiquetas da empresa. */
   etiquetas: string[]
+  /** B41-06: funis da empresa. */
+  funis?: FunilParaFiltro[]
   onAplicar: (filtro: Filtro) => void
   onLimpar: () => void
   /** B37-03: Admin e Gerente salvam e atualizam filtros (o servidor confere de novo). */
@@ -61,6 +65,7 @@ export function PainelFiltro({
   filtro,
   atendentes,
   etiquetas,
+  funis = [],
   onAplicar,
   onLimpar,
   podeSalvar = false,
@@ -73,7 +78,7 @@ export function PainelFiltro({
   const [nomeNovo, setNomeNovo] = useState<string | null>(null)
   const [erroSalvar, setErroSalvar] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
-  const daEmpresa: ValoresDaEmpresa = { atendentes: atendentes.map((a) => a.id), etiquetas }
+  const daEmpresa: ValoresDaEmpresa = { atendentes: atendentes.map((a) => a.id), etiquetas, funis }
 
   async function enviar(acao: () => Promise<string | null>) {
     setSalvando(true)
@@ -311,14 +316,14 @@ function LinhaCondicao({
   onChange: (condicao: Condicao) => void
   onRemover: () => void
 }) {
-  const campo = campoDoFiltro(condicao.campo)
+  const campo = campoDoFiltro(condicao.campo, daEmpresa.funis)
   const comparacao = condicao.comparacao || null
   // B37-03: em filtro salvo, o valor pode ter deixado de existir (SUP-B37-05).
   const sumiu = valorSumiu(condicao, daEmpresa)
   const incompleta = !!campo && !sumiu && !condicaoCompleta(condicao)
 
   function escolherCampo(id: string) {
-    const novo = campoDoFiltro(id)
+    const novo = campoDoFiltro(id, daEmpresa.funis)
     onChange({ campo: id, comparacao: novo ? comparacoesDoCampo(novo)[0] : "", valores: [] })
   }
 
@@ -341,7 +346,7 @@ function LinhaCondicao({
         </option>
         {ASSUNTOS.map((assunto) => (
           <optgroup key={assunto} label={assunto}>
-            {TODOS_OS_CAMPOS.filter((c) => c.assunto === assunto).map((c) => (
+            {[...TODOS_OS_CAMPOS, ...camposDosFunis(daEmpresa.funis)].filter((c) => c.assunto === assunto).map((c) => (
               <option key={c.id} value={c.id}>
                 {c.rotulo}
               </option>

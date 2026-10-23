@@ -119,6 +119,8 @@ export type PainelDashboard = {
   metricas: MetricasDashboard
   variacoes: VariacoesDashboard
   funilEntrada: EtapaComQuantidade[]
+  /** B41-06: os funis da empresa, com os cards por etapa (o gráfico escolhe qual mostrar). */
+  funisDaEmpresa?: Array<{ id: string; nome: string; etapas: EtapaComQuantidade[] }>
 }
 
 /**
@@ -133,10 +135,29 @@ export async function buscarPainelDashboard(filtro: FiltroDashboard): Promise<Pa
   const range = rangeDoPeriodo(filtro)
   const metricas = calcularMetricas(dados.cards, dados.history, dados.purchases, range)
   const anterior = calcularMetricas(dados.cards, dados.history, dados.purchases, rangeAnterior(range))
+
+  // B41-06: as mesmas leituras de cards (filtro de atendente e RLS valem igual)
+  const { supabase, perfil } = await sessaoAtual()
+  const { data: funis } = perfil
+    ? await supabase
+        .from("funis")
+        .select("id, nome, created_at, funil_etapas (id, nome, ordem)")
+        .eq("workspace_id", perfil.workspace_id)
+        .order("created_at")
+    : { data: [] }
   return {
     metricas,
     variacoes: calcularVariacoes(metricas, anterior),
     funilEntrada: contarCardsPorEtapa(dados.cards, ETAPAS_ENTRADA, "entrada"),
+    funisDaEmpresa: (funis ?? []).map((f) => ({
+      id: f.id,
+      nome: f.nome,
+      etapas: contarCardsPorEtapa(
+        dados.cards,
+        [...(f.funil_etapas ?? [])].sort((a, b) => a.ordem - b.ordem).map((e) => ({ id: e.id, label: e.nome })),
+        f.id
+      ),
+    })),
   }
 }
 

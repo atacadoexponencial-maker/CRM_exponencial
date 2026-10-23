@@ -20,13 +20,42 @@ function TituloDoBloco({ titulo, extra }: { titulo: string; extra?: React.ReactN
   )
 }
 
-export function BlocoFunilEntrada({ etapas }: { etapas: EtapaComQuantidade[] }) {
+/**
+ * B41-06: o gráfico abre no Funil de Entrada e, quando a empresa tem funis próprios,
+ * ganha a escolha do funil. Cada funil mostra os cards por etapa, na ordem dele.
+ */
+export function BlocoFunilEntrada({
+  etapas: etapasDaEntrada,
+  outros = [],
+}: {
+  etapas: EtapaComQuantidade[]
+  outros?: Array<{ id: string; nome: string; etapas: EtapaComQuantidade[] }>
+}) {
+  const [escolhido, setEscolhido] = useState("entrada")
+  const outro = outros.find((f) => f.id === escolhido)
+  const etapas = outro ? outro.etapas : etapasDaEntrada
+  const titulo = outro ? outro.nome : "Funil de Entrada"
   const maior = Math.max(1, ...etapas.map((e) => e.quantidade))
   return (
-    <section aria-label="Funil de Entrada" className="flex flex-col">
+    <section aria-label={titulo} className="flex flex-col">
       <TituloDoBloco
-        titulo="Funil de Entrada"
-        extra={<Link href="/pipeline" className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Abrir pipeline</Link>}
+        titulo={titulo}
+        extra={
+          <span className="flex items-center gap-3">
+            {outros.length > 0 && (
+              <select
+                aria-label="Funil do gráfico"
+                value={escolhido}
+                onChange={(e) => setEscolhido(e.target.value)}
+                className="h-8 rounded-md border border-input bg-card px-2 text-sm"
+              >
+                <option value="entrada">Funil de Entrada</option>
+                {outros.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+              </select>
+            )}
+            <Link href={outro ? `/pipeline/funil/${outro.id}` : "/pipeline"} className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Abrir pipeline</Link>
+          </span>
+        }
       />
       <ul className="flex flex-col gap-2.5">
         {etapas.map((e) => (
@@ -35,7 +64,7 @@ export function BlocoFunilEntrada({ etapas }: { etapas: EtapaComQuantidade[] }) 
             <span className="h-[18px] rounded-[3px] bg-muted" aria-hidden="true">
               <span
                 data-largura={Math.round((e.quantidade / maior) * 100)}
-                className={cn("block h-full rounded-[3px]", e.id === "ganho" ? "bg-primary" : "bg-chart-5")}
+                className={cn("block h-full rounded-[3px]", !outro && e.id === "ganho" ? "bg-primary" : "bg-chart-5")}
                 style={{ width: `${(e.quantidade / maior) * 100}%` }}
               />
             </span>

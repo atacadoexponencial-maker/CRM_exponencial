@@ -10,6 +10,8 @@ import {
   esquemaFiltro,
   esquemaRapidos,
   limparFiltro,
+  ehCampoDeFunil,
+  type FunilParaFiltro,
   FILTRO_VAZIO,
   type Condicao,
   type Filtro,
@@ -564,8 +566,9 @@ export async function filtrarContatos(
 
   const ordem: OrdemDaLista = opcoes.ordem === "nome" || opcoes.ordem === "classificacao" ? opcoes.ordem : "recente"
   // B37-03: filtro salvo pode citar etiqueta ou atendente que não existe mais.
+  // B41-06: e funil ou etapa de funil da empresa que foi apagado.
   const citaValorDaEmpresa = (filtro.data as Filtro).grupos.some((g) =>
-    g.condicoes.some((c) => c.campo === "etiqueta" || c.campo === "atendente")
+    g.condicoes.some((c) => c.campo === "etiqueta" || c.campo === "atendente" || ehCampoDeFunil(c.campo))
   )
   const daEmpresa = citaValorDaEmpresa
     ? await valoresDoFiltro().then((v) => ({ ...v, atendentes: v.atendentes.map((a) => a.id) }))
@@ -593,18 +596,26 @@ export async function valoresDoFiltro(): Promise<{
   atendentes: Array<{ id: string; nome: string }>
   /** B37-02: etiquetas usadas nos contatos da empresa. */
   etiquetas: string[]
+  /** B41-06: funis da empresa, com as etapas na ordem. */
+  funis: FunilParaFiltro[]
 }> {
   const { supabase, perfil } = await sessaoAtual()
-  if (!perfil) return { atendentes: [], etiquetas: [] }
-  const [atendentes, { data: etiquetas }] = await Promise.all([
+  if (!perfil) return { atendentes: [], etiquetas: [], funis: [] }
+  const [atendentes, { data: etiquetas }, { data: funis }] = await Promise.all([
     listarAtendentesAtivos(),
     supabase.from("contact_tags").select("tag").eq("workspace_id", perfil.workspace_id),
+    supabase.from("funis").select("id, nome, created_at, funil_etapas (id, nome, ordem)").eq("workspace_id", perfil.workspace_id).order("created_at"),
   ])
   const unicos = (valores: string[]) =>
     Array.from(new Set(valores.map((v) => v.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"))
   return {
     atendentes,
     etiquetas: unicos((etiquetas ?? []).map((t) => t.tag)),
+    funis: (funis ?? []).map((f) => ({
+      id: f.id,
+      nome: f.nome,
+      etapas: [...(f.funil_etapas ?? [])].sort((a, b) => a.ordem - b.ordem).map((e) => ({ valor: e.id, rotulo: e.nome })),
+    })),
   }
 }
 

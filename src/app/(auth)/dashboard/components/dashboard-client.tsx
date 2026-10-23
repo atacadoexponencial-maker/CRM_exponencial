@@ -104,7 +104,7 @@ export function DashboardClient({ painelInicial, atendentes, papel, cabecalho, p
 
       <div className="flex flex-wrap gap-8">
         <div className="min-w-0 flex-[3_1_420px]">
-          <BlocoFunilEntrada etapas={painel.funilEntrada} />
+          <BlocoFunilEntrada etapas={painel.funilEntrada} outros={painel.funisDaEmpresa} />
         </div>
         <div className="min-w-0 flex-[2_1_300px]">
           <BlocoParaHoje tarefasIniciais={paraHoje} />
