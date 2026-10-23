@@ -138,6 +138,22 @@ export async function listarAlertas(): Promise<{
     }
   }
 
+  // B41-05: prazo da etapa e nomes, nos cards dos funis da empresa
+  const idsDeFunisNovos = [...new Set(rows.map((r) => r.funil).filter((f) => f !== "entrada" && f !== "recompra"))]
+  const nomeDoFunil: Record<string, string> = {}
+  const etapaNova: Record<string, { nome: string; prazo: number | null }> = {}
+  if (idsDeFunisNovos.length > 0) {
+    const { data: funis } = await supabase
+      .from("funis")
+      .select("id, nome, funil_etapas (id, nome, parado_dias)")
+      .eq("workspace_id", perfil.workspace_id)
+      .in("id", idsDeFunisNovos)
+    for (const f of funis ?? []) {
+      nomeDoFunil[f.id] = f.nome
+      for (const e of f.funil_etapas ?? []) etapaNova[e.id] = { nome: e.nome, prazo: e.parado_dias }
+    }
+  }
+
   const cards: CardParaAlerta[] = rows.map((r) => ({
     id: r.id,
     funil: r.funil,
@@ -147,6 +163,9 @@ export async function listarAlertas(): Promise<{
     contatoNome: r.contato?.name ?? r.contato?.phone_number ?? "—",
     atendenteNome: r.atendente?.name ?? null,
     ultimaAtividade: r.contact_id ? (ultimaAtividade[r.contact_id] ?? null) : null,
+    ...(nomeDoFunil[r.funil]
+      ? { funilNome: nomeDoFunil[r.funil], etapaNome: etapaNova[r.etapa]?.nome, prazoParado: etapaNova[r.etapa]?.prazo ?? null }
+      : {}),
   }))
 
   const alertas = calcularAlertas(cards, config, dismissalsData ?? [])

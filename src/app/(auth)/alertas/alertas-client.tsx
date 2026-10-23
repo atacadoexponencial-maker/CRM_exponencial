@@ -43,6 +43,7 @@ const TIPOS: Array<{ id: TipoAlerta | ""; label: string }> = [
   { id: "sem_recompra", label: "Cliente sem recompra" },
   { id: "em_risco", label: "Cliente em risco" },
   { id: "inativo", label: "Cliente inativo" },
+  { id: "card_parado", label: "Card parado" },
 ]
 
 const COR_TIPO: Record<TipoAlerta, string> = {
@@ -50,6 +51,7 @@ const COR_TIPO: Record<TipoAlerta, string> = {
   sem_recompra: "text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-500/15",
   em_risco: "text-erro bg-erro-fundo",
   inativo: "text-muted-foreground bg-muted",
+  card_parado: "text-aviso bg-aviso-fundo",
 }
 
 export function AlertasClient({

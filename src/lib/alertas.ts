@@ -1,6 +1,7 @@
 // Cálculo puro dos alertas automáticos (Central de Alertas) — testável.
 
-export type TipoAlerta = "lead_sem_resposta" | "sem_recompra" | "em_risco" | "inativo"
+/** B41-05: "card_parado" é o do funil da empresa, pelo prazo da etapa. */
+export type TipoAlerta = "lead_sem_resposta" | "sem_recompra" | "em_risco" | "inativo" | "card_parado"
 
 export type ConfigAlertas = {
   leadSemRespostaDias: number
@@ -27,6 +28,10 @@ export type CardParaAlerta = {
   contatoId?: string
   // Última atividade na conversa do contato (mensagem enviada ou recebida)
   ultimaAtividade: string | null
+  /** B41-05: no funil da empresa, o prazo da etapa, o nome do funil e o da etapa. */
+  prazoParado?: number | null
+  funilNome?: string
+  etapaNome?: string
 }
 
 export type Dismissal = { card_id: string; tipo: string; referencia: string }
@@ -48,6 +53,7 @@ export const TIPO_ALERTA_LABEL: Record<TipoAlerta, string> = {
   sem_recompra: "Cliente sem recompra",
   em_risco: "Cliente em risco",
   inativo: "Cliente inativo",
+  card_parado: "Card parado",
 }
 
 /**
@@ -111,7 +117,7 @@ export function calcularAlertas(
       tipo,
       tipoLabel: TIPO_ALERTA_LABEL[tipo],
       contatoNome: card.contatoNome,
-      etapaLabel: ETAPA_LABEL[card.etapa] ?? card.etapa,
+      etapaLabel: card.funilNome ? `${card.funilNome} · ${card.etapaNome ?? card.etapa}` : (ETAPA_LABEL[card.etapa] ?? card.etapa),
       diasSemAtividade: dias,
       atendenteNome: card.atendenteNome,
       referencia: referenciaIso,
@@ -127,6 +133,13 @@ export function calcularAlertas(
       if (dias >= config.leadSemRespostaDias) {
         adicionar(card, "lead_sem_resposta", referencia, dias)
       }
+      continue
+    }
+
+    // B41-05: funil da empresa, pelo prazo da etapa (sem prazo, sem alerta)
+    if (card.funil !== "recompra") {
+      const dias = diasDesde(card.etapa_changed_at, agora)
+      if (card.prazoParado && dias > card.prazoParado) adicionar(card, "card_parado", card.etapa_changed_at, dias)
       continue
     }
 

@@ -10,7 +10,7 @@ import { LIMITE_DE_ETAPAS, LIMITE_DE_FUNIS, NOME_MAXIMO, chaveDoNome, corDaEtapa
 // B41-01: Admin e Gerente criam e editam os funis da empresa. Entrada e Recompra
 // são fixos e não passam por aqui.
 
-export type EtapaParaGerenciar = { id: string; nome: string; cor: string | null; ordem: number; cards: number }
+export type EtapaParaGerenciar = { id: string; nome: string; cor: string | null; ordem: number; cards: number; paradoDias?: number | null }
 export type FunilParaGerenciar = { id: string; nome: string; etapas: EtapaParaGerenciar[]; cards: number }
 export type FunisParaGerenciar = {
   fixos: Array<{ id: "entrada" | "recompra"; nome: string; etapas: number }>
@@ -80,7 +80,7 @@ export async function listarFunisParaGerenciar(): Promise<FunisParaGerenciar> {
 
   const { data: funis } = await supabase
     .from("funis")
-    .select("id, nome, created_at, funil_etapas (id, nome, cor, ordem)")
+    .select("id, nome, created_at, funil_etapas (id, nome, cor, ordem, parado_dias)")
     .eq("workspace_id", perfil.workspace_id)
     .order("created_at")
   const ids = (funis ?? []).map((f) => f.id)
@@ -99,7 +99,7 @@ export async function listarFunisParaGerenciar(): Promise<FunisParaGerenciar> {
     funis: (funis ?? []).map((f) => ({
       id: f.id,
       nome: f.nome,
-      etapas: [...(f.funil_etapas ?? [])].sort((a, b) => a.ordem - b.ordem).map((e) => ({ id: e.id, nome: e.nome, cor: e.cor, ordem: e.ordem, cards: cardsPorEtapa[e.id] ?? 0 })),
+      etapas: [...(f.funil_etapas ?? [])].sort((a, b) => a.ordem - b.ordem).map((e) => ({ id: e.id, nome: e.nome, cor: e.cor, ordem: e.ordem, cards: cardsPorEtapa[e.id] ?? 0, paradoDias: e.parado_dias })),
       cards: cardsPorFunil[f.id] ?? 0,
     })),
   }
@@ -188,7 +188,16 @@ export async function adicionarEtapa(funilId: string, nome: string, cor: string 
   return { id: data.id }
 }
 
-export async function editarEtapa(etapaId: string, mudancas: { nome?: string; cor?: string | null }): Promise<Resultado> {
+/** B41-05: prazo de parado, de 1 a 365 dias; vazio = sem aviso. */
+const PRAZO_INVALIDO = "O prazo vai de 1 a 365 dias."
+function conferirPrazo(prazo: unknown): { erro: string } | { prazo: number | null } {
+  if (prazo === null || prazo === undefined || prazo === "") return { prazo: null }
+  const n = typeof prazo === "number" ? prazo : typeof prazo === "string" && /^\d+$/.test(prazo.trim()) ? Number(prazo.trim()) : NaN
+  if (!Number.isInteger(n) || n < 1 || n > 365) return { erro: PRAZO_INVALIDO }
+  return { prazo: n }
+}
+
+export async function editarEtapa(etapaId: string, mudancas: { nome?: string; cor?: string | null; paradoDias?: number | string | null }): Promise<Resultado> {
   const quem = await quemGerencia()
   if (!quem) return { erro: SEM_PERMISSAO }
   if (!UUID.test(etapaId)) return { erro: FUNIL_FIXO }
@@ -202,7 +211,7 @@ export async function editarEtapa(etapaId: string, mudancas: { nome?: string; co
     .maybeSingle()
   if (!etapa) return { erro: "Etapa não encontrada" }
 
-  const atualizar: { nome?: string; cor?: string | null } = {}
+  const atualizar: { nome?: string; cor?: string | null; parado_dias?: number | null } = {}
   if (mudancas.nome !== undefined) {
     const nomeOk = conferirNome(mudancas.nome, "etapa")
     if ("erro" in nomeOk) return { erro: nomeOk.erro }
@@ -215,6 +224,11 @@ export async function editarEtapa(etapaId: string, mudancas: { nome?: string; co
   if (mudancas.cor !== undefined) {
     if (!corDaEtapaValida(mudancas.cor)) return { erro: "Cor inválida." }
     atualizar.cor = mudancas.cor || null
+  }
+  if (mudancas.paradoDias !== undefined) {
+    const prazo = conferirPrazo(mudancas.paradoDias)
+    if ("erro" in prazo) return { erro: prazo.erro }
+    atualizar.parado_dias = prazo.prazo
   }
   if (Object.keys(atualizar).length === 0) return {}
 

@@ -5,9 +5,14 @@
 
 import type { ConfigAlertas } from "@/lib/alertas"
 
-/** A partir de quantos dias na etapa o card conta como parado; `null` = sem limite. */
-export function limiteDeParado(funil: string, etapa: string, config: ConfigAlertas): number | null {
+/**
+ * A partir de quantos dias na etapa o card conta como parado; `null` = sem limite.
+ * B41-05: no funil da empresa, vale o prazo da etapa (`prazoDaEtapa`); como na
+ * Recompra, o card fica parado quando passa do prazo.
+ */
+export function limiteDeParado(funil: string, etapa: string, config: ConfigAlertas, prazoDaEtapa?: number | null): number | null {
   if (funil === "entrada") return etapa === "ganho" || etapa === "perdido" ? null : config.leadSemRespostaDias
+  if (funil !== "recompra") return prazoDaEtapa ? prazoDaEtapa + 1 : null
   // Recompra: o alerta nasce quando passa do limite (dias > limite).
   if (etapa === "reposicao") return config.semRecompraDias + 1
   if (etapa === "ativos_ri") return config.emRiscoDias + 1

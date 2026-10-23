@@ -206,6 +206,8 @@ export interface EtapaDoFunil {
   id: string
   label: string
   cor?: string | null
+  /** B41-05: dias até o card ficar parado na etapa; vazio = sem aviso. */
+  paradoDias?: number | null
 }
 
 /** B41-01: funil criado pela empresa, além de Entrada e Recompra. */

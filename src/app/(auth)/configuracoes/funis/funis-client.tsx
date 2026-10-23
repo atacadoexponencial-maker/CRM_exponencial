@@ -172,6 +172,7 @@ type EtapaDoEditor = FunilParaGerenciar["etapas"][number]
 
 function EtapaEditavel({ etapa, posicao, outras, onSalvo }: { etapa: EtapaDoEditor; posicao: number; outras: EtapaDoEditor[]; onSalvo: () => void }) {
   const [nome, setNome] = useState(etapa.nome)
+  const [prazo, setPrazo] = useState(etapa.paradoDias?.toString() ?? "")
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
   const [apagando, setApagando] = useState(false)
@@ -193,7 +194,7 @@ function EtapaEditavel({ etapa, posicao, outras, onSalvo }: { etapa: EtapaDoEdit
     }
   }
 
-  async function salvar(mudancas: { nome?: string; cor?: string | null }) {
+  async function salvar(mudancas: { nome?: string; cor?: string | null; paradoDias?: string | null }) {
     setErro(null)
     setSalvando(true)
     try {
@@ -219,6 +220,19 @@ function EtapaEditavel({ etapa, posicao, outras, onSalvo }: { etapa: EtapaDoEdit
           className="sm:max-w-56"
         />
         <SeletorDeCor rotulo={etapa.nome} cor={etapa.cor} onChange={(cor) => void salvar({ cor })} />
+        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          Avisar parado depois de
+          <Input
+            aria-label={`Prazo de parado de ${etapa.nome}`}
+            inputMode="numeric"
+            value={prazo}
+            onChange={(e) => setPrazo(e.target.value)}
+            onBlur={() => { if (prazo.trim() !== (etapa.paradoDias?.toString() ?? "")) void salvar({ paradoDias: prazo.trim() || null }) }}
+            placeholder="—"
+            className="h-7 w-14 px-2 text-center"
+          />
+          dias
+        </label>
         <span className="numero text-xs text-muted-foreground">{etapa.cards} {etapa.cards === 1 ? "card" : "cards"}</span>
         <span className="flex items-center gap-1 sm:ml-auto">
           <Button type="button" size="icon-sm" variant="ghost" aria-label={`Subir ${etapa.nome}`} disabled={salvando || posicao === 0} onClick={() => executar(() => moverEtapa(etapa.id, "subir"))}>

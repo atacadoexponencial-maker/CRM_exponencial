@@ -9,6 +9,8 @@ vi.mock("@/app/(auth)/configuracoes/funis/actions", () => ({
   adicionarEtapa: vi.fn(async () => ({})),
   apagarEtapa: vi.fn(async () => ({})),
   apagarFunil: vi.fn(async () => ({ cards: 7 })),
+  // B41-04: o aviso de apagar lista as automações afetadas
+  automacoesQueUsam: vi.fn(async () => ({ automacoes: [] })),
   criarFunil: vi.fn(async () => ({})),
   editarEtapa: vi.fn(async () => ({})),
   moverEtapa: vi.fn(async () => ({})),

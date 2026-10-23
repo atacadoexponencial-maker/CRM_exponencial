@@ -506,6 +506,12 @@ async function lerCardsDoFunil(funil: string): Promise<CardBase[]> {
     }
   }
   const { config, totalPorContato } = await extrasDosCards(contactIds)
+  // B41-05: no funil da empresa, o prazo de parado vem da etapa
+  const prazoDaEtapa: Record<string, number | null> = {}
+  if (funil !== "entrada" && funil !== "recompra") {
+    const { data: etapas } = await supabase.from("funil_etapas").select("id, parado_dias").eq("funil_id", funil)
+    for (const e of etapas ?? []) prazoDaEtapa[e.id] = e.parado_dias
+  }
 
   return (data ?? []).map((row) => ({
     id: row.id,
@@ -526,7 +532,7 @@ async function lerCardsDoFunil(funil: string): Promise<CardBase[]> {
     cidade: cidadeDoContato(row.contato as unknown as { cidade: string | null; uf: string | null } | null),
     totalComprado: row.contact_id ? (totalPorContato[row.contact_id] ?? 0) : 0,
     etapaDesde: row.etapa_changed_at,
-    limiteParadoDias: limiteDeParado(funil, row.etapa, config),
+    limiteParadoDias: limiteDeParado(funil, row.etapa, config, prazoDaEtapa[row.etapa]),
   }))
 }
 
@@ -553,12 +559,12 @@ export async function listarFunisDaEmpresa(): Promise<FunilDaEmpresa[]> {
   if (!user) return []
   const { data } = await supabase
     .from("funis")
-    .select("id, nome, created_at, funil_etapas (id, nome, cor, ordem)")
+    .select("id, nome, created_at, funil_etapas (id, nome, cor, ordem, parado_dias)")
     .order("created_at")
   return (data ?? []).map((f) => ({
     id: f.id,
     nome: f.nome,
-    etapas: [...(f.funil_etapas ?? [])].sort((a, b) => a.ordem - b.ordem).map((e) => ({ id: e.id, label: e.nome, cor: e.cor })),
+    etapas: [...(f.funil_etapas ?? [])].sort((a, b) => a.ordem - b.ordem).map((e) => ({ id: e.id, label: e.nome, cor: e.cor, paradoDias: e.parado_dias })),
   }))
 }
 
