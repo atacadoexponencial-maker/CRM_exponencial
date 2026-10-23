@@ -24,6 +24,7 @@ import {
   classificacaoValida,
   dadoDoContatoValido,
   etapaValida,
+  ehFunilDaEmpresa,
   gatilhoDeDadoValido,
   pastaDosArquivos,
   referenciasDoFluxo,
@@ -47,6 +48,8 @@ import { sessaoAtual } from "@/lib/sessao"
 import type { ContatoTeste } from "./components/editor-fluxo"
 import type { RegraListada } from "./components/lista-regras"
 
+/** B41-04: id de funil da empresa. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const CAMINHO_LISTA = "/configuracoes/automacoes"
 const SEM_PERMISSAO = "Sem permissão"
 
@@ -232,7 +235,16 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
     mensagensRapidas,
     arquivos,
   } = referenciasDoFluxo(fluxo)
-  if (!etapas.every(etapaValida)) return "Uma etapa escolhida não existe no funil. Escolha de novo."
+  // B41-04: funis da empresa. Funil ou etapa apagado deixa a regra "precisando de ajuste".
+  const funisDaEmpresa: Record<string, string[]> = {}
+  const idsDaEmpresa = [...new Set(etapas.map((e) => e.funil).filter(ehFunilDaEmpresa))].filter((f) => UUID.test(f))
+  if (idsDaEmpresa.length > 0) {
+    const { data: funis } = await supabase.from("funis").select("id, funil_etapas (id)").eq("workspace_id", workspaceId).in("id", idsDaEmpresa)
+    for (const f of funis ?? []) funisDaEmpresa[f.id] = (f.funil_etapas ?? []).map((e) => e.id)
+  }
+  const apagada = etapas.find((e) => ehFunilDaEmpresa(e.funil) && !etapaValida(e, funisDaEmpresa))
+  if (apagada) return `O bloco "${apagada.bloco ?? "Funil"}" precisa de ajuste: o funil ou a etapa escolhida foi apagada. Escolha de novo.`
+  if (!etapas.every((e) => etapaValida(e, funisDaEmpresa))) return "Uma etapa escolhida não existe no funil. Escolha de novo."
   if (!dadosDoContato.every(({ campo, valor }) => dadoDoContatoValido(campo, valor))) {
     return "O dado do contato escolhido não pode receber esse valor. Confira o campo e o valor."
   }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowDown, ArrowUp, Plus, Trash2, X } from "lucide-react"
@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { CORES_PRONTAS, LIMITE_DE_ETAPAS, NOME_MAXIMO, ehCorPropria } from "@/lib/funis"
-import { adicionarEtapa, apagarEtapa, apagarFunil, criarFunil, editarEtapa, moverEtapa, renomearFunil, type FunilParaGerenciar, type FunisParaGerenciar } from "./actions"
+import { adicionarEtapa, apagarEtapa, apagarFunil, automacoesQueUsam, criarFunil, editarEtapa, moverEtapa, renomearFunil, type FunilParaGerenciar, type FunisParaGerenciar } from "./actions"
 
 // Amostra das cores prontas com as mesmas cores das colunas do quadro (B15-02).
 const AMOSTRA: Record<string, string> = {
@@ -62,6 +62,34 @@ function SeletorDeCor({ cor, onChange, rotulo }: { cor: string | null; onChange:
 }
 
 type EtapaNova = { nome: string; cor: string | null }
+
+/**
+ * B41-04: no aviso de apagar, as automações que usam o funil ou a etapa. Elas são
+ * desligadas e ficam "precisando de ajuste" até alguém escolher outro funil ou etapa.
+ */
+function AutomacoesAfetadas({ alvo }: { alvo: { funil: string } | { etapa: string } }) {
+  const id = "funil" in alvo ? alvo.funil : alvo.etapa
+  const [nomes, setNomes] = useState<string[] | null>(null)
+  useEffect(() => {
+    let ativo = true
+    automacoesQueUsam("funil" in alvo ? { funil: id } : { etapa: id })
+      .then((r) => { if (ativo) setNomes((r.automacoes ?? []).map((a) => a.nome)) })
+      .catch(() => { if (ativo) setNomes([]) })
+    return () => { ativo = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
+  if (!nomes || nomes.length === 0) return null
+  return (
+    <div role="alert" className="space-y-1 rounded-md border border-aviso/40 px-3 py-2 text-xs">
+      <p className="font-medium">
+        {nomes.length === 1 ? "Esta automação usa" : "Estas automações usam"} {"funil" in alvo ? "este funil" : "esta etapa"} e {nomes.length === 1 ? "vai ser desligada" : "vão ser desligadas"} até alguém escolher outro funil ou etapa:
+      </p>
+      <ul className="list-disc pl-4">
+        {nomes.map((n) => <li key={n}>{n}</li>)}
+      </ul>
+    </div>
+  )
+}
 
 function NovoFunil({ onFechar, onCriado }: { onFechar: () => void; onCriado: () => void }) {
   const [nome, setNome] = useState("")
@@ -215,6 +243,7 @@ function EtapaEditavel({ etapa, posicao, outras, onSalvo }: { etapa: EtapaDoEdit
       </div>
       {apagando && (
         <div role="group" aria-label={`Apagar ${etapa.nome}`} className="space-y-2 rounded-md bg-muted/60 p-3 text-sm">
+          <AutomacoesAfetadas alvo={{ etapa: etapa.id }} />
           {etapa.cards > 0 ? (
             <label className="block space-y-1.5">
               <span>
@@ -331,6 +360,7 @@ function ApagarFunil({ funil, onCancelar, onApagado }: { funil: FunilParaGerenci
   const [erro, setErro] = useState<string | null>(null)
   return (
     <div role="group" aria-label={`Apagar ${funil.nome}`} className="w-full space-y-2 rounded-md bg-muted/60 p-3 text-sm">
+      <AutomacoesAfetadas alvo={{ funil: funil.id }} />
       <p>
         Apagar o funil {funil.nome}?{" "}
         {funil.cards === 0 ? "Ele não tem cards." : `${funil.cards === 1 ? "1 card sai" : `${funil.cards} cards saem`} junto.`} Os contatos continuam.

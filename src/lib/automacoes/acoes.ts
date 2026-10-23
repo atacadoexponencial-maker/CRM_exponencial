@@ -139,17 +139,21 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
       // Contato sem card: na Entrada, o card nasce na etapa escolhida, como o
       // "Novo lead" (decisões, seção 7.5, adendo de 15/10/2026). Na Recompra, a
       // automação não cria: o card nasce quando o da Entrada chega em Ganho (abaixo).
+      // B41-04: no funil da empresa também nasce na etapa escolhida. O banco confere
+      // que o funil é da empresa e a etapa, desse funil.
       let criou = false
       if (!card) {
-        if (funil !== "entrada") return falhou(`O contato não tem card no ${NOME_DO_FUNIL[funil] ?? funil}`)
+        if (funil === "recompra") return falhou(`O contato não tem card no ${NOME_DO_FUNIL[funil] ?? funil}`)
         const { error } = await supabase
           .from("pipeline_cards")
-          .insert({ funil: "entrada", etapa, contact_id: contactId, workspace_id: gatilho.workspaceId })
+          .insert({ funil, etapa, contact_id: contactId, workspace_id: gatilho.workspaceId })
         if (!error) {
           criou = true
         } else {
           // 23505: o card nasceu ao mesmo tempo por outro caminho (índice único da
-          // B22-26); segue movendo o card que já existe
+          // B22-26); segue movendo o card que já existe. 23514: funil ou etapa que não
+          // existem mais (B41-04).
+          if (error.code === "23514") return falhou("O funil ou a etapa escolhida não existe mais")
           if (error.code !== "23505") return ERRO_NO_BANCO
           const { data: existente, error: erroNovaBusca } = await buscarCard()
           if (erroNovaBusca || !existente) return ERRO_NO_BANCO
@@ -164,6 +168,7 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
           .from("pipeline_cards")
           .update({ etapa, etapa_changed_at: new Date().toISOString() })
           .eq("id", card.id)
+        if (error?.code === "23514") return falhou("O funil ou a etapa escolhida não existe mais")
         if (error) return ERRO_NO_BANCO
 
         // QA M2: como no CRM, sair de Ganho na Entrada apaga o card da Recompra.

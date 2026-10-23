@@ -290,7 +290,7 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
     workspaceId: card.workspace_id,
     contactId: card.contact_id,
     cardId,
-    funil: (card.funil ?? "entrada") as "entrada" | "recompra",
+    funil: card.funil ?? "entrada",
     etapa: novaEtapa,
   })
 
@@ -628,11 +628,23 @@ export async function adicionarContatoAoFunil(funilId: string, contactId: string
     .maybeSingle()
   if (jaTem) return { erro: JA_NESTE_FUNIL }
 
-  const { error } = await supabase
+  const { data: novo, error } = await supabase
     .from("pipeline_cards")
     .insert({ workspace_id: perfil.workspace_id, contact_id: contactId, funil: funilId, etapa: primeira.id })
+    .select("id")
+    .single()
   if (error?.code === "23505") return { erro: JA_NESTE_FUNIL }
-  if (error) return { erro: "Não foi possível adicionar o contato. Tente de novo." }
+  if (error || !novo) return { erro: "Não foi possível adicionar o contato. Tente de novo." }
+
+  // B41-04: o card entrou na primeira etapa, como o "Novo lead" na Entrada
+  await dispararAutomacoes({
+    tipo: "card_movido",
+    workspaceId: perfil.workspace_id,
+    contactId,
+    cardId: novo.id,
+    funil: funilId,
+    etapa: primeira.id,
+  })
   return {}
 }
 

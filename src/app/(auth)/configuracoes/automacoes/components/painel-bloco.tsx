@@ -31,7 +31,7 @@ import { ARQUIVO_GRANDE_DEMAIS, LIMITE_DO_ARQUIVO } from "@/lib/automacoes/refer
 import { descreverHorario } from "@/lib/horario-comercial"
 import {
   ACOES,
-  FUNIS,
+  funisDoEditor,
   GATILHOS,
   NAO_EXISTE_MAIS,
   VERIFICACOES,
@@ -459,7 +459,7 @@ function CampoParametro({
           id={id}
           valor={valor}
           vazio={parametros.funil ? campo.vazio : "Escolha o funil primeiro"}
-          itens={parametros.funil ? paraItens(etapasDoFunil(parametros.funil)) : []}
+          itens={parametros.funil ? paraItens(etapasDoFunil(parametros.funil, opcoes)) : []}
           desabilitado={!parametros.funil}
           onMudar={(novo) => onMudar("etapa", novo)}
         />
@@ -726,7 +726,7 @@ function EditorVerificacoes({
               />
             )}
             {pedeValor && item.valor.tipo === "funil_etapa" && (
-              <SeletorFunilEtapa valor={v.valor} onMudar={(valor) => mudar(v.id, { valor })} />
+              <SeletorFunilEtapa valor={v.valor} opcoes={opcoes} onMudar={(valor) => mudar(v.id, { valor })} />
             )}
           </div>
         )
@@ -741,7 +741,7 @@ function EditorVerificacoes({
 }
 
 /** Valor no formato `funil:etapa`. Só fica completo com os dois escolhidos. */
-function SeletorFunilEtapa({ valor, onMudar }: { valor: string; onMudar: (valor: string) => void }) {
+function SeletorFunilEtapa({ valor, opcoes, onMudar }: { valor: string; opcoes: OpcoesEditor; onMudar: (valor: string) => void }) {
   const [funil = "", etapa = ""] = valor.split(":")
   return (
     <div className="grid grid-cols-2 gap-2">
@@ -749,14 +749,14 @@ function SeletorFunilEtapa({ valor, onMudar }: { valor: string; onMudar: (valor:
         aria-label="Funil"
         valor={funil}
         vazio="Funil…"
-        itens={paraItens(FUNIS)}
+        itens={paraItens(funisDoEditor(opcoes))}
         onMudar={(novo) => onMudar(novo ? `${novo}:` : "")}
       />
       <CampoSelecao
         aria-label="Etapa"
         valor={etapa}
         vazio="Etapa…"
-        itens={funil ? paraItens(etapasDoFunil(funil)) : []}
+        itens={funil ? paraItens(etapasDoFunil(funil, opcoes)) : []}
         desabilitado={!funil}
         onMudar={(novo) => onMudar(`${funil}:${novo}`)}
       />

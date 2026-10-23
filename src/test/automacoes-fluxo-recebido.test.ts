@@ -94,9 +94,10 @@ describe("referenciasDoFluxo", () => {
     expect(refs.conexoes).toEqual(["conn-1"])
     // Na ordem dos blocos: gatilho, verificação da condição, ação "mover card"
     expect(refs.etapas).toEqual([
-      { funil: "entrada", etapa: "sondagem" },
-      { funil: "recompra", etapa: "ativos" },
-      { funil: "entrada", etapa: "negociacao" },
+      // B41-04: cada etapa diz o bloco que a cita, para o aviso de "precisa de ajuste"
+      { funil: "entrada", etapa: "sondagem", bloco: "Card movido para etapa" },
+      { funil: "recompra", etapa: "ativos", bloco: "Card do contato" },
+      { funil: "entrada", etapa: "negociacao", bloco: "Mover card para etapa" },
     ])
   })
 

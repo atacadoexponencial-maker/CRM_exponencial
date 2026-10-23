@@ -25,7 +25,8 @@ export async function eventoDaSimulacao(
 
   switch (gatilho.gatilho) {
     case "card_movido": {
-      const funil = gatilho.parametros.funil === "recompra" ? "recompra" : "entrada"
+      // B41-04: o funil da empresa também; sem funil escolhido, vale a Entrada
+      const funil = gatilho.parametros.funil || "entrada"
       const { data: card, error } = await supabase
         .from("pipeline_cards")
         .select("id, etapa")

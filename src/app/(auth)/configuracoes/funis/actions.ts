@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache"
 import { sessaoAtual } from "@/lib/sessao"
+import { createServiceClient } from "@/integrations/supabase/service"
+import { lerFluxo } from "@/lib/automacoes/fluxo-recebido"
+import { referenciasDoFluxo } from "@/lib/automacoes/referencias"
 import { LIMITE_DE_ETAPAS, LIMITE_DE_FUNIS, NOME_MAXIMO, chaveDoNome, corDaEtapaValida, ehFunilFixo } from "@/lib/funis"
 
 // B41-01: Admin e Gerente criam e editam os funis da empresa. Entrada e Recompra
@@ -259,8 +262,52 @@ export async function moverEtapa(etapaId: string, direcao: "subir" | "descer"): 
   return {}
 }
 
+// ---------------------------------------------------------------------------
+// B41-04: automações que usam o funil ou a etapa. Apagar avisa quais são e as
+// desliga; elas ficam "precisando de ajuste" até alguém escolher outro funil ou
+// etapa (o ligar confere de novo, em configuracoes/automacoes/actions.ts).
+// Só o Admin lê as automações pela RLS, mas o Gerente também apaga funis: a leitura
+// e o desligar vão pela chave de serviço, sempre presos à empresa de quem pediu.
+// ---------------------------------------------------------------------------
+
+type Alvo = { funil: string } | { etapa: string }
+
+async function automacoesDaEmpresaQueUsam(workspaceId: string, alvo: Alvo): Promise<Array<{ id: string; nome: string }>> {
+  const { data } = await createServiceClient().from("automation_flows").select("id, nome, fluxo").eq("workspace_id", workspaceId).order("nome")
+  const id = "funil" in alvo ? alvo.funil : alvo.etapa
+  return (data ?? [])
+    .filter((f) => {
+      const fluxo = lerFluxo(f.fluxo)
+      // Fluxo fora do formato: procura o id no texto, para não deixar passar.
+      if (!fluxo) return JSON.stringify(f.fluxo ?? null).includes(id)
+      return referenciasDoFluxo(fluxo).etapas.some((e) => ("funil" in alvo ? e.funil === alvo.funil : e.etapa === alvo.etapa))
+    })
+    .map((f) => ({ id: f.id, nome: f.nome }))
+}
+
+async function desligarAutomacoes(workspaceId: string, ids: string[]): Promise<void> {
+  if (ids.length === 0) return
+  await createServiceClient().from("automation_flows").update({ ativa: false }).eq("workspace_id", workspaceId).in("id", ids)
+  revalidatePath("/configuracoes/automacoes")
+}
+
+/** Para o aviso antes de apagar: as automações (ligadas ou não) que usam o funil ou a etapa. */
+export async function automacoesQueUsam(alvo: Alvo): Promise<{ automacoes?: Array<{ id: string; nome: string }>; erro?: string }> {
+  const quem = await quemGerencia()
+  if (!quem) return { erro: SEM_PERMISSAO }
+  const { supabase, perfil } = quem
+  const id = "funil" in alvo ? alvo.funil : alvo.etapa
+  if (!UUID.test(id)) return { erro: "funil" in alvo ? FUNIL_NAO_ENCONTRADO : "Etapa não encontrada" }
+
+  const tabela = "funil" in alvo ? "funis" : "funil_etapas"
+  const { data } = await supabase.from(tabela).select("id").eq("id", id).eq("workspace_id", perfil.workspace_id).maybeSingle()
+  if (!data) return { erro: "funil" in alvo ? FUNIL_NAO_ENCONTRADO : "Etapa não encontrada" }
+
+  return { automacoes: (await automacoesDaEmpresaQueUsam(perfil.workspace_id, alvo)).map(({ id, nome }) => ({ id, nome })) }
+}
+
 /** Apaga a etapa. Com cards, `destinoId` é a etapa do mesmo funil para onde eles vão. */
-export async function apagarEtapa(etapaId: string, destinoId: string | null): Promise<Resultado> {
+export async function apagarEtapa(etapaId: string, destinoId: string | null): Promise<Resultado & { desligadas?: string[] }> {
   const quem = await quemGerencia()
   if (!quem) return { erro: SEM_PERMISSAO }
   if (!UUID.test(etapaId) || (destinoId !== null && !UUID.test(destinoId))) return { erro: "Etapa não encontrada" }
@@ -274,16 +321,18 @@ export async function apagarEtapa(etapaId: string, destinoId: string | null): Pr
     .maybeSingle()
   if (!etapa) return { erro: "Etapa não encontrada" }
 
+  const afetadas = await automacoesDaEmpresaQueUsam(perfil.workspace_id, { etapa: etapaId })
   const { error } = await supabase.rpc("apagar_etapa", { p_etapa: etapaId, p_destino: destinoId as string })
   if (error?.code === "P0001") return { erro: error.message }
   if (error) return { erro: "Não foi possível apagar a etapa. Tente de novo." }
+  await desligarAutomacoes(perfil.workspace_id, afetadas.map((a) => a.id))
 
   revalidar()
-  return {}
+  return afetadas.length > 0 ? { desligadas: afetadas.map((a) => a.nome) } : {}
 }
 
 /** Apaga o funil, as etapas e os cards dele. Os contatos ficam. */
-export async function apagarFunil(funilId: string): Promise<{ erro?: string; cards?: number }> {
+export async function apagarFunil(funilId: string): Promise<{ erro?: string; cards?: number; desligadas?: string[] }> {
   const quem = await quemGerencia()
   if (!quem) return { erro: SEM_PERMISSAO }
   if (ehFunilFixo(funilId)) return { erro: FUNIL_FIXO }
@@ -293,9 +342,11 @@ export async function apagarFunil(funilId: string): Promise<{ erro?: string; car
   const { data: funil } = await supabase.from("funis").select("id").eq("id", funilId).eq("workspace_id", perfil.workspace_id).maybeSingle()
   if (!funil) return { erro: FUNIL_NAO_ENCONTRADO }
 
+  const afetadas = await automacoesDaEmpresaQueUsam(perfil.workspace_id, { funil: funilId })
   const { data, error } = await supabase.rpc("apagar_funil", { p_funil: funilId })
   if (error) return { erro: "Não foi possível apagar o funil. Tente de novo." }
+  await desligarAutomacoes(perfil.workspace_id, afetadas.map((a) => a.id))
 
   revalidar()
-  return { cards: data ?? 0 }
+  return afetadas.length > 0 ? { cards: data ?? 0, desligadas: afetadas.map((a) => a.nome) } : { cards: data ?? 0 }
 }

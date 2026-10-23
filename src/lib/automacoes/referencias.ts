@@ -16,7 +16,8 @@ export interface ReferenciasDoFluxo {
   conexoes: string[]
   times: string[]
   sequencias: string[]
-  etapas: Array<{ funil: string; etapa: string }>
+  /** `bloco`: o nome do bloco que cita, para o aviso de "precisa de ajuste" (B41-04). */
+  etapas: Array<{ funil: string; etapa: string; bloco?: string }>
   /** Campo e valor de cada "alterar dado do contato". */
   dadosDoContato: Array<{ campo: string; valor: string }>
   /** Valores das verificações "tipo do contato é" e "classificação do contato é". */
@@ -54,7 +55,7 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
         if (v.tipo === "canal" && v.valor.startsWith(PREFIXO_NUMERO)) conexoes.add(v.valor.slice(PREFIXO_NUMERO.length))
         if (v.tipo === "card_etapa") {
           const [funil = "", etapa = ""] = v.valor.split(":")
-          etapas.push({ funil, etapa })
+          etapas.push({ funil, etapa, bloco: "Card do contato" })
         }
         if (v.tipo === "tipo_contato") tiposDeContato.push(v.valor)
         if (v.tipo === "classificacao") classificacoes.push(v.valor)
@@ -76,7 +77,7 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
     if (p.time_id) times.add(p.time_id)
     if (p.sequencia_id) sequencias.add(p.sequencia_id)
     // Funil sozinho também é conferido: o gatilho "card movido" aceita "qualquer etapa"
-    if (p.funil) etapas.push({ funil: p.funil, etapa: p.etapa ?? "" })
+    if (p.funil) etapas.push({ funil: p.funil, etapa: p.etapa ?? "", bloco: bloco.tipo === "gatilho" ? "Card movido para etapa" : "Mover card para etapa" })
     if (bloco.tipo === "acao" && bloco.acao === "alterar_dado_contato") {
       dadosDoContato.push({ campo: p.campo ?? "", valor: p.valor ?? "" })
     }
@@ -188,11 +189,20 @@ const ETAPAS_DO_FUNIL: Record<string, readonly string[]> = {
   recompra: ETAPAS_RECOMPRA.map((e) => e.id),
 }
 
-/** Funil que existe e etapa dele; etapa vazia vale como "qualquer etapa". */
-export function etapaValida({ funil, etapa }: { funil: string; etapa: string }): boolean {
-  const etapas = ETAPAS_DO_FUNIL[funil]
+/**
+ * Funil que existe e etapa dele; etapa vazia vale como "qualquer etapa".
+ * B41-04: `daEmpresa` traz os funis da empresa com os ids das etapas de cada um.
+ */
+export function etapaValida(
+  { funil, etapa }: { funil: string; etapa: string },
+  daEmpresa: Record<string, readonly string[]> = {}
+): boolean {
+  const etapas = ETAPAS_DO_FUNIL[funil] ?? daEmpresa[funil]
   return etapas !== undefined && (etapa === "" || etapas.includes(etapa))
 }
+
+/** Funil que não é Entrada nem Recompra: o da empresa, conferido no banco. */
+export const ehFunilDaEmpresa = (funil: string) => !(funil in ETAPAS_DO_FUNIL)
 
 /**
  * Gatilho "dado do contato alterado": o campo é um dos que têm de onde disparar

@@ -5,11 +5,11 @@ import type { Bloco, BlocoAcao, BlocoGatilho, Fluxo, Repeticao, Verificacao } fr
 import { SEQUENCIA_DA_ETAPA, gatilhoDoFluxo, vencimentoDoLembrete } from "@/lib/fluxo-automacao"
 import {
   ACOES,
-  FUNIS,
   GATILHOS,
   NAO_EXISTE_MAIS,
   VERIFICACOES,
   etapasDoFunil,
+  funisDoEditor,
   opcoesDaFonte,
   opcoesDoCampoContato,
   rotuloCampoContato,
@@ -55,9 +55,9 @@ export function fraseGatilho(bloco: BlocoGatilho, opcoes: OpcoesEditor): string 
       return "Quando uma conversa for criada"
     case "card_movido": {
       if (!p.funil) return "Quando um card mudar de etapa"
-      const funil = nomeEm(FUNIS, p.funil)
+      const funil = nomeOuApagado(funisDoEditor(opcoes), p.funil)
       return p.etapa
-        ? `Quando o card entrar em "${nomeEm(etapasDoFunil(p.funil), p.etapa)}" (${funil})`
+        ? `Quando o card entrar em "${nomeOuApagado(etapasDoFunil(p.funil, opcoes), p.etapa)}" (${funil})`
         : `Quando o card mudar de etapa no ${funil}`
     }
     case "tag_adicionada":
@@ -86,7 +86,7 @@ export function fraseVerificacao(v: Verificacao, opcoes: OpcoesEditor): string {
   if (item.valor.tipo === "opcoes") valor = nomeOuApagado(opcoesDaFonte(item.valor.fonte, opcoes), v.valor)
   if (item.valor.tipo === "funil_etapa") {
     const [funil, etapa] = v.valor.split(":")
-    valor = funil ? `${nomeEm(etapasDoFunil(funil), etapa)} (${nomeEm(FUNIS, funil)})` : ""
+    valor = funil ? `${nomeOuApagado(etapasDoFunil(funil, opcoes), etapa)} (${nomeOuApagado(funisDoEditor(opcoes), funil)})` : ""
   }
   return `${item.rotulo.toLowerCase()} ${operador} "${valor || "…"}"`
 }
@@ -121,7 +121,7 @@ export function fraseAcao(bloco: BlocoAcao, opcoes: OpcoesEditor): string {
       return p.time_id ? `Atribuir ao time ${nomeOuApagado(opcoes.times, p.time_id)}` : rotulo
     case "mover_card": {
       if (!p.funil || !p.etapa) return rotulo
-      const destino = `Mover card para "${nomeEm(etapasDoFunil(p.funil), p.etapa)}" (${nomeEm(FUNIS, p.funil)})`
+      const destino = `Mover card para "${nomeOuApagado(etapasDoFunil(p.funil, opcoes), p.etapa)}" (${nomeOuApagado(funisDoEditor(opcoes), p.funil)})`
       const comSequencia = p.iniciar_sequencia === "sim" && SEQUENCIA_DA_ETAPA[`${p.funil}:${p.etapa}`]
       return comSequencia ? `${destino} e iniciar a sequência` : destino
     }
@@ -165,8 +165,8 @@ export function resumoRegra(fluxo: Fluxo, opcoes: OpcoesEditor): string {
 export function fraseDoEvento(evento: Record<string, string>, opcoes?: OpcoesEditor): string {
   switch (evento.tipo) {
     case "card_movido": {
-      const etapa = evento.funil ? nomeEm(etapasDoFunil(evento.funil), evento.etapa) : evento.etapa
-      return `Card entrou em "${etapa}" (${nomeEm(FUNIS, evento.funil)})`
+      const etapa = evento.funil ? nomeEm(etapasDoFunil(evento.funil, opcoes), evento.etapa) : evento.etapa
+      return `Card entrou em "${etapa}" (${nomeEm(funisDoEditor(opcoes), evento.funil)})`
     }
     case "conversa_criada":
       return "Conversa criada"

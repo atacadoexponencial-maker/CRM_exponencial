@@ -11,7 +11,8 @@ export type GatilhoAutomacao =
       workspaceId: string
       contactId: string | null
       cardId: string
-      funil: "entrada" | "recompra"
+      /** "entrada", "recompra" ou o id do funil da empresa (B41-04). */
+      funil: string
       etapa: string
     }
   | {

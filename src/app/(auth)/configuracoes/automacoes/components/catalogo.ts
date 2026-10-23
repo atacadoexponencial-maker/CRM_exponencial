@@ -41,6 +41,8 @@ export interface OpcoesEditor {
   numeros: Opcao[]
   /** O da empresa, ou o padrão: o painel da condição de horário mostra qual vale. */
   horarioComercial: HorarioComercial
+  /** B41-04: funis da empresa, além de Entrada e Recompra, com as etapas na ordem. */
+  funis?: Array<{ id: string; nome: string; etapas: Opcao[] }>
 }
 
 export type FonteOpcoes =
@@ -89,10 +91,30 @@ export const FUNIS: Opcao[] = [
   { id: "recompra", nome: "Funil de Recompra" },
 ]
 
-export function etapasDoFunil(funil: string | undefined): Opcao[] {
-  const etapas = funil === "recompra" ? ETAPAS_RECOMPRA : ETAPAS_ENTRADA
-  return etapas.map((e) => ({ id: e.id, nome: e.label }))
+/** B41-04: Entrada, Recompra e os funis da empresa, nessa ordem. */
+export function funisDoEditor(opcoes?: Pick<OpcoesEditor, "funis">): Opcao[] {
+  return [...FUNIS, ...(opcoes?.funis ?? []).map((f) => ({ id: f.id, nome: f.nome }))]
 }
+
+/** Etapas do funil escolhido. Funil da empresa que não existe mais não tem etapas. */
+export function etapasDoFunil(funil: string | undefined, opcoes?: Pick<OpcoesEditor, "funis">): Opcao[] {
+  if (funil === "entrada" || funil === "recompra") {
+    const etapas = funil === "recompra" ? ETAPAS_RECOMPRA : ETAPAS_ENTRADA
+    return etapas.map((e) => ({ id: e.id, nome: e.label }))
+  }
+  if (!funil) return ETAPAS_ENTRADA.map((e) => ({ id: e.id, nome: e.label }))
+  return opcoes?.funis?.find((f) => f.id === funil)?.etapas ?? []
+}
+
+/** O funil (e a etapa, quando escolhida) ainda existem? Vazio não conta como apagado. */
+export function funilEEtapaExistem(funil: string | undefined, etapa: string | undefined, opcoes: Pick<OpcoesEditor, "funis">): boolean {
+  if (!funil) return true
+  if (!funisDoEditor(opcoes).some((f) => f.id === funil)) return false
+  return !etapa || etapasDoFunil(funil, opcoes).some((e) => e.id === etapa)
+}
+
+/** B41-04: o texto que marca o bloco cujo funil ou etapa foi apagado (CA-B41-11). */
+export const PRECISA_DE_AJUSTE = "precisa de ajuste, o funil ou a etapa escolhida foi apagada"
 
 const CAMPOS_CONTATO: Record<string, string> = {
   classificacao: "Classificação",
@@ -120,7 +142,7 @@ const paraOpcoes = (rotulos: Record<string, string>): Opcao[] =>
 export function opcoesDaFonte(fonte: FonteOpcoes, opcoes: OpcoesEditor): Opcao[] {
   switch (fonte) {
     case "funis":
-      return FUNIS
+      return funisDoEditor(opcoes)
     case "classificacoes":
       return paraOpcoes(CLASSIFICACAO_LABEL)
     case "tiposContato":
@@ -409,6 +431,11 @@ export function referenciasQueSumiram(fluxo: Fluxo, opcoes: OpcoesEditor): Recor
     ;(porBloco[id] ??= []).push(`${rotulo}: a opção escolhida foi apagada ou desativada`)
   }
 
+  // B41-04: funil ou etapa de funil da empresa apagado.
+  const ajustar = (id: string, rotulo: string) => {
+    ;(porBloco[id] ??= []).push(`${rotulo}: ${PRECISA_DE_AJUSTE}`)
+  }
+
   for (const bloco of fluxo.blocos) {
     if (bloco.tipo === "condicao") {
       for (const v of bloco.verificacoes) {
@@ -416,8 +443,18 @@ export function referenciasQueSumiram(fluxo: Fluxo, opcoes: OpcoesEditor): Recor
         if (item?.valor.tipo === "opcoes" && item.valor.fonte !== "atendentes" && sumiu(item.valor.fonte, v.valor)) {
           anotar(bloco.id, item.rotulo)
         }
+        if (v.tipo === "card_etapa") {
+          const [funil, etapa] = v.valor.split(":")
+          if (!funilEEtapaExistem(funil, etapa, opcoes)) ajustar(bloco.id, item.rotulo)
+        }
       }
       continue
+    }
+    if ((bloco.tipo === "gatilho" && bloco.gatilho === "card_movido") || (bloco.tipo === "acao" && bloco.acao === "mover_card")) {
+      if (!funilEEtapaExistem(bloco.parametros.funil, bloco.parametros.etapa, opcoes)) {
+        ajustar(bloco.id, bloco.tipo === "gatilho" ? GATILHOS.card_movido.rotulo : ACOES.mover_card.rotulo)
+        continue
+      }
     }
     const campos = bloco.tipo === "gatilho" ? GATILHOS[bloco.gatilho]?.campos : ACOES[bloco.acao]?.campos
     for (const campo of campos ?? []) {

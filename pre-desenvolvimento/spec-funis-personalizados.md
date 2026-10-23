@@ -298,8 +298,8 @@ Os funis novos aparecem em todo lugar onde o funil já aparece:
 #### CA-B41-30 — Gatilho dispara pela etapa do funil novo · prova: automática
 
 - **Dado** uma automação ligada com o gatilho "Card movido para etapa" em "Feira de Março" → "Confirmou"
-- **Quando** um card desse funil é movido para "Confirmou", pela tela ou por outra automação
-- **Então** a automação roda para aquele contato. Ela não roda quando o card entra em outra etapa, nem para a etapa de mesmo nome em outro funil.
+- **Quando** uma pessoa move um card desse funil para "Confirmou" (arrastando, pelo painel ou ao adicionar o contato direto nessa etapa)
+- **Então** a automação roda para aquele contato. Ela não roda quando o card entra em outra etapa, nem para a etapa de mesmo nome em outro funil, nem quando quem moveu o card foi outra automação (automação não dispara automação, regra da B11).
 
 #### CA-B41-31 — Condição confere a etapa do funil novo · prova: automática
 
@@ -311,7 +311,7 @@ Os funis novos aparecem em todo lugar onde o funil já aparece:
 
 - **Dado** uma automação com a ação "Mover card" para "Feira de Março" → "Convidado"
 - **Quando** ela roda para um contato que não está nesse funil, e depois para um que já está em outra etapa dele
-- **Então** o primeiro ganha um card em "Convidado", e o segundo tem o card movido para "Convidado". Os dois ficam com a mudança no histórico e disparam os gatilhos de card movido.
+- **Então** o primeiro ganha um card em "Convidado", e o segundo tem o card movido para "Convidado". Os dois ficam com a mudança no histórico. Como em Entrada e Recompra, esse movimento feito pela automação não dispara outras automações.
 
 #### CA-B41-33 — Salvar automação com etapa que não é do funil é recusado · prova: automática
 
@@ -428,3 +428,4 @@ Os funis novos aparecem em todo lugar onde o funil já aparece:
 | PER-B41-07 | Ao apagar etapa com cards, o que acontece? | respondida | Marcelle, 23/10/2026: pede a etapa de destino |
 | PER-B41-08 | Ao apagar funil, o que acontece? | respondida | Marcelle, 23/10/2026: confirma com o número de cards, e os cards saem junto; a trava por automação foi trocada pelo aviso e pelo desligamento (ver SUP-B41-06) |
 | PER-B41-09 | A classificação do contato considera os funis novos? | respondida | Marcelle, 23/10/2026: não, só Entrada e Recompra |
+| PER-B41-10 | Card movido por automação num funil novo dispara outras automações de "Card movido"? | respondida | Marcelle, 23/10/2026: não; mantém a regra da B11 (automação não dispara automação), igual a Entrada e Recompra |
