@@ -107,6 +107,6 @@ Campanhas e automações não oferecem mais o Nicho, a coluna não existe mais n
 - [x] Escrever a migration (funções e coluna)
 - [x] Ajustar `resetar-empresa-teste.cjs`
 - [x] Escrever `src/test/remover-nicho-campanhas-automacoes.test.tsx` e `src/test/remover-nicho-banco.integration.test.ts`
-- [ ] Publicar o código (B40-01 e B40-02) antes da migration
-- [ ] Aplicar a migration, gerar os tipos e tirar `nicho` de `COLUNAS_FORA_DO_FILTRO`
-- [ ] `npx tsc --noEmit`, lint e testes passando
+- [x] Publicar o código (B40-01 e B40-02) antes da migration
+- [x] Aplicar a migration, gerar os tipos e tirar `nicho` de `COLUNAS_FORA_DO_FILTRO`
+- [x] `npx tsc --noEmit`, lint e testes passando

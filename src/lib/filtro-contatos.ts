@@ -144,8 +144,6 @@ export const COLUNAS_FORA_DO_FILTRO = [
   "excluido_por",
   "photo_path",
   "photo_checked_at",
-  // B40-01: o nicho saiu do filtro; a coluna é apagada na B40-02.
-  "nicho",
 ] as const
 
 export const ROTULO_DA_COMPARACAO: Record<Comparacao, string> = {

@@ -981,7 +981,6 @@ export type Database = {
           icp: string | null
           id: string
           name: string | null
-          nicho: string | null
           observacoes: string | null
           phone_number: string
           photo_checked_at: string | null
@@ -1000,7 +999,6 @@ export type Database = {
           icp?: string | null
           id?: string
           name?: string | null
-          nicho?: string | null
           observacoes?: string | null
           phone_number: string
           photo_checked_at?: string | null
@@ -1019,7 +1017,6 @@ export type Database = {
           icp?: string | null
           id?: string
           name?: string | null
-          nicho?: string | null
           observacoes?: string | null
           phone_number?: string
           photo_checked_at?: string | null
@@ -2159,7 +2156,6 @@ export type Database = {
           created_at: string
           id: string
           name: string
-          nicho: string
           phone_number: string
           tipo: string
           total: number
