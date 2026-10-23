@@ -110,3 +110,9 @@ Campanhas e automações não oferecem mais o Nicho, a coluna não existe mais n
 - [x] Publicar o código (B40-01 e B40-02) antes da migration
 - [x] Aplicar a migration, gerar os tipos e tirar `nicho` de `COLUNAS_FORA_DO_FILTRO`
 - [x] `npx tsc --noEmit`, lint e testes passando
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B40-15 | Marcelle | 23/10/2026 |

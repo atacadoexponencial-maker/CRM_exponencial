@@ -1,7 +1,7 @@
 # Spec: Remover o campo nicho do contato
 
 > série: B40
-> estado: aprovada em 22/10/2026
+> estado: concluída em 23/10/2026 (aprovada em 22/10/2026)
 
 ## Visão Geral
 
