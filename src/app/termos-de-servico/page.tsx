@@ -3,7 +3,7 @@ import { TemaClaro } from "@/components/shared/tema-claro"
 
 export const metadata: Metadata = {
   title: "Termos de Serviço — crmatacado exp",
-  description: "Termos de serviço do crmatacado exp, desenvolvido por Atacado Exponencial.",
+  description: "Termos de serviço do crmatacado exp, desenvolvido e operado pela SETE ADS 2 LTDA.",
 }
 
 export default function TermosDeServicoPage() {
@@ -12,13 +12,14 @@ export default function TermosDeServicoPage() {
     <main className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-6 py-16 text-sm text-foreground">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-2">Termos de Serviço</h1>
-        <p className="text-muted-foreground mb-10">Última atualização: 2 de junho de 2025</p>
+        <p className="text-muted-foreground mb-10">Última atualização: 23 de outubro de 2026</p>
 
         <section className="mb-8">
           <p>
-            Ao acessar ou usar o <strong>crmatacado exp</strong>, desenvolvido e operado por{" "}
-            <strong>Atacado Exponencial</strong>, você concorda com estes Termos de Serviço. Leia-os
-            com atenção antes de utilizar a plataforma.
+            Ao acessar ou usar o <strong>crmatacado exp</strong>, desenvolvido e operado pela{" "}
+            <strong>SETE ADS 2 LTDA</strong>, CNPJ 53.756.257/0001-34 (marca Atacado Exponencial),
+            você concorda com estes Termos de Serviço. Leia-os com atenção antes de utilizar a
+            plataforma.
           </p>
         </section>
 
@@ -82,7 +83,7 @@ export default function TermosDeServicoPage() {
           <h2 className="text-base font-semibold mb-3">5. Propriedade intelectual</h2>
           <p>
             Todo o código, design, marca e conteúdo da plataforma crmatacado exp são de
-            propriedade exclusiva da Atacado Exponencial. É vedada a reprodução, distribuição ou
+            propriedade exclusiva da SETE ADS 2 LTDA. É vedada a reprodução, distribuição ou
             criação de obras derivadas sem autorização expressa por escrito.
           </p>
         </section>
@@ -90,7 +91,7 @@ export default function TermosDeServicoPage() {
         <section className="mb-8">
           <h2 className="text-base font-semibold mb-3">6. Limitação de responsabilidade</h2>
           <p className="mb-2">
-            A Atacado Exponencial não se responsabiliza por:
+            A SETE ADS 2 LTDA não se responsabiliza por:
           </p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Interrupções ou indisponibilidades da WhatsApp Business API causadas pela Meta</li>
@@ -122,8 +123,8 @@ export default function TermosDeServicoPage() {
           <h2 className="text-base font-semibold mb-3">9. Lei aplicável</h2>
           <p>
             Estes termos são regidos pelas leis da República Federativa do Brasil. Qualquer litígio
-            será submetido ao foro da comarca de domicílio do usuário, salvo disposição legal em
-            contrário.
+            será submetido ao foro da comarca de Hortolândia/SP, com renúncia a qualquer outro, por
+            mais privilegiado que seja, salvo disposição legal em contrário.
           </p>
         </section>
 
@@ -133,7 +134,10 @@ export default function TermosDeServicoPage() {
             Em caso de dúvidas ou solicitações relacionadas a estes termos, entre em contato:
           </p>
           <p className="mt-2">
-            <strong>Atacado Exponencial</strong>
+            <strong>SETE ADS 2 LTDA</strong> — CNPJ 53.756.257/0001-34
+            <br />
+            Rua Carlos Roberto de Melo, 475, Pavimento 11, Sala 05, Parque Gabriel, Hortolândia/SP,
+            CEP 13186-604
             <br />
             <a
               href="mailto:atacadoexponencial@gmail.com"
