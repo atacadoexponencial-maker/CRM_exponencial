@@ -3,7 +3,7 @@
 **Tipo:** Implementação
 **Página:** `/` (landing)
 **Repositório:** `crm-exponencial`
-**Spec:** `pre-desenvolvimento/spec-landing-crmatacado-exp.md`
+**Spec:** `docs/specs-arquivadas/spec-landing-crmatacado-exp.md`
 
 ## Descrição
 
@@ -126,3 +126,10 @@ Nenhuma nova. `sharp` já está instalado (usado só no script de otimização d
 - [x] Teste `src/test/b24-landing.test.tsx` com CA-B24-01 a 12 no nome
 - [x] Lint, tipos e build passam (build local via webpack; o tipo que falha em cadastro/page.tsx é anterior e não é desta issue)
 - [x] Push do branch `b24-landing` para o preview da Vercel
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B24-13 | Marcelle | 23/10/2026 |
+| CA-B24-14 | Marcelle | 23/10/2026 |

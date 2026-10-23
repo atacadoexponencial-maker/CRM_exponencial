@@ -3,7 +3,7 @@
 **Tipo:** Implementação
 **Página:** `/politica-de-privacidade` e `/termos-de-servico`
 **Repositório:** `crm-exponencial`
-**Spec:** `pre-desenvolvimento/spec-landing-crmatacado-exp.md`
+**Spec:** `docs/specs-arquivadas/spec-landing-crmatacado-exp.md`
 
 ## Descrição
 

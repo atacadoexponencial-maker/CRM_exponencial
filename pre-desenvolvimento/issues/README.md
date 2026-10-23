@@ -18,7 +18,7 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B13 | `docs/specs-arquivadas/spec-lixeira-contatos.md` (excluir lead e contato, com lixeira) | `concluidas_B13/` |
 | B22 | `../analise-qa/qa-automacoes-2026-10-09.md` (correções do QA das automações v2) | `concluidas_B22/` |
 | B23 | `../spec-coexistencia.md` (em andamento: WhatsApp Business no celular e CRM no mesmo número, pela API Oficial) | `concluidas_B23/` (quando houver) |
-| B24 | `../spec-landing-crmatacado-exp.md` (aprovada em 23/10/2026: landing pública em `/` com tema Caderno, prints reais e demonstração pelo WhatsApp; política e termos com SETE ADS 2 LTDA; exigida pela verificação de acesso da Meta até 17/11) | `concluidas_B24/` (quando houver) |
+| B24 | `docs/specs-arquivadas/spec-landing-crmatacado-exp.md` (concluída em 23/10/2026: landing pública em `/` no tema Caderno, com prints reais e demonstração pelo WhatsApp; política e termos com a SETE ADS 2 LTDA) | `concluidas_B24/` |
 | B25 | `docs/specs-arquivadas/spec-canal-direto-envio-pelo-celular.md` (mensagem enviada pelo celular aparece no CRM, canal direto) | `concluidas_B25/` |
 | B26 | `docs/specs-arquivadas/spec-mensagem-na-fila.md` (mensagem na fila do número e aviso de aquecimento, canal direto) | `concluidas_B26/` |
 | B27 | `docs/specs-arquivadas/spec-porteiro-rapido.md` (conferência de login do porteiro sem ida ao banco de logins, mantendo o aviso de conta desativada) | `concluidas_B27/` |

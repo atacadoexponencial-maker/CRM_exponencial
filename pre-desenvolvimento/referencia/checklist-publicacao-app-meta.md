@@ -37,7 +37,7 @@ A Meta compara o nome do app, o site e a empresa verificada. Os três precisam c
 
 Hoje `crm-exponencial.vercel.app` abre a página padrão do Next.js. A Meta pede um site completo que mostre o serviço e a empresa.
 
-- [ ] ⏳ **Criar a página inicial** (Claude, pelo fluxo `/spec` → `/issue`, série **B24**). Deve mostrar o que o produto faz, para quem, como funciona a conexão com o WhatsApp, a empresa responsável (razão social, CNPJ, cidade), o contato e os links para privacidade e termos. Há uma versão pronta no branch `b22-landing-atacado-exp`, reprovada duas vezes no layout; ao retomar, perguntar o que ela quer antes de mexer.
+- [x] ✅ **Página inicial no ar em 23/10/2026** (série B24, `src/app/_landing/`; política e termos com a SETE ADS 2 LTDA). Texto original da tarefa: Deve mostrar o que o produto faz, para quem, como funciona a conexão com o WhatsApp, a empresa responsável (razão social, CNPJ, cidade), o contato e os links para privacidade e termos. Há uma versão pronta no branch `b22-landing-atacado-exp`, reprovada duas vezes no layout; ao retomar, perguntar o que ela quer antes de mexer.
 - [ ] ⏳ **Revisar política de privacidade e termos** (Claude escreve, você aprova). Hoje citam "crmatacado exp" e "Atacado Exponencial", mas não a razão social nem o CNPJ. A análise do app avalia a URL da política. Vale já citar Instagram e anúncios, para não reescrever quando esses canais entrarem.
 
 ## 4. Verificação de acesso
@@ -50,7 +50,7 @@ Confirma que a empresa é Provedora de Tecnologia. A Meta responde em cerca de 5
 
   > O crmatacado exp é uma plataforma de SaaS (CRM) da SETE ADS 2 LTDA para empresas atacadistas que vendem pelo WhatsApp. Cada cliente conecta o próprio número do WhatsApp Business ao CRM pelo Cadastro Incorporado da Meta. Usamos os dados da plataforma apenas para operar esse atendimento em nome do cliente: receber as mensagens enviadas pelos compradores dele, exibi-las na caixa de entrada do CRM, permitir que a equipe do cliente responda, enviar modelos de mensagem aprovados pela Meta e mostrar o status de entrega. Os dados de cada cliente ficam isolados na conta dele e não são vendidos, compartilhados nem usados para outra finalidade. O cliente pode desconectar o número a qualquer momento e pedir a exclusão dos dados.
 
-- [ ] 🔒 **Link do site**: espera a landing.
+- [x] ✅ **Link do site**: https://crm-exponencial.vercel.app (landing B24 no ar desde 23/10/2026).
 - [ ] 🔒 **Enviar a verificação**: Claude preenche, você autoriza o envio.
 
 ## 5. Teste de conexão
