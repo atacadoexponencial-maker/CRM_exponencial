@@ -17,12 +17,14 @@ const ESPERADO: Record<Papel, Record<string, string[]>> = {
     "": ["Dashboard", "Pipeline", "Chat", "Contatos", "Catálogo", "Pedidos", "Relatórios"],
     Rotina: ["Agenda", "Alertas"],
     Automação: ["Sequências", "Campanhas", "Automações"],
-    Configurações: ["Mensagens Rápidas", "Etiquetas", "Templates", "Usuários", "Times", "WhatsApp"],
+    // B41-01: "Funis" em Configurações, para o Admin e o Gerente
+    Configurações: ["Funis", "Mensagens Rápidas", "Etiquetas", "Templates", "Usuários", "Times", "WhatsApp"],
   },
   gerente: {
     "": ["Dashboard", "Pipeline", "Chat", "Contatos", "Catálogo", "Pedidos", "Relatórios"],
     Rotina: ["Agenda", "Alertas"],
     Automação: ["Sequências", "Campanhas"],
+    Configurações: ["Funis"],
   },
   atendente: {
     "": ["Dashboard", "Pipeline", "Chat", "Contatos", "Pedidos", "Relatórios"],
