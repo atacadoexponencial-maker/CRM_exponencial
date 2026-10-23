@@ -31,7 +31,7 @@ export const ABERTURA = {
   rotulo: "CRM para atacado",
   titulo: "Transforme o WhatsApp do seu atacado em uma máquina de pedidos",
   subtitulo: "Caixa de entrada, funis, catálogo e relatórios num só lugar, para times que vendem pelo WhatsApp.",
-  selos: ["API Oficial do WhatsApp Business", "Dados isolados por empresa", "Suporte humano"],
+  selos: ["API Oficial do WhatsApp Business", "Implantação acompanhada", "Suporte humano"],
 } as const
 
 export const DOR = {

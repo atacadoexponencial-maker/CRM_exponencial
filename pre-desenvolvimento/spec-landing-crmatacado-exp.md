@@ -73,7 +73,7 @@ tema escuro na landing.
   entrada, funis, catálogo e relatórios num só lugar, para times que vendem pelo
   WhatsApp), botão principal **Solicitar demonstração** e link secundário **Ver como
   funciona** (rola até a seção 6). Abaixo, três selos curtos de confiança: "API Oficial
-  do WhatsApp Business", "Dados isolados por empresa", "Suporte humano". À direita (ou
+  do WhatsApp Business", "Implantação acompanhada", "Suporte humano". À direita (ou
   abaixo, no celular), o print real da caixa de entrada do CRM.
 - **A dor:** título ("Vender pelo WhatsApp sem sistema custa caro") e quatro cartões,
   cada um com uma frase do dia a dia do atacadista: pedidos anotados em vários lugares;
@@ -340,4 +340,4 @@ o foro.
 
 | ID | Pergunta | Status | Resposta |
 |---|---|---|---|
-| PER-B24-01 | O rótulo pequeno acima do título e os selos de confiança (API Oficial, dados isolados, suporte humano) ficam como estão ou ela quer outros? | respondida | Marcelle, 23/10/2026: ficam os três selos e o rótulo "CRM para atacado" |
+| PER-B24-01 | O rótulo pequeno acima do título e os selos de confiança (API Oficial, dados isolados, suporte humano) ficam como estão ou ela quer outros? | respondida | Marcelle, 23/10/2026: rótulo "CRM para atacado"; selos API Oficial, Implantação acompanhada (no lugar de "Dados isolados", que é obrigação e não diferencial) e Suporte humano |

@@ -43,7 +43,7 @@ Abrir `crm-exponencial.vercel.app` (logado ou não) mostra a landing inteira, co
 
 | ID | Pergunta | Status | Resposta |
 |---|---|---|---|
-| PER-B24-01 | O rótulo pequeno acima do título e os selos de confiança (API Oficial, dados isolados, suporte humano) ficam como estão ou ela quer outros? | respondida | Marcelle, 23/10/2026: ficam os três selos e o rótulo "CRM para atacado" |
+| PER-B24-01 | O rótulo pequeno acima do título e os selos de confiança (API Oficial, dados isolados, suporte humano) ficam como estão ou ela quer outros? | respondida | Marcelle, 23/10/2026: rótulo "CRM para atacado"; selos API Oficial, Implantação acompanhada (no lugar de "Dados isolados", que é obrigação e não diferencial) e Suporte humano |
 
 ## Cenários
 
