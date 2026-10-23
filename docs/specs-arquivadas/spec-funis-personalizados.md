@@ -1,7 +1,7 @@
 # Spec: Funis personalizados
 
 > série: B41
-> estado: aprovada em 23/10/2026
+> estado: concluída em 23/10/2026 (aprovada em 23/10/2026)
 
 ## Visão Geral
 

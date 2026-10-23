@@ -182,3 +182,9 @@ Migration nova: `supabase/migrations/20261023000001_funis_personalizados.sql`.
 - [x] Coluna com cor própria
 - [x] Testes da tabela Prova
 - [x] `npx tsc --noEmit`, lint e testes passando
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B41-24 | Marcelle | 23/10/2026 |
