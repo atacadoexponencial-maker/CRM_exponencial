@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { Landing } from "./_landing/landing"
-import { DESCRICAO_ABA, PRINTS, TITULO_ABA } from "./_landing/conteudo"
+import { DESCRICAO_ABA, TITULO_ABA, VIDEOS } from "./_landing/conteudo"
 
 // B24-01: a raiz é a landing pública do crmatacado exp, o site que a Meta confere na
 // verificação de acesso. Abre sem login e também para quem já está logado; o porteiro
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     description: DESCRICAO_ABA,
     type: "website",
     locale: "pt_BR",
-    images: [{ url: PRINTS.caixaDeEntrada.src, width: PRINTS.caixaDeEntrada.largura, height: PRINTS.caixaDeEntrada.altura, alt: PRINTS.caixaDeEntrada.alt }],
+    images: [{ url: VIDEOS.caixaDeEntrada.base + ".png", width: VIDEOS.caixaDeEntrada.largura, height: VIDEOS.caixaDeEntrada.altura, alt: VIDEOS.caixaDeEntrada.alt }],
   },
 }
 

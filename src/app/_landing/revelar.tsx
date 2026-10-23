@@ -32,7 +32,25 @@ export function Revelar({ children, className, atraso = 0 }: { children: React.R
       { rootMargin: "0px 0px -10% 0px", threshold: 0.1 },
     )
     obs.observe(el)
-    return () => obs.disconnect()
+    // Reforço para rolagem muito rápida: se o bloco já passou do fim da tela, mostra.
+    let pedido = 0
+    const aoRolar = () => {
+      if (pedido) return
+      pedido = window.requestAnimationFrame(() => {
+        pedido = 0
+        if (el.getBoundingClientRect().top < window.innerHeight) {
+          setVisivel(true)
+          obs.disconnect()
+          window.removeEventListener("scroll", aoRolar)
+        }
+      })
+    }
+    window.addEventListener("scroll", aoRolar, { passive: true })
+    return () => {
+      obs.disconnect()
+      window.removeEventListener("scroll", aoRolar)
+      if (pedido) window.cancelAnimationFrame(pedido)
+    }
   }, [])
 
   return (

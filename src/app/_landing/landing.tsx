@@ -1,4 +1,3 @@
-import Image from "next/image"
 import Link from "next/link"
 import {
   ArrowRight,
@@ -22,6 +21,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Perguntas } from "./perguntas"
 import { Revelar } from "./revelar"
+import { Lottie } from "./lottie"
 import {
   ABERTURA,
   ANCORAS,
@@ -31,13 +31,14 @@ import {
   CONEXAO,
   DOR,
   EMPRESA,
+  ICONES_LOTTIE,
   LINK_DEMONSTRACAO,
   LINK_VER_COMO_FUNCIONA,
   MODULOS,
   PARA_QUEM,
   PERGUNTAS,
-  PRINTS,
   SEUS_DADOS,
+  VIDEOS,
   VIRADA,
 } from "./conteudo"
 
@@ -88,8 +89,12 @@ function BotaoDemonstracao({ className, tamanho = "lg" }: { className?: string; 
   )
 }
 
-/** Print do sistema numa "janela" com borda fina e barra de título, como um caderno de amostras. */
-function Print({ foto, prioridade, className }: { foto: (typeof PRINTS)[keyof typeof PRINTS]; prioridade?: boolean; className?: string }) {
+/**
+ * Tela do sistema em vídeo, numa "janela" com borda fina e barra de título. Loop sem
+ * som; a capa PNG segura o lugar até carregar. Com "reduzir movimento", o navegador
+ * não toca o autoplay e a capa continua visível.
+ */
+function Tela({ video, prioridade, className }: { video: (typeof VIDEOS)[keyof typeof VIDEOS]; prioridade?: boolean; className?: string }) {
   return (
     <figure className={cn("overflow-hidden rounded-lg border border-border bg-card shadow-[0_1px_0_var(--border),0_18px_40px_-24px_rgba(28,27,24,0.45)]", className)}>
       <div className="flex items-center gap-1.5 border-b border-border bg-muted px-3 py-2" aria-hidden>
@@ -97,12 +102,28 @@ function Print({ foto, prioridade, className }: { foto: (typeof PRINTS)[keyof ty
         <span className="size-2 rounded-full bg-border" />
         <span className="size-2 rounded-full bg-border" />
       </div>
-      <Image src={foto.src} alt={foto.alt} width={foto.largura} height={foto.altura} priority={prioridade} sizes="(min-width: 1024px) 640px, 100vw" className="block h-auto w-full" />
+      <video
+        className="block h-auto w-full"
+        width={video.largura}
+        height={video.altura}
+        poster={video.base + ".png"}
+        preload={prioridade ? "auto" : "metadata"}
+        autoPlay
+        muted
+        loop
+        playsInline
+        disablePictureInPicture
+        aria-label={video.alt}
+        data-video={video.base}
+      >
+        <source src={video.base + ".webm"} type="video/webm" />
+        <source src={video.base + ".mp4"} type="video/mp4" />
+      </video>
     </figure>
   )
 }
 
-/** Cartão que flutua sobre o print da abertura: um acontecimento do dia a dia do CRM. */
+/** Cartão que flutua sobre a tela da abertura: um acontecimento do dia a dia do CRM. */
 function Flutuante({ className, atraso, icone, titulo, texto }: { className?: string; atraso: string; icone: React.ReactNode; titulo: string; texto: string }) {
   return (
     <div
@@ -191,7 +212,7 @@ export function Landing() {
                 </ul>
               </div>
               <div className="relative">
-                <Print foto={PRINTS.caixaDeEntrada} prioridade />
+                <Tela video={VIDEOS.caixaDeEntrada} prioridade />
                 <Flutuante className="-left-4 top-8 hidden sm:flex lg:-left-10" atraso="0s" icone={<Inbox className="size-4" aria-hidden />} titulo="Nova conversa" texto="Pode mandar o catálogo?" />
                 <Flutuante className="-right-3 top-1/3 hidden sm:flex lg:-right-8" atraso="1.3s" icone={<ShoppingBag className="size-4 text-sucesso" aria-hidden />} titulo="Pedido recebido" texto="48 peças · R$ 1.250" />
                 <Flutuante className="-left-2 bottom-6 hidden sm:flex lg:-left-8" atraso="2.6s" icone={<BellRing className="size-4 text-aviso" aria-hidden />} titulo="Follow-up hoje" texto="Loja da Ana · 14h" />
@@ -234,7 +255,7 @@ export function Landing() {
                 {VIRADA.passos.map((passo, i) => (
                   <Revelar key={passo.titulo} atraso={i * 120}>
                     <li className="flex gap-4 border-t border-primary-foreground/20 pt-6 lg:flex-col">
-                      <Numero n={i + 1} claro />
+                      <Lottie caminho={ICONES_LOTTIE.virada[i]} modo="loop" reserva={<Numero n={i + 1} claro />} className="size-16 shrink-0" />
                       <div>
                         <h3 className="text-[17px] font-semibold text-primary-foreground">{passo.titulo}</h3>
                         <p className="mt-2 text-[15px] leading-relaxed text-primary-foreground/70">{passo.texto}</p>
@@ -260,9 +281,9 @@ export function Landing() {
                   const Icone = ICONES[m.icone]
                   return (
                     <Revelar key={m.titulo} atraso={(i % 4) * 100}>
-                      <li className="group/modulo h-full rounded-lg border border-border bg-card p-6 transition-colors hover:border-foreground/40" data-modulo>
-                        <span className="flex size-10 items-center justify-center rounded-md bg-muted text-foreground transition-all duration-300 group-hover/modulo:-translate-y-0.5 group-hover/modulo:bg-primary group-hover/modulo:text-primary-foreground">
-                          <Icone className="size-5" aria-hidden />
+                      <li className="group/modulo h-full rounded-lg border border-border bg-card p-6 transition-colors hover:border-foreground/40" data-modulo data-lottie-alvo>
+                        <span className="flex size-12 items-center justify-center rounded-md bg-muted text-foreground transition-transform duration-300 group-hover/modulo:-translate-y-0.5">
+                          <Lottie caminho={ICONES_LOTTIE.modulos[m.icone]} modo="ao-passar" reserva={<Icone className="size-5" aria-hidden />} className="size-8" />
                         </span>
                         <h3 className="mt-4 text-[17px] font-semibold text-foreground">{m.titulo}</h3>
                         <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{m.texto}</p>
@@ -272,8 +293,8 @@ export function Landing() {
                 })}
               </ul>
               <div className="mt-12 grid gap-6 lg:grid-cols-2">
-                <Revelar><Print foto={PRINTS.funil} /></Revelar>
-                <Revelar atraso={150}><Print foto={PRINTS.catalogo} /></Revelar>
+                <Revelar><Tela video={VIDEOS.funil} /></Revelar>
+                <Revelar atraso={150}><Tela video={VIDEOS.catalogo} /></Revelar>
               </div>
             </div>
           </section>
@@ -325,7 +346,7 @@ export function Landing() {
                   <span>{CONEXAO.nota}</span>
                 </p>
               </Revelar>
-              <Revelar atraso={150}><Print foto={PRINTS.conexao} /></Revelar>
+              <Revelar atraso={150}><Tela video={VIDEOS.conexao} /></Revelar>
             </div>
           </section>
 

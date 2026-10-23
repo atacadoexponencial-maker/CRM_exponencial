@@ -17,7 +17,7 @@ vi.mock("next/navigation", () => ({
 import Home, { metadata } from "@/app/page"
 import { Perguntas } from "@/app/_landing/perguntas"
 import { middleware } from "@/middleware"
-import { ABERTURA, CONEXAO, DOR, EMPRESA, LINK_DEMONSTRACAO, MODULOS, PARA_QUEM, PERGUNTAS, PRINTS, SEUS_DADOS, TITULO_ABA, VIRADA, WHATSAPP_DEMONSTRACAO } from "@/app/_landing/conteudo"
+import { ABERTURA, CONEXAO, DOR, EMPRESA, LINK_DEMONSTRACAO, MODULOS, PARA_QUEM, PERGUNTAS, SEUS_DADOS, VIDEOS, TITULO_ABA, VIRADA, WHATSAPP_DEMONSTRACAO } from "@/app/_landing/conteudo"
 
 const HTML = renderToStaticMarkup(<Home />)
 const TEXTO = HTML.replace(/<[^>]+>/g, " ").replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ")
@@ -155,22 +155,36 @@ describe("B24-01 — landing pública", () => {
     expect(og.images[0].url).toMatch(/^\/landing\//)
   })
 
-  it("CA-B24-12 — os quatro prints existem em public/landing, pesam menos de 250 KB e toda imagem declara largura e altura", () => {
+  it("CA-B24-12 — as quatro telas existem em public/landing (vídeo WebM, MP4 e capa PNG), pesam pouco e declaram largura e altura", () => {
     const pasta = path.resolve(__dirname, "../../public/landing")
-    for (const nome of ["caixa-de-entrada.png", "funil.png", "catalogo.png", "conexao.png"]) {
-      const arquivo = path.join(pasta, nome)
-      const tamanho = statSync(arquivo).size
-      expect(tamanho, `${nome} pesa ${tamanho} bytes`).toBeLessThan(250 * 1024)
-      // assinatura PNG: é imagem de verdade, não um arquivo vazio
-      expect(readFileSync(arquivo).subarray(1, 4).toString()).toBe("PNG")
+    for (const video of Object.values(VIDEOS)) {
+      const nome = path.basename(video.base)
+      const capa = path.join(pasta, nome + ".png")
+      expect(statSync(capa).size, nome + ".png").toBeLessThan(250 * 1024)
+      expect(readFileSync(capa).subarray(1, 4).toString()).toBe("PNG")
+      expect(statSync(path.join(pasta, nome + ".webm")).size, nome + ".webm").toBeLessThan(600 * 1024)
+      expect(statSync(path.join(pasta, nome + ".mp4")).size, nome + ".mp4").toBeLessThan(600 * 1024)
+      expect(HTML).toContain('data-video="' + video.base + '"')
+      expect(HTML).toContain('poster="' + video.base + '.png"')
     }
-    // next/image serve pelo otimizador: o caminho vai codificado dentro de /_next/image?url=...
-    for (const foto of Object.values(PRINTS)) expect(HTML).toContain(encodeURIComponent(foto.src))
+    const videos = [...HTML.matchAll(/<video\b[^>]*>/g)].map((m) => m[0])
+    expect(videos).toHaveLength(4)
+    for (const v of videos) {
+      expect(v, v).toMatch(/\swidth="\d+"/)
+      expect(v, v).toMatch(/\sheight="\d+"/)
+      expect(v, v).toContain("muted")
+      expect(v, v).toContain("loop")
+      expect(v.toLowerCase(), v).toContain("playsinline")
+    }
     const imagens = [...HTML.matchAll(/<img\b[^>]*>/g)].map((m) => m[0])
-    expect(imagens.length).toBeGreaterThanOrEqual(4)
     for (const img of imagens) {
       expect(img, img).toMatch(/\swidth="\d+"/)
       expect(img, img).toMatch(/\sheight="\d+"/)
+    }
+    // os 12 ícones animados existem e são Lottie válidos
+    for (const nome of ["modulo-caixa", "modulo-funis", "modulo-contatos", "modulo-agenda", "modulo-campanhas", "modulo-automacoes", "modulo-catalogo", "modulo-relatorios", "virada-01", "virada-02", "virada-03", "virada-04"]) {
+      const json = JSON.parse(readFileSync(path.join(pasta, "icones", nome + ".json"), "utf-8"))
+      expect(json.layers?.length, nome).toBeGreaterThan(0)
     }
   })
 })

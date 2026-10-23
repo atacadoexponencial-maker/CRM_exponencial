@@ -2,6 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Rotas que não exigem sessão. O porteiro nem consulta o Auth nelas.
+// (B24, 23/10: o matcher lá embaixo também libera .json, .webm e .mp4, os vídeos e
+// ícones animados da landing em public/landing.)
 const PREFIXOS_PUBLICOS = [
   '/login',
   '/cadastro',
@@ -91,6 +93,6 @@ export const config = {
   // Fora do porteiro: rotas de API (webhooks e crons validam a si mesmas),
   // arquivos do Next, fontes, favicon e qualquer arquivo estático por extensão.
   matcher: [
-    '/((?!api/|_next/static|_next/image|fonts/|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|ttf|css|js|map|txt|xml|webmanifest)$).*)',
+    '/((?!api/|_next/static|_next/image|fonts/|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|ttf|css|js|map|txt|xml|webmanifest|json|webm|mp4)$).*)',
   ],
 }

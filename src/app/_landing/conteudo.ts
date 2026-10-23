@@ -126,10 +126,27 @@ export const BOTAO_DEMONSTRACAO = "Solicitar demonstração"
 export const BOTAO_ENTRAR = "Entrar"
 export const LINK_VER_COMO_FUNCIONA = "Ver como funciona"
 
-// Prints reais da empresa de teste, tirados a 1440 px no tema claro (CA-B24-12).
-export const PRINTS = {
-  caixaDeEntrada: { src: "/landing/caixa-de-entrada.png", alt: "Caixa de entrada do crmatacado exp com as conversas do time", largura: 1440, altura: 900 },
-  funil: { src: "/landing/funil.png", alt: "Funil de Entrada do crmatacado exp com os cards por etapa", largura: 1440, altura: 860 },
-  catalogo: { src: "/landing/catalogo.png", alt: "Catálogo de produtos do crmatacado exp", largura: 1440, altura: 860 },
-  conexao: { src: "/landing/conexao.png", alt: "Tela de conexão do número no crmatacado exp", largura: 1440, altura: 860 },
+// Vídeos das telas (B24, 23/10): recriações animadas das telas do CRM, em loop e sem
+// som, produzidas a partir dos prints da empresa de teste. A capa (PNG do primeiro
+// quadro) aparece até o vídeo carregar e é o que fica com "reduzir movimento".
+export const VIDEOS = {
+  caixaDeEntrada: { base: "/landing/hero-caixa-de-entrada", alt: "Caixa de entrada do crmatacado exp: uma conversa chega, recebe a etiqueta Interessado e é respondida", largura: 1440, altura: 900 },
+  funil: { base: "/landing/funil", alt: "Funil de Entrada do crmatacado exp: um card é arrastado de Lead para Sondagem", largura: 1440, altura: 860 },
+  catalogo: { base: "/landing/catalogo", alt: "Catálogo do crmatacado exp: um produto novo é cadastrado e entra na lista", largura: 1440, altura: 860 },
+  conexao: { base: "/landing/conexao", alt: "Tela de conexão do crmatacado exp: o número é conectado pela janela oficial e aparece como Conectado", largura: 1440, altura: 860 },
+} as const
+
+// Ícones animados (Lottie) dos módulos e dos passos da virada.
+export const ICONES_LOTTIE = {
+  modulos: {
+    inbox: "/landing/icones/modulo-caixa.json",
+    funil: "/landing/icones/modulo-funis.json",
+    contatos: "/landing/icones/modulo-contatos.json",
+    agenda: "/landing/icones/modulo-agenda.json",
+    campanhas: "/landing/icones/modulo-campanhas.json",
+    automacoes: "/landing/icones/modulo-automacoes.json",
+    catalogo: "/landing/icones/modulo-catalogo.json",
+    relatorios: "/landing/icones/modulo-relatorios.json",
+  },
+  virada: ["/landing/icones/virada-01.json", "/landing/icones/virada-02.json", "/landing/icones/virada-03.json", "/landing/icones/virada-04.json"],
 } as const
