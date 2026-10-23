@@ -29,6 +29,7 @@ export function FunilPersonalizado({ funil, cards, papel, atendentes, funis }: F
   const [filtroAberto, setFiltroAberto] = useState(false)
   const [cardSelecionado, setCardSelecionado] = useState<CardDoFunil | null>(null)
   const [modalAberto, setModalAberto] = useState(false)
+  const [etapaDoMais, setEtapaDoMais] = useState<{ id: string; label: string } | null>(null)
   const [movendo, setMovendo] = useState(false)
   const [erroMover, setErroMover] = useState<string | null>(null)
 
@@ -69,6 +70,15 @@ export function FunilPersonalizado({ funil, cards, papel, atendentes, funis }: F
           funilNome={funil.nome}
           onSucesso={() => { setModalAberto(false); router.refresh() }}
           onFechar={() => setModalAberto(false)}
+        />
+      )}
+      {etapaDoMais && (
+        <ModalAdicionarContato
+          funilId={funil.id}
+          funilNome={funil.nome}
+          etapa={etapaDoMais}
+          onSucesso={() => { setEtapaDoMais(null); router.refresh() }}
+          onFechar={() => setEtapaDoMais(null)}
         />
       )}
       {(movendo || erroMover) && (
@@ -140,6 +150,7 @@ export function FunilPersonalizado({ funil, cards, papel, atendentes, funis }: F
               cards={cardsFiltrados.filter((c) => c.etapa === etapa.id)}
               onCardClick={(card) => setCardSelecionado(card as CardDoFunil)}
               onCardDrop={handleMoverCard}
+              onAdicionar={papel !== "atendente" ? () => setEtapaDoMais({ id: etapa.id, label: etapa.label }) : undefined}
             />
           ))}
         </div>

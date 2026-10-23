@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle, Plus } from "lucide-react"
 import { CardLeadItem } from "./card-lead"
 import { cn } from "@/lib/utils"
 import { resumoDaColuna } from "@/lib/card-parado"
@@ -34,9 +34,11 @@ interface ColunaKanbanProps {
   mensagemVazia?: string
   onCardClick?: (card: CardQualquer) => void
   onCardDrop?: (cardId: string, deEtapa: string, paraEtapa: string) => void
+  /** "+" no topo da coluna: cria o card direto nesta etapa. Sem ele, a coluna não tem o botão. */
+  onAdicionar?: () => void
 }
 
-export function ColunaKanban({ titulo, etapaId, cards, alertaVisual, cor, destaque, mensagemVazia = "Nenhum lead nesta etapa", onCardClick, onCardDrop }: ColunaKanbanProps) {
+export function ColunaKanban({ titulo, etapaId, cards, alertaVisual, cor, destaque, mensagemVazia = "Nenhum lead nesta etapa", onCardClick, onCardDrop, onAdicionar }: ColunaKanbanProps) {
   const [isDragOver, setIsDragOver] = useState(false)
   const estilo = alertaVisual ? TRACO_COR.vermelho : cor && ehCorPronta(cor) ? TRACO_COR[cor] : null
   // B41-01: cor própria pinta o título da coluna; o texto fica preto ou branco, o que
@@ -77,7 +79,23 @@ export function ColunaKanban({ titulo, etapaId, cards, alertaVisual, cor, destaq
             {alertaVisual && <AlertTriangle className="size-3.5 shrink-0" />}
             {titulo}
           </span>
-          <span className={cn("numero text-xs", !propria && "text-muted-foreground")} data-quantidade>{quantidade}</span>
+          <span className="flex items-center gap-1.5">
+            <span className={cn("numero text-xs", !propria && "text-muted-foreground")} data-quantidade>{quantidade}</span>
+            {onAdicionar && (
+              <button
+                type="button"
+                aria-label={`Adicionar card em ${titulo}`}
+                title={`Adicionar card em ${titulo}`}
+                onClick={onAdicionar}
+                className={cn(
+                  "inline-flex size-5 items-center justify-center rounded transition-colors",
+                  propria ? "hover:bg-black/10" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <Plus className="size-3.5" />
+              </button>
+            )}
+          </span>
         </span>
         <span className={cn("numero text-xs", !propria && "text-muted-foreground")} data-soma={soma}>{soma > 0 ? moeda(soma) : "—"}</span>
       </header>

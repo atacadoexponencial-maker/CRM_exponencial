@@ -10,6 +10,7 @@ import { ColunaKanban } from "./coluna-kanban"
 import { CabecalhoDoPipeline } from "./cabecalho-do-pipeline"
 import { PainelCard } from "./painel-card"
 import { ModalNovoLead } from "./modal-novo-lead"
+import { ModalAdicionarContato } from "./modal-adicionar-contato"
 import { ETAPAS_ENTRADA, type CardLead } from "../mock-pipeline"
 import { moverCard } from "../actions"
 
@@ -28,6 +29,8 @@ export function FunilEntrada({ cards, papel, atendentes, funis = [] }: FunilEntr
   const [filtroAberto, setFiltroAberto] = useState(false)
   const [cardSelecionado, setCardSelecionado] = useState<CardLead | null>(null)
   const [modalAberto, setModalAberto] = useState(false)
+  // "+" da coluna: a etapa onde o card vai nascer
+  const [etapaDoMais, setEtapaDoMais] = useState<{ id: string; label: string } | null>(null)
   // QA M27 (06/10): mover levava segundos sem nada na tela, e o erro era engolido.
   const [movendo, setMovendo] = useState(false)
   const [erroMover, setErroMover] = useState<string | null>(null)
@@ -66,6 +69,15 @@ export function FunilEntrada({ cards, papel, atendentes, funis = [] }: FunilEntr
         <ModalNovoLead
           onSucesso={() => { setModalAberto(false); router.refresh() }}
           onFechar={() => setModalAberto(false)}
+        />
+      )}
+      {etapaDoMais && (
+        <ModalAdicionarContato
+          funilId="entrada"
+          funilNome="Funil de Entrada"
+          etapa={etapaDoMais}
+          onSucesso={() => { setEtapaDoMais(null); router.refresh() }}
+          onFechar={() => setEtapaDoMais(null)}
         />
       )}
       {(movendo || erroMover) && (
@@ -170,6 +182,7 @@ export function FunilEntrada({ cards, papel, atendentes, funis = [] }: FunilEntr
                 destaque={etapa.id === "ganho"}
                 onCardClick={(card) => setCardSelecionado(card as CardLead)}
                 onCardDrop={handleMoverCard}
+                onAdicionar={papel !== "atendente" && etapa.id !== "ganho" && etapa.id !== "perdido" ? () => setEtapaDoMais(etapa) : undefined}
               />
             )
           })}

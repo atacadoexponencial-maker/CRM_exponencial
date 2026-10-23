@@ -3,17 +3,20 @@
 import { useEffect, useState } from "react"
 import { Search, X } from "lucide-react"
 import { formatarNumero } from "@/lib/whatsapp"
-import { buscarContatosParaFunil, adicionarContatoAoFunil } from "../actions"
+import { buscarContatosParaFunil, adicionarContatoAoFunil, criarCardNaEtapa } from "../actions"
 
 interface ModalAdicionarContatoProps {
+  /** "entrada" ou o id do funil da empresa. */
   funilId: string
   funilNome: string
+  /** "+" da coluna: o card nasce nesta etapa, e dá para criar o contato pelo telefone. */
+  etapa?: { id: string; label: string }
   onSucesso: () => void
   onFechar: () => void
 }
 
-/** B41-01: escolhe um contato da empresa e cria o card dele na primeira etapa do funil. */
-export function ModalAdicionarContato({ funilId, funilNome, onSucesso, onFechar }: ModalAdicionarContatoProps) {
+/** B41-01: escolhe um contato da empresa e cria o card dele na primeira etapa do funil (ou, pelo "+", na etapa da coluna). */
+export function ModalAdicionarContato({ funilId, funilNome, etapa, onSucesso, onFechar }: ModalAdicionarContatoProps) {
   const [termo, setTermo] = useState("")
   const [contatos, setContatos] = useState<Array<{ id: string; nome: string; telefone: string }>>([])
   const [buscando, setBuscando] = useState(false)
@@ -32,10 +35,14 @@ export function ModalAdicionarContato({ funilId, funilNome, onSucesso, onFechar 
     return () => { ativo = false; clearTimeout(t) }
   }, [termo])
 
-  function adicionar(contactId: string) {
+  // Com a etapa, o "+": dá para criar o contato pelo número quando ele não aparece na busca.
+  const digitos = termo.replace(/\D/g, "")
+  const podeCriar = !!etapa && digitos.length >= 10 && !contatos.some((c) => c.telefone.replace(/\D/g, "").endsWith(digitos.slice(-8)))
+
+  function executar(chave: string, acao: () => Promise<{ erro?: string }>) {
     setErro(null)
-    setAdicionando(contactId)
-    adicionarContatoAoFunil(funilId, contactId)
+    setAdicionando(chave)
+    acao()
       .then((r) => {
         if (r.erro) { setErro(r.erro); return }
         onSucesso()
@@ -44,16 +51,20 @@ export function ModalAdicionarContato({ funilId, funilNome, onSucesso, onFechar 
       .finally(() => setAdicionando(null))
   }
 
+  function adicionar(contactId: string) {
+    executar(contactId, () => (etapa ? criarCardNaEtapa(funilId, etapa.id, { contactId }) : adicionarContatoAoFunil(funilId, contactId)))
+  }
+
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/50" onClick={onFechar} />
       <div
         role="dialog"
-        aria-label={`Adicionar contato a ${funilNome}`}
+        aria-label={etapa ? `Adicionar card em ${etapa.label}` : `Adicionar contato a ${funilNome}`}
         className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card p-6 shadow-xl"
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Adicionar contato a {funilNome}</h2>
+          <h2 className="text-sm font-semibold">{etapa ? `Adicionar card em ${etapa.label} · ${funilNome}` : `Adicionar contato a ${funilNome}`}</h2>
           <button type="button" onClick={onFechar} aria-label="Fechar" className="text-muted-foreground transition-colors hover:text-foreground">
             <X className="size-4" />
           </button>
@@ -85,10 +96,21 @@ export function ModalAdicionarContato({ funilId, funilNome, onSucesso, onFechar 
               </button>
             </li>
           ))}
-          {!buscando && contatos.length === 0 && (
+          {!buscando && contatos.length === 0 && !podeCriar && (
             <li className="py-4 text-center text-xs text-muted-foreground">Nenhum contato encontrado</li>
           )}
         </ul>
+
+        {podeCriar && etapa && (
+          <button
+            type="button"
+            disabled={adicionando !== null}
+            onClick={() => executar("novo", () => criarCardNaEtapa(funilId, etapa.id, { telefone: termo }))}
+            className="mt-2 w-full rounded-md border border-dashed border-border px-3 py-2 text-left text-sm transition-colors hover:bg-muted disabled:opacity-50"
+          >
+            {adicionando === "novo" ? "Criando..." : `Criar contato com o número ${termo.trim()}`}
+          </button>
+        )}
 
         {erro && <p role="alert" className="mt-3 text-xs text-destructive">{erro}</p>}
       </div>

@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, MessageSquare, ChevronDown, Phone, Clock, Tag, FileText, History, Zap, Trash2 } from "lucide-react"
+import { X, MessageSquare, ChevronDown, Phone, Clock, Tag, FileText, History, Zap, Trash2, UserRound } from "lucide-react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA, type CardLead, type CardCliente, type CardDoFunil, type EtapaDoFunil, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
@@ -272,6 +273,15 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
               <MessageSquare className="size-3.5" />
               Abrir conversa
             </button>
+            {card.contactId && (
+              <Link
+                href={`/contatos/${card.contactId}`}
+                className="w-full h-8 flex items-center justify-center gap-2 text-sm rounded-lg border border-input transition-colors hover:bg-muted text-muted-foreground hover:text-foreground"
+              >
+                <UserRound className="size-3.5" />
+                Abrir ficha completa
+              </Link>
+            )}
             <button
               disabled={!card.contactId}
               onClick={() => { if (card.contactId) setSequenciaAberta(true) }}

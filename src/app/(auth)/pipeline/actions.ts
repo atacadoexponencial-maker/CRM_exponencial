@@ -671,3 +671,99 @@ export async function removerCardDoFunil(cardId: string): Promise<{ erro?: strin
   if (!data) return { erro: "Card não encontrado" }
   return {}
 }
+
+// ---------------------------------------------------------------------------
+// "+" na etapa (pedido dela no preview da B41, 23/10/2026): o card nasce direto na
+// etapa, em Entrada e nos funis da empresa. Recompra fica sem: lá o card nasce no
+// Ganho. Na Entrada, Ganho e Perdido também ficam sem, porque têm regras próprias
+// (abrir a Recompra, encerrar a venda); nelas o card só chega arrastando.
+// ---------------------------------------------------------------------------
+
+const ETAPAS_SEM_MAIS = ["ganho", "perdido"]
+
+/** A etapa aceita o "+"? Na Entrada, todas menos Ganho e Perdido; no funil da empresa, as dele. */
+async function etapaAceitaMais(funil: string, etapa: string): Promise<boolean> {
+  if (funil === "entrada") return ETAPAS_ENTRADA.some((e) => e.id === etapa) && !ETAPAS_SEM_MAIS.includes(etapa)
+  if (funil === "recompra" || !UUID.test(funil)) return false
+  const { supabase } = await sessaoAtual()
+  const { data } = await supabase.from("funil_etapas").select("id").eq("funil_id", funil).eq("id", etapa).maybeSingle()
+  return !!data
+}
+
+/**
+ * Cria o card do contato direto na etapa. `contato`: o id de um contato da empresa, ou
+ * o telefone (e o nome) para achar ou criar, como o "Novo lead". O card conta como
+ * entrada na etapa: dispara o "card movido" e, na Entrada, as sequências de hoje.
+ */
+export async function criarCardNaEtapa(
+  funil: string,
+  etapa: string,
+  contato: { contactId: string } | { telefone: string; nome?: string | null }
+): Promise<{ erro?: string }> {
+  const { supabase, perfil } = await sessaoAtual()
+  if (!perfil) throw new Error("Usuário não autenticado")
+  if (!["admin", "gerente"].includes(perfil.role)) return { erro: "Sem permissão" }
+  if (!(await etapaAceitaMais(funil, etapa))) return { erro: "Esta etapa não recebe card novo por aqui." }
+  if (funil !== "entrada") {
+    const { data: doFunil } = await supabase.from("funis").select("id").eq("id", funil).eq("workspace_id", perfil.workspace_id).maybeSingle()
+    if (!doFunil) return { erro: "Funil não encontrado" }
+  }
+
+  let contactId: string
+  let telefone: string | null = null
+  if ("contactId" in contato) {
+    const { data } = await supabase
+      .from("contacts")
+      .select("id")
+      .eq("id", contato.contactId)
+      .eq("workspace_id", perfil.workspace_id)
+      .is("excluido_em", null)
+      .maybeSingle()
+    if (!data) return { erro: "Contato não encontrado" }
+    contactId = data.id
+  } else {
+    telefone = normalizarWhatsapp(contato.telefone)
+    if (!telefone) return { erro: TELEFONE_INVALIDO }
+    const achado = await localizarOuCriarContato(supabase, perfil.workspace_id, telefone, contato.nome ?? null)
+    if (!achado) throw new Error("Erro ao criar ou localizar contato")
+    try {
+      await tirarDaLixeira(createServiceClient(), perfil.workspace_id, achado.id)
+    } catch {
+      throw new Error("Erro ao criar ou localizar contato")
+    }
+    contactId = achado.id
+  }
+
+  const jaNoFunil = funil === "entrada" ? JA_NO_FUNIL : JA_NESTE_FUNIL
+  const { data: jaTem } = await supabase
+    .from("pipeline_cards")
+    .select("id")
+    .eq("workspace_id", perfil.workspace_id)
+    .eq("contact_id", contactId)
+    .eq("funil", funil)
+    .limit(1)
+    .maybeSingle()
+  if (jaTem) return { erro: jaNoFunil }
+
+  const dispararClassificacao = await prepararGatilhoDeClassificacao(perfil.workspace_id, contactId, (cards) => [...cards, { funil, etapa }])
+
+  const { data: novo, error } = await supabase
+    .from("pipeline_cards")
+    .insert({ workspace_id: perfil.workspace_id, contact_id: contactId, funil, etapa })
+    .select("id")
+    .single()
+  if (error?.code === "23505") return { erro: jaNoFunil }
+  if (error || !novo) return { erro: "Não foi possível criar o card. Tente de novo." }
+
+  await dispararAutomacoes({ tipo: "card_movido", workspaceId: perfil.workspace_id, contactId, cardId: novo.id, funil, etapa })
+
+  // Na Entrada, as sequências de hoje: a do lead novo e a do catálogo enviado.
+  const sequencia = funil === "entrada" ? (etapa === "lead" ? "card_lead" : etapa === "catalogo_enviado" ? "catalogo_enviado" : null) : null
+  if (sequencia) {
+    await processarGatilhoSequencia({ workspaceId: perfil.workspace_id, contactId, atendenteId: null, gatilho: sequencia })
+  }
+
+  await dispararClassificacao()
+  if (telefone) await buscarEGuardarFotoDoContato({ workspaceId: perfil.workspace_id, contactId, telefone })
+  return {}
+}
