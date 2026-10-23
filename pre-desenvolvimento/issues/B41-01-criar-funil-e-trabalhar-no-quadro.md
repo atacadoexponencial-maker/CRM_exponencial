@@ -166,6 +166,7 @@ Migration nova: `supabase/migrations/20261023000001_funis_personalizados.sql`.
 - **Modificar:** `src/app/(auth)/contatos/actions.ts` — histórico do contato com "Card criado no funil <nome>" e o nome da etapa do funil novo (CA-B41-15).
 - **Modificar:** `src/components/shared/sidebar-nav.tsx` — item "Funis" em Configurações, para o Admin e o Gerente.
 - **Modificar:** `src/integrations/supabase/types.ts` — gerado de novo depois da migration.
+- **Modificar:** `src/test/referencias-entre-empresas-seguranca.integration.test.ts` — o card de Recompra do teste passa a usar uma etapa de Recompra (Onboarding): o banco agora exige que a etapa seja do funil.
 - **Modificar:** `src/test/menu-lateral.test.tsx` — o menu esperado ganha "Funis" em Configurações, para o Admin e o Gerente.
 - **Criar:** `src/test/funis-personalizados.integration.test.ts` — testes no banco de verdade.
 - **Criar:** `src/test/funis-personalizados-tela.test.tsx` — testes da tela.

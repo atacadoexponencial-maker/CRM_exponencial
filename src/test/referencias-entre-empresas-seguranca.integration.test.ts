@@ -77,7 +77,7 @@ const casos: Array<{ nome: string; tabela: string; linha: (a: Empresa, alvo: Emp
   { nome: "mensagem numa conversa de outra empresa", tabela: "messages", linha: (a, alvo) => ({ workspace_id: a.id, conversation_id: alvo.conversa, direction: "recebida", type: "texto", content: "x" }) },
   { nome: "conversa com contato de outra empresa", tabela: "conversations", linha: (a, alvo) => ({ workspace_id: a.id, contact_id: alvo.contato }) },
   { nome: "conversa com responsável de outra empresa", tabela: "conversations", linha: (a, alvo) => ({ workspace_id: a.id, contact_id: a.contato, assigned_to: alvo.usuario }) },
-  { nome: "card com contato de outra empresa", tabela: "pipeline_cards", linha: (a, alvo) => ({ workspace_id: a.id, contact_id: alvo.contato, etapa: "lead", funil: "recompra" }) },
+  { nome: "card com contato de outra empresa", tabela: "pipeline_cards", linha: (a, alvo) => ({ workspace_id: a.id, contact_id: alvo.contato, etapa: "onboarding", funil: "recompra" }) },
   { nome: "nota em card de outra empresa", tabela: "pipeline_card_notes", linha: (a, alvo) => ({ workspace_id: a.id, card_id: alvo.card, texto: "x", autor_id: a.usuario }) },
   { nome: "tag em contato de outra empresa", tabela: "contact_tags", linha: (a, alvo) => ({ workspace_id: a.id, contact_id: alvo.contato, tag: `t${ts}` }) },
   { nome: "sequência de outra empresa para o contato", tabela: "sequence_runs", linha: (a, alvo) => ({ workspace_id: a.id, sequence_id: alvo.sequencia, contact_id: a.contato }) },
