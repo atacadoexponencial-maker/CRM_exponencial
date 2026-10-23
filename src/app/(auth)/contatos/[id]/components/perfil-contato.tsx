@@ -306,6 +306,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
           nome={resumoExclusao.nome}
           telefone={resumoExclusao.telefone}
           funis={resumoExclusao.funis}
+          nomesDosFunis={resumoExclusao.nomesDosFunis}
           conversas={resumoExclusao.conversas}
           mensagens={resumoExclusao.mensagens}
           erro={erroExclusao}
@@ -579,11 +580,11 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
                 {contato.cards.map((card, i) => (
                   <Link
                     key={i}
-                    href={card.funil === "entrada" ? "/pipeline" : "/pipeline/recompra"}
+                    href={card.href ?? (card.funil === "recompra" ? "/pipeline/recompra" : "/pipeline")}
                     className="flex items-center gap-2 text-sm hover:underline"
                   >
                     <span className="text-muted-foreground">
-                      Funil de {card.funil === "entrada" ? "Entrada" : "Recompra"}:
+                      {card.nome ?? `Funil de ${card.funil === "recompra" ? "Recompra" : "Entrada"}`}:
                     </span>
                     <span className="font-medium">{card.etapaLabel}</span>
                   </Link>

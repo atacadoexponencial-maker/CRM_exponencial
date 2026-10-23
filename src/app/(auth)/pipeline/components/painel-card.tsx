@@ -358,6 +358,7 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
               nome={resumoExclusao.nome}
               telefone={resumoExclusao.telefone}
               funis={resumoExclusao.funis}
+              nomesDosFunis={resumoExclusao.nomesDosFunis}
               funilDeOrigem={funil}
               conversas={resumoExclusao.conversas}
               mensagens={resumoExclusao.mensagens}

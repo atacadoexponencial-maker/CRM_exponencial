@@ -401,7 +401,7 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
                 />
                 <Dado rotulo="Atendente" valor={cadastro.atendente} />
                 {cadastro.funis.map((f) => (
-                  <Dado key={f.funil} rotulo={f.funil === "entrada" ? "Funil de Entrada" : "Funil de Recompra"} valor={f.etapa} />
+                  <Dado key={f.funil} rotulo={f.nome ?? (f.funil === "entrada" ? "Funil de Entrada" : "Funil de Recompra")} valor={f.etapa} />
                 ))}
                 {cadastro.funis.length === 0 && <Dado rotulo="Funil" valor={null} />}
               </dl>

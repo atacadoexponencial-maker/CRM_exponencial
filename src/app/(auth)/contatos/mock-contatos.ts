@@ -53,8 +53,12 @@ export interface Compra {
 }
 
 export interface CardPipelineMock {
-  funil: "entrada" | "recompra"
+  /** "entrada", "recompra" ou o id do funil da empresa (B41-03). */
+  funil: string
   etapaLabel: string
+  /** B41-03: nome do funil da empresa e o endereço do quadro. */
+  nome?: string
+  href?: string
 }
 
 export interface EventoTimeline {

@@ -1,6 +1,8 @@
 // B41-01: funis da empresa, além de Entrada e Recompra.
 // O card de funil novo guarda o id do funil em `funil` e o id da etapa em `etapa`.
 
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { Database } from "@/integrations/supabase/types"
 import { corValida, razaoContraste } from "@/app/loja/components/tema"
 import type { CorColuna } from "@/app/(auth)/pipeline/mock-pipeline"
 
@@ -53,4 +55,32 @@ export function corDaEtapaValida(cor: string | null | undefined): boolean {
 export function estiloDaCorPropria(hex: string): { fundo: string; texto: string } {
   const texto = razaoContraste(hex, "#000000") >= razaoContraste(hex, "#ffffff") ? "#000000" : "#ffffff"
   return { fundo: hex, texto }
+}
+
+/**
+ * B41-03: nomes dos funis da empresa e das etapas deles, pelos ids guardados nos cards.
+ * Ids de Entrada e Recompra são ignorados. Uma leitura só; a RLS de quem chama vale.
+ */
+export async function lerNomesDosFunis(
+  supabase: SupabaseClient<Database>,
+  funis: Array<string | null | undefined>
+): Promise<{ funis: Record<string, string>; etapas: Record<string, string> }> {
+  const ids = [...new Set(funis.filter((f): f is string => !!f && !ehFunilFixo(f) && UUID_DO_FUNIL.test(f)))]
+  const nomes = { funis: {} as Record<string, string>, etapas: {} as Record<string, string> }
+  if (ids.length === 0) return nomes
+  const { data } = await supabase.from("funis").select("id, nome, funil_etapas (id, nome)").in("id", ids)
+  for (const f of data ?? []) {
+    nomes.funis[f.id] = f.nome
+    for (const e of f.funil_etapas ?? []) nomes.etapas[e.id] = e.nome
+  }
+  return nomes
+}
+
+const UUID_DO_FUNIL = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** Onde abre o quadro do funil. */
+export function enderecoDoFunil(funil: string): string {
+  if (funil === "entrada") return "/pipeline"
+  if (funil === "recompra") return "/pipeline/recompra"
+  return `/pipeline/funil/${funil}`
 }

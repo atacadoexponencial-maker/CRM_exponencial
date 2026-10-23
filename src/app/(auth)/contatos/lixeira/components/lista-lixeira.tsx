@@ -14,13 +14,15 @@ import {
   DialogPopup,
   DialogTitle,
 } from "@/components/ui/dialog"
-import type { FunilDoCard } from "../../components/dialogo-excluir-contato"
+import { nomeDoFunil, type FunilDoCard } from "../../components/dialogo-excluir-contato"
 
 export interface ItemLixeira {
   id: string
   nome: string | null
   telefone: string
   funis: FunilDoCard[]
+  /** B41-03: nomes dos funis da empresa, pelo id. */
+  nomesDosFunis?: Record<string, string>
   excluidoPor: string
   /** Data e hora da exclusão, já formatada para exibir. */
   excluidoEm: string
@@ -81,7 +83,7 @@ export function ListaLixeira({ itens, onRestaurar, onApagarDeVez }: ListaLixeira
                   ) : (
                     <div className="flex gap-1">
                       {item.funis.map((f) => (
-                        <Badge key={f} variant="secondary">{ROTULO_FUNIL[f]}</Badge>
+                        <Badge key={f} variant="secondary">{ROTULO_FUNIL[f] ?? nomeDoFunil(f, item.nomesDosFunis)}</Badge>
                       ))}
                     </div>
                   )}

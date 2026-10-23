@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/integrations/supabase/server"
+import { lerNomesDosFunis } from "@/lib/funis"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
 import { resumoDeCompras, type ResumoDeCompras } from "@/lib/resumo-de-compras"
@@ -688,8 +689,8 @@ export interface CadastroDoContato {
   icp: string | null
   atendente: string | null
   tags: string[]
-  /** Etapa (rótulo) em cada funil em que há card. */
-  funis: Array<{ funil: "entrada" | "recompra"; etapa: string }>
+  /** Etapa (rótulo) em cada funil em que há card. B41-03: `nome` do funil da empresa. */
+  funis: Array<{ funil: string; etapa: string; nome?: string }>
 }
 
 export interface InfoContato {
@@ -742,6 +743,8 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
   ])
 
   const atendente = Array.isArray(contact.atendente) ? contact.atendente[0] : contact.atendente
+  const nomes = await lerNomesDosFunis(supabase, (cards ?? []).map((c) => c.funil))
+  const ordemDoFunil = (f: string) => (f === "entrada" ? 0 : f === "recompra" ? 1 : 2)
   const cadastro: CadastroDoContato = {
     contactId: contact_id,
     classificacao: contact.classificacao ?? "sem_historico",
@@ -752,8 +755,13 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
     atendente: atendente?.name ?? null,
     tags: (tags ?? []).map((t) => t.tag as string),
     funis: (cards ?? [])
-      .filter((c) => c.funil === "entrada" || c.funil === "recompra")
-      .map((c) => ({ funil: c.funil as "entrada" | "recompra", etapa: ROTULO_DA_ETAPA[c.etapa] ?? c.etapa })),
+      .filter((c) => c.funil === "entrada" || c.funil === "recompra" || nomes.funis[c.funil])
+      .sort((a, b) => ordemDoFunil(a.funil) - ordemDoFunil(b.funil))
+      .map((c) =>
+        c.funil === "entrada" || c.funil === "recompra"
+          ? { funil: c.funil, etapa: ROTULO_DA_ETAPA[c.etapa] ?? c.etapa }
+          : { funil: c.funil, etapa: nomes.etapas[c.etapa] ?? c.etapa, nome: nomes.funis[c.funil] }
+      ),
   }
 
   return { dataPrimeiroContato, cadastro, compras: resumoDeCompras(compras ?? []) }

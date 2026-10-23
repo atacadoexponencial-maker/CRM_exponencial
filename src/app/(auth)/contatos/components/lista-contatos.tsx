@@ -505,6 +505,7 @@ export function ListaContatos({
           nome={resumoExclusao.nome}
           telefone={resumoExclusao.telefone}
           funis={resumoExclusao.funis}
+          nomesDosFunis={resumoExclusao.nomesDosFunis}
           conversas={resumoExclusao.conversas}
           mensagens={resumoExclusao.mensagens}
           erro={erroExclusao}

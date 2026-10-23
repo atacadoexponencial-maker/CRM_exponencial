@@ -14,11 +14,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-export type FunilDoCard = "entrada" | "recompra"
+/** "entrada", "recompra" ou o id do funil da empresa (B41-03). */
+export type FunilDoCard = string
 
-const NOME_FUNIL: Record<FunilDoCard, string> = {
+const NOME_FUNIL: Record<string, string> = {
   entrada: "Funil de Entrada",
   recompra: "Funil de Recompra",
+}
+
+/** Nome do funil para o aviso: os fixos pelo nome de sempre; os da empresa, pelo nome dado. */
+export function nomeDoFunil(funil: FunilDoCard, nomes?: Record<string, string>): string {
+  return NOME_FUNIL[funil] ?? nomes?.[funil] ?? "funil"
 }
 
 interface DialogoExcluirContatoProps {
@@ -28,6 +34,8 @@ interface DialogoExcluirContatoProps {
   telefone: string
   /** Funis em que o contato tem card. */
   funis: FunilDoCard[]
+  /** B41-03: nomes dos funis da empresa, pelo id. */
+  nomesDosFunis?: Record<string, string>
   /** Funil do card de onde a exclusão partiu, quando vem do pipeline. */
   funilDeOrigem?: FunilDoCard
   conversas: number
@@ -47,6 +55,7 @@ export function DialogoExcluirContato({
   nome,
   telefone,
   funis,
+  nomesDosFunis,
   funilDeOrigem,
   conversas,
   mensagens,
@@ -54,10 +63,10 @@ export function DialogoExcluirContato({
   excluindo = false,
   onConfirmar,
 }: DialogoExcluirContatoProps) {
-  const outroFunil = funilDeOrigem ? funis.find((f) => f !== funilDeOrigem) : undefined
+  const outrosFunis = funilDeOrigem ? funis.filter((f) => f !== funilDeOrigem) : []
 
   const vaiJunto: string[] = []
-  for (const f of funis) vaiJunto.push(`O card no ${NOME_FUNIL[f]}`)
+  for (const f of funis) vaiJunto.push(`O card no ${nomeDoFunil(f, nomesDosFunis)}`)
   if (conversas > 0) {
     vaiJunto.push(
       `${plural(conversas, "conversa", "conversas")} do WhatsApp, com ${plural(mensagens, "mensagem", "mensagens")}`
@@ -73,9 +82,11 @@ export function DialogoExcluirContato({
           pode ser restaurado nesse prazo.
         </DialogDescription>
 
-        {outroFunil && (
+        {outrosFunis.length > 0 && (
           <p className="mb-3 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm">
-            O card no {NOME_FUNIL[outroFunil]} também vai para a lixeira.
+            {outrosFunis.length === 1
+              ? `O card no ${nomeDoFunil(outrosFunis[0], nomesDosFunis)} também vai para a lixeira.`
+              : `Os cards em ${outrosFunis.map((f) => nomeDoFunil(f, nomesDosFunis)).join(", ")} também vão para a lixeira.`}
           </p>
         )}
 

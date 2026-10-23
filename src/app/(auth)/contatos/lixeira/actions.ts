@@ -16,6 +16,13 @@ import { transmitirContatoExcluido } from "@/lib/whatsapp/realtime"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
 import { apagarDaLixeira, PRAZO_LIXEIRA_DIAS, tirarDaLixeira } from "@/lib/lixeira"
 import type { FunilDoCard } from "../components/dialogo-excluir-contato"
+import { lerNomesDosFunis } from "@/lib/funis"
+
+/** Entrada, Recompra e depois os funis da empresa. */
+function ordenarFunis(funis: FunilDoCard[]): FunilDoCard[] {
+  const peso = (f: string) => (f === "entrada" ? 0 : f === "recompra" ? 1 : 2)
+  return [...funis].sort((a, b) => peso(a) - peso(b))
+}
 import type { ItemLixeira } from "./components/lista-lixeira"
 
 type Supabase = Awaited<ReturnType<typeof sessaoAtual>>["supabase"]
@@ -25,6 +32,8 @@ export type ResumoExclusao = {
   nome: string | null
   telefone: string
   funis: FunilDoCard[]
+  /** B41-03: nomes dos funis da empresa, pelo id. */
+  nomesDosFunis: Record<string, string>
   conversas: number
   mensagens: number
 }
@@ -95,12 +104,13 @@ async function montarResumo(
       .in("conversation_id", idsConversas)
     mensagens = count ?? 0
   }
-  const funis = Array.from(new Set((cards ?? []).map((c) => c.funil as FunilDoCard)))
+  const funis = ordenarFunis(Array.from(new Set((cards ?? []).map((c) => c.funil as FunilDoCard))))
   return {
     contactId: contato.id,
     nome: contato.name,
     telefone: contato.phone_number,
     funis,
+    nomesDosFunis: (await lerNomesDosFunis(svc, funis)).funis,
     conversas: idsConversas.length,
     mensagens,
   }
@@ -132,8 +142,7 @@ async function mandarParaLixeira(workspaceId: string, userId: string, contactId:
     // Exclusão gravada; a caixa de entrada dos outros atualiza no próximo carregamento.
   }
 
-  revalidatePath("/pipeline")
-  revalidatePath("/pipeline/recompra")
+  revalidatePath("/pipeline", "layout")
   revalidatePath("/contatos")
   revalidatePath("/chat")
   return true
@@ -285,6 +294,7 @@ export async function listarLixeira(): Promise<ItemLixeira[]> {
     svc.from("pipeline_cards").select("contact_id, funil").in("contact_id", ids),
   ])
 
+  const nomes = await lerNomesDosFunis(svc, (cards ?? []).map((c) => c.funil))
   const funisPorContato = new Map<string, Set<string>>()
   for (const c of cards ?? []) {
     const atual = funisPorContato.get(c.contact_id) ?? new Set<string>()
@@ -299,7 +309,8 @@ export async function listarLixeira(): Promise<ItemLixeira[]> {
       id: c.id,
       nome: c.name,
       telefone: c.phone_number,
-      funis: (["entrada", "recompra"] as FunilDoCard[]).filter((f) => funisPorContato.get(c.id)?.has(f)),
+      funis: ordenarFunis([...(funisPorContato.get(c.id) ?? [])]),
+      nomesDosFunis: nomes.funis,
       excluidoPor: excluidor?.name ?? EXCLUIDOR_DESCONHECIDO,
       excluidoEm: quando(excluidoEm),
       diasRestantes: diasRestantes(excluidoEm),
@@ -332,6 +343,8 @@ function revalidarTudo() {
   for (const p of ["/contatos", "/contatos/lixeira", "/pipeline", "/pipeline/recompra", "/chat", "/agenda", "/dashboard"]) {
     revalidatePath(p)
   }
+  // B41-03: os quadros dos funis da empresa também.
+  revalidatePath("/pipeline", "layout")
 }
 
 export async function restaurarContato(contactId: string): Promise<{ ok: true } | { erro: string }> {

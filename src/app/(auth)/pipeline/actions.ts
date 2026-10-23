@@ -11,6 +11,7 @@ import { tirarDaLixeira } from "@/lib/lixeira"
 import { normalizarWhatsapp, TELEFONE_INVALIDO } from "@/lib/telefone"
 import { type CardLead, type EtapaEntrada, type CardCliente, type EtapaRecompra, type HistoricoEtapa, type NotaInterna, type FunilDaEmpresa, type CardDoFunil, ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "./mock-pipeline"
 import { escaparLike } from "@/lib/escapar-like"
+import { lerNomesDosFunis } from "@/lib/funis"
 import { atendenteDoContato, registrarMudancasDeCarteira } from "@/lib/carteira"
 import { buscarConfigAlertas } from "@/app/(auth)/alertas/actions"
 import { limiteDeParado } from "@/lib/card-parado"
@@ -420,13 +421,8 @@ export async function buscarDadosPainel(cardId: string): Promise<{ historico: Hi
   ])
 
   // B41-01: no funil da empresa, a etapa é o id dela; o nome vem de funil_etapas.
-  const idsDeEtapasNovas = [...new Set((historicoResult.data ?? []).flatMap((row) => [row.de_etapa, row.para_etapa]))]
-    .filter((e): e is string => !!e && !ROTULO_DA_ETAPA[e] && UUID.test(e))
-  const nomesDasEtapasNovas: Record<string, string> = {}
-  if (idsDeEtapasNovas.length > 0) {
-    const { data: etapasNovas } = await supabase.from("funil_etapas").select("id, nome").in("id", idsDeEtapasNovas)
-    for (const e of etapasNovas ?? []) nomesDasEtapasNovas[e.id] = e.nome
-  }
+  const { data: doCard } = await supabase.from("pipeline_cards").select("funil").eq("id", cardId).maybeSingle()
+  const nomesDasEtapasNovas = (await lerNomesDosFunis(supabase, [doCard?.funil])).etapas
   const rotulo = (etapa: string | null | undefined) => (etapa && nomesDasEtapasNovas[etapa]) || rotuloDaEtapa(etapa)
 
   const historico: HistoricoEtapa[] = (historicoResult.data ?? []).map((row) => ({

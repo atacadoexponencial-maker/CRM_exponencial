@@ -1,5 +1,6 @@
 "use server"
 
+import { enderecoDoFunil, lerNomesDosFunis } from "@/lib/funis"
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import type { Contato, ContatoPerfil, ClassificacaoContato, TipoContato, ICP } from "./mock-contatos"
@@ -245,13 +246,22 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawCompras = (comprasData ?? []) as Array<any>
 
-  const cards = rawCards.map((card) => ({
-    funil: card.funil as "entrada" | "recompra",
-    etapaLabel:
-      card.funil === "recompra"
-        ? (ETAPA_RECOMPRA_LABEL[card.etapa] ?? card.etapa)
-        : (ETAPA_ENTRADA_LABEL[card.etapa] ?? card.etapa),
-  }))
+  // B41-01/B41-03: card de funil da empresa guarda o id do funil e o id da etapa.
+  const nomesNovos = await lerNomesDosFunis(supabase, rawCards.map((card) => card.funil as string))
+  const nomesDosFunisNovos = nomesNovos.funis
+  const nomesDasEtapasNovas = nomesNovos.etapas
+
+  const cards = rawCards
+    .filter((card) => card.funil === "entrada" || card.funil === "recompra" || nomesDosFunisNovos[card.funil])
+    .map((card) =>
+      card.funil === "entrada" || card.funil === "recompra"
+        ? {
+            funil: card.funil as string,
+            etapaLabel: card.funil === "recompra" ? (ETAPA_RECOMPRA_LABEL[card.etapa] ?? card.etapa) : (ETAPA_ENTRADA_LABEL[card.etapa] ?? card.etapa),
+            href: enderecoDoFunil(card.funil),
+          }
+        : { funil: card.funil as string, etapaLabel: nomesDasEtapasNovas[card.etapa] ?? card.etapa, nome: nomesDosFunisNovos[card.funil], href: enderecoDoFunil(card.funil) }
+    )
 
   // Segunda rodada: histórico e notas dos cards
   const cardIds = rawCards.map((card) => card.id as string)
@@ -284,18 +294,6 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
     })
   }
 
-  // B41-01: card de funil da empresa guarda o id do funil e o id da etapa.
-  const idsDeFunisNovos = [...new Set(rawCards.map((card) => card.funil as string).filter((f) => f !== "entrada" && f !== "recompra"))]
-  const nomesDosFunisNovos: Record<string, string> = {}
-  const nomesDasEtapasNovas: Record<string, string> = {}
-  if (idsDeFunisNovos.length > 0) {
-    const { data: funisNovos } = await supabase.from("funis").select("id, nome, funil_etapas (id, nome)").in("id", idsDeFunisNovos)
-    for (const f of funisNovos ?? []) {
-      nomesDosFunisNovos[f.id] = f.nome
-      for (const e of f.funil_etapas ?? []) nomesDasEtapasNovas[e.id] = e.nome
-    }
-  }
-
   for (const card of rawCards) {
     const funilNovo = card.funil !== "entrada" && card.funil !== "recompra"
     const funilLabel = card.funil === "recompra" ? "Recompra" : "Entrada"
@@ -320,8 +318,8 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
   for (const h of (historyData ?? [])) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const hh = h as any
-    const de = hh.de_etapa ? (ETAPA_LABEL_ALL[hh.de_etapa] ?? hh.de_etapa) : null
-    const para = ETAPA_LABEL_ALL[hh.para_etapa] ?? hh.para_etapa
+    const de = hh.de_etapa ? (ETAPA_LABEL_ALL[hh.de_etapa] ?? nomesDasEtapasNovas[hh.de_etapa] ?? hh.de_etapa) : null
+    const para = ETAPA_LABEL_ALL[hh.para_etapa] ?? nomesDasEtapasNovas[hh.para_etapa] ?? hh.para_etapa
     eventos.push({
       id: hh.id,
       created_at: hh.created_at,
