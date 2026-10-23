@@ -1,8 +1,22 @@
-import { redirect } from "next/navigation"
+import type { Metadata } from "next"
+import { Landing } from "./_landing/landing"
+import { DESCRICAO_ABA, PRINTS, TITULO_ABA } from "./_landing/conteudo"
 
-// QA M25 (06/10): a raiz mostrava a página padrão do Next.js, com links da Vercel.
-// A landing (B22/B24) fica para depois; até lá, a raiz leva ao login, e quem já
-// está logado segue de lá para o app.
+// B24-01: a raiz é a landing pública do crmatacado exp, o site que a Meta confere na
+// verificação de acesso. Abre sem login e também para quem já está logado; o porteiro
+// (src/middleware.ts) já trata "/" como rota pública.
+export const metadata: Metadata = {
+  title: { absolute: TITULO_ABA },
+  description: DESCRICAO_ABA,
+  openGraph: {
+    title: TITULO_ABA,
+    description: DESCRICAO_ABA,
+    type: "website",
+    locale: "pt_BR",
+    images: [{ url: PRINTS.caixaDeEntrada.src, width: PRINTS.caixaDeEntrada.largura, height: PRINTS.caixaDeEntrada.altura, alt: PRINTS.caixaDeEntrada.alt }],
+  },
+}
+
 export default function Home() {
-  redirect("/login")
+  return <Landing />
 }

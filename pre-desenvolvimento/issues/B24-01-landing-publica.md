@@ -44,3 +44,84 @@ Abrir `crm-exponencial.vercel.app` (logado ou não) mostra a landing inteira, co
 | ID | Pergunta | Status | Resposta |
 |---|---|---|---|
 | PER-B24-01 | O rótulo pequeno acima do título e os selos de confiança (API Oficial, dados isolados, suporte humano) ficam como estão ou ela quer outros? | respondida | Marcelle, 23/10/2026: ficam os três selos e o rótulo "CRM para atacado" |
+
+## Cenários
+
+### Happy Path
+1. Visitante abre `/` sem login. O porteiro já trata `/` como pública; a página deixa de redirecionar e renderiza a landing dentro de `TemaClaro`, sempre clara.
+2. Cabeçalho fixo: `LogoDaMarca` (grafite), âncoras Módulos / Como funciona / Para quem / Perguntas, link Entrar (`/login`) e botão Solicitar demonstração (`https://wa.me/5519981702315?text=...`, nova aba).
+3. Rola pelas seções, na ordem da spec, cada uma com `id` próprio (`modulos`, `como-funciona`, `para-quem`, `perguntas`), e vê os prints reais em `public/landing/`.
+4. Clica em Solicitar demonstração: abre o WhatsApp em nova aba com a mensagem pronta. Clica em Entrar: vai ao `/login`.
+5. Abre uma pergunta da sanfona: a resposta aparece; abre outra: a anterior fecha.
+6. Rodapé com SETE ADS 2 LTDA, CNPJ, endereço, e-mail (mailto), Política, Termos, Entrar e © ano atual.
+
+### Edge Cases
+- Usuário logado abre `/`: vê a landing (nada de redirecionar para o painel). Entrar leva ao `/login`, que já manda quem tem sessão para o painel.
+- Celular (360 px): âncoras escondidas, logo + Entrar + botão no cabeçalho; prints empilhados abaixo do texto; nada ultrapassa a largura.
+- Sem JavaScript: a sanfona usa `<details>` nativo, então as perguntas abrem mesmo assim; o "uma por vez" é feito por `name` comum nos `<details>` (comportamento nativo do navegador) e reforçado por um pequeno cliente que fecha os outros.
+- Ano do rodapé vem de `new Date().getFullYear()` no servidor.
+
+### Cenário de Erro
+- Print faltando em `public/landing/`: a imagem quebra na tela. Por isso o teste CA-B24-12 confere que os quatro arquivos existem e são PNG de verdade; as dimensões vêm de `conteudo.ts` e vão em `width`/`height` de cada imagem.
+
+## Prova
+
+| Critério | Prova | Onde | O que confere |
+|---|---|---|---|
+| CA-B24-01 | automática | `src/test/b24-landing.test.tsx` | a página raiz não chama `redirect` e o HTML traz o título de benefício; o porteiro deixa `/` passar sem sessão (teste do `rotaPublica`) |
+| CA-B24-02 | automática | `src/test/b24-landing.test.tsx` | com sessão (cookie do Supabase) o porteiro também deixa `/` passar sem redirecionar, e a página renderiza a landing |
+| CA-B24-03 | automática | `src/test/b24-landing.test.tsx` | cabeçalho e rodapé têm link "Entrar" com `href="/login"` |
+| CA-B24-04 | automática | `src/test/b24-landing.test.tsx` | todo botão "Solicitar demonstração" tem `href` `https://wa.me/5519981702315?text=<mensagem codificada>` e `target="_blank"` |
+| CA-B24-05 | automática | `src/test/b24-landing.test.tsx` | o HTML não contém "Criar conta", "Cadastre-se", "grátis" nem `href="/cadastro"` |
+| CA-B24-06 | automática | `src/test/b24-landing.test.tsx` | os títulos das dez seções aparecem nessa ordem no HTML; há 8 cartões de módulo, 4 passos da conexão e 6 perguntas |
+| CA-B24-07 | automática | `src/test/b24-landing.test.tsx` | o rodapé traz SETE ADS 2 LTDA, 53.756.257/0001-34, Hortolândia, `mailto:atacadoexponencial@gmail.com` e links para `/politica-de-privacidade` e `/termos-de-servico` |
+| CA-B24-08 | automática | `src/test/b24-landing.test.tsx` | o texto não contém "crmatacado exp WhatsApp", "crmatacado exp Meta", "QR Code", "coexist", "preço", "plano", "grátis", e nenhuma imagem tem "meta" ou "whatsapp" no nome/alt |
+| CA-B24-09 | automática | `src/test/b24-landing.test.tsx` | as âncoras do cabeçalho apontam para `#modulos`, `#como-funciona`, `#para-quem`, `#perguntas`, "Ver como funciona" aponta para `#como-funciona`, e existem elementos com esses ids |
+| CA-B24-10 | automática | `src/test/b24-landing.test.tsx` | com a sanfona renderizada, abrir a segunda pergunta fecha a primeira (só um `details` aberto) |
+| CA-B24-11 | automática | `src/test/b24-landing.test.tsx` | `metadata.title` é o título da spec, `description` não vazia e `openGraph.images` aponta para `/landing/...` |
+| CA-B24-12 | automática | `src/test/b24-landing.test.tsx` | em `public/landing/` existem caixa-de-entrada, funil, catalogo e conexao (png ou webp), cada um < 250 KB; toda `<img>` do HTML tem `width` e `height` |
+| CA-B24-13 | manual | roteiro abaixo | no celular, nada corta na lateral e os botões ficam visíveis |
+| CA-B24-14 | manual | roteiro abaixo | a Marcelle aprova o visual no preview |
+
+### Roteiro manual — CA-B24-13
+1. Abrir o preview no celular (ou no navegador com 360 px de largura).
+2. Rolar do topo ao fim.
+3. Conferir: sem rolagem horizontal, nenhum texto ou print cortado, cabeçalho com logo, Entrar e Solicitar demonstração visíveis e clicáveis.
+
+### Roteiro manual — CA-B24-14
+1. Abrir o preview da Vercel no computador e no celular.
+2. Conferir tema Caderno (papel, grafite, IBM Plex), prints reais, textos da spec.
+3. Responder por escrito "aprovado" (ou a lista de ajustes).
+
+## Banco de Dados
+
+Não se aplica.
+
+## Arquivos
+
+- **Modificar:** `src/app/page.tsx` — deixa de redirecionar; exporta `metadata` e renderiza a landing.
+- **Criar:** `src/app/_landing/landing.tsx` — a página inteira (servidor): cabeçalho, seções, rodapé, textos e prints.
+- **Criar:** `src/app/_landing/conteudo.ts` — textos da landing (título, dores, passos, módulos, perfis, perguntas, dados da empresa, link do WhatsApp), para a página e o teste lerem a mesma fonte.
+- **Criar:** `src/app/_landing/perguntas.tsx` — sanfona (cliente) com `<details>`, uma aberta por vez.
+- **Criar:** `public/landing/caixa-de-entrada.png` — print do chat da [TESTE] com uma conversa aberta, 1440 px, otimizado com `sharp`.
+- **Criar:** `public/landing/funil.png` — print do Pipeline (Entrada) da [TESTE].
+- **Criar:** `public/landing/catalogo.png` — print do Catálogo da [TESTE].
+- **Criar:** `public/landing/conexao.png` — print de Configurações → WhatsApp da [TESTE].
+- **Criar:** `src/test/b24-landing.test.tsx` — provas automáticas da tabela.
+
+Reutilizados: `TemaClaro` (`src/components/shared/tema-claro.tsx`), `LogoDaMarca` (`src/components/shared/logo-da-marca.tsx`), `buttonVariants` (`src/components/ui/button.tsx`), ícones `lucide-react`, `next/image`, `rotaPublica` do porteiro (`src/middleware.ts`, já libera `/`).
+
+## Dependências Externas
+
+Nenhuma nova. `sharp` já está instalado (usado só no script de otimização dos prints, fora do app).
+
+## Checklist
+
+- [x] Tirar os prints da [TESTE] (chat, funil, catálogo, conexão) a 1440 px no tema claro e otimizar para `public/landing/`
+- [x] `conteudo.ts` com todos os textos da spec e o link do WhatsApp
+- [x] `landing.tsx`: cabeçalho fixo, abertura com selos e print, dor, virada, módulos (8), para quem (4), conexão (4 passos + nota), seus dados, perguntas, chamada final, rodapé
+- [x] `perguntas.tsx`: sanfona uma por vez
+- [x] `page.tsx` com `metadata` (título, descrição, openGraph) e sem redirect
+- [x] Teste `src/test/b24-landing.test.tsx` com CA-B24-01 a 12 no nome
+- [x] Lint, tipos e build passam (build local via webpack; o tipo que falha em cadastro/page.tsx é anterior e não é desta issue)
+- [x] Push do branch `b24-landing` para o preview da Vercel
