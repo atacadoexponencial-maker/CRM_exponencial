@@ -99,7 +99,7 @@ Todos no repositório `whatsapp-gateway`:
 - [x] Rota `/contacts/:phone/photo` com 200/204/400/401/409 e fora do freio
 - [x] Contrato atualizado
 - [x] Testes dos quatro critérios e do download passando; `npm test`, `npm run build`
-- [ ] Publicado na VPS (rotina: fetch, md5, tag da imagem, build, update, health)
+- [x] Publicado na VPS (rotina: fetch, md5, tag da imagem, build, update, health) — 23/10/2026, imagem anterior guardada como `wagw:antes-20261023`
 
 ## Exceções
 
