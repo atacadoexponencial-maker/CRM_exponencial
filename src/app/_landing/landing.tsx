@@ -55,7 +55,7 @@ const ICONES = {
 /** Rótulo pequeno em caixa alta, na fonte mono, que abre cada seção. */
 function Rotulo({ children, claro }: { children: React.ReactNode; claro?: boolean }) {
   return (
-    <p className={cn("font-mono text-[11px] font-medium tracking-[0.18em] uppercase", claro ? "text-primary-foreground/60" : "text-muted-foreground")}>
+    <p className={cn("font-mono text-[14px] font-medium tracking-[0.16em] uppercase", claro ? "text-primary-foreground/75" : "text-foreground/70")}>
       {children}
     </p>
   )
@@ -63,7 +63,7 @@ function Rotulo({ children, claro }: { children: React.ReactNode; claro?: boolea
 
 function Titulo({ children, className, claro }: { children: React.ReactNode; className?: string; claro?: boolean }) {
   return (
-    <h2 className={cn("mt-3 text-[30px] leading-[1.12] font-semibold tracking-tight sm:text-[40px]", claro ? "text-primary-foreground" : "text-foreground", className)}>
+    <h2 className={cn("mt-4 text-[30px] leading-[1.12] font-semibold tracking-tight sm:text-[40px]", claro ? "text-primary-foreground" : "text-foreground", className)}>
       {children}
     </h2>
   )
@@ -170,7 +170,7 @@ export function Landing() {
             <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1fr_1.1fr] lg:py-24">
               <div>
                 <Rotulo>{ABERTURA.rotulo}</Rotulo>
-                <h1 id="titulo-abertura" className="mt-4 text-[36px] leading-[1.08] font-semibold tracking-tight text-foreground sm:text-[48px] lg:text-[54px]">
+                <h1 id="titulo-abertura" className="mt-5 text-[36px] leading-[1.08] font-semibold tracking-tight text-foreground sm:text-[48px] lg:text-[54px]">
                   {ABERTURA.titulo}
                 </h1>
                 <p className="mt-5 max-w-xl text-[19px] leading-relaxed text-muted-foreground sm:text-[21px]">{ABERTURA.subtitulo}</p>
