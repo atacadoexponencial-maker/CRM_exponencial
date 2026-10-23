@@ -177,20 +177,20 @@ describe("tipo e classificação nas condições", () => {
 })
 
 describe("dadoDoContatoValido", () => {
-  it("aceita tipo da lista, nicho, cidade e observações", () => {
+  it("aceita tipo da lista, cidade e observações", () => {
     expect(dadoDoContatoValido("tipo", "lojista")).toBe(true)
-    expect(dadoDoContatoValido("nicho", "Moda praia")).toBe(true)
     expect(dadoDoContatoValido("cidade", "Fortaleza")).toBe(true)
     expect(dadoDoContatoValido("observacoes", "Pediu catálogo")).toBe(true)
   })
 
-  it("recusa classificação, campo inventado, tipo fora da lista, valor vazio e texto longo demais", () => {
+  it("recusa classificação, nicho (B40), campo inventado, tipo fora da lista, valor vazio e texto longo demais", () => {
+    expect(dadoDoContatoValido("nicho", "Moda praia")).toBe(false)
     expect(dadoDoContatoValido("classificacao", "ativo")).toBe(false)
     expect(dadoDoContatoValido("telefone", "999")).toBe(false)
     expect(dadoDoContatoValido("tipo", "atacadista")).toBe(false)
     expect(dadoDoContatoValido("tipo", "toString")).toBe(false)
     expect(dadoDoContatoValido("cidade", "   ")).toBe(false)
-    expect(dadoDoContatoValido("nicho", "x".repeat(101))).toBe(false)
+    expect(dadoDoContatoValido("cidade", "x".repeat(101))).toBe(false)
   })
 })
 

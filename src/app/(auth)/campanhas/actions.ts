@@ -21,7 +21,6 @@ import { calcularClassificacao } from "../contatos/classificacao"
 export type Segmento = {
   classificacoes?: string[]
   tipos?: string[]
-  nichos?: string[]
   cidade?: string
   tags?: string[]
   atendenteId?: string
@@ -119,7 +118,7 @@ async function buscarDestinatariosSegmento(
 
   let query = supabase
     .from("contacts")
-    .select("id, name, phone_number, tipo, nicho, cidade, atendente_id")
+    .select("id, name, phone_number, tipo, cidade, atendente_id")
     .eq("workspace_id", workspaceId)
     .is("excluido_em", null)
 
@@ -128,10 +127,7 @@ async function buscarDestinatariosSegmento(
   if (segmento.atendenteId) query = query.eq("atendente_id", segmento.atendenteId)
 
   const { data: contatos } = await query
-  // QA baixos (06/10): "Moda" e "moda" são o mesmo nicho.
-  const nichos = new Set((segmento.nichos ?? []).map((n) => n.trim().toLowerCase()))
   let lista = (contatos ?? [])
-    .filter((c) => nichos.size === 0 || nichos.has(((c.nicho as string | null) ?? "").trim().toLowerCase()))
     // QA baixos (06/10): telefone que não é um WhatsApp válido não entra no disparo.
     .filter((c) => /^55\d{10,11}$/.test(c.phone_number as string))
     .map((c) => ({
@@ -186,15 +182,13 @@ export async function contarDestinatarios(segmento: Segmento): Promise<{
 }
 
 export async function opcoesSegmentacao(): Promise<{
-  nichos: string[]
   tags: string[]
   atendentes: Array<{ id: string; nome: string }>
 }> {
   const { supabase, perfil } = await perfilGestor()
-  if (!perfil) return { nichos: [], tags: [], atendentes: [] }
+  if (!perfil) return { tags: [], atendentes: [] }
 
-  const [{ data: contatos }, { data: tags }, { data: atendentes }] = await Promise.all([
-    supabase.from("contacts").select("nicho").eq("workspace_id", perfil.workspace_id).is("excluido_em", null).not("nicho", "is", null),
+  const [{ data: tags }, { data: atendentes }] = await Promise.all([
     supabase
       .from("contact_tags")
       .select("tag, contato:contacts!inner(excluido_em)")
@@ -209,14 +203,6 @@ export async function opcoesSegmentacao(): Promise<{
   ])
 
   return {
-    // QA baixos (06/10): um nicho por grafia, sem diferença de maiúscula (fica a primeira).
-    nichos: Array.from(
-      (contatos ?? [])
-        .map((c) => (c.nicho as string | null)?.trim() ?? "")
-        .filter(Boolean)
-        .reduce((m, n) => (m.has(n.toLowerCase()) ? m : m.set(n.toLowerCase(), n)), new Map<string, string>())
-        .values()
-    ).sort((a, b) => a.localeCompare(b, "pt-BR")),
     tags: Array.from(new Set((tags ?? []).map((t) => t.tag as string))).sort(),
     atendentes: (atendentes ?? []).map((a) => ({ id: a.id, nome: a.name })),
   }

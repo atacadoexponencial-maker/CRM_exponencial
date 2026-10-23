@@ -481,7 +481,7 @@ async function cardDoContato({
   return { id: principal?.id ?? null }
 }
 
-/** Tipo, nicho e cidade trocam o valor; observações ganham uma linha no fim. */
+/** Tipo e cidade trocam o valor; observações ganham uma linha no fim. */
 async function alterarDadoDoContato(
   { supabase, gatilho }: ContextoDaExecucao,
   contactId: string,

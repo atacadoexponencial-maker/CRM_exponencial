@@ -16,7 +16,7 @@ import { normalizarTag } from "@/lib/fluxo-automacao"
 import { dispararAutomacoes } from "./fila"
 
 /** Campos que a tela do contato edita e que têm gatilho. A classificação vem dos cards (abaixo). */
-const CAMPOS_EDITAVEIS = ["tipo", "nicho", "cidade"] as const
+const CAMPOS_EDITAVEIS = ["tipo", "cidade"] as const
 type CampoEditavel = (typeof CAMPOS_EDITAVEIS)[number]
 type DadosDoContato = Partial<Record<CampoEditavel, string | null>>
 
@@ -90,7 +90,7 @@ export async function dispararMensagemEnviadaPeloTime(mensagem: {
   await dispararAutomacoes({ tipo: "mensagem_enviada_time", ...mensagem })
 }
 
-/** Um evento por campo que mudou, na ordem tipo, nicho, cidade. */
+/** Um evento por campo que mudou, na ordem tipo, cidade. */
 export async function dispararDadosAlterados(
   workspaceId: string,
   contactId: string,

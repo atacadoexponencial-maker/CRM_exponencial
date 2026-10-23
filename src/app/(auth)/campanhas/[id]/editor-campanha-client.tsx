@@ -46,7 +46,7 @@ const TIPOS = [
 
 interface EditorCampanhaClientProps {
   campanha: CampanhaDetalhe | null
-  opcoes: { nichos: string[]; tags: string[]; atendentes: Array<{ id: string; nome: string }> }
+  opcoes: { tags: string[]; atendentes: Array<{ id: string; nome: string }> }
   /** B7-03: números conectados do workspace, com o canal de cada um. */
   numeros: NumeroParaCampanha[]
 }
@@ -168,7 +168,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
     }
   }, [etapa, numeroOrigem, total])
 
-  function toggleLista(campo: "classificacoes" | "tipos" | "nichos" | "tags", valor: string) {
+  function toggleLista(campo: "classificacoes" | "tipos" | "tags", valor: string) {
     setSegmento((prev) => {
       const atual = new Set(prev[campo] ?? [])
       if (atual.has(valor)) atual.delete(valor)
@@ -331,22 +331,6 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
                   ))}
                 </div>
               </div>
-
-              {opcoes.nichos.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  <Label>Nicho</Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {opcoes.nichos.map((n) => (
-                      <ChipToggle
-                        key={n}
-                        label={n}
-                        ativo={(segmento.nichos ?? []).includes(n)}
-                        onClick={() => toggleLista("nichos", n)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {opcoes.tags.length > 0 && (
                 <div className="flex flex-col gap-2">

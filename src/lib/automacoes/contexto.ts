@@ -39,7 +39,7 @@ export type GatilhoAutomacao =
       tipo: "dado_contato_alterado"
       workspaceId: string
       contactId: string
-      /** classificacao, tipo, nicho ou cidade. */
+      /** classificacao, tipo ou cidade. */
       campo: string
       /** O valor novo; vazio quando o dado foi apagado. */
       valor: string

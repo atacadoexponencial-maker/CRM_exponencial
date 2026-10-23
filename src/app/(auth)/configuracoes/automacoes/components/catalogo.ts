@@ -97,7 +97,6 @@ export function etapasDoFunil(funil: string | undefined): Opcao[] {
 const CAMPOS_CONTATO: Record<string, string> = {
   classificacao: "Classificação",
   tipo: "Tipo",
-  nicho: "Nicho",
   cidade: "Cidade",
   atendente: "Atendente",
   observacoes: "Observações (acrescentar linha)",
@@ -136,10 +135,10 @@ export function opcoesDaFonte(fonte: FonteOpcoes, opcoes: OpcoesEditor): Opcao[]
       ]
     case "camposContatoGatilho":
       // Sem "atendente": contacts.atendente_id não é gravado por nenhuma tela (B11-06)
-      return ["classificacao", "tipo", "nicho", "cidade"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] }))
+      return ["classificacao", "tipo", "cidade"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] }))
     case "camposContatoAcao":
       // Sem classificação: o CRM a calcula pela etapa dos cards (B11-11)
-      return ["tipo", "nicho", "cidade", "observacoes"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] }))
+      return ["tipo", "cidade", "observacoes"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] }))
     default:
       return opcoes[fonte]
   }

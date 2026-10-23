@@ -173,7 +173,7 @@ export const classificacaoValida = (classificacao: string) => Object.hasOwn(CLAS
  * fora: o CRM a calcula pela etapa dos cards (`calcularClassificacao`), e a
  * coluna `contacts.classificacao` não é lida por nenhuma tela (B11-11).
  */
-const LIMITE_POR_CAMPO: Record<string, number> = { nicho: 100, cidade: 100, observacoes: 1000 }
+const LIMITE_POR_CAMPO: Record<string, number> = { cidade: 100, observacoes: 1000 }
 
 export function dadoDoContatoValido(campo: string, valor: string): boolean {
   const texto = valor.trim()
@@ -205,7 +205,6 @@ export function gatilhoDeDadoValido(campo: string, valor: string): boolean {
       return !texto || classificacaoValida(texto)
     case "tipo":
       return !texto || tipoDeContatoValido(texto)
-    case "nicho":
     case "cidade":
       return texto.length <= 100
     default:

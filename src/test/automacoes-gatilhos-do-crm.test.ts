@@ -1,5 +1,5 @@
 // Testes dos gatilhos que nascem em telas do CRM (B11-06): o que muda de fato
-// em tipo, nicho e cidade, os cards depois de um movimento manual, a classificação
+// em tipo e cidade, os cards depois de um movimento manual, a classificação
 // que muda (ou não) e o evento que cada tela manda para o motor.
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
@@ -37,8 +37,9 @@ beforeEach(() => {
 describe("camposQueMudaram", () => {
   it("só os campos que mudaram de fato, com o valor novo sem espaço nas pontas", () => {
     expect(
-      camposQueMudaram({ tipo: null, nicho: "Moda", cidade: "Fortaleza" }, { tipo: "lojista", nicho: "Moda ", cidade: "Recife" })
-    ).toEqual([
+      camposQueMudaram({ tipo: "lojista", cidade: "Fortaleza" }, { tipo: "lojista ", cidade: " Recife " })
+    ).toEqual([{ campo: "cidade", valor: "Recife" }])
+    expect(camposQueMudaram({ tipo: null, cidade: null }, { tipo: "lojista", cidade: "Recife" })).toEqual([
       { campo: "tipo", valor: "lojista" },
       { campo: "cidade", valor: "Recife" },
     ])
@@ -56,7 +57,7 @@ describe("camposQueMudaram", () => {
   })
 
   it("campo que não veio no depois não conta como mudança", () => {
-    expect(camposQueMudaram({ tipo: "lojista", nicho: "Moda" }, { tipo: "lojista" })).toEqual([])
+    expect(camposQueMudaram({ tipo: "lojista", cidade: "Recife" }, { tipo: "lojista" })).toEqual([])
   })
 })
 
@@ -137,7 +138,7 @@ describe("eventos que as telas mandam para o motor", () => {
   })
 
   it("dados alterados: um evento por campo que mudou", async () => {
-    await dispararDadosAlterados("ws", "contato", { tipo: null, nicho: "Moda", cidade: null }, { tipo: "revendedor", nicho: "Moda", cidade: "Natal" })
+    await dispararDadosAlterados("ws", "contato", { tipo: null, cidade: null }, { tipo: "revendedor", cidade: "Natal" })
     expect(motor.mock.calls.map(([e]) => [e.tipo, "campo" in e ? e.campo : null, "valor" in e ? e.valor : null])).toEqual([
       ["dado_contato_alterado", "tipo", "revendedor"],
       ["dado_contato_alterado", "cidade", "Natal"],
