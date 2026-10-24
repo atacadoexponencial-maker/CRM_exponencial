@@ -24,7 +24,7 @@ import {
   type Segmento,
 } from "@/app/(auth)/campanhas/actions"
 import { filtrarContatos } from "@/app/(auth)/contatos/actions"
-import { apagarFiltroSalvo, atualizarFiltroSalvo, listarFiltrosSalvos, salvarFiltro } from "@/app/(auth)/contatos/filtros-salvos"
+import { apagarFiltroSalvo, atualizarFiltroSalvo, listarFiltrosSalvos, moverFiltroSalvo, renomearFiltroSalvo, salvarFiltro } from "@/app/(auth)/contatos/filtros-salvos"
 import { criarFunil } from "@/app/(auth)/configuracoes/funis/actions"
 import { calcularClassificacao } from "@/app/(auth)/contatos/classificacao"
 import { campoDoFunil, type Condicao, type Filtro } from "@/lib/filtro-contatos"
@@ -389,11 +389,12 @@ describe("B42-02 — campanha pelo filtro de Contatos, no banco", { timeout: 60_
 
 describe("B42-03 — filtros salvos e funil ou etapa apagada, no banco", { timeout: 60_000 }, () => {
   const lojistasDeFortaleza = () => umGrupo(cond("cidade", "igual", "Fortaleza"), cond("tipo", "e", "lojista"))
-  const salvoPeloNome = async (nome: string) => (await listarFiltrosSalvos()).find((f) => f.nome === nome)
+  // B42-04: os filtros salvos usados aqui são os de campanha.
+  const salvoPeloNome = async (nome: string) => (await listarFiltrosSalvos("campanhas")).find((f) => f.nome === nome)
 
   beforeAll(async () => {
     como("admin")
-    const r = await salvarFiltro("Lojistas de Fortaleza", lojistasDeFortaleza())
+    const r = await salvarFiltro("Lojistas de Fortaleza", lojistasDeFortaleza(), "campanhas")
     if (r.erro) throw new Error(r.erro)
   })
 
@@ -440,24 +441,9 @@ describe("B42-03 — filtros salvos e funil ou etapa apagada, no banco", { timeo
     expect((await buscarCampanha(r.id!))!.segmento).toEqual({ filtro: ajustado })
   })
 
-  it("CA-B42-20: should recusar salvar pela campanha um filtro com nome repetido", async () => {
-    como("admin")
-    expect(await salvarFiltro("lojistas de fortaleza", umGrupo(cond("cidade", "igual", "Recife")))).toEqual({ erro: "Já existe um filtro com esse nome." })
-    expect((await listarFiltrosSalvos()).filter((f) => f.nome.toLowerCase() === "lojistas de fortaleza")).toHaveLength(1)
-  })
-
-  it("CA-B42-19: should pôr o filtro salvo pela campanha na lista de filtros da empresa toda", async () => {
-    como("gerente")
-    const filtro = umGrupo(cond("etapa_entrada", "na_etapa", "negociacao"), cond("tipo", "e", "lojista"))
-    expect((await salvarFiltro("Proposta da feira", filtro)).erro).toBeUndefined()
-
-    como("admin")
-    expect((await salvoPeloNome("Proposta da feira"))?.filtro).toEqual(filtro)
-  })
-
   it("CA-B42-18: should manter o rascunho igual quando o filtro salvo é atualizado ou apagado depois", async () => {
     como("admin")
-    await salvarFiltro("Para mudar", umGrupo(cond("cidade", "igual", "Recife")))
+    await salvarFiltro("Para mudar", umGrupo(cond("cidade", "igual", "Recife")), "campanhas")
     const salvo = (await salvoPeloNome("Para mudar"))!
     const copia = structuredClone(salvo.filtro)
     const r = await salvarRascunho(null, dados(`Do salvo ${ts}`, { filtro: copia }))
@@ -467,5 +453,117 @@ describe("B42-03 — filtros salvos e funil ou etapa apagada, no banco", { timeo
 
     expect((await apagarFiltroSalvo(salvo.id)).erro).toBeUndefined()
     expect((await buscarCampanha(r.id!))!.segmento).toEqual({ filtro: copia })
+  })
+})
+
+describe("B42-04 — filtros salvos de campanha separados dos de Contatos, no banco", { timeout: 60_000 }, () => {
+  const nomes = async (tela: "contatos" | "campanhas") => (await listarFiltrosSalvos(tela)).map((f) => f.nome)
+  const idDe = async (tela: "contatos" | "campanhas", nome: string) => (await listarFiltrosSalvos(tela)).find((f) => f.nome === nome)!.id
+  const recife = () => umGrupo(cond("cidade", "igual", "Recife"))
+
+  beforeAll(async () => {
+    como("admin")
+    for (const [nome, tela] of [["Clientes da feira", "contatos"], ["Contatos A", "contatos"], ["Contatos B", "contatos"]] as const) {
+      const r = await salvarFiltro(nome, recife(), tela)
+      if (r.erro) throw new Error(r.erro)
+    }
+  })
+
+  it("CA-B42-19: should pôr o filtro salvo pela campanha só nos filtros de campanha, para a empresa toda", async () => {
+    como("gerente")
+    const filtro = umGrupo(cond("etapa_entrada", "na_etapa", "negociacao"), cond("tipo", "e", "lojista"))
+    expect((await salvarFiltro("Proposta da feira", filtro, "campanhas")).erro).toBeUndefined()
+
+    como("admin")
+    expect((await listarFiltrosSalvos("campanhas")).find((f) => f.nome === "Proposta da feira")?.filtro).toEqual(filtro)
+    expect(await nomes("contatos")).not.toContain("Proposta da feira")
+  })
+
+  it("CA-B42-20: should recusar nome repetido entre os de campanha e aceitar o mesmo nome em Contatos", async () => {
+    como("admin")
+    expect(await salvarFiltro("lojistas de fortaleza", recife(), "campanhas")).toEqual({ erro: "Já existe um filtro com esse nome." })
+    expect((await nomes("campanhas")).filter((n) => n.toLowerCase() === "lojistas de fortaleza")).toHaveLength(1)
+
+    expect((await salvarFiltro("Lojistas de Fortaleza", recife(), "contatos")).erro).toBeUndefined()
+    expect(await nomes("contatos")).toContain("Lojistas de Fortaleza")
+  })
+
+  it("CA-B42-32: should mostrar a cada tela só os próprios filtros salvos, também pelo servidor", async () => {
+    como("admin")
+    const deContatos = await nomes("contatos")
+    const deCampanha = await nomes("campanhas")
+    expect(deContatos).toContain("Clientes da feira")
+    expect(deContatos).not.toContain("Proposta da feira")
+    expect(deCampanha).toContain("Proposta da feira")
+    expect(deCampanha).not.toContain("Clientes da feira")
+    // Sem dizer a tela, o servidor responde com os de Contatos, como antes.
+    expect(await nomes("contatos")).toEqual((await listarFiltrosSalvos()).map((f) => f.nome))
+  })
+
+  it("CA-B42-33: should gravar a atualização no filtro de campanha sem mexer nos de Contatos", async () => {
+    como("admin")
+    const antesContatos = await listarFiltrosSalvos("contatos")
+    const id = await idDe("campanhas", "Proposta da feira")
+    const novo = umGrupo(cond("etapa_entrada", "na_etapa", "negociacao"), cond("tipo", "e", "lojista"), cond("etiqueta", "tem", "VIP"))
+
+    const r = await atualizarFiltroSalvo(id, novo)
+    expect(r.erro).toBeUndefined()
+    expect(r.filtros?.map((f) => f.nome)).toEqual(await nomes("campanhas"))
+    expect((await listarFiltrosSalvos("campanhas")).find((f) => f.id === id)?.filtro).toEqual(novo)
+    expect(await listarFiltrosSalvos("contatos")).toEqual(antesContatos)
+  })
+
+  it("CA-B42-34: should renomear o filtro de campanha e recusar nome repetido", async () => {
+    como("admin")
+    const id = await idDe("campanhas", "Proposta da feira")
+    expect((await renomearFiltroSalvo(id, "Feira 2026")).erro).toBeUndefined()
+    expect(await nomes("campanhas")).toContain("Feira 2026")
+
+    expect(await renomearFiltroSalvo(id, "lojistas de fortaleza")).toEqual({ erro: "Já existe um filtro com esse nome." })
+    expect(await nomes("campanhas")).toContain("Feira 2026")
+  })
+
+  it("CA-B42-35: should mudar a ordem só dos filtros de campanha", async () => {
+    como("admin")
+    for (const nome of ["A", "B", "C"]) expect((await salvarFiltro(nome, recife(), "campanhas")).erro).toBeUndefined()
+    const ordemContatos = await nomes("contatos")
+    const antes = await nomes("campanhas")
+    expect(antes.slice(-3)).toEqual(["A", "B", "C"])
+
+    const r = await moverFiltroSalvo(await idDe("campanhas", "C"), "esquerda")
+    expect(r.erro).toBeUndefined()
+    expect((await nomes("campanhas")).slice(-3)).toEqual(["A", "C", "B"])
+    como("gerente")
+    expect((await nomes("campanhas")).slice(-3)).toEqual(["A", "C", "B"])
+    expect(await nomes("contatos")).toEqual(ordemContatos)
+  })
+
+  it("CA-B42-36: should apagar o filtro de campanha e manter os de Contatos", async () => {
+    como("admin")
+    const deContatos = await nomes("contatos")
+    expect((await apagarFiltroSalvo(await idDe("campanhas", "Feira 2026"))).erro).toBeUndefined()
+    expect(await nomes("campanhas")).not.toContain("Feira 2026")
+    expect(await nomes("contatos")).toEqual(deContatos)
+  })
+
+  it("CA-B42-37: should recusar ao Atendente toda mudança nos filtros de campanha", async () => {
+    como("admin")
+    const id = await idDe("campanhas", "A")
+    const antes = await listarFiltrosSalvos("campanhas")
+
+    como("ana")
+    const recusa = { erro: "Só Admin e Gerente mudam os filtros salvos." }
+    expect(await salvarFiltro("Da Ana", recife(), "campanhas")).toEqual(recusa)
+    expect(await atualizarFiltroSalvo(id, umGrupo(cond("cidade", "igual", "Natal")))).toEqual(recusa)
+    expect(await renomearFiltroSalvo(id, "Da Ana")).toEqual(recusa)
+    expect(await moverFiltroSalvo(id, "direita")).toEqual(recusa)
+    expect(await apagarFiltroSalvo(id)).toEqual(recusa)
+
+    // Nem pela API direto, sem as actions: a RLS barra.
+    const { data } = await clientes.ana.from("filtros_salvos").update({ nome: "Da Ana" }).eq("id", id).select("id")
+    expect(data ?? []).toEqual([])
+
+    como("admin")
+    expect(await listarFiltrosSalvos("campanhas")).toEqual(antes)
   })
 })

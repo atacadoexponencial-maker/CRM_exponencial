@@ -3,6 +3,9 @@
 // B37-03: filtros salvos da lista de contatos. Todos da empresa leem; só Admin e
 // Gerente salvam, atualizam, renomeiam, mudam a ordem e apagam. A conferência de
 // papel é feita aqui e de novo pela RLS de `filtros_salvos`.
+//
+// B42-04: cada filtro pertence a uma tela (Contatos ou Campanhas). Uma tela não vê os
+// filtros da outra; o nome é único e a ordem vale dentro da tela.
 
 import { sessaoAtual } from "@/lib/sessao"
 import type { Json } from "@/integrations/supabase/types"
@@ -10,19 +13,23 @@ import { chaveDoNome, contarCondicoes, esquemaFiltro, limparFiltro, type Filtro 
 
 export type FiltroSalvo = { id: string; nome: string; filtro: Filtro }
 
+export type TelaDoFiltro = "contatos" | "campanhas"
+const telaValida = (tela: string): tela is TelaDoFiltro => tela === "contatos" || tela === "campanhas"
+
 type Resultado = { erro?: string; filtros?: FiltroSalvo[] }
 
 const NOME_REPETIDO = "Já existe um filtro com esse nome."
 const SEM_PERMISSAO = "Só Admin e Gerente mudam os filtros salvos."
 const NAO_ENCONTRADO = "Filtro não encontrado."
 
-export async function listarFiltrosSalvos(): Promise<FiltroSalvo[]> {
+export async function listarFiltrosSalvos(tela: TelaDoFiltro = "contatos"): Promise<FiltroSalvo[]> {
   const { supabase, perfil } = await sessaoAtual()
-  if (!perfil) return []
+  if (!perfil || !telaValida(tela)) return []
   const { data } = await supabase
     .from("filtros_salvos")
     .select("id, nome, filtro")
     .eq("workspace_id", perfil.workspace_id)
+    .eq("tela", tela)
     .order("posicao")
     .order("created_at")
   return (data ?? []).map((f) => ({ id: f.id, nome: f.nome, filtro: f.filtro as unknown as Filtro }))
@@ -52,9 +59,10 @@ function validarFiltro(filtro: Filtro): Filtro | { erro: string } {
 
 const repetido = (codigo?: string) => codigo === "23505"
 
-export async function salvarFiltro(nome: string, filtro: Filtro): Promise<Resultado> {
+export async function salvarFiltro(nome: string, filtro: Filtro, tela: TelaDoFiltro = "contatos"): Promise<Resultado> {
   const g = await gestor()
   if (!g) return { erro: SEM_PERMISSAO }
+  if (!telaValida(tela)) return { erro: "Filtro inválido." }
   const n = validarNome(nome)
   if ("erro" in n) return n
   const f = validarFiltro(filtro)
@@ -65,6 +73,7 @@ export async function salvarFiltro(nome: string, filtro: Filtro): Promise<Result
     .from("filtros_salvos")
     .select("posicao")
     .eq("workspace_id", g.perfil.workspace_id)
+    .eq("tela", tela)
     .order("posicao", { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -76,10 +85,11 @@ export async function salvarFiltro(nome: string, filtro: Filtro): Promise<Result
     filtro: f as unknown as Json,
     posicao: (ultimo?.posicao ?? -1) + 1,
     criado_por: g.perfil.id,
+    tela,
   })
   if (repetido(error?.code)) return { erro: NOME_REPETIDO }
   if (error) return { erro: "Não foi possível salvar o filtro." }
-  return { filtros: await listarFiltrosSalvos() }
+  return { filtros: await listarFiltrosSalvos(tela) }
 }
 
 export async function atualizarFiltroSalvo(id: string, filtro: Filtro): Promise<Resultado> {
@@ -92,10 +102,10 @@ export async function atualizarFiltroSalvo(id: string, filtro: Filtro): Promise<
     .update({ filtro: f as unknown as Json, updated_at: new Date().toISOString() })
     .eq("id", id)
     .eq("workspace_id", g.perfil.workspace_id)
-    .select("id")
+    .select("id, tela")
   if (error) return { erro: "Não foi possível atualizar o filtro." }
   if (!data?.length) return { erro: NAO_ENCONTRADO }
-  return { filtros: await listarFiltrosSalvos() }
+  return { filtros: await listarFiltrosSalvos(data[0].tela as TelaDoFiltro) }
 }
 
 export async function renomearFiltroSalvo(id: string, nome: string): Promise<Resultado> {
@@ -108,18 +118,27 @@ export async function renomearFiltroSalvo(id: string, nome: string): Promise<Res
     .update({ nome: n.nome, nome_chave: n.chave, updated_at: new Date().toISOString() })
     .eq("id", id)
     .eq("workspace_id", g.perfil.workspace_id)
-    .select("id")
+    .select("id, tela")
   if (repetido(error?.code)) return { erro: NOME_REPETIDO }
   if (error) return { erro: "Não foi possível renomear o filtro." }
   if (!data?.length) return { erro: NAO_ENCONTRADO }
-  return { filtros: await listarFiltrosSalvos() }
+  return { filtros: await listarFiltrosSalvos(data[0].tela as TelaDoFiltro) }
 }
 
 /** Troca o filtro de lugar com o vizinho da esquerda ou da direita (PER-B37-11). */
 export async function moverFiltroSalvo(id: string, direcao: "esquerda" | "direita"): Promise<Resultado> {
   const g = await gestor()
   if (!g) return { erro: SEM_PERMISSAO }
-  const filtros = await listarFiltrosSalvos()
+  // B42-04: a ordem é a da tela do filtro.
+  const { data: doFiltro } = await g.supabase
+    .from("filtros_salvos")
+    .select("tela")
+    .eq("id", id)
+    .eq("workspace_id", g.perfil.workspace_id)
+    .maybeSingle()
+  if (!doFiltro) return { erro: NAO_ENCONTRADO }
+  const tela = doFiltro.tela as TelaDoFiltro
+  const filtros = await listarFiltrosSalvos(tela)
   const i = filtros.findIndex((f) => f.id === id)
   if (i < 0) return { erro: NAO_ENCONTRADO }
   const j = direcao === "esquerda" ? i - 1 : i + 1
@@ -134,7 +153,7 @@ export async function moverFiltroSalvo(id: string, direcao: "esquerda" | "direit
     )
   )
   if (resultados.some((r) => r.error)) return { erro: "Não foi possível mudar a ordem." }
-  return { filtros: await listarFiltrosSalvos() }
+  return { filtros: await listarFiltrosSalvos(tela) }
 }
 
 export async function apagarFiltroSalvo(id: string): Promise<Resultado> {
@@ -145,8 +164,8 @@ export async function apagarFiltroSalvo(id: string): Promise<Resultado> {
     .delete()
     .eq("id", id)
     .eq("workspace_id", g.perfil.workspace_id)
-    .select("id")
+    .select("id, tela")
   if (error) return { erro: "Não foi possível apagar o filtro." }
   if (!data?.length) return { erro: NAO_ENCONTRADO }
-  return { filtros: await listarFiltrosSalvos() }
+  return { filtros: await listarFiltrosSalvos(data[0].tela as TelaDoFiltro) }
 }

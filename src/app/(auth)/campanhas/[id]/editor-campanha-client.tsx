@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { PainelFiltro } from "../../contatos/components/painel-filtro"
 import { FaixaFiltrosSalvos } from "../../contatos/components/faixa-filtros-salvos"
-import { salvarFiltro, type FiltroSalvo } from "../../contatos/filtros-salvos"
+import { atualizarFiltroSalvo, salvarFiltro, type FiltroSalvo } from "../../contatos/filtros-salvos"
 import {
   condicoesComFunilApagado,
   contarCondicoes,
@@ -110,8 +110,18 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
     aplicarFiltro(salvoAtivo?.id === salvo.id ? FILTRO_VAZIO : structuredClone(salvo.filtro))
   }
 
+  // B42-04: os filtros salvos da campanha são só dela, separados dos de Contatos.
   async function salvarNovo(nomeDoFiltro: string, rascunho: Filtro): Promise<string | null> {
-    const r = await salvarFiltro(nomeDoFiltro, rascunho)
+    const r = await salvarFiltro(nomeDoFiltro, rascunho, "campanhas")
+    if (r.erro) return r.erro
+    if (r.filtros) setFiltrosSalvos(r.filtros)
+    aplicarFiltro(rascunho)
+    return null
+  }
+
+  async function atualizarSalvo(rascunho: Filtro): Promise<string | null> {
+    if (!salvoAtivo) return null
+    const r = await atualizarFiltroSalvo(salvoAtivo.id, rascunho)
     if (r.erro) return r.erro
     if (r.filtros) setFiltrosSalvos(r.filtros)
     aplicarFiltro(rascunho)
@@ -346,9 +356,10 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
               <FaixaFiltrosSalvos
                 filtros={filtrosSalvos}
                 ativoId={salvoAtivo?.id ?? null}
-                podeGerir={false}
+                podeGerir
                 onAlternar={alternarSalvo}
-                onMudou={setFiltrosSalvos}
+                // Apagar o salvo não limpa a campanha: ela guarda a cópia (SUP-B42-01).
+                onMudou={(lista) => setFiltrosSalvos(lista)}
               />
               <PainelFiltro
                 aberto={painelAberto}
@@ -360,7 +371,9 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
                 onAplicar={aplicarFiltro}
                 onLimpar={() => aplicarFiltro(FILTRO_VAZIO)}
                 podeSalvar
+                salvoAtivo={salvoAtivo?.nome ?? null}
                 onSalvar={salvarNovo}
+                onAtualizar={atualizarSalvo}
               />
             </div>
           )}

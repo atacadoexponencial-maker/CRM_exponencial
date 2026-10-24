@@ -24,8 +24,8 @@ export default async function EditorCampanhaPage({ params }: { params: Promise<{
   // B7-03: os números que a campanha pode usar vêm do servidor, com o canal de
   // cada um. O editor não decide canal.
   // B42-02: o painel do filtro usa os atendentes, as etiquetas e os funis da empresa.
-  // B42-03: e os filtros salvos da empresa, para partir de um deles.
-  const [opcoes, numeros, filtrosSalvos] = await Promise.all([valoresDoFiltro(), numerosParaCampanha(), listarFiltrosSalvos()])
+  // B42-03: e os filtros salvos da empresa, para partir de um deles (B42-04: os de campanha).
+  const [opcoes, numeros, filtrosSalvos] = await Promise.all([valoresDoFiltro(), numerosParaCampanha(), listarFiltrosSalvos("campanhas")])
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-7 sm:px-8 lg:px-10">

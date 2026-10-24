@@ -1183,6 +1183,7 @@ export type Database = {
           nome: string
           nome_chave: string
           posicao: number
+          tela: string
           updated_at: string
           workspace_id: string
         }
@@ -1194,6 +1195,7 @@ export type Database = {
           nome: string
           nome_chave: string
           posicao?: number
+          tela?: string
           updated_at?: string
           workspace_id: string
         }
@@ -1205,6 +1207,7 @@ export type Database = {
           nome?: string
           nome_chave?: string
           posicao?: number
+          tela?: string
           updated_at?: string
           workspace_id?: string
         }

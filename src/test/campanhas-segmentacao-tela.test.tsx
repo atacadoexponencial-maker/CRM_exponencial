@@ -19,8 +19,10 @@ vi.mock("@/app/(auth)/campanhas/actions", () => ({
 
 // B42-03: a campanha salva filtro pelo mesmo servidor da lista de Contatos.
 const salvarFiltro = vi.fn()
+const atualizarFiltroSalvo = vi.fn()
 vi.mock("@/app/(auth)/contatos/filtros-salvos", () => ({
   salvarFiltro: (...a: unknown[]) => salvarFiltro(...a),
+  atualizarFiltroSalvo: (...a: unknown[]) => atualizarFiltroSalvo(...a),
   apagarFiltroSalvo: vi.fn(),
   moverFiltroSalvo: vi.fn(),
   renomearFiltroSalvo: vi.fn(),
@@ -176,8 +178,20 @@ describe("B42-03 — filtros salvos e funil ou etapa apagada na campanha", () =>
     fireEvent.change(within(painel).getByLabelText("Nome do filtro"), { target: { value: "Proposta da feira" } })
     fireEvent.click(within(painel).getByRole("button", { name: "Salvar" }))
 
-    await waitFor(() => expect(salvarFiltro).toHaveBeenCalledWith("Proposta da feira", LOJISTAS))
+    // B42-04: o filtro salvo pela campanha é da tela de campanhas.
+    await waitFor(() => expect(salvarFiltro).toHaveBeenCalledWith("Proposta da feira", LOJISTAS, "campanhas"))
     await waitFor(() => expect(screen.getByRole("button", { name: "Proposta da feira" })).toBeTruthy())
+  })
+
+  it("CA-B42-33: should oferecer Atualizar filtro salvo com o filtro de campanha marcado e mandar o filtro montado", async () => {
+    atualizarFiltroSalvo.mockResolvedValue({ filtros: SALVOS })
+    render(<EditorCampanhaClient campanha={campanha({ filtro: LOJISTAS })} opcoes={OPCOES} numeros={[]} filtrosSalvos={SALVOS} />)
+    expect(screen.getByRole("button", { name: "Lojistas de Fortaleza" }).getAttribute("aria-pressed")).toBe("true")
+
+    const painel = abrirPainel()
+    fireEvent.click(within(painel).getByRole("button", { name: "Atualizar filtro salvo" }))
+
+    await waitFor(() => expect(atualizarFiltroSalvo).toHaveBeenCalledWith("s-1", LOJISTAS))
   })
 
   it("CA-B42-12: should avisar qual condição usa funil ou etapa apagada e não deixar avançar", async () => {
