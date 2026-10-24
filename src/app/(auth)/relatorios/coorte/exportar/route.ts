@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   const r = await buscarCoorte({ atendenteId: atendente || null })
   if (!r) return new Response("Sessão expirada.", { status: 401 })
 
-  const nome = tabela === "retencao" ? "coorte-retencao" : "coorte-valor-medio"
-  const aba = tabela === "retencao" ? "Retenção" : "Valor médio"
+  const nome = tabela === "retencao" ? "coorte-recompra" : "coorte-valor-medio"
+  const aba = tabela === "retencao" ? "Recompra" : "Valor médio"
   return respostaPlanilha(gerarPlanilha(colunasExportacaoCoorte(tabela as TabelaCoorte), r.coortes, aba), nomeDeArquivo(`${nome}-${r.referencia}`))
 }

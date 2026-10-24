@@ -38,7 +38,7 @@ export function TabelasDeCoorte({ coortes, atendenteId }: { coortes: Coorte[]; a
     <section className="rounded-md border bg-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div className="flex gap-1" role="tablist" aria-label="Tabela de coorte">
-          {([["retencao", "Retenção de clientes"], ["valor", "Valor médio de venda"]] as Array<[TabelaCoorte, string]>).map(([id, nome]) => (
+          {([["retencao", "Recompra por coorte"], ["valor", "Valor médio de venda"]] as Array<[TabelaCoorte, string]>).map(([id, nome]) => (
             <button key={id} type="button" role="tab" aria-selected={tabela === id} onClick={() => setTabela(id)} className={cn("h-8 rounded-lg border px-3 text-sm", tabela === id ? "border-primary bg-primary text-primary-foreground" : "border-input text-muted-foreground hover:bg-muted")}>
               {nome}
             </button>
@@ -81,8 +81,8 @@ export function TabelasDeCoorte({ coortes, atendenteId }: { coortes: Coorte[]; a
 
 const ENTENDA: Array<[string, string]> = [
   ["O que são coortes?", "Coortes são grupos de clientes que fizeram a primeira compra no mesmo mês. A análise mostra como cada grupo se comporta ao longo do tempo."],
-  ["Retenção de clientes", "A retenção mostra a porcentagem de clientes que continuam comprando em cada mês depois da primeira compra. O Mês 0 é sempre 100%, porque é o mês em que todos fizeram a primeira compra."],
-  ["Como ler os dados", "As linhas são os meses em que os clientes fizeram a primeira compra. As colunas mostram o comportamento desses clientes nos meses seguintes. Cores mais fortes indicam melhor retenção ou maior valor médio."],
+  ["Recompra por coorte", "Mostra a porcentagem de clientes de cada coorte que voltaram a comprar em cada mês depois da primeira compra. O Mês 0 é sempre 100%, porque é o mês em que todos fizeram a primeira compra."],
+  ["Como ler os dados", "As linhas são os meses em que os clientes fizeram a primeira compra. As colunas mostram o comportamento desses clientes nos meses seguintes. Cores mais fortes indicam mais recompra ou maior valor médio."],
   ["Valor médio de venda", "Mostra o valor médio das vendas feitas pelos clientes de cada coorte em cada mês. Ajuda a ver se clientes mais antigos gastam mais que os novos, ou se há padrões sazonais."],
 ]
 
@@ -92,7 +92,7 @@ export function ResumoDasCoortes({ resumo }: { resumo: ResumoCoortes }) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <section className="rounded-md border bg-card p-5">
-        <h2 className="text-sm font-semibold">Retenção média geral</h2>
+        <h2 className="text-sm font-semibold">Taxa de recompra</h2>
         <p className="text-xs text-muted-foreground mt-0.5 mb-3">Média ponderada pelo tamanho das coortes, dos meses 1 a 11 que já chegaram</p>
         <p className="text-4xl font-semibold" data-testid="retencao-media-geral">
           {resumo.retencaoMediaGeral === null ? "—" : `${resumo.retencaoMediaGeral.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`}

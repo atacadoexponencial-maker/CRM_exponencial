@@ -68,7 +68,7 @@ describe("B34-02 — resumo das coortes", () => {
     await waitFor(() => expect(screen.getByTestId("retencao-media-geral")).toBeTruthy())
     expect(buscarCoorte).toHaveBeenCalledWith({ atendenteId: null })
     expect(screen.getByText("Recompra geral por mês")).toBeTruthy()
-    expect(screen.getByRole("tab", { name: "Retenção de clientes" })).toBeTruthy()
+    expect(screen.getByRole("tab", { name: "Recompra por coorte" })).toBeTruthy()
     expect(screen.getByTestId("tabela-retencao")).toBeTruthy()
     const entenda = screen.getByRole("button", { name: "Entenda a análise de coortes" })
     expect(entenda).toHaveAttribute("aria-expanded", "false")
