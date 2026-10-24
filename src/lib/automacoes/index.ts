@@ -26,6 +26,7 @@ import {
   itensDaLista,
   lerRepeticao,
   normalizarTag,
+  SEM_COMPRAS,
   percorrerFluxo,
   problemasDoFluxo,
   type BlocoGatilho,
@@ -93,13 +94,42 @@ export async function processarAutomacoes(gatilho: GatilhoAutomacao, opcoes: Opc
         await registrarExecucao(supabase, { gatilho, regra, resultado: "falhou", motivo: semRodar ?? FLUXO_FORA_DO_FORMATO })
         continue
       }
-      // B43-03: a regra fica com a mudança antes de rodar; rotina repetida não roda de novo
-      if (gatilho.tipo === "entrou_perfil_rfv" && !(await ficarComAMudanca(supabase, regra.id, gatilho.mudancaId))) continue
+      if (gatilho.tipo === "entrou_perfil_rfv") {
+        // B43-03: a regra fica com a mudança antes de rodar; rotina repetida não roda de novo
+        if (!(await ficarComAMudanca(supabase, regra.id, gatilho.mudancaId))) continue
+        // B43-04: quem saiu do destino antes do horário (comprou de manhã) é pulado (CA-B43-19)
+        const motivo = await motivoParaPularPerfil(supabase, gatilho, blocoGatilho)
+        if (motivo) {
+          await registrarExecucao(supabase, { gatilho, regra, resultado: motivo.resultado, motivo: motivo.texto })
+          continue
+        }
+      }
       await executarRegra(contexto, { ...regra, fluxo })
     }
   } catch {
     // Automação nunca pode derrubar o fluxo principal (envio, webhook, pipeline)
   }
+}
+
+/** B43-04: motivo de quem já saiu do perfil de destino. */
+export const SAIU_DO_PERFIL = "Não rodou: o contato já saiu do perfil de destino"
+
+/**
+ * B43-04: o contato ainda está num perfil de destino, pelo perfil da hora? Se não,
+ * o motivo para o histórico. Erro do banco também não roda: melhor não mandar a
+ * mensagem do que mandar para quem já voltou a comprar.
+ */
+async function motivoParaPularPerfil(
+  supabase: ServiceClient,
+  gatilho: Extract<GatilhoAutomacao, { tipo: "entrou_perfil_rfv" }>,
+  bloco: BlocoGatilho | undefined
+): Promise<{ resultado: "ignorada" | "falhou"; texto: string } | null> {
+  const { data, error } = await supabase
+    .rpc("perfis_rfv_do_workspace", { p_workspace: gatilho.workspaceId })
+    .eq("contact_id", gatilho.contactId)
+  if (error) return { resultado: "falhou", texto: "Não foi possível conferir o perfil RFV do contato" }
+  const atual = data?.[0]?.perfil ?? SEM_COMPRAS
+  return itensDaLista(bloco?.parametros.destinos).includes(atual) ? null : { resultado: "ignorada", texto: SAIU_DO_PERFIL }
 }
 
 /** B43-03: marca que a regra rodou para a mudança; false se ela já tinha rodado. */

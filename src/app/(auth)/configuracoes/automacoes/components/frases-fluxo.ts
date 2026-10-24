@@ -2,7 +2,8 @@
 // resumo da regra inteira, na lista.
 
 import type { Bloco, BlocoAcao, BlocoGatilho, Fluxo, Repeticao, Verificacao } from "@/lib/fluxo-automacao"
-import { SEQUENCIA_DA_ETAPA, gatilhoDoFluxo, horaDoGatilho, itensDaLista, vencimentoDoLembrete } from "@/lib/fluxo-automacao"
+import { SEM_COMPRAS, SEQUENCIA_DA_ETAPA, gatilhoDoFluxo, horaDoGatilho, itensDaLista, vencimentoDoLembrete } from "@/lib/fluxo-automacao"
+import { PERFIL_POR_ID, type PerfilRfv } from "@/lib/relatorios/rfv"
 import {
   ACOES,
   GATILHOS,
@@ -186,6 +187,11 @@ export function fraseDoEvento(evento: Record<string, string>, opcoes?: OpcoesEdi
       return `Tag "${evento.tag}" adicionada`
     case "etiqueta_aplicada":
       return `Etiqueta "${opcoes ? nomeOuApagado(opcoes.etiquetas, evento.labelId) : evento.labelId}" aplicada`
+    case "entrou_perfil_rfv": {
+      // B43-04: "Entrou em Em Risco (vindo de Campeão)"
+      const nome = (id: string) => (id === SEM_COMPRAS ? "Sem compras" : (PERFIL_POR_ID[id as PerfilRfv]?.nome ?? id))
+      return `Entrou em ${nome(evento.para)} (vindo de ${nome(evento.de)})`
+    }
     case "dado_contato_alterado": {
       const campo = rotuloCampoContato(evento.campo)
       if (!evento.valor) return `${campo} apagado`
