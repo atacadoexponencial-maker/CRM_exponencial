@@ -17,6 +17,7 @@ vi.mock("@/app/(auth)/contatos/actions", () => ({
 vi.mock("@/app/(auth)/contatos/lixeira/actions", () => ({ resumoExclusaoContato: vi.fn(), excluirContato: vi.fn() }))
 
 import { ListaContatos } from "@/app/(auth)/contatos/components/lista-contatos"
+import { PainelFiltro } from "@/app/(auth)/contatos/components/painel-filtro"
 
 const contato = (n: number): Contato => ({
   id: `c-${n}`,
@@ -195,12 +196,45 @@ describe("B37-02 — campos de etiquetas, compras e funil no painel", () => {
         assunto: "Cadastro",
         campos: [
           "Nome", "Telefone", "Classificação", "Tipo", "Cidade", "UF", "Perfil de cliente (ICP)",
-          "Atendente", "Observações", "Data de cadastro",
+          "Atendente (carteira)", "Observações", "Data de cadastro",
         ],
       },
       { assunto: "Etiquetas", campos: ["Etiqueta"] },
-      { assunto: "Compras", campos: ["Total já comprado", "Quantidade de compras", "Data da última compra"] },
+      // B42-01: Perfil RFV entrou em Compras.
+      { assunto: "Compras", campos: ["Total já comprado", "Quantidade de compras", "Data da última compra", "Perfil RFV"] },
       { assunto: "Funil", campos: ["Etapa no funil de Entrada", "Etapa no funil de Recompra"] },
     ])
+  })
+})
+
+describe("B42-01 — Atendente (carteira) no filtro", () => {
+  it("CA-B42-25: should mostrar o campo como Atendente (carteira) e abrir assim um filtro salvo que já usava Atendente", () => {
+    // Filtro salvo antes da B42: o campo continua com o id "atendente".
+    const salvo: Filtro = { juncao: "e", grupos: [{ juncao: "e", condicoes: [{ campo: "atendente", comparacao: "e", valores: ["u-ana"] }] }] }
+    const onAplicar = vi.fn()
+    render(
+      <PainelFiltro
+        aberto
+        onAbertoChange={vi.fn()}
+        filtro={salvo}
+        atendentes={[{ id: "u-ana", nome: "Ana" }]}
+        etiquetas={[]}
+        onAplicar={onAplicar}
+        onLimpar={vi.fn()}
+      />
+    )
+    const painel = screen.getByRole("dialog")
+    const campo = within(painel).getByLabelText("Campo") as HTMLSelectElement
+
+    expect(campo.value).toBe("atendente")
+    expect(campo.selectedOptions[0].textContent).toBe("Atendente (carteira)")
+    const nomes = Array.from(campo.querySelectorAll("option")).map((o) => o.textContent)
+    expect(nomes).toContain("Atendente (carteira)")
+    expect(nomes).not.toContain("Atendente")
+    expect((within(painel).getByLabelText("Valor") as HTMLSelectElement).selectedOptions[0].textContent).toBe("Ana")
+
+    // Aplicado, ele pede ao servidor a mesma condição de antes: traz os mesmos contatos.
+    fireEvent.click(within(painel).getByRole("button", { name: "Aplicar" }))
+    expect(onAplicar).toHaveBeenCalledWith(salvo)
   })
 })

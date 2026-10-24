@@ -2271,6 +2271,13 @@ export type Database = {
         Args: { p_para: string; p_pedido: string }
         Returns: undefined
       }
+      perfis_rfv_da_empresa: {
+        Args: never
+        Returns: {
+          contact_id: string
+          perfil: string
+        }[]
+      }
       pode_ver_contato: { Args: { p_contact_id: string }; Returns: boolean }
       pode_ver_conversa: {
         Args: { p_conversation_id: string }

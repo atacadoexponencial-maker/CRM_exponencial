@@ -13,6 +13,7 @@ import { z } from "zod"
 import { CLASSIFICACAO_LABEL, TIPO_LABEL, ICP_LABEL } from "@/app/(auth)/contatos/mock-contatos"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
 import { UFS } from "@/lib/uf"
+import { PERFIS } from "@/lib/relatorios/rfv"
 import { normalizarTexto } from "@/lib/catalogo/planilha"
 
 export type Juncao = "e" | "ou"
@@ -106,7 +107,8 @@ export const CAMPOS_DO_FILTRO: CampoDoCadastro[] = [
     id: "icp", rotulo: "Perfil de cliente (ICP)", assunto: "Cadastro", tipo: "lista", coluna: "icp", obrigatorio: false,
     opcoes: opcoesDe(ICP_LABEL),
   },
-  { id: "atendente", rotulo: "Atendente", assunto: "Cadastro", tipo: "lista", coluna: "atendente_id", obrigatorio: false },
+  // B42-01: a carteira do vendedor é o atendente do contato (B35); o id fica, filtro salvo não muda.
+  { id: "atendente", rotulo: "Atendente (carteira)", assunto: "Cadastro", tipo: "lista", coluna: "atendente_id", obrigatorio: false },
   { id: "observacoes", rotulo: "Observações", assunto: "Cadastro", tipo: "texto", coluna: "observacoes", obrigatorio: false },
   { id: "data_cadastro", rotulo: "Data de cadastro", assunto: "Cadastro", tipo: "data", coluna: "created_at", obrigatorio: true },
 ]
@@ -120,6 +122,11 @@ export const CAMPOS_LIGADOS: CampoDoFiltro[] = [
   { id: "total_comprado", rotulo: "Total já comprado", assunto: "Compras", tipo: "numero", obrigatorio: true },
   { id: "qtd_compras", rotulo: "Quantidade de compras", assunto: "Compras", tipo: "numero", obrigatorio: true },
   { id: "ultima_compra", rotulo: "Data da última compra", assunto: "Compras", tipo: "data", obrigatorio: false },
+  // B42-01: perfil da aba RFV sem filtro de atendente; quem nunca comprou não tem perfil.
+  {
+    id: "perfil_rfv", rotulo: "Perfil RFV", assunto: "Compras", tipo: "lista", obrigatorio: false,
+    opcoes: PERFIS.map((p) => ({ valor: p.id, rotulo: p.nome })),
+  },
   {
     id: "etapa_entrada", rotulo: "Etapa no funil de Entrada", assunto: "Funil", tipo: "funil", obrigatorio: true,
     opcoes: opcoesDasEtapas(ETAPAS_ENTRADA),
