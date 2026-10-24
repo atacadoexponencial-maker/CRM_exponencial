@@ -1,7 +1,7 @@
 # Spec: Segmentação de campanhas pelo filtro de Contatos
 
 > série: B42
-> estado: aprovada em 24/10/2026 (revista e aprovada de novo em 24/10/2026: filtros salvos de campanha separados)
+> estado: concluída em 24/10/2026 (aprovada em 24/10/2026; revista e aprovada de novo no mesmo dia: filtros salvos de campanha separados)
 
 ## Visão Geral
 
