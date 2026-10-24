@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { FileText, Image as ImageIcon, Info, Loader2, MessageSquare, Paperclip } from "lucide-react"
+import { FileText, Image as ImageIcon, Info, Loader2, MessageSquare, Paperclip, SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { PainelFiltro } from "../../contatos/components/painel-filtro"
+import { contarCondicoes, descreverFiltro, FILTRO_VAZIO, type Filtro, type FunilParaFiltro } from "@/lib/filtro-contatos"
 import {
   avaliarDisparo,
   confirmarCampanha,
@@ -29,51 +31,12 @@ const selectClass =
 const textareaClass =
   "w-full min-h-24 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 resize-y"
 
-const CLASSIFICACOES = [
-  { id: "lead", label: "Lead" },
-  { id: "ativo", label: "Ativo" },
-  { id: "em_risco", label: "Em Risco" },
-  { id: "inativo", label: "Inativo" },
-  { id: "perdido", label: "Perdido" },
-  { id: "sem_historico", label: "Sem histórico" },
-]
-
-const TIPOS = [
-  { id: "lojista", label: "Lojista" },
-  { id: "revendedor", label: "Revendedor" },
-  { id: "empreendedor", label: "Empreendedor" },
-]
-
 interface EditorCampanhaClientProps {
   campanha: CampanhaDetalhe | null
-  opcoes: { tags: string[]; atendentes: Array<{ id: string; nome: string }> }
+  /** B42-02: o que o painel do filtro precisa da empresa (o mesmo da lista de Contatos). */
+  opcoes: { atendentes: Array<{ id: string; nome: string }>; etiquetas: string[]; funis: FunilParaFiltro[] }
   /** B7-03: números conectados do workspace, com o canal de cada um. */
   numeros: NumeroParaCampanha[]
-}
-
-function ChipToggle({
-  ativo,
-  label,
-  onClick,
-}: {
-  ativo: boolean
-  label: string
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-full border px-3 py-1 text-xs transition-colors",
-        ativo
-          ? "border-primary bg-primary/10 text-primary font-medium"
-          : "border-input text-muted-foreground hover:text-foreground"
-      )}
-    >
-      {label}
-    </button>
-  )
 }
 
 export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampanhaClientProps) {
@@ -113,6 +76,16 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
   const arquivoRef = useRef<HTMLInputElement>(null)
 
   const ehReenvio = Boolean(segmento.reenvioDe)
+  // B42-02: quem recebe é o filtro de Contatos; o painel monta, o servidor conta.
+  const [painelAberto, setPainelAberto] = useState(false)
+  const filtro = segmento.filtro ?? FILTRO_VAZIO
+  const condicoes = contarCondicoes(filtro)
+  const resumo = descreverFiltro(filtro, opcoes)
+
+  function aplicarFiltro(novo: Filtro) {
+    setSegmento({ filtro: novo })
+    setPainelAberto(false)
+  }
 
   // Recontagem em tempo real conforme os filtros mudam (com debounce)
   useEffect(() => {
@@ -167,15 +140,6 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
       ativo = false
     }
   }, [etapa, numeroOrigem, total])
-
-  function toggleLista(campo: "classificacoes" | "tipos" | "tags", valor: string) {
-    setSegmento((prev) => {
-      const atual = new Set(prev[campo] ?? [])
-      if (atual.has(valor)) atual.delete(valor)
-      else atual.add(valor)
-      return { ...prev, [campo]: Array.from(atual) }
-    })
-  }
 
   function avancarEtapa1() {
     if (!nome.trim()) {
@@ -303,79 +267,46 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
               Reenvio: os destinatários são os contatos que falharam na campanha original.
             </div>
           ) : (
-            <>
-              <div className="flex flex-col gap-2">
-                <Label>Classificação</Label>
-                <div className="flex flex-wrap gap-1.5">
-                  {CLASSIFICACOES.map((c) => (
-                    <ChipToggle
-                      key={c.id}
-                      label={c.label}
-                      ativo={(segmento.classificacoes ?? []).includes(c.id)}
-                      onClick={() => toggleLista("classificacoes", c.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Label>Tipo de contato</Label>
-                <div className="flex flex-wrap gap-1.5">
-                  {TIPOS.map((t) => (
-                    <ChipToggle
-                      key={t.id}
-                      label={t.label}
-                      ativo={(segmento.tipos ?? []).includes(t.id)}
-                      onClick={() => toggleLista("tipos", t.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {opcoes.tags.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  <Label>Tag do contato</Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {opcoes.tags.map((t) => (
-                      <ChipToggle
-                        key={t}
-                        label={t}
-                        ativo={(segmento.tags ?? []).includes(t)}
-                        onClick={() => toggleLista("tags", t)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="camp-cidade">Cidade</Label>
-                  <Input
-                    id="camp-cidade"
-                    value={segmento.cidade ?? ""}
-                    onChange={(e) => setSegmento((prev) => ({ ...prev, cidade: e.target.value }))}
-                    placeholder="Correspondência parcial"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="camp-atendente">Atendente responsável</Label>
-                  <select
-                    id="camp-atendente"
-                    className={selectClass}
-                    value={segmento.atendenteId ?? ""}
-                    onChange={(e) =>
-                      setSegmento((prev) => ({ ...prev, atendenteId: e.target.value || undefined }))
-                    }
+            <div className="flex flex-col gap-2">
+              <Label>Destinatários</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPainelAberto(true)}
+                  className={cn(
+                    "h-9 flex items-center gap-1.5 px-3 text-sm rounded-md border transition-colors",
+                    condicoes > 0
+                      ? "border-primary text-foreground"
+                      : "border-input bg-card text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  <SlidersHorizontal className="size-3.5" aria-hidden />
+                  {condicoes > 0 ? `Filtrar · ${condicoes}` : "Filtrar"}
+                </button>
+                {condicoes > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => aplicarFiltro(FILTRO_VAZIO)}
+                    className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground"
                   >
-                    <option value="">Todos</option>
-                    {opcoes.atendentes.map((a) => (
-                      <option key={a.id} value={a.id}>{a.nome}</option>
-                    ))}
-                  </select>
-                </div>
+                    Limpar filtro
+                  </button>
+                )}
               </div>
-            </>
+              <p className="text-sm text-muted-foreground" data-testid="resumo-do-filtro">
+                {resumo || "Sem filtro: todos os contatos com WhatsApp válido."}
+              </p>
+              <PainelFiltro
+                aberto={painelAberto}
+                onAbertoChange={setPainelAberto}
+                filtro={filtro}
+                atendentes={opcoes.atendentes}
+                etiquetas={opcoes.etiquetas}
+                funis={opcoes.funis}
+                onAplicar={aplicarFiltro}
+                onLimpar={() => aplicarFiltro(FILTRO_VAZIO)}
+              />
+            </div>
           )}
 
           {/* Preview de destinatários */}

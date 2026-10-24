@@ -181,6 +181,6 @@ describe("B42-01 — Perfil RFV no filtro de contatos", { timeout: 30_000 }, () 
     // Nem chamando a função direto ele vê perfil de contato de outra carteira.
     const { data, error } = await navegadores[atendenteId].rpc("perfis_rfv_da_empresa")
     expect(error).toBeNull()
-    expect(ordenados((data ?? []).map((r) => r.contact_id))).toEqual(ordenados([ids["A"], ids["A2"]]))
+    expect(ordenados(((data ?? []) as Array<{ contact_id: string }>).map((r) => r.contact_id))).toEqual(ordenados([ids["A"], ids["A2"]]))
   })
 })

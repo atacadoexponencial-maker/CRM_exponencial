@@ -3,7 +3,7 @@
 // mockadas e a contagem do servidor com banco falso; nas automações, as opções
 // que o editor mostra e as validações que o salvar usa.
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type * as AcoesDeCampanha from "@/app/(auth)/campanhas/actions"
 
@@ -39,19 +39,20 @@ function camposDoBloco(campos: Array<{ chave: string; fonte?: FonteOpcoes }>): s
   return opcoesDaFonte(campo.fonte!, OPCOES_EDITOR).map((o) => o.nome)
 }
 
-/** Banco falso da contagem: guarda o que foi pedido e devolve os contatos lojistas. */
+/**
+ * Banco falso da contagem: guarda o filtro que chegou à função do banco e devolve os
+ * contatos lojistas. B42-02: a campanha conta pelo filtro de Contatos (filtrar_contatos).
+ */
 function bancoDaContagem() {
-  const pedido: { colunas?: string; filtros: unknown[][] } = { filtros: [] }
-  const contatos = [
-    { id: "c-1", name: "Loja A", phone_number: "5511999990001", tipo: "lojista", cidade: "Recife", atendente_id: null },
-    { id: "c-2", name: "Loja B", phone_number: "5511999990002", tipo: "lojista", cidade: "Natal", atendente_id: null },
+  const pedido: { filtro?: unknown } = {}
+  const linhas = [
+    { id: "c-1", name: "Loja A", phone_number: "5511999990001", classificacao: "lead", tipo: "lojista", cidade: "Recife", uf: null, created_at: "2026-10-20T10:00:00Z", atendente_nome: null, total: 2 },
+    { id: "c-2", name: "Loja B", phone_number: "5511999990002", classificacao: "lead", tipo: "lojista", cidade: "Natal", uf: null, created_at: "2026-10-20T10:00:00Z", atendente_nome: null, total: 2 },
   ]
-  const q: Record<string, unknown> = {}
-  q.select = vi.fn((colunas: string) => { pedido.colunas = colunas; return q })
-  for (const m of ["eq", "is", "in", "ilike"]) q[m] = vi.fn((...a: unknown[]) => { pedido.filtros.push([m, ...a]); return q })
-  q.then = (resolve: (v: unknown) => void) => Promise.resolve({ data: contatos, error: null }).then(resolve)
   vi.mocked(sessaoAtual).mockResolvedValue({
-    supabase: { from: vi.fn(() => q) },
+    supabase: {
+      rpc: vi.fn(async (_nome: string, args: { p_filtro: unknown }) => { pedido.filtro = args.p_filtro; return { data: linhas, error: null } }),
+    },
     user: { id: "u-1" },
     perfil: { id: "u-1", workspace_id: "ws-1", role: "admin" },
   } as never)
@@ -64,24 +65,25 @@ beforeEach(() => {
 
 describe("B40-02 — nicho sai de campanhas e automações", () => {
   it("CA-B40-10: should segmentar a campanha sem o grupo Nicho e contar o público pelos outros filtros", async () => {
-    render(<EditorCampanhaClient campanha={null} opcoes={{ tags: ["vip"], atendentes: [] }} numeros={[]} />)
+    render(<EditorCampanhaClient campanha={null} opcoes={{ atendentes: [], etiquetas: ["vip"], funis: [] }} numeros={[]} />)
 
-    expect(screen.queryByText("Nicho")).toBeNull()
-    expect(screen.getByText("Classificação")).toBeTruthy()
-    expect(screen.getByText("Tipo de contato")).toBeTruthy()
-    expect(screen.getByText("Tag do contato")).toBeTruthy()
+    // B42-02: a etapa Destinatários usa o painel do filtro de Contatos, sem Nicho.
+    fireEvent.click(screen.getByRole("button", { name: /^Filtrar/ }))
+    const campos = Array.from(screen.getByLabelText("Campo").querySelectorAll("option")).map((o) => o.textContent)
+    expect(campos).not.toContain("Nicho")
+    expect(campos).toContain("Classificação")
+    expect(campos).toContain("Tipo")
+    expect(campos).toContain("Etiqueta")
 
-    fireEvent.click(screen.getByRole("button", { name: "Lojista" }))
-    await waitFor(() => expect(contar).toHaveBeenLastCalledWith({ tipos: ["lojista"] }))
-
-    // No servidor, o público por tipo sai do banco sem ler nem filtrar nicho.
+    // No servidor, o público por tipo sai do banco sem nicho no filtro.
+    const porTipo = { juncao: "e" as const, grupos: [{ juncao: "e" as const, condicoes: [{ campo: "tipo", comparacao: "e" as const, valores: ["lojista"] }] }] }
     const pedido = bancoDaContagem()
     const { contarDestinatarios } = await vi.importActual<typeof AcoesDeCampanha>("@/app/(auth)/campanhas/actions")
-    const resultado = await contarDestinatarios({ tipos: ["lojista"] })
+    const resultado = await contarDestinatarios({ filtro: porTipo })
     expect(resultado.total).toBe(2)
     expect(resultado.amostra.map((d) => d.id)).toEqual(["c-1", "c-2"])
-    expect(pedido.colunas).not.toContain("nicho")
-    expect(pedido.filtros).toContainEqual(["in", "tipo", ["lojista"]])
+    expect(JSON.stringify(pedido.filtro)).not.toContain("nicho")
+    expect(pedido.filtro).toEqual(porTipo)
   })
 
   it("CA-B40-11: should oferecer no gatilho de dado alterado só classificação, tipo e cidade", () => {

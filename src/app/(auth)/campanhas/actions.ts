@@ -16,16 +16,11 @@ import {
   RITMO_PADRAO,
 } from "@/lib/whatsapp/gateway/fila-campanha"
 import { lerSaudeDoNumero } from "@/lib/whatsapp/gateway/saude"
-import { calcularClassificacao } from "../contatos/classificacao"
+import { filtrarContatos } from "../contatos/actions"
+import { esquemaFiltro } from "@/lib/filtro-contatos"
+import { filtroDoSegmento, type Segmento } from "@/lib/segmento-campanha"
 
-export type Segmento = {
-  classificacoes?: string[]
-  tipos?: string[]
-  cidade?: string
-  tags?: string[]
-  atendenteId?: string
-  reenvioDe?: string // campanha de origem (reenvio para falhos — destinatários fixos)
-}
+export type { Segmento } from "@/lib/segmento-campanha"
 
 export type CampanhaListada = {
   id: string
@@ -92,7 +87,6 @@ async function perfilGestor() {
 
 async function buscarDestinatariosSegmento(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  workspaceId: string,
   segmento: Segmento
 ): Promise<DestinatarioPreview[]> {
   // Reenvio: destinatários fixos = os que falharam na campanha de origem
@@ -116,59 +110,25 @@ async function buscarDestinatariosSegmento(
     }))
   }
 
-  let query = supabase
-    .from("contacts")
-    .select("id, name, phone_number, tipo, cidade, atendente_id")
-    .eq("workspace_id", workspaceId)
-    .is("excluido_em", null)
-
-  if (segmento.tipos?.length) query = query.in("tipo", segmento.tipos)
-  if (segmento.cidade?.trim()) query = query.ilike("cidade", `%${segmento.cidade.trim()}%`)
-  if (segmento.atendenteId) query = query.eq("atendente_id", segmento.atendenteId)
-
-  const { data: contatos } = await query
-  let lista = (contatos ?? [])
-    // QA baixos (06/10): telefone que não é um WhatsApp válido não entra no disparo.
-    .filter((c) => /^55\d{10,11}$/.test(c.phone_number as string))
-    .map((c) => ({
-      id: c.id as string,
-      nome: (c.name || c.phone_number) as string,
-      telefone: c.phone_number as string,
-    }))
-
-  // Filtro por tag
-  if (segmento.tags?.length) {
-    const { data: tagsData } = await supabase
-      .from("contact_tags")
-      .select("contact_id")
-      .eq("workspace_id", workspaceId)
-      .in("tag", segmento.tags)
-    const comTag = new Set((tagsData ?? []).map((t) => t.contact_id))
-    lista = lista.filter((c) => comTag.has(c.id))
-  }
-
-  // Filtro por classificação (derivada do pipeline, igual ao perfil do contato)
-  if (segmento.classificacoes?.length) {
-    const ids = lista.map((c) => c.id)
-    const cardsPorContato = new Map<string, Array<{ funil: string; etapa: string }>>()
-    if (ids.length > 0) {
-      const { data: cards } = await supabase
-        .from("pipeline_cards")
-        .select("contact_id, funil, etapa")
-        .in("contact_id", ids)
-      for (const card of cards ?? []) {
-        if (!card.contact_id) continue
-        const atual = cardsPorContato.get(card.contact_id) ?? []
-        atual.push({ funil: card.funil, etapa: card.etapa })
-        cardsPorContato.set(card.contact_id, atual)
-      }
+  // B42-02: o mesmo filtro da lista de Contatos, sobre a base inteira (a função do
+  // banco respeita a empresa e a lixeira). Lido em páginas de 200, o máximo que a
+  // função devolve por vez, na ordem estável dela (cadastro e id). Campanha antiga é
+  // convertida por filtroDoSegmento.
+  const filtro = filtroDoSegmento(segmento)
+  const lista: DestinatarioPreview[] = []
+  for (let offset = 0; ; offset += PAGINA_DO_FILTRO) {
+    const pagina = await filtrarContatos({ filtro, limite: PAGINA_DO_FILTRO, offset })
+    if ("erro" in pagina) return []
+    for (const c of pagina.contatos) {
+      // QA baixos (06/10): telefone que não é um WhatsApp válido não entra no disparo.
+      if (/^55\d{10,11}$/.test(c.telefone)) lista.push({ id: c.id, nome: c.nome || c.telefone, telefone: c.telefone })
     }
-    const selecionadas = new Set(segmento.classificacoes)
-    lista = lista.filter((c) => selecionadas.has(calcularClassificacao(cardsPorContato.get(c.id) ?? [])))
+    if (pagina.contatos.length < PAGINA_DO_FILTRO) break
   }
-
   return lista
 }
+
+const PAGINA_DO_FILTRO = 200
 
 export async function contarDestinatarios(segmento: Segmento): Promise<{
   total: number
@@ -177,35 +137,8 @@ export async function contarDestinatarios(segmento: Segmento): Promise<{
   const { supabase, perfil } = await perfilGestor()
   if (!perfil) return { total: 0, amostra: [] }
 
-  const lista = await buscarDestinatariosSegmento(supabase, perfil.workspace_id, segmento)
+  const lista = await buscarDestinatariosSegmento(supabase, segmento)
   return { total: lista.length, amostra: lista.slice(0, 50) }
-}
-
-export async function opcoesSegmentacao(): Promise<{
-  tags: string[]
-  atendentes: Array<{ id: string; nome: string }>
-}> {
-  const { supabase, perfil } = await perfilGestor()
-  if (!perfil) return { tags: [], atendentes: [] }
-
-  const [{ data: tags }, { data: atendentes }] = await Promise.all([
-    supabase
-      .from("contact_tags")
-      .select("tag, contato:contacts!inner(excluido_em)")
-      .eq("workspace_id", perfil.workspace_id)
-      .is("contato.excluido_em", null),
-    supabase
-      .from("profiles")
-      .select("id, name")
-      .eq("workspace_id", perfil.workspace_id)
-      .eq("status", "active")
-      .order("name"),
-  ])
-
-  return {
-    tags: Array.from(new Set((tags ?? []).map((t) => t.tag as string))).sort(),
-    atendentes: (atendentes ?? []).map((a) => ({ id: a.id, nome: a.name })),
-  }
 }
 
 // ── CRUD ─────────────────────────────────────────────────────────────
@@ -260,7 +193,8 @@ export async function buscarCampanha(id: string): Promise<CampanhaDetalhe | null
     id: data.id,
     nome: data.nome,
     status: data.status,
-    segmento: (data.segmento ?? {}) as Segmento,
+    // B42-02: campanha antiga abre com o filtro equivalente; reenvio segue sem filtro.
+    segmento: paraATela((data.segmento ?? {}) as Segmento),
     tipoMensagem: data.tipo_mensagem,
     conteudo: data.conteudo ?? "",
     arquivoUrl: data.arquivo_url,
@@ -391,8 +325,14 @@ export async function numerosParaCampanha(): Promise<NumeroParaCampanha[]> {
   })
 }
 
+/** B42-02: o segmento como a tela usa: o filtro (convertido, se antigo) ou o reenvio. */
+function paraATela(segmento: Segmento): Segmento {
+  return segmento.reenvioDe ? { reenvioDe: segmento.reenvioDe } : { filtro: filtroDoSegmento(segmento) }
+}
+
 function validarDados(dados: DadosCampanha, paraEnvio: boolean): string | null {
   if (!dados.nome.trim()) return "Informe o nome da campanha"
+  if (dados.segmento.filtro && !esquemaFiltro.safeParse(dados.segmento.filtro).success) return "Filtro inválido."
   if (paraEnvio) {
     if (!dados.conteudo.trim()) return "Escreva a mensagem da campanha"
     if (dados.tipoMensagem !== "texto" && !dados.arquivoUrl) return "Anexe o arquivo da campanha"
@@ -486,7 +426,7 @@ export async function confirmarCampanha(
   }
 
   // Resolve a lista de destinatários no momento da confirmação (snapshot)
-  const destinatarios = await buscarDestinatariosSegmento(supabase, perfil.workspace_id, dados.segmento)
+  const destinatarios = await buscarDestinatariosSegmento(supabase, dados.segmento)
   if (destinatarios.length === 0) return { erro: "Nenhum destinatário corresponde aos filtros" }
 
   const salvo = await salvarRascunho(id, dados)

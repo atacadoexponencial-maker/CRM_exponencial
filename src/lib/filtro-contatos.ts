@@ -352,6 +352,44 @@ export function contarCondicoes(filtro: Filtro): number {
 
 export const FILTRO_VAZIO: Filtro = { juncao: "e", grupos: [] }
 
+/** Nomes da empresa que o resumo usa no lugar dos ids (atendente, funil e etapa). */
+export type NomesDoFiltro = { atendentes?: Array<{ id: string; nome: string }>; funis?: FunilParaFiltro[] }
+
+function descreverCondicao(condicao: Condicao, nomes: NomesDoFiltro): string {
+  const campo = campoDoFiltro(condicao.campo, nomes.funis)!
+  const comparacao = condicao.comparacao as Comparacao
+  const nomeDoValor = (v: string) =>
+    campo.opcoes?.find((o) => o.valor === v)?.rotulo ??
+    (campo.id === "atendente" ? nomes.atendentes?.find((a) => a.id === v)?.nome : undefined) ??
+    v
+  const valores = condicao.valores.map(nomeDoValor)
+  const rotulo = rotuloDaComparacao(campo, comparacao)
+  if (comparacao === "ultimos_dias" || comparacao === "ha_mais_de_dias") return `${campo.rotulo} ${rotulo.replace("N", valores[0])}`
+  switch (valoresPedidos(comparacao)) {
+    case "nenhum":
+      return `${campo.rotulo} ${rotulo}`
+    case "dois":
+      return `${campo.rotulo} ${rotulo} ${valores[0]} e ${valores[1]}`
+    default:
+      return `${campo.rotulo} ${rotulo} ${valores.join(", ")}`
+  }
+}
+
+/**
+ * B42-02: o filtro numa frase, com os nomes que a pessoa escolheu e os E/OU no lugar
+ * certo (ex.: "(Cidade é igual a Fortaleza OU Cidade é igual a Recife) E Tipo é Lojista").
+ * Só entram as condições completas, as mesmas que filtram.
+ */
+export function descreverFiltro(filtro: Filtro, nomes: NomesDoFiltro = {}): string {
+  const junta = (juncao: Juncao) => (juncao === "ou" ? " OU " : " E ")
+  const grupos = filtro.grupos
+    .map((g) => ({ juncao: g.juncao, partes: g.condicoes.filter(condicaoCompleta).map((c) => descreverCondicao(c, nomes)) }))
+    .filter((g) => g.partes.length > 0)
+  return grupos
+    .map((g) => (g.partes.length > 1 && grupos.length > 1 ? `(${g.partes.join(junta(g.juncao))})` : g.partes.join(junta(g.juncao))))
+    .join(junta(filtro.juncao))
+}
+
 const esquemaCondicao = z.object({
   // B41-06: "funil:<uuid>" tem 42 caracteres
   campo: z.string().max(60),

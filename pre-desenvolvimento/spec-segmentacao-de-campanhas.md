@@ -384,6 +384,7 @@ confirmação.
 | SUP-B42-03 | Em campanha, o filtro funciona com a visão do Admin e do Gerente (todos os contatos da empresa); não há caso de Atendente montando campanha. | confirmada | Lido no código em 23/10/2026: toda action de campanha passa por `perfilGestor` (só Admin e Gerente) |
 | SUP-B42-04 | Filtro com funil ou etapa apagada impede a confirmação até a pessoa ajustar, em vez de só ignorar a condição. | confirmada | Marcelle, 23/10/2026 |
 | SUP-B42-05 | Campanha já enviada, cancelada ou em envio não precisa mostrar o filtro no painel; basta o relatório e o reenvio continuarem iguais. | confirmada | Marcelle, 23/10/2026 |
+| SUP-B42-06 | Sem filtro, o resumo da etapa Destinatários diz "Sem filtro: todos os contatos com WhatsApp válido." | confirmada | Marcelle, 24/10/2026 |
 
 ## Perguntas em aberto
 
