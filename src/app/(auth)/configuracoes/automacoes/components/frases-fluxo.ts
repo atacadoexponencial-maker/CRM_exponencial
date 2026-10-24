@@ -2,7 +2,7 @@
 // resumo da regra inteira, na lista.
 
 import type { Bloco, BlocoAcao, BlocoGatilho, Fluxo, Repeticao, Verificacao } from "@/lib/fluxo-automacao"
-import { SEQUENCIA_DA_ETAPA, gatilhoDoFluxo, vencimentoDoLembrete } from "@/lib/fluxo-automacao"
+import { SEQUENCIA_DA_ETAPA, gatilhoDoFluxo, itensDaLista, vencimentoDoLembrete } from "@/lib/fluxo-automacao"
 import {
   ACOES,
   GATILHOS,
@@ -84,6 +84,10 @@ export function fraseVerificacao(v: Verificacao, opcoes: OpcoesEditor): string {
   }
   let valor = v.valor
   if (item.valor.tipo === "opcoes") valor = nomeOuApagado(opcoesDaFonte(item.valor.fonte, opcoes), v.valor)
+  if (item.valor.tipo === "opcoes_varias") {
+    const lista = opcoesDaFonte(item.valor.fonte, opcoes)
+    valor = itensDaLista(v.valor).map((id) => nomeOuApagado(lista, id)).join(", ")
+  }
   if (item.valor.tipo === "funil_etapa") {
     const [funil, etapa] = v.valor.split(":")
     valor = funil ? `${nomeOuApagado(etapasDoFunil(funil, opcoes), etapa)} (${nomeOuApagado(funisDoEditor(opcoes), funil)})` : ""

@@ -22,6 +22,7 @@ import {
   conteudoDoTipo,
   arquivoDaAutomacaoValido,
   classificacaoValida,
+  perfilRfvValido,
   dadoDoContatoValido,
   etapaValida,
   ehFunilDaEmpresa,
@@ -231,6 +232,7 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
     dadosDoContato,
     tiposDeContato,
     classificacoes,
+    perfisRfv,
     gatilhosDeDado,
     mensagensRapidas,
     arquivos,
@@ -251,6 +253,8 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
   if (!tiposDeContato.every(tipoDeContatoValido) || !classificacoes.every(classificacaoValida)) {
     return "Um tipo ou classificação escolhido numa condição não existe. Escolha de novo."
   }
+  // B43-02
+  if (!perfisRfv.every(perfilRfvValido)) return "Um perfil RFV escolhido numa condição não existe. Escolha de novo."
   if (!gatilhosDeDado.every(({ campo, valor }) => gatilhoDeDadoValido(campo, valor))) {
     return "O campo ou o valor do gatilho não é válido. Escolha de novo."
   }

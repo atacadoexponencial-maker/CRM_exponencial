@@ -12,7 +12,7 @@
 
 import { calcularClassificacao } from "@/app/(auth)/contatos/classificacao"
 import { normalizarTexto } from "@/lib/catalogo/planilha"
-import { normalizarTag, type Verificacao } from "@/lib/fluxo-automacao"
+import { itensDaLista, normalizarTag, SEM_COMPRAS, type Verificacao } from "@/lib/fluxo-automacao"
 import { dentroDoHorario, horarioDoBanco } from "@/lib/horario-comercial"
 import { conversaDoEvento, type ContextoDaExecucao } from "./contexto"
 
@@ -40,6 +40,8 @@ export async function verificacaoVale(contexto: ContextoDaExecucao, verificacao:
       return tipoVale(contexto, verificacao)
     case "classificacao":
       return classificacaoVale(contexto, verificacao)
+    case "perfil_rfv":
+      return perfilRfvVale(contexto, verificacao)
     case "horario_comercial":
       return horarioVale(contexto, verificacao)
     // Só os gatilhos de mensagem trazem a mensagem
@@ -175,6 +177,27 @@ async function classificacaoVale(
 
   const igual = calcularClassificacao(cards ?? []) === valor
   return operador === "e" ? igual : !igual
+}
+
+/**
+ * B43-02: o perfil RFV da hora, pela regra da aba RFV dos Relatórios, sobre a base
+ * da empresa inteira (`perfis_rfv_do_workspace`). Quem nunca comprou não tem perfil e
+ * só passa com "Sem compras" marcado.
+ */
+async function perfilRfvVale(
+  { supabase, gatilho }: ContextoDaExecucao,
+  { operador, valor }: Verificacao
+): Promise<boolean> {
+  if (operador !== "e_um_de") return false
+  if (!gatilho.contactId) return false
+
+  const { data, error } = await supabase
+    .rpc("perfis_rfv_do_workspace", { p_workspace: gatilho.workspaceId })
+    .eq("contact_id", gatilho.contactId)
+  if (error) throw error
+
+  const perfil = data?.[0]?.perfil ?? SEM_COMPRAS
+  return itensDaLista(valor).includes(perfil)
 }
 
 /**

@@ -23,10 +23,11 @@ import {
   UserPen,
   Users,
 } from "lucide-react"
-import type { AcaoTipo, Fluxo, GatilhoTipo, VerificacaoTipo } from "@/lib/fluxo-automacao"
+import { SEM_COMPRAS, type AcaoTipo, type Fluxo, type GatilhoTipo, type VerificacaoTipo } from "@/lib/fluxo-automacao"
 import type { HorarioComercial } from "@/lib/horario-comercial"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "../../../pipeline/mock-pipeline"
 import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "../../../contatos/mock-contatos"
+import { PERFIS } from "@/lib/relatorios/rfv"
 
 export type Opcao = { id: string; nome: string }
 
@@ -59,6 +60,8 @@ export type FonteOpcoes =
   | "canais"
   | "camposContatoGatilho"
   | "camposContatoAcao"
+  // B43-02
+  | "perfisRfv"
 
 export type CampoTela =
   | { chave: string; rotulo: string; tipo: "texto"; placeholder?: string }
@@ -158,6 +161,8 @@ export function opcoesDaFonte(fonte: FonteOpcoes, opcoes: OpcoesEditor): Opcao[]
     case "camposContatoGatilho":
       // Sem "atendente": contacts.atendente_id não é gravado por nenhuma tela (B11-06)
       return ["classificacao", "tipo", "cidade"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] }))
+    case "perfisRfv":
+      return [...PERFIS.map((p) => ({ id: p.id, nome: `${p.icone} ${p.nome}` })), { id: SEM_COMPRAS, nome: "Sem compras" }]
     case "camposContatoAcao":
       // Sem classificação: o CRM a calcula pela etapa dos cards (B11-11)
       return ["tipo", "cidade", "observacoes"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] }))
@@ -213,6 +218,8 @@ export const GATILHOS: Record<GatilhoTipo, { rotulo: string; icone: LucideIcon; 
 type ValorVerificacao =
   | { tipo: "texto"; placeholder: string }
   | { tipo: "opcoes"; fonte: FonteOpcoes }
+  /** B43-02: várias opções marcadas, guardadas como ids separados por vírgula. */
+  | { tipo: "opcoes_varias"; fonte: FonteOpcoes }
   | { tipo: "funil_etapa" }
   | { tipo: "nenhum" }
   /** Tag digitada, como na ação "adicionar tag": dá para conferir uma tag que o fluxo acabou de criar. */
@@ -261,6 +268,12 @@ export const VERIFICACOES: Record<
       { id: "nao_e", nome: "não é" },
     ],
     valor: { tipo: "opcoes", fonte: "classificacoes" },
+  },
+  // B43-02
+  perfil_rfv: {
+    rotulo: "Perfil RFV",
+    operadores: [{ id: "e_um_de", nome: "é um destes" }],
+    valor: { tipo: "opcoes_varias", fonte: "perfisRfv" },
   },
   tipo_contato: {
     rotulo: "Tipo do contato",

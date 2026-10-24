@@ -19,6 +19,8 @@ export type VerificacaoTipo =
   | "canal"
   | "tag_contato"
   | "classificacao"
+  // B43-02
+  | "perfil_rfv"
   | "tipo_contato"
   | "etiqueta_conversa"
   | "atendente"
@@ -140,6 +142,14 @@ export function repeticaoPadrao(gatilho: GatilhoTipo): Repeticao {
 export const VERIFICACOES_DE_MENSAGEM: readonly VerificacaoTipo[] = ["texto_mensagem", "tipo_mensagem"]
 
 /** Operadores que não pedem valor ("conversa sem atendente", "fora do horário comercial"). */
+/** B43-02: na lista de perfis RFV, o contato que nunca comprou (não tem perfil). */
+export const SEM_COMPRAS = "sem_compras"
+
+/** B43-02: valor de várias opções, guardado como ids separados por vírgula. */
+export function itensDaLista(valor: string | undefined): string[] {
+  return (valor ?? "").split(",").map((v) => v.trim()).filter(Boolean)
+}
+
 export const OPERADORES_SEM_VALOR: readonly string[] = ["sem_atendente", "dentro", "fora"]
 
 /** Parâmetros sem os quais o gatilho não funciona. Os que faltam aqui são opcionais ("qualquer etapa"). */
@@ -212,6 +222,8 @@ export const GATILHOS_DISPONIVEIS: readonly GatilhoTipo[] = [
 export const VERIFICACOES_DISPONIVEIS: readonly VerificacaoTipo[] = [
   "tag_contato",
   "classificacao",
+  // B43-02
+  "perfil_rfv",
   "tipo_contato",
   "canal",
   "etiqueta_conversa",

@@ -2281,6 +2281,13 @@ export type Database = {
           perfil: string
         }[]
       }
+      perfis_rfv_do_workspace: {
+        Args: { p_workspace: string }
+        Returns: {
+          contact_id: string
+          perfil: string
+        }[]
+      }
       pode_ver_contato: { Args: { p_contact_id: string }; Returns: boolean }
       pode_ver_conversa: {
         Args: { p_conversation_id: string }

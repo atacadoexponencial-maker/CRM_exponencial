@@ -43,6 +43,7 @@ import {
   type OpcoesEditor,
 } from "./catalogo"
 import { CampoSelecao, type ItemSelecao } from "./campo-selecao"
+import { CampoVarias } from "./campo-varias"
 import { VARIAVEIS_DA_MENSAGEM, inserirNoCursor } from "./variaveis-mensagem"
 
 const textareaClass =
@@ -714,6 +715,14 @@ function EditorVerificacoes({
                 valor={v.valor}
                 vazio="Escolha…"
                 itens={comEscolhaApagada(paraItens(opcoesDaFonte(item.valor.fonte, opcoes)), v.valor)}
+                onMudar={(valor) => mudar(v.id, { valor })}
+              />
+            )}
+            {pedeValor && item.valor.tipo === "opcoes_varias" && (
+              <CampoVarias
+                rotulo="Valor"
+                valor={v.valor}
+                opcoes={opcoesDaFonte(item.valor.fonte, opcoes)}
                 onMudar={(valor) => mudar(v.id, { valor })}
               />
             )}

@@ -6,7 +6,8 @@
 
 import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "@/app/(auth)/contatos/mock-contatos"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
-import type { Fluxo } from "@/lib/fluxo-automacao"
+import { itensDaLista, SEM_COMPRAS, type Fluxo } from "@/lib/fluxo-automacao"
+import { PERFIL_POR_ID } from "@/lib/relatorios/rfv"
 
 export interface ReferenciasDoFluxo {
   etiquetas: string[]
@@ -23,6 +24,8 @@ export interface ReferenciasDoFluxo {
   /** Valores das verificações "tipo do contato é" e "classificação do contato é". */
   tiposDeContato: string[]
   classificacoes: string[]
+  /** B43-02: perfis RFV marcados nas condições. */
+  perfisRfv: string[]
   /** Campo e valor do gatilho "dado do contato alterado" (B11-06). */
   gatilhosDeDado: Array<{ campo: string; valor: string }>
   /** B11-07 */
@@ -43,6 +46,7 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
   const dadosDoContato: ReferenciasDoFluxo["dadosDoContato"] = []
   const tiposDeContato: string[] = []
   const classificacoes: string[] = []
+  const perfisRfv: string[] = []
   const gatilhosDeDado: ReferenciasDoFluxo["gatilhosDeDado"] = []
   const mensagensRapidas = new Set<string>()
   const arquivos: ReferenciasDoFluxo["arquivos"] = []
@@ -59,6 +63,7 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
         }
         if (v.tipo === "tipo_contato") tiposDeContato.push(v.valor)
         if (v.tipo === "classificacao") classificacoes.push(v.valor)
+        if (v.tipo === "perfil_rfv") perfisRfv.push(...itensDaLista(v.valor))
       }
       continue
     }
@@ -99,6 +104,7 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
     dadosDoContato,
     tiposDeContato,
     classificacoes,
+    perfisRfv,
     gatilhosDeDado,
     mensagensRapidas: [...mensagensRapidas],
     arquivos,
@@ -168,6 +174,8 @@ export function arquivoDaAutomacaoValido(
 /** Valores que a tela do contato mostra como tipo e como classificação. */
 export const tipoDeContatoValido = (tipo: string) => Object.hasOwn(TIPO_LABEL, tipo)
 export const classificacaoValida = (classificacao: string) => Object.hasOwn(CLASSIFICACAO_LABEL, classificacao)
+/** B43-02: um dos onze perfis RFV, ou "Sem compras". */
+export const perfilRfvValido = (perfil: string) => perfil === SEM_COMPRAS || Object.hasOwn(PERFIL_POR_ID, perfil)
 
 /**
  * Campos que a ação "alterar dado do contato" muda. A classificação fica de
