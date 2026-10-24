@@ -2,7 +2,7 @@
 // resumo da regra inteira, na lista.
 
 import type { Bloco, BlocoAcao, BlocoGatilho, Fluxo, Repeticao, Verificacao } from "@/lib/fluxo-automacao"
-import { SEQUENCIA_DA_ETAPA, gatilhoDoFluxo, itensDaLista, vencimentoDoLembrete } from "@/lib/fluxo-automacao"
+import { SEQUENCIA_DA_ETAPA, gatilhoDoFluxo, horaDoGatilho, itensDaLista, vencimentoDoLembrete } from "@/lib/fluxo-automacao"
 import {
   ACOES,
   GATILHOS,
@@ -62,6 +62,14 @@ export function fraseGatilho(bloco: BlocoGatilho, opcoes: OpcoesEditor): string 
     }
     case "tag_adicionada":
       return p.tag ? `Quando a tag "${p.tag}" for adicionada` : "Quando qualquer tag for adicionada"
+    case "entrou_perfil_rfv": {
+      // B43-03: "Quando entrar em Em Risco (vindo de Campeão), às 10h"
+      const nomes = (valor: string | undefined) =>
+        itensDaLista(valor).map((id) => nomeOuApagado(opcoesDaFonte("perfisRfv", opcoes), id)).join(", ")
+      if (!itensDaLista(p.destinos).length) return "Quando o contato entrar num perfil RFV"
+      const origem = itensDaLista(p.origens).length ? ` (vindo de ${nomes(p.origens)})` : ""
+      return `Quando entrar em ${nomes(p.destinos)}${origem}, às ${horaDoGatilho(p) ?? "?"}h`
+    }
     case "etiqueta_aplicada":
       return p.label_id
         ? `Quando a etiqueta "${nomeOuApagado(opcoes.etiquetas, p.label_id)}" for aplicada`

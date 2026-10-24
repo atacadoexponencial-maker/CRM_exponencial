@@ -23,6 +23,7 @@ import {
   arquivoDaAutomacaoValido,
   classificacaoValida,
   perfilRfvValido,
+  problemaDoGatilhoDePerfil,
   dadoDoContatoValido,
   etapaValida,
   ehFunilDaEmpresa,
@@ -233,6 +234,7 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
     tiposDeContato,
     classificacoes,
     perfisRfv,
+    gatilhoDePerfil,
     gatilhosDeDado,
     mensagensRapidas,
     arquivos,
@@ -255,6 +257,9 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
   }
   // B43-02
   if (!perfisRfv.every(perfilRfvValido)) return "Um perfil RFV escolhido numa condição não existe. Escolha de novo."
+  // B43-03
+  const problemaDoPerfil = gatilhoDePerfil && problemaDoGatilhoDePerfil(gatilhoDePerfil)
+  if (problemaDoPerfil) return problemaDoPerfil
   if (!gatilhosDeDado.every(({ campo, valor }) => gatilhoDeDadoValido(campo, valor))) {
     return "O campo ou o valor do gatilho não é válido. Escolha de novo."
   }

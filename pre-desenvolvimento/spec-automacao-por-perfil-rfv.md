@@ -271,3 +271,4 @@ mensagens saem pela fila do número, como nas outras automações.
 | PER-B43-02 | O perfil mostrado no contato, na lista e no chat, e usado na condição, é o da hora ou o da conferência do dia? | respondida | Sempre o da hora, igual a Relatórios. Marcelle, 24/10/2026. |
 | PER-B43-03 | Quando e em que horário dispara? | respondida | O sistema confere sozinho de madrugada, e cada automação tem o próprio horário de disparo, escolhido no gatilho, com padrão 9h. A mudança causada por compra também espera o horário (dia seguinte). Marcelle, 24/10/2026. |
 | PER-B43-04 | Ganhar o primeiro perfil (primeira compra) dispara o gatilho? | respondida | Dispara. Marcelle, 24/10/2026. |
+| PER-B43-05 | A Vercel do projeto é Hobby (rotina no máximo 1x/dia, com hora aproximada). Como disparar no horário de cada automação? | respondida | 24 rotinas diárias, uma por hora, grátis; a automação das 10h dispara entre 10:00 e 10:59. Marcelle, 24/10/2026. |

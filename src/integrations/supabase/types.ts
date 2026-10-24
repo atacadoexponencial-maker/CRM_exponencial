@@ -854,6 +854,32 @@ export type Database = {
           },
         ]
       }
+      conferencias_perfil_rfv: {
+        Row: {
+          dia: string
+          feita_em: string
+          workspace_id: string
+        }
+        Insert: {
+          dia: string
+          feita_em?: string
+          workspace_id: string
+        }
+        Update: {
+          dia?: string
+          feita_em?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conferencias_perfil_rfv_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_purchases: {
         Row: {
           atendente_id: string | null
@@ -1173,6 +1199,39 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      disparos_perfil_rfv: {
+        Row: {
+          created_at: string
+          flow_id: string
+          mudanca_id: string
+        }
+        Insert: {
+          created_at?: string
+          flow_id: string
+          mudanca_id: string
+        }
+        Update: {
+          created_at?: string
+          flow_id?: string
+          mudanca_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disparos_perfil_rfv_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disparos_perfil_rfv_mudanca_id_fkey"
+            columns: ["mudanca_id"]
+            isOneToOne: false
+            referencedRelation: "mudancas_perfil_rfv"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       filtros_salvos: {
         Row: {
@@ -1498,6 +1557,51 @@ export type Database = {
           },
         ]
       }
+      mudancas_perfil_rfv: {
+        Row: {
+          contact_id: string
+          created_at: string
+          de: string
+          dia: string
+          id: string
+          para: string
+          workspace_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          de: string
+          dia: string
+          id?: string
+          para: string
+          workspace_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          de?: string
+          dia?: string
+          id?: string
+          para?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mudancas_perfil_rfv_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mudancas_perfil_rfv_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operational_alerts: {
         Row: {
           connection_id: string | null
@@ -1539,6 +1643,39 @@ export type Database = {
           },
           {
             foreignKeyName: "operational_alerts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      perfis_rfv_guardados: {
+        Row: {
+          contact_id: string
+          perfil: string
+          workspace_id: string
+        }
+        Insert: {
+          contact_id: string
+          perfil: string
+          workspace_id: string
+        }
+        Update: {
+          contact_id?: string
+          perfil?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perfis_rfv_guardados_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "perfis_rfv_guardados_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -2207,6 +2344,10 @@ export type Database = {
         Returns: string
       }
       condicao_de_contato_sql: { Args: { p_cond: Json }; Returns: string }
+      conferir_perfis_rfv: {
+        Args: { p_dia: string; p_workspace?: string }
+        Returns: number
+      }
       contato_na_lixeira: { Args: { p_contact_id: string }; Returns: boolean }
       conversa_na_lixeira: {
         Args: { p_conversation_id: string }

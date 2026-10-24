@@ -17,6 +17,8 @@ import {
   VERIFICACOES_DE_MENSAGEM,
   VERIFICACOES_DISPONIVEIS,
   horasValidas,
+  itensDaLista,
+  parametrosIniciaisDoGatilho,
   vencimentoDoLembrete,
   type AcaoTipo,
   type Bloco,
@@ -175,7 +177,9 @@ export function PainelBloco({
                 id="painel-gatilho"
                 valor={bloco.gatilho}
                 itens={ITENS_GATILHO}
-                onMudar={(valor) => onMudar({ ...bloco, gatilho: valor as GatilhoTipo, parametros: {} })}
+                onMudar={(valor) =>
+                  onMudar({ ...bloco, gatilho: valor as GatilhoTipo, parametros: parametrosIniciaisDoGatilho(valor as GatilhoTipo) })
+                }
               />
             </div>
             <CamposParametros
@@ -308,6 +312,10 @@ function CamposParametros({
     // Trocar o funil ou o campo invalida a etapa ou o valor escolhidos antes
     if (chave === "funil") novos.etapa = ""
     if (chave === "campo") novos.valor = ""
+    // B43-03: perfil que virou destino sai da origem
+    if (chave === "destinos" && novos.origens) {
+      novos.origens = itensDaLista(novos.origens).filter((id) => !itensDaLista(valor).includes(id)).join(",")
+    }
     onMudar(novos)
   }
 
@@ -426,6 +434,19 @@ function CampoParametro({
             value={valor}
             placeholder={campo.placeholder}
             onChange={(e) => onMudar(campo.chave, e.target.value)}
+          />
+          {campo.ajuda && <p className="text-xs text-muted-foreground">{campo.ajuda}</p>}
+        </>
+      )
+    case "opcoes_varias":
+      return (
+        <>
+          <CampoVarias
+            rotulo={campo.rotulo}
+            valor={valor}
+            opcoes={opcoesDaFonte(campo.fonte, opcoes)}
+            desabilitadas={campo.fora ? itensDaLista(parametros[campo.fora]) : []}
+            onMudar={(novo) => onMudar(campo.chave, novo)}
           />
           {campo.ajuda && <p className="text-xs text-muted-foreground">{campo.ajuda}</p>}
         </>

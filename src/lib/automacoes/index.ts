@@ -22,6 +22,8 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import { normalizarTexto } from "@/lib/catalogo/planilha"
 import {
   gatilhoDoFluxo,
+  horaDoGatilho,
+  itensDaLista,
   lerRepeticao,
   normalizarTag,
   percorrerFluxo,
@@ -91,11 +93,19 @@ export async function processarAutomacoes(gatilho: GatilhoAutomacao, opcoes: Opc
         await registrarExecucao(supabase, { gatilho, regra, resultado: "falhou", motivo: semRodar ?? FLUXO_FORA_DO_FORMATO })
         continue
       }
+      // B43-03: a regra fica com a mudança antes de rodar; rotina repetida não roda de novo
+      if (gatilho.tipo === "entrou_perfil_rfv" && !(await ficarComAMudanca(supabase, regra.id, gatilho.mudancaId))) continue
       await executarRegra(contexto, { ...regra, fluxo })
     }
   } catch {
     // Automação nunca pode derrubar o fluxo principal (envio, webhook, pipeline)
   }
+}
+
+/** B43-03: marca que a regra rodou para a mudança; false se ela já tinha rodado. */
+async function ficarComAMudanca(supabase: ServiceClient, flowId: string, mudancaId: string): Promise<boolean> {
+  const { error } = await supabase.from("disparos_perfil_rfv").insert({ flow_id: flowId, mudanca_id: mudancaId })
+  return !error
 }
 
 /** Por que o fluxo não pode rodar, ou `null` se pode (B22-25). */
@@ -183,6 +193,15 @@ export function gatilhoCorresponde(bloco: BlocoGatilho, gatilho: GatilhoAutomaca
       // O campo é obrigatório no gatilho; o valor, não. Sem diferença de
       // maiúscula, acento e espaço, como as verificações de texto (B22-05)
       return p.campo === gatilho.campo && (!p.valor || normalizarTexto(p.valor) === normalizarTexto(gatilho.valor))
+    case "entrou_perfil_rfv": {
+      // B43-03: destino obrigatório; origem vazia vale como "de qualquer perfil"
+      const origens = itensDaLista(p.origens)
+      return (
+        horaDoGatilho(p) === gatilho.hora &&
+        itensDaLista(p.destinos).includes(gatilho.para) &&
+        (origens.length === 0 || origens.includes(gatilho.de))
+      )
+    }
     default:
       return true
   }

@@ -9,6 +9,7 @@ import {
   BookmarkPlus,
   CircleCheck,
   FileText,
+  Gauge,
   Kanban,
   ListOrdered,
   MessageCirclePlus,
@@ -62,6 +63,10 @@ export type FonteOpcoes =
   | "camposContatoAcao"
   // B43-02
   | "perfisRfv"
+  // B43-03: os onze perfis, sem "Sem compras" (destino do gatilho)
+  | "perfisRfvDestino"
+  // B43-03
+  | "horas"
 
 export type CampoTela =
   | { chave: string; rotulo: string; tipo: "texto"; placeholder?: string }
@@ -88,6 +93,11 @@ export type CampoTela =
   | { chave: "tag"; rotulo: string; tipo: "tag_livre"; vazio?: string }
   /** Prazo em número e unidade (horas ou dias), gravado em `vence_em` e `vence_unidade` (B28-01). */
   | { chave: "vence_em"; rotulo: string; tipo: "vencimento" }
+  /**
+   * B43-03: várias opções marcadas, ids separados por vírgula. `fora` é a chave de outro
+   * parâmetro: o que está marcado lá não dá para marcar aqui (origem não é o destino).
+   */
+  | { chave: string; rotulo: string; tipo: "opcoes_varias"; fonte: FonteOpcoes; ajuda?: string; fora?: string }
 
 export const FUNIS: Opcao[] = [
   { id: "entrada", nome: "Funil de Entrada" },
@@ -162,7 +172,11 @@ export function opcoesDaFonte(fonte: FonteOpcoes, opcoes: OpcoesEditor): Opcao[]
       // Sem "atendente": contacts.atendente_id não é gravado por nenhuma tela (B11-06)
       return ["classificacao", "tipo", "cidade"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] }))
     case "perfisRfv":
-      return [...PERFIS.map((p) => ({ id: p.id, nome: `${p.icone} ${p.nome}` })), { id: SEM_COMPRAS, nome: "Sem compras" }]
+      return [...opcoesDaFonte("perfisRfvDestino", opcoes), { id: SEM_COMPRAS, nome: "Sem compras" }]
+    case "perfisRfvDestino":
+      return PERFIS.map((p) => ({ id: p.id, nome: `${p.icone} ${p.nome}` }))
+    case "horas":
+      return Array.from({ length: 24 }, (_, h) => ({ id: String(h), nome: `${h}h` }))
     case "camposContatoAcao":
       // Sem classificação: o CRM a calcula pela etapa dos cards (B11-11)
       return ["tipo", "cidade", "observacoes"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] }))
@@ -202,6 +216,23 @@ export const GATILHOS: Record<GatilhoTipo, { rotulo: string; icone: LucideIcon; 
     rotulo: "Etiqueta aplicada à conversa",
     icone: BookmarkPlus,
     campos: [{ chave: "label_id", rotulo: "Etiqueta", tipo: "opcoes", fonte: "etiquetas", vazio: "Qualquer etiqueta" }],
+  },
+  // B43-03
+  entrou_perfil_rfv: {
+    rotulo: "Entrou no perfil RFV",
+    icone: Gauge,
+    campos: [
+      { chave: "destinos", rotulo: "Perfis de destino", tipo: "opcoes_varias", fonte: "perfisRfvDestino" },
+      {
+        chave: "origens",
+        rotulo: "Vindo de (opcional)",
+        tipo: "opcoes_varias",
+        fonte: "perfisRfv",
+        ajuda: "Sem nada marcado, vale vindo de qualquer perfil.",
+        fora: "destinos",
+      },
+      { chave: "hora", rotulo: "Horário de disparo", tipo: "opcoes", fonte: "horas", vazio: "Escolha a hora…" },
+    ],
   },
   dado_contato_alterado: {
     rotulo: "Dado do contato alterado",

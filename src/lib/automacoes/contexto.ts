@@ -47,6 +47,18 @@ export type GatilhoAutomacao =
     }
   // Gatilhos de mensagem, que nascem logo depois de a mensagem ser gravada: a
   // recebida, nos dois canais (B11-04); a enviada por uma pessoa, no chat (B11-05)
+  | {
+      /** B43-03: a conferência de madrugada anotou a mudança; roda no horário da regra. */
+      tipo: "entrou_perfil_rfv"
+      workspaceId: string
+      contactId: string
+      mudancaId: string
+      /** Perfil anterior e novo (`sem_compras` quando não tinha). */
+      de: string
+      para: string
+      /** A hora (0–23, Brasília) do disparo: só rodam as regras com esse horário. */
+      hora: number
+    }
   | ({
       tipo: "mensagem_recebida" | "mensagem_enviada_time"
       workspaceId: string

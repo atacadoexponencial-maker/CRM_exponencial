@@ -12,6 +12,8 @@ export type GatilhoTipo =
   | "tag_adicionada"
   | "etiqueta_aplicada"
   | "dado_contato_alterado"
+  // B43-03
+  | "entrou_perfil_rfv"
 
 export type VerificacaoTipo =
   | "texto_mensagem"
@@ -135,8 +137,29 @@ export const GATILHOS_DE_MENSAGEM: readonly GatilhoTipo[] = ["mensagem_recebida"
  * contato" nos outros, como no protótipo aprovado (B11-01). Decidido em 14/10 (B22-09).
  */
 export function repeticaoPadrao(gatilho: GatilhoTipo): Repeticao {
+  // B43-03: cada mudança de perfil anotada dispara, mesmo que o contato já tenha passado por ele (SUP-B43-02)
+  if (gatilho === "entrou_perfil_rfv") return { modo: "sempre" }
   return GATILHOS_DE_MENSAGEM.includes(gatilho) ? { modo: "sempre" } : { modo: "uma_vez_por_contato" }
 }
+
+/** B43-03: horário de disparo que o gatilho "Entrou no perfil RFV" traz preenchido. */
+export const HORA_PADRAO_PERFIL_RFV = "9"
+
+/** Parâmetros com que o gatilho nasce no editor ao ser escolhido. */
+export function parametrosIniciaisDoGatilho(gatilho: GatilhoTipo): Parametros {
+  return gatilho === "entrou_perfil_rfv" ? { hora: HORA_PADRAO_PERFIL_RFV } : {}
+}
+
+/** B43-03: o horário de disparo, de 0 a 23, ou null se não for um. Vazio vale o padrão (9h). */
+export function horaDoGatilho(parametros: Parametros): number | null {
+  const texto = (parametros.hora ?? "").trim() || HORA_PADRAO_PERFIL_RFV
+  if (!/^\d{1,2}$/.test(texto)) return null
+  const hora = Number(texto)
+  return hora <= 23 ? hora : null
+}
+
+/** B43-03: aviso do gatilho "Entrou no perfil RFV" sem destino (CA-B43-14). */
+export const SEM_PERFIL_DE_DESTINO = "Escolha ao menos um perfil de destino."
 
 /** Verificações sobre a mensagem que disparou: só fazem sentido nos gatilhos de mensagem. */
 export const VERIFICACOES_DE_MENSAGEM: readonly VerificacaoTipo[] = ["texto_mensagem", "tipo_mensagem"]
@@ -161,6 +184,8 @@ export const PARAMETROS_OBRIGATORIOS_GATILHO: Record<GatilhoTipo, readonly strin
   tag_adicionada: [],
   etiqueta_aplicada: [],
   dado_contato_alterado: ["campo"],
+  // B43-03: o destino tem aviso próprio (SEM_PERFIL_DE_DESTINO), em pendenciasDoFluxo
+  entrou_perfil_rfv: [],
 }
 
 export const PARAMETROS_OBRIGATORIOS_ACAO: Record<AcaoTipo, readonly string[]> = {
@@ -217,6 +242,8 @@ export const GATILHOS_DISPONIVEIS: readonly GatilhoTipo[] = [
   "mensagem_recebida",
   // B11-05
   "mensagem_enviada_time",
+  // B43-03
+  "entrou_perfil_rfv",
 ]
 // A primeira serve de padrão para a verificação nova no editor
 export const VERIFICACOES_DISPONIVEIS: readonly VerificacaoTipo[] = [
@@ -424,6 +451,10 @@ export function pendenciasDoFluxo(fluxo: Fluxo): PendenciasFluxo {
       } else if (bloco.gatilho === "tag_adicionada" && bloco.parametros.tag?.trim() && !tagValida(bloco.parametros.tag)) {
         // Tag vazia vale como "qualquer tag"; preenchida, segue as regras da tag
         anotar(bloco.id, "A tag não pode ter espaço e vai até 50 caracteres")
+      }
+      if (bloco.gatilho === "entrou_perfil_rfv") {
+        if (itensDaLista(bloco.parametros.destinos).length === 0) anotar(bloco.id, SEM_PERFIL_DE_DESTINO)
+        if (horaDoGatilho(bloco.parametros) === null) anotar(bloco.id, "O horário de disparo vai de 0h a 23h")
       }
     } else if (bloco.tipo === "acao") {
       if (!ACOES_DISPONIVEIS.includes(bloco.acao)) anotar(bloco.id, EM_BREVE)

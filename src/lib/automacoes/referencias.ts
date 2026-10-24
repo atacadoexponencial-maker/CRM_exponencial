@@ -6,7 +6,7 @@
 
 import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "@/app/(auth)/contatos/mock-contatos"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
-import { itensDaLista, SEM_COMPRAS, type Fluxo } from "@/lib/fluxo-automacao"
+import { horaDoGatilho, itensDaLista, SEM_COMPRAS, SEM_PERFIL_DE_DESTINO, type Fluxo } from "@/lib/fluxo-automacao"
 import { PERFIL_POR_ID } from "@/lib/relatorios/rfv"
 
 export interface ReferenciasDoFluxo {
@@ -26,6 +26,8 @@ export interface ReferenciasDoFluxo {
   classificacoes: string[]
   /** B43-02: perfis RFV marcados nas condições. */
   perfisRfv: string[]
+  /** B43-03: destino, origem e horário do gatilho "Entrou no perfil RFV". */
+  gatilhoDePerfil: { destinos: string[]; origens: string[]; hora: string } | null
   /** Campo e valor do gatilho "dado do contato alterado" (B11-06). */
   gatilhosDeDado: Array<{ campo: string; valor: string }>
   /** B11-07 */
@@ -47,6 +49,7 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
   const tiposDeContato: string[] = []
   const classificacoes: string[] = []
   const perfisRfv: string[] = []
+  let gatilhoDePerfil: ReferenciasDoFluxo["gatilhoDePerfil"] = null
   const gatilhosDeDado: ReferenciasDoFluxo["gatilhosDeDado"] = []
   const mensagensRapidas = new Set<string>()
   const arquivos: ReferenciasDoFluxo["arquivos"] = []
@@ -69,6 +72,9 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
     }
 
     const p = bloco.parametros
+    if (bloco.tipo === "gatilho" && bloco.gatilho === "entrou_perfil_rfv") {
+      gatilhoDePerfil = { destinos: itensDaLista(p.destinos), origens: itensDaLista(p.origens), hora: p.hora ?? "" }
+    }
     if (p.label_id) etiquetas.add(p.label_id)
     if (p.atendente_id) {
       atendentes.add(p.atendente_id)
@@ -105,6 +111,7 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
     tiposDeContato,
     classificacoes,
     perfisRfv,
+    gatilhoDePerfil,
     gatilhosDeDado,
     mensagensRapidas: [...mensagensRapidas],
     arquivos,
@@ -176,6 +183,21 @@ export const tipoDeContatoValido = (tipo: string) => Object.hasOwn(TIPO_LABEL, t
 export const classificacaoValida = (classificacao: string) => Object.hasOwn(CLASSIFICACAO_LABEL, classificacao)
 /** B43-02: um dos onze perfis RFV, ou "Sem compras". */
 export const perfilRfvValido = (perfil: string) => perfil === SEM_COMPRAS || Object.hasOwn(PERFIL_POR_ID, perfil)
+
+/**
+ * B43-03: o gatilho "Entrou no perfil RFV" como o servidor aceita: destino com ao
+ * menos um dos onze perfis, origem com perfis ou "Sem compras", sem repetir o destino
+ * (SUP-B43-05), e horário de 0 a 23. Devolve o motivo da recusa, ou null.
+ */
+export function problemaDoGatilhoDePerfil({ destinos, origens, hora }: { destinos: string[]; origens: string[]; hora: string }): string | null {
+  if (destinos.length === 0) return SEM_PERFIL_DE_DESTINO
+  if (!destinos.every((d) => Object.hasOwn(PERFIL_POR_ID, d)) || !origens.every(perfilRfvValido)) {
+    return "Um perfil RFV escolhido no gatilho não existe. Escolha de novo."
+  }
+  if (origens.some((o) => destinos.includes(o))) return "O perfil de origem não pode ser também o de destino."
+  if (horaDoGatilho({ hora }) === null) return "O horário de disparo vai de 0h a 23h."
+  return null
+}
 
 /**
  * Campos que a ação "alterar dado do contato" muda. A classificação fica de
