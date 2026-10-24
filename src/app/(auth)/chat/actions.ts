@@ -5,6 +5,8 @@ import { lerNomesDosFunis } from "@/lib/funis"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
 import { resumoDeCompras, type ResumoDeCompras } from "@/lib/resumo-de-compras"
+import { perfilDoMapa, perfisRfvDosContatos } from "@/lib/perfil-rfv-do-contato"
+import type { PerfilRfv } from "@/lib/relatorios/rfv"
 import { resolverProviderDaConversa, statusInicialDoEnvio } from "@/lib/whatsapp"
 import type { Mensagem, TipoMensagem, DirecaoMensagem, StatusMensagem } from "./mock-mensagens"
 import type { Conversa } from "./mock-conversas"
@@ -688,6 +690,8 @@ export interface CadastroDoContato {
   uf: string | null
   icp: string | null
   atendente: string | null
+  /** B43-01: perfil RFV da hora; null = sem compras; ausente = não lido. */
+  perfilRfv?: PerfilRfv | null
   tags: string[]
   /** Etapa (rótulo) em cada funil em que há card. B41-03: `nome` do funil da empresa. */
   funis: Array<{ funil: string; etapa: string; nome?: string }>
@@ -736,10 +740,11 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
   // Mesmas regras de acesso das outras telas: a RLS filtra cards e tags.
   // B36-06: as compras vêm pelo servidor; a conversa acima já passou pela RLS de quem
   // pede, e o Atendente nem sempre lê as compras do contato pela RLS.
-  const [{ data: cards }, { data: tags }, { data: compras }] = await Promise.all([
+  const [{ data: cards }, { data: tags }, { data: compras }, perfis] = await Promise.all([
     supabase.from("pipeline_cards").select("funil, etapa").eq("contact_id", contact_id),
     supabase.from("contact_tags").select("tag").eq("contact_id", contact_id).order("created_at"),
     createServiceClient().from("contact_purchases").select("valor, data").eq("contact_id", contact_id),
+    perfisRfvDosContatos(supabase, [contact_id]),
   ])
 
   const atendente = Array.isArray(contact.atendente) ? contact.atendente[0] : contact.atendente
@@ -753,6 +758,7 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
     uf: contact.uf,
     icp: contact.icp,
     atendente: atendente?.name ?? null,
+    perfilRfv: perfilDoMapa(perfis, contact_id),
     tags: (tags ?? []).map((t) => t.tag as string),
     funis: (cards ?? [])
       .filter((c) => c.funil === "entrada" || c.funil === "recompra" || nomes.funis[c.funil])

@@ -34,6 +34,8 @@ export interface Contato {
   uf?: string | null
   atendente: string | null
   created_at: string
+  /** B43-01: perfil RFV da hora; null = sem compras; ausente = não lido. */
+  perfilRfv?: import("@/lib/relatorios/rfv").PerfilRfv | null
 }
 
 export interface Compra {

@@ -22,6 +22,7 @@ import { tirarDaLixeira } from "@/lib/lixeira"
 import { buscarEGuardarFotoDoContato, urlAssinadaDaFoto } from "@/lib/whatsapp/foto-de-perfil"
 import { dispararDadosAlterados, dispararTagAdicionada } from "@/lib/automacoes/gatilhos-do-crm"
 import { normalizarWhatsapp, TELEFONE_INVALIDO } from "@/lib/telefone"
+import { perfilDoMapa, perfisRfvDosContatos } from "@/lib/perfil-rfv-do-contato"
 import { esquemaCompra, type CompraEntrada, type FormaPagamento, type OrigemCompra } from "@/lib/compras"
 import { normalizarUf, UF_INVALIDA } from "@/lib/uf"
 
@@ -376,7 +377,11 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
   }))
 
   // B29: endereço assinado (1 h) da cópia da foto, no bucket privado.
-  const fotoUrl = c.photo_path ? await urlAssinadaDaFoto(createServiceClient(), c.photo_path).catch(() => null) : null
+  // B43-01: e o perfil RFV da hora.
+  const [fotoUrl, perfis] = await Promise.all([
+    c.photo_path ? urlAssinadaDaFoto(createServiceClient(), c.photo_path).catch(() => null) : null,
+    perfisRfvDosContatos(supabase, [c.id]),
+  ])
 
   return {
     id: c.id,
@@ -389,6 +394,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
     uf: c.uf ?? null,
     atendente: null,
     created_at: c.created_at,
+    perfilRfv: perfilDoMapa(perfis, c.id),
     icp: (c.icp ?? null) as ICP | null,
     tags: (tagsData ?? []).map((t: { tag: string }) => t.tag),
     observacoes: c.observacoes ?? "",
@@ -584,8 +590,13 @@ export async function filtrarContatos(
   if (error) return { erro: "Não foi possível aplicar o filtro." }
 
   const linhas = (data ?? []) as Database["public"]["Functions"]["filtrar_contatos"]["Returns"]
+  // B43-01: o perfil RFV da hora de cada contato da página, numa leitura só.
+  const perfis = await perfisRfvDosContatos(supabase, linhas.map((c) => c.id))
   return {
-    contatos: linhas.map((c) => mapContato({ ...c, profiles: c.atendente_nome ? { name: c.atendente_nome } : null })),
+    contatos: linhas.map((c) => ({
+      ...mapContato({ ...c, profiles: c.atendente_nome ? { name: c.atendente_nome } : null }),
+      perfilRfv: perfilDoMapa(perfis, c.id),
+    })),
     // Página além do fim vem vazia e sem total: aí o total é o que já se sabia.
     total: linhas.length > 0 ? Number(linhas[0].total) : (opcoes.offset ?? 0),
   }

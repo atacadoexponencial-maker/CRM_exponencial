@@ -157,7 +157,8 @@ describe("B40-01 — nicho sai das telas do contato", () => {
   it("CA-B40-06: should mostrar a tabela de contatos sem a coluna Nicho", () => {
     renderizarLista()
     const colunas = screen.getAllByRole("columnheader").map((th) => th.textContent).filter(Boolean)
-    expect(colunas).toEqual(["Nome", "WhatsApp", "Classificação", "Tipo", "Cidade", "Atendente"])
+    // B43-01: a coluna Perfil RFV entrou depois da Classificação.
+    expect(colunas).toEqual(["Nome", "WhatsApp", "Classificação", "Perfil RFV", "Tipo", "Cidade", "Atendente"])
   })
 
   it("CA-B40-07: should mostrar os botões rápidos sem os de nicho", () => {

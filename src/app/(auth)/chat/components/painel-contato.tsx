@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Pencil, Check, X, ChevronRight, Loader2, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AvatarContato } from "@/components/shared/avatar-contato"
+import { SeloPerfilRfv } from "@/components/shared/selo-perfil-rfv"
 import { buscarInfoContato, atualizarNomeContato } from "../actions"
 import { adicionarTagContato, atualizarDadosContato, removerTagContato } from "@/app/(auth)/contatos/actions"
 import type { Conversa } from "../mock-conversas"
@@ -375,6 +376,11 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
             <>
               <dl className="flex flex-col gap-1">
                 <Dado rotulo="Classificação" valor={CLASSIFICACAO_LABEL[cadastro.classificacao as ClassificacaoContato] ?? cadastro.classificacao} />
+                {/* B43-01: perfil RFV da hora. */}
+                <div className="flex items-baseline justify-between gap-2 text-xs">
+                  <dt className="text-muted-foreground shrink-0">Perfil RFV</dt>
+                  <dd><SeloPerfilRfv perfil={cadastro.perfilRfv} /></dd>
+                </div>
                 <DadoEditavel
                   rotulo="Tipo"
                   valor={cadastro.tipo}

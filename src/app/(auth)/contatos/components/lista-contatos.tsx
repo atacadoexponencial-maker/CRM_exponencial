@@ -21,6 +21,7 @@ import {
   TIPO_LABEL,
   TAMANHO_PAGINA_CONTATOS,
 } from "../mock-contatos"
+import { SeloPerfilRfv } from "@/components/shared/selo-perfil-rfv"
 
 const CLASSIFICACOES: { label: string; valor: ClassificacaoContato | "todas" }[] = [
   { label: "Todas", valor: "todas" },
@@ -446,6 +447,7 @@ export function ListaContatos({
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Nome</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">WhatsApp</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Classificação</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Perfil RFV</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Tipo</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Cidade</th>
                 {papel !== "atendente" && (
@@ -470,6 +472,10 @@ export function ListaContatos({
                     )}>
                       {CLASSIFICACAO_LABEL[contato.classificacao]}
                     </span>
+                  </td>
+                  {/* B43-01: perfil RFV da hora, como na aba RFV dos Relatórios. */}
+                  <td className="px-4 py-3">
+                    <SeloPerfilRfv perfil={contato.perfilRfv} />
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {contato.tipo ? TIPO_LABEL[contato.tipo] : "—"}

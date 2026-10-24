@@ -28,6 +28,7 @@ import { resumoExclusaoContato, excluirContato, restaurarContato, type ResumoExc
 import { atualizarDadosContato, adicionarTagContato, removerTagContato, atualizarObservacoesContato } from "../../actions"
 import { ROTULO_FORMA_PAGAMENTO, ROTULO_ORIGEM_COMPRA } from "@/lib/compras"
 import { UFS } from "@/lib/uf"
+import { SeloPerfilRfv } from "@/components/shared/selo-perfil-rfv"
 
 const CLASSIFICACAO_BADGE: Record<string, string> = {
   lead: "bg-info-fundo text-info border-info/30",
@@ -249,12 +250,16 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
         <div className="flex flex-col gap-1">
           <h1 className="text-[26px] font-semibold leading-tight tracking-tight">{contato.nome}</h1>
           <p className="text-sm text-muted-foreground">{formatarWhatsapp(contato.telefone.replace(/\D/g, ""))}</p>
-          <span className={cn(
-            "inline-flex items-center self-start px-2 py-0.5 text-xs rounded-md border font-medium mt-1",
-            CLASSIFICACAO_BADGE[contato.classificacao]
-          )}>
-            {CLASSIFICACAO_LABEL[contato.classificacao]}
-          </span>
+          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+            <span className={cn(
+              "inline-flex items-center px-2 py-0.5 text-xs rounded-md border font-medium",
+              CLASSIFICACAO_BADGE[contato.classificacao]
+            )}>
+              {CLASSIFICACAO_LABEL[contato.classificacao]}
+            </span>
+            {/* B43-01: perfil RFV da hora. */}
+            <SeloPerfilRfv perfil={contato.perfilRfv} />
+          </div>
         </div>
         </div>
         {/* QA M23 (06/10): no celular, "Excluir contato" ficava cortado. */}
