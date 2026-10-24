@@ -1,7 +1,7 @@
 # Spec: Segmentação de campanhas pelo filtro de Contatos
 
 > série: B42
-> estado: aprovada em 24/10/2026
+> estado: aprovada em 24/10/2026 (revista e aprovada de novo em 24/10/2026: filtros salvos de campanha separados)
 
 ## Visão Geral
 
@@ -177,14 +177,20 @@ destinatários são fixos).
 
 ### Editor da campanha — filtros salvos
 
-**Descrição:** na etapa Destinatários, a pessoa pode partir de um filtro salvo da empresa
-(os mesmos da lista de Contatos) e pode salvar o filtro que montou na campanha como
-filtro salvo novo. A campanha guarda uma **cópia** das condições: mexer depois no filtro
-salvo não muda campanha já montada.
+**Descrição:** na etapa Destinatários, a pessoa pode partir de um filtro salvo de
+campanha e pode salvar o filtro que montou como filtro salvo novo. A campanha guarda uma
+**cópia** das condições: mexer depois no filtro salvo não muda campanha já montada.
+
+**Revisto em 24/10/2026 (PER-B42-02):** os filtros salvos de campanha são **separados**
+dos da lista de Contatos. Cada tela tem a própria lista; um filtro salvo numa não aparece
+na outra. Na campanha dá para fazer tudo o que a lista de Contatos faz com os filtros
+dela: salvar, atualizar com o filtro montado, renomear, mudar a ordem e apagar (Admin e
+Gerente). Os filtros salvos que já existiam ficam em Contatos.
 
 **Componentes:**
-- Lista dos filtros salvos da empresa, na mesma ordem da lista de Contatos.
-- Ação "Salvar como filtro" com campo de nome.
+- Lista dos filtros salvos de campanha da empresa, na ordem escolhida.
+- Ação "Salvar filtro" com campo de nome, e "Atualizar filtro salvo" quando um está marcado.
+- Menu de cada filtro salvo de campanha: renomear, mover para a esquerda ou a direita, apagar.
 - Indicação de qual filtro salvo foi usado como ponto de partida, enquanto as condições
   não forem mexidas.
 
@@ -193,6 +199,10 @@ salvo não muda campanha já montada.
 - Ajustar as condições depois de escolher um filtro salvo, sem mudar o filtro salvo.
 - Salvar o filtro montado na campanha com um nome.
 - Tentar salvar com nome que já existe e ser avisada.
+- Atualizar o filtro salvo marcado com as condições montadas.
+- Renomear um filtro salvo de campanha.
+- Mudar a ordem dos filtros salvos de campanha.
+- Apagar um filtro salvo de campanha.
 
 **Critérios de aceite:**
 
@@ -207,28 +217,70 @@ salvo não muda campanha já montada.
 
 - **Dado** a campanha montada a partir de "Lojistas de Fortaleza"
 - **Quando** a pessoa acrescenta uma condição na campanha
-- **Então** o filtro salvo "Lojistas de Fortaleza" continua com as condições de antes, na
-  campanha e na lista de Contatos
+- **Então** o filtro salvo "Lojistas de Fortaleza" continua com as condições de antes
 
 #### CA-B42-18 — Mudar o filtro salvo depois não muda a campanha · prova: automática
 
 - **Dado** um rascunho montado a partir de "Lojistas de Fortaleza"
-- **Quando** alguém atualiza ou apaga esse filtro salvo na lista de Contatos
+- **Quando** alguém atualiza ou apaga esse filtro salvo
 - **Então** o rascunho continua com as condições que tinha
 
 #### CA-B42-19 — Salvar o filtro da campanha como filtro salvo · prova: automática
 
 - **Dado** um Admin ou Gerente com um filtro montado na campanha
-- **Quando** escolhe "Salvar como filtro" e dá o nome "Proposta da feira"
-- **Então** "Proposta da feira" aparece nos filtros salvos da campanha e da lista de
-  Contatos, para a empresa toda, com as mesmas condições
+- **Quando** escolhe "Salvar filtro" e dá o nome "Proposta da feira"
+- **Então** "Proposta da feira" aparece nos filtros salvos de campanha, para a empresa
+  toda, com as mesmas condições, e não aparece nos filtros salvos da lista de Contatos
 
 #### CA-B42-20 — Nome repetido não salva · prova: automática
 
-- **Dado** o filtro salvo "Lojistas de Fortaleza"
+- **Dado** o filtro salvo de campanha "Lojistas de Fortaleza"
 - **Quando** alguém tenta salvar pela campanha outro com o nome "lojistas de fortaleza"
 - **Então** a tela avisa que já existe um filtro com esse nome e não salva, como na lista
-  de Contatos
+  de Contatos. Um filtro de Contatos com o mesmo nome não impede salvar o de campanha
+
+#### CA-B42-32 — Cada tela só mostra os próprios filtros salvos · prova: automática
+
+- **Dado** o filtro salvo "Clientes da feira" na lista de Contatos e o filtro salvo de
+  campanha "Proposta da feira"
+- **Quando** a pessoa abre a lista de Contatos e depois a etapa Destinatários da campanha
+- **Então** Contatos mostra só "Clientes da feira" e a campanha mostra só "Proposta da
+  feira", inclusive para quem chama o servidor direto
+
+#### CA-B42-33 — Atualizar o filtro salvo de campanha · prova: automática
+
+- **Dado** a campanha montada a partir do filtro salvo de campanha "Proposta da feira"
+- **Quando** a pessoa acrescenta uma condição no painel e escolhe "Atualizar filtro salvo"
+- **Então** "Proposta da feira" passa a ter a condição nova para a empresa toda, e a lista
+  de Contatos não muda
+
+#### CA-B42-34 — Renomear o filtro salvo de campanha · prova: automática
+
+- **Dado** os filtros salvos de campanha "Proposta da feira" e "Lojistas de Fortaleza"
+- **Quando** a pessoa renomeia "Proposta da feira" para "Feira 2026", e depois tenta
+  renomeá-lo para "lojistas de fortaleza"
+- **Então** o primeiro nome novo fica gravado; o segundo é recusado com o aviso de nome
+  repetido
+
+#### CA-B42-35 — Mudar a ordem dos filtros salvos de campanha · prova: automática
+
+- **Dado** os filtros salvos de campanha "A", "B" e "C", nessa ordem
+- **Quando** a pessoa move "C" para a esquerda
+- **Então** a faixa da campanha mostra "A", "C", "B", para a empresa toda, e a ordem dos
+  filtros da lista de Contatos não muda
+
+#### CA-B42-36 — Apagar o filtro salvo de campanha · prova: automática
+
+- **Dado** o filtro salvo de campanha "Proposta da feira"
+- **Quando** a pessoa escolhe apagar e confirma
+- **Então** ele some da faixa da campanha, e os filtros da lista de Contatos continuam lá
+
+#### CA-B42-37 — Atendente não mexe nos filtros salvos de campanha · prova: automática
+
+- **Dado** um Atendente logado
+- **Quando** ele tenta salvar, atualizar, renomear, mover ou apagar um filtro salvo de
+  campanha chamando o servidor direto
+- **Então** o servidor recusa e nada muda
 
 ### Filtro de contatos — campo Perfil RFV e Atendente (carteira)
 
@@ -386,13 +438,14 @@ confirmação.
 | SUP-B42-05 | Campanha já enviada, cancelada ou em envio não precisa mostrar o filtro no painel; basta o relatório e o reenvio continuarem iguais. | confirmada | Marcelle, 23/10/2026 |
 | SUP-B42-06 | Sem filtro, o resumo da etapa Destinatários diz "Sem filtro: todos os contatos com WhatsApp válido." | confirmada | Marcelle, 24/10/2026 |
 | SUP-B42-07 | O aviso de funil ou etapa apagada diz "Este filtro usa funil ou etapa que não existe mais: [condição]. Troque ou remova essa condição para confirmar.", e a etapa sumida aparece no resumo como "(etapa apagada)". | confirmada | Marcelle, 24/10/2026 |
+| SUP-B42-08 | O nome do filtro salvo é único dentro de cada tela: a campanha pode ter um filtro com o mesmo nome de um da lista de Contatos. | confirmada | Marcelle, 24/10/2026 |
 
 ## Perguntas em aberto
 
 | ID | Pergunta | Status | Resposta |
 |---|---|---|---|
 | PER-B42-01 | A campanha escolhe quem recebe pelo mesmo filtro avançado de Contatos ou só ganha o filtro de etapa do funil? | respondida | Mesmo filtro de Contatos, no lugar dos filtros de hoje (Marcelle, 23/10/2026) |
-| PER-B42-02 | A campanha usa os filtros salvos da lista de Contatos? | respondida | Sim, carrega e salva (Marcelle, 23/10/2026) |
+| PER-B42-02 | A campanha usa os filtros salvos da lista de Contatos? | respondida | Sim, carrega e salva (Marcelle, 23/10/2026). **Revisto em 24/10/2026:** não; a campanha tem filtros salvos próprios, separados dos de Contatos, e pode salvar, atualizar, renomear, mover e apagar (Marcelle, 24/10/2026) |
 | PER-B42-03 | Que campos novos entram no filtro além dos que ele já tem? | respondida | Perfil RFV e carteira (Marcelle, 23/10/2026) |
 | PER-B42-04 | Carteira é diferente do atendente do contato? | respondida | Não: o campo Atendente passa a se chamar "Atendente (carteira)", nas duas telas (Marcelle, 23/10/2026) |
 | PER-B42-05 | O perfil RFV do filtro é calculado sobre qual base? | respondida | Empresa inteira, o mesmo da aba RFV sem filtro de atendente (Marcelle, 23/10/2026) |

@@ -9,6 +9,8 @@
 
 ## Descrição
 
+> 24/10/2026: os critérios CA-B42-19 e CA-B42-20 passaram para a B42-04, com a separação dos filtros salvos de campanha (PER-B42-02 revista).
+
 Na etapa Destinatários a pessoa parte de um filtro salvo da empresa ou salva o filtro montado como filtro novo (a campanha guarda uma cópia), e uma campanha com condição de funil ou etapa apagada avisa e não confirma. Fecha a série com a aprovação visual dela.
 
 ## Pronto quando
@@ -19,10 +21,8 @@ Dá para escolher "Lojistas de Fortaleza" na campanha, ajustar, salvar "Proposta
 
 - **CA-B42-12** (automática) — Filtro com funil ou etapa apagada avisa e não confirma. Dado um rascunho ou uma campanha agendada ainda não enviada cujo filtro usa uma etapa, ou um funil, que depois foi apagado, quando a pessoa abre a campanha, então a etapa Destinatários avisa qual condição usa funil ou etapa que não existe mais, e a campanha não pode ser confirmada até a pessoa trocar ou remover essa condição
 - **CA-B42-16** (automática) — Escolher um filtro salvo monta o filtro da campanha. Dado o filtro salvo "Lojistas de Fortaleza", quando a pessoa o escolhe na etapa Destinatários, então o painel mostra as condições dele, e a contagem é igual ao número de contatos que ele traz na lista de Contatos (menos os telefones inválidos)
-- **CA-B42-17** (automática) — Ajustar na campanha não muda o filtro salvo. Dado a campanha montada a partir de "Lojistas de Fortaleza", quando a pessoa acrescenta uma condição na campanha, então o filtro salvo "Lojistas de Fortaleza" continua com as condições de antes, na campanha e na lista de Contatos
-- **CA-B42-18** (automática) — Mudar o filtro salvo depois não muda a campanha. Dado um rascunho montado a partir de "Lojistas de Fortaleza", quando alguém atualiza ou apaga esse filtro salvo na lista de Contatos, então o rascunho continua com as condições que tinha
-- **CA-B42-19** (automática) — Salvar o filtro da campanha como filtro salvo. Dado um Admin ou Gerente com um filtro montado na campanha, quando escolhe "Salvar como filtro" e dá o nome "Proposta da feira", então "Proposta da feira" aparece nos filtros salvos da campanha e da lista de Contatos, para a empresa toda, com as mesmas condições
-- **CA-B42-20** (automática) — Nome repetido não salva. Dado o filtro salvo "Lojistas de Fortaleza", quando alguém tenta salvar pela campanha outro com o nome "lojistas de fortaleza", então a tela avisa que já existe um filtro com esse nome e não salva, como na lista de Contatos
+- **CA-B42-17** (automática) — Ajustar na campanha não muda o filtro salvo. Dado a campanha montada a partir de "Lojistas de Fortaleza", quando a pessoa acrescenta uma condição na campanha, então o filtro salvo "Lojistas de Fortaleza" continua com as condições de antes
+- **CA-B42-18** (automática) — Mudar o filtro salvo depois não muda a campanha. Dado um rascunho montado a partir de "Lojistas de Fortaleza", quando alguém atualiza ou apaga esse filtro salvo, então o rascunho continua com as condições que tinha
 - **CA-B42-31** (manual) — A etapa Destinatários fica bem arrumada. Dado o preview publicado, quando a Marcelle monta uma campanha com filtro de dois grupos, usa um filtro salvo e salva um filtro novo, no computador e no celular, nos temas claro e escuro, então ela aprova o painel, o resumo do filtro, a lista de filtros salvos e a contagem, e confere que o campo Perfil RFV e o Atendente (carteira) aparecem também na lista de Contatos
 
 ## Suposições
@@ -67,8 +67,6 @@ Dá para escolher "Lojistas de Fortaleza" na campanha, ajustar, salvar "Proposta
 | CA-B42-16 | automática | `src/test/campanhas-segmentacao.integration.test.ts` | O filtro salvo "Lojistas de Fortaleza", escolhido na campanha, dá a contagem igual aos contatos que ele traz na lista de Contatos, menos o telefone inválido; na tela (`campanhas-segmentacao-tela.test.tsx`), clicar nele põe as condições no painel e marca o botão |
 | CA-B42-17 | automática | `src/test/campanhas-segmentacao.integration.test.ts` | Depois de salvar o rascunho com uma condição a mais, o filtro salvo continua com as condições de antes |
 | CA-B42-18 | automática | `src/test/campanhas-segmentacao.integration.test.ts` | Atualizar e depois apagar o filtro salvo não muda as condições do rascunho ao reabrir |
-| CA-B42-19 | automática | `src/test/campanhas-segmentacao.integration.test.ts` | Um Gerente salva "Proposta da feira" com o filtro da campanha, e ele aparece em `listarFiltrosSalvos` para o Admin, com as mesmas condições; na tela, "Salvar como filtro" chama o servidor com o nome e o filtro e o mostra na faixa |
-| CA-B42-20 | automática | `src/test/campanhas-segmentacao.integration.test.ts` | Salvar "lojistas de fortaleza" com "Lojistas de Fortaleza" existente devolve "Já existe um filtro com esse nome." e não cria outro |
 | CA-B42-31 | manual | roteiro abaixo | A Marcelle aprova a etapa Destinatários no computador e no celular, nos dois temas |
 
 ### Roteiro manual — CA-B42-31
@@ -98,3 +96,9 @@ Dá para escolher "Lojistas de Fortaleza" na campanha, ajustar, salvar "Proposta
 - [x] Editor: faixa dos salvos (cópia, marcado, clicar de novo limpa), "Salvar como filtro", aviso e trava do "Próximo"
 - [x] Testes de tela e de integração
 - [x] Rodar todos os testes que renderizam o editor de campanha, o painel ou a faixa (L-05) e o `tsc` (L-07)
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B42-31 | Marcelle | 24/10/2026 |
