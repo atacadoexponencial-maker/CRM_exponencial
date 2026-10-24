@@ -355,13 +355,15 @@ export const FILTRO_VAZIO: Filtro = { juncao: "e", grupos: [] }
 /** Nomes da empresa que o resumo usa no lugar dos ids (atendente, funil e etapa). */
 export type NomesDoFiltro = { atendentes?: Array<{ id: string; nome: string }>; funis?: FunilParaFiltro[] }
 
-function descreverCondicao(condicao: Condicao, nomes: NomesDoFiltro): string {
+/** A frase de uma condição, a mesma do resumo (B42-03 a usa no aviso de etapa apagada). */
+export function descreverCondicao(condicao: Condicao, nomes: NomesDoFiltro = {}): string {
   const campo = campoDoFiltro(condicao.campo, nomes.funis)!
   const comparacao = condicao.comparacao as Comparacao
   const nomeDoValor = (v: string) =>
     campo.opcoes?.find((o) => o.valor === v)?.rotulo ??
     (campo.id === "atendente" ? nomes.atendentes?.find((a) => a.id === v)?.nome : undefined) ??
-    v
+    // B42-03: etapa que não é mais do funil (ou funil apagado) não tem nome para mostrar.
+    (campo.tipo === "funil" ? "(etapa apagada)" : v)
   const valores = condicao.valores.map(nomeDoValor)
   const rotulo = rotuloDaComparacao(campo, comparacao)
   if (comparacao === "ultimos_dias" || comparacao === "ha_mais_de_dias") return `${campo.rotulo} ${rotulo.replace("N", valores[0])}`
@@ -373,6 +375,14 @@ function descreverCondicao(condicao: Condicao, nomes: NomesDoFiltro): string {
     default:
       return `${campo.rotulo} ${rotulo} ${valores.join(", ")}`
   }
+}
+
+/**
+ * B42-03: condições de funil da empresa cujo funil foi apagado ou cuja etapa não é mais
+ * dele. A campanha avisa e não confirma com elas (SUP-B42-04).
+ */
+export function condicoesComFunilApagado(filtro: Filtro, funis: FunilParaFiltro[]): Condicao[] {
+  return filtro.grupos.flatMap((g) => g.condicoes.filter((c) => ehCampoDeFunil(c.campo) && valorSumiu(c, { atendentes: [], etiquetas: [], funis })))
 }
 
 /**

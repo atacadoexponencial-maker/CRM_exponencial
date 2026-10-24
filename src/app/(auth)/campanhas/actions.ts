@@ -16,8 +16,8 @@ import {
   RITMO_PADRAO,
 } from "@/lib/whatsapp/gateway/fila-campanha"
 import { lerSaudeDoNumero } from "@/lib/whatsapp/gateway/saude"
-import { filtrarContatos } from "../contatos/actions"
-import { esquemaFiltro } from "@/lib/filtro-contatos"
+import { filtrarContatos, valoresDoFiltro } from "../contatos/actions"
+import { condicoesComFunilApagado, esquemaFiltro } from "@/lib/filtro-contatos"
 import { filtroDoSegmento, type Segmento } from "@/lib/segmento-campanha"
 
 export type { Segmento } from "@/lib/segmento-campanha"
@@ -423,6 +423,14 @@ export async function confirmarCampanha(
   const { count: conectados } = await numeros
   if (!conectados) {
     return { erro: dados.whatsappConnectionId ? "O número escolhido não está conectado. Conecte-o ou escolha outro." : "Conecte um número de WhatsApp antes de enviar a campanha." }
+  }
+
+  // B42-03: funil ou etapa apagada não confirma; ignorar a condição mandaria para mais gente.
+  if (!dados.segmento.reenvioDe) {
+    const { funis } = await valoresDoFiltro()
+    if (condicoesComFunilApagado(filtroDoSegmento(dados.segmento), funis).length > 0) {
+      return { erro: "O filtro usa funil ou etapa que não existe mais. Troque ou remova essa condição para confirmar." }
+    }
   }
 
   // Resolve a lista de destinatários no momento da confirmação (snapshot)

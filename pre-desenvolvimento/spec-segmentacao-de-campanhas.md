@@ -385,6 +385,7 @@ confirmação.
 | SUP-B42-04 | Filtro com funil ou etapa apagada impede a confirmação até a pessoa ajustar, em vez de só ignorar a condição. | confirmada | Marcelle, 23/10/2026 |
 | SUP-B42-05 | Campanha já enviada, cancelada ou em envio não precisa mostrar o filtro no painel; basta o relatório e o reenvio continuarem iguais. | confirmada | Marcelle, 23/10/2026 |
 | SUP-B42-06 | Sem filtro, o resumo da etapa Destinatários diz "Sem filtro: todos os contatos com WhatsApp válido." | confirmada | Marcelle, 24/10/2026 |
+| SUP-B42-07 | O aviso de funil ou etapa apagada diz "Este filtro usa funil ou etapa que não existe mais: [condição]. Troque ou remova essa condição para confirmar.", e a etapa sumida aparece no resumo como "(etapa apagada)". | confirmada | Marcelle, 24/10/2026 |
 
 ## Perguntas em aberto
 

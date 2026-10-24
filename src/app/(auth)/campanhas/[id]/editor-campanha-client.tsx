@@ -8,7 +8,18 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { PainelFiltro } from "../../contatos/components/painel-filtro"
-import { contarCondicoes, descreverFiltro, FILTRO_VAZIO, type Filtro, type FunilParaFiltro } from "@/lib/filtro-contatos"
+import { FaixaFiltrosSalvos } from "../../contatos/components/faixa-filtros-salvos"
+import { salvarFiltro, type FiltroSalvo } from "../../contatos/filtros-salvos"
+import {
+  condicoesComFunilApagado,
+  contarCondicoes,
+  descreverCondicao,
+  descreverFiltro,
+  FILTRO_VAZIO,
+  limparFiltro,
+  type Filtro,
+  type FunilParaFiltro,
+} from "@/lib/filtro-contatos"
 import {
   avaliarDisparo,
   confirmarCampanha,
@@ -37,9 +48,11 @@ interface EditorCampanhaClientProps {
   opcoes: { atendentes: Array<{ id: string; nome: string }>; etiquetas: string[]; funis: FunilParaFiltro[] }
   /** B7-03: números conectados do workspace, com o canal de cada um. */
   numeros: NumeroParaCampanha[]
+  /** B42-03: filtros salvos da empresa, os mesmos da lista de Contatos. */
+  filtrosSalvos?: FiltroSalvo[]
 }
 
-export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampanhaClientProps) {
+export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos: salvosIniciais = [] }: EditorCampanhaClientProps) {
   const router = useRouter()
   const [etapa, setEtapa] = useState(1)
   const [id, setId] = useState<string | null>(campanha?.id ?? null)
@@ -86,6 +99,31 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
     setSegmento({ filtro: novo })
     setPainelAberto(false)
   }
+
+  // B42-03: a campanha copia as condições do filtro salvo; mexer nela não muda o salvo.
+  const [filtrosSalvos, setFiltrosSalvos] = useState<FiltroSalvo[]>(salvosIniciais)
+  const chaveDoFiltro = JSON.stringify(limparFiltro(filtro))
+  const salvoAtivo =
+    condicoes > 0 ? filtrosSalvos.find((f) => JSON.stringify(limparFiltro(f.filtro)) === chaveDoFiltro) ?? null : null
+
+  function alternarSalvo(salvo: FiltroSalvo) {
+    aplicarFiltro(salvoAtivo?.id === salvo.id ? FILTRO_VAZIO : structuredClone(salvo.filtro))
+  }
+
+  async function salvarNovo(nomeDoFiltro: string, rascunho: Filtro): Promise<string | null> {
+    const r = await salvarFiltro(nomeDoFiltro, rascunho)
+    if (r.erro) return r.erro
+    if (r.filtros) setFiltrosSalvos(r.filtros)
+    aplicarFiltro(rascunho)
+    return null
+  }
+
+  // B42-03: funil ou etapa apagada não confirma (o servidor confere de novo).
+  const quebradas = condicoesComFunilApagado(filtro, opcoes.funis)
+  const avisoQuebradas =
+    quebradas.length > 0
+      ? `Este filtro usa funil ou etapa que não existe mais: ${quebradas.map((c) => descreverCondicao(c, opcoes)).join("; ")}. Troque ou remova essa condição para confirmar.`
+      : null
 
   // Recontagem em tempo real conforme os filtros mudam (com debounce)
   useEffect(() => {
@@ -142,6 +180,10 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
   }, [etapa, numeroOrigem, total])
 
   function avancarEtapa1() {
+    if (!ehReenvio && avisoQuebradas) {
+      setErro(avisoQuebradas)
+      return
+    }
     if (!nome.trim()) {
       setErro("Informe o nome da campanha")
       return
@@ -296,6 +338,18 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
               <p className="text-sm text-muted-foreground" data-testid="resumo-do-filtro">
                 {resumo || "Sem filtro: todos os contatos com WhatsApp válido."}
               </p>
+              {avisoQuebradas && (
+                <p role="alert" className="rounded-lg bg-erro-fundo p-3 text-sm text-erro">
+                  {avisoQuebradas}
+                </p>
+              )}
+              <FaixaFiltrosSalvos
+                filtros={filtrosSalvos}
+                ativoId={salvoAtivo?.id ?? null}
+                podeGerir={false}
+                onAlternar={alternarSalvo}
+                onMudou={setFiltrosSalvos}
+              />
               <PainelFiltro
                 aberto={painelAberto}
                 onAbertoChange={setPainelAberto}
@@ -305,6 +359,8 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros }: EditorCampan
                 funis={opcoes.funis}
                 onAplicar={aplicarFiltro}
                 onLimpar={() => aplicarFiltro(FILTRO_VAZIO)}
+                podeSalvar
+                onSalvar={salvarNovo}
               />
             </div>
           )}

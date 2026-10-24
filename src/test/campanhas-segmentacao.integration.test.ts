@@ -24,6 +24,7 @@ import {
   type Segmento,
 } from "@/app/(auth)/campanhas/actions"
 import { filtrarContatos } from "@/app/(auth)/contatos/actions"
+import { apagarFiltroSalvo, atualizarFiltroSalvo, listarFiltrosSalvos, salvarFiltro } from "@/app/(auth)/contatos/filtros-salvos"
 import { criarFunil } from "@/app/(auth)/configuracoes/funis/actions"
 import { calcularClassificacao } from "@/app/(auth)/contatos/classificacao"
 import { campoDoFunil, type Condicao, type Filtro } from "@/lib/filtro-contatos"
@@ -46,7 +47,7 @@ let ws3 = ""
 let feira = ""
 let visitou = ""
 
-async function criarPessoa(chave: string, empresa: string, role: "admin" | "atendente", nome = `Pessoa ${chave}`) {
+async function criarPessoa(chave: string, empresa: string, role: "admin" | "gerente" | "atendente", nome = `Pessoa ${chave}`) {
   const email = `b42-02-${chave}-${ts}@campanhas-test.com`
   const id = (await service.auth.admin.createUser({ email, password: SENHA, email_confirm: true })).data.user!.id
   usuarios[chave] = id
@@ -126,6 +127,7 @@ beforeAll(async () => {
   ws3 = await criarEmpresa("C")
   await criarPessoa("admin", ws, "admin")
   await criarPessoa("ana", ws, "atendente", "Ana")
+  await criarPessoa("gerente", ws, "gerente")
   await criarPessoa("admin2", ws2, "admin")
   await criarPessoa("admin3", ws3, "admin")
 
@@ -178,6 +180,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await service.from("campaigns").delete().in("workspace_id", empresas)
+  await service.from("filtros_salvos").delete().in("workspace_id", empresas)
   await service.from("whatsapp_connections").delete().in("workspace_id", empresas)
   await service.from("contact_purchases").delete().in("workspace_id", empresas)
   await service.from("contact_tags").delete().in("workspace_id", empresas)
@@ -381,5 +384,88 @@ describe("B42-02 — campanha pelo filtro de Contatos, no banco", { timeout: 60_
     expect(await destinatariosGravados(campanha)).toEqual(fotografados)
     const relatorio = await relatorioCampanha(campanha)
     expect(ordenados(relatorio!.destinatarios.map((d) => d.telefone))).toEqual(ordenados([tel("85", 1), tel("84", 6)]))
+  })
+})
+
+describe("B42-03 — filtros salvos e funil ou etapa apagada, no banco", { timeout: 60_000 }, () => {
+  const lojistasDeFortaleza = () => umGrupo(cond("cidade", "igual", "Fortaleza"), cond("tipo", "e", "lojista"))
+  const salvoPeloNome = async (nome: string) => (await listarFiltrosSalvos()).find((f) => f.nome === nome)
+
+  beforeAll(async () => {
+    como("admin")
+    const r = await salvarFiltro("Lojistas de Fortaleza", lojistasDeFortaleza())
+    if (r.erro) throw new Error(r.erro)
+  })
+
+  it("CA-B42-12: should recusar no servidor confirmar campanha com etapa ou funil apagado", async () => {
+    como("admin")
+    const sobra = (await service.from("funil_etapas").insert({ funil_id: feira, workspace_id: ws, nome: "Vai sumir", ordem: 9 }).select("id").single()).data!.id
+    await service.from("funil_etapas").delete().eq("id", sobra)
+    const sumido = (await criarFunil("Funil que some", [{ nome: "Única" }])).id!
+    await service.from("funis").delete().eq("id", sumido)
+
+    for (const [nome, filtro] of [
+      [`Etapa apagada ${ts}`, umGrupo(cond(campoDoFunil(feira), "na_etapa", sobra))],
+      [`Funil apagado ${ts}`, umGrupo(cond(campoDoFunil(sumido), "no_funil"))],
+    ] as const) {
+      expect(await confirmarCampanha(null, dados(nome, { filtro }), amanha())).toEqual({
+        erro: "O filtro usa funil ou etapa que não existe mais. Troque ou remova essa condição para confirmar.",
+      })
+      const { count } = await service.from("campaigns").select("id", { count: "exact", head: true }).eq("nome", nome)
+      expect(count).toBe(0)
+    }
+  })
+
+  it("CA-B42-16: should contar pelo filtro salvo escolhido os contatos que ele traz em Contatos, menos o telefone inválido", async () => {
+    como("admin")
+    const salvo = await salvoPeloNome("Lojistas de Fortaleza")
+    const lista = await filtrarContatos({ filtro: salvo!.filtro, limite: 200 })
+    if ("erro" in lista) throw new Error(lista.erro)
+    const daLista = ordenados(lista.contatos.map((x) => x.id))
+    expect(daLista).toEqual(ordenados([c.FL, c.Invalido]))
+
+    const r = await contar({ filtro: structuredClone(salvo!.filtro) })
+    expect(r.ids).toEqual(daLista.filter((id) => id !== c.Invalido))
+  })
+
+  it("CA-B42-17: should deixar o filtro salvo como estava quando a campanha acrescenta uma condição", async () => {
+    como("admin")
+    const salvo = await salvoPeloNome("Lojistas de Fortaleza")
+    const ajustado = structuredClone(salvo!.filtro)
+    ajustado.grupos[0].condicoes.push(cond("etiqueta", "tem", "VIP"))
+    const r = await salvarRascunho(null, dados(`Ajustada ${ts}`, { filtro: ajustado }))
+    expect(r.erro).toBeUndefined()
+
+    expect((await salvoPeloNome("Lojistas de Fortaleza"))!.filtro).toEqual(salvo!.filtro)
+    expect((await buscarCampanha(r.id!))!.segmento).toEqual({ filtro: ajustado })
+  })
+
+  it("CA-B42-20: should recusar salvar pela campanha um filtro com nome repetido", async () => {
+    como("admin")
+    expect(await salvarFiltro("lojistas de fortaleza", umGrupo(cond("cidade", "igual", "Recife")))).toEqual({ erro: "Já existe um filtro com esse nome." })
+    expect((await listarFiltrosSalvos()).filter((f) => f.nome.toLowerCase() === "lojistas de fortaleza")).toHaveLength(1)
+  })
+
+  it("CA-B42-19: should pôr o filtro salvo pela campanha na lista de filtros da empresa toda", async () => {
+    como("gerente")
+    const filtro = umGrupo(cond("etapa_entrada", "na_etapa", "negociacao"), cond("tipo", "e", "lojista"))
+    expect((await salvarFiltro("Proposta da feira", filtro)).erro).toBeUndefined()
+
+    como("admin")
+    expect((await salvoPeloNome("Proposta da feira"))?.filtro).toEqual(filtro)
+  })
+
+  it("CA-B42-18: should manter o rascunho igual quando o filtro salvo é atualizado ou apagado depois", async () => {
+    como("admin")
+    await salvarFiltro("Para mudar", umGrupo(cond("cidade", "igual", "Recife")))
+    const salvo = (await salvoPeloNome("Para mudar"))!
+    const copia = structuredClone(salvo.filtro)
+    const r = await salvarRascunho(null, dados(`Do salvo ${ts}`, { filtro: copia }))
+
+    expect((await atualizarFiltroSalvo(salvo.id, umGrupo(cond("cidade", "igual", "Natal")))).erro).toBeUndefined()
+    expect((await buscarCampanha(r.id!))!.segmento).toEqual({ filtro: copia })
+
+    expect((await apagarFiltroSalvo(salvo.id)).erro).toBeUndefined()
+    expect((await buscarCampanha(r.id!))!.segmento).toEqual({ filtro: copia })
   })
 })

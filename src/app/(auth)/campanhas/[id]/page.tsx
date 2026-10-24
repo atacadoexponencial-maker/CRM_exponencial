@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { sessaoAtual } from "@/lib/sessao"
 import { buscarCampanha, numerosParaCampanha } from "../actions"
 import { valoresDoFiltro } from "../../contatos/actions"
+import { listarFiltrosSalvos } from "../../contatos/filtros-salvos"
 import { EditorCampanhaClient } from "./editor-campanha-client"
 
 export const metadata = { title: "Campanha" }
@@ -23,11 +24,12 @@ export default async function EditorCampanhaPage({ params }: { params: Promise<{
   // B7-03: os números que a campanha pode usar vêm do servidor, com o canal de
   // cada um. O editor não decide canal.
   // B42-02: o painel do filtro usa os atendentes, as etiquetas e os funis da empresa.
-  const [opcoes, numeros] = await Promise.all([valoresDoFiltro(), numerosParaCampanha()])
+  // B42-03: e os filtros salvos da empresa, para partir de um deles.
+  const [opcoes, numeros, filtrosSalvos] = await Promise.all([valoresDoFiltro(), numerosParaCampanha(), listarFiltrosSalvos()])
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-7 sm:px-8 lg:px-10">
-      <EditorCampanhaClient campanha={campanha} opcoes={opcoes} numeros={numeros} />
+      <EditorCampanhaClient campanha={campanha} opcoes={opcoes} numeros={numeros} filtrosSalvos={filtrosSalvos} />
     </div>
   )
 }
