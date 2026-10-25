@@ -1,8 +1,9 @@
 // @vitest-environment node
-// B33-01: a ação do RFV com a base certa (sem lixeira, sem quem nunca comprou) e a regra
-// do atendente. Bate no Supabase real.
+// B33-01: a ação do RFV com a base certa (sem lixeira, sem quem nunca comprou).
+// B33-04: o perfil é sempre da empresa toda; o atendente só escolhe a carteira. Bate no Supabase real.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
+import * as XLSX from "xlsx"
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest"
 
 vi.mock("@/integrations/supabase/server", () => ({
@@ -11,6 +12,7 @@ vi.mock("@/integrations/supabase/server", () => ({
 
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { buscarRfv } from "@/app/(auth)/relatorios/actions"
+import { GET as exportarRfv } from "@/app/(auth)/relatorios/rfv/exportar/route"
 import { deslocarMeses, hojeNoFuso } from "@/lib/relatorios/visao-geral"
 
 const mockSsr = vi.mocked(createSsrClient)
@@ -66,6 +68,8 @@ beforeAll(async () => {
     { workspace_id: ws, contact_id: cAna1, data: hoje, valor: 100, origem: "manual" },
     { workspace_id: ws, contact_id: cAna1, data: deslocarMeses(hoje, -1), valor: 100, origem: "manual" },
     { workspace_id: ws, contact_id: cAna2, data: deslocarMeses(hoje, -2), valor: 50, origem: "manual" },
+    // Cliente da carteira da Ana que também comprou com o Bruno (B33-04).
+    { workspace_id: ws, contact_id: cAna2, data: deslocarMeses(hoje, -3), valor: 50, origem: "manual", atendente_id: brunoId },
     { workspace_id: ws, contact_id: cBruno, data: hoje, valor: 5000, origem: "manual" },
     { workspace_id: ws, contact_id: cBruno, data: deslocarMeses(hoje, -1), valor: 5000, origem: "manual" },
     { workspace_id: ws, contact_id: cBruno, data: deslocarMeses(hoje, -2), valor: 5000, origem: "manual" },
@@ -105,13 +109,48 @@ describe("B33-01 — buscarRfv", { timeout: 60_000 }, () => {
     expect(ana1.f).toBeLessThan(5)
   })
 
-  it("CA-B33-05: logada como Atendente, a Ana só vê os clientes dela e os quintis são entre eles", async () => {
+  it("CA-B33-05: logada como Atendente, a Ana vê só a carteira dela, com as notas e o perfil da empresa toda", async () => {
+    entrarComo(adminId)
+    const daEmpresa = await buscarRfv({ atendenteId: null })
+    const naEmpresa = (id: string) => daEmpresa!.clientes.find((c) => c.contatoId === id)!
+
     entrarComo(anaId)
-    const r = await buscarRfv({ atendenteId: brunoId })
+    const r = await buscarRfv({ atendenteId: brunoId }) // o pedido do Bruno é ignorado
     expect(r?.base).toBe(2)
     expect(r!.clientes.map((c) => c.contatoId).sort()).toEqual([cAna1, cAna2].sort())
-    // Só entre as duas: a Ana 1 (2 vendas, R$ 200) é o topo e vira Campeão.
-    const ana1 = r!.clientes.find((c) => c.contatoId === cAna1)!
-    expect(ana1).toMatchObject({ f: 5, v: 5, fv: 5, r: 5, perfil: "campeao" })
+    for (const c of r!.clientes) {
+      expect(c).toMatchObject({ r: naEmpresa(c.contatoId).r, f: naEmpresa(c.contatoId).f, v: naEmpresa(c.contatoId).v, fv: naEmpresa(c.contatoId).fv, perfil: naEmpresa(c.contatoId).perfil })
+    }
+    // Com o Bruno na régua, a Ana 1 (2 vendas, R$ 200) não é o topo; antes da B33-04 era Campeão.
+    expect(r!.clientes.find((c) => c.contatoId === cAna1)!.f).toBeLessThan(5)
+    // A compra da Ana 2 com o Bruno conta nas notas dela (2 vendas, R$ 100).
+    expect(r!.clientes.find((c) => c.contatoId === cAna2)).toMatchObject({ vendas12m: 2, valor12m: 100 })
+    // Nada do Bruno chega: matriz, indicadores e evolução contam só os 2.
+    expect(r!.matriz.reduce((s, c) => s + c.clientes, 0)).toBe(2)
+    expect(r!.indicadores.reduce((s, i) => s + i.clientes, 0)).toBe(2)
+    expect(Object.values(r!.evolucao.semanal[0].porPerfil).reduce((s, n) => s + n, 0)).toBe(2)
+  })
+
+  it("CA-B33-17: o filtro do Admin pela Ana só esconde: mesmas notas, base/matriz/indicadores e Excel só da carteira", async () => {
+    entrarComo(adminId)
+    const semFiltro = await buscarRfv({ atendenteId: null })
+    const comFiltro = await buscarRfv({ atendenteId: anaId })
+    expect(comFiltro!.clientes.map((c) => c.contatoId).sort()).toEqual([cAna1, cAna2].sort())
+    for (const c of comFiltro!.clientes) {
+      const igual = semFiltro!.clientes.find((x) => x.contatoId === c.contatoId)!
+      expect(c).toEqual(igual)
+    }
+    expect(comFiltro!.base).toBe(2)
+    expect(comFiltro!.matriz.reduce((s, c) => s + c.clientes, 0)).toBe(2)
+    expect(comFiltro!.indicadores.reduce((s, i) => s + i.clientes, 0)).toBe(2)
+    // O Bruno, com o filtro dele, não vê a Ana 2 (que comprou com ele, mas é da carteira da Ana).
+    const doBruno = await buscarRfv({ atendenteId: brunoId })
+    expect(doBruno!.clientes.map((c) => c.contatoId)).toEqual([cBruno])
+
+    const resposta = await exportarRfv(new Request(`http://localhost/relatorios/rfv/exportar?atendente=${anaId}`))
+    expect(resposta.status).toBe(200)
+    const aba = XLSX.read(new Uint8Array(await resposta.arrayBuffer()), { type: "array" }).Sheets["Clientes RFV"]
+    const nomes = XLSX.utils.sheet_to_json<unknown[]>(aba, { header: 1 }).slice(1).map((l) => l[0]).sort()
+    expect(nomes).toEqual(["Ana 1", "Ana 2"])
   })
 })

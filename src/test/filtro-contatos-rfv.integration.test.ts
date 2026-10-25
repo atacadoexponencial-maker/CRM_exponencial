@@ -64,7 +64,8 @@ function compras(contato: string, n: number, valor: number, mesesDaUltima = 0) {
 
 // Base de 15 clientes com compra nos 12 meses: os 3 primeiros em F e V levam nota 5.
 // A2 e "Outro Top" empatam no topo; A é o 3º (nota 5 na empresa). Só entre A e A2
-// (a carteira do atendente), A é o 2º de 2 e levaria nota 3: Potencial Fiel.
+// (a carteira do atendente), A é o 2º de 2 e levaria nota 3: Potencial Fiel. Desde a
+// B33-04 a aba RFV também usa a empresa toda, então ninguém mais calcula assim.
 beforeAll(async () => {
   const { data } = await service.from("workspaces").insert({ name: `B42-01 RFV ${ts}` }).select().single()
   ws = data!.id
@@ -83,7 +84,8 @@ beforeAll(async () => {
   if (error || !contatos) throw new Error(error?.message)
   for (const c of contatos) ids[c.name as string] = c.id as string
 
-  // A e A2 são da carteira da Carla.
+  // A e A2 são da carteira da Carla (atendente do contato, B33-04) e têm card com ela.
+  await service.from("contacts").update({ atendente_id: atendenteId }).in("id", [ids["A"], ids["A2"]])
   await service.from("pipeline_cards").insert([
     { workspace_id: ws, contact_id: ids["A"], funil: "entrada", etapa: "lead", atendente_id: atendenteId },
     { workspace_id: ws, contact_id: ids["A2"], funil: "entrada", etapa: "lead", atendente_id: atendenteId },
@@ -141,10 +143,10 @@ describe("B42-01 — Perfil RFV no filtro de contatos", { timeout: 30_000 }, () 
   })
 
   it("CA-B42-22: should dar ao cliente o perfil da empresa inteira, para o Admin e para o Atendente dele", async () => {
-    // Só entre os clientes da Carla (o que a aba RFV mostra a ela), A não seria Campeão.
+    // A aba RFV da Carla (só a carteira dela) dá o mesmo perfil da empresa (B33-04).
     entrarComo(atendenteId)
     const daCarteira = await buscarRfv({})
-    expect(daCarteira!.clientes.find((c) => c.contatoId === ids["A"])?.perfil).toBe("potencial_fiel")
+    expect(daCarteira!.clientes.find((c) => c.contatoId === ids["A"])?.perfil).toBe("campeao")
 
     entrarComo(adminId)
     expect(await filtrar(cond("e", "campeao"))).toContain(ids["A"])

@@ -1,7 +1,7 @@
 # Spec: Relatórios — RFV
 
 > série: B33
-> estado: aprovada em 21/10/2026
+> estado: aprovada em 21/10/2026; revisão do filtro de atendente em 25/10/2026 (B33-04)
 
 ## Visão Geral
 
@@ -15,7 +15,7 @@ Excel, e a evolução dos perfis semana a semana e mês a mês, com a "base saud
 
 Tudo nasce da compra do contato (B30) e é calculado na hora: não há tabela nova nem rotina
 nova. É para o Admin e o Gerente, que decidem onde a equipe de Recompra gasta energia, e
-para o Atendente, que vê só os próprios clientes. Resolve o problema de o CRM não dizer,
+para o Atendente, que vê só a própria carteira. Resolve o problema de o CRM não dizer,
 com base no que foi vendido, quem está prestes a sumir e quem merece atenção.
 
 Decisões da Marcelle em 21/10/2026:
@@ -25,11 +25,18 @@ Decisões da Marcelle em 21/10/2026:
 - Frequência e Valor por **quintis da própria base**, nos últimos 12 meses;
 - a evolução é **calculada do histórico** de compras, sem foto semanal gravada.
 
+Decisões da Marcelle em 25/10/2026 (revisão, B33-04), depois do teste manual:
+
+- o perfil é **sempre o da empresa toda**: R, F, V, FV e perfil de um cliente não mudam com o filtro de atendente nem com o papel de quem olha (a mesma régua da lista de contatos, do chat e das automações);
+- o filtro de atendente e o papel Atendente só escolhem **quais clientes aparecem**: os da **carteira** (o atendente do contato), como na aba Carteiras;
+- a evolução com filtro conta **os clientes que estão na carteira hoje**, com o perfil da empresa em cada data.
+
 ### Vocabulário do RFV (como cada nota é calculada)
 
 | Termo | Significado no CRM |
 |---|---|
-| Base RFV | Contatos da empresa com ao menos uma venda registrada e fora da lixeira. Quem nunca comprou não entra |
+| Base RFV | Contatos da empresa com ao menos uma venda registrada e fora da lixeira. Quem nunca comprou não entra. Os quintis são sempre da base da empresa inteira |
+| Carteira | Contatos que têm o atendente como atendente do contato (a mesma regra da aba Carteiras) |
 | Data de referência | Hoje (no fuso da operação). Na evolução, o fim de cada semana ou mês |
 | Recência (R) | Dias entre a última venda e a data de referência. Nota 5: até 30 dias; 4: 31 a 60; 3: 61 a 90; 2: 91 a 180; 1: mais de 180 |
 | Frequência (F) | Vendas nos 12 meses até a data de referência. Nota por quintil da base: o quinto com mais vendas recebe 5, o quinto seguinte 4, e assim até 1. Clientes empatados recebem a mesma nota, a maior entre eles. Sem venda nos 12 meses: nota 1 |
@@ -61,7 +68,7 @@ laranja-escuro, Hibernando cinza, Perdido vermelho).
 
 **Descrição:** a aba "RFV" deixa de ser "em breve" e passa a abrir o relatório. Não há
 filtro de período: o RFV é sempre de hoje. O filtro de atendente da tela vale (Admin e
-Gerente); o Atendente vê só os clientes dele.
+Gerente); o Atendente vê só a carteira dele. Em todos os casos o perfil é o da empresa toda.
 
 **Componentes:**
 - Aba "RFV" ativa; "Coorte", "Funil de clientes" e "Carteiras" continuam "em breve".
@@ -70,7 +77,7 @@ Gerente); o Atendente vê só os clientes dele.
 
 **Comportamentos:**
 - Clicar na aba "RFV" mostra os quatro blocos abaixo.
-- Trocar o atendente recalcula os quatro blocos com os clientes dele.
+- Trocar o atendente mostra nos quatro blocos só os clientes da carteira dele; as notas e o perfil de cada cliente continuam os da empresa toda. O cabeçalho mostra quantos clientes com compra a carteira tem.
 - Voltar para "Visão Geral" mantém a aba anterior funcionando como hoje.
 
 **Critérios de aceite:**
@@ -99,11 +106,25 @@ Gerente); o Atendente vê só os clientes dele.
 - **Quando** a nota de Frequência é calculada
 - **Então** os dez recebem a mesma nota, 5
 
-#### CA-B33-05 — Atendente vê só os clientes dele · prova: automática
+#### CA-B33-05 — Atendente vê só a carteira dele, com o perfil da empresa · prova: automática
 
-- **Dado** clientes com compra de dois atendentes
-- **Quando** um deles, com papel Atendente, abre a aba RFV
-- **Então** a base, a matriz e a lista só têm os clientes dele, e os quintis são calculados só entre eles
+> Revisado em 25/10/2026 (B33-04). Antes: "os quintis são calculados só entre eles".
+
+- **Dado** clientes com compra nas carteiras de dois atendentes, Ana e Bruno, e um cliente da carteira da Ana que também comprou com o Bruno
+- **Quando** a Ana, com papel Atendente, abre a aba RFV
+- **Então** a base, a matriz, os indicadores e a lista só têm os clientes da carteira dela, inclusive esse cliente, e as notas R, F, V, FV e o perfil de cada um são os mesmos que o Admin vê sem filtro
+
+#### CA-B33-17 — O filtro de atendente só esconde, não recalcula · prova: automática
+
+- **Dado** a empresa com clientes nas carteiras da Ana e do Bruno
+- **Quando** o Admin abre a aba RFV sem filtro e depois filtra pela Ana
+- **Então** com o filtro aparecem só os clientes da carteira da Ana, cada um com as mesmas notas e o mesmo perfil de sem filtro; a base, a matriz e os indicadores contam só esses clientes; o Excel baixa só eles
+
+#### CA-B33-18 — A evolução com filtro segue a carteira de hoje · prova: automática
+
+- **Dado** um cliente da carteira da Ana que era Campeão há três semanas e hoje é Clientes Fiéis, pelo cálculo da empresa toda, e um cliente do Bruno
+- **Quando** o Admin filtra pela Ana e olha a evolução semanal
+- **Então** as colunas contam só o cliente da Ana, com os perfis que ele tinha na empresa em cada data (Campeão na S40, Clientes Fiéis na S43), e o cliente do Bruno não aparece em nenhuma coluna
 
 ### Matriz RFV
 
@@ -229,7 +250,8 @@ variação.
 - Exportar em PDF (o Tailor tem; o CRM só exporta Excel).
 - Configurar as faixas de Recência por empresa. Ficam fixas (30/60/90/180).
 - Foto semanal gravada em tabela. A evolução é calculada do histórico.
-- Carteiras e a pergunta "carteira = atendente do contato": série própria.
+- Carteiras: série própria (B35). Respondida lá: carteira = atendente do contato, a regra que o filtro do RFV usa desde a B33-04.
+- Evolução pela carteira de cada data (histórico de troca de carteira). Decisão de 25/10/2026: a evolução segue a carteira de hoje.
 
 ## Suposições
 
@@ -241,6 +263,7 @@ variação.
 | SUP-B33-04 | A evolução mostra as últimas 14 semanas (semana termina no domingo) e os últimos 13 meses; não o ano inteiro como o Tailor, para a tela abrir rápido. | confirmada | Marcelle, 21/10/2026 |
 | SUP-B33-05 | A aba RFV não tem filtro de período: a data de referência é sempre hoje. | confirmada | Marcelle, 21/10/2026 |
 | SUP-B33-06 | O Excel da lista traz as mesmas colunas da tela e respeita o filtro atual (perfil ou célula e busca). | confirmada | Marcelle, 21/10/2026 |
+| SUP-B33-07 | O Atendente vê as notas calculadas com a empresa toda (a posição do cliente dele frente aos outros), mas nenhum dado de cliente fora da carteira: nome, valores e quantidade de clientes dos outros não chegam à tela dele. | confirmada | Marcelle, 25/10/2026 |
 
 ## Perguntas em aberto
 

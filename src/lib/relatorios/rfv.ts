@@ -139,6 +139,11 @@ export type ExtrasRfv = {
   comLembreteRecente: Set<string>
   /** Nome do atendente do contato, por contato. */
   atendenteDoContato?: Map<string, string | null>
+  /**
+   * B33-04: a carteira filtrada. As notas são sempre calculadas com a empresa toda;
+   * a carteira só escolhe quais clientes aparecem (base, matriz, indicadores e evolução).
+   */
+  carteira?: Set<string>
 }
 
 const arred2 = (n: number) => Math.round(n * 100) / 100
@@ -226,14 +231,15 @@ export function montarIndicadores(clientes: ClienteRfv[]): IndicadorPerfil[] {
 }
 
 export function calcularRfv(vendas: VendaRow[], referencia: string, extras: ExtrasRfv): ResultadoRfv {
-  const clientes = calcularClientesRfv(vendas, referencia, extras)
+  const daEmpresa = calcularClientesRfv(vendas, referencia, extras)
+  const clientes = extras.carteira ? daEmpresa.filter((c) => extras.carteira!.has(c.contatoId)) : daEmpresa
   return {
     referencia,
     base: clientes.length,
     clientes,
     matriz: montarMatriz(clientes),
     indicadores: montarIndicadores(clientes),
-    evolucao: evolucaoDosPerfis(vendas, referencia),
+    evolucao: evolucaoDosPerfis(vendas, referencia, extras.carteira),
   }
 }
 
@@ -308,10 +314,10 @@ export function referenciasMensais(hoje: string, quantidade = MESES_EVOLUCAO): s
 
 const dois = (n: number) => String(n).padStart(2, "0")
 
-function coluna(vendas: VendaRow[], referencia: string, rotulo: string): ColunaEvolucao {
+function coluna(vendas: VendaRow[], referencia: string, rotulo: string, carteira?: Set<string>): ColunaEvolucao {
   const clientes = calcularClientesRfv(vendas, referencia, { ativos: new Set(), comLembreteRecente: new Set() })
   const porPerfil = Object.fromEntries(PERFIS.map((p) => [p.id, 0])) as Record<PerfilRfv, number>
-  for (const c of clientes) porPerfil[c.perfil]++
+  for (const c of clientes) if (!carteira || carteira.has(c.contatoId)) porPerfil[c.perfil]++
   const { dia, mes } = partesDaData(referencia)
   return {
     referencia,
@@ -322,13 +328,16 @@ function coluna(vendas: VendaRow[], referencia: string, rotulo: string): ColunaE
   }
 }
 
-/** Perfis em cada semana (14) e em cada mês (13), mais recente primeiro (SUP-B33-04). */
-export function evolucaoDosPerfis(vendas: VendaRow[], hoje: string): EvolucaoRfv {
+/**
+ * Perfis em cada semana (14) e em cada mês (13), mais recente primeiro (SUP-B33-04).
+ * Com carteira, cada data é calculada com a empresa toda e conta só os da carteira de hoje (B33-04).
+ */
+export function evolucaoDosPerfis(vendas: VendaRow[], hoje: string, carteira?: Set<string>): EvolucaoRfv {
   return {
-    semanal: referenciasSemanais(hoje).map((ref) => coluna(vendas, ref, `S${dois(semanaIso(ref))}`)),
+    semanal: referenciasSemanais(hoje).map((ref) => coluna(vendas, ref, `S${dois(semanaIso(ref))}`, carteira)),
     mensal: referenciasMensais(hoje).map((ref) => {
       const { ano, mes } = partesDaData(ref)
-      return coluna(vendas, ref, `${MESES_CURTOS[mes - 1]}/${String(ano).slice(2)}`)
+      return coluna(vendas, ref, `${MESES_CURTOS[mes - 1]}/${String(ano).slice(2)}`, carteira)
     }),
   }
 }

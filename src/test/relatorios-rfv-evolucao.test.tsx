@@ -51,6 +51,21 @@ describe("B33-03 — evolução dos perfis", () => {
     expect(screen.getAllByRole("columnheader").slice(1).map((th) => th.textContent)).toEqual(ev.semanal.map((c) => c.rotulo + c.sub))
   })
 
+  it("CA-B33-18: com a carteira da Ana, a evolução conta só o cliente dela, com o perfil da empresa em cada data (Campeão na S40, Fiéis na S43)", () => {
+    // "a" é da Ana (o mesmo cliente do CA-B33-13); "b" é do Bruno e comprou toda semana.
+    const vendas = [venda("a", "2026-09-11", 100), venda("a", "2026-08-01", 100), venda("a", "2026-07-01", 100), venda("b", "2026-10-20", 10)]
+    const ev = calcularRfv(vendas, HOJE, { ...extras, carteira: new Set(["a"]) }).evolucao
+    const col = (r: string) => ev.semanal.find((c) => c.rotulo === r)!
+    expect(col("S40").porPerfil.campeao).toBe(1)
+    expect(col("S43").porPerfil.fieis).toBe(1)
+    for (const c of [...ev.semanal, ...ev.mensal]) {
+      expect(Object.values(c.porPerfil).reduce((s, n) => s + n, 0)).toBeLessThanOrEqual(1) // o "b" nunca entra
+    }
+    expect(col("S43").porPerfil.recentes).toBe(0) // o "b" (1 venda, ontem) seria Clientes Recentes
+    // Sem carteira, o "b" aparece: a régua é a mesma, só o recorte muda.
+    expect(Object.values(evolucaoDosPerfis(vendas, HOJE).semanal[0].porPerfil).reduce((s, n) => s + n, 0)).toBe(2)
+  })
+
   it("CA-B33-14: 'Mensal' mostra 13 colunas de Out/26 a Out/25, com a referência no último dia de cada mês e hoje na atual", () => {
     expect(referenciasMensais(HOJE)).toEqual([
       "2026-10-21", "2026-09-30", "2026-08-31", "2026-07-31", "2026-06-30", "2026-05-31", "2026-04-30",

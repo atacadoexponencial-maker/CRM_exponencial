@@ -1,6 +1,9 @@
 "use server"
 
 import { sessaoAtual } from "@/lib/sessao"
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { Database } from "@/integrations/supabase/types"
+import { createServiceClient } from "@/integrations/supabase/service"
 import { compraEhDoAtendente } from "@/lib/metricas-dashboard"
 import { ROTULO_FORMA_PAGAMENTO, ROTULO_ORIGEM_COMPRA } from "@/lib/compras"
 import {
@@ -48,16 +51,33 @@ async function carregarVendas(atendenteId: string | null) {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user || !perfil) return null
 
+  let vendas = await lerVendas(supabase, perfil.workspace_id)
+
+  if (atendenteId) {
+    const { data: cards } = await supabase
+      .from("pipeline_cards")
+      .select("contact_id")
+      .eq("workspace_id", perfil.workspace_id)
+      .eq("atendente_id", atendenteId)
+    const contatosDoAtendente = new Set((cards ?? []).map((c) => c.contact_id).filter(Boolean) as string[])
+    vendas = vendas.filter((v) => compraEhDoAtendente(v, atendenteId, contatosDoAtendente))
+  }
+
+  return { perfil, user, vendas }
+}
+
+/** As compras da empresa, com quem lê (sessão ou serviço) escolhido por quem chama. */
+async function lerVendas(supabase: SupabaseClient<Database>, workspaceId: string): Promise<VendaRow[]> {
   const { data } = await supabase
     .from("contact_purchases")
     .select(
       "id, contact_id, data, valor, desconto, pecas, atendente_id, forma_pagamento, origem, created_at, contato:contacts!inner(name, phone_number, cidade, uf, excluido_em, atendente:profiles!contacts_atendente_id_fkey(name)), vendedor:profiles!contact_purchases_atendente_id_fkey(name), pedido:catalog_orders!contact_purchases_catalog_order_id_fkey(number)"
     )
-    .eq("workspace_id", perfil.workspace_id)
+    .eq("workspace_id", workspaceId)
     .is("contato.excluido_em", null)
 
   const um = <T,>(x: T | T[] | null): T | null => (Array.isArray(x) ? (x[0] ?? null) : x)
-  let vendas = (data ?? []).map((p) => ({
+  return (data ?? []).map((p) => ({
     id: p.id,
     contact_id: p.contact_id,
     data: p.data,
@@ -76,18 +96,6 @@ async function carregarVendas(atendenteId: string | null) {
     contato_uf: um(p.contato)?.uf ?? null,
     contato_atendente_nome: um(um(p.contato)?.atendente ?? null)?.name ?? null,
   })) as VendaRow[]
-
-  if (atendenteId) {
-    const { data: cards } = await supabase
-      .from("pipeline_cards")
-      .select("contact_id")
-      .eq("workspace_id", perfil.workspace_id)
-      .eq("atendente_id", atendenteId)
-    const contatosDoAtendente = new Set((cards ?? []).map((c) => c.contact_id).filter(Boolean) as string[])
-    vendas = vendas.filter((v) => compraEhDoAtendente(v, atendenteId, contatosDoAtendente))
-  }
-
-  return { perfil, user, vendas }
 }
 
 export async function buscarVisaoGeral(filtro: FiltroRelatorio): Promise<VisaoGeral | null> {
@@ -133,25 +141,36 @@ export async function buscarVendasDoPeriodo(filtro: FiltroRelatorio): Promise<Ve
 }
 
 /** B33-01: RFV de hoje. Ativos = card da Recompra em etapa ativa; lembrete recente = criado nos últimos 15 dias. */
+/**
+ * B33-04: as notas são sempre da empresa toda (a mesma régua de `perfis_rfv_da_empresa`);
+ * o filtro de atendente e o papel Atendente só escolhem a carteira que aparece. Como a
+ * RLS do Atendente só deixa ler a carteira dele, a empresa é lida pelo serviço, presa ao
+ * workspace da sessão, e só a carteira sai daqui (SUP-B33-07).
+ */
 export async function buscarRfv(filtro: { atendenteId?: string | null }): Promise<ResultadoRfv | null> {
-  const { supabase, user, perfil } = await sessaoAtual()
+  const { user, perfil } = await sessaoAtual()
   if (!user || !perfil) return null
   const atendenteId = perfil.role === "atendente" ? user.id : (filtro.atendenteId ?? null)
-  const dados = await carregarVendas(atendenteId)
-  if (!dados) return null
+  const servico = createServiceClient() as unknown as SupabaseClient<Database>
+  const workspaceId = perfil.workspace_id
 
   const ha15Dias = new Date(Date.now() - 15 * 86_400_000).toISOString()
-  const [{ data: cards }, { data: lembretes }] = await Promise.all([
-    supabase.from("pipeline_cards").select("contact_id").eq("workspace_id", perfil.workspace_id).eq("funil", "recompra").in("etapa", ETAPAS_RECOMPRA_ATIVAS),
-    supabase.from("reminders").select("contact_id").eq("workspace_id", perfil.workspace_id).gte("created_at", ha15Dias),
+  const [vendas, { data: cards }, { data: lembretes }, { data: daCarteira }] = await Promise.all([
+    lerVendas(servico, workspaceId),
+    servico.from("pipeline_cards").select("contact_id").eq("workspace_id", workspaceId).eq("funil", "recompra").in("etapa", ETAPAS_RECOMPRA_ATIVAS),
+    servico.from("reminders").select("contact_id").eq("workspace_id", workspaceId).gte("created_at", ha15Dias),
+    atendenteId
+      ? servico.from("contacts").select("id").eq("workspace_id", workspaceId).eq("atendente_id", atendenteId)
+      : Promise.resolve({ data: null }),
   ])
   const atendenteDoContato = new Map<string, string | null>()
-  for (const v of dados.vendas) if (!atendenteDoContato.has(v.contact_id)) atendenteDoContato.set(v.contact_id, v.contato_atendente_nome ?? null)
+  for (const v of vendas) if (!atendenteDoContato.has(v.contact_id)) atendenteDoContato.set(v.contact_id, v.contato_atendente_nome ?? null)
 
-  return calcularRfv(dados.vendas, hojeNoFuso(), {
+  return calcularRfv(vendas, hojeNoFuso(), {
     ativos: new Set((cards ?? []).map((c) => c.contact_id).filter(Boolean) as string[]),
     comLembreteRecente: new Set((lembretes ?? []).map((l) => l.contact_id)),
     atendenteDoContato,
+    carteira: atendenteId ? new Set((daCarteira ?? []).map((c) => c.id)) : undefined,
   })
 }
 
