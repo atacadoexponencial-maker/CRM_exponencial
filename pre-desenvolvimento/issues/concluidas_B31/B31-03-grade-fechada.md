@@ -127,3 +127,9 @@ aparece indisponível. Um pedido forçado com G 3 em Azul é recusado pelo servi
 - [x] Carrinho: linhas do bloco juntas, contador e remoção por bloco
 - [x] Servidor: grade conferida por bloco, unitário da grade, mensagem com "N grades (M peças)"
 - [x] Testes da tabela Prova passando
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B31-09 | Marcelle | 25/10/2026 |
