@@ -82,3 +82,9 @@ Nenhuma.
 - [x] Ações de distribuir e reprocessar no servidor, com histórico e sincronia dos cards
 - [x] Diálogos no bloco "Sem vendedor"
 - [x] Testes automáticos passando; roteiro manual do CA-B35-13 registrado
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B35-13 | Marcelle | 25/10/2026 |
