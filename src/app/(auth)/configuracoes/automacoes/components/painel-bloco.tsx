@@ -140,6 +140,8 @@ interface PainelBlocoProps {
   bloco: Bloco
   /** Gatilho do fluxo: decide se as verificações de mensagem valem. */
   gatilho: GatilhoTipo | undefined
+  /** As condições deste bloco podem olhar a mensagem (B28-03)? Sem isto, vale só o gatilho. */
+  haMensagem?: boolean
   /** Proteção de repetição da regra: fica no painel do gatilho (B22-09). */
   repeticao: Repeticao
   onMudarRepeticao: (repeticao: Repeticao) => void
@@ -156,6 +158,7 @@ interface PainelBlocoProps {
 export function PainelBloco({
   bloco,
   gatilho,
+  haMensagem,
   repeticao,
   onMudarRepeticao,
   opcoes,
@@ -272,7 +275,7 @@ export function PainelBloco({
         )}
 
         {bloco.tipo === "condicao" && (
-          <EditorVerificacoes bloco={bloco} gatilho={gatilho} opcoes={opcoes} onMudar={onMudar} />
+          <EditorVerificacoes bloco={bloco} gatilho={gatilho} haMensagem={haMensagem} opcoes={opcoes} onMudar={onMudar} />
         )}
 
         {bloco.tipo === "espera" && <EditorEspera bloco={bloco} onMudar={onMudar} />}
@@ -644,15 +647,18 @@ function CampoArquivo({
 function EditorVerificacoes({
   bloco,
   gatilho,
+  haMensagem,
   opcoes,
   onMudar,
 }: {
   bloco: BlocoCondicao
   gatilho: GatilhoTipo | undefined
+  haMensagem?: boolean
   opcoes: OpcoesEditor
   onMudar: (bloco: Bloco) => void
 }) {
-  const deMensagem = gatilho ? GATILHOS_DE_MENSAGEM.includes(gatilho) : false
+  // B28-03: depois de uma saída de mensagem da espera, há mensagem em qualquer gatilho
+  const deMensagem = haMensagem ?? (gatilho ? GATILHOS_DE_MENSAGEM.includes(gatilho) : false)
 
   const itensAtributo: ItemSelecao[] = (Object.keys(VERIFICACOES) as VerificacaoTipo[]).map((tipo) => {
     const item = itemDisponivel(tipo, VERIFICACOES[tipo].rotulo, VERIFICACOES_DISPONIVEIS)
@@ -862,6 +868,23 @@ function EditorEspera({ bloco, onMudar }: { bloco: BlocoEspera; onMudar: (bloco:
           </div>
         )
       })}
+      {/* B28-03: sem o tempo, até quando o contato espera a mensagem */}
+      {!bloco.tempo && (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="painel-limite-espera">Sem o tempo, esperar</Label>
+          <CampoSelecao
+            id="painel-limite-espera"
+            valor={bloco.limite}
+            itens={ITENS_LIMITE_DA_ESPERA}
+            onMudar={(limite) => onMudar({ ...bloco, limite: limite as BlocoEspera["limite"] })}
+          />
+          <p className="text-xs text-muted-foreground">
+            {bloco.limite === "30_dias"
+              ? "Passados 30 dias sem mensagem, a espera expira e o contato não segue."
+              : "O contato fica esperando até a mensagem chegar."}
+          </p>
+        </div>
+      )}
       {semOpcao && (
         <p role="alert" className="text-xs text-destructive">
           {ESPERA_SEM_OPCAO}.
@@ -870,6 +893,11 @@ function EditorEspera({ bloco, onMudar }: { bloco: BlocoEspera; onMudar: (bloco:
     </div>
   )
 }
+
+const ITENS_LIMITE_DA_ESPERA: ItemSelecao[] = [
+  { valor: "30_dias", rotulo: "No máximo 30 dias" },
+  { valor: "sem_limite", rotulo: "Sem limite" },
+]
 
 /** Valor no formato `funil:etapa`. Só fica completo com os dois escolhidos. */
 function SeletorFunilEtapa({ valor, opcoes, onMudar }: { valor: string; opcoes: OpcoesEditor; onMudar: (valor: string) => void }) {

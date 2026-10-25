@@ -189,12 +189,12 @@ function tempoDaEspera(tempo: NonNullable<BlocoEspera["tempo"]>): string {
   return plural(Number(tempo.quantidade.trim()), singular, varios)
 }
 
-/** O que o bloco "esperar" espera, em partes: "2 dias ou recebeu mensagem" (B28-02). */
+/** O que o bloco "esperar" espera, as mensagens antes do tempo: "recebeu mensagem ou 2 dias" (CA-B28-21). */
 export function oQueEspera(bloco: BlocoEspera): string {
-  const partes = saidasDaEspera(bloco).map((saida) =>
-    saida === "tempo" && bloco.tempo ? tempoDaEspera(bloco.tempo) : ROTULO_DA_SAIDA[saida].toLowerCase()
-  )
-  return partes.join(" ou ")
+  const mensagens = saidasDaEspera(bloco)
+    .filter((saida) => saida !== "tempo")
+    .map((saida) => ROTULO_DA_SAIDA[saida].toLowerCase())
+  return [...mensagens, ...(bloco.tempo ? [tempoDaEspera(bloco.tempo)] : [])].join(" ou ")
 }
 
 const ROTULO_DA_SAIDA: Record<SaidaDaEspera, string> = {

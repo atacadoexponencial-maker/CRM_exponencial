@@ -38,7 +38,7 @@ import {
 } from "@/lib/fluxo-automacao"
 import { executarAcao } from "./acoes"
 import type { ContextoDaExecucao, GatilhoAutomacao, ServiceClient } from "./contexto"
-import { retomarEm } from "./esperas"
+import { retomarEm, seguirEsperasPorMensagem } from "./esperas"
 import {
   motivoParaIgnorar,
   passosDoCaminho,
@@ -81,6 +81,11 @@ export async function processarAutomacoes(gatilho: GatilhoAutomacao, opcoes: Opc
     if (gatilho.contactId) {
       const { data: naLixeira } = await supabase.rpc("contato_na_lixeira", { p_contact_id: gatilho.contactId })
       if (naLixeira) return
+    }
+
+    // B28-03: a mensagem segue primeiro as esperas do contato, e só depois as regras do evento rodam
+    if ((gatilho.tipo === "mensagem_recebida" || gatilho.tipo === "mensagem_enviada_time") && !opcoes.naoRodarPorque) {
+      await seguirEsperasPorMensagem(supabase, gatilho)
     }
 
     const contexto: ContextoDaExecucao = { supabase, gatilho }

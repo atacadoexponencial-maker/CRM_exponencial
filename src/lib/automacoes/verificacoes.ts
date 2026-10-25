@@ -44,14 +44,24 @@ export async function verificacaoVale(contexto: ContextoDaExecucao, verificacao:
       return perfilRfvVale(contexto, verificacao)
     case "horario_comercial":
       return horarioVale(contexto, verificacao)
-    // Só os gatilhos de mensagem trazem a mensagem
-    case "texto_mensagem":
-      return "texto" in contexto.gatilho && textoDaMensagemVale(verificacao, contexto.gatilho.texto)
-    case "tipo_mensagem":
-      return "tipoMensagem" in contexto.gatilho && tipoDaMensagemVale(verificacao, contexto.gatilho.tipoMensagem)
+    // Trazem a mensagem os gatilhos de mensagem e, depois dela, a saída de mensagem da espera (B28-03)
+    case "texto_mensagem": {
+      const mensagem = mensagemDoContexto(contexto)
+      return mensagem !== null && textoDaMensagemVale(verificacao, mensagem.texto)
+    }
+    case "tipo_mensagem": {
+      const mensagem = mensagemDoContexto(contexto)
+      return mensagem !== null && tipoDaMensagemVale(verificacao, mensagem.tipoMensagem)
+    }
     default:
       return false
   }
+}
+
+/** A mensagem que as condições leem: a que acabou a espera, ou a do gatilho de mensagem. */
+function mensagemDoContexto({ mensagem, gatilho }: ContextoDaExecucao): { texto: string; tipoMensagem: string } | null {
+  if (mensagem) return mensagem
+  return "texto" in gatilho && "tipoMensagem" in gatilho ? gatilho : null
 }
 
 const palavras = (texto: string) => texto.split(/[^\p{L}\p{N}]+/u).filter(Boolean)

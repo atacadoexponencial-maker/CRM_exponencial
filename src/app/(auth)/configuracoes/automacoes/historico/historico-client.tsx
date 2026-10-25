@@ -250,7 +250,8 @@ function DetalheDaExecucao({ execucao, opcoes }: { execucao: ExecucaoListada; op
         <p
           className={cn(
             "mb-3 rounded-lg px-3 py-2 text-sm",
-            execucao.resultado === "ignorada" || execucao.resultado === "cancelada"
+            // B28-03: a espera que expirou é uma concluída com motivo, e não um erro
+            execucao.resultado !== "falhou"
               ? "bg-muted text-muted-foreground"
               : "bg-erro-fundo text-erro"
           )}
@@ -295,9 +296,11 @@ function PassoDoCaminho({ passo, opcoes }: { passo: PassoGravado; opcoes: Opcoes
         <p className="mt-1 pl-[4.5rem] text-xs text-muted-foreground">
           {saida
             ? `Saiu por: ${rotuloDaSaidaDaEspera(bloco, saida).toLowerCase()}${passo.em ? `, às ${formatarHoraDoDia(passo.em)}` : ""}`
-            : passo.desde
-              ? `Esperando desde ${formatarHoraDoDia(passo.desde)}`
-              : "Esperando"}
+            : passo.em
+              ? `A espera expirou, às ${formatarHoraDoDia(passo.em)}`
+              : passo.desde
+                ? `Esperando desde ${formatarHoraDoDia(passo.desde)}`
+                : "Esperando"}
         </p>
       </li>
     )

@@ -331,8 +331,14 @@ export function tagValida(tag: string): boolean {
   return normalizada.length > 0 && normalizada.length <= 50 && !/\s/.test(normalizada)
 }
 
-/** As opções do bloco "esperar" que o motor já sabe esperar. As de mensagem chegam na B28-03. */
-export const OPCOES_DE_ESPERA_DISPONIVEIS: readonly SaidaDaEspera[] = ["tempo"]
+/** As opções do bloco "esperar" que o motor sabe esperar: o tempo (B28-02) e as mensagens (B28-03). */
+export const OPCOES_DE_ESPERA_DISPONIVEIS: readonly SaidaDaEspera[] = ["tempo", "recebeu_mensagem", "atendente_enviou"]
+
+/** As saídas da espera que trazem uma mensagem nova para as condições de depois (B28-03). */
+export const SAIDAS_DE_MENSAGEM: readonly Saida[] = ["recebeu_mensagem", "atendente_enviou"]
+
+/** Sem o tempo, o teto "esperar no máximo 30 dias" (PER-B28-02). */
+export const TETO_DA_ESPERA_MS = 30 * 86_400_000
 
 /** Até um ano de espera, em cada unidade (B28-02, SUP-B28-01). */
 export const ESPERA_MAXIMA: Record<UnidadeDaEspera, number> = {
@@ -433,6 +439,33 @@ export function formaLaco(ligacoes: Ligacao[], de: string, para: string): boolea
   return false
 }
 
+/**
+ * Blocos que dá para alcançar a partir do gatilho sem passar por uma saída de
+ * mensagem de um bloco "esperar" (B28-03). Neles, só os gatilhos de mensagem têm
+ * mensagem para as condições "texto" e "tipo da mensagem"; nos outros, há sempre
+ * a mensagem que acabou a espera.
+ */
+export function blocosSemMensagemDaEspera(fluxo: Fluxo): Set<string> {
+  const alcancados = new Set<string>()
+  const gatilho = gatilhoDoFluxo(fluxo)
+  if (!gatilho) return alcancados
+  const pilha = [gatilho.id]
+  while (pilha.length > 0) {
+    const atual = pilha.pop()!
+    if (alcancados.has(atual)) continue
+    alcancados.add(atual)
+    for (const l of fluxo.ligacoes) if (l.de === atual && !SAIDAS_DE_MENSAGEM.includes(l.saida)) pilha.push(l.para)
+  }
+  return alcancados
+}
+
+/** As condições deste bloco podem olhar a mensagem? Sim nos gatilhos de mensagem e depois de uma saída de mensagem. */
+export function haMensagemNoBloco(fluxo: Fluxo, blocoId: string): boolean {
+  const gatilho = gatilhoDoFluxo(fluxo)
+  if (gatilho && GATILHOS_DE_MENSAGEM.includes(gatilho.gatilho)) return true
+  return !blocosSemMensagemDaEspera(fluxo).has(blocoId)
+}
+
 /** Blocos que dá para alcançar a partir do gatilho. Os outros estão soltos. */
 export function blocosAlcancaveis(fluxo: Fluxo): Set<string> {
   const alcancados = new Set<string>()
@@ -516,6 +549,7 @@ export function pendenciasDoFluxo(fluxo: Fluxo): PendenciasFluxo {
 
   const gatilho = gatilhoDoFluxo(fluxo)
   const deMensagem = gatilho ? GATILHOS_DE_MENSAGEM.includes(gatilho.gatilho) : false
+  const semMensagemDaEspera = blocosSemMensagemDaEspera(fluxo)
 
   const alcancaveis = blocosAlcancaveis(fluxo)
   for (const bloco of fluxo.blocos) {
@@ -560,7 +594,8 @@ export function pendenciasDoFluxo(fluxo: Fluxo): PendenciasFluxo {
     } else {
       if (bloco.verificacoes.some((v) => !VERIFICACOES_DISPONIVEIS.includes(v.tipo))) anotar(bloco.id, EM_BREVE)
       if (bloco.verificacoes.length === 0) anotar(bloco.id, "Adicione ao menos uma verificação")
-      if (!deMensagem && bloco.verificacoes.some((v) => VERIFICACOES_DE_MENSAGEM.includes(v.tipo))) {
+      // B28-03: depois de uma saída de mensagem da espera, há mensagem em qualquer gatilho
+      if (!deMensagem && semMensagemDaEspera.has(bloco.id) && bloco.verificacoes.some((v) => VERIFICACOES_DE_MENSAGEM.includes(v.tipo))) {
         anotar(bloco.id, "Verificação de mensagem não vale para este gatilho")
       }
       if (bloco.verificacoes.some((v) => !verificacaoCompleta(v))) {

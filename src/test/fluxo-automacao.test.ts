@@ -11,6 +11,7 @@ import {
   problemasDeEstrutura,
   duracaoDaEspera,
   esperaNova,
+  haMensagemNoBloco,
   saidasDoBloco,
   ESPERA_SEM_OPCAO,
   ACOES_DISPONIVEIS,
@@ -424,11 +425,34 @@ describe("bloco 'esperar' (B28-02)", () => {
     expect(problemasDeEstrutura(f)).toContain("O fluxo tem ligações inválidas")
   })
 
-  it("sem nenhuma opção, ou com uma que o motor ainda não espera, o bloco tem pendência", () => {
+  it("sem nenhuma opção o bloco tem pendência; as de mensagem já valem (B28-03)", () => {
     expect(pendenciasDoFluxo(fluxo(espera({ tempo: null }))).porBloco.e).toContain(ESPERA_SEM_OPCAO)
-    expect(pendenciasDoFluxo(fluxo(espera({ recebeuMensagem: true }))).porBloco.e).toContain(
-      "Ainda não disponível: escolha outra opção"
-    )
+    expect(pendenciasDoFluxo(fluxo(espera({ recebeuMensagem: true, atendenteEnviou: true }))).porBloco.e).toBeUndefined()
+  })
+
+  it("CA-B28-13: a condição de mensagem vale depois da saída de mensagem e continua recusada antes da espera", () => {
+    const textoSim: Verificacao = { id: "v", tipo: "texto_mensagem", operador: "contem", valor: "sim" }
+    const condicao = (id: string): Bloco => ({ id, tipo: "condicao", verificacoes: [textoSim], posicao })
+    const fluxoComCondicoes: Fluxo = {
+      // gatilho "card movido" → condição antes → esperar (mensagem) → condição depois
+      blocos: [gatilho(), condicao("antes"), espera({ tempo: null, recebeuMensagem: true }), condicao("depois"), acao("fim")],
+      ligacoes: [
+        { de: "g", saida: "proximo", para: "antes" },
+        { de: "antes", saida: "sim", para: "e" },
+        { de: "e", saida: "recebeu_mensagem", para: "depois" },
+        { de: "depois", saida: "sim", para: "fim" },
+      ],
+    }
+    const { porBloco } = pendenciasDoFluxo(fluxoComCondicoes)
+    expect(porBloco.antes).toContain("Verificação de mensagem não vale para este gatilho")
+    expect(porBloco.depois).toBeUndefined()
+    expect(haMensagemNoBloco(fluxoComCondicoes, "depois")).toBe(true)
+    expect(haMensagemNoBloco(fluxoComCondicoes, "antes")).toBe(false)
+  })
+
+  it("depois da saída do tempo, a condição de mensagem continua recusada num gatilho que não é de mensagem", () => {
+    const f = fluxo(espera({ recebeuMensagem: true }))
+    expect(haMensagemNoBloco(f, "depois")).toBe(false)
   })
 
   it("o bloco sozinho não basta: o fluxo continua precisando de uma ação (SUP-B28-06)", () => {

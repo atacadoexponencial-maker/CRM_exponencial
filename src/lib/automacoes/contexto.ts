@@ -93,6 +93,11 @@ export interface ContextoDaExecucao {
   gatilho: GatilhoAutomacao
   /** A regra que está rodando: o lembrete criado por automação diz de qual veio (B28-01). Fora do motor (simulação), não há. */
   regra?: { id: string; nome: string }
+  /**
+   * A mensagem que acabou a espera, depois de uma saída de mensagem do bloco
+   * "esperar" (B28-03). As condições de mensagem leem esta, e não a do gatilho.
+   */
+  mensagem?: MensagemDoEvento
 }
 
 /**

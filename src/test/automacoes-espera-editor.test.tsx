@@ -1,7 +1,7 @@
 // B28-02 — bloco "esperar" no editor: nasce com o tempo ligado, não fica sem
 // opção, e o tempo fora do intervalo não salva, nem no editor nem no servidor.
 
-import { act, fireEvent, render, screen, within } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
@@ -144,6 +144,68 @@ describe("B28-02 — bloco 'esperar' no editor", () => {
     expect(salvar).not.toHaveBeenCalled()
     expect(screen.getByRole("alert").textContent).toContain("Corrija o bloco marcado")
     expect(screen.getByText("O tempo é um número inteiro, de 1 até 365 dias")).toBeTruthy()
+  })
+
+  it("CA-B28-02: desligar 'recebeu mensagem' deixa só a saída do tempo e apaga a ligação que saía dela", () => {
+    abrirEditor({
+      blocos: [
+        { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao },
+        { ...esperaNova("e", { x: 0, y: 150 }), recebeuMensagem: true },
+        { id: "a", tipo: "acao", acao: "resolver_conversa", parametros: {}, posicao: { x: 0, y: 300 } },
+        { id: "r", tipo: "acao", acao: "reabrir_conversa", parametros: {}, posicao: { x: 300, y: 300 } },
+      ],
+      ligacoes: [
+        { de: "g", saida: "proximo", para: "e" },
+        { de: "e", saida: "tempo", para: "a" },
+        { de: "e", saida: "recebeu_mensagem", para: "r" },
+      ],
+    })
+    const noEspera = () => document.querySelector(".react-flow__node-espera") as HTMLElement
+    expect(within(noEspera()).getByText("Recebeu mensagem")).toBeTruthy()
+    expect(within(noEspera()).getByText("Depois de 1 dia")).toBeTruthy()
+
+    fireEvent.click(within(noEspera()).getByText("Esperar recebeu mensagem ou 1 dia"))
+    fireEvent.click(within(screen.getByRole("complementary")).getByRole("checkbox", { name: /O contato mandar mensagem/ }))
+
+    expect(within(noEspera()).queryByText("Recebeu mensagem")).toBeNull()
+    expect(within(noEspera()).getByText("Depois de 1 dia")).toBeTruthy()
+    expect(noEspera().querySelectorAll(".react-flow__handle-bottom")).toHaveLength(1)
+    // Sem a ligação, a ação que saía de "Recebeu mensagem" ficou solta
+    const noReabrir = [...document.querySelectorAll(".react-flow__node-acao")].find((n) => n.textContent?.includes("Reabrir"))!
+    expect(noReabrir.textContent).toContain("Bloco solto: ligue a um caminho")
+  })
+
+  it("CA-B28-05: sem o tempo, o painel oferece 'no máximo 30 dias' (marcado) e 'sem limite'", async () => {
+    const onMudar = vi.fn()
+    const bloco: BlocoEspera = { ...esperaNova("e", posicao), tempo: null, recebeuMensagem: true }
+    render(
+      <PainelBloco
+        bloco={bloco}
+        gatilho="conversa_criada"
+        repeticao={{ modo: "sempre" }}
+        onMudarRepeticao={vi.fn()}
+        opcoes={OPCOES}
+        pendencias={[]}
+        guardarArquivo={vi.fn()}
+        onMudar={onMudar}
+        onRemover={vi.fn()}
+        onDuplicar={vi.fn()}
+        onFechar={vi.fn()}
+      />
+    )
+
+    const limite = screen.getByRole("combobox", { name: "Sem o tempo, esperar" })
+    expect(limite.textContent).toContain("No máximo 30 dias")
+    fireEvent.click(limite)
+    // O item do Select do Base UI só confirma a escolha destacado, como com o mouse em cima
+    const semLimite = await screen.findByRole("option", { name: "Sem limite" })
+    fireEvent.mouseMove(semLimite)
+    fireEvent.pointerMove(semLimite, { pointerType: "mouse" })
+    await waitFor(() => expect(semLimite.hasAttribute("data-highlighted")).toBe(true))
+    fireEvent.click(semLimite)
+    await waitFor(() => expect(onMudar).toHaveBeenCalledWith(expect.objectContaining({ limite: "sem_limite" })))
+    // O bloco nasce com o teto marcado
+    expect(esperaNova("x", posicao).limite).toBe("30_dias")
   })
 
   it("CA-B28-23: no canvas, o teste marca o bloco 'esperar' com a nota", async () => {

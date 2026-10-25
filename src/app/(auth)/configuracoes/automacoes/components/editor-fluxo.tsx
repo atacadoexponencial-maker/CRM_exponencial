@@ -30,6 +30,7 @@ import { useTemaDaTela } from "@/lib/use-tema-da-tela"
 import {
   esperaNova,
   formaLaco,
+  haMensagemNoBloco,
   gatilhoDoFluxo,
   horasValidas,
   pendenciasDoFluxo,
@@ -664,6 +665,7 @@ function EditorFluxoInterno({
             key={selecionado.id}
             bloco={selecionado.data.bloco}
             gatilho={gatilhoDoFluxo(fluxo)?.gatilho}
+            haMensagem={haMensagemNoBloco(fluxo, selecionado.id)}
             repeticao={repeticao}
             onMudarRepeticao={mudarRepeticao}
             opcoes={opcoes}
