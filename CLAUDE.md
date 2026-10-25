@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Módulo 3 — Contatos** ✅ *concluído*
 - **Módulo 5 — Dashboard** ✅ *concluído*
 - **Automações** ✅ *concluído*: fluxo de blocos, com gatilho, condições com saídas sim e não, e ações (`/configuracoes/automacoes`). É a v2, série B11, no ar desde 08/10/2026 (spec em `docs/specs-arquivadas/spec-automacoes-v2.md`). A v1 (gatilho → ação, estilo Kommo) foi substituída por ela.
-- **Módulo 4 — Sequências** ✅ *concluído*: sequências automáticas, agenda do vendedor, central de alertas
+- **Módulo 4 — Agenda e alertas** ✅ *concluído*: agenda do vendedor e central de alertas. As sequências automáticas saíram na B28-06: o que elas faziam, a automação faz com o bloco "esperar" e a ação "criar lembrete na Agenda"
 - **Módulo 7 — Campanhas** ✅ *concluído*: disparos em massa segmentados com relatório de entrega
 - **Módulo 6 — Grupos** ❌ *bloqueado*: a API oficial da Meta não suporta grupos de WhatsApp (ver `pre-desenvolvimento/bloqueado/avaliacao-modulo-6-grupos.md`)
 
@@ -80,11 +80,9 @@ Rotas existentes:
 - `/(auth)/chat` — caixa de entrada + conversa WhatsApp (tempo real)
 - `/(auth)/pipeline` — funil Entrada
 - `/(auth)/pipeline/recompra` — funil Recompra (`/pipeline/retencao` redireciona para cá)
-- `/(auth)/agenda` — agenda do vendedor (lembretes de sequência + follow-ups)
+- `/(auth)/agenda` — agenda do vendedor (lembretes de automação + follow-ups)
 - `/(auth)/agenda/equipe` — agenda da equipe (Admin/Gerente)
 - `/(auth)/alertas` — central de alertas com limiares configuráveis
-- `/(auth)/sequencias` — biblioteca de sequências (Admin/Gerente)
-- `/(auth)/sequencias/[id]` — editor de sequência (Admin; `nova` para criar)
 - `/(auth)/campanhas` — lista de campanhas (Admin/Gerente)
 - `/(auth)/campanhas/[id]` — editor de campanha em 3 etapas (`nova` para criar)
 - `/(auth)/campanhas/[id]/relatorio` — relatório de entrega da campanha

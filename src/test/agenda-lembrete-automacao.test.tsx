@@ -64,7 +64,6 @@ describe("lembrete de automação na Agenda (B28-01)", () => {
     render(
       <AgendaEquipeClient
         itensIniciais={[daAutomacao]}
-        sequenciasIniciais={[]}
         atendentes={[
           { id: "ana", nome: "Ana" },
           { id: "caio", nome: "Caio" },

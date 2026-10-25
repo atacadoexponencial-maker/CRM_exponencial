@@ -154,7 +154,6 @@
  "src/test/relatorios-visao-geral.integration.test.ts",
  "src/test/relatorios-visao-geral.test.ts",
  "src/test/risco.test.ts",
- "src/test/sequencias-salvar-atomico.test.ts",
  "src/test/sequencias.test.ts",
  "src/test/sessao-desativado.test.ts",
  "src/test/tempo-real-seguranca.integration.test.ts",

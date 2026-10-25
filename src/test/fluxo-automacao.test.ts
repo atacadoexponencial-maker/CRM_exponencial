@@ -232,9 +232,13 @@ describe("pendenciasDoFluxo: só o que o motor executa (B11-10)", () => {
     expect(Object.values(pendenciasDoFluxo(fluxo).porBloco).flat()).not.toContain(EM_BREVE)
   })
 
-  it("B11-07: com as ações de envio, todo gatilho e toda ação do editor estão disponíveis", () => {
+  it("B11-07: com as ações de envio, todo gatilho e toda ação do editor estão disponíveis, menos a que saiu (B28-06)", () => {
     expect([...GATILHOS_DISPONIVEIS].sort()).toEqual(Object.keys(PARAMETROS_OBRIGATORIOS_GATILHO).sort())
-    expect([...ACOES_DISPONIVEIS].sort()).toEqual(Object.keys(PARAMETROS_OBRIGATORIOS_ACAO).sort())
+    expect([...ACOES_DISPONIVEIS].sort()).toEqual(
+      Object.keys(PARAMETROS_OBRIGATORIOS_ACAO)
+        .filter((a) => a !== "iniciar_sequencia")
+        .sort()
+    )
   })
 
   it("B11-07: mensagem rápida e arquivo podem ser salvos", () => {

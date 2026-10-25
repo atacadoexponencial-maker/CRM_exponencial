@@ -5,11 +5,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
 vi.mock("@/lib/automacoes/fila", () => ({ dispararAutomacoes: vi.fn() }))
-vi.mock("@/lib/sequencias", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/sequencias")>()),
-  processarGatilhoSequencia: vi.fn(),
-  iniciarExecucaoSequencia: vi.fn(),
-}))
 vi.mock("@/lib/whatsapp-envio", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/whatsapp-envio")>()),
   enviarWhatsAppComMotivo: vi.fn().mockResolvedValue({ ok: true }),

@@ -520,7 +520,8 @@ export const GRUPOS_NOVO_BLOCO: Array<{ titulo: string; itens: Array<"condicao" 
     titulo: "Conversa",
     itens: ["aplicar_etiqueta", "remover_etiqueta", "atribuir_atendente", "resolver_conversa", "reabrir_conversa"],
   },
-  { titulo: "Funil e time", itens: ["mover_card", "atribuir_time", "iniciar_sequencia"] },
+  // B28-06: "iniciar sequência" saiu
+  { titulo: "Funil e time", itens: ["mover_card", "atribuir_time"] },
   { titulo: "Agenda", itens: ["criar_lembrete"] },
 ]
 

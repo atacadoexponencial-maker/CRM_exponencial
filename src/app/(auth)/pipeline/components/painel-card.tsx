@@ -1,13 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, MessageSquare, ChevronDown, Phone, Clock, Tag, FileText, History, Zap, Trash2, UserRound } from "lucide-react"
+import { X, MessageSquare, ChevronDown, Phone, Clock, Tag, FileText, History, Trash2, UserRound } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA, type CardLead, type CardCliente, type CardDoFunil, type EtapaDoFunil, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
 import { buscarDadosPainel, moverCard, atribuirAtendente, adicionarNota, removerCardDoFunil } from "../actions"
-import { IniciarSequenciaDialog } from "@/components/shared/iniciar-sequencia-dialog"
 import { Button } from "@/components/ui/button"
 import { DialogoExcluirContato } from "../../contatos/components/dialogo-excluir-contato"
 import { resumoExclusaoPorCard, excluirContatoPorCard, type ResumoExclusao } from "../../contatos/lixeira/actions"
@@ -33,7 +32,6 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
   const [movendo, setMovendo] = useState(false)
   const [atribuindo, setAtribuindo] = useState(false)
   const [salvandoNota, setSalvandoNota] = useState(false)
-  const [sequenciaAberta, setSequenciaAberta] = useState(false)
   const [resumoExclusao, setResumoExclusao] = useState<ResumoExclusao | null>(null)
   const [preparandoExclusao, setPreparandoExclusao] = useState(false)
   const [excluindo, setExcluindo] = useState(false)
@@ -282,19 +280,6 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
                 Abrir ficha completa
               </Link>
             )}
-            <button
-              disabled={!card.contactId}
-              onClick={() => { if (card.contactId) setSequenciaAberta(true) }}
-              className={cn(
-                "w-full h-8 flex items-center justify-center gap-2 text-sm rounded-lg border border-input transition-colors",
-                card.contactId
-                  ? "hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
-                  : "opacity-50 cursor-not-allowed text-muted-foreground"
-              )}
-            >
-              <Zap className="size-3.5" />
-              Iniciar sequência
-            </button>
           </div>
 
           {funilDaEmpresa ? (
@@ -387,15 +372,6 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
                   .catch(() => setErroExclusao("Não foi possível excluir. Tente de novo."))
                   .finally(() => setExcluindo(false))
               }}
-            />
-          )}
-
-          {sequenciaAberta && card.contactId && (
-            <IniciarSequenciaDialog
-              contactId={card.contactId}
-              contatoNome={card.contato.nome}
-              aberto
-              onFechar={() => setSequenciaAberta(false)}
             />
           )}
 

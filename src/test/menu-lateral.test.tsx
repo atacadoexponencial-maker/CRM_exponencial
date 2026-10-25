@@ -16,14 +16,15 @@ const ESPERADO: Record<Papel, Record<string, string[]>> = {
   admin: {
     "": ["Dashboard", "Pipeline", "Chat", "Contatos", "Catálogo", "Pedidos", "Relatórios"],
     Rotina: ["Agenda", "Alertas"],
-    Automação: ["Sequências", "Campanhas", "Automações"],
+    // B28-06: "Sequências" saiu do menu
+    Automação: ["Campanhas", "Automações"],
     // B41-01: "Funis" em Configurações, para o Admin e o Gerente
     Configurações: ["Funis", "Mensagens Rápidas", "Etiquetas", "Templates", "Usuários", "Times", "WhatsApp"],
   },
   gerente: {
     "": ["Dashboard", "Pipeline", "Chat", "Contatos", "Catálogo", "Pedidos", "Relatórios"],
     Rotina: ["Agenda", "Alertas"],
-    Automação: ["Sequências", "Campanhas"],
+    Automação: ["Campanhas"],
     Configurações: ["Funis"],
   },
   atendente: {

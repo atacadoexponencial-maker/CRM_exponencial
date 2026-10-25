@@ -11,7 +11,6 @@ import {
   Contact,
   Kanban,
   LayoutDashboard,
-  ListChecks,
   Megaphone,
   Menu,
   MessageSquare,
@@ -89,7 +88,6 @@ function montarSecoes(atrasados: number, pedidosNovos: number): SecaoNav[] {
     {
       titulo: "Automação",
       itens: [
-        { href: "/sequencias", label: "Sequências", icone: ListChecks, papeis: ["admin", "gerente"] },
         { href: "/campanhas", label: "Campanhas", icone: Megaphone, papeis: ["admin", "gerente"] },
         { href: "/configuracoes/automacoes", label: "Automações", icone: Zap, papeis: ["admin"] },
       ],

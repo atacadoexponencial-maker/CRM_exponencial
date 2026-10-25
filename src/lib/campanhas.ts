@@ -5,7 +5,6 @@
 // e o processamento oportunista continuam de onde parou.
 
 import { createServiceClient } from "@/integrations/supabase/service"
-import { substituirVariaveis } from "@/lib/sequencias"
 import { providerDaConexao, resolverProvider } from "@/lib/whatsapp"
 import {
   MOTIVO_SEM_NUMERO,
@@ -50,6 +49,19 @@ type RecipientRow = {
   contact_id: string | null
   nome_snapshot: string | null
   telefone_snapshot: string
+}
+
+/**
+ * As variáveis da mensagem da campanha. Morava no motor das sequências, que saiu
+ * na B28-06; as campanhas continuam com as mesmas duas.
+ */
+export function substituirVariaveis(
+  texto: string,
+  contexto: { nomeContato: string; nomeVendedor: string }
+): string {
+  return texto
+    .replaceAll("{{nome_contato}}", contexto.nomeContato)
+    .replaceAll("{{nome_vendedor}}", contexto.nomeVendedor)
 }
 
 async function enviarParaDestinatario(

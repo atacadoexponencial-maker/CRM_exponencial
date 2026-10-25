@@ -6,10 +6,9 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { MessageSquare, ArrowLeft, Pencil, X, Zap, Trash2, Download } from "lucide-react"
+import { MessageSquare, ArrowLeft, Pencil, X, Trash2, Download } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AvatarContato } from "@/components/shared/avatar-contato"
-import { IniciarSequenciaDialog } from "@/components/shared/iniciar-sequencia-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -73,7 +72,6 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
   const [erroEdicao, setErroEdicao] = useState<string | null>(null)
   const [novaTag, setNovaTag] = useState("")
   const [erroTag, setErroTag] = useState<string | null>(null)
-  const [sequenciaAberta, setSequenciaAberta] = useState(false)
   const [resumoExclusao, setResumoExclusao] = useState<ResumoExclusao | null>(null)
   const [preparandoExclusao, setPreparandoExclusao] = useState(false)
   const [excluindo, setExcluindo] = useState(false)
@@ -264,14 +262,6 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
         </div>
         {/* QA M23 (06/10): no celular, "Excluir contato" ficava cortado. */}
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setSequenciaAberta(true)}
-            className="inline-flex items-center gap-1.5 text-sm font-medium h-8 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            <Zap className="size-3.5" />
-            Iniciar sequência
-          </button>
           <Link
             href={contato.conversaId ? `/chat?conversa=${contato.conversaId}` : "/chat"}
             className="inline-flex items-center gap-1.5 text-sm font-medium h-8 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
@@ -327,15 +317,6 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
               .catch(() => setErroExclusao("Não foi possível excluir. Tente de novo."))
               .finally(() => setExcluindo(false))
           }}
-        />
-      )}
-
-      {sequenciaAberta && (
-        <IniciarSequenciaDialog
-          contactId={contato.id}
-          contatoNome={contato.nome}
-          aberto
-          onFechar={() => setSequenciaAberta(false)}
         />
       )}
 

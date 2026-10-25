@@ -297,8 +297,7 @@ export const ACOES_DISPONIVEIS: readonly AcaoTipo[] = [
   "remover_etiqueta",
   "alterar_dado_contato",
   "atribuir_time",
-  // B11-08
-  "iniciar_sequencia",
+  // B11-08 ("iniciar sequência" saiu na B28-06)
   "resolver_conversa",
   "reabrir_conversa",
   // B11-07
@@ -309,15 +308,24 @@ export const ACOES_DISPONIVEIS: readonly AcaoTipo[] = [
 ]
 
 /**
- * Etapas em que o arrastar manual inicia uma sequência (`moverCard`, em
- * src/app/(auth)/pipeline/actions.ts), por `funil:etapa`. Na ação "mover card",
- * o admin escolhe se a automação faz o mesmo (parâmetro `iniciar_sequencia`).
- * Em Ganho, a sequência de onboarding só começa quando o card da Recompra nasce.
+ * Ações que saíram do CRM (B28-06: as sequências). Continuam no formato para a
+ * regra gravada antes ser lida, mas não rodam: no motor, falham com
+ * `ACAO_REMOVIDA` e o caminho segue; no editor e no Salvar, o bloco fica marcado
+ * até a pessoa trocar (`acoesRemovidasNoFluxo`). Não entram em
+ * `pendenciasDoFluxo`, que o motor usa para decidir se a regra roda.
  */
-export const SEQUENCIA_DA_ETAPA: Record<string, "onboarding" | "catalogo_enviado" | "inativo"> = {
-  "entrada:ganho": "onboarding",
-  "entrada:catalogo_enviado": "catalogo_enviado",
-  "recompra:inativos": "inativo",
+export const ACOES_REMOVIDAS: readonly AcaoTipo[] = ["iniciar_sequencia"]
+
+/** CA-B28-34. */
+export const ACAO_REMOVIDA = "A ação 'iniciar sequência' foi removida: troque no editor"
+
+/** Os blocos com ação removida, com o aviso, por id. */
+export function acoesRemovidasNoFluxo(fluxo: Fluxo): Record<string, string[]> {
+  const porBloco: Record<string, string[]> = {}
+  for (const bloco of fluxo.blocos) {
+    if (bloco.tipo === "acao" && ACOES_REMOVIDAS.includes(bloco.acao)) porBloco[bloco.id] = [ACAO_REMOVIDA]
+  }
+  return porBloco
 }
 
 /** Tag como a tela do contato grava: minúsculas e sem espaço nas pontas. */
@@ -569,6 +577,8 @@ export function pendenciasDoFluxo(fluxo: Fluxo): PendenciasFluxo {
         if (itensDaLista(bloco.parametros.destinos).length === 0) anotar(bloco.id, SEM_PERFIL_DE_DESTINO)
         if (horaDoGatilho(bloco.parametros) === null) anotar(bloco.id, "O horário de disparo vai de 0h a 23h")
       }
+    } else if (bloco.tipo === "acao" && ACOES_REMOVIDAS.includes(bloco.acao)) {
+      // B28-06: a pendência da ação removida é do editor e do Salvar (`acoesRemovidasNoFluxo`)
     } else if (bloco.tipo === "acao") {
       if (!ACOES_DISPONIVEIS.includes(bloco.acao)) anotar(bloco.id, EM_BREVE)
       if (PARAMETROS_OBRIGATORIOS_ACAO[bloco.acao].some((p) => !bloco.parametros[p]?.trim())) {

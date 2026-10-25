@@ -1,6 +1,5 @@
 "use server"
 
-import { garantirSequenciasPredefinidas } from "@/lib/sequencias"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { schema } from "./schema"
@@ -56,9 +55,8 @@ export async function cadastrarEmpresa(dados: unknown): Promise<ResultadoCadastr
     return { erro: "falha" }
   }
 
-  // B10-08: as 4 sequências do método nascem com a empresa, não a cada visita
-  // à biblioteca. Falha aqui é silenciosa (a função já é oportunista).
-  await garantirSequenciasPredefinidas(workspaceId as string)
+  // B28-06: a empresa nova não ganha mais as quatro sequências prontas (B10-08):
+  // as sequências saíram, e a automação faz o que elas faziam.
 
   const ssrClient = await createSsrClient()
   const { error: signInError } = await ssrClient.auth.signInWithPassword({ email, password: senha })

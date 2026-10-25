@@ -4,7 +4,6 @@ import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import { dispararAutomacoes } from "@/lib/automacoes/fila"
 import { cardsDepoisDoMovimento, prepararGatilhoDeClassificacao } from "@/lib/automacoes/gatilhos-do-crm"
-import { processarGatilhoSequencia } from "@/lib/sequencias"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { buscarEGuardarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
 import { tirarDaLixeira } from "@/lib/lixeira"
@@ -229,13 +228,6 @@ export async function criarNovoLead(telefoneDigitado: string, nome: string | nul
     etapa: "lead",
   })
 
-  await processarGatilhoSequencia({
-    workspaceId: profile.workspace_id,
-    contactId: contato.id,
-    atendenteId: null,
-    gatilho: "card_lead",
-  })
-
   await dispararClassificacao()
 
   // B29-02: a foto vem pelo canal direto, por último. Contato já conferido sai na hora.
@@ -344,26 +336,12 @@ export async function moverCard(cardId: string, novaEtapa: string): Promise<void
           funil: "recompra",
           etapa: "onboarding",
         })
-
-        await processarGatilhoSequencia({
-          workspaceId: card.workspace_id,
-          contactId: card.contact_id,
-          atendenteId: card.atendente_id,
-          gatilho: "onboarding",
-        })
       }
     }
   }
 
-  // Gatilhos automáticos de sequência do método
-  if (novaEtapa === "catalogo_enviado" || novaEtapa === "inativos") {
-    await processarGatilhoSequencia({
-      workspaceId: card.workspace_id,
-      contactId: card.contact_id,
-      atendenteId: card.atendente_id,
-      gatilho: novaEtapa === "catalogo_enviado" ? "catalogo_enviado" : "inativo",
-    })
-  }
+  // B28-06: arrastar o card não inicia mais sequência; quem quiser cria uma
+  // automação com o gatilho "card movido"
 
   await dispararClassificacao()
 }
@@ -693,7 +671,7 @@ async function etapaAceitaMais(funil: string, etapa: string): Promise<boolean> {
 /**
  * Cria o card do contato direto na etapa. `contato`: o id de um contato da empresa, ou
  * o telefone (e o nome) para achar ou criar, como o "Novo lead". O card conta como
- * entrada na etapa: dispara o "card movido" e, na Entrada, as sequências de hoje.
+ * entrada na etapa: dispara o "card movido".
  */
 export async function criarCardNaEtapa(
   funil: string,
@@ -756,12 +734,6 @@ export async function criarCardNaEtapa(
   if (error || !novo) return { erro: "Não foi possível criar o card. Tente de novo." }
 
   await dispararAutomacoes({ tipo: "card_movido", workspaceId: perfil.workspace_id, contactId, cardId: novo.id, funil, etapa })
-
-  // Na Entrada, as sequências de hoje: a do lead novo e a do catálogo enviado.
-  const sequencia = funil === "entrada" ? (etapa === "lead" ? "card_lead" : etapa === "catalogo_enviado" ? "catalogo_enviado" : null) : null
-  if (sequencia) {
-    await processarGatilhoSequencia({ workspaceId: perfil.workspace_id, contactId, atendenteId: null, gatilho: sequencia })
-  }
 
   await dispararClassificacao()
   if (telefone) await buscarEGuardarFotoDoContato({ workspaceId: perfil.workspace_id, contactId, telefone })

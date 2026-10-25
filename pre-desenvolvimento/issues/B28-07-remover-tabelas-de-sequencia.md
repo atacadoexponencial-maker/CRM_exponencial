@@ -27,3 +27,12 @@ Nenhuma.
 ## Perguntas em aberto
 
 Nenhuma.
+
+## Deixado pela B28-06 (25/10/2026)
+
+O código ainda lê as tabelas de sequência em dois lugares, e eles saem junto com elas:
+
+- `src/app/(auth)/configuracoes/automacoes/opcoes-editor.ts` carrega `sequences` para a frase do bloco antigo de "iniciar sequência" (o campo `sequencias` de `OpcoesEditor`, que vários testes de tela preenchem com `[]`).
+- `src/app/(auth)/configuracoes/automacoes/actions.ts` conta `sequences` em `conferirReferencias`, para o `sequencia_id` desses blocos.
+- `src/app/(auth)/agenda/origem-do-lembrete.tsx` ainda rotula a origem `sequencia` dos lembretes antigos (hoje são zero).
+- Os testes de integração `atendente-contatos-seguranca` e `cadastro-*` gravam ou limpam `sequences` e `sequence_runs`.

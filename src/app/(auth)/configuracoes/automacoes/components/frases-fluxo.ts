@@ -14,7 +14,6 @@ import type {
 } from "@/lib/fluxo-automacao"
 import {
   SEM_COMPRAS,
-  SEQUENCIA_DA_ETAPA,
   duracaoDaEspera,
   gatilhoDoFluxo,
   horaDoGatilho,
@@ -153,9 +152,8 @@ export function fraseAcao(bloco: BlocoAcao, opcoes: OpcoesEditor): string {
       return p.time_id ? `Atribuir ao time ${nomeOuApagado(opcoes.times, p.time_id)}` : rotulo
     case "mover_card": {
       if (!p.funil || !p.etapa) return rotulo
-      const destino = `Mover card para "${nomeOuApagado(etapasDoFunil(p.funil, opcoes), p.etapa)}" (${nomeOuApagado(funisDoEditor(opcoes), p.funil)})`
-      const comSequencia = p.iniciar_sequencia === "sim" && SEQUENCIA_DA_ETAPA[`${p.funil}:${p.etapa}`]
-      return comSequencia ? `${destino} e iniciar a sequência` : destino
+      // B28-06: sem "e iniciar a sequência", que saiu
+      return `Mover card para "${nomeOuApagado(etapasDoFunil(p.funil, opcoes), p.etapa)}" (${nomeOuApagado(funisDoEditor(opcoes), p.funil)})`
     }
     case "iniciar_sequencia":
       return p.sequencia_id ? `Iniciar a sequência "${nomeOuApagado(opcoes.sequencias, p.sequencia_id)}"` : rotulo

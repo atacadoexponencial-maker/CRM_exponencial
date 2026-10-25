@@ -8,11 +8,6 @@ vi.mock("@/lib/whatsapp-envio", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/whatsapp-envio")>()),
   enviarWhatsAppComMotivo: vi.fn().mockResolvedValue({ ok: true }),
 }))
-vi.mock("@/lib/sequencias", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/sequencias")>()),
-  processarGatilhoSequencia: vi.fn().mockResolvedValue(undefined),
-  iniciarExecucaoSequencia: vi.fn().mockResolvedValue({}),
-}))
 
 import { executarAcao } from "@/lib/automacoes/acoes"
 import type { GatilhoAutomacao } from "@/lib/automacoes/contexto"

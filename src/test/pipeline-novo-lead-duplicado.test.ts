@@ -6,7 +6,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 
 const disparar = vi.fn()
 vi.mock("@/lib/automacoes/fila", () => ({ dispararAutomacoes: (...a: unknown[]) => disparar(...a) }))
-vi.mock("@/lib/sequencias", () => ({ processarGatilhoSequencia: vi.fn() }))
 vi.mock("@/lib/lixeira", () => ({ tirarDaLixeira: vi.fn(async () => {}) }))
 vi.mock("@/lib/automacoes/gatilhos-do-crm", () => ({
   cardsDepoisDoMovimento: vi.fn(),

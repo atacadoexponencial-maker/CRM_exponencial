@@ -1,8 +1,9 @@
 // Ações que o motor sabe executar: as 4 da primeira versão (enviar mensagem,
 // aplicar etiqueta, atribuir atendente, mover card), com o mesmo comportamento,
 // as da B11-11 (tags, remover etiqueta, dado do contato, atribuir a um time), as
-// da B11-08 (iniciar sequência, resolver e reabrir a conversa) e as de envio da
-// B11-07 (variáveis, mensagem rápida e arquivo, em `envio.ts`).
+// da B11-08 (resolver e reabrir a conversa) e as de envio da B11-07 (variáveis,
+// mensagem rápida e arquivo, em `envio.ts`). "Iniciar sequência" saiu na B28-06:
+// a regra gravada antes com ela falha nessa ação, e o caminho segue.
 //
 // Cada ação devolve se deu certo e, se não, o motivo em português, que vai para
 // o histórico (B11-03). Falha não interrompe o caminho: quem percorre o fluxo
@@ -14,13 +15,12 @@
 // novo, então mover um card aqui não dispara as regras de "card movido".
 
 import {
-  SEQUENCIA_DA_ETAPA,
+  ACAO_REMOVIDA,
   normalizarTag,
   tagValida,
   type BlocoAcao,
   type ResultadoAcao,
 } from "@/lib/fluxo-automacao"
-import { SEQUENCIA_JA_EM_ANDAMENTO, iniciarExecucaoSequencia, processarGatilhoSequencia } from "@/lib/sequencias"
 import { conversaDoEvento, type ContextoDaExecucao } from "./contexto"
 import { enviarArquivo, enviarMensagemRapida, enviarTexto } from "./envio"
 import { criarLembrete } from "./lembrete"
@@ -141,15 +141,12 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
       // automação não cria: o card nasce quando o da Entrada chega em Ganho (abaixo).
       // B41-04: no funil da empresa também nasce na etapa escolhida. O banco confere
       // que o funil é da empresa e a etapa, desse funil.
-      let criou = false
       if (!card) {
         if (funil === "recompra") return falhou(`O contato não tem card no ${NOME_DO_FUNIL[funil] ?? funil}`)
         const { error } = await supabase
           .from("pipeline_cards")
           .insert({ funil, etapa, contact_id: contactId, workspace_id: gatilho.workspaceId })
-        if (!error) {
-          criou = true
-        } else {
+        if (error) {
           // 23505: o card nasceu ao mesmo tempo por outro caminho (índice único da
           // B22-26); segue movendo o card que já existe. 23514: funil ou etapa que não
           // existem mais (B41-04).
@@ -191,31 +188,16 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
         })
       }
 
-      // A sequência da etapa começa só se o admin marcou na ação, e só quando o
-      // card de fato entra nela (ou, em Ganho, quando o card da Recompra nasce)
-      const sequencia = parametros.iniciar_sequencia === "sim" ? SEQUENCIA_DA_ETAPA[`${funil}:${etapa}`] : undefined
-      let entrouNaEtapa = criou || moveu
-
+      // B28-06: a opção "iniciar a sequência da etapa" (`iniciar_sequencia`) saiu; na
+      // regra gravada antes, ela é ignorada
       if (funil === "entrada" && etapa === "ganho") {
         const recompra = await abrirCardDeRecompra(contexto, contactId, card?.atendente_id ?? null)
         if (recompra === "falhou") return falhou("O card foi para Ganho, mas o card na Recompra não pôde ser criado")
-        entrouNaEtapa = recompra === "criado"
-      }
-
-      if (sequencia && entrouNaEtapa) {
-        await processarGatilhoSequencia({
-          workspaceId: gatilho.workspaceId,
-          contactId,
-          atendenteId: card?.atendente_id ?? null,
-          gatilho: sequencia,
-        })
       }
       return FEITO
     }
-    case "iniciar_sequencia": {
-      if (!parametros.sequencia_id) return CONFIGURACAO_INCOMPLETA
-      return iniciarSequencia(contexto, contactId, parametros.sequencia_id)
-    }
+    case "iniciar_sequencia":
+      return falhou(ACAO_REMOVIDA)
     case "resolver_conversa": {
       const conversaId = await conversaDoEvento(contexto)
       // Sem conversa aberta, não há o que resolver: o contato já está como a ação o deixaria
@@ -230,41 +212,6 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
     default:
       return falhou("Esta ação ainda não está disponível")
   }
-}
-
-/**
- * Mesmo início do manual (`iniciarSequenciaManual`). O responsável é o atendente
- * da conversa agora, depois das ações anteriores do caminho ("atribuir ao time →
- * iniciar sequência" já pega quem foi atribuído); sem ele, a sequência escolhe
- * em cada lembrete (`resolverAtendente`). Já em andamento conta como feito.
- */
-async function iniciarSequencia(contexto: ContextoDaExecucao, contactId: string, sequenciaId: string): Promise<ResultadoAcao> {
-  const { supabase, gatilho } = contexto
-  // O service client passa por cima da RLS: a empresa da sequência é conferida aqui
-  const { data: sequencia, error } = await supabase
-    .from("sequences")
-    .select("ativa")
-    .eq("id", sequenciaId)
-    .eq("workspace_id", gatilho.workspaceId)
-    .maybeSingle()
-  if (error) return ERRO_NO_BANCO
-  if (!sequencia) return falhou("A sequência não existe mais")
-  if (!sequencia.ativa) return falhou("A sequência está desativada")
-
-  let atendenteId: string | null = null
-  const conversaId = await conversaDoEvento(contexto)
-  if (conversaId) {
-    const { data: conversa } = await supabase.from("conversations").select("assigned_to").eq("id", conversaId).maybeSingle()
-    atendenteId = conversa?.assigned_to ?? null
-  }
-
-  const { erro } = await iniciarExecucaoSequencia(supabase, {
-    workspaceId: gatilho.workspaceId,
-    sequenceId: sequenciaId,
-    contactId,
-    atendenteId,
-  })
-  return !erro || erro === SEQUENCIA_JA_EM_ANDAMENTO ? FEITO : falhou(erro)
 }
 
 /**

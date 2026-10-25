@@ -43,10 +43,13 @@ function abrir(bloco: Bloco, onMudar = vi.fn()) {
 }
 
 describe("B22-34 — orientação no painel", () => {
-  it("'Iniciar sequência' sem nenhuma sequência diz onde criar", () => {
-    abrir({ id: "a", tipo: "acao", acao: "iniciar_sequencia", parametros: {}, posicao })
-    expect(screen.getByText("Nenhuma sequência criada ainda.")).toBeTruthy()
-    expect(screen.getByRole("link", { name: "Criar em Sequências" }).getAttribute("href")).toBe("/sequencias")
+  // B28-06: era com "Iniciar sequência", que saiu; o comportamento é o mesmo nas outras listas
+  it("'Enviar mensagem rápida' sem nenhuma mensagem rápida diz onde criar", () => {
+    abrir({ id: "a", tipo: "acao", acao: "enviar_mensagem_rapida", parametros: {}, posicao })
+    expect(screen.getByText("Nenhuma mensagem rápida criada ainda.")).toBeTruthy()
+    expect(screen.getByRole("link", { name: "Criar em Mensagens rápidas" }).getAttribute("href")).toBe(
+      "/configuracoes/mensagens-rapidas"
+    )
   })
 
   it("'Alterar dado' sem valor não mostra '= \"\"'", () => {

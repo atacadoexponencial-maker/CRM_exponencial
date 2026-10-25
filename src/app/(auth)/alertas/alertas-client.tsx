@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Activity, AlertTriangle, Check, MessageSquare, Settings2, X, Zap } from "lucide-react"
+import { Activity, AlertTriangle, Check, MessageSquare, Settings2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,7 +13,6 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { IniciarSequenciaDialog } from "@/components/shared/iniciar-sequencia-dialog"
 import { TIPO_ALERTA_NUMERO_LABEL, type TipoAlertaDeNumero } from "@/lib/alertas"
 import type { AlertaDeNumero } from "@/lib/whatsapp/alertas-de-numero"
 import { dispensarAlerta, salvarConfigAlertas } from "./actions"
@@ -76,7 +75,6 @@ export function AlertasClient({
   const [salvandoConfig, setSalvandoConfig] = useState(false)
   const [erroConfig, setErroConfig] = useState<string | null>(null)
 
-  const [sequenciaContato, setSequenciaContato] = useState<{ id: string; nome: string } | null>(null)
 
   const filtrados = filtroTipo ? alertas.filter((a) => a.tipo === filtroTipo) : alertas
 
@@ -215,16 +213,6 @@ export function AlertasClient({
                     Conversa
                   </Link>
                 )}
-                {alerta.contactId && (
-                  <button
-                    type="button"
-                    onClick={() => setSequenciaContato({ id: alerta.contactId!, nome: alerta.contatoNome })}
-                    className="inline-flex h-7 items-center gap-1 rounded-md border px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                  >
-                    <Zap className="size-3" />
-                    Sequência
-                  </button>
-                )}
                 <button
                   type="button"
                   onClick={() => handleDispensar(alerta)}
@@ -291,16 +279,6 @@ export function AlertasClient({
           </div>
         </DialogPopup>
       </Dialog>
-
-      {/* Dialog — Iniciar sequência a partir do alerta */}
-      {sequenciaContato && (
-        <IniciarSequenciaDialog
-          contactId={sequenciaContato.id}
-          contatoNome={sequenciaContato.nome}
-          aberto
-          onFechar={() => setSequenciaContato(null)}
-        />
-      )}
     </>
   )
 }

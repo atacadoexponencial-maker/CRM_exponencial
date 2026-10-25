@@ -6,9 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
 const disparar = vi.fn()
-const sequencia = vi.fn()
 vi.mock("@/lib/automacoes/fila", () => ({ dispararAutomacoes: (...a: unknown[]) => disparar(...a) }))
-vi.mock("@/lib/sequencias", () => ({ processarGatilhoSequencia: (...a: unknown[]) => sequencia(...a) }))
 vi.mock("@/lib/automacoes/gatilhos-do-crm", () => ({
   cardsDepoisDoMovimento: vi.fn(),
   prepararGatilhoDeClassificacao: vi.fn(async () => async () => {}),
@@ -46,11 +44,39 @@ function cliente(respostas: Record<string, unknown>) {
 
 beforeEach(() => {
   disparar.mockClear()
-  sequencia.mockClear()
+})
+
+describe("B28-06 — arrastar para Catálogo Enviado não inicia sequência", () => {
+  it("CA-B28-32: dispara o card movido e não toca nas tabelas de sequência", async () => {
+    const card = { ...CARD, etapa: "sondagem" }
+    const usuario = cliente({ pipeline_cards: card })
+    vi.mocked(usuario.client.from).mockImplementation(((tabela: string) => {
+      const obj: Record<string, unknown> = {}
+      let atualizando = false
+      for (const m of ["select", "eq", "insert"]) obj[m] = vi.fn(() => obj)
+      obj.update = vi.fn(() => {
+        atualizando = true
+        return obj
+      })
+      obj.single = vi.fn(async () => ({ data: tabela === "pipeline_cards" ? card : null, error: null }))
+      obj.maybeSingle = vi.fn(async () => ({ data: atualizando ? { id: "card-1" } : null, error: null }))
+      obj.then = (resolve: (v: unknown) => void) => Promise.resolve({ data: null, error: null }).then(resolve)
+      return obj
+    }) as never)
+    const servico = cliente({})
+    vi.mocked(createClient).mockResolvedValue(usuario.client as never)
+    vi.mocked(createServiceClient).mockReturnValue(servico.client as never)
+
+    await moverCard("card-1", "catalogo_enviado")
+
+    expect(disparar).toHaveBeenCalledWith(expect.objectContaining({ tipo: "card_movido", funil: "entrada", etapa: "catalogo_enviado" }))
+    const tabelas = [...vi.mocked(usuario.client.from).mock.calls, ...vi.mocked(servico.client.from).mock.calls].map(([t]) => t)
+    expect(tabelas.filter((t) => String(t).startsWith("sequence"))).toEqual([])
+  })
 })
 
 describe("B22-22 — Ganho pelo atendente cria o card de Recompra", () => {
-  it("cria pela chave de serviço e dispara o onboarding", async () => {
+  it("CA-B28-32: cria pela chave de serviço, dispara o card movido do onboarding e não inicia sequência", async () => {
     // Pelo cliente do atendente: o card (leitura e etapa alterada); o pedido de card novo nunca vai por ele
     const usuario = cliente({ pipeline_cards: CARD })
     vi.mocked(usuario.client.from).mockImplementation(((tabela: string) => {
@@ -97,7 +123,9 @@ describe("B22-22 — Ganho pelo atendente cria o card de Recompra", () => {
     expect(disparar).toHaveBeenCalledWith(
       expect.objectContaining({ tipo: "card_movido", cardId: "card-recompra", funil: "recompra", etapa: "onboarding" })
     )
-    expect(sequencia).toHaveBeenCalledWith(expect.objectContaining({ gatilho: "onboarding", contactId: "contato-1" }))
+    // B28-06: nenhuma tabela de sequência é tocada, por nenhum dos dois clientes
+    const tabelas = [...vi.mocked(usuario.client.from).mock.calls, ...vi.mocked(servico.client.from).mock.calls].map(([t]) => t)
+    expect(tabelas.filter((t) => String(t).startsWith("sequence"))).toEqual([])
     // B22-43: as regras do card movido para Ganho vêm antes das do card novo da Recompra
     expect(disparar.mock.calls.map(([g]) => `${g.funil}:${g.etapa}`)).toEqual(["entrada:ganho", "recompra:onboarding"])
   })

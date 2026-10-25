@@ -36,6 +36,7 @@ import { simularFluxo } from "@/lib/automacoes/simulacao"
 import { BLOCO_SAIU, REGRA_DESATIVADA, REGRA_EXCLUIDA, cancelarEsperas, esperasDaRegra } from "@/lib/automacoes/esperas"
 import { RESULTADOS_DA_EXECUCAO, type PassoGravado, type ResultadoExecucao } from "@/lib/automacoes/execucoes"
 import {
+  acoesRemovidasNoFluxo,
   lerRepeticao,
   problemasDoFluxo,
   repeticaoPadrao,
@@ -379,6 +380,9 @@ export async function salvarRegra(dados: {
   if (!fluxo) return { erro: "O desenho da automação veio num formato inválido. Recarregue a página." }
   const problemas = problemasDoFluxo(fluxo)
   if (problemas.length > 0) return { erro: `O fluxo ainda tem pendências: ${problemas.join(". ")}` }
+  // B28-06: a regra gravada antes com uma ação que saiu só salva depois de trocar
+  const [removida] = Object.values(acoesRemovidasNoFluxo(fluxo)).flat()
+  if (removida) return { erro: removida }
 
   const erroReferencia = await conferirReferencias(admin, fluxo)
   if (erroReferencia) return { erro: erroReferencia }

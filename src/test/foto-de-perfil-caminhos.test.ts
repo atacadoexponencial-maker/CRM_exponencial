@@ -8,7 +8,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 const buscar = vi.fn<(...a: unknown[]) => Promise<string>>(async () => "guardada")
 vi.mock("@/lib/whatsapp/foto-de-perfil", () => ({ buscarEGuardarFotoDoContato: (...a: unknown[]) => buscar(...a) }))
 vi.mock("@/lib/automacoes/fila", () => ({ dispararAutomacoes: vi.fn() }))
-vi.mock("@/lib/sequencias", () => ({ processarGatilhoSequencia: vi.fn() }))
 vi.mock("@/lib/lixeira", () => ({ tirarDaLixeira: vi.fn(async () => false) }))
 vi.mock("@/lib/automacoes/gatilhos-do-crm", () => ({
   cardsDepoisDoMovimento: vi.fn(),

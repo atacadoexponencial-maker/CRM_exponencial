@@ -2,7 +2,6 @@
 
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
-import { avancarAposLembrete } from "@/lib/sequencias"
 
 export type ItemAgenda = {
   id: string
@@ -17,16 +16,6 @@ export type ItemAgenda = {
   atrasado: boolean
   atendenteNome?: string
   atendenteId?: string
-}
-
-export type SequenciaEmAndamento = {
-  runId: string
-  sequenciaNome: string
-  contatoNome: string
-  atendenteNome: string
-  etapaAtual: number
-  totalEtapas: number
-  proximaExecucao: string | null
 }
 
 // Usuário e perfil resolvidos uma vez por requisição (B10-03).
@@ -82,7 +71,6 @@ async function buscarConversas(
 }
 
 export async function listarMinhaAgenda(): Promise<ItemAgenda[]> {
-  // B10-07: abrir a Agenda não processa sequências; isso é só do cron.
   const { supabase, user } = await perfilAtual()
   if (!user) return []
 
@@ -98,10 +86,8 @@ export async function listarMinhaAgenda(): Promise<ItemAgenda[]> {
   return rows.map((r) => mapItem(r, conversas))
 }
 
-export async function listarAgendaEquipe(atendenteId?: string | null): Promise<{
-  itens: ItemAgenda[]
-  sequencias: SequenciaEmAndamento[]
-} | null> {
+/** B28-06: sem o quadro das sequências em andamento, que saíram. */
+export async function listarAgendaEquipe(atendenteId?: string | null): Promise<{ itens: ItemAgenda[] } | null> {
   const { supabase, perfil } = await perfilAtual()
   if (!perfil || !["admin", "gerente"].includes(perfil.role)) return null
 
@@ -114,46 +100,12 @@ export async function listarAgendaEquipe(atendenteId?: string | null): Promise<{
 
   if (atendenteId) query = query.eq("atendente_id", atendenteId)
 
-  const [{ data: remindersData }, { data: runsData }] = await Promise.all([
-    query,
-    supabase
-      .from("sequence_runs")
-      .select(
-        "id, etapa_atual, proxima_execucao, atendente_id, contacts(name, phone_number), profiles!atendente_id(name), sequences(nome, sequence_steps(id))"
-      )
-      .eq("workspace_id", perfil.workspace_id)
-      .eq("status", "em_andamento")
-      .order("created_at", { ascending: false }),
-  ])
+  const { data: remindersData } = await query
 
   const rows = (remindersData ?? []) as unknown as ReminderRow[]
   const conversas = await buscarConversas(supabase, rows.map((r) => r.contact_id))
 
-  type RunRow = {
-    id: string
-    etapa_atual: number
-    proxima_execucao: string | null
-    atendente_id: string | null
-    contacts: { name: string | null; phone_number: string } | null
-    profiles: { name: string } | null
-    sequences: { nome: string; sequence_steps: Array<{ id: string }> } | null
-  }
-  const runs = (runsData ?? []) as unknown as RunRow[]
-
-  return {
-    itens: rows.map((r) => mapItem(r, conversas)),
-    sequencias: runs
-      .filter((r) => !atendenteId || r.atendente_id === atendenteId)
-      .map((r) => ({
-        runId: r.id,
-        sequenciaNome: r.sequences?.nome ?? "—",
-        contatoNome: r.contacts?.name || r.contacts?.phone_number || "—",
-        atendenteNome: r.profiles?.name ?? "—",
-        etapaAtual: r.etapa_atual + 1,
-        totalEtapas: r.sequences?.sequence_steps?.length ?? 0,
-        proximaExecucao: r.proxima_execucao,
-      })),
-  }
+  return { itens: rows.map((r) => mapItem(r, conversas)) }
 }
 
 export async function marcarLembreteFeito(id: string): Promise<{ erro?: string }> {
@@ -165,16 +117,11 @@ export async function marcarLembreteFeito(id: string): Promise<{ erro?: string }
     .update({ status: "feito", done_at: new Date().toISOString() })
     .eq("id", id)
     .eq("status", "pendente")
-    .select("sequence_run_id")
+    .select("id")
     .single()
 
+  // B28-06: marcar feito não avança mais sequência nenhuma
   if (error || !reminder) return { erro: "Não foi possível marcar como feito" }
-
-  // Agenda a próxima etapa da sequência (se houver)
-  if (reminder.sequence_run_id) {
-    await avancarAposLembrete(reminder.sequence_run_id)
-  }
-
   return {}
 }
 

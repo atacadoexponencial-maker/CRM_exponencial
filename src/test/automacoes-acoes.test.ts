@@ -1,6 +1,7 @@
 // Testes das ações da B11-11 no motor: tags, remover etiqueta, dado do contato e
-// atribuir a um time; e das da B11-08: iniciar sequência, resolver e reabrir a
-// conversa. O banco é falso (`automacoes-banco-falso.ts`).
+// atribuir a um time; e das da B11-08: resolver e reabrir a conversa. "Iniciar
+// sequência" saiu na B28-06 e só falha com o motivo. O banco é falso
+// (`automacoes-banco-falso.ts`).
 
 import { describe, it, expect, vi } from "vitest"
 
@@ -9,16 +10,10 @@ vi.mock("@/lib/whatsapp-envio", async (importOriginal) => ({
   enviarWhatsAppComMotivo: vi.fn().mockResolvedValue({ ok: true }),
 }))
 
-vi.mock("@/lib/sequencias", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/sequencias")>()),
-  processarGatilhoSequencia: vi.fn().mockResolvedValue(undefined),
-  iniciarExecucaoSequencia: vi.fn().mockResolvedValue({}),
-}))
-
 import { executarAcao } from "@/lib/automacoes/acoes"
 import type { GatilhoAutomacao } from "@/lib/automacoes/contexto"
 import type { AcaoTipo, BlocoAcao } from "@/lib/fluxo-automacao"
-import { SEQUENCIA_JA_EM_ANDAMENTO, iniciarExecucaoSequencia, processarGatilhoSequencia } from "@/lib/sequencias"
+import { ACAO_REMOVIDA, percorrerFluxo, problemasDoFluxo, type Fluxo } from "@/lib/fluxo-automacao"
 import { banco } from "./automacoes-banco-falso"
 
 const conversaCriada: GatilhoAutomacao = {
@@ -253,9 +248,7 @@ describe("mover card cria o card na Entrada quando o contato não tem (decisões
     expect(b.gravacoes("pipeline_card_history")).toEqual([])
   })
 
-  it("criado direto em Ganho também abre o card da Recompra e inicia o onboarding", async () => {
-    const iniciou = vi.mocked(processarGatilhoSequencia)
-    iniciou.mockClear()
+  it("criado direto em Ganho também abre o card da Recompra", async () => {
     const b = banco({ pipeline_cards: { umEmOrdem: [null, null] } })
     await executarAcao(
       b.contexto(conversaCriada),
@@ -266,7 +259,7 @@ describe("mover card cria o card na Entrada quando o contato não tem (decisões
       ["insert", { funil: "entrada", etapa: "ganho", contact_id: "contato-1", workspace_id: "ws-1" }],
       ["insert", { funil: "recompra", etapa: "onboarding", contact_id: "contato-1", workspace_id: "ws-1", atendente_id: null }],
     ])
-    expect(iniciou).toHaveBeenCalledWith(expect.objectContaining({ atendenteId: null, gatilho: "onboarding" }))
+    expect(b.gravacoes("sequence_runs")).toEqual([])
   })
 
   it("card que nasceu ao mesmo tempo por outro caminho (23505) é movido", async () => {
@@ -310,65 +303,16 @@ describe("mover card cria o card na Entrada quando o contato não tem (decisões
   })
 })
 
-describe("mover card com a opção de iniciar a sequência da etapa", () => {
-  const iniciou = vi.mocked(processarGatilhoSequencia)
-
-  it("Catálogo Enviado com a opção marcada inicia a sequência de catálogo, com o atendente do card", async () => {
-    iniciou.mockClear()
+describe("mover card numa regra antiga com 'iniciar a sequência da etapa' (B28-06)", () => {
+  it("a opção é ignorada: o card move e nenhuma sequência começa", async () => {
     const b = banco({ pipeline_cards: { umEmOrdem: [{ id: "card-1", etapa: "sondagem", atendente_id: "carla" }] } })
-    await executarAcao(
+    const ok = await executarAcao(
       b.contexto(cardMovido),
       acao("mover_card", { funil: "entrada", etapa: "catalogo_enviado", iniciar_sequencia: "sim" })
     )
-    expect(iniciou).toHaveBeenCalledWith({
-      workspaceId: "ws-1",
-      contactId: "contato-1",
-      atendenteId: "carla",
-      gatilho: "catalogo_enviado",
-    })
-  })
-
-  it("sem a opção, não inicia", async () => {
-    iniciou.mockClear()
-    const b = banco({ pipeline_cards: { umEmOrdem: [{ id: "card-1", etapa: "sondagem", atendente_id: null }] } })
-    await executarAcao(b.contexto(cardMovido), acao("mover_card", { funil: "entrada", etapa: "catalogo_enviado" }))
-    expect(iniciou).not.toHaveBeenCalled()
-  })
-
-  it("card que já estava na etapa não reinicia a sequência", async () => {
-    iniciou.mockClear()
-    const b = banco({ pipeline_cards: { umEmOrdem: [{ id: "card-1", etapa: "catalogo_enviado", atendente_id: null }] } })
-    await executarAcao(
-      b.contexto(cardMovido),
-      acao("mover_card", { funil: "entrada", etapa: "catalogo_enviado", iniciar_sequencia: "sim" })
-    )
-    expect(iniciou).not.toHaveBeenCalled()
-  })
-
-  it("Ganho inicia o onboarding só quando o card da Recompra nasce", async () => {
-    iniciou.mockClear()
-    const novo = banco({ pipeline_cards: { umEmOrdem: [{ id: "card-1", etapa: "negociacao", atendente_id: null }, null] } })
-    await executarAcao(novo.contexto(cardMovido), acao("mover_card", { funil: "entrada", etapa: "ganho", iniciar_sequencia: "sim" }))
-    expect(iniciou).toHaveBeenCalledWith(expect.objectContaining({ gatilho: "onboarding" }))
-
-    iniciou.mockClear()
-    const jaTinha = banco({
-      pipeline_cards: { umEmOrdem: [{ id: "card-1", etapa: "negociacao", atendente_id: null }, { id: "card-r" }] },
-    })
-    await executarAcao(jaTinha.contexto(cardMovido), acao("mover_card", { funil: "entrada", etapa: "ganho", iniciar_sequencia: "sim" }))
-    expect(iniciou).not.toHaveBeenCalled()
-  })
-
-  it("Inativos, na Recompra, inicia a sequência de inativo; etapa sem sequência ignora a opção", async () => {
-    iniciou.mockClear()
-    const inativos = banco({ pipeline_cards: { umEmOrdem: [{ id: "card-r", etapa: "ativos", atendente_id: null }] } })
-    await executarAcao(inativos.contexto(cardMovido), acao("mover_card", { funil: "recompra", etapa: "inativos", iniciar_sequencia: "sim" }))
-    expect(iniciou).toHaveBeenCalledWith(expect.objectContaining({ gatilho: "inativo" }))
-
-    iniciou.mockClear()
-    const outra = banco({ pipeline_cards: { umEmOrdem: [{ id: "card-1", etapa: "lead", atendente_id: null }] } })
-    await executarAcao(outra.contexto(cardMovido), acao("mover_card", { funil: "entrada", etapa: "sondagem", iniciar_sequencia: "sim" }))
-    expect(iniciou).not.toHaveBeenCalled()
+    expect(ok).toEqual({ ok: true })
+    expect(b.gravacoes("pipeline_cards").map((g) => g.metodo)).toEqual(["update"])
+    expect(b.gravacoes("sequence_runs")).toEqual([])
   })
 })
 
@@ -402,64 +346,35 @@ describe("motivos de falha que vão para o histórico (B11-03)", () => {
   })
 })
 
-describe("iniciar sequência (B11-08)", () => {
-  const iniciar = vi.mocked(iniciarExecucaoSequencia)
+describe("iniciar sequência removida (B28-06)", () => {
+  it("CA-B28-34: a ação falha com o motivo, as outras ações do caminho rodam, e a regra não para por ela", async () => {
+    const posicao = { x: 0, y: 0 }
+    const fluxo: Fluxo = {
+      blocos: [
+        { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao },
+        { id: "seq", tipo: "acao", acao: "iniciar_sequencia", parametros: { sequencia_id: "seq-1" }, posicao },
+        { id: "etiqueta", tipo: "acao", acao: "aplicar_etiqueta", parametros: { label_id: "label-1" }, posicao },
+      ],
+      ligacoes: [
+        { de: "g", saida: "proximo", para: "seq" },
+        { de: "seq", saida: "proximo", para: "etiqueta" },
+      ],
+    }
+    // O motor só não roda regra com problema no fluxo: a ação removida não é um
+    expect(problemasDoFluxo(fluxo)).toEqual([])
 
-  it("inicia a sequência da empresa, com o atendente da conversa como responsável", async () => {
-    iniciar.mockClear()
-    const b = banco({ sequences: { um: { ativa: true } }, conversations: { um: { assigned_to: "u-1" } } })
-    const ok = await executarAcao(b.contexto(conversaCriada), acao("iniciar_sequencia", { sequencia_id: "seq-1" }))
-
-    expect(ok).toEqual({ ok: true })
-    expect(b.filtros("sequences")).toEqual([
-      ["id", "seq-1"],
-      ["workspace_id", "ws-1"],
-    ])
-    expect(iniciar).toHaveBeenCalledWith(expect.anything(), {
-      workspaceId: "ws-1",
-      sequenceId: "seq-1",
-      contactId: "contato-1",
-      atendenteId: "u-1",
+    const b = banco({})
+    const contexto = b.contexto(conversaCriada)
+    const caminho = await percorrerFluxo(fluxo, {
+      avaliarVerificacao: async () => true,
+      executarAcao: (bloco) => executarAcao(contexto, bloco),
     })
-  })
 
-  it("sem conversa aberta, inicia sem responsável fixo", async () => {
-    iniciar.mockClear()
-    const b = banco({ sequences: { um: { ativa: true } }, conversations: { um: null } })
-    await executarAcao(b.contexto(cardMovido), acao("iniciar_sequencia", { sequencia_id: "seq-1" }))
-    expect(iniciar.mock.calls[0][1].atendenteId).toBeNull()
-  })
-
-  it("já em andamento para o contato conta como feita", async () => {
-    iniciar.mockResolvedValueOnce({ erro: SEQUENCIA_JA_EM_ANDAMENTO })
-    const b = banco({ sequences: { um: { ativa: true } }, conversations: { um: null } })
-    expect(await executarAcao(b.contexto(conversaCriada), acao("iniciar_sequencia", { sequencia_id: "seq-1" }))).toEqual({
-      ok: true,
-    })
-  })
-
-  it("outro erro do início vira o motivo da falha", async () => {
-    iniciar.mockResolvedValueOnce({ erro: "Sequência sem etapas" })
-    const b = banco({ sequences: { um: { ativa: true } }, conversations: { um: null } })
-    expect(await executarAcao(b.contexto(conversaCriada), acao("iniciar_sequencia", { sequencia_id: "seq-1" }))).toEqual({
-      ok: false,
-      motivo: "Sequência sem etapas",
-    })
-  })
-
-  it("sequência apagada, de outra empresa ou desativada não inicia", async () => {
-    iniciar.mockClear()
-    const apagada = banco({ sequences: { um: null } })
-    const desativada = banco({ sequences: { um: { ativa: false } } })
-    expect(await executarAcao(apagada.contexto(conversaCriada), acao("iniciar_sequencia", { sequencia_id: "x" }))).toEqual({
-      ok: false,
-      motivo: "A sequência não existe mais",
-    })
-    expect(await executarAcao(desativada.contexto(conversaCriada), acao("iniciar_sequencia", { sequencia_id: "x" }))).toEqual({
-      ok: false,
-      motivo: "A sequência está desativada",
-    })
-    expect(iniciar).not.toHaveBeenCalled()
+    expect(caminho.falhas).toEqual(["seq"])
+    expect(caminho.motivos.seq).toBe("A ação 'iniciar sequência' foi removida: troque no editor")
+    expect(ACAO_REMOVIDA).toBe(caminho.motivos.seq)
+    expect(b.gravacoes("conversation_labels").map((g) => g.args[0])).toEqual([{ conversation_id: "conv-1", label_id: "label-1" }])
+    expect(b.gravacoes("sequence_runs")).toEqual([])
   })
 })
 

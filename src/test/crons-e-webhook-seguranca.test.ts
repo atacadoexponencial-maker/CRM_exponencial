@@ -6,14 +6,11 @@ import { NextRequest } from "next/server"
 import { createHmac } from "node:crypto"
 
 vi.mock("@/lib/campanhas", () => ({ processarCampanhasPendentes: vi.fn().mockResolvedValue(0) }))
-vi.mock("@/lib/sequencias", () => ({ processarSequenciasPendentes: vi.fn().mockResolvedValue(0) }))
 vi.mock("@/integrations/supabase/service", () => ({ createServiceClient: vi.fn() }))
 
 import { processarCampanhasPendentes } from "@/lib/campanhas"
-import { processarSequenciasPendentes } from "@/lib/sequencias"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { GET as cronCampanhas } from "@/app/api/cron/campanhas/route"
-import { GET as cronSequencias } from "@/app/api/cron/sequencias/route"
 import { POST as webhookMeta } from "@/app/api/webhooks/whatsapp/route"
 
 afterEach(() => {
@@ -26,7 +23,7 @@ const chamarCron = (rota: string, autorizacao?: string) =>
 
 const crons = [
   { nome: "campanhas", rota: cronCampanhas, motor: processarCampanhasPendentes },
-  { nome: "sequências", rota: cronSequencias, motor: processarSequenciasPendentes },
+  // B28-06: o cron das sequências saiu
 ]
 
 describe("B21-06 — Crons e webhook da Meta fechados sem segredo", () => {

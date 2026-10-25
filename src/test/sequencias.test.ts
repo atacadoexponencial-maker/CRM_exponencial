@@ -1,7 +1,9 @@
-// Testes unitários do Módulo 4: helpers do motor de sequências e cálculo de alertas.
+// Testes unitários do Módulo 4: cálculo de alertas, e as variáveis da mensagem da
+// campanha, que moravam no motor das sequências. O motor saiu na B28-06; o nome
+// do arquivo ficou, porque a B36-14 guarda a lista dos testes de antes dela.
 
 import { describe, it, expect } from "vitest"
-import { substituirVariaveis, calcularProximaExecucao } from "@/lib/sequencias"
+import { substituirVariaveis } from "@/lib/campanhas"
 import { calcularAlertas, CONFIG_ALERTAS_PADRAO, type CardParaAlerta } from "@/lib/alertas"
 
 describe("substituirVariaveis", () => {
@@ -25,20 +27,6 @@ describe("substituirVariaveis", () => {
     expect(substituirVariaveis("Sem variáveis", { nomeContato: "X", nomeVendedor: "Y" })).toBe(
       "Sem variáveis"
     )
-  })
-})
-
-describe("calcularProximaExecucao", () => {
-  it("soma o prazo em dias à data base", () => {
-    const base = new Date("2026-06-10T10:00:00")
-    const proxima = calcularProximaExecucao(base, 3)
-    expect(proxima.getDate()).toBe(13)
-  })
-
-  it("prazo 0 mantém o mesmo dia", () => {
-    const base = new Date("2026-06-10T10:00:00")
-    const proxima = calcularProximaExecucao(base, 0)
-    expect(proxima.getTime()).toBe(base.getTime())
   })
 })
 

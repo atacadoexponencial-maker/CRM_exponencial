@@ -12,7 +12,7 @@ import {
 import { formatarDiaEHora } from "@/lib/datas"
 import { cn } from "@/lib/utils"
 import { listarAgendaEquipe, reatribuirLembrete } from "../actions"
-import type { ItemAgenda, SequenciaEmAndamento } from "../actions"
+import type { ItemAgenda } from "../actions"
 import { IconeDaOrigem, RegraDoLembrete } from "../origem-do-lembrete"
 
 const selectClass =
@@ -20,15 +20,12 @@ const selectClass =
 
 export function AgendaEquipeClient({
   itensIniciais,
-  sequenciasIniciais,
   atendentes,
 }: {
   itensIniciais: ItemAgenda[]
-  sequenciasIniciais: SequenciaEmAndamento[]
   atendentes: Array<{ id: string; nome: string }>
 }) {
   const [itens, setItens] = useState<ItemAgenda[]>(itensIniciais)
-  const [sequencias, setSequencias] = useState<SequenciaEmAndamento[]>(sequenciasIniciais)
   const [filtroAtendente, setFiltroAtendente] = useState("")
   const [erro, setErro] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -49,10 +46,7 @@ export function AgendaEquipeClient({
     setErro(null)
     startTransition(async () => {
       const dados = await listarAgendaEquipe(atendenteId || null)
-      if (dados) {
-        setItens(dados.itens)
-        setSequencias(dados.sequencias)
-      }
+      if (dados) setItens(dados.itens)
     })
   }
 
@@ -169,46 +163,6 @@ export function AgendaEquipeClient({
                 </div>
               )
             })}
-          </div>
-        )}
-      </section>
-
-      <section>
-        <h2 className="text-sm font-semibold mb-2">Sequências em andamento ({sequencias.length})</h2>
-        {sequencias.length === 0 ? (
-          <p className="text-sm text-muted-foreground rounded-md border border-dashed bg-card/60 py-8 text-center">
-            Nenhuma sequência em andamento
-          </p>
-        ) : (
-          <div className="overflow-x-auto border-t-2 border-t-foreground">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Sequência</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Contato</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Atendente</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Etapa</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Próxima etapa</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sequencias.map((s) => (
-                  <tr key={s.runId} className="border-b hover:bg-muted/50 transition-colors">
-                    <td className="px-4 py-3 font-medium">{s.sequenciaNome}</td>
-                    <td className="px-4 py-3">{s.contatoNome}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{s.atendenteNome}</td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {s.etapaAtual} de {s.totalEtapas}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {s.proximaExecucao
-                        ? formatarDiaEHora(s.proximaExecucao)
-                        : "Aguardando lembrete ser concluído"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         )}
       </section>

@@ -32,6 +32,9 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: "/pipeline/retencao", destination: "/pipeline/recompra", permanent: true },
+      // B28-06: as sequências saíram; o que elas faziam a automação faz, com o bloco "esperar".
+      { source: "/sequencias", destination: "/configuracoes/automacoes", permanent: true },
+      { source: "/sequencias/:path*", destination: "/configuracoes/automacoes", permanent: true },
     ];
   },
 };

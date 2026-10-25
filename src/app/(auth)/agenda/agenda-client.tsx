@@ -181,7 +181,7 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
         </div>
       </div>
       <p className="text-sm text-muted-foreground mb-6">
-        Lembretes das sequências e follow-ups que você agendou.
+        Lembretes das automações e follow-ups que você agendou.
       </p>
 
       {erro && <p className="text-sm text-erro mb-4">{erro}</p>}

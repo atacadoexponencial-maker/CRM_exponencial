@@ -10,7 +10,6 @@ vi.mock("@/integrations/supabase/server", () => ({ createClient: vi.fn() }))
 vi.mock("@/integrations/supabase/service", () => ({ createServiceClient: vi.fn(() => ({})) }))
 vi.mock("@/lib/lixeira", () => ({ tirarDaLixeira: vi.fn(async () => true) }))
 vi.mock("@/lib/campanhas", () => ({ processarCampanhasPendentes: vi.fn(async () => 0) }))
-vi.mock("@/lib/sequencias", () => ({ avancarAposLembrete: vi.fn() }))
 vi.mock("@/lib/automacoes/gatilhos-do-crm", () => ({ dispararDadosAlterados: vi.fn(), dispararTagAdicionada: vi.fn() }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 

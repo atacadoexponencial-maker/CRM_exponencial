@@ -29,7 +29,6 @@ export default async function AgendaEquipePage() {
     <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
       <AgendaEquipeClient
         itensIniciais={dados.itens}
-        sequenciasIniciais={dados.sequencias}
         atendentes={atendentes}
       />
     </div>

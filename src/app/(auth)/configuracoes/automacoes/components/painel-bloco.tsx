@@ -20,7 +20,7 @@ import {
   HORAS_MAXIMAS,
   OPERADORES_SEM_VALOR,
   REPETICAO_DISPONIVEL,
-  SEQUENCIA_DA_ETAPA,
+  ACOES_REMOVIDAS,
   VERIFICACOES_DE_MENSAGEM,
   VERIFICACOES_DISPONIVEIS,
   horasValidas,
@@ -64,7 +64,6 @@ const paraItens = (opcoes: Opcao[]): ItemSelecao[] => opcoes.map((o) => ({ valor
 
 /** O que dizer quando a lista da empresa está vazia, e onde criar (B22-34). */
 const LISTA_VAZIA: Partial<Record<string, { texto: string; link: string; onde: string }>> = {
-  sequencias: { texto: "Nenhuma sequência criada ainda.", link: "Criar em Sequências", onde: "/sequencias" },
   mensagensRapidas: {
     texto: "Nenhuma mensagem rápida criada ainda.",
     link: "Criar em Mensagens rápidas",
@@ -89,9 +88,15 @@ function itemDisponivel<T extends string>(valor: T, rotulo: string, disponiveis:
 const ITENS_GATILHO = (Object.keys(GATILHOS) as GatilhoTipo[]).map((tipo) =>
   itemDisponivel(tipo, GATILHOS[tipo].rotulo, GATILHOS_DISPONIVEIS)
 )
-const ITENS_ACAO = (Object.keys(ACOES) as AcaoTipo[]).map((tipo) =>
-  itemDisponivel(tipo, ACOES[tipo].rotulo, ACOES_DISPONIVEIS)
-)
+// B28-06: a ação removida não é oferecida; no bloco antigo que a tem, ela aparece desabilitada
+const ITENS_ACAO = (Object.keys(ACOES) as AcaoTipo[])
+  .filter((tipo) => !ACOES_REMOVIDAS.includes(tipo))
+  .map((tipo) => itemDisponivel(tipo, ACOES[tipo].rotulo, ACOES_DISPONIVEIS))
+
+function itensDaAcao(atual: AcaoTipo): ItemSelecao[] {
+  if (!ACOES_REMOVIDAS.includes(atual)) return ITENS_ACAO
+  return [...ITENS_ACAO, { valor: atual, rotulo: `${ACOES[atual].rotulo} (removida)`, desabilitado: true }]
+}
 
 const ITENS_REPETICAO: ItemSelecao[] = [
   { valor: "uma_vez_por_contato", rotulo: "Uma vez por contato" },
@@ -228,7 +233,7 @@ export function PainelBloco({
               <CampoSelecao
                 id="painel-acao"
                 valor={bloco.acao}
-                itens={ITENS_ACAO}
+                itens={itensDaAcao(bloco.acao)}
                 onMudar={(valor) => onMudar({ ...bloco, acao: valor as AcaoTipo, parametros: {} })}
               />
             </div>
@@ -239,27 +244,6 @@ export function PainelBloco({
               guardarArquivo={guardarArquivo}
               onMudar={(parametros) => onMudar({ ...bloco, parametros })}
             />
-            {bloco.acao === "mover_card" && SEQUENCIA_DA_ETAPA[`${bloco.parametros.funil}:${bloco.parametros.etapa}`] && (
-              <label className="flex items-start gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 size-4 shrink-0 accent-primary"
-                  checked={bloco.parametros.iniciar_sequencia === "sim"}
-                  onChange={(e) =>
-                    onMudar({
-                      ...bloco,
-                      parametros: { ...bloco.parametros, iniciar_sequencia: e.target.checked ? "sim" : "" },
-                    })
-                  }
-                />
-                <span>
-                  Iniciar a sequência desta etapa, como ao arrastar o card
-                  <span className="block text-xs text-muted-foreground">
-                    As sequências ativas para esta etapa começam para o contato e podem mandar mensagem.
-                  </span>
-                </span>
-              </label>
-            )}
             {bloco.acao === "mover_card" && bloco.parametros.funil === "recompra" && (
               <p className="rounded-lg bg-aviso-fundo px-3 py-2 text-xs text-aviso">
                 Só move quem já tem card na Recompra. Um lead da Entrada ganha esse card quando chega em

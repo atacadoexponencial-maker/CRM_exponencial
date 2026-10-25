@@ -17,7 +17,6 @@ vi.mock("@/app/(auth)/pipeline/actions", () => ({
 }))
 vi.mock("@/app/(auth)/contatos/lixeira/actions", () => ({ resumoExclusaoPorCard: vi.fn(), excluirContatoPorCard: vi.fn() }))
 vi.mock("@/app/(auth)/contatos/actions", () => ({ adicionarTagContato: vi.fn(), listarTagsContato: vi.fn(async () => []), removerTagContato: vi.fn() }))
-vi.mock("@/app/(auth)/sequencias/actions", () => ({ listarSequenciasParaIniciar: vi.fn(async () => []), iniciarSequenciaManual: vi.fn(), statusSequenciasContato: vi.fn(async () => null) }))
 
 import { FunilPersonalizado } from "@/app/(auth)/pipeline/components/funil-personalizado"
 import { ColunaKanban } from "@/app/(auth)/pipeline/components/coluna-kanban"

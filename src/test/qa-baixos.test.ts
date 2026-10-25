@@ -6,7 +6,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 
 vi.mock("@/lib/sessao", () => ({ sessaoAtual: vi.fn() }))
 vi.mock("@/integrations/supabase/server", () => ({ createClient: vi.fn() }))
-vi.mock("@/lib/sequencias", () => ({ avancarAposLembrete: vi.fn() }))
 
 import { destinoSeguro } from "@/app/login/destino"
 import { calcularMetricas, calcularPerformanceVendedores, SEM_ATENDENTE, type CardRow } from "@/lib/metricas-dashboard"

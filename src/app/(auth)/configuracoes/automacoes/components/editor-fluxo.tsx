@@ -28,6 +28,7 @@ import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from
 import { cn } from "@/lib/utils"
 import { useTemaDaTela } from "@/lib/use-tema-da-tela"
 import {
+  acoesRemovidasNoFluxo,
   esperaNova,
   formaLaco,
   haMensagemNoBloco,
@@ -243,7 +244,8 @@ function EditorFluxoInterno({
   const pendencias = useMemo(() => {
     const doFluxo = pendenciasDoFluxo(fluxo)
     const porBloco = { ...doFluxo.porBloco }
-    for (const [id, motivos] of Object.entries(referenciasQueSumiram(fluxo, opcoes))) {
+    // B28-06: a ação removida ("iniciar sequência") também marca o bloco e trava o Salvar
+    for (const [id, motivos] of [...Object.entries(referenciasQueSumiram(fluxo, opcoes)), ...Object.entries(acoesRemovidasNoFluxo(fluxo))]) {
       porBloco[id] = [...(porBloco[id] ?? []), ...motivos]
     }
     return { ...doFluxo, porBloco }
