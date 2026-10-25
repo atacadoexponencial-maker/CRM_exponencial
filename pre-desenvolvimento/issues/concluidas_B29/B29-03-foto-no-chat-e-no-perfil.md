@@ -121,3 +121,8 @@ perfil) entrou no commit da B29-02 (`3ac6880`), porque o arquivo também recebe 
 da busca; o restante está no commit desta issue. Testes: `foto-nas-telas`, `foto-ao-vivo`,
 `avatar-contato` e `chat-ficha-do-contato`. Falta o teste com chip (CA-B29-18).
 
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B29-18 | Marcelle | 25/10/2026 |

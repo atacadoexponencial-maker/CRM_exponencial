@@ -1,6 +1,6 @@
 # issues
 
-- **Arquivos soltos nesta pasta = issues abertas.** Hoje: B29-01 e B29-03 (foto de perfil), B30-05 (gráficos do dashboard, aguardando o teste manual), B31-03 (grade fechada, aguardando o teste manual) B32-04 e B32-06 (relatórios: Visão Geral, aguardando os testes manuais) B33-03 (RFV, aguardando o teste manual) B34-03 (Coorte e Funil, aguardando o teste manual) e B35-01 a B35-03 (relatórios: Carteiras).
+- **Arquivos soltos nesta pasta = issues abertas.** Hoje: B30-05 (gráficos do dashboard, aguardando o teste manual), B31-03 (grade fechada, aguardando o teste manual) B32-04 e B32-06 (relatórios: Visão Geral, aguardando os testes manuais) B33-03 (RFV, aguardando o teste manual) B34-03 (Coorte e Funil, aguardando o teste manual) e B35-01 a B35-03 (relatórios: Carteiras).
 - `concluidas_<série>/` = entregues e no ar. Não se mexe mais nelas.
 - `bloqueadas_modulo6/` = escritas, mas sem como fazer (API da Meta não tem grupos).
 
@@ -23,7 +23,7 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B26 | `docs/specs-arquivadas/spec-mensagem-na-fila.md` (mensagem na fila do número e aviso de aquecimento, canal direto) | `concluidas_B26/` |
 | B27 | `docs/specs-arquivadas/spec-porteiro-rapido.md` (conferência de login do porteiro sem ida ao banco de logins, mantendo o aviso de conta desativada) | `concluidas_B27/` |
 | B28 | `../spec-espera-e-fim-das-sequencias.md` (em andamento, no branch `b28-espera-e-fim-das-sequencias` do Luan: bloco "esperar" nas automações, fim das sequências e ação "criar lembrete na Agenda") | `concluidas_B28/` (quando houver) |
-| B29 | `../spec-foto-de-perfil.md` (em andamento: foto de perfil real do contato, buscada pelo canal direto) | `concluidas_B29/` (quando houver) |
+| B29 | `docs/specs-arquivadas/spec-foto-de-perfil.md` (concluída em 25/10/2026: foto de perfil real do contato, buscada pelo canal direto) | `concluidas_B29/` |
 | B30 | `../spec-fundacao-da-venda.md` (aprovada em 20/10/2026, 5 issues: pedido do catálogo fechado vira compra, compra com peças/desconto/pagamento/atendente/origem, dashboard na fonte unificada, exportação Excel e gráficos para os relatórios) | `concluidas_B30/` (quando houver) |
 | B31 | `../spec-regras-de-venda-do-catalogo.md` (rascunho de 21/10/2026: preço por quantidade, mínimo por produto, grade fechada e repetir último pedido na loja do catálogo) | `concluidas_B31/` (quando houver) |
 | B32 | `../spec-relatorios-visao-geral.md` (aprovada em 21/10/2026: tela Relatórios com a Visão Geral ampliada no modelo Tailor, UF do contato e correção do período do Dashboard) | `concluidas_B32/` (quando houver) |

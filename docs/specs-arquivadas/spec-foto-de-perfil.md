@@ -1,7 +1,7 @@
 # Spec: Foto de perfil real do contato
 
 > série: B29
-> estado: aprovada em 20/10/2026
+> estado: concluída em 25/10/2026
 
 ## Visão Geral
 
