@@ -94,7 +94,7 @@ lixeira cancela a espera.
 
 ## Banco de Dados
 
-Migration `supabase/migrations/20261025000002_espera_nas_automacoes.sql`. Ela só acrescenta: o CRM publicado não grava nem lê nada disto.
+Migration `supabase/migrations/20261025000010_espera_nas_automacoes.sql`. Ela só acrescenta: o CRM publicado não grava nem lê nada disto.
 
 - `automation_runs.resultado` passa a aceitar `esperando` e `cancelada`.
 - `automation_runs.gatilho` (jsonb, nulo): o `GatilhoAutomacao` inteiro, para a execução seguir depois da espera com o mesmo evento (o `evento` guarda só um trecho da mensagem).
@@ -109,7 +109,7 @@ O bloco espera fica no `fluxo` (jsonb) de `automation_flows`, sem coluna nova:
 
 ## Arquivos
 
-- **Criar:** `supabase/migrations/20261025000002_espera_nas_automacoes.sql` — colunas, índices e a função de reivindicar
+- **Criar:** `supabase/migrations/20261025000010_espera_nas_automacoes.sql` — colunas, índices e a função de reivindicar
 - **Criar:** `src/lib/automacoes/esperas.ts` — dados da espera ao parar, seguir as vencidas, cancelar as do contato
 - **Criar:** `src/app/api/automacoes/relogio/route.ts` — a rota do relógio, com a assinatura do gateway
 - **Criar:** `src/test/automacoes-espera.test.ts` — CA-B28-06, 07, 16 e 17
