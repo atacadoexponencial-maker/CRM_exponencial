@@ -69,6 +69,12 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient()
 
+  // SONDA TEMPORÁRIA (25/10/2026): guarda o webhook inteiro do número da API Oficial da
+  // empresa de teste, para ver se a Meta manda a foto de perfil. Sai depois do teste.
+  if (phoneNumberId === "1418746787986404") {
+    await supabase.from("sonda_webhook_meta" as never).insert({ payload: body } as never)
+  }
+
   const statuses = change?.statuses
   if (Array.isArray(statuses) && statuses.length > 0) {
     const statusMap: Record<string, string> = {
