@@ -22,7 +22,7 @@ import {
 import { calcularRfv, type ResultadoRfv } from "@/lib/relatorios/rfv"
 import { calcularCoortes, type ResultadoCoorte } from "@/lib/relatorios/coorte"
 import { calcularFunilClientes, type ResultadoFunilClientes } from "@/lib/relatorios/funil-clientes"
-import { calcularPainelDeCarteiras, type PainelDeCarteiras } from "@/lib/relatorios/carteiras"
+import { calcularPainelDeCarteiras, HISTORICO_POR_PAGINA, type PainelDeCarteiras } from "@/lib/relatorios/carteiras"
 import { registrarMudancasDeCarteira, type MotivoDaCarteira } from "@/lib/carteira"
 
 export type { FiltroRelatorio, PeriodoRelatorio, VisaoGeralCartoes } from "@/lib/relatorios/visao-geral"
@@ -190,8 +190,44 @@ export type LinhaDoHistoricoDeCarteira = {
 export type ResultadoCarteiras = {
   papel: "admin" | "gerente" | "atendente"
   painel: PainelDeCarteiras
-  /** Nulo para o Atendente. */
+  /** Nulo para o Atendente. Só a primeira página; as outras vêm de `buscarHistoricoDeCarteira`. */
   historico: LinhaDoHistoricoDeCarteira[] | null
+  /** Total de linhas do histórico, para a paginação. */
+  historicoTotal?: number
+}
+
+async function paginaDoHistorico(
+  supabase: Awaited<ReturnType<typeof sessaoAtual>>["supabase"],
+  workspaceId: string,
+  pagina: number,
+): Promise<{ linhas: LinhaDoHistoricoDeCarteira[]; total: number }> {
+  const de = pagina * HISTORICO_POR_PAGINA
+  const { data, count } = await supabase
+    .from("carteira_historico")
+    .select("id, created_at, motivo, contato:contacts(name, phone_number), de:profiles!carteira_historico_de_atendente_id_fkey(name), para:profiles!carteira_historico_para_atendente_id_fkey(name), por:profiles!carteira_historico_alterado_por_fkey(name)", { count: "exact" })
+    .eq("workspace_id", workspaceId)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .range(de, de + HISTORICO_POR_PAGINA - 1)
+  const um = <T,>(x: T | T[] | null): T | null => (Array.isArray(x) ? (x[0] ?? null) : x)
+  const linhas = (data ?? []).map((h) => ({
+    id: h.id,
+    quando: h.created_at,
+    contato: um(h.contato)?.name || um(h.contato)?.phone_number || "—",
+    de: um(h.de)?.name ?? null,
+    para: um(h.para)?.name ?? null,
+    motivo: h.motivo as MotivoDaCarteira,
+    por: um(h.por)?.name ?? null,
+  }))
+  return { linhas, total: count ?? linhas.length }
+}
+
+/** Uma página do histórico de carteiras. Só Admin e Gerente; o Atendente recebe nulo. */
+export async function buscarHistoricoDeCarteira(pagina: number): Promise<{ linhas: LinhaDoHistoricoDeCarteira[]; total: number } | null> {
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil || perfil.role === "atendente") return null
+  if (!Number.isInteger(pagina) || pagina < 0) return null
+  return paginaDoHistorico(supabase, perfil.workspace_id, pagina)
 }
 
 const ETAPAS_ATIVAS = ["onboarding", "reposicao", "ativos"]
@@ -221,26 +257,9 @@ export async function buscarCarteiras(): Promise<ResultadoCarteiras | null> {
   const vendedores = (perfis ?? []).map((p) => ({ id: p.id, nome: p.name as string }))
   const painel = calcularPainelDeCarteiras(lista, vendedores)
 
-  let historico: LinhaDoHistoricoDeCarteira[] | null = null
-  if (!atendente) {
-    const { data } = await supabase
-      .from("carteira_historico")
-      .select("id, created_at, motivo, contato:contacts(name, phone_number), de:profiles!carteira_historico_de_atendente_id_fkey(name), para:profiles!carteira_historico_para_atendente_id_fkey(name), por:profiles!carteira_historico_alterado_por_fkey(name)")
-      .eq("workspace_id", perfil.workspace_id)
-      .order("created_at", { ascending: false })
-      .limit(50)
-    const um = <T,>(x: T | T[] | null): T | null => (Array.isArray(x) ? (x[0] ?? null) : x)
-    historico = (data ?? []).map((h) => ({
-      id: h.id,
-      quando: h.created_at,
-      contato: um(h.contato)?.name || um(h.contato)?.phone_number || "—",
-      de: um(h.de)?.name ?? null,
-      para: um(h.para)?.name ?? null,
-      motivo: h.motivo as MotivoDaCarteira,
-      por: um(h.por)?.name ?? null,
-    }))
-  }
-  return { papel: perfil.role as ResultadoCarteiras["papel"], painel, historico }
+  if (atendente) return { papel: perfil.role as ResultadoCarteiras["papel"], painel, historico: null }
+  const { linhas, total } = await paginaDoHistorico(supabase, perfil.workspace_id, 0)
+  return { papel: perfil.role as ResultadoCarteiras["papel"], painel, historico: linhas, historicoTotal: total }
 }
 
 /**

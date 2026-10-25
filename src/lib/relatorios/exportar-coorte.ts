@@ -9,7 +9,7 @@ export type TabelaCoorte = "retencao" | "valor"
 export function colunasExportacaoCoorte(tabela: TabelaCoorte): ColunaPlanilha<Coorte>[] {
   const meses: ColunaPlanilha<Coorte>[] = Array.from({ length: MESES_DA_COORTE }, (_, k) => ({
     titulo: `Mês ${k}`,
-    tipo: tabela === "retencao" ? "numero" : "moeda",
+    tipo: tabela === "retencao" ? "percentual" : "moeda",
     valor: (c) => (tabela === "retencao" ? c.retencao[k] : c.valorMedio[k]),
     largura: 12,
   }))

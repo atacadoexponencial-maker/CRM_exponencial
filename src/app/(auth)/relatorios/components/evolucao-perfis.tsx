@@ -24,7 +24,9 @@ export function EvolucaoPerfis({ evolucao }: { evolucao: EvolucaoRfv }) {
   const variacao = atual && anterior && anterior.saudavel > 0 && crescimento !== null ? Math.round((crescimento / anterior.saudavel) * 100) : null
 
   return (
-    <section className="rounded-md border bg-card p-5">
+    // relative: o texto só para leitor de tela (sr-only, absoluto) fica preso no cartão;
+    // sem isso ele esticava a página e sobrava um espaço em branco no fim.
+    <section className="relative rounded-md border bg-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
         <div>
           <h2 className="text-sm font-semibold">Evolução dos perfis</h2>

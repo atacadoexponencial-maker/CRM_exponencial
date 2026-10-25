@@ -2,7 +2,7 @@
 
 // B33-01: aba RFV — cabeçalho, matriz Recência × FV e indicadores por perfil.
 
-import { useEffect, useState, useTransition } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatarDataBr } from "@/lib/relatorios/visao-geral"
@@ -112,7 +112,19 @@ export function RfvClient({ atendenteId, inicial = null }: RfvClientProps) {
   const [resultado, setResultado] = useState<ResultadoRfv | null>(inicial)
   const [erro, setErro] = useState(false)
   const [celula, setCelula] = useState<CelulaSelecionada>(null)
+  const [destaque, setDestaque] = useState(false)
+  const listaRef = useRef<HTMLDivElement>(null)
   const [isPending, startTransition] = useTransition()
+
+  // Clicar numa célula leva a tela até a lista e destaca o cartão por um instante,
+  // para ficar claro que o filtro foi aplicado. Limpar o filtro não mexe na tela.
+  function selecionarCelula(c: CelulaSelecionada) {
+    setCelula(c)
+    if (!c) return
+    listaRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" })
+    setDestaque(true)
+    setTimeout(() => setDestaque(false), 1500)
+  }
 
   useEffect(() => {
     if (inicial) return
@@ -144,12 +156,12 @@ export function RfvClient({ atendenteId, inicial = null }: RfvClientProps) {
         </p>
         {isPending && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
       </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <MatrizRfv celulas={resultado.matriz} selecionada={celula} onSelecionar={setCelula} />
-        <IndicadoresPorPerfil indicadores={resultado.indicadores} />
-      </div>
+      <MatrizRfv celulas={resultado.matriz} selecionada={celula} onSelecionar={selecionarCelula} />
+      <IndicadoresPorPerfil indicadores={resultado.indicadores} />
       {/* B33-02: a lista segue a célula clicada na matriz. */}
-      <ListaClientesRfv clientes={resultado.clientes} celula={celula} onLimparCelula={() => setCelula(null)} atendenteId={atendenteId} />
+      <div ref={listaRef} data-testid="lista-rfv-destaque" data-destaque={destaque || undefined} className={cn("scroll-mt-4 rounded-md transition-shadow duration-500", destaque && "ring-2 ring-primary")}>
+        <ListaClientesRfv clientes={resultado.clientes} celula={celula} onLimparCelula={() => setCelula(null)} atendenteId={atendenteId} />
+      </div>
       {/* B33-03: evolução semanal e mensal, com a base saudável. */}
       <EvolucaoPerfis evolucao={resultado.evolucao} />
     </div>

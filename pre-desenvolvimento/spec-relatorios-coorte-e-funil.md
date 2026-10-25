@@ -98,7 +98,7 @@ de atendente da tela vale.
 
 - **Dado** a tabela de retenção com 12 coortes
 - **Quando** o usuário clica em Exportar
-- **Então** baixa uma planilha com 12 linhas e as colunas Coorte, Clientes e Mês 0 a Mês 11, com os percentuais como número; a tabela de valor médio exporta os valores como moeda
+- **Então** baixa uma planilha com 12 linhas e as colunas Coorte, Clientes e Mês 0 a Mês 11, com os percentuais como porcentagem (número com formato de %, 50% e não 50); a tabela de valor médio exporta os valores como moeda
 
 #### CA-B34-08 — Atendente vê só os clientes dele na coorte · prova: automática
 

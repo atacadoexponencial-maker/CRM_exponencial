@@ -18,6 +18,8 @@ export function Grafico25Meses({ meses }: { meses: MesDoHistorico[] }) {
       <p className="text-xs text-muted-foreground mt-0.5 mb-3">
         Sempre os últimos 25 meses, com a variação contra o mesmo mês do ano anterior. Ignora o período; segue o atendente. O mês atual conta até ontem.
       </p>
+      {/* No celular em pé o gráfico rola para o lado dentro do cartão, em vez de espremer. */}
+      <div className="overflow-x-auto"><div className="min-w-[640px]">
       <ComposedChart data={meses} width={900} height={260} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} responsive style={{ width: "100%", maxWidth: "100%" }}>
         <XAxis dataKey="rotulo" tickLine={false} axisLine={false} tick={TICK} interval={2} />
         <YAxis yAxisId="valor" tickLine={false} axisLine={false} tick={TICK} tickFormatter={eixoMoeda} width={48} />
@@ -33,6 +35,7 @@ export function Grafico25Meses({ meses }: { meses: MesDoHistorico[] }) {
         <Bar yAxisId="valor" dataKey="valor" name="Valor vendido" fill="var(--primary)" fillOpacity={0.8} radius={3} isAnimationActive={false} activeBar={{ fillOpacity: 1 }} />
         <Line yAxisId="variacao" type="monotone" dataKey="variacao" name="Variação (%)" stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 3 }} connectNulls isAnimationActive={false} />
       </ComposedChart>
+      </div></div>
       <div className="flex flex-wrap gap-4 mt-2 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-primary" /> Valor vendido</span>
         <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: "var(--chart-2)" }} /> Variação (%)</span>
