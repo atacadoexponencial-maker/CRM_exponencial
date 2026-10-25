@@ -82,3 +82,9 @@ Não se aplica.
 - [x] Lib do funil
 - [x] Ação e aba Funil de clientes com funil, legenda, taxas, tabela, explicação e dicas
 - [x] Testes automáticos passando; roteiro manual do CA-B34-12 registrado
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B34-12 | Marcelle | 25/10/2026 |

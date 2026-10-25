@@ -4,7 +4,8 @@
 
 import * as XLSX from "xlsx"
 
-export type TipoCelula = "texto" | "numero" | "moeda" | "data"
+/** `percentual`: o valor vem de 0 a 100 (45,5 = 45,5%) e vira porcentagem de verdade no Excel. */
+export type TipoCelula = "texto" | "numero" | "moeda" | "data" | "percentual"
 
 export interface ColunaPlanilha<T> {
   titulo: string
@@ -20,6 +21,7 @@ const FORMATO: Record<TipoCelula, string | null> = {
   numero: "0",
   moeda: "#,##0.00",
   data: "dd/mm/yyyy",
+  percentual: "0.0%",
 }
 
 /** Gera o .xlsx com uma aba: cabeçalho na linha 1 e uma linha por item, na ordem dada. */
@@ -55,7 +57,9 @@ function montarAba<T>(colunas: ColunaPlanilha<T>[], linhas: T[]): XLSX.WorkSheet
           ? { t: "d", v: bruto as Date }
           : coluna.tipo === "texto"
             ? { t: "s", v: String(bruto) }
-            : { t: "n", v: Number(bruto) }
+            : coluna.tipo === "percentual"
+              ? { t: "n", v: Number(bruto) / 100 }
+              : { t: "n", v: Number(bruto) }
       const formato = FORMATO[coluna.tipo]
       if (formato) celula.z = formato
       planilha[endereco] = celula
@@ -81,6 +85,7 @@ export function gerarCsv<T>(colunas: ColunaPlanilha<T>[], linhas: T[]): string {
     }
     if (coluna.tipo === "moeda") return Number(bruto).toFixed(2).replace(".", ",")
     if (coluna.tipo === "numero") return String(bruto).replace(".", ",")
+    if (coluna.tipo === "percentual") return `${String(bruto).replace(".", ",")}%`
     const texto = String(bruto)
     return /[";\r\n]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto
   }

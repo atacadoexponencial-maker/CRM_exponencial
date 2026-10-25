@@ -42,7 +42,7 @@ const entrarComo = (id: string) => mockSsr.mockResolvedValue(navegadores[id] as 
 async function baixar(url: string) {
   const resposta = await GET(new Request(`http://localhost${url}`))
   if (resposta.status !== 200) return { resposta, linhas: null }
-  const livro = XLSX.read(new Uint8Array(await resposta.arrayBuffer()), { type: "array" })
+  const livro = XLSX.read(new Uint8Array(await resposta.arrayBuffer()), { type: "array", cellNF: true })
   const aba = livro.Sheets[livro.SheetNames[0]]
   return { resposta, aba, linhas: XLSX.utils.sheet_to_json<unknown[]>(aba, { header: 1, raw: true }) }
 }
@@ -86,7 +86,7 @@ afterAll(async () => {
 })
 
 describe("B34-01 — coortes: exportação e atendente", { timeout: 60_000 }, () => {
-  it("CA-B34-07: baixa 12 linhas com Coorte, Clientes e Mês 0–11; retenção como número e valor médio como moeda", async () => {
+  it("CA-B34-07: baixa 12 linhas com Coorte, Clientes e Mês 0–11; retenção como porcentagem e valor médio como moeda", async () => {
     entrarComo(adminId)
     const ret = await baixar("/relatorios/coorte/exportar?tabela=retencao")
     expect(ret.resposta.status).toBe(200)
@@ -94,9 +94,11 @@ describe("B34-01 — coortes: exportação e atendente", { timeout: 60_000 }, ()
     expect(ret.linhas!.slice(1)).toHaveLength(12)
     const coorte3 = ret.linhas![1 + 12 - 4] // 3 meses atrás = 4ª linha de trás para a frente
     expect(coorte3[1]).toBe(2)
-    expect(coorte3[2]).toBe(100)
-    expect(coorte3[3]).toBe(50)
+    // Porcentagem de verdade no Excel: o número é a fração (50% = 0,5) com formato de %.
+    expect(coorte3[2]).toBe(1)
+    expect(coorte3[3]).toBe(0.5)
     expect(typeof coorte3[3]).toBe("number")
+    expect(ret.aba!["D10"].z).toBe("0.0%")
 
     const val = await baixar("/relatorios/coorte/exportar?tabela=valor")
     expect(val.resposta.status).toBe(200)

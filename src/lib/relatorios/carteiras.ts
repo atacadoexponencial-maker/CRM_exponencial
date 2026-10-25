@@ -43,3 +43,6 @@ export function calcularPainelDeCarteiras(contatos: ContatoDaCarteira[], vendedo
     semVendedor: { total: sem.length, comCompra: semNumeros.base, leads: semNumeros.leads },
   }
 }
+
+/** Linhas do histórico de carteiras por página, a mais recente primeiro. */
+export const HISTORICO_POR_PAGINA = 20

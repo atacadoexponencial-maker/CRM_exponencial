@@ -89,3 +89,9 @@ Não se aplica.
 - [x] Ação devolve os gráficos
 - [x] Três gráficos na tela, com balão escuro, projeção só no mês atual
 - [x] Testes automáticos passando; roteiro manual do CA-B32-12 registrado
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B32-12 | Marcelle | 25/10/2026 |

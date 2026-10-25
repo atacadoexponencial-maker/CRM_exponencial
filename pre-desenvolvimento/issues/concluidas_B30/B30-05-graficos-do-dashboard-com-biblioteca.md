@@ -88,3 +88,9 @@ Nenhuma.
 - [x] Funil com Recharts, tooltip e rótulos, percentual mantido
 - [x] Teste CA-B30-20 escrito e passando; testes antigos do dashboard passando
 - [x] `npm run build` e `npx eslint src --quiet` limpos
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B30-19 | Marcelle | 25/10/2026 |

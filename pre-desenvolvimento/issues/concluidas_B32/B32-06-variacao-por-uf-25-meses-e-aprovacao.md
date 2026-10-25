@@ -93,3 +93,9 @@ Nenhuma nova.
 - [x] Ação e rota de exportação da variação por UF
 - [x] Tabela por UF ordenável com total e gráfico de 25 meses na tela
 - [x] Testes automáticos passando; roteiro manual do CA-B32-23 registrado
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B32-23 | Marcelle | 25/10/2026 |

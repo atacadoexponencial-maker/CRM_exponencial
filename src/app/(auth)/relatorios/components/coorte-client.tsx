@@ -99,10 +99,12 @@ export function ResumoDasCoortes({ resumo }: { resumo: ResumoCoortes }) {
         </p>
         <p className="text-xs text-muted-foreground mt-2">Taxa média de clientes que voltam a comprar, considerando todas as coortes</p>
       </section>
-      <section className="rounded-md border bg-card p-5">
+      {/* relative: prende a lista sr-only no cartão, sem esticar a página. */}
+      <section className="relative rounded-md border bg-card p-5">
         <h2 className="text-sm font-semibold">Recompra geral por mês</h2>
         <p className="text-xs text-muted-foreground mt-0.5 mb-3">% de clientes que fizeram ao menos uma nova compra em cada mês depois da primeira</p>
         {temBarra ? (
+          <div className="overflow-x-auto"><div className="min-w-[480px]">
           <BarChart data={dados} width={520} height={180} margin={{ top: 16, right: 8, bottom: 0, left: 0 }} responsive style={{ width: "100%", maxWidth: "100%" }}>
             <XAxis dataKey="rotulo" tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10 }} interval={0} />
             <YAxis tickLine={false} axisLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10 }} tickFormatter={(v: number) => `${v}%`} width={36} domain={[0, 100]} />
@@ -110,6 +112,7 @@ export function ResumoDasCoortes({ resumo }: { resumo: ResumoCoortes }) {
               <LabelList dataKey="texto" position="top" fill="var(--foreground)" fontSize={10} />
             </Bar>
           </BarChart>
+          </div></div>
         ) : (
           <p className="text-sm text-muted-foreground">Ainda não há meses para comparar.</p>
         )}

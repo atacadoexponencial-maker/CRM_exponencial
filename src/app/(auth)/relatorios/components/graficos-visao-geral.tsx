@@ -41,6 +41,8 @@ export function GraficoVendasDiarias({ dias }: { dias: DiaDeVendas[] }) {
       {semVenda ? (
         <p className="text-sm text-muted-foreground">Sem vendas no período.</p>
       ) : (
+        // No celular em pé o gráfico rola para o lado dentro do cartão, em vez de espremer.
+        <div className="overflow-x-auto"><div className="min-w-[640px]">
         <ComposedChart data={dias} width={900} height={260} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} responsive style={{ width: "100%", maxWidth: "100%" }}>
           <XAxis dataKey="rotulo" tickLine={false} axisLine={false} tick={TICK} interval="preserveStartEnd" />
           <YAxis yAxisId="valor" tickLine={false} axisLine={false} tick={TICK} tickFormatter={eixoMoeda} width={48} />
@@ -66,6 +68,7 @@ export function GraficoVendasDiarias({ dias }: { dias: DiaDeVendas[] }) {
           <Line yAxisId="outro" type="monotone" dataKey="pecas" name="Peças" stroke={COR_PECAS} strokeWidth={2} dot={false} isAnimationActive={false} />
           <Line yAxisId="outro" type="monotone" dataKey="ticket" name="Ticket médio por venda" stroke={COR_TICKET} strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />
         </ComposedChart>
+        </div></div>
       )}
       <div className="flex flex-wrap gap-4 mt-2 text-xs text-muted-foreground">
         <Legenda cor={COR_VALOR} texto="Valor vendido" />
@@ -105,6 +108,7 @@ export function GraficoProjecao({ projecao }: { projecao: ProjecaoDoMes }) {
       {semVenda ? (
         <p className="text-sm text-muted-foreground">Sem vendas ainda este mês.</p>
       ) : (
+        <div className="overflow-x-auto"><div className="min-w-[640px]">
         <ComposedChart data={projecao.dias} width={900} height={220} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} responsive style={{ width: "100%", maxWidth: "100%" }}>
           <XAxis dataKey="rotulo" tickLine={false} axisLine={false} tick={TICK} interval="preserveStartEnd" />
           <YAxis tickLine={false} axisLine={false} tick={TICK} tickFormatter={eixoMoeda} width={48} />
@@ -126,6 +130,7 @@ export function GraficoProjecao({ projecao }: { projecao: ProjecaoDoMes }) {
           <Bar dataKey="realizado" name="Vendido" fill={COR_VALOR} fillOpacity={0.8} radius={3} isAnimationActive={false} />
           <Line type="monotone" dataKey="projetado" name="Projeção" stroke={COR_PROJECAO} strokeWidth={2} strokeDasharray="4 3" dot={false} isAnimationActive={false} />
         </ComposedChart>
+        </div></div>
       )}
     </Cartao>
   )

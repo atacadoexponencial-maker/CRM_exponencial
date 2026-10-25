@@ -44,6 +44,9 @@ export function ListaClientesRfv({
         <div>
           <h2 className="text-sm font-semibold">Clientes por perfil RFV</h2>
           <p className="text-xs text-muted-foreground mt-0.5">Lista de clientes segmentados</p>
+          <p className="text-xs text-muted-foreground mt-1" data-testid="legenda-rfv">
+            <strong className="font-medium text-foreground">R</strong> = Recência (há quanto tempo comprou) · <strong className="font-medium text-foreground">F</strong> = Frequência (quantas compras em 12 meses) · <strong className="font-medium text-foreground">V</strong> = Valor (quanto gastou em 12 meses) · <strong className="font-medium text-foreground">FV</strong> = média de F e V. Notas de 1 a 5; 5 é o melhor.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {celula && (

@@ -10,7 +10,7 @@ vi.mock("@/integrations/supabase/server", () => ({
 
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { atribuirAtendente } from "@/app/(auth)/pipeline/actions"
-import { buscarCarteiras } from "@/app/(auth)/relatorios/actions"
+import { buscarCarteiras, buscarHistoricoDeCarteira } from "@/app/(auth)/relatorios/actions"
 
 const mockSsr = vi.mocked(createSsrClient)
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -85,5 +85,31 @@ describe("B35-01 — histórico de carteira", { timeout: 60_000 }, () => {
     expect(dela?.historico).toBeNull()
     expect(dela?.painel.vendedores.map((v) => v.id)).toEqual([anaId])
     expect(dela?.painel.vendedores[0].total).toBe(1)
+  })
+})
+
+describe("Histórico de carteira paginado (ajuste de 25/10/2026)", { timeout: 60_000 }, () => {
+  it("20 por página, a mais recente primeiro; a página 1 traz as que sobram; o Atendente não lê", async () => {
+    // Mais 24 linhas, mais antigas que a do card: 25 no total.
+    const base = Date.now() - 86_400_000
+    await service.from("carteira_historico").insert(Array.from({ length: 24 }, (_, i) => ({
+      workspace_id: ws, contact_id: contatoId, de_atendente_id: null, para_atendente_id: anaId,
+      motivo: "distribuicao", alterado_por: adminId, created_at: new Date(base - i * 60_000).toISOString(),
+    })))
+    entrarComo(adminId)
+    const r = await buscarCarteiras()
+    expect(r?.historico).toHaveLength(20)
+    expect(r?.historicoTotal).toBe(25)
+    expect(r!.historico![0].motivo).toBe("pelo_card")
+
+    const p1 = await buscarHistoricoDeCarteira(1)
+    expect(p1?.total).toBe(25)
+    expect(p1?.linhas).toHaveLength(5)
+    const ids0 = new Set(r!.historico!.map((h) => h.id))
+    expect(p1!.linhas.some((h) => ids0.has(h.id))).toBe(false)
+    expect(await buscarHistoricoDeCarteira(-1)).toBeNull()
+
+    entrarComo(anaId)
+    expect(await buscarHistoricoDeCarteira(0)).toBeNull()
   })
 })
