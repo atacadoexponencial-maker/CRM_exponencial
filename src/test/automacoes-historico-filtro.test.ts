@@ -59,3 +59,56 @@ describe("B22-19 — erro ao listar execuções", () => {
     expect(await listarExecucoes({ dias: 30 })).toEqual({ execucoes: [] })
   })
 })
+
+describe("B28-02 — filtro por 'Esperando' e 'Cancelada'", () => {
+  /** automation_runs que responde só às execuções do resultado filtrado, como o banco. */
+  function sessaoComResultados(linhas: Array<{ id: string; resultado: string }>) {
+    const pedidos: unknown[][] = []
+    const from = vi.fn((tabela: string) => {
+      const filtros: unknown[][] = []
+      const obj: Record<string, unknown> = {}
+      for (const m of ["select", "gte", "order", "limit"]) obj[m] = vi.fn(() => obj)
+      obj.eq = vi.fn((...args: unknown[]) => {
+        filtros.push(args)
+        if (tabela === "automation_runs") pedidos.push(args)
+        return obj
+      })
+      obj.then = (resolve: (v: unknown) => void) => {
+        const resultado = filtros.find((f) => f[0] === "resultado")?.[1]
+        const data =
+          tabela === "automation_runs"
+            ? linhas
+                .filter((l) => !resultado || l.resultado === resultado)
+                .map((l) => ({ ...l, created_at: "2026-10-25T12:00:00Z", regra_id: "r1", regra_nome: "Lembrar", contact_id: null, evento: {}, motivo: null, caminho: [], contacts: null }))
+            : []
+        return Promise.resolve({ data, error: null }).then(resolve)
+      }
+      return obj
+    })
+    vi.mocked(sessaoAtual).mockResolvedValue({
+      supabase: { from },
+      user: { id: "admin-1" },
+      perfil: { role: "admin", workspace_id: "ws-1" },
+    } as unknown as Awaited<ReturnType<typeof sessaoAtual>>)
+    return pedidos
+  }
+
+  const linhas = [
+    { id: "concluida-1", resultado: "concluida" },
+    { id: "esperando-1", resultado: "esperando" },
+    { id: "cancelada-1", resultado: "cancelada" },
+  ]
+
+  it("CA-B28-22: filtrando por 'Esperando', só aparecem as que estão esperando", async () => {
+    const pedidos = sessaoComResultados(linhas)
+    const { execucoes } = await listarExecucoes({ dias: 30, resultado: "esperando" })
+    expect(pedidos).toContainEqual(["resultado", "esperando"])
+    expect(execucoes.map((e) => [e.id, e.resultado])).toEqual([["esperando-1", "esperando"]])
+  })
+
+  it("CA-B28-22: 'Cancelada' também é um filtro aceito", async () => {
+    sessaoComResultados(linhas)
+    const { execucoes } = await listarExecucoes({ dias: 30, resultado: "cancelada" })
+    expect(execucoes.map((e) => e.id)).toEqual(["cancelada-1"])
+  })
+})

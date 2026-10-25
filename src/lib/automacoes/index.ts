@@ -16,6 +16,9 @@
 // de cada vez por contato. A fila passa um prazo (B22-06): depois dele nenhuma
 // regra começa, e as que sobram ficam no histórico como falha, em vez de sumir
 // quando a Vercel corta a função.
+//
+// O bloco "esperar" (B28-02) encerra o percurso nele: a execução fica gravada como
+// "esperando", e quem a segue depois é o relógio (`esperas.ts`).
 // Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seções 5, 8, 11 e 22.
 
 import { createServiceClient } from "@/integrations/supabase/service"
@@ -30,10 +33,12 @@ import {
   percorrerFluxo,
   problemasDoFluxo,
   type BlocoGatilho,
+  type ExecutoresDoFluxo,
   type Fluxo,
 } from "@/lib/fluxo-automacao"
 import { executarAcao } from "./acoes"
 import type { ContextoDaExecucao, GatilhoAutomacao, ServiceClient } from "./contexto"
+import { retomarEm } from "./esperas"
 import {
   motivoParaIgnorar,
   passosDoCaminho,
@@ -169,19 +174,27 @@ async function executarRegra(contexto: ContextoDaExecucao, regra: RegraCarregada
 
   try {
     const daRegra: ContextoDaExecucao = { ...contexto, regra: { id: regra.id, nome: regra.nome } }
-    const caminho = await percorrerFluxo(regra.fluxo, {
-      avaliarVerificacao: (verificacao) => verificacaoVale(daRegra, verificacao),
-      executarAcao: (bloco) => executarAcao(daRegra, bloco),
-    })
+    const caminho = await percorrerFluxo(regra.fluxo, executoresDaRegra(daRegra))
+    const agora = new Date()
+    // B28-02: parado num bloco "esperar", fica esperando; o relógio segue depois (`esperas.ts`)
     await registrarExecucao(supabase, {
       gatilho,
       regra,
-      resultado: resultadoDoCaminho(caminho),
+      resultado: caminho.espera ? "esperando" : resultadoDoCaminho(caminho),
       motivo: caminho.erro?.motivo,
-      passos: passosDoCaminho(regra.fluxo, caminho),
+      passos: passosDoCaminho(regra.fluxo, caminho, agora),
+      retomarEm: caminho.espera ? retomarEm(regra.fluxo, caminho.espera, agora) : null,
     })
   } catch {
     await registrarExecucao(supabase, { gatilho, regra, resultado: "falhou", motivo: "Erro inesperado ao rodar a regra" })
+  }
+}
+
+/** Quem avalia e quem executa no motor: o mesmo para a regra que começa e para a que segue depois de uma espera. */
+export function executoresDaRegra(contexto: ContextoDaExecucao): ExecutoresDoFluxo {
+  return {
+    avaliarVerificacao: (verificacao) => verificacaoVale(contexto, verificacao),
+    executarAcao: (bloco) => executarAcao(contexto, bloco),
   }
 }
 

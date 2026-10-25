@@ -1,8 +1,27 @@
 // Frases em português para o que o fluxo faz: uma por bloco, no canvas, e um
 // resumo da regra inteira, na lista.
 
-import type { Bloco, BlocoAcao, BlocoGatilho, Fluxo, Repeticao, Verificacao } from "@/lib/fluxo-automacao"
-import { SEM_COMPRAS, SEQUENCIA_DA_ETAPA, gatilhoDoFluxo, horaDoGatilho, itensDaLista, vencimentoDoLembrete } from "@/lib/fluxo-automacao"
+import type {
+  Bloco,
+  BlocoAcao,
+  BlocoEspera,
+  BlocoGatilho,
+  Fluxo,
+  Repeticao,
+  SaidaDaEspera,
+  UnidadeDaEspera,
+  Verificacao,
+} from "@/lib/fluxo-automacao"
+import {
+  SEM_COMPRAS,
+  SEQUENCIA_DA_ETAPA,
+  duracaoDaEspera,
+  gatilhoDoFluxo,
+  horaDoGatilho,
+  itensDaLista,
+  saidasDaEspera,
+  vencimentoDoLembrete,
+} from "@/lib/fluxo-automacao"
 import { PERFIL_POR_ID, type PerfilRfv } from "@/lib/relatorios/rfv"
 import {
   ACOES,
@@ -156,9 +175,43 @@ export function fraseAcao(bloco: BlocoAcao, opcoes: OpcoesEditor): string {
   }
 }
 
+const UNIDADE_DA_ESPERA: Record<UnidadeDaEspera, [string, string]> = {
+  segundos: ["segundo", "segundos"],
+  minutos: ["minuto", "minutos"],
+  horas: ["hora", "horas"],
+  dias: ["dia", "dias"],
+}
+
+/** "2 dias", "1 minuto". Com o número fora do formato, "…" no lugar dele. */
+function tempoDaEspera(tempo: NonNullable<BlocoEspera["tempo"]>): string {
+  const [singular, varios] = UNIDADE_DA_ESPERA[tempo.unidade]
+  if (duracaoDaEspera(tempo) === null) return `… ${varios}`
+  return plural(Number(tempo.quantidade.trim()), singular, varios)
+}
+
+/** O que o bloco "esperar" espera, em partes: "2 dias ou recebeu mensagem" (B28-02). */
+export function oQueEspera(bloco: BlocoEspera): string {
+  const partes = saidasDaEspera(bloco).map((saida) =>
+    saida === "tempo" && bloco.tempo ? tempoDaEspera(bloco.tempo) : ROTULO_DA_SAIDA[saida].toLowerCase()
+  )
+  return partes.join(" ou ")
+}
+
+const ROTULO_DA_SAIDA: Record<SaidaDaEspera, string> = {
+  tempo: "Tempo",
+  recebeu_mensagem: "Recebeu mensagem",
+  atendente_enviou: "Atendente enviou",
+}
+
+/** O nome de cada saída do bloco "esperar": "Depois de 1 dia", "Recebeu mensagem". */
+export function rotuloDaSaidaDaEspera(bloco: BlocoEspera, saida: SaidaDaEspera): string {
+  return saida === "tempo" && bloco.tempo ? `Depois de ${tempoDaEspera(bloco.tempo)}` : ROTULO_DA_SAIDA[saida]
+}
+
 export function fraseBloco(bloco: Bloco, opcoes: OpcoesEditor): string {
   if (bloco.tipo === "gatilho") return fraseGatilho(bloco, opcoes)
   if (bloco.tipo === "acao") return fraseAcao(bloco, opcoes)
+  if (bloco.tipo === "espera") return saidasDaEspera(bloco).length === 0 ? "Nenhuma opção ligada" : `Esperar ${oQueEspera(bloco)}`
   if (bloco.verificacoes.length === 0) return "Nenhuma verificação"
   const frase = bloco.verificacoes.map((v) => fraseVerificacao(v, opcoes)).join(" e ")
   return `Se ${frase}`

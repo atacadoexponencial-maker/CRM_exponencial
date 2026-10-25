@@ -500,6 +500,8 @@ export function referenciasQueSumiram(fluxo: Fluxo, opcoes: OpcoesEditor): Recor
         continue
       }
     }
+    // B28-02: o bloco "esperar" não escolhe nada da empresa
+    if (bloco.tipo === "espera") continue
     const campos = bloco.tipo === "gatilho" ? GATILHOS[bloco.gatilho]?.campos : ACOES[bloco.acao]?.campos
     for (const campo of campos ?? []) {
       if (campo.tipo === "opcoes" && sumiu(campo.fonte, bloco.parametros[campo.chave])) anotar(bloco.id, campo.rotulo)
@@ -509,8 +511,9 @@ export function referenciasQueSumiram(fluxo: Fluxo, opcoes: OpcoesEditor): Recor
 }
 
 /** O que o menu de novo bloco oferece, em grupos. */
-export const GRUPOS_NOVO_BLOCO: Array<{ titulo: string; itens: Array<"condicao" | AcaoTipo> }> = [
-  { titulo: "Lógica", itens: ["condicao"] },
+export const GRUPOS_NOVO_BLOCO: Array<{ titulo: string; itens: Array<"condicao" | "espera" | AcaoTipo> }> = [
+  // B28-02: o bloco "esperar"
+  { titulo: "Lógica", itens: ["condicao", "espera"] },
   { titulo: "Mensagem", itens: ["enviar_mensagem", "enviar_mensagem_rapida", "enviar_midia"] },
   { titulo: "Contato", itens: ["adicionar_tag", "remover_tag", "alterar_dado_contato"] },
   {

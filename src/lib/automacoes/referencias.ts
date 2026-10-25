@@ -70,6 +70,8 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
       }
       continue
     }
+    // B28-02: o bloco "esperar" não escolhe nada da empresa
+    if (bloco.tipo === "espera") continue
 
     const p = bloco.parametros
     if (bloco.tipo === "gatilho" && bloco.gatilho === "entrou_perfil_rfv") {

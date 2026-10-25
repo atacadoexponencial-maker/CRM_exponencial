@@ -268,3 +268,35 @@ describe("eventoDaSimulacao dos gatilhos de tag, etiqueta e dado (B11-06)", () =
     ).toMatchObject({ tipo: "dado_contato_alterado", campo: "tipo", valor: "lojista" })
   })
 })
+
+describe("B28-02 — o 'Testar' para no bloco de espera", () => {
+  it("CA-B28-23: mostra a primeira ação e o bloco 'esperar', e não segue para a segunda ação", async () => {
+    const fluxo: Fluxo = {
+      blocos: [
+        { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao },
+        { id: "a1", tipo: "acao", acao: "resolver_conversa", parametros: {}, posicao },
+        {
+          id: "e",
+          tipo: "espera",
+          tempo: { quantidade: "2", unidade: "dias" },
+          recebeuMensagem: false,
+          atendenteEnviou: false,
+          limite: "30_dias",
+          posicao,
+        },
+        { id: "a2", tipo: "acao", acao: "enviar_mensagem", parametros: { texto: "Ainda tem interesse?" }, posicao },
+      ],
+      ligacoes: [
+        { de: "g", saida: "proximo", para: "a1" },
+        { de: "a1", saida: "proximo", para: "e" },
+        { de: "e", saida: "tempo", para: "a2" },
+      ],
+    }
+    const { supabase, gravacoes } = banco({ conversations: { data: { id: "conv-1" } } })
+
+    const resultado = await simularFluxo(supabase, "ws-1", "contato-1", fluxo)
+
+    expect(resultado).toEqual({ blocos: ["g", "a1", "e"], saidas: {}, espera: "e" })
+    expect(gravacoes).toEqual([])
+  })
+})

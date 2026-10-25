@@ -81,10 +81,32 @@ export type BlocoAcao = {
   posicao: Posicao
 }
 
-export type Bloco = BlocoGatilho | BlocoCondicao | BlocoAcao
+export type UnidadeDaEspera = "segundos" | "minutos" | "horas" | "dias"
 
-/** Gatilho e ação saem por "proximo"; condição sai por "sim" ou "nao". */
-export type Saida = "proximo" | "sim" | "nao"
+/**
+ * Bloco "esperar" (B28-02): segura o contato até a primeira das opções ligadas
+ * acontecer. Cada opção ligada é uma saída. A quantidade do tempo fica como o
+ * admin digitou; `duracaoDaEspera` diz se vale.
+ */
+export type BlocoEspera = {
+  id: string
+  tipo: "espera"
+  /** `null`: a opção de tempo está desligada. */
+  tempo: { quantidade: string; unidade: UnidadeDaEspera } | null
+  recebeuMensagem: boolean
+  atendenteEnviou: boolean
+  /** Sem o tempo, até quando o contato espera a mensagem. */
+  limite: "30_dias" | "sem_limite"
+  posicao: Posicao
+}
+
+export type Bloco = BlocoGatilho | BlocoCondicao | BlocoAcao | BlocoEspera
+
+/** Saídas do bloco "esperar": uma por opção ligada. */
+export type SaidaDaEspera = "tempo" | "recebeu_mensagem" | "atendente_enviou"
+
+/** Gatilho e ação saem por "proximo"; condição sai por "sim" ou "nao"; a espera, por uma das opções. */
+export type Saida = "proximo" | "sim" | "nao" | SaidaDaEspera
 
 export interface Ligacao {
   de: string
@@ -127,6 +149,8 @@ export interface ResultadoSimulacao {
   blocos: string[]
   /** Saída tomada em cada condição percorrida. */
   saidas: Record<string, "sim" | "nao">
+  /** O bloco "esperar" onde o caminho parou (B28-02). É o último de `blocos`. */
+  espera?: string
 }
 
 export const GATILHOS_DE_MENSAGEM: readonly GatilhoTipo[] = ["mensagem_recebida", "mensagem_enviada_time"]
@@ -307,28 +331,83 @@ export function tagValida(tag: string): boolean {
   return normalizada.length > 0 && normalizada.length <= 50 && !/\s/.test(normalizada)
 }
 
+/** As opções do bloco "esperar" que o motor já sabe esperar. As de mensagem chegam na B28-03. */
+export const OPCOES_DE_ESPERA_DISPONIVEIS: readonly SaidaDaEspera[] = ["tempo"]
+
+/** Até um ano de espera, em cada unidade (B28-02, SUP-B28-01). */
+export const ESPERA_MAXIMA: Record<UnidadeDaEspera, number> = {
+  segundos: 365 * 86_400,
+  minutos: 365 * 1_440,
+  horas: HORAS_MAXIMAS,
+  dias: 365,
+}
+
+const MS_DA_UNIDADE: Record<UnidadeDaEspera, number> = {
+  segundos: 1_000,
+  minutos: 60_000,
+  horas: 3_600_000,
+  dias: 86_400_000,
+}
+
+/** O bloco "esperar" como nasce no editor: só o tempo ligado, 1 dia. */
+export function esperaNova(id: string, posicao: Posicao): BlocoEspera {
+  return {
+    id,
+    tipo: "espera",
+    tempo: { quantidade: "1", unidade: "dias" },
+    recebeuMensagem: false,
+    atendenteEnviou: false,
+    limite: "30_dias",
+    posicao,
+  }
+}
+
+/** A espera em ms: número inteiro de 1 até um ano, na unidade escolhida. `null` fora disso. */
+export function duracaoDaEspera(tempo: BlocoEspera["tempo"]): number | null {
+  if (!tempo || !(tempo.unidade in MS_DA_UNIDADE)) return null
+  const texto = tempo.quantidade.trim()
+  if (!/^\d+$/.test(texto)) return null
+  const quantidade = Number(texto)
+  if (quantidade < 1 || quantidade > ESPERA_MAXIMA[tempo.unidade]) return null
+  return quantidade * MS_DA_UNIDADE[tempo.unidade]
+}
+
+/** O bloco "esperar" sem nenhuma opção não teria por onde sair (CA-B28-03). */
+export const ESPERA_SEM_OPCAO = "O bloco precisa de pelo menos uma opção ligada"
+
 const ACOES_COM_TAG: readonly AcaoTipo[] = ["adicionar_tag", "remover_tag"]
 /** A proteção de repetição chegou com o histórico (B11-03). */
 export const REPETICAO_DISPONIVEL = true
 const EM_BREVE = "Ainda não disponível: escolha outra opção"
 
+/** As opções ligadas do bloco "esperar", na ordem das saídas. */
+export function saidasDaEspera(bloco: BlocoEspera): SaidaDaEspera[] {
+  const saidas: SaidaDaEspera[] = []
+  if (bloco.tempo) saidas.push("tempo")
+  if (bloco.recebeuMensagem) saidas.push("recebeu_mensagem")
+  if (bloco.atendenteEnviou) saidas.push("atendente_enviou")
+  return saidas
+}
+
 export function saidasDoBloco(bloco: Bloco): Saida[] {
+  if (bloco.tipo === "espera") return saidasDaEspera(bloco)
   return bloco.tipo === "condicao" ? ["sim", "nao"] : ["proximo"]
 }
 
 /**
- * Cópia de uma condição ou ação, para o "Duplicar" do editor (B22-13): os mesmos
- * parâmetros e verificações, com id novo para o bloco e para cada verificação.
+ * Cópia de uma condição, ação ou espera, para o "Duplicar" do editor (B22-13): os
+ * mesmos parâmetros e verificações, com id novo para o bloco e para cada verificação.
  */
 export function copiaDoBloco(
-  bloco: BlocoCondicao | BlocoAcao,
+  bloco: BlocoCondicao | BlocoAcao | BlocoEspera,
   id: string,
   posicao: Posicao,
   novoId: () => string
-): BlocoCondicao | BlocoAcao {
+): BlocoCondicao | BlocoAcao | BlocoEspera {
   if (bloco.tipo === "condicao") {
     return { ...bloco, id, posicao, verificacoes: bloco.verificacoes.map((v) => ({ ...v, id: novoId() })) }
   }
+  if (bloco.tipo === "espera") return { ...bloco, id, posicao, tempo: bloco.tempo && { ...bloco.tempo } }
   return { ...bloco, id, posicao, parametros: { ...bloco.parametros } }
 }
 
@@ -471,6 +550,13 @@ export function pendenciasDoFluxo(fluxo: Fluxo): PendenciasFluxo {
           anotar(bloco.id, "O vencimento é um número inteiro, até 365 dias (ou 8760 horas)")
         }
       }
+    } else if (bloco.tipo === "espera") {
+      const opcoes = saidasDaEspera(bloco)
+      if (opcoes.length === 0) anotar(bloco.id, ESPERA_SEM_OPCAO)
+      if (opcoes.some((o) => !OPCOES_DE_ESPERA_DISPONIVEIS.includes(o))) anotar(bloco.id, EM_BREVE)
+      if (bloco.tempo && duracaoDaEspera(bloco.tempo) === null) {
+        anotar(bloco.id, "O tempo é um número inteiro, de 1 até 365 dias")
+      }
     } else {
       if (bloco.verificacoes.some((v) => !VERIFICACOES_DISPONIVEIS.includes(v.tipo))) anotar(bloco.id, EM_BREVE)
       if (bloco.verificacoes.length === 0) anotar(bloco.id, "Adicione ao menos uma verificação")
@@ -545,15 +631,31 @@ const ERRO_NA_ACAO = "Erro inesperado ao executar a ação"
  * assim, o percurso para ao voltar a um bloco já percorrido, para nunca rodar
  * sem fim. Uma condição que dá erro encerra o caminho ali, com `erro`: o que já
  * foi percorrido fica no resultado, para o histórico mostrar até onde chegou.
+ *
+ * O bloco "esperar" encerra o percurso nele, com `espera` no resultado (B28-02).
+ * Com `retomar`, o percurso começa no bloco ligado à saída que a espera tomou, e o
+ * resultado traz só o que veio depois dela.
  */
-export async function percorrerFluxo(fluxo: Fluxo, executores: ExecutoresDoFluxo): Promise<CaminhoPercorrido> {
+export async function percorrerFluxo(
+  fluxo: Fluxo,
+  executores: ExecutoresDoFluxo,
+  retomar?: { bloco: string; saida: Saida }
+): Promise<CaminhoPercorrido> {
   const caminho: CaminhoPercorrido = { blocos: [], saidas: {}, falhas: [], motivos: {} }
   const porId = new Map(fluxo.blocos.map((b) => [b.id, b]))
 
-  let bloco: Bloco | undefined = gatilhoDoFluxo(fluxo)
+  const primeiro = retomar
+    ? fluxo.ligacoes.find((l) => l.de === retomar.bloco && l.saida === retomar.saida)?.para
+    : gatilhoDoFluxo(fluxo)?.id
+  let bloco: Bloco | undefined = primeiro ? porId.get(primeiro) : undefined
   while (bloco && !caminho.blocos.includes(bloco.id)) {
     const id: string = bloco.id
     caminho.blocos.push(id)
+
+    if (bloco.tipo === "espera") {
+      caminho.espera = id
+      break
+    }
 
     let saida: Saida = "proximo"
     if (bloco.tipo === "condicao") {

@@ -28,12 +28,14 @@ import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from
 import { cn } from "@/lib/utils"
 import { useTemaDaTela } from "@/lib/use-tema-da-tela"
 import {
+  esperaNova,
   formaLaco,
   gatilhoDoFluxo,
   horasValidas,
   pendenciasDoFluxo,
   repeticaoPadrao,
   respondeTodaMensagem,
+  saidasDoBloco,
   copiaDoBloco,
   type Bloco,
   type Fluxo,
@@ -105,6 +107,15 @@ const LARGURA_BLOCO = 256
 const ALTURA_BLOCO = 120
 
 const saidaDa = (sourceHandle: string | null | undefined) => (sourceHandle ?? "proximo") as Saida
+
+/** Para que lado o bloco novo nasce, a partir da saída: "sim" à esquerda, "não" à direita; na espera, pela ordem das saídas. */
+function desvioDaSaida(origem: Bloco, saida: Saida): number {
+  if (origem.tipo === "espera") {
+    const saidas = saidasDoBloco(origem)
+    return (saidas.indexOf(saida) - (saidas.length - 1) / 2) * DESVIO_LATERAL
+  }
+  return saida === "sim" ? -DESVIO_LATERAL : saida === "nao" ? DESVIO_LATERAL : 0
+}
 
 /** Desce a posição até não cobrir nenhum bloco existente. */
 function posicaoLivre(inicial: { x: number; y: number }, nos: NoFluxo[]): { x: number; y: number } {
@@ -367,7 +378,7 @@ function EditorFluxoInterno({
     const origem = menu && menu !== "solto" ? nos.find((n) => n.id === menu.de) : undefined
     let posicao
     if (origem && menu && menu !== "solto") {
-      const desvio = menu.saida === "sim" ? -DESVIO_LATERAL : menu.saida === "nao" ? DESVIO_LATERAL : 0
+      const desvio = desvioDaSaida(origem.data.bloco, menu.saida)
       posicao = {
         x: origem.position.x + desvio,
         y: origem.position.y + (origem.measured?.height ?? ALTURA_BLOCO) + ESPACO_VERTICAL,
@@ -384,7 +395,9 @@ function EditorFluxoInterno({
     const bloco: Bloco =
       item === "condicao"
         ? { id, tipo: "condicao", verificacoes: [], posicao }
-        : { id, tipo: "acao", acao: item, parametros: {}, posicao }
+        : item === "espera"
+          ? esperaNova(id, posicao)
+          : { id, tipo: "acao", acao: item, parametros: {}, posicao }
 
     setNos((atuais) => [
       ...atuais.map((n) => ({ ...n, selected: false })),
@@ -419,6 +432,11 @@ function EditorFluxoInterno({
 
   function mudarBloco(bloco: Bloco) {
     setNos((atuais) => atuais.map((n) => (n.id === bloco.id ? { ...n, data: { bloco } } : n)))
+    // B28-02: a opção desligada no bloco "esperar" leva junto a ligação da saída dela
+    if (bloco.tipo === "espera") {
+      const saidas = saidasDoBloco(bloco)
+      setLigacoes((atuais) => atuais.filter((l) => l.source !== bloco.id || saidas.includes(saidaDa(l.sourceHandle))))
+    }
     if (bloco.tipo === "gatilho" && regraNova && !repeticaoEscolhida) setRepeticao(repeticaoPadrao(bloco.gatilho))
   }
 

@@ -35,12 +35,26 @@ const bloco = z.discriminatedUnion("tipo", [
     posicao,
   }),
   z.object({ id, tipo: z.literal("acao"), acao: z.enum(ACOES), parametros, posicao }),
+  // B28-02: a quantidade do tempo vai como texto; se o número vale é com `pendenciasDoFluxo`
+  z.object({
+    id,
+    tipo: z.literal("espera"),
+    tempo: z
+      .object({ quantidade: z.string().max(20), unidade: z.enum(["segundos", "minutos", "horas", "dias"]) })
+      .nullable(),
+    recebeuMensagem: z.boolean(),
+    atendenteEnviou: z.boolean(),
+    limite: z.enum(["30_dias", "sem_limite"]),
+    posicao,
+  }),
 ])
+
+const SAIDAS = ["proximo", "sim", "nao", "tempo", "recebeu_mensagem", "atendente_enviou"] as const
 
 const fluxo = z
   .object({
     blocos: z.array(bloco).max(200),
-    ligacoes: z.array(z.object({ de: id, saida: z.enum(["proximo", "sim", "nao"]), para: id })).max(400),
+    ligacoes: z.array(z.object({ de: id, saida: z.enum(SAIDAS), para: id })).max(400),
   })
   .refine((f) => new Set(f.blocos.map((b) => b.id)).size === f.blocos.length, "Dois blocos com o mesmo id")
 

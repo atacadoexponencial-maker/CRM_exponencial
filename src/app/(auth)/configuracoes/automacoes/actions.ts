@@ -33,7 +33,7 @@ import {
   tipoDeContatoValido,
 } from "@/lib/automacoes/referencias"
 import { simularFluxo } from "@/lib/automacoes/simulacao"
-import type { PassoGravado, ResultadoExecucao } from "@/lib/automacoes/execucoes"
+import { RESULTADOS_DA_EXECUCAO, type PassoGravado, type ResultadoExecucao } from "@/lib/automacoes/execucoes"
 import {
   lerRepeticao,
   problemasDoFluxo,
@@ -693,7 +693,8 @@ export async function listarExecucoes(
   filtros = {
     dias: filtros.dias === 7 ? 7 : 30,
     regraId: ehTexto(filtros.regraId) ? filtros.regraId : undefined,
-    resultado: (["concluida", "falhou", "ignorada"] as const).find((r) => r === filtros.resultado),
+    // B28-02: "esperando" e "cancelada" também
+    resultado: RESULTADOS_DA_EXECUCAO.find((r) => r === filtros.resultado),
   }
 
   let consulta = supabase

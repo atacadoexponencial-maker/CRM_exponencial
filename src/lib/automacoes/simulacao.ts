@@ -1,6 +1,7 @@
 // "Testar com um contato" (B11-10): o caminho que o contato faria, com os dados
 // reais dele, sem executar nada. As verificações são as mesmas do motor; as
-// ações são desligadas e contam como feitas, para o caminho seguir.
+// ações são desligadas e contam como feitas, para o caminho seguir. O caminho
+// para no bloco "esperar", mostrando onde o contato esperaria (B28-02).
 
 import { gatilhoDoFluxo, normalizarTag, percorrerFluxo, type Fluxo, type ResultadoSimulacao } from "@/lib/fluxo-automacao"
 import { tipoDaMensagemParaRegras, type GatilhoAutomacao, type ServiceClient } from "./contexto"
@@ -148,5 +149,6 @@ export async function simularFluxo(
   })
   // Uma condição que não conseguiu consultar o banco: o teste não tem resultado para mostrar
   if (caminho.erro) throw new Error(caminho.erro.motivo)
-  return { blocos: caminho.blocos, saidas: caminho.saidas }
+  // B28-02: o percurso para no bloco "esperar"; o teste não segue por nenhuma saída dele
+  return { blocos: caminho.blocos, saidas: caminho.saidas, ...(caminho.espera ? { espera: caminho.espera } : {}) }
 }

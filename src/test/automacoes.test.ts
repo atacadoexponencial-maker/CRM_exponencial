@@ -413,18 +413,24 @@ describe("histórico e proteção de repetição (B11-03)", () => {
     ],
   }
 
-  /** automation_runs falso: a execução anterior que a proteção acha, e as linhas gravadas. */
+  /**
+   * automation_runs falso: a execução anterior que a proteção acha, e as linhas
+   * gravadas. A consulta "o contato já está esperando?" (B28-02) não acha nada.
+   */
   function historico(anterior: unknown = null, erro: unknown = null) {
     const gravadas: Array<Record<string, unknown>> = []
     const filtros: unknown[][] = []
     const obj: Record<string, unknown> = {}
+    let procuraEspera = false
     for (const m of ["select", "eq", "neq", "contains", "gte", "limit"]) {
       obj[m] = vi.fn((...args: unknown[]) => {
         filtros.push([m, ...args])
+        if (m === "select") procuraEspera = false
+        if (m === "eq" && args[0] === "resultado" && args[1] === "esperando") procuraEspera = true
         return obj
       })
     }
-    obj.maybeSingle = vi.fn(() => Promise.resolve({ data: anterior, error: erro }))
+    obj.maybeSingle = vi.fn(() => Promise.resolve({ data: procuraEspera ? null : anterior, error: erro }))
     obj.insert = vi.fn((linha: Record<string, unknown>) => {
       gravadas.push(linha)
       return Promise.resolve({ error: null })

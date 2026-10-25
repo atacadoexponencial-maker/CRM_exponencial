@@ -15,6 +15,7 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import { transmitirContatoExcluido } from "@/lib/whatsapp/realtime"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
 import { apagarDaLixeira, PRAZO_LIXEIRA_DIAS, tirarDaLixeira } from "@/lib/lixeira"
+import { CONTATO_NA_LIXEIRA, cancelarEsperasDoContato } from "@/lib/automacoes/esperas"
 import type { FunilDoCard } from "../components/dialogo-excluir-contato"
 import { lerNomesDosFunis } from "@/lib/funis"
 
@@ -135,6 +136,13 @@ async function mandarParaLixeira(workspaceId: string, userId: string, contactId:
     .eq("workspace_id", workspaceId)
     .eq("contact_id", contactId)
     .eq("status", "em_andamento")
+
+  // B28-02: as esperas das automações também. Se falhar, o relógio as cancela sem rodar nada.
+  try {
+    await cancelarEsperasDoContato(svc, workspaceId, contactId, CONTATO_NA_LIXEIRA)
+  } catch {
+    // Contato já está na lixeira; a espera vencida dele é cancelada ao seguir
+  }
 
   try {
     await transmitirContatoExcluido(workspaceId, contactId)

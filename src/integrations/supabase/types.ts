@@ -172,42 +172,54 @@ export type Database = {
       }
       automation_runs: {
         Row: {
+          atualizada_em: string | null
           caminho: Json
           contact_id: string | null
           created_at: string
           evento: Json
+          gatilho: Json | null
           id: string
           motivo: string | null
           regra_id: string
           regra_nome: string
           regra_origem: string
           resultado: string
+          retomada_em: string | null
+          retomar_em: string | null
           workspace_id: string
         }
         Insert: {
+          atualizada_em?: string | null
           caminho?: Json
           contact_id?: string | null
           created_at?: string
           evento: Json
+          gatilho?: Json | null
           id?: string
           motivo?: string | null
           regra_id: string
           regra_nome: string
           regra_origem: string
           resultado: string
+          retomada_em?: string | null
+          retomar_em?: string | null
           workspace_id: string
         }
         Update: {
+          atualizada_em?: string | null
           caminho?: Json
           contact_id?: string | null
           created_at?: string
           evento?: Json
+          gatilho?: Json | null
           id?: string
           motivo?: string | null
           regra_id?: string
           regra_nome?: string
           regra_origem?: string
           resultado?: string
+          retomada_em?: string | null
+          retomar_em?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -2150,6 +2162,24 @@ export type Database = {
           },
         ]
       }
+      sonda_webhook_meta: {
+        Row: {
+          id: string
+          payload: Json
+          recebido_em: string
+        }
+        Insert: {
+          id?: string
+          payload: Json
+          recebido_em?: string
+        }
+        Update: {
+          id?: string
+          payload?: Json
+          recebido_em?: string
+        }
+        Relationships: []
+      }
       teams: {
         Row: {
           created_at: string
@@ -2459,6 +2489,32 @@ export type Database = {
           numero: number
           pedido_id: string
         }[]
+      }
+      reivindicar_esperas_vencidas: {
+        Args: { p_limite: number; p_workspace_id?: string }
+        Returns: {
+          atualizada_em: string | null
+          caminho: Json
+          contact_id: string | null
+          created_at: string
+          evento: Json
+          gatilho: Json | null
+          id: string
+          motivo: string | null
+          regra_id: string
+          regra_nome: string
+          regra_origem: string
+          resultado: string
+          retomada_em: string | null
+          retomar_em: string | null
+          workspace_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "automation_runs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       reivindicar_evento_de_automacao: {
         Args: { p_chave: string }

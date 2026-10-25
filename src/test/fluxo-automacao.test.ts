@@ -9,12 +9,17 @@ import {
   pendenciasDoFluxo,
   percorrerFluxo,
   problemasDeEstrutura,
+  duracaoDaEspera,
+  esperaNova,
+  saidasDoBloco,
+  ESPERA_SEM_OPCAO,
   ACOES_DISPONIVEIS,
   GATILHOS_DISPONIVEIS,
   PARAMETROS_OBRIGATORIOS_ACAO,
   PARAMETROS_OBRIGATORIOS_GATILHO,
   type Bloco,
   type BlocoAcao,
+  type BlocoEspera,
   type Fluxo,
   type Ligacao,
   type ResultadoAcao,
@@ -362,5 +367,72 @@ describe("vencimento e texto do 'criar lembrete' (B28-01)", () => {
   it("pede o texto e limita a 500 caracteres", () => {
     expect(pendencias({})).toContain("Complete a configuração da ação")
     expect(pendencias({ texto: "x".repeat(501) })).toContain("O lembrete vai até 500 caracteres")
+  })
+})
+
+describe("bloco 'esperar' (B28-02)", () => {
+  const espera = (mudancas: Partial<BlocoEspera> = {}): BlocoEspera => ({ ...esperaNova("e", posicao), ...mudancas })
+  const acao = (id: string): BlocoAcao => ({ id, tipo: "acao", acao: "resolver_conversa", parametros: {}, posicao })
+  const fluxo = (bloco: BlocoEspera): Fluxo => ({
+    blocos: [gatilho(), bloco, acao("depois")],
+    ligacoes: [
+      { de: "g", saida: "proximo", para: "e" },
+      { de: "e", saida: "tempo", para: "depois" },
+    ],
+  })
+  const executores = () => ({
+    avaliarVerificacao: vi.fn(async () => true),
+    executarAcao: vi.fn(async (): Promise<ResultadoAcao> => ({ ok: true })),
+  })
+
+  it("cada opção ligada é uma saída, na ordem tempo, recebeu mensagem, atendente enviou", () => {
+    expect(saidasDoBloco(espera())).toEqual(["tempo"])
+    expect(saidasDoBloco(espera({ tempo: null, recebeuMensagem: true, atendenteEnviou: true }))).toEqual([
+      "recebeu_mensagem",
+      "atendente_enviou",
+    ])
+  })
+
+  it("a duração vai de 1 até um ano, em número inteiro, em cada unidade", () => {
+    expect(duracaoDaEspera({ quantidade: "1", unidade: "minutos" })).toBe(60_000)
+    expect(duracaoDaEspera({ quantidade: "2", unidade: "dias" })).toBe(2 * 86_400_000)
+    expect(duracaoDaEspera({ quantidade: "31536000", unidade: "segundos" })).toBe(365 * 86_400_000)
+    expect(duracaoDaEspera({ quantidade: "31536001", unidade: "segundos" })).toBeNull()
+    expect(duracaoDaEspera({ quantidade: "-1", unidade: "horas" })).toBeNull()
+    expect(duracaoDaEspera(null)).toBeNull()
+  })
+
+  it("o percurso para no bloco, e a ação de depois não roda", async () => {
+    const ex = executores()
+    const caminho = await percorrerFluxo(fluxo(espera()), ex)
+    expect(caminho.blocos).toEqual(["g", "e"])
+    expect(caminho.espera).toBe("e")
+    expect(ex.executarAcao).not.toHaveBeenCalled()
+  })
+
+  it("retomado pela saída do tempo, percorre só o que vem depois", async () => {
+    const ex = executores()
+    const caminho = await percorrerFluxo(fluxo(espera()), ex, { bloco: "e", saida: "tempo" })
+    expect(caminho.blocos).toEqual(["depois"])
+    expect(caminho.espera).toBeUndefined()
+    expect(ex.executarAcao).toHaveBeenCalledTimes(1)
+  })
+
+  it("ligação de uma opção desligada é inválida", () => {
+    const f = fluxo(espera())
+    f.ligacoes.push({ de: "e", saida: "recebeu_mensagem", para: "depois" })
+    expect(problemasDeEstrutura(f)).toContain("O fluxo tem ligações inválidas")
+  })
+
+  it("sem nenhuma opção, ou com uma que o motor ainda não espera, o bloco tem pendência", () => {
+    expect(pendenciasDoFluxo(fluxo(espera({ tempo: null }))).porBloco.e).toContain(ESPERA_SEM_OPCAO)
+    expect(pendenciasDoFluxo(fluxo(espera({ recebeuMensagem: true }))).porBloco.e).toContain(
+      "Ainda não disponível: escolha outra opção"
+    )
+  })
+
+  it("o bloco sozinho não basta: o fluxo continua precisando de uma ação (SUP-B28-06)", () => {
+    const soEspera: Fluxo = { blocos: [gatilho(), espera()], ligacoes: [{ de: "g", saida: "proximo", para: "e" }] }
+    expect(pendenciasDoFluxo(soEspera).gerais).toContain("Ligue pelo menos uma ação ao caminho")
   })
 })

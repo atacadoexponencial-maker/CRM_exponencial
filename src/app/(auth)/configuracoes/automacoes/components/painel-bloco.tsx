@@ -8,6 +8,13 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import {
   ACOES_DISPONIVEIS,
+  ESPERA_SEM_OPCAO,
+  OPCOES_DE_ESPERA_DISPONIVEIS,
+  duracaoDaEspera,
+  saidasDaEspera,
+  type BlocoEspera,
+  type SaidaDaEspera,
+  type UnidadeDaEspera,
   GATILHOS_DE_MENSAGEM,
   GATILHOS_DISPONIVEIS,
   HORAS_MAXIMAS,
@@ -51,7 +58,7 @@ import { VARIAVEIS_DA_MENSAGEM, inserirNoCursor } from "./variaveis-mensagem"
 const textareaClass =
   "w-full min-h-24 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 resize-y"
 
-const TITULO = { gatilho: "Gatilho", condicao: "Condição", acao: "Ação" } as const
+const TITULO = { gatilho: "Gatilho", condicao: "Condição", acao: "Ação", espera: "Esperar" } as const
 
 const paraItens = (opcoes: Opcao[]): ItemSelecao[] => opcoes.map((o) => ({ valor: o.id, rotulo: o.nome }))
 
@@ -267,6 +274,8 @@ export function PainelBloco({
         {bloco.tipo === "condicao" && (
           <EditorVerificacoes bloco={bloco} gatilho={gatilho} opcoes={opcoes} onMudar={onMudar} />
         )}
+
+        {bloco.tipo === "espera" && <EditorEspera bloco={bloco} onMudar={onMudar} />}
 
         {pendencias.length > 0 && (
           <ul className="space-y-0.5 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
@@ -766,6 +775,98 @@ function EditorVerificacoes({
         <Plus />
         Adicionar verificação
       </Button>
+    </div>
+  )
+}
+
+const ITENS_UNIDADE_DA_ESPERA: ItemSelecao[] = [
+  { valor: "segundos", rotulo: "segundos" },
+  { valor: "minutos", rotulo: "minutos" },
+  { valor: "horas", rotulo: "horas" },
+  { valor: "dias", rotulo: "dias" },
+]
+
+const OPCOES_DA_ESPERA: Array<{ saida: SaidaDaEspera; rotulo: string }> = [
+  { saida: "tempo", rotulo: "Passar um tempo" },
+  { saida: "recebeu_mensagem", rotulo: "O contato mandar mensagem" },
+  { saida: "atendente_enviou", rotulo: "Alguém do time mandar mensagem" },
+]
+
+/**
+ * Painel do bloco "esperar" (B28-02): cada opção ligada vira uma saída, e a que
+ * acontecer primeiro leva o contato. A última opção ligada não desliga (CA-B28-03).
+ * As de mensagem aparecem como "em breve" até o motor esperá-las (B28-03).
+ */
+function EditorEspera({ bloco, onMudar }: { bloco: BlocoEspera; onMudar: (bloco: Bloco) => void }) {
+  const [semOpcao, setSemOpcao] = useState(false)
+  const ligadas = saidasDaEspera(bloco)
+
+  function alternar(saida: SaidaDaEspera, ligar: boolean) {
+    if (!ligar && ligadas.length === 1 && ligadas[0] === saida) {
+      setSemOpcao(true)
+      return
+    }
+    setSemOpcao(false)
+    if (saida === "tempo") onMudar({ ...bloco, tempo: ligar ? { quantidade: "1", unidade: "dias" } : null })
+    if (saida === "recebeu_mensagem") onMudar({ ...bloco, recebeuMensagem: ligar })
+    if (saida === "atendente_enviou") onMudar({ ...bloco, atendenteEnviou: ligar })
+  }
+
+  const tempoValido = duracaoDaEspera(bloco.tempo) !== null
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-xs text-muted-foreground">
+        O contato fica parado aqui até a primeira destas coisas acontecer. Cada opção ligada é uma saída do bloco.
+      </p>
+      {OPCOES_DA_ESPERA.map(({ saida, rotulo }) => {
+        const ligada = ligadas.includes(saida)
+        const disponivel = OPCOES_DE_ESPERA_DISPONIVEIS.includes(saida)
+        return (
+          <div key={saida} className="flex flex-col gap-2">
+            <label className={cn("flex items-center gap-2 text-sm", !disponivel && !ligada && "opacity-50")}>
+              <input
+                type="checkbox"
+                className="size-4 shrink-0 accent-primary"
+                checked={ligada}
+                disabled={!disponivel && !ligada}
+                onChange={(e) => alternar(saida, e.target.checked)}
+              />
+              <span className="flex-1">{rotulo}</span>
+              {!disponivel && <span className="text-xs text-muted-foreground">em breve</span>}
+            </label>
+            {saida === "tempo" && bloco.tempo && (
+              <>
+                <div className="flex items-center gap-1.5 pl-6">
+                  <Input
+                    aria-label="Quanto tempo"
+                    aria-invalid={!tempoValido}
+                    inputMode="numeric"
+                    className="w-20"
+                    value={bloco.tempo.quantidade}
+                    onChange={(e) => onMudar({ ...bloco, tempo: { ...bloco.tempo!, quantidade: e.target.value.trim() } })}
+                  />
+                  <CampoSelecao
+                    aria-label="Unidade do tempo"
+                    valor={bloco.tempo.unidade}
+                    itens={ITENS_UNIDADE_DA_ESPERA}
+                    onMudar={(unidade) =>
+                      onMudar({ ...bloco, tempo: { ...bloco.tempo!, unidade: unidade as UnidadeDaEspera } })
+                    }
+                  />
+                </div>
+                {!tempoValido && (
+                  <p className="pl-6 text-xs text-destructive">Use um número inteiro, de 1 até 365 dias.</p>
+                )}
+              </>
+            )}
+          </div>
+        )
+      })}
+      {semOpcao && (
+        <p role="alert" className="text-xs text-destructive">
+          {ESPERA_SEM_OPCAO}.
+        </p>
+      )}
     </div>
   )
 }

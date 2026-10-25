@@ -7,19 +7,35 @@
 // Decisões: pre-desenvolvimento/decisoes/B11-automacoes-em-fluxo.md, seção 8.
 
 import type { Json } from "@/integrations/supabase/types"
-import type { Bloco, CaminhoPercorrido, Fluxo, Repeticao } from "@/lib/fluxo-automacao"
+import type { Bloco, CaminhoPercorrido, Fluxo, Repeticao, SaidaDaEspera } from "@/lib/fluxo-automacao"
 import type { GatilhoAutomacao, ServiceClient } from "./contexto"
 
-export type ResultadoExecucao = "concluida" | "falhou" | "ignorada"
+/**
+ * `esperando`: parada num bloco "esperar", com a mesma linha seguindo depois;
+ * `cancelada`: a espera não seguiu (contato na lixeira, regra mudou) (B28-02).
+ */
+export type ResultadoExecucao = "concluida" | "falhou" | "ignorada" | "esperando" | "cancelada"
+
+export const RESULTADOS_DA_EXECUCAO: readonly ResultadoExecucao[] = [
+  "concluida",
+  "falhou",
+  "ignorada",
+  "esperando",
+  "cancelada",
+]
 
 /** Um passo do caminho, como fica gravado: a cópia do bloco e o que aconteceu nele. */
 export interface PassoGravado {
   bloco: Bloco
-  /** Saída tomada, nas condições. */
-  saida?: "sim" | "nao"
+  /** Saída tomada, nas condições e no bloco "esperar" depois que a espera acaba. */
+  saida?: "sim" | "nao" | SaidaDaEspera
   /** Nas ações: deu certo? Na condição que deu erro: `false`. */
   ok?: boolean
   motivo?: string
+  /** No bloco "esperar": desde quando o contato espera. */
+  desde?: string
+  /** No bloco "esperar": quando a espera acabou, pela `saida`. */
+  em?: string
 }
 
 export interface RegraDaExecucao {
@@ -28,8 +44,11 @@ export interface RegraDaExecucao {
   repeticao: Repeticao
 }
 
-/** Os passos na ordem do caminho, com a saída de cada condição e o resultado de cada ação. */
-export function passosDoCaminho(fluxo: Fluxo, caminho: CaminhoPercorrido): PassoGravado[] {
+/**
+ * Os passos na ordem do caminho, com a saída de cada condição e o resultado de
+ * cada ação. O bloco "esperar" onde o caminho parou ganha `desde` (B28-02).
+ */
+export function passosDoCaminho(fluxo: Fluxo, caminho: CaminhoPercorrido, agora = new Date()): PassoGravado[] {
   const porId = new Map(fluxo.blocos.map((b) => [b.id, b]))
   const passos: PassoGravado[] = []
   for (const id of caminho.blocos) {
@@ -46,6 +65,7 @@ export function passosDoCaminho(fluxo: Fluxo, caminho: CaminhoPercorrido): Passo
       passo.ok = false
       passo.motivo = caminho.erro.motivo
     }
+    if (caminho.espera === id) passo.desde = agora.toISOString()
     passos.push(passo)
   }
   return passos
@@ -54,6 +74,11 @@ export function passosDoCaminho(fluxo: Fluxo, caminho: CaminhoPercorrido): Passo
 /** Falhou se alguma ação falhou ou uma condição deu erro; senão, concluída. */
 export function resultadoDoCaminho(caminho: CaminhoPercorrido): "concluida" | "falhou" {
   return caminho.falhas.length > 0 || caminho.erro ? "falhou" : "concluida"
+}
+
+/** O mesmo, sobre o caminho gravado, que junta o que veio antes e depois de uma espera (B28-02). */
+export function resultadoDosPassos(passos: PassoGravado[]): "concluida" | "falhou" {
+  return passos.some((p) => p.ok === false) ? "falhou" : "concluida"
 }
 
 /** Trecho da mensagem guardado no histórico: o bastante para reconhecer qual foi. */
@@ -93,6 +118,9 @@ export function eventoGravado(gatilho: GatilhoAutomacao): Record<string, string>
  */
 const CAMINHO_COM_ACAO_FEITA = JSON.stringify([{ bloco: { tipo: "acao" }, ok: true }])
 
+/** CA-B28-17: o motivo da regra que o contato não pode recomeçar. */
+export const JA_ESPERANDO = "O contato já está esperando nesta regra"
+
 /**
  * Por que a regra não deve rodar agora para o contato, ou `null` para rodar.
  * Só gasta a vez a execução em que alguma ação deu certo (B22-01, achado G1 do
@@ -105,8 +133,22 @@ export async function motivoParaIgnorar(
   regra: RegraDaExecucao,
   contactId: string | null
 ): Promise<string | null> {
+  if (!contactId) return null
+
+  // B28-02: contato esperando na regra não a começa de novo, qualquer que seja a repetição
+  const { data: esperando, error: erroDaEspera } = await supabase
+    .from("automation_runs")
+    .select("id")
+    .eq("regra_id", regra.id)
+    .eq("contact_id", contactId)
+    .eq("resultado", "esperando")
+    .limit(1)
+    .maybeSingle()
+  if (erroDaEspera) throw erroDaEspera
+  if (esperando) return JA_ESPERANDO
+
   const { repeticao } = regra
-  if (repeticao.modo === "sempre" || !contactId) return null
+  if (repeticao.modo === "sempre") return null
 
   let consulta = supabase
     .from("automation_runs")
@@ -139,10 +181,15 @@ export async function registrarExecucao(
     resultado: ResultadoExecucao
     motivo?: string | null
     passos?: PassoGravado[]
+    /** Na execução esperando: quando o relógio a segue (nulo se ela não espera tempo). */
+    retomarEm?: string | null
   }
 ): Promise<void> {
   try {
+    const esperando = dados.resultado === "esperando"
     await supabase.from("automation_runs").insert({
+      // B28-02: a execução esperando guarda o evento inteiro, para seguir com ele
+      ...(esperando ? { gatilho: dados.gatilho as unknown as Json, retomar_em: dados.retomarEm ?? null } : {}),
       workspace_id: dados.gatilho.workspaceId,
       regra_id: dados.regra.id,
       // A coluna separava as regras da primeira versão (`'antiga'`), que saíram

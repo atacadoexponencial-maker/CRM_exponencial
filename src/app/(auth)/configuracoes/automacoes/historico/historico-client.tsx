@@ -6,7 +6,9 @@
 // foi excluída. O detalhe fecha pelo X, além de Esc e de tocar fora (B22-15).
 // No celular, o contato vai embaixo do nome da automação e "Quando" quebra em
 // data e hora, para o Resultado caber na tela (B22-16). O contato abre o perfil
-// dele, sem abrir o detalhe da linha (B22-17).
+// dele, sem abrir o detalhe da linha (B22-17). A execução parada num bloco
+// "esperar" aparece como "Esperando" e, quando segue, a mesma linha mostra o
+// caminho inteiro, com a saída que a espera tomou (B28-02).
 
 import { useState } from "react"
 import Link from "next/link"
@@ -20,12 +22,23 @@ import { cn } from "@/lib/utils"
 import type { ExecucaoListada, FiltrosDoHistorico } from "../actions"
 import { CampoSelecao } from "../components/campo-selecao"
 import type { OpcoesEditor } from "../components/catalogo"
-import { fraseBloco, fraseDoEvento } from "../components/frases-fluxo"
+import { fraseBloco, fraseDoEvento, oQueEspera, rotuloDaSaidaDaEspera } from "../components/frases-fluxo"
 
 const RESULTADO: Record<ResultadoExecucao, { rotulo: string; classe: string }> = {
   concluida: { rotulo: "Concluída", classe: "bg-sucesso-fundo text-sucesso" },
   falhou: { rotulo: "Falhou", classe: "bg-erro-fundo text-erro" },
   ignorada: { rotulo: "Ignorada", classe: "bg-muted text-muted-foreground" },
+  // B28-02: parada num bloco "esperar", e a espera que não seguiu
+  esperando: { rotulo: "Esperando", classe: "bg-accent text-accent-foreground" },
+  cancelada: { rotulo: "Cancelada", classe: "bg-muted text-muted-foreground" },
+}
+
+/** "Esperando: 2 dias, desde 14:03", do bloco "esperar" onde a execução parou. */
+function fraseDaEsperaAtual(caminho: PassoGravado[]): string | null {
+  const ultimo = caminho[caminho.length - 1]
+  if (ultimo?.bloco.tipo !== "espera" || ultimo.saida) return null
+  const desde = ultimo.desde ? `, desde ${formatarHoraDoDia(ultimo.desde)}` : ""
+  return `Esperando: ${oQueEspera(ultimo.bloco)}${desde}`
 }
 
 const quando = (iso: string) => `${formatarDataCurta(iso)}, ${formatarHoraDoDia(iso)}`
@@ -237,10 +250,18 @@ function DetalheDaExecucao({ execucao, opcoes }: { execucao: ExecucaoListada; op
         <p
           className={cn(
             "mb-3 rounded-lg px-3 py-2 text-sm",
-            execucao.resultado === "ignorada" ? "bg-muted text-muted-foreground" : "bg-erro-fundo text-erro"
+            execucao.resultado === "ignorada" || execucao.resultado === "cancelada"
+              ? "bg-muted text-muted-foreground"
+              : "bg-erro-fundo text-erro"
           )}
         >
           {execucao.motivo}
+        </p>
+      )}
+
+      {execucao.resultado === "esperando" && fraseDaEsperaAtual(execucao.caminho) && (
+        <p className="mb-3 rounded-lg bg-accent px-3 py-2 text-sm text-accent-foreground">
+          {fraseDaEsperaAtual(execucao.caminho)}
         </p>
       )}
 
@@ -255,10 +276,32 @@ function DetalheDaExecucao({ execucao, opcoes }: { execucao: ExecucaoListada; op
   )
 }
 
-const TIPO_DO_BLOCO = { gatilho: "Gatilho", condicao: "Condição", acao: "Ação" } as const
+const TIPO_DO_BLOCO = { gatilho: "Gatilho", condicao: "Condição", acao: "Ação", espera: "Esperar" } as const
 
 function PassoDoCaminho({ passo, opcoes }: { passo: PassoGravado; opcoes: OpcoesEditor }) {
   const falhou = passo.ok === false
+  const { bloco } = passo
+  if (bloco.tipo === "espera") {
+    // B28-02: a saída que a espera tomou e a hora, ou desde quando espera
+    const saida = passo.saida === "tempo" || passo.saida === "recebeu_mensagem" || passo.saida === "atendente_enviou" ? passo.saida : null
+    return (
+      <li className="rounded-lg border px-3 py-2">
+        <div className="flex items-start gap-2">
+          <span className="mt-0.5 w-16 shrink-0 text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground">
+            {TIPO_DO_BLOCO.espera}
+          </span>
+          <span className="flex-1 text-sm">{fraseBloco(bloco, opcoes)}</span>
+        </div>
+        <p className="mt-1 pl-[4.5rem] text-xs text-muted-foreground">
+          {saida
+            ? `Saiu por: ${rotuloDaSaidaDaEspera(bloco, saida).toLowerCase()}${passo.em ? `, às ${formatarHoraDoDia(passo.em)}` : ""}`
+            : passo.desde
+              ? `Esperando desde ${formatarHoraDoDia(passo.desde)}`
+              : "Esperando"}
+        </p>
+      </li>
+    )
+  }
   return (
     <li className={cn("rounded-lg border px-3 py-2", falhou && "border-erro/40 bg-erro-fundo")}>
       <div className="flex items-start gap-2">

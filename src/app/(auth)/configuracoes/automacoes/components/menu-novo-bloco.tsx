@@ -1,24 +1,34 @@
 "use client"
 
-import { Split } from "lucide-react"
+import { Hourglass, Split } from "lucide-react"
 import { Dialog, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
-import { ACOES_DISPONIVEIS, type AcaoTipo } from "@/lib/fluxo-automacao"
+import { ACOES_DISPONIVEIS, type AcaoTipo, type Saida } from "@/lib/fluxo-automacao"
 import { ACOES, GRUPOS_NOVO_BLOCO } from "./catalogo"
 
-export type ItemNovoBloco = "condicao" | AcaoTipo
+export type ItemNovoBloco = "condicao" | "espera" | AcaoTipo
 
 interface MenuNovoBlocoProps {
   aberto: boolean
   /** Quando o bloco nasce ligado a uma saída, o título diz qual. */
-  saida: "sim" | "nao" | "proximo" | null
+  saida: Saida | null
   onFechar: () => void
   onEscolher: (item: ItemNovoBloco) => void
 }
 
-const TITULO_POR_SAIDA = {
+const TITULO_POR_SAIDA: Record<Saida, string> = {
   sim: "Próximo bloco, quando a condição vale (sim)",
   nao: "Próximo bloco, quando a condição não vale (não)",
   proximo: "Próximo bloco",
+  // B28-02: as saídas do bloco "esperar"
+  tempo: "Próximo bloco, depois do tempo de espera",
+  recebeu_mensagem: "Próximo bloco, quando o contato mandar mensagem",
+  atendente_enviou: "Próximo bloco, quando o time mandar mensagem",
+}
+
+/** Os blocos que não são ação: o ícone e o nome no menu. */
+const LOGICA = {
+  condicao: { icone: Split, rotulo: "Condição (sim / não)" },
+  espera: { icone: Hourglass, rotulo: "Esperar" },
 } as const
 
 export function MenuNovoBloco({ aberto, saida, onFechar, onEscolher }: MenuNovoBlocoProps) {
@@ -38,10 +48,11 @@ export function MenuNovoBloco({ aberto, saida, onFechar, onEscolher }: MenuNovoB
               </h3>
               <div className="grid gap-1 sm:grid-cols-2">
                 {grupo.itens.map((item) => {
-                  const Icone = item === "condicao" ? Split : ACOES[item].icone
-                  const rotulo = item === "condicao" ? "Condição (sim / não)" : ACOES[item].rotulo
+                  const ehLogica = item === "condicao" || item === "espera"
+                  const Icone = ehLogica ? LOGICA[item].icone : ACOES[item].icone
+                  const rotulo = ehLogica ? LOGICA[item].rotulo : ACOES[item].rotulo
                   // O que o motor ainda não executa aparece, mas não dá para escolher
-                  const emBreve = item !== "condicao" && !ACOES_DISPONIVEIS.includes(item)
+                  const emBreve = !ehLogica && !ACOES_DISPONIVEIS.includes(item)
                   return (
                     <button
                       key={item}

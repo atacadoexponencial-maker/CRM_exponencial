@@ -18,11 +18,11 @@ import {
   type Node,
   type NodeProps,
 } from "@xyflow/react"
-import { Plus, Split, X, Zap } from "lucide-react"
+import { Hourglass, Plus, Split, X, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { Bloco, Repeticao, ResultadoSimulacao, Saida } from "@/lib/fluxo-automacao"
+import { saidasDaEspera, type Bloco, type Repeticao, type ResultadoSimulacao, type Saida, type SaidaDaEspera } from "@/lib/fluxo-automacao"
 import { ACOES, GATILHOS, type OpcoesEditor } from "./catalogo"
-import { fraseBloco, fraseRepeticao } from "./frases-fluxo"
+import { fraseBloco, fraseRepeticao, rotuloDaSaidaDaEspera } from "./frases-fluxo"
 
 export type DadosBloco = { bloco: Bloco }
 export type NoFluxo = Node<DadosBloco, Bloco["tipo"]>
@@ -56,6 +56,7 @@ const CABECALHO = {
   gatilho: { rotulo: "Gatilho", classe: "bg-aviso-fundo text-aviso border-aviso/30" },
   condicao: { rotulo: "Condição", classe: "bg-info-fundo text-info border-info/30" },
   acao: { rotulo: "Ação", classe: "bg-sucesso-fundo text-sucesso border-sucesso/30" },
+  espera: { rotulo: "Esperar", classe: "bg-accent text-accent-foreground border-border" },
 } as const
 
 const classeAlca = "size-3! border-2! border-background! bg-muted-foreground!"
@@ -88,18 +89,23 @@ function BlocoDoFluxo({ id, data, selected }: NodeProps<NoFluxo>) {
       ? (GATILHOS[bloco.gatilho]?.icone ?? Zap)
       : bloco.tipo === "acao"
         ? (ACOES[bloco.acao]?.icone ?? Zap)
-        : Split
+        : bloco.tipo === "espera"
+          ? Hourglass
+          : Split
   const problemas = pendencias[id] ?? []
   const noCaminho = simulacao ? simulacao.blocos.includes(id) : null
   const saidaSimulada = simulacao?.saidas[id]
 
+  // B28-02: o bloco "esperar" tem uma saída por opção ligada, espalhadas por igual
   const saidas: Array<{ saida: Saida; esquerda: string }> =
     bloco.tipo === "condicao"
       ? [
           { saida: "sim", esquerda: "28%" },
           { saida: "nao", esquerda: "72%" },
         ]
-      : [{ saida: "proximo", esquerda: "50%" }]
+      : bloco.tipo === "espera"
+        ? saidasDaEspera(bloco).map((saida, i, todas) => ({ saida, esquerda: `${((i + 0.5) / todas.length) * 100}%` }))
+        : [{ saida: "proximo", esquerda: "50%" }]
 
   return (
     <div
@@ -153,6 +159,21 @@ function BlocoDoFluxo({ id, data, selected }: NodeProps<NoFluxo>) {
           >
             não
           </span>
+        </div>
+      )}
+
+      {bloco.tipo === "espera" && simulacao?.espera === id && (
+        <p className="px-3 pb-2.5 text-xs font-medium text-sucesso">Aqui o contato esperaria</p>
+      )}
+
+      {bloco.tipo === "espera" && saidas.length > 0 && (
+        <div
+          className="grid gap-1 border-t px-1 py-1.5 text-center text-xs font-medium text-muted-foreground"
+          style={{ gridTemplateColumns: `repeat(${saidas.length}, minmax(0, 1fr))` }}
+        >
+          {saidas.map(({ saida }) => (
+            <span key={saida}>{rotuloDaSaidaDaEspera(bloco, saida as SaidaDaEspera)}</span>
+          ))}
         </div>
       )}
 
@@ -234,6 +255,7 @@ export const TIPOS_DE_BLOCO = {
   gatilho: BlocoDoFluxo,
   condicao: BlocoDoFluxo,
   acao: BlocoDoFluxo,
+  espera: BlocoDoFluxo,
 }
 
 export const TIPOS_DE_LIGACAO = { ligacao: LigacaoComBotao }

@@ -500,3 +500,4 @@ sai nesta spec; no lugar dela entra a ação "criar lembrete na Agenda".
 | PER-B28-06 | O que acontece com quem espera quando a regra muda? | respondida | Desativar e excluir cancelam; editar mantém quem espera num bloco que continua (Luan, 20/10/2026). |
 | PER-B28-07 | Depois da saída de mensagem, as condições de mensagem olham a mensagem nova? | respondida | Sim, em qualquer gatilho (Luan, 20/10/2026). |
 | PER-B28-08 | O que fica no lugar do botão "Iniciar sequência"? | respondida | Nada: o botão sai (Luan, 20/10/2026). |
+| PER-B28-09 | Que segredo protege a rota do relógio? | respondida | O mesmo do gateway (`GATEWAY_WEBHOOK_SECRET`), com a assinatura HMAC que ele já usa nos webhooks: nada novo para configurar na Vercel nem no gateway (Luan, 25/10/2026). Descartado: um segredo só do relógio. |

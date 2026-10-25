@@ -6,11 +6,18 @@ import { motivoParaIgnorar } from "@/lib/automacoes/execucoes"
 import { FIM_DO_DIA, dentroDoHorario, descreverHorario, problemaDoHorario } from "@/lib/horario-comercial"
 import type { ServiceClient } from "@/lib/automacoes/contexto"
 
-/** Banco em que a regra já rodou para o contato. */
+/** Banco em que a regra já rodou para o contato, que não está esperando nela (B28-02). */
 function jaRodou(): ServiceClient {
   const obj: Record<string, unknown> = {}
-  for (const m of ["select", "eq", "neq", "contains", "gte", "limit"]) obj[m] = vi.fn(() => obj)
-  obj.maybeSingle = vi.fn(async () => ({ data: { id: "run-1" }, error: null }))
+  let procuraEspera = false
+  for (const m of ["select", "eq", "neq", "contains", "gte", "limit"]) {
+    obj[m] = vi.fn((...args: unknown[]) => {
+      if (m === "select") procuraEspera = false
+      if (m === "eq" && args[0] === "resultado" && args[1] === "esperando") procuraEspera = true
+      return obj
+    })
+  }
+  obj.maybeSingle = vi.fn(async () => ({ data: procuraEspera ? null : { id: "run-1" }, error: null }))
   return { from: vi.fn(() => obj) } as unknown as ServiceClient
 }
 
