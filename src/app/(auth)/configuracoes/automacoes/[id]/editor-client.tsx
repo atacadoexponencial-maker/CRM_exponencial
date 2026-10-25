@@ -9,7 +9,14 @@
 
 import { useRef } from "react"
 import { useRouter } from "next/navigation"
-import { buscarContatosTeste, guardarArquivoDaAutomacao, salvarRegra, simularRegra, type RegraDoEditor } from "../actions"
+import {
+  buscarContatosTeste,
+  contarEsperasQueSaem,
+  guardarArquivoDaAutomacao,
+  salvarRegra,
+  simularRegra,
+  type RegraDoEditor,
+} from "../actions"
 import type { OpcoesEditor } from "../components/catalogo"
 import { EditorFluxo, type RegraEditada } from "../components/editor-fluxo"
 import { chaveDoRascunho } from "../components/rascunho-editor"
@@ -60,6 +67,8 @@ export function EditorClient({
       onVoltar={() => router.push("/configuracoes/automacoes")}
       chaveRascunho={chaveDoRascunho(usuarioId, regra.id)}
       regraNova={regra.id === null}
+      // B28-04: regra ainda não salva não tem ninguém esperando
+      contarEsperasQueSaem={async (fluxo) => (idSalvo.current ? contarEsperasQueSaem(idSalvo.current, fluxo) : 0)}
     />
   )
 }

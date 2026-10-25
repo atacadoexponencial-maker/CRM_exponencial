@@ -285,6 +285,47 @@ async function terminar(
   }
 }
 
+/**
+ * As execuções esperando numa regra, com o bloco em que cada uma está (B28-04).
+ * `soFora`: só as que esperam num bloco que este fluxo não tem mais como "esperar".
+ * Erro sobe.
+ */
+export async function esperasDaRegra(
+  supabase: ServiceClient,
+  workspaceId: string,
+  regraId: string,
+  soFora?: Fluxo
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("automation_runs")
+    .select("id, caminho")
+    .eq("workspace_id", workspaceId)
+    .eq("regra_id", regraId)
+    .eq("resultado", "esperando")
+  if (error) throw error
+  const continuam = new Set((soFora?.blocos ?? []).filter((b) => b.tipo === "espera").map((b) => b.id))
+  return (data ?? [])
+    .filter((e) => {
+      if (!soFora) return true
+      const passos = (Array.isArray(e.caminho) ? e.caminho : []) as unknown as PassoGravado[]
+      return !continuam.has(passos.at(-1)?.bloco.id ?? "")
+    })
+    .map((e) => e.id)
+}
+
+/** Cancela estas execuções, se ainda estiverem esperando. Erro sobe. */
+export async function cancelarEsperas(supabase: ServiceClient, ids: string[], motivo: string): Promise<void> {
+  if (ids.length === 0) return
+  const { error } = await supabase
+    .from("automation_runs")
+    .update({ resultado: "cancelada", motivo, retomar_em: null, retomada_em: null, atualizada_em: new Date().toISOString() })
+    .in("id", ids)
+    .eq("resultado", "esperando")
+    // A que está seguindo agora (pega pelo relógio ou por uma mensagem) termina como seguiu
+    .is("retomada_em", null)
+  if (error) throw error
+}
+
 /** Cancela as esperas do contato (CA-B28-16). Erro sobe para quem chamou decidir. */
 export async function cancelarEsperasDoContato(
   supabase: ServiceClient,

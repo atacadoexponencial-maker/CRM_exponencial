@@ -91,6 +91,8 @@ interface EditorFluxoProps {
   regraNova: boolean
   /** Aviso que o editor já mostra ao abrir, como "Automação salva" logo depois do primeiro salvamento. */
   avisoInicial?: string
+  /** Quantos contatos esperam num bloco que este fluxo não tem mais, para o aviso antes de salvar (B28-04). */
+  contarEsperasQueSaem?: (fluxo: Fluxo) => Promise<number>
 }
 
 // Distância do bloco novo até o bloco de onde ele sai
@@ -187,6 +189,7 @@ function EditorFluxoInterno({
   chaveRascunho,
   regraNova,
   avisoInicial,
+  contarEsperasQueSaem,
 }: EditorFluxoProps) {
   // B36-12: o canvas segue o tema da tela (era sempre escuro).
   const modoDeCor = useTemaDaTela()
@@ -206,6 +209,7 @@ function EditorFluxoInterno({
     caminho: string
   } | null>(null)
   const [avisoRepeticao, setAvisoRepeticao] = useState(false)
+  const [esperasQueSaem, setEsperasQueSaem] = useState(0)
   const [destacarErros, setDestacarErros] = useState(false)
   const [erroNome, setErroNome] = useState(false)
   const [mensagem, setMensagem] = useState<{ tipo: "erro" | "ok"; texto: string } | null>(
@@ -482,7 +486,7 @@ function EditorFluxoInterno({
     return false
   }
 
-  async function tentarSalvar(aceitouAviso = false) {
+  async function tentarSalvar(aceitouAviso = false, aceitouCancelarEsperas = false) {
     setMensagem(null)
     const nomeOk = nome.trim() !== ""
     setErroNome(!nomeOk)
@@ -504,6 +508,16 @@ function EditorFluxoInterno({
       return
     }
     setAvisoRepeticao(false)
+
+    // B28-04: quem espera num bloco apagado tem a espera cancelada ao salvar; a pessoa confirma antes
+    if (!aceitouCancelarEsperas && contarEsperasQueSaem) {
+      const quantos = await contarEsperasQueSaem(fluxo)
+      if (quantos > 0) {
+        setEsperasQueSaem(quantos)
+        return
+      }
+    }
+    setEsperasQueSaem(0)
 
     // B22-31: cliques seguidos chegam antes de o botão ficar desabilitado na tela;
     // a referência muda na hora, e só um salvamento roda por vez
@@ -744,6 +758,24 @@ function EditorFluxoInterno({
             <DialogClose render={<Button variant="outline" />}>Voltar</DialogClose>
             <Button onClick={() => tentarSalvar(true)} disabled={salvando}>
               Salvar assim mesmo
+            </Button>
+          </div>
+        </DialogPopup>
+      </Dialog>
+
+      {/* B28-04: salvar cancela a espera de quem está num bloco apagado */}
+      <Dialog open={esperasQueSaem > 0} onOpenChange={(aberto) => !aberto && setEsperasQueSaem(0)}>
+        <DialogPopup className="max-w-md">
+          <DialogTitle className="mb-2">Cancelar esperas?</DialogTitle>
+          <DialogDescription className="mb-4">
+            {esperasQueSaem === 1
+              ? "1 contato está esperando num bloco que você apagou. Salvar cancela essa espera, e as ações depois dela não rodam."
+              : `${esperasQueSaem} contatos estão esperando em blocos que você apagou. Salvar cancela essas esperas, e as ações depois delas não rodam.`}
+          </DialogDescription>
+          <div className="flex justify-end gap-2">
+            <DialogClose render={<Button variant="outline" />}>Voltar</DialogClose>
+            <Button variant="destructive" onClick={() => tentarSalvar(true, true)} disabled={salvando}>
+              Salvar e cancelar
             </Button>
           </div>
         </DialogPopup>

@@ -5,7 +5,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { alternarRegra, duplicarRegra, excluirRegra, salvarHorarioComercial } from "./actions"
+import { alternarRegra, contarEsperasDaRegra, duplicarRegra, excluirRegra, salvarHorarioComercial } from "./actions"
 import type { OpcoesEditor } from "./components/catalogo"
 import { DialogoHorarioComercial } from "./components/dialogo-horario-comercial"
 import { ListaRegras, type RegraListada } from "./components/lista-regras"
@@ -42,6 +42,7 @@ export function ListaClient({ regras, opcoes }: { regras: RegraListada[]; opcoes
         onDuplicar={(id) => executar(duplicarRegra(id))}
         onVerHistorico={(id) => router.push(`/configuracoes/automacoes/historico?regra=${id}`)}
         onExcluir={(id) => executar(excluirRegra(id))}
+        contarEsperas={contarEsperasDaRegra}
       />
       <DialogoHorarioComercial
         aberto={horarioAberto}

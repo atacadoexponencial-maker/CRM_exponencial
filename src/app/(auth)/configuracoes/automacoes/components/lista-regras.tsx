@@ -44,6 +44,13 @@ interface ListaRegrasProps {
   onDuplicar: (id: string) => void
   onVerHistorico: (id: string) => void
   onExcluir: (id: string) => Promise<{ erro?: string }>
+  /** Quantos contatos estão esperando na regra, para o aviso antes de pausar e de excluir (B28-04). */
+  contarEsperas?: (id: string) => Promise<number>
+}
+
+/** "2 contatos estão esperando nesta regra" (CA-B28-18). */
+export function contatosEsperando(quantos: number): string {
+  return quantos === 1 ? "1 contato está esperando nesta regra" : `${quantos} contatos estão esperando nesta regra`
 }
 
 const EXEMPLOS = [
@@ -77,6 +84,7 @@ export function ListaRegras({
   onDuplicar,
   onVerHistorico,
   onExcluir,
+  contarEsperas,
 }: ListaRegrasProps) {
   // O interruptor muda na hora e fica "salvando" até a resposta do servidor (B22-21)
   const [regrasNaTela, marcarAlternando] = useOptimistic(
@@ -88,12 +96,35 @@ export function ListaRegras({
   const [excluindo, setExcluindo] = useState<RegraListada | null>(null)
   const [aguardando, setAguardando] = useState(false)
   const [erroExcluir, setErroExcluir] = useState<string | null>(null)
+  // B28-04: quantos contatos esperam na regra que vai ser pausada ou excluída
+  const [pausando, setPausando] = useState<{ regra: RegraListada; quantos: number } | null>(null)
+  const [esperandoNaExcluida, setEsperandoNaExcluida] = useState(0)
 
-  function alternar(id: string, ativa: boolean) {
+  function mudarAtiva(id: string, ativa: boolean) {
     iniciarTransicao(async () => {
       marcarAlternando({ id, ativa })
       await onAlternar(id, ativa)
     })
+  }
+
+  /** Pausar uma regra com contatos esperando pede confirmação: as esperas são canceladas. */
+  async function alternar(regra: RegraListada, ativa: boolean) {
+    const quantos = !ativa && contarEsperas ? await contarEsperas(regra.id) : 0
+    if (quantos > 0) setPausando({ regra, quantos })
+    else mudarAtiva(regra.id, ativa)
+  }
+
+  function confirmarPausa() {
+    if (!pausando) return
+    mudarAtiva(pausando.regra.id, false)
+    setPausando(null)
+  }
+
+  async function abrirExclusao(regra: RegraListada) {
+    setErroExcluir(null)
+    setEsperandoNaExcluida(0)
+    setExcluindo(regra)
+    if (contarEsperas) setEsperandoNaExcluida(await contarEsperas(regra.id))
   }
 
   async function confirmarExclusao() {
@@ -215,7 +246,7 @@ export function ListaRegras({
                       aria-busy={r.salvando || undefined}
                       aria-label={r.ativa ? `Pausar ${r.nome}` : `Ativar ${r.nome}`}
                       disabled={r.salvando}
-                      onClick={() => alternar(r.id, !r.ativa)}
+                      onClick={() => alternar(r, !r.ativa)}
                       className={cn(
                         "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
                         r.ativa ? "bg-primary" : "bg-muted-foreground/30",
@@ -251,10 +282,7 @@ export function ListaRegras({
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           variant="destructive"
-                          onClick={() => {
-                            setErroExcluir(null)
-                            setExcluindo(r)
-                          }}
+                          onClick={() => abrirExclusao(r)}
                         >
                           Excluir
                         </DropdownMenuItem>
@@ -276,11 +304,34 @@ export function ListaRegras({
               Excluir <strong>{excluindo?.nome}</strong>? A regra para de rodar. O histórico do que ela já fez
               continua disponível.
             </p>
+            {esperandoNaExcluida > 0 && (
+              <p className="text-sm text-aviso">
+                {contatosEsperando(esperandoNaExcluida)}. Excluir cancela essas esperas.
+              </p>
+            )}
             {erroExcluir && <p className="text-sm text-erro">{erroExcluir}</p>}
             <div className="flex justify-end gap-2">
               <DialogClose render={<Button type="button" variant="outline" />}>Cancelar</DialogClose>
               <Button variant="destructive" onClick={confirmarExclusao} disabled={aguardando}>
                 Excluir
+              </Button>
+            </div>
+          </div>
+        </DialogPopup>
+      </Dialog>
+
+      <Dialog open={pausando !== null} onOpenChange={(open) => !open && setPausando(null)}>
+        <DialogPopup>
+          <DialogTitle className="mb-4">Pausar automação</DialogTitle>
+          <div className="flex flex-col gap-4">
+            <p className="text-sm">
+              {pausando && contatosEsperando(pausando.quantos)}. Pausar <strong>{pausando?.regra.nome}</strong>{" "}
+              cancela essas esperas, e as ações depois delas não rodam.
+            </p>
+            <div className="flex justify-end gap-2">
+              <DialogClose render={<Button type="button" variant="outline" />}>Voltar</DialogClose>
+              <Button variant="destructive" onClick={confirmarPausa}>
+                Pausar e cancelar
               </Button>
             </div>
           </div>

@@ -33,6 +33,7 @@ import {
   tipoDeContatoValido,
 } from "@/lib/automacoes/referencias"
 import { simularFluxo } from "@/lib/automacoes/simulacao"
+import { BLOCO_SAIU, REGRA_DESATIVADA, REGRA_EXCLUIDA, cancelarEsperas, esperasDaRegra } from "@/lib/automacoes/esperas"
 import { RESULTADOS_DA_EXECUCAO, type PassoGravado, type ResultadoExecucao } from "@/lib/automacoes/execucoes"
 import {
   lerRepeticao,
@@ -399,6 +400,9 @@ export async function salvarRegra(dados: {
       .maybeSingle()
     if (error) return { erro: "Não foi possível salvar a automação. Tente novamente." }
     if (!data) return { erro: "Esta automação não existe mais." }
+    // B28-04: quem espera num bloco que saiu do fluxo tem a espera cancelada; quem
+    // espera num bloco que continua segue esperando, e depois segue o fluxo novo
+    await cancelarEsperasDaRegra(admin, data.id, BLOCO_SAIU, fluxo)
     await limparArquivosSemUso(admin)
     revalidatePath(CAMINHO_LISTA)
     return { id: data.id }
@@ -476,6 +480,8 @@ export async function alternarRegra(id: string, ativa: boolean): Promise<{ erro?
   if (error) return { erro: "Não foi possível alterar a automação. Tente novamente." }
   // B22-42: regra apagada (outra aba, outro admin) não é erro passageiro
   if (!data) return { erro: "Esta automação não existe mais." }
+  // B28-04: pausar cancela as esperas da regra
+  if (!ativa) await cancelarEsperasDaRegra(admin, id, REGRA_DESATIVADA)
   revalidatePath(CAMINHO_LISTA)
   return {}
 }
@@ -524,9 +530,48 @@ export async function excluirRegra(id: string): Promise<{ erro?: string }> {
     .maybeSingle()
   if (error) return { erro: "Não foi possível excluir a automação. Tente novamente." }
   if (!data) return { erro: "Esta automação não existe mais." }
+  // B28-04: excluir cancela as esperas da regra
+  await cancelarEsperasDaRegra(admin, id, REGRA_EXCLUIDA)
   await limparArquivosSemUso(admin)
   revalidatePath(CAMINHO_LISTA)
   return {}
+}
+
+/**
+ * Cancela as esperas da regra (todas, ou só as de blocos que não estão em `soFora`).
+ * Não falha a ação: a espera que sobrar é cancelada quando for seguir, pelo mesmo motivo.
+ */
+async function cancelarEsperasDaRegra({ workspaceId }: Admin, regraId: string, motivo: string, soFora?: Fluxo) {
+  try {
+    const servico = createServiceClient()
+    await cancelarEsperas(servico, await esperasDaRegra(servico, workspaceId, regraId, soFora), motivo)
+  } catch {
+    // Ver acima
+  }
+}
+
+/** Quantos contatos estão esperando na regra: o aviso antes de pausar e de excluir (B28-04). */
+export async function contarEsperasDaRegra(id: string): Promise<number> {
+  const admin = await adminDaSessao()
+  if (!admin || !ehTexto(id)) return 0
+  try {
+    return (await esperasDaRegra(createServiceClient(), admin.workspaceId, id)).length
+  } catch {
+    return 0
+  }
+}
+
+/** Quantos contatos esperam num bloco que este fluxo não tem mais: o aviso antes de salvar (B28-04). */
+export async function contarEsperasQueSaem(id: string, fluxoRecebido: unknown): Promise<number> {
+  const admin = await adminDaSessao()
+  if (!admin || !ehTexto(id) || grandeDemais(fluxoRecebido)) return 0
+  const fluxo = lerFluxo(fluxoRecebido)
+  if (!fluxo) return 0
+  try {
+    return (await esperasDaRegra(createServiceClient(), admin.workspaceId, id, fluxo)).length
+  } catch {
+    return 0
+  }
 }
 
 const HorarioRecebido = z.object({
