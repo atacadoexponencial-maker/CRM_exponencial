@@ -100,7 +100,7 @@ export function PainelDeCarteiras({ resultado, acoesDoVendedor, acoesDosSemVende
   )
 }
 
-/** Histórico de alterações, 20 por página; a primeira página chega com o painel. */
+/** Histórico de alterações, 10 por página; a primeira página chega com o painel. */
 function HistoricoDeCarteira({ inicial, totalInicial }: { inicial: LinhaDoHistoricoDeCarteira[]; totalInicial: number }) {
   const [pagina, setPagina] = useState(0)
   const [historico, setHistorico] = useState(inicial)

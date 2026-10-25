@@ -9,6 +9,7 @@ import { calcularPainelDeCarteiras } from "@/lib/relatorios/carteiras"
 import type { VendaRow } from "@/lib/relatorios/visao-geral"
 import { gerarCsv, gerarPlanilha } from "@/lib/exportar-planilha"
 import { colunasExportacaoCoorte } from "@/lib/relatorios/exportar-coorte"
+import { COLUNAS_EXPORTACAO_RFV } from "@/lib/relatorios/exportar-rfv"
 import type { Coorte } from "@/lib/relatorios/coorte"
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }))
@@ -89,25 +90,39 @@ describe("Excel com porcentagem", () => {
   })
 })
 
+describe("Excel do RFV — nota nos títulos R, F, V e FV", () => {
+  it("cada um dos quatro títulos tem a nota que aparece ao passar o mouse; os outros não", () => {
+    const bytes = gerarPlanilha(COLUNAS_EXPORTACAO_RFV, rfv().clientes, "RFV")
+    const aba = XLSX.read(bytes, { type: "array" }).Sheets["RFV"]
+    const nota = (endereco: string) => aba[endereco].c?.[0]?.t
+    expect(nota("C1")).toMatch(/^Recência: há quanto tempo foi a última compra\. 5 = até 30 dias/)
+    expect(nota("D1")).toMatch(/^Frequência: quantas compras nos últimos 12 meses/)
+    expect(nota("E1")).toMatch(/^Valor: quanto gastou nos últimos 12 meses/)
+    expect(nota("F1")).toBe("Média entre F e V, arredondada para cima. É a linha da matriz.")
+    expect(aba["A1"].c).toBeUndefined()
+    expect(aba["G1"].c).toBeUndefined()
+  })
+})
+
 describe("Carteiras — histórico paginado", () => {
   const linha = (n: number): LinhaDoHistoricoDeCarteira => ({ id: `h${n}`, quando: "2026-10-21T17:03:00Z", contato: `Contato ${n}`, de: null, para: "Ana", motivo: "distribuicao", por: "Admin" })
   const painel = calcularPainelDeCarteiras([], [{ id: "a1", nome: "Ana" }])
 
-  it("mostra 20 por vez com 'Mostrando 1–20 de 45' e a seta busca a página seguinte no servidor", async () => {
-    buscarHistoricoDeCarteira.mockResolvedValue({ linhas: Array.from({ length: 20 }, (_, i) => linha(21 + i)), total: 45 })
-    render(<PainelDeCarteiras resultado={{ papel: "admin", painel, historico: Array.from({ length: 20 }, (_, i) => linha(1 + i)), historicoTotal: 45 }} />)
-    expect(screen.getAllByRole("row")).toHaveLength(21)
-    expect(screen.getByTestId("paginacao-historico")).toHaveTextContent("Mostrando 1–20 de 45")
+  it("mostra 10 por vez com 'Mostrando 1–10 de 25' e a seta busca a página seguinte no servidor", async () => {
+    buscarHistoricoDeCarteira.mockResolvedValue({ linhas: Array.from({ length: 10 }, (_, i) => linha(11 + i)), total: 25 })
+    render(<PainelDeCarteiras resultado={{ papel: "admin", painel, historico: Array.from({ length: 10 }, (_, i) => linha(1 + i)), historicoTotal: 25 }} />)
+    expect(screen.getAllByRole("row")).toHaveLength(11)
+    expect(screen.getByTestId("paginacao-historico")).toHaveTextContent("Mostrando 1–10 de 25")
     expect(screen.getByRole("button", { name: "Página anterior" })).toBeDisabled()
 
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Próxima página" })) })
     expect(buscarHistoricoDeCarteira).toHaveBeenCalledWith(1)
-    expect(screen.getByTestId("paginacao-historico")).toHaveTextContent("Mostrando 21–40 de 45")
-    expect(screen.getByText("Contato 21")).toBeInTheDocument()
+    expect(screen.getByTestId("paginacao-historico")).toHaveTextContent("Mostrando 11–20 de 25")
+    expect(screen.getByText("Contato 11")).toBeInTheDocument()
     expect(screen.queryByText("Contato 1")).toBeNull()
   })
 
-  it("sem passar de 20 linhas, não mostra as setas", () => {
+  it("sem passar de 10 linhas, não mostra as setas", () => {
     render(<PainelDeCarteiras resultado={{ papel: "admin", painel, historico: [linha(1)], historicoTotal: 1 }} />)
     expect(screen.queryByTestId("paginacao-historico")).toBeNull()
   })

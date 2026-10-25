@@ -45,4 +45,4 @@ export function calcularPainelDeCarteiras(contatos: ContatoDaCarteira[], vendedo
 }
 
 /** Linhas do histórico de carteiras por página, a mais recente primeiro. */
-export const HISTORICO_POR_PAGINA = 20
+export const HISTORICO_POR_PAGINA = 10

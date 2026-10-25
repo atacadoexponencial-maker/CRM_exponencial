@@ -14,6 +14,8 @@ export interface ColunaPlanilha<T> {
   valor: (linha: T) => string | number | Date | null | undefined
   /** Largura em caracteres (padrão: tamanho do título + 4, mínimo 12). */
   largura?: number
+  /** Nota do Excel no título: aparece ao passar o mouse. */
+  nota?: string
 }
 
 const FORMATO: Record<TipoCelula, string | null> = {
@@ -46,6 +48,11 @@ export function gerarPlanilhaComAbas(abas: AbaPlanilha<any>[]): Uint8Array {
 
 function montarAba<T>(colunas: ColunaPlanilha<T>[], linhas: T[]): XLSX.WorkSheet {
   const planilha = XLSX.utils.aoa_to_sheet([colunas.map((c) => c.titulo)], { cellDates: true })
+  colunas.forEach((coluna, j) => {
+    if (!coluna.nota) return
+    const titulo = planilha[XLSX.utils.encode_cell({ r: 0, c: j })] as XLSX.CellObject
+    titulo.c = Object.assign([{ a: "crmatacado exp", t: coluna.nota }], { hidden: true })
+  })
 
   linhas.forEach((linha, i) => {
     colunas.forEach((coluna, j) => {

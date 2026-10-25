@@ -89,7 +89,7 @@ describe("B35-01 — histórico de carteira", { timeout: 60_000 }, () => {
 })
 
 describe("Histórico de carteira paginado (ajuste de 25/10/2026)", { timeout: 60_000 }, () => {
-  it("20 por página, a mais recente primeiro; a página 1 traz as que sobram; o Atendente não lê", async () => {
+  it("10 por página, a mais recente primeiro; as páginas seguintes trazem as que sobram; o Atendente não lê", async () => {
     // Mais 24 linhas, mais antigas que a do card: 25 no total.
     const base = Date.now() - 86_400_000
     await service.from("carteira_historico").insert(Array.from({ length: 24 }, (_, i) => ({
@@ -98,15 +98,17 @@ describe("Histórico de carteira paginado (ajuste de 25/10/2026)", { timeout: 60
     })))
     entrarComo(adminId)
     const r = await buscarCarteiras()
-    expect(r?.historico).toHaveLength(20)
+    expect(r?.historico).toHaveLength(10)
     expect(r?.historicoTotal).toBe(25)
     expect(r!.historico![0].motivo).toBe("pelo_card")
 
     const p1 = await buscarHistoricoDeCarteira(1)
     expect(p1?.total).toBe(25)
-    expect(p1?.linhas).toHaveLength(5)
-    const ids0 = new Set(r!.historico!.map((h) => h.id))
-    expect(p1!.linhas.some((h) => ids0.has(h.id))).toBe(false)
+    expect(p1?.linhas).toHaveLength(10)
+    const p2 = await buscarHistoricoDeCarteira(2)
+    expect(p2?.linhas).toHaveLength(5)
+    const ids = [...r!.historico!, ...p1!.linhas, ...p2!.linhas].map((h) => h.id)
+    expect(new Set(ids).size).toBe(25)
     expect(await buscarHistoricoDeCarteira(-1)).toBeNull()
 
     entrarComo(anaId)
