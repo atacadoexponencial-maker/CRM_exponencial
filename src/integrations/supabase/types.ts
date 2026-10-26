@@ -414,6 +414,83 @@ export type Database = {
           },
         ]
       }
+      campo_opcoes: {
+        Row: {
+          campo_id: string
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          workspace_id: string
+        }
+        Insert: {
+          campo_id: string
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          workspace_id: string
+        }
+        Update: {
+          campo_id?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campo_opcoes_campo_id_fkey"
+            columns: ["campo_id"]
+            isOneToOne: false
+            referencedRelation: "campos_personalizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campo_opcoes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campos_personalizados: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          tipo: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          tipo: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          tipo?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campos_personalizados_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       carteira_historico: {
         Row: {
           alterado_por: string | null
@@ -1080,6 +1157,64 @@ export type Database = {
           },
           {
             foreignKeyName: "contacts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contato_campos: {
+        Row: {
+          atualizado_em: string
+          campo_id: string
+          contact_id: string
+          valor_booleano: boolean | null
+          valor_data: string | null
+          valor_numero: number | null
+          valor_opcoes: string[] | null
+          valor_texto: string | null
+          workspace_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          campo_id: string
+          contact_id: string
+          valor_booleano?: boolean | null
+          valor_data?: string | null
+          valor_numero?: number | null
+          valor_opcoes?: string[] | null
+          valor_texto?: string | null
+          workspace_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          campo_id?: string
+          contact_id?: string
+          valor_booleano?: boolean | null
+          valor_data?: string | null
+          valor_numero?: number | null
+          valor_opcoes?: string[] | null
+          valor_texto?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contato_campos_campo_id_fkey"
+            columns: ["campo_id"]
+            isOneToOne: false
+            referencedRelation: "campos_personalizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contato_campos_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contato_campos_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -2161,24 +2296,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      sonda_webhook_meta: {
-        Row: {
-          id: string
-          payload: Json
-          recebido_em: string
-        }
-        Insert: {
-          id?: string
-          payload: Json
-          recebido_em?: string
-        }
-        Update: {
-          id?: string
-          payload?: Json
-          recebido_em?: string
-        }
-        Relationships: []
       }
       teams: {
         Row: {

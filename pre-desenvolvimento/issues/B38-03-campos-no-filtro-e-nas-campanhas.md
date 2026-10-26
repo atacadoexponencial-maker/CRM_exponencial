@@ -21,6 +21,7 @@ Em Contatos, "Porte é qualquer um de Grande" traz os contatos certos, combina c
 - **CA-B38-34** (automática) — Filtro salvo com campo personalizado. Dado o Gerente salva o filtro "Lojas grandes" com "Porte é qualquer um de Grande", quando qualquer pessoa da empresa abre esse filtro salvo, então ele traz os mesmos contatos, e renomear o campo ou a opção não muda o resultado
 - **CA-B38-35** (automática) — Público de campanha por campo personalizado. Dado uma campanha nova, quando o Admin escolhe o público "Porte é qualquer um de Grande", então a contagem do público e a lista de quem recebe trazem os mesmos contatos que o filtro de Contatos traz
 - **CA-B38-36** (automática) — Filtro do atendente continua só na carteira dele. Dado um Atendente que só vê os contatos que atende, quando ele filtra por um campo personalizado, então o resultado traz só contatos que ele já podia ver
+- **CA-B38-44** (automática) — Uma empresa não vê os campos da outra. Dado a empresa A com o campo "CNPJ" e a empresa B sem campos, quando um usuário da empresa B abre a tela de campos, um perfil de contato e o filtro, ou faz um pedido ao servidor com o campo da empresa A, então ele não vê o campo nem os valores da empresa A, e o pedido é recusado
 
 ## Suposições
 

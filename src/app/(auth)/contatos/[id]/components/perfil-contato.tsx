@@ -28,6 +28,8 @@ import { atualizarDadosContato, adicionarTagContato, removerTagContato, atualiza
 import { ROTULO_FORMA_PAGAMENTO, ROTULO_ORIGEM_COMPRA } from "@/lib/compras"
 import { UFS } from "@/lib/uf"
 import { SeloPerfilRfv } from "@/components/shared/selo-perfil-rfv"
+import { CamposPersonalizadosContato } from "./campos-personalizados-contato"
+import type { CampoComValor } from "../../campos-personalizados"
 
 const CLASSIFICACAO_BADGE: Record<string, string> = {
   lead: "bg-info-fundo text-info border-info/30",
@@ -63,9 +65,11 @@ interface PerfilContatoProps {
   /** B30-01: usuários ativos para o seletor de atendente da compra e quem vem marcado. */
   atendentes?: Array<{ id: string; nome: string }>
   atendenteSugeridoId?: string | null
+  /** B38-01: campos personalizados da empresa com o valor deste contato. */
+  camposPersonalizados?: CampoComValor[]
 }
 
-export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes = [], atendenteSugeridoId = null }: PerfilContatoProps) {
+export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes = [], atendenteSugeridoId = null, camposPersonalizados = [] }: PerfilContatoProps) {
   const router = useRouter()
   const [aba, setAba] = useState<Aba>("dados")
   const [editando, setEditando] = useState(false)
@@ -444,6 +448,9 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
               </div>
             )}
           </section>
+
+          {/* B38-01: campos criados pela empresa */}
+          {contactId && <CamposPersonalizadosContato contactId={contactId} campos={camposPersonalizados} />}
 
           {/* Tags */}
           <section className="space-y-3">
