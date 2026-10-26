@@ -13,6 +13,7 @@ import type { CadastroDoContato } from "../actions"
 import { CLASSIFICACAO_LABEL, ICP_LABEL, TIPO_LABEL, type ClassificacaoContato, type ICP, type TipoContato } from "@/app/(auth)/contatos/mock-contatos"
 import { UFS } from "@/lib/uf"
 import { textoDaUltimaCompra, type ResumoDeCompras } from "@/lib/resumo-de-compras"
+import { CamposPersonalizadosChat } from "./campos-personalizados-chat"
 
 const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
 
@@ -437,6 +438,8 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
                 </div>
               )}
               {erroTag && <p className="text-xs text-destructive">{erroTag}</p>}
+              {/* B38-02: campos da empresa; quem vê o contato edita aqui mesmo. */}
+              <CamposPersonalizadosChat contactId={cadastro.contactId} />
               <Link
                 href={`/contatos/${cadastro.contactId}`}
                 className="inline-flex items-center gap-1 text-xs text-primary hover:underline"

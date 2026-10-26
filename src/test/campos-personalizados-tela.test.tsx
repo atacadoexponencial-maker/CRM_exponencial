@@ -101,7 +101,7 @@ describe("B38-01 — campos personalizados na tela", () => {
   })
 
   it("CA-B38-08: should mostrar o tipo só para leitura no editor do campo", () => {
-    const campo: CampoParaGerenciar = { id: "q", nome: "Quantidade de lojas", tipo: "numero", ordem: 0, opcoes: [], preenchidos: 2 }
+    const campo: CampoParaGerenciar = { id: "q", nome: "Quantidade de lojas", tipo: "numero", ordem: 0, mostrarNaLista: false, opcoes: [], preenchidos: 2 }
     render(<CamposClient campos={[campo]} />)
     fireEvent.click(screen.getByRole("button", { name: "Editar" }))
     const editor = screen.getByRole("region", { name: "Editar Quantidade de lojas" })

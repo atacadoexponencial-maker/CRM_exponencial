@@ -2,14 +2,8 @@
 
 import { revalidatePath } from "next/cache"
 import { sessaoAtual } from "@/lib/sessao"
-import {
-  conferirValor,
-  valorDaLinha,
-  type CampoPersonalizado,
-  type EntradaDoCampo,
-  type TipoDeCampo,
-  type ValorGuardado,
-} from "@/lib/campos-personalizados"
+import type { CampoDaEmpresa, CampoPersonalizado, EntradaDoCampo, ValorGuardado } from "@/lib/campos-personalizados"
+import { camposDaEmpresa, conferirEntradas, gravarValores, valoresDosContatos } from "@/lib/campos-personalizados-servidor"
 
 // B38-01: os campos personalizados no contato. Tudo roda com a sessão: o RLS de
 // `contato_campos` deixa ler e gravar só quem vê o contato (Admin e Gerente, a
@@ -32,23 +26,11 @@ async function contatoVisivel(contactId: string) {
   return data ? { supabase, perfil } : null
 }
 
-/** Os campos da empresa, na ordem dela. */
-async function camposDaEmpresa(
-  supabase: Awaited<ReturnType<typeof sessaoAtual>>["supabase"],
-  workspaceId: string
-): Promise<CampoPersonalizado[]> {
-  const { data } = await supabase
-    .from("campos_personalizados")
-    .select("id, nome, tipo, ordem, created_at, campo_opcoes (id, nome, ordem)")
-    .eq("workspace_id", workspaceId)
-    .order("ordem")
-    .order("created_at")
-  return (data ?? []).map((c) => ({
-    id: c.id,
-    nome: c.nome,
-    tipo: c.tipo as TipoDeCampo,
-    opcoes: [...(c.campo_opcoes ?? [])].sort((a, b) => a.ordem - b.ordem).map((o) => ({ id: o.id, nome: o.nome })),
-  }))
+/** B38-02: os campos da empresa, na ordem dela (cadastro de novo contato e lista). */
+export async function listarCamposDaEmpresa(): Promise<CampoDaEmpresa[]> {
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return []
+  return camposDaEmpresa(supabase, perfil.workspace_id)
 }
 
 /** Os campos da empresa com o valor deste contato. null se a pessoa não vê o contato. */
@@ -59,12 +41,8 @@ export async function camposDoContato(contactId: string): Promise<CampoComValor[
 
   const campos = await camposDaEmpresa(supabase, perfil.workspace_id)
   if (campos.length === 0) return []
-  const { data: linhas } = await supabase
-    .from("contato_campos")
-    .select("campo_id, valor_texto, valor_numero, valor_data, valor_booleano, valor_opcoes")
-    .eq("contact_id", contactId)
-  const porCampo = new Map((linhas ?? []).map((l) => [l.campo_id, valorDaLinha(l)]))
-  return campos.map((c) => ({ ...c, valor: porCampo.get(c.id) ?? null }))
+  const valores = (await valoresDosContatos(supabase, [contactId], campos.map((c) => c.id))).get(contactId) ?? {}
+  return campos.map(({ id, nome, tipo, opcoes }) => ({ id, nome, tipo, opcoes, valor: valores[id] ?? null }))
 }
 
 export type ResultadoSalvarCampos = { erro?: string; erros?: Record<string, string> }
@@ -81,42 +59,10 @@ export async function salvarCamposDoContato(
   if (!acesso) return { erro: "Contato não encontrado" }
   const { supabase, perfil } = acesso
 
-  const campos = await camposDaEmpresa(supabase, perfil.workspace_id)
-  const porId = new Map(campos.map((c) => [c.id, c]))
-  const erros: Record<string, string> = {}
-  const gravar: Array<{ campoId: string; valor: ValorGuardado }> = []
-  const apagar: string[] = []
-
-  for (const [campoId, entrada] of Object.entries(valores ?? {})) {
-    const campo = porId.get(campoId)
-    if (!campo) return { erro: "Campo não encontrado" }
-    const conferido = conferirValor(campo, entrada)
-    if ("erro" in conferido) erros[campoId] = conferido.erro
-    else if (conferido.valor) gravar.push({ campoId, valor: conferido.valor })
-    else apagar.push(campoId)
-  }
-  if (Object.keys(erros).length > 0) return { erros }
-
-  if (gravar.length > 0) {
-    const { error } = await supabase.from("contato_campos").upsert(
-      gravar.map(({ campoId, valor }) => ({
-        contact_id: contactId,
-        campo_id: campoId,
-        workspace_id: perfil.workspace_id,
-        valor_texto: valor.texto,
-        valor_numero: valor.numero,
-        valor_data: valor.data,
-        valor_booleano: valor.booleano,
-        valor_opcoes: valor.opcoes,
-      })),
-      { onConflict: "contact_id,campo_id" }
-    )
-    if (error) return { erro: "Não foi possível salvar" }
-  }
-  if (apagar.length > 0) {
-    const { error } = await supabase.from("contato_campos").delete().eq("contact_id", contactId).in("campo_id", apagar)
-    if (error) return { erro: "Não foi possível salvar" }
-  }
+  const conferidas = conferirEntradas(await camposDaEmpresa(supabase, perfil.workspace_id), valores)
+  if ("erro" in conferidas || "erros" in conferidas) return conferidas
+  const gravado = await gravarValores(supabase, perfil.workspace_id, contactId, conferidas)
+  if (gravado.erro) return gravado
 
   revalidatePath(`/contatos/${contactId}`)
   revalidatePath("/configuracoes/campos")

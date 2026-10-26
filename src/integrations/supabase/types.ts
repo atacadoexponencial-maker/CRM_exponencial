@@ -460,6 +460,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          mostrar_na_lista: boolean
           nome: string
           ordem: number
           tipo: string
@@ -468,6 +469,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          mostrar_na_lista?: boolean
           nome: string
           ordem?: number
           tipo: string
@@ -476,6 +478,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          mostrar_na_lista?: boolean
           nome?: string
           ordem?: number
           tipo?: string

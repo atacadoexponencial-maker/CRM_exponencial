@@ -36,6 +36,8 @@ export interface Contato {
   created_at: string
   /** B43-01: perfil RFV da hora; null = sem compras; ausente = não lido. */
   perfilRfv?: import("@/lib/relatorios/rfv").PerfilRfv | null
+  /** B38-02: valores dos campos personalizados marcados para a lista (id do campo → valor). */
+  campos?: Record<string, import("@/lib/campos-personalizados").ValorGuardado>
 }
 
 export interface Compra {

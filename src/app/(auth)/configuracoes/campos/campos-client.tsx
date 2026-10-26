@@ -6,7 +6,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LIMITE_DE_OPCOES, NOME_MAXIMO, TIPOS_DE_CAMPO, rotuloDoTipo, temOpcoes } from "@/lib/campos-personalizados"
-import { adicionarOpcao, criarCampo, moverOpcao, renomearCampo, renomearOpcao, type CampoParaGerenciar, type OpcaoParaGerenciar } from "./actions"
+import { adicionarOpcao, criarCampo, marcarNaLista, moverCampo, moverOpcao, renomearCampo, renomearOpcao, type CampoParaGerenciar, type OpcaoParaGerenciar } from "./actions"
 
 // B38-01: tela de campos personalizados. Admin e Gerente criam o campo com nome e tipo,
 // e editam o nome e as opções das listas. O tipo aparece só para leitura depois de criado.
@@ -187,6 +187,16 @@ function EditorDoCampo({ campo, onFechar, onSalvo }: { campo: CampoParaGerenciar
           <p className="text-xs text-muted-foreground">O tipo não muda depois de criado.</p>
         </div>
       </div>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={campo.mostrarNaLista}
+          disabled={salvando}
+          onChange={(e) => rodar(() => marcarNaLista(campo.id, e.target.checked))}
+          className="size-4 accent-primary"
+        />
+        Mostrar na lista de Contatos
+      </label>
       {temOpcoes(campo.tipo) && (
         <div className="space-y-2">
           <span className="text-sm">Opções, na ordem em que aparecem</span>
@@ -222,7 +232,13 @@ export function CamposClient({ campos }: { campos: CampoParaGerenciar[] }) {
   const router = useRouter()
   const [criando, setCriando] = useState(false)
   const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [movendo, setMovendo] = useState(false)
+  const [erroOrdem, setErroOrdem] = useState<string | null>(null)
   const editando = campos.find((c) => c.id === editandoId) ?? null
+
+  async function mover(campoId: string, direcao: "subir" | "descer") {
+    if (await executar(() => moverCampo(campoId, direcao), setErroOrdem, setMovendo)) router.refresh()
+  }
 
   return (
     <div className="space-y-6">
@@ -242,6 +258,8 @@ export function CamposClient({ campos }: { campos: CampoParaGerenciar[] }) {
       {criando && <NovoCampo onFechar={() => setCriando(false)} onCriado={() => { setCriando(false); router.refresh() }} />}
       {editando && <EditorDoCampo key={editando.id} campo={editando} onFechar={() => setEditandoId(null)} onSalvo={() => router.refresh()} />}
 
+      {erroOrdem && <p role="alert" className="text-xs text-destructive">{erroOrdem}</p>}
+
       {campos.length === 0 ? (
         !criando && (
           <div className="space-y-3 rounded-lg border border-dashed border-border px-6 py-10 text-center">
@@ -258,16 +276,23 @@ export function CamposClient({ campos }: { campos: CampoParaGerenciar[] }) {
         )
       ) : (
         <ul aria-label="Lista de campos" className="divide-y divide-border rounded-lg border border-border bg-card">
-          {campos.map((c) => (
+          {campos.map((c, i) => (
             <li key={c.id} data-campo={c.nome} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
-              <span className="flex items-center gap-2">
+              <span className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{c.nome}</span>
                 <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">{rotuloDoTipo(c.tipo)}</span>
+                {c.mostrarNaLista && <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">na lista</span>}
               </span>
-              <span className="flex items-center gap-4">
-                <span className="numero text-xs text-muted-foreground">
+              <span className="flex items-center gap-2">
+                <span className="numero mr-2 text-xs text-muted-foreground">
                   {c.preenchidos} {c.preenchidos === 1 ? "contato preenchido" : "contatos preenchidos"}
                 </span>
+                <Button size="icon-sm" variant="ghost" aria-label={`Subir ${c.nome}`} disabled={movendo || i === 0} onClick={() => mover(c.id, "subir")}>
+                  <ArrowUp className="size-3.5" />
+                </Button>
+                <Button size="icon-sm" variant="ghost" aria-label={`Descer ${c.nome}`} disabled={movendo || i === campos.length - 1} onClick={() => mover(c.id, "descer")}>
+                  <ArrowDown className="size-3.5" />
+                </Button>
                 <Button size="sm" variant="ghost" onClick={() => { setEditandoId(c.id); setCriando(false) }}>Editar</Button>
               </span>
             </li>

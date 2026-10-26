@@ -25,6 +25,8 @@ import { normalizarWhatsapp, TELEFONE_INVALIDO } from "@/lib/telefone"
 import { perfilDoMapa, perfisRfvDosContatos } from "@/lib/perfil-rfv-do-contato"
 import { esquemaCompra, type CompraEntrada, type FormaPagamento, type OrigemCompra } from "@/lib/compras"
 import { normalizarUf, UF_INVALIDA } from "@/lib/uf"
+import type { EntradaDoCampo } from "@/lib/campos-personalizados"
+import { camposDaEmpresa, conferirEntradas, gravarValores, valoresDosContatos } from "@/lib/campos-personalizados-servidor"
 
 const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, cidade, uf, created_at, profiles!contacts_atendente_id_fkey(name)"
 
@@ -77,7 +79,9 @@ export async function criarContato(dados: {
   tipo?: string | null
   cidade?: string | null
   uf?: string | null
-}): Promise<{ erro?: string; id?: string; restaurado?: boolean }> {
+  /** B38-02: campos personalizados (id do campo → entrada), todos opcionais. */
+  campos?: Record<string, EntradaDoCampo>
+}): Promise<{ erro?: string; erros?: Record<string, string>; id?: string; restaurado?: boolean }> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -101,6 +105,9 @@ export async function criarContato(dados: {
   // B32-02: UF só da lista das 27, ou vazia.
   const uf = normalizarUf(dados.uf)
   if (uf === undefined) return { erro: UF_INVALIDA }
+  // B38-02: os campos são conferidos antes de criar; com erro, o contato não nasce.
+  const campos = conferirEntradas(await camposDaEmpresa(supabase, profile.workspace_id), dados.campos ?? {})
+  if ("erro" in campos || "erros" in campos) return campos
 
   // B13-05: telefone de contato na lixeira restaura o contato antigo, com o
   // histórico (os dados antigos ficam), em vez de criar outro.
@@ -138,6 +145,10 @@ export async function criarContato(dados: {
     if (error.code === "23505") return { erro: "Número já cadastrado neste workspace" }
     return { erro: "Erro ao criar contato. Tente novamente." }
   }
+
+  // B38-02: o contato já existe; os campos conferidos são gravados nele.
+  const gravado = await gravarValores(supabase, profile.workspace_id, data.id, campos)
+  if (gravado.erro) return { id: data.id, erro: "Contato criado, mas os campos personalizados não foram salvos." }
 
   // B29-02: a foto vem pelo canal direto, depois de o contato existir. Nunca falha.
   await buscarEGuardarFotoDoContato({ workspaceId: profile.workspace_id, contactId: data.id, telefone })
@@ -592,10 +603,14 @@ export async function filtrarContatos(
   const linhas = (data ?? []) as Database["public"]["Functions"]["filtrar_contatos"]["Returns"]
   // B43-01: o perfil RFV da hora de cada contato da página, numa leitura só.
   const perfis = await perfisRfvDosContatos(supabase, linhas.map((c) => c.id))
+  // B38-02: valores dos campos marcados "Mostrar na lista de Contatos".
+  const naLista = (await camposDaEmpresa(supabase, perfil.workspace_id)).filter((c) => c.mostrarNaLista).map((c) => c.id)
+  const valores = await valoresDosContatos(supabase, linhas.map((c) => c.id), naLista)
   return {
     contatos: linhas.map((c) => ({
       ...mapContato({ ...c, profiles: c.atendente_nome ? { name: c.atendente_nome } : null }),
       perfilRfv: perfilDoMapa(perfis, c.id),
+      campos: valores.get(c.id) ?? {},
     })),
     // Página além do fim vem vazia e sem total: aí o total é o que já se sabia.
     total: linhas.length > 0 ? Number(linhas[0].total) : (opcoes.offset ?? 0),

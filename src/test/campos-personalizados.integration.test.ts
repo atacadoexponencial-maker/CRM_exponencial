@@ -17,8 +17,11 @@ import {
   moverOpcao,
   renomearCampo,
   renomearOpcao,
+  marcarNaLista,
+  moverCampo,
 } from "@/app/(auth)/configuracoes/campos/actions"
-import { camposDoContato, salvarCamposDoContato } from "@/app/(auth)/contatos/campos-personalizados"
+import { camposDoContato, listarCamposDaEmpresa, salvarCamposDoContato } from "@/app/(auth)/contatos/campos-personalizados"
+import { criarContato as cadastrarContato, filtrarContatos } from "@/app/(auth)/contatos/actions"
 import { TIPOS_DE_CAMPO, formatarValor } from "@/lib/campos-personalizados"
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -28,7 +31,7 @@ const service = createClient(URL, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth
 const ts = Date.now()
 
 type Pessoa = { id: string; cliente: SupabaseClient }
-let wsA = "", wsB = ""
+let wsA = "", wsB = "", wsC = ""
 const pessoas: Record<string, Pessoa> = {}
 const contatos: Record<string, string> = {}
 const usuarios: string[] = []
@@ -70,6 +73,13 @@ beforeAll(async () => {
   await criarPessoa("gerente", wsA, "gerente")
   await criarPessoa("atendente", wsA, "atendente")
   await criarPessoa("adminB", wsB, "admin")
+  // B38-02: empresa só para conferir a ordem dos campos, começando do zero.
+  wsC = (await service.from("workspaces").insert({ name: `[TESTE] B38 C ${ts}` }).select("id").single()).data!.id
+  await criarPessoa("adminC", wsC, "admin")
+  await criarContato("daC", wsC, "Loja da C", 3)
+  // B38-02: contato que o atendente atende pela conversa (regra de pode_ver_contato).
+  await criarContato("daConversa", wsA, "Loja da Conversa", 4)
+  await service.from("conversations").insert({ workspace_id: wsA, contact_id: contatos.daConversa, assigned_to: pessoas.atendente.id })
   await criarContato("daCarteira", wsA, "Loja do Atendente", 1)
   await criarContato("outro", wsA, "Loja de Outro", 2)
   // O atendente atende o contato pelo card do funil (regra de pode_ver_contato).
@@ -77,14 +87,15 @@ beforeAll(async () => {
 }, 120_000)
 
 afterAll(async () => {
-  for (const ws of [wsA, wsB]) {
+  for (const ws of [wsA, wsB, wsC]) {
+    await service.from("conversations").delete().eq("workspace_id", ws)
     await service.from("pipeline_cards").delete().eq("workspace_id", ws)
     await service.from("campos_personalizados").delete().eq("workspace_id", ws)
     await service.from("contacts").delete().eq("workspace_id", ws)
     await service.from("profiles").delete().eq("workspace_id", ws)
   }
   for (const id of usuarios) await service.auth.admin.deleteUser(id)
-  await service.from("workspaces").delete().in("id", [wsA, wsB])
+  await service.from("workspaces").delete().in("id", [wsA, wsB, wsC])
 }, 120_000)
 
 describe("B38-01 — campos personalizados", { timeout: 60_000 }, () => {
@@ -234,5 +245,89 @@ describe("B38-01 — campos personalizados", { timeout: 60_000 }, () => {
     expect(texto).toBe("—")
     const { data } = await service.from("contato_campos").select("contact_id").eq("contact_id", contatos.outro).eq("campo_id", porte.id)
     expect(data).toEqual([])
+  })
+})
+
+describe("B38-02 — campos no Chat, no cadastro e na lista", { timeout: 60_000 }, () => {
+  it("CA-B38-11: should mudar a ordem dos campos na tela de campos, no perfil, no Chat e no cadastro", async () => {
+    como("adminC")
+    for (const [nome, tipo, opcoes] of [["CNPJ", "texto", []], ["Porte", "lista", ["Pequeno", "Grande"]], ["Instagram da loja", "link", []]] as const) {
+      expect((await criarCampo(nome, tipo, [...opcoes])).erro).toBeUndefined()
+    }
+    const instagram = (await listarCamposParaGerenciar()).find((c) => c.nome === "Instagram da loja")!
+    expect(await moverCampo(instagram.id, "subir")).toEqual({})
+    expect(await moverCampo(instagram.id, "subir")).toEqual({})
+
+    const esperado = ["Instagram da loja", "CNPJ", "Porte"]
+    expect((await listarCamposParaGerenciar()).map((c) => c.nome)).toEqual(esperado)
+    // O perfil e o painel do Chat leem os campos pela mesma action.
+    expect((await camposDoContato(contatos.daC))!.map((c) => c.nome)).toEqual(esperado)
+    expect((await listarCamposDaEmpresa()).map((c) => c.nome)).toEqual(esperado)
+  })
+
+  it("CA-B38-26: should gravar o Porte pelo Atendente da conversa e o perfil mostrar o mesmo valor", async () => {
+    const porte = await campoPorNome("Porte")
+    const pequeno = porte.opcoes.find((o) => o.nome === "Pequeno")!
+    como("atendente")
+    expect(await salvarCamposDoContato(contatos.daConversa, { [porte.id]: pequeno.id })).toEqual({})
+    expect((await valorNoContato("daConversa", "Porte", "atendente")).texto).toBe("Pequeno")
+    expect((await valorNoContato("daConversa", "Porte", "admin")).texto).toBe("Pequeno")
+  })
+
+  it("CA-B38-28: should criar o contato já com os campos preenchidos", async () => {
+    const porte = await campoPorNome("Porte")
+    const cnpj = await campoPorNome("CNPJ")
+    const grande = porte.opcoes.find((o) => o.nome === "Grande")!
+    como("admin")
+    const r = await cadastrarContato({
+      nome: "Loja Sol",
+      telefone: `55219${String(ts).slice(-7, -1)}5`,
+      campos: { [cnpj.id]: "12.345.678/0001-90", [porte.id]: grande.id },
+    })
+    expect(r.erro).toBeUndefined()
+    contatos.sol = r.id!
+    expect((await valorNoContato("sol", "CNPJ")).texto).toBe("12.345.678/0001-90")
+    expect((await valorNoContato("sol", "Porte")).texto).toBe("Grande")
+  })
+
+  it("CA-B38-29: should criar o contato só com nome e telefone, com os campos vazios", async () => {
+    como("admin")
+    const r = await cadastrarContato({ nome: "Loja Lua", telefone: `55219${String(ts).slice(-7, -1)}6` })
+    expect(r.erro).toBeUndefined()
+    contatos.lua = r.id!
+    como("admin")
+    expect((await camposDoContato(r.id!))!.every((c) => c.valor === null)).toBe(true)
+  })
+
+  it("CA-B38-30: should recusar no servidor o e-mail fora do formato e não criar o contato", async () => {
+    como("admin")
+    const email = (await listarCamposParaGerenciar()).find((c) => c.tipo === "email")!
+    const telefone = `55219${String(ts).slice(-7, -1)}7`
+    const r = await cadastrarContato({ nome: "Loja Mar", telefone, campos: { [email.id]: "fulano@" } })
+    expect(r).toEqual({ erros: { [email.id]: "E-mail inválido." } })
+    const { data } = await service.from("contacts").select("id").eq("workspace_id", wsA).eq("phone_number", telefone)
+    expect(data).toEqual([])
+  })
+
+  it("CA-B38-47: should trazer na lista só os campos marcados, para todos da empresa", async () => {
+    const porte = await campoPorNome("Porte")
+    const cnpj = await campoPorNome("CNPJ")
+    como("admin")
+    expect(await marcarNaLista(porte.id, true)).toEqual({})
+    const daLista = async (quem: string) => {
+      como(quem)
+      const r = await filtrarContatos()
+      if ("erro" in r) throw new Error(r.erro)
+      return r.contatos.find((c) => c.id === contatos.daCarteira)!.campos!
+    }
+    const soPorte = await daLista("admin")
+    expect(Object.keys(soPorte)).toEqual([porte.id])
+
+    como("admin")
+    expect(await marcarNaLista(cnpj.id, true)).toEqual({})
+    como("admin")
+    expect((await listarCamposDaEmpresa()).filter((c) => c.mostrarNaLista).map((c) => c.nome)).toEqual(["CNPJ", "Porte"])
+    const doAtendente = await daLista("atendente")
+    expect(Object.keys(doAtendente).sort()).toEqual([cnpj.id, porte.id].sort())
   })
 })

@@ -63,6 +63,9 @@ export type CampoPersonalizado = {
   opcoes: OpcaoDoCampo[]
 }
 
+/** B38-02: o campo com a marca "Mostrar na lista de Contatos". */
+export type CampoDaEmpresa = CampoPersonalizado & { mostrarNaLista: boolean }
+
 /** O valor como o banco guarda: uma coluna preenchida, conforme o tipo. */
 export type ValorGuardado = {
   texto: string | null

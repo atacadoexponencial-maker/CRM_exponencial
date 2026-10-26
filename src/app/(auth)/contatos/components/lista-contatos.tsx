@@ -22,6 +22,7 @@ import {
   TAMANHO_PAGINA_CONTATOS,
 } from "../mock-contatos"
 import { SeloPerfilRfv } from "@/components/shared/selo-perfil-rfv"
+import { formatarValor, type CampoDaEmpresa } from "@/lib/campos-personalizados"
 
 const CLASSIFICACOES: { label: string; valor: ClassificacaoContato | "todas" }[] = [
   { label: "Todas", valor: "todas" },
@@ -72,6 +73,8 @@ interface ListaContatosProps {
   papel: string
   /** B13-04: quantos contatos o usuário vê na lixeira. */
   totalLixeira?: number
+  /** B38-02: campos personalizados da empresa, na ordem dela. */
+  campos?: CampoDaEmpresa[]
 }
 
 export function ListaContatos({
@@ -83,8 +86,10 @@ export function ListaContatos({
   filtrosSalvos: filtrosSalvosIniciais = [],
   papel,
   totalLixeira = 0,
+  campos = [],
 }: ListaContatosProps) {
   const router = useRouter()
+  const camposNaLista = campos.filter((c) => c.mostrarNaLista)
   const [busca, setBusca] = useState("")
   const [classificacao, setClassificacao] = useState<ClassificacaoContato | "todas">("todas")
   const [tipo, setTipo] = useState<TipoContato | "todos">("todos")
@@ -260,7 +265,7 @@ export function ListaContatos({
             {/* Só conta o que ainda está na lista: depois do refresh o servidor já contou. */}
             Lixeira ({totalLixeira + [...excluidos].filter((id) => paginas.some((c) => c.id === id)).length})
           </Link>
-          {papel !== "atendente" && <NovoContatoDialog />}
+          {papel !== "atendente" && <NovoContatoDialog campos={campos} />}
         </div>
       </div>
 
@@ -450,6 +455,10 @@ export function ListaContatos({
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Perfil RFV</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Tipo</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Cidade</th>
+                {/* B38-02: os campos personalizados marcados para a lista, na ordem da empresa. */}
+                {camposNaLista.map((c) => (
+                  <th key={c.id} className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">{c.nome}</th>
+                ))}
                 {papel !== "atendente" && (
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Atendente</th>
                 )}
@@ -481,6 +490,11 @@ export function ListaContatos({
                     {contato.tipo ? TIPO_LABEL[contato.tipo] : "—"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{contato.cidade ?? "—"}</td>
+                  {camposNaLista.map((c) => (
+                    <td key={c.id} data-coluna={c.nome} className="px-4 py-3 text-muted-foreground max-w-56 [overflow-wrap:anywhere]">
+                      {formatarValor(c, contato.campos?.[c.id] ?? null)}
+                    </td>
+                  ))}
                   {papel !== "atendente" && (
                     <td className="px-4 py-3 text-muted-foreground">{contato.atendente ?? "—"}</td>
                   )}
