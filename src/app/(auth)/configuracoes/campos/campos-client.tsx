@@ -1,13 +1,27 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowDown, ArrowUp, Plus, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LIMITE_DE_OPCOES, NOME_MAXIMO, TIPOS_DE_CAMPO, rotuloDoTipo, temOpcoes } from "@/lib/campos-personalizados"
 import { chaveDaVariavel } from "@/lib/variaveis-mensagem"
-import { adicionarOpcao, criarCampo, marcarNaLista, moverCampo, moverOpcao, renomearCampo, renomearOpcao, type CampoParaGerenciar, type OpcaoParaGerenciar } from "./actions"
+import {
+  adicionarOpcao,
+  apagarCampo,
+  criarCampo,
+  marcarNaLista,
+  moverCampo,
+  moverOpcao,
+  renomearCampo,
+  renomearOpcao,
+  resumoParaApagar,
+  tirarOpcao,
+  type CampoParaGerenciar,
+  type OpcaoParaGerenciar,
+  type ResumoParaApagar,
+} from "./actions"
 
 // B38-01: tela de campos personalizados. Admin e Gerente criam o campo com nome e tipo,
 // e editam o nome e as opções das listas. O tipo aparece só para leitura depois de criado.
@@ -111,10 +125,99 @@ function NovoCampo({ onFechar, onCriado }: { onFechar: () => void; onCriado: () 
   )
 }
 
+/**
+ * B38-06: confirmação de apagar o campo ou tirar a opção. Pergunta ao servidor quantos
+ * contatos perdem o valor e onde o campo (ou a opção) é usado; em uso, não deixa.
+ */
+function ConfirmarApagar({
+  campoId,
+  opcao,
+  nome,
+  onCancelar,
+  onFeito,
+}: {
+  campoId: string
+  opcao?: string
+  nome: string
+  onCancelar: () => void
+  onFeito: () => void
+}) {
+  const [resumo, setResumo] = useState<ResumoParaApagar | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
+  const [salvando, setSalvando] = useState(false)
+  const oQue = opcao ? "a opção" : "o campo"
+
+  useEffect(() => {
+    let ativo = true
+    resumoParaApagar(campoId, opcao)
+      .then((r) => { if (ativo) setResumo(r) })
+      .catch(() => { if (ativo) setResumo({ erro: "Não foi possível conferir onde é usado." }) })
+    return () => { ativo = false }
+  }, [campoId, opcao])
+
+  async function confirmar() {
+    setErro(null)
+    setSalvando(true)
+    try {
+      const r = opcao ? await tirarOpcao(campoId, opcao) : await apagarCampo(campoId)
+      if (r.usadoEm) setResumo((atual) => ({ ...atual, usadoEm: r.usadoEm }))
+      if (r.erro) { setErro(r.erro); return }
+      onFeito()
+    } catch {
+      setErro("Não foi possível apagar. Tente de novo.")
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  const usado = resumo?.usadoEm
+  const emUso = !!usado && usado.automacoes.length + usado.filtros.length + usado.campanhas.length > 0
+  const grupos: Array<[string, string[]]> = usado
+    ? [["Automações", usado.automacoes], ["Filtros salvos", usado.filtros], ["Campanhas não enviadas", usado.campanhas]]
+    : []
+
+  return (
+    <div role="alertdialog" aria-label={opcao ? `Tirar a opção ${nome}` : `Apagar o campo ${nome}`} className="basis-full space-y-2 rounded-md border border-aviso/40 px-3 py-2 text-xs">
+      {!resumo && <p className="text-muted-foreground">Conferindo onde {oQue} é usad{opcao ? "a" : "o"}…</p>}
+      {resumo?.erro && !usado && <p className="text-destructive">{resumo.erro}</p>}
+      {emUso && (
+        <div className="space-y-1">
+          <p className="font-medium">Não dá para {opcao ? "tirar" : "apagar"}: {oQue} &quot;{nome}&quot; é usad{opcao ? "a" : "o"} em</p>
+          {grupos.filter(([, nomes]) => nomes.length > 0).map(([titulo, nomes]) => (
+            <div key={titulo}>
+              <p className="text-muted-foreground">{titulo}</p>
+              <ul aria-label={titulo} className="list-disc pl-4">
+                {nomes.map((n) => <li key={n}>{n}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+      {resumo && !resumo.erro && !emUso && (
+        <p>
+          {resumo.preenchidos === 0
+            ? `Nenhum contato tem ${opcao ? "esta opção" : "este campo preenchido"}.`
+            : `${resumo.preenchidos} ${resumo.preenchidos === 1 ? "contato perde" : "contatos perdem"} ${opcao ? "esta opção" : "este valor"}.`}
+        </p>
+      )}
+      {erro && <p role="alert" className="text-destructive">{erro}</p>}
+      <div className="flex justify-end gap-2">
+        <Button type="button" size="sm" variant="ghost" onClick={onCancelar}>Cancelar</Button>
+        {resumo && !resumo.erro && !emUso && (
+          <Button type="button" size="sm" variant="destructive" disabled={salvando} onClick={confirmar}>
+            {opcao ? "Tirar opção" : "Apagar campo"}
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function OpcaoEditavel({ campoId, opcao, posicao, total, onSalvo }: { campoId: string; opcao: OpcaoParaGerenciar; posicao: number; total: number; onSalvo: () => void }) {
   const [nome, setNome] = useState(opcao.nome)
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
+  const [tirando, setTirando] = useState(false)
 
   async function rodar(acao: () => Promise<{ erro?: string }>) {
     if (await executar(acao, setErro, setSalvando)) onSalvo()
@@ -141,7 +244,13 @@ function OpcaoEditavel({ campoId, opcao, posicao, total, onSalvo }: { campoId: s
         <Button type="button" size="icon-sm" variant="ghost" aria-label={`Descer ${opcao.nome}`} disabled={salvando || posicao === total - 1} onClick={() => rodar(() => moverOpcao(campoId, opcao.id, "descer"))}>
           <ArrowDown className="size-3.5" />
         </Button>
+        {total > 1 && (
+          <Button type="button" size="icon-sm" variant="ghost" aria-label={`Tirar a opção ${opcao.nome}`} disabled={salvando} onClick={() => setTirando(true)}>
+            <Trash2 className="size-3.5" />
+          </Button>
+        )}
       </div>
+      {tirando && <ConfirmarApagar campoId={campoId} opcao={opcao.id} nome={opcao.nome} onCancelar={() => setTirando(false)} onFeito={() => { setTirando(false); onSalvo() }} />}
       {erro && <p role="alert" className="text-xs text-destructive">{erro}</p>}
     </li>
   )
@@ -238,6 +347,7 @@ export function CamposClient({ campos }: { campos: CampoParaGerenciar[] }) {
   const [criando, setCriando] = useState(false)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [movendo, setMovendo] = useState(false)
+  const [apagandoId, setApagandoId] = useState<string | null>(null)
   const [erroOrdem, setErroOrdem] = useState<string | null>(null)
   const editando = campos.find((c) => c.id === editandoId) ?? null
 
@@ -299,7 +409,18 @@ export function CamposClient({ campos }: { campos: CampoParaGerenciar[] }) {
                   <ArrowDown className="size-3.5" />
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => { setEditandoId(c.id); setCriando(false) }}>Editar</Button>
+                <Button size="icon-sm" variant="ghost" aria-label={`Apagar o campo ${c.nome}`} onClick={() => setApagandoId(c.id)}>
+                  <Trash2 className="size-3.5" />
+                </Button>
               </span>
+              {apagandoId === c.id && (
+                <ConfirmarApagar
+                  campoId={c.id}
+                  nome={c.nome}
+                  onCancelar={() => setApagandoId(null)}
+                  onFeito={() => { setApagandoId(null); if (editandoId === c.id) setEditandoId(null); router.refresh() }}
+                />
+              )}
             </li>
           ))}
         </ul>
