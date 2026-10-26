@@ -18,6 +18,7 @@ import { urlDeExportacao, urlDeExportacaoPorUf } from "@/lib/relatorios/exportar
 import { VariacaoPorUfTabela } from "./variacao-por-uf"
 import { Grafico25Meses } from "./grafico-25-meses"
 import { FiltroPorCampoControle } from "@/components/shared/filtro-por-campo"
+import { VendasPorCampoTabela } from "./vendas-por-campo"
 import { filtroPorCampoCompleto, type FiltroPorCampo } from "@/lib/filtro-por-campo"
 import type { CampoParaFiltro } from "@/lib/filtro-contatos"
 
@@ -206,6 +207,8 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje, campos
         <TabelaVendas vendas={visao.tabela} urlExportar={urlDeExportacao(periodo, atendenteId || null)} />
         {/* B32-06: variação por UF e os últimos 25 meses fecham a Visão Geral. */}
         <VariacaoPorUfTabela variacao={visao.porUf} urlExportar={urlDeExportacaoPorUf(periodo, atendenteId || null)} />
+        {/* B38-08: as vendas agrupadas pelo valor de um campo personalizado */}
+        {campos.length > 0 && <VendasPorCampoTabela campos={campos} periodo={periodo} atendenteId={atendenteId || null} filtro={campoAtivo} />}
         <Grafico25Meses meses={visao.mesesHistorico} />
       </div>
       </>)}

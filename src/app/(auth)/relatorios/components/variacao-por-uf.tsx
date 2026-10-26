@@ -34,7 +34,18 @@ function Celula({ coluna, linha }: { coluna: Coluna; linha: LinhaPorUf }) {
   return <Percentual valor={v as number | null} />
 }
 
-export function VariacaoPorUfTabela({ variacao, urlExportar }: { variacao: VariacaoPorUf; urlExportar: string }) {
+export function VariacaoPorUfTabela({
+  variacao,
+  urlExportar,
+  titulo = "Variação em relação ao ano anterior",
+  rotuloDoGrupo = "UF",
+}: {
+  variacao: VariacaoPorUf
+  urlExportar: string
+  /** B38-08: a tabela "Vendas por campo" usa a mesma, com outro título e o nome do campo. */
+  titulo?: string
+  rotuloDoGrupo?: string
+}) {
   const [ordem, setOrdem] = useState<{ coluna: Coluna; desc: boolean }>({ coluna: "vendas", desc: true })
 
   function ordenarPor(coluna: Coluna) {
@@ -51,7 +62,7 @@ export function VariacaoPorUfTabela({ variacao, urlExportar }: { variacao: Varia
     <section className="rounded-md border bg-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
         <div>
-          <h2 className="text-sm font-semibold">Variação em relação ao ano anterior</h2>
+          <h2 className="text-sm font-semibold">{titulo}</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             {variacao.aviso ? `${variacao.aviso} (comparado com ${variacao.rotuloBase}).` : variacao.rotuloBase ? `Comparado com ${variacao.rotuloBase}.` : "Sem comparativo: escolha um único mês."}
           </p>
@@ -71,7 +82,7 @@ export function VariacaoPorUfTabela({ variacao, urlExportar }: { variacao: Varia
                 {COLUNAS.map((c) => (
                   <th key={c.id} className={`py-2 pr-3 font-medium ${c.alinhar === "right" ? "text-right" : "text-left"}`}>
                     <button type="button" onClick={() => ordenarPor(c.id)} className="inline-flex items-center gap-1 hover:text-foreground" aria-sort={ordem.coluna === c.id ? (ordem.desc ? "descending" : "ascending") : undefined}>
-                      {c.titulo} <ArrowUpDown className="size-3 opacity-60" />
+                      {c.id === "uf" ? rotuloDoGrupo : c.titulo} <ArrowUpDown className="size-3 opacity-60" />
                     </button>
                   </th>
                 ))}

@@ -520,14 +520,18 @@ export type VariacaoPorUf = {
   rotuloBase: string | null
 }
 
-function resumoPorUf(vendas: VendaRow[]): Map<string, { clientes: Set<string>; vendas: number }> {
+/** B38-08: o grupo (ou os grupos, na múltipla escolha) de cada venda. */
+export type ChavesDaVenda = (v: VendaRow) => string[]
+
+function resumoPorChave(vendas: VendaRow[], chavesDe: ChavesDaVenda): Map<string, { clientes: Set<string>; vendas: number }> {
   const m = new Map<string, { clientes: Set<string>; vendas: number }>()
   for (const v of vendas) {
-    const uf = v.contato_uf ?? ROTULO_SEM_UF
-    const r = m.get(uf) ?? { clientes: new Set<string>(), vendas: 0 }
-    r.clientes.add(v.contact_id)
-    r.vendas += v.valor
-    m.set(uf, r)
+    for (const chave of chavesDe(v)) {
+      const r = m.get(chave) ?? { clientes: new Set<string>(), vendas: 0 }
+      r.clientes.add(v.contact_id)
+      r.vendas += v.valor
+      m.set(chave, r)
+    }
   }
   return m
 }
@@ -537,6 +541,14 @@ function resumoPorUf(vendas: VendaRow[]): Map<string, { clientes: Set<string>; v
  * Comparação justa como nos cartões: com o mês atual incluído, os dois lados vão até ontem.
  */
 export function variacaoPorUf(vendas: VendaRow[], periodo: PeriodoRelatorio, hoje: string): VariacaoPorUf {
+  return variacaoPorChave(vendas, periodo, hoje, (v) => [v.contato_uf ?? ROTULO_SEM_UF])
+}
+
+/**
+ * B38-08: a conta da Variação por UF para qualquer agrupamento (a UF, o valor de um
+ * campo personalizado). A linha guarda o grupo em `uf`; o total é o de todas as vendas.
+ */
+export function variacaoPorChave(vendas: VendaRow[], periodo: PeriodoRelatorio, hoje: string, chavesDe: ChavesDaVenda): VariacaoPorUf {
   const intervalo = intervaloDoPeriodo(periodo, hoje)
   const justa = comparacaoJusta(intervalo, hoje)
   const recorte: Intervalo | null = justa.ate ? { de: intervalo.de, ate: justa.ate } : null
@@ -544,9 +556,9 @@ export function variacaoPorUf(vendas: VendaRow[], periodo: PeriodoRelatorio, hoj
 
   type R = { clientes: Set<string>; vendas: number }
   // Valores exibidos: o período inteiro. Crescimento: o recorte justo contra a base (D-1 nos dois lados).
-  const atual = resumoPorUf(vendas.filter((v) => dentro(v, intervalo)))
-  const justo = recorte ? resumoPorUf(vendas.filter((v) => dentro(v, recorte))) : new Map<string, R>()
-  const anterior = base ? resumoPorUf(vendas.filter((v) => dentro(v, base))) : new Map<string, R>()
+  const atual = resumoPorChave(vendas.filter((v) => dentro(v, intervalo)), chavesDe)
+  const justo = recorte ? resumoPorChave(vendas.filter((v) => dentro(v, recorte)), chavesDe) : new Map<string, R>()
+  const anterior = base ? resumoPorChave(vendas.filter((v) => dentro(v, base)), chavesDe) : new Map<string, R>()
 
   const linha = (uf: string, a: R | undefined, j: R | undefined, b: R | undefined): LinhaPorUf => {
     const clientes = a?.clientes.size ?? 0

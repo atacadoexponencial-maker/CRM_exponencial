@@ -6,9 +6,10 @@ import { gerarPlanilha, nomeDeArquivo, respostaPlanilha } from "@/lib/exportar-p
 import { COLUNAS_EXPORTACAO_RFV, filtrarClientesRfv, filtroDaUrl } from "@/lib/relatorios/exportar-rfv"
 import { PERFIL_POR_ID } from "@/lib/relatorios/rfv"
 import { buscarRfv } from "../../actions"
+import { camposParaExportar, colunasDosCampos } from "@/lib/relatorios/colunas-dos-campos"
 
 export async function GET(request: Request) {
-  const { user } = await sessaoAtual()
+  const { supabase, user, perfil } = await sessaoAtual()
   if (!user) return new Response("Sessão expirada.", { status: 401 })
 
   const q = new URL(request.url).searchParams
@@ -21,6 +22,9 @@ export async function GET(request: Request) {
   if (!rfv) return new Response("Sessão expirada.", { status: 401 })
 
   const linhas = filtrarClientesRfv(rfv.clientes, filtro)
+  // B38-08: uma coluna por campo personalizado, na ordem da empresa
+  const campos = perfil ? await camposParaExportar(supabase, perfil.workspace_id, linhas.map((l) => l.contatoId)) : { campos: [], valores: new Map() }
+  const colunas = [...COLUNAS_EXPORTACAO_RFV, ...colunasDosCampos(campos, (l: (typeof linhas)[number]) => l.contatoId)]
   const nome = filtro.perfil ? `rfv-${PERFIL_POR_ID[filtro.perfil].nome}` : filtro.celula ? `rfv-r${filtro.celula.r}-fv${filtro.celula.fv}` : "rfv-clientes"
-  return respostaPlanilha(gerarPlanilha(COLUNAS_EXPORTACAO_RFV, linhas, "Clientes RFV"), nomeDeArquivo(`${nome}-${rfv.referencia}`))
+  return respostaPlanilha(gerarPlanilha(colunas, linhas, "Clientes RFV"), nomeDeArquivo(`${nome}-${rfv.referencia}`))
 }

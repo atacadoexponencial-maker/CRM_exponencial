@@ -5,9 +5,11 @@ import { sessaoAtual } from "@/lib/sessao"
 import { gerarPlanilha, nomeDeArquivo, respostaPlanilha } from "@/lib/exportar-planilha"
 import { COLUNAS_EXPORTACAO_VENDAS, nomeDaExportacao, periodoDaUrl } from "@/lib/relatorios/exportar-vendas"
 import { buscarVendasDoPeriodo } from "../../actions"
+import { camposParaExportar, colunasDosCampos } from "@/lib/relatorios/colunas-dos-campos"
+import type { VendaDaTabela } from "@/lib/relatorios/visao-geral"
 
 export async function GET(request: Request) {
-  const { user } = await sessaoAtual()
+  const { supabase, user, perfil } = await sessaoAtual()
   if (!user) return new Response("Sessão expirada.", { status: 401 })
 
   const q = new URL(request.url).searchParams
@@ -19,5 +21,8 @@ export async function GET(request: Request) {
   const vendas = await buscarVendasDoPeriodo({ periodo, atendenteId: atendente || null })
   if (!vendas) return new Response("Sessão expirada.", { status: 401 })
 
-  return respostaPlanilha(gerarPlanilha(COLUNAS_EXPORTACAO_VENDAS, vendas, "Vendas"), nomeDeArquivo(nomeDaExportacao(periodo)))
+  // B38-08: uma coluna por campo personalizado, na ordem da empresa
+  const campos = perfil ? await camposParaExportar(supabase, perfil.workspace_id, vendas.map((v) => v.contatoId)) : { campos: [], valores: new Map() }
+  const colunas = [...COLUNAS_EXPORTACAO_VENDAS, ...colunasDosCampos(campos, (v: VendaDaTabela) => v.contatoId)]
+  return respostaPlanilha(gerarPlanilha(colunas, vendas, "Vendas"), nomeDeArquivo(nomeDaExportacao(periodo)))
 }

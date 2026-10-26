@@ -21,13 +21,14 @@ import {
   type VendaDaTabela,
   type VendaRow,
   type VisaoGeralCartoes,
+  variacaoPorChave,
 } from "@/lib/relatorios/visao-geral"
 import { calcularRfv, type ResultadoRfv } from "@/lib/relatorios/rfv"
 import { calcularCoortes, type ResultadoCoorte } from "@/lib/relatorios/coorte"
 import { calcularFunilClientes, type ResultadoFunilClientes } from "@/lib/relatorios/funil-clientes"
 import { calcularPainelDeCarteiras, HISTORICO_POR_PAGINA, type PainelDeCarteiras } from "@/lib/relatorios/carteiras"
 import { registrarMudancasDeCarteira, type MotivoDaCarteira } from "@/lib/carteira"
-import { contatosDoFiltroPorCampo } from "@/lib/campos-personalizados-servidor"
+import { camposDaEmpresa, contatosDoFiltroPorCampo, valoresDosContatos } from "@/lib/campos-personalizados-servidor"
 import type { FiltroPorCampo } from "@/lib/filtro-por-campo"
 
 export type { FiltroRelatorio, PeriodoRelatorio, VisaoGeralCartoes } from "@/lib/relatorios/visao-geral"
@@ -425,4 +426,47 @@ export async function reprocessarPelaUltimaVenda(): Promise<{ erro?: string; qua
 
   const ok = await aplicarDonos(supabase, perfil.workspace_id, user.id, atribuicoes, "ultima_venda")
   return ok ? { quantidade: atribuicoes.length } : { erro: "Não foi possível reprocessar. Tente novamente." }
+}
+
+// ── B38-08: vendas por valor de um campo personalizado ────────────────────────
+
+const ROTULO_SEM_VALOR = "Sem valor"
+
+/** Os tipos que agrupam: lista de opções, múltipla escolha e sim/não (SUP-B38-14). */
+const TIPOS_QUE_AGRUPAM = ["lista", "multipla", "sim_nao"]
+
+export type VendasPorCampo = {
+  campo: { id: string; nome: string; tipo: string }
+  variacao: VariacaoPorUf
+  /** Múltipla escolha: a venda de quem tem duas opções conta nas duas linhas. */
+  somaPodePassar: boolean
+}
+
+/**
+ * A Variação por UF, agrupada pelo valor do campo do cliente, com a linha "Sem valor".
+ * Vale o mesmo filtro da tela (período, atendente e filtro por campo).
+ */
+export async function buscarVendasPorCampo(filtro: FiltroRelatorio & { agrupar: string }): Promise<VendasPorCampo | { erro: string } | null> {
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil) return null
+  const atendenteId = perfil.role === "atendente" ? user.id : (filtro.atendenteId ?? null)
+  const campo = (await camposDaEmpresa(supabase, perfil.workspace_id)).find((c) => c.id === filtro.agrupar)
+  if (!campo || !TIPOS_QUE_AGRUPAM.includes(campo.tipo)) return { erro: "Escolha um campo de lista, múltipla escolha ou sim/não." }
+  const dados = await carregarVendas(atendenteId, filtro.campo)
+  if (!dados) return null
+
+  const contatos = [...new Set(dados.vendas.map((v) => v.contact_id))]
+  const valores = await valoresDosContatos(supabase, contatos, [campo.id])
+  const chavesDe = (v: VendaRow): string[] => {
+    const valor = valores.get(v.contact_id)?.[campo.id]
+    if (!valor) return [ROTULO_SEM_VALOR]
+    if (campo.tipo === "sim_nao") return valor.booleano === null ? [ROTULO_SEM_VALOR] : [valor.booleano ? "Sim" : "Não"]
+    const nomes = campo.opcoes.filter((o) => valor.opcoes?.includes(o.id)).map((o) => o.nome)
+    return nomes.length > 0 ? nomes : [ROTULO_SEM_VALOR]
+  }
+  return {
+    campo: { id: campo.id, nome: campo.nome, tipo: campo.tipo },
+    variacao: variacaoPorChave(dados.vendas, filtro.periodo, hojeNoFuso(), chavesDe),
+    somaPodePassar: campo.tipo === "multipla",
+  }
 }

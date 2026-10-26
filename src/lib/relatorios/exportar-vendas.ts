@@ -73,3 +73,34 @@ export const TITULOS_EXPORTACAO_POR_UF = COLUNAS_EXPORTACAO_POR_UF.map((c) => c.
 export function urlDeExportacaoPorUf(periodo: PeriodoRelatorio, atendenteId: string | null): string {
   return urlDeExportacao(periodo, atendenteId).replace("/relatorios/vendas/exportar", "/relatorios/variacao-por-uf/exportar")
 }
+
+// ---------- vendas por campo personalizado (B38-08) ----------
+
+/** As colunas da Variação por UF, com o nome do campo no lugar de "UF". */
+export function colunasExportacaoPorCampo(nomeDoCampo: string): ColunaPlanilha<LinhaPorUf>[] {
+  return [{ ...COLUNAS_EXPORTACAO_POR_UF[0], titulo: nomeDoCampo, valor: (l) => l.uf, largura: 20 }, ...COLUNAS_EXPORTACAO_POR_UF.slice(1)]
+}
+
+/** O endereço do Excel da tabela, com o campo que agrupa e o filtro por campo da tela. */
+export function urlDeExportacaoPorCampo(
+  periodo: PeriodoRelatorio,
+  atendenteId: string | null,
+  agrupar: string,
+  filtro: { campo: string; valores: string[] } | null
+): string {
+  const url = new URL(urlDeExportacao(periodo, atendenteId).replace("/relatorios/vendas/exportar", "/relatorios/vendas-por-campo/exportar"), "http://x")
+  url.searchParams.set("agrupar", agrupar)
+  if (filtro) url.searchParams.set("filtro", JSON.stringify(filtro))
+  return `${url.pathname}${url.search}`
+}
+
+/** O filtro por campo lido da URL; null sem filtro ou fora do formato. */
+export function filtroPorCampoDaUrl(q: URLSearchParams): { campo: string; valores: string[] } | null {
+  try {
+    const lido = JSON.parse(q.get("filtro") ?? "null")
+    if (!lido || typeof lido.campo !== "string" || !Array.isArray(lido.valores)) return null
+    return { campo: lido.campo.slice(0, 60), valores: lido.valores.filter((v: unknown) => typeof v === "string").slice(0, 50) }
+  } catch {
+    return null
+  }
+}

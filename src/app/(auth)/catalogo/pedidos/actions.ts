@@ -92,7 +92,10 @@ export async function filtrarPedidos(
  */
 export async function pedidosParaExportar(
   filtros: FiltrosPedidos | null
-): Promise<{ pedidos: PedidoResumo[]; itens: ItemExportado[] } | { erro: string; status: number }> {
+): Promise<
+  | { pedidos: PedidoResumo[]; itens: ItemExportado[]; contatoDoPedido: Record<string, string | null>; workspaceId: string }
+  | { erro: string; status: number }
+> {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user || !perfil) return { erro: "Sessão expirada.", status: 401 }
   const usados = filtros ?? { ...FILTROS_PADRAO, periodo: "tudo" as const }
@@ -116,6 +119,13 @@ export async function pedidosParaExportar(
   const porId = new Map(pedidos.map((p) => [p.id, p]))
   const itens: ItemExportado[] = []
   const ids = [...porId.keys()]
+  // B38-08: o contato de cada pedido, para as colunas dos campos personalizados
+  const contatoDoPedido: Record<string, string | null> = {}
+  for (let i = 0; i < ids.length; i += 150) {
+    const { data, error } = await supabase.from("catalog_orders").select("id, contact_id").in("id", ids.slice(i, i + 150))
+    if (error) return { erro: "Não foi possível exportar.", status: 500 }
+    for (const p of data ?? []) contatoDoPedido[p.id] = p.contact_id
+  }
   for (let i = 0; i < ids.length; i += 150) {
     const { data, error } = await supabase
       .from("catalog_order_items")
@@ -139,7 +149,7 @@ export async function pedidosParaExportar(
   // Na ordem da aba Pedidos, e dentro do pedido na ordem em que a cliente pôs no carrinho.
   const ordem = new Map(pedidos.map((p, i) => [p.numero, i]))
   itens.sort((a, b) => ordem.get(a.numero)! - ordem.get(b.numero)! || a.posicao - b.posicao)
-  return { pedidos, itens }
+  return { pedidos, itens, contatoDoPedido, workspaceId: perfil.workspace_id }
 }
 
 /** B39-01: opções dos filtros de produto (com os apagados) e de atendente da cliente. */
