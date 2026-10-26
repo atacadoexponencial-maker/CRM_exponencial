@@ -169,3 +169,9 @@ Migration `supabase/migrations/20261026000001_campos_personalizados.sql`:
 - [x] Bloco no perfil do contato
 - [x] Testes da tabela Prova
 - [x] `npx tsc --noEmit` no projeto inteiro
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B38-25 | Marcelle | 26/10/2026 |

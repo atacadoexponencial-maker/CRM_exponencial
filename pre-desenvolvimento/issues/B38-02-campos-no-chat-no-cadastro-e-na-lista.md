@@ -114,3 +114,9 @@ Migration `supabase/migrations/20261026000002_campos_na_lista.sql`:
 - [x] Seção no painel do Chat
 - [x] Testes da tabela Prova e os que renderizam as telas mexidas
 - [x] `npx tsc --noEmit`
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B38-27 | Marcelle | 26/10/2026 |

@@ -87,3 +87,9 @@ Escolhendo "Porte", a tabela mostra Grande, Pequeno e "Sem valor" com total igua
 - [x] Colunas dos campos nos Excel do RFV, das Vendas e dos Pedidos
 - [x] Testes da tabela Prova e os dos relatórios e pedidos que já existem
 - [x] `npx tsc --noEmit`
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B38-57 | Marcelle | 26/10/2026 |
