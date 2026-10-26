@@ -106,8 +106,11 @@ export function CamposPersonalizadosChat({ contactId }: { contactId: string }) {
   }
 
   useEffect(() => {
-    void carregar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let ativo = true
+    camposDoContato(contactId)
+      .then((r) => { if (ativo) setCampos(r) })
+      .catch(() => { if (ativo) setCampos(null) })
+    return () => { ativo = false }
   }, [contactId])
 
   if (!campos || campos.length === 0) return null
