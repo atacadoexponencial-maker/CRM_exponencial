@@ -17,6 +17,9 @@ import { CarteirasClient } from "./carteiras-client"
 import { urlDeExportacao, urlDeExportacaoPorUf } from "@/lib/relatorios/exportar-vendas"
 import { VariacaoPorUfTabela } from "./variacao-por-uf"
 import { Grafico25Meses } from "./grafico-25-meses"
+import { FiltroPorCampoControle } from "@/components/shared/filtro-por-campo"
+import { filtroPorCampoCompleto, type FiltroPorCampo } from "@/lib/filtro-por-campo"
+import type { CampoParaFiltro } from "@/lib/filtro-contatos"
 
 type Aba = "visao-geral" | "rfv" | "coorte" | "funil" | "carteiras"
 
@@ -32,12 +35,17 @@ interface RelatoriosClientProps {
   papel: string
   /** yyyy-mm-dd no fuso da operação, vindo do servidor. */
   hoje: string
+  /** B38-07: campos personalizados da empresa, para o filtro por campo. */
+  campos?: CampoParaFiltro[]
 }
 
-export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: RelatoriosClientProps) {
+export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje, campos = [] }: RelatoriosClientProps) {
   const [visao, setVisao] = useState<VisaoGeral>(visaoInicial)
   const [periodo, setPeriodo] = useState<PeriodoRelatorio>(periodoPadrao(hoje))
   const [atendenteId, setAtendenteId] = useState("")
+  // B38-07: o filtro por campo só vale completo (campo e valor)
+  const [campo, setCampo] = useState<FiltroPorCampo | null>(null)
+  const campoAtivo = filtroPorCampoCompleto(campo) ? campo : null
   const [aba, setAba] = useState<Aba>("visao-geral")
   const [erro, setErro] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -46,14 +54,14 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
   const anoDeHoje = Number(hoje.slice(0, 4))
   const anos = [anoDeHoje, anoDeHoje - 1, anoDeHoje - 2]
 
-  function aplicar(novoPeriodo: PeriodoRelatorio, novoAtendente = atendenteId) {
+  function aplicar(novoPeriodo: PeriodoRelatorio, novoAtendente = atendenteId, novoCampo = campoAtivo) {
     setPeriodo(novoPeriodo)
     setAtendenteId(novoAtendente)
     if (novoPeriodo.tipo === "meses" && novoPeriodo.meses.length === 0) return
     setErro(false)
     startTransition(async () => {
       try {
-        const r = await buscarVisaoGeral({ periodo: novoPeriodo, atendenteId: novoAtendente || null })
+        const r = await buscarVisaoGeral({ periodo: novoPeriodo, atendenteId: novoAtendente || null, ...(novoCampo ? { campo: novoCampo } : {}) })
         if (r) setVisao(r)
         else setErro(true)
       } catch {
@@ -71,6 +79,12 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
   function trocarAno(ano: number) {
     const meses = periodo.tipo === "meses" ? periodo.meses : [Number(hoje.slice(5, 7))]
     aplicar({ tipo: "meses", ano, meses })
+  }
+
+  /** Muda o filtro por campo; na Visão Geral, recarrega quando ele fica completo ou sai. */
+  function mudarCampo(novo: FiltroPorCampo | null) {
+    setCampo(novo)
+    if (aba === "visao-geral" && (!novo || filtroPorCampoCompleto(novo))) aplicar(periodo, atendenteId, novo)
   }
 
   const anoSelecionado = periodo.tipo === "meses" ? periodo.ano : anoDeHoje
@@ -101,20 +115,24 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
 
       {aba !== "visao-geral" && (
         <>
-          {podeFiltrarAtendente && aba !== "carteiras" && (
+          {((podeFiltrarAtendente && aba !== "carteiras") || campos.length > 0) && (
             <div className="flex flex-wrap items-center gap-2 mb-6">
-              <select aria-label="Atendente" className={selectClass} value={atendenteId} onChange={(e) => setAtendenteId(e.target.value)}>
-                <option value="">Todos os atendentes</option>
-                {atendentes.map((a) => (
-                  <option key={a.id} value={a.id}>{a.nome}</option>
-                ))}
-              </select>
+              {podeFiltrarAtendente && aba !== "carteiras" && (
+                <select aria-label="Atendente" className={selectClass} value={atendenteId} onChange={(e) => setAtendenteId(e.target.value)}>
+                  <option value="">Todos os atendentes</option>
+                  {atendentes.map((a) => (
+                    <option key={a.id} value={a.id}>{a.nome}</option>
+                  ))}
+                </select>
+              )}
+              {/* B38-07 */}
+              <FiltroPorCampoControle campos={campos} valor={campo} onChange={mudarCampo} />
             </div>
           )}
-          {aba === "rfv" && <RfvClient atendenteId={atendenteId || null} />}
-          {aba === "coorte" && <CoorteClient atendenteId={atendenteId || null} />}
-          {aba === "funil" && <FunilClientesClient atendenteId={atendenteId || null} />}
-          {aba === "carteiras" && <CarteirasClient />}
+          {aba === "rfv" && <RfvClient atendenteId={atendenteId || null} campo={campoAtivo} />}
+          {aba === "coorte" && <CoorteClient atendenteId={atendenteId || null} campo={campoAtivo} />}
+          {aba === "funil" && <FunilClientesClient atendenteId={atendenteId || null} campo={campoAtivo} />}
+          {aba === "carteiras" && <CarteirasClient campo={campoAtivo} />}
         </>
       )}
 
@@ -171,6 +189,8 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje }: Rela
             ))}
           </select>
         )}
+        {/* B38-07 */}
+        <FiltroPorCampoControle campos={campos} valor={campo} onChange={mudarCampo} />
       </div>
 
       {erro && <p className="text-sm text-destructive mb-4">Não foi possível carregar o relatório. Tente novamente.</p>}

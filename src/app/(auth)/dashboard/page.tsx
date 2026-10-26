@@ -3,6 +3,7 @@ import { sessaoAtual } from "@/lib/sessao"
 import { cabecalhoDoDia } from "@/lib/painel-dashboard"
 import { buscarPainelDashboard, listarEsperandoResposta, listarParaHoje } from "./actions"
 import { DashboardClient } from "./components/dashboard-client"
+import { listarCamposDaEmpresa } from "../contatos/campos-personalizados"
 
 export const metadata = { title: "Dashboard" }
 
@@ -13,7 +14,8 @@ export default async function DashboardPage() {
   if (!perfil) redirect("/login")
 
   // B36-04: os blocos novos (Para hoje, Esperando resposta) saem junto com as métricas.
-  const [painel, { data: atendentesData }, paraHoje, esperando] = await Promise.all([
+  // B38-07: e os campos personalizados, para o filtro por campo
+  const [painel, { data: atendentesData }, paraHoje, esperando, campos] = await Promise.all([
     buscarPainelDashboard({ periodo: "30d" }),
     supabase
       .from("profiles")
@@ -23,6 +25,7 @@ export default async function DashboardPage() {
       .order("name"),
     listarParaHoje(),
     listarEsperandoResposta(),
+    listarCamposDaEmpresa(),
   ])
 
   if (!painel) redirect("/login")
@@ -38,6 +41,7 @@ export default async function DashboardPage() {
         cabecalho={cabecalhoDoDia(perfil.name)}
         paraHoje={paraHoje}
         esperando={esperando}
+        campos={campos}
       />
     </div>
   )

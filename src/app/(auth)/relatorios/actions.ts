@@ -27,6 +27,8 @@ import { calcularCoortes, type ResultadoCoorte } from "@/lib/relatorios/coorte"
 import { calcularFunilClientes, type ResultadoFunilClientes } from "@/lib/relatorios/funil-clientes"
 import { calcularPainelDeCarteiras, HISTORICO_POR_PAGINA, type PainelDeCarteiras } from "@/lib/relatorios/carteiras"
 import { registrarMudancasDeCarteira, type MotivoDaCarteira } from "@/lib/carteira"
+import { contatosDoFiltroPorCampo } from "@/lib/campos-personalizados-servidor"
+import type { FiltroPorCampo } from "@/lib/filtro-por-campo"
 
 export type { FiltroRelatorio, PeriodoRelatorio, VisaoGeralCartoes } from "@/lib/relatorios/visao-geral"
 
@@ -47,11 +49,15 @@ export type VisaoGeral = VisaoGeralCartoes & {
  * conta (B13-03). Com filtro de atendente, valem as compras dele e, das sem
  * atendente, as dos contatos dele (regra da B30-03, a mesma do Dashboard).
  */
-async function carregarVendas(atendenteId: string | null) {
+async function carregarVendas(atendenteId: string | null, campo?: FiltroPorCampo | null) {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user || !perfil) return null
 
   let vendas = await lerVendas(supabase, perfil.workspace_id)
+
+  // B38-07: só as compras dos contatos que atendem ao filtro por campo
+  const doCampo = await contatosDoFiltroPorCampo(supabase, perfil.workspace_id, campo)
+  if (doCampo) vendas = vendas.filter((v) => doCampo.has(v.contact_id))
 
   if (atendenteId) {
     const { data: cards } = await supabase
@@ -104,7 +110,7 @@ export async function buscarVisaoGeral(filtro: FiltroRelatorio): Promise<VisaoGe
 
   // O Atendente vê só o que é dele, peça o que pedir.
   const atendenteId = perfil.role === "atendente" ? user.id : (filtro.atendenteId ?? null)
-  const dados = await carregarVendas(atendenteId)
+  const dados = await carregarVendas(atendenteId, filtro.campo)
   if (!dados) return null
 
   const hoje = hojeNoFuso()
@@ -123,7 +129,7 @@ export async function buscarVariacaoPorUf(filtro: FiltroRelatorio): Promise<Vari
   const { user, perfil } = await sessaoAtual()
   if (!user || !perfil) return null
   const atendenteId = perfil.role === "atendente" ? user.id : (filtro.atendenteId ?? null)
-  const dados = await carregarVendas(atendenteId)
+  const dados = await carregarVendas(atendenteId, filtro.campo)
   if (!dados) return null
   return variacaoPorUf(dados.vendas, filtro.periodo, hojeNoFuso())
 }
@@ -135,7 +141,7 @@ export async function buscarVendasDoPeriodo(filtro: FiltroRelatorio): Promise<Ve
   const { user, perfil } = await sessaoAtual()
   if (!user || !perfil) return null
   const atendenteId = perfil.role === "atendente" ? user.id : (filtro.atendenteId ?? null)
-  const dados = await carregarVendas(atendenteId)
+  const dados = await carregarVendas(atendenteId, filtro.campo)
   if (!dados) return null
   return vendasDoPeriodo(dados.vendas, intervaloDoPeriodo(filtro.periodo, hojeNoFuso()), ROTULOS_DA_TABELA)
 }
@@ -147,7 +153,7 @@ export async function buscarVendasDoPeriodo(filtro: FiltroRelatorio): Promise<Ve
  * RLS do Atendente só deixa ler a carteira dele, a empresa é lida pelo serviço, presa ao
  * workspace da sessão, e só a carteira sai daqui (SUP-B33-07).
  */
-export async function buscarRfv(filtro: { atendenteId?: string | null }): Promise<ResultadoRfv | null> {
+export async function buscarRfv(filtro: { atendenteId?: string | null; campo?: FiltroPorCampo | null }): Promise<ResultadoRfv | null> {
   const { user, perfil } = await sessaoAtual()
   if (!user || !perfil) return null
   const atendenteId = perfil.role === "atendente" ? user.id : (filtro.atendenteId ?? null)
@@ -166,32 +172,38 @@ export async function buscarRfv(filtro: { atendenteId?: string | null }): Promis
   const atendenteDoContato = new Map<string, string | null>()
   for (const v of vendas) if (!atendenteDoContato.has(v.contact_id)) atendenteDoContato.set(v.contact_id, v.contato_atendente_nome ?? null)
 
+  // B38-07: o filtro por campo, como o de atendente, só escolhe quem aparece; o perfil
+  // continua calculado com a empresa toda (SUP-B38-15)
+  const doCampo = await contatosDoFiltroPorCampo(servico, workspaceId, filtro.campo)
+  const daCarteiraSet = atendenteId ? new Set((daCarteira ?? []).map((c) => c.id)) : null
+  const carteira = daCarteiraSet && doCampo ? new Set([...daCarteiraSet].filter((id) => doCampo.has(id))) : (daCarteiraSet ?? doCampo ?? undefined)
+
   return calcularRfv(vendas, hojeNoFuso(), {
     ativos: new Set((cards ?? []).map((c) => c.contact_id).filter(Boolean) as string[]),
     comLembreteRecente: new Set((lembretes ?? []).map((l) => l.contact_id)),
     atendenteDoContato,
-    carteira: atendenteId ? new Set((daCarteira ?? []).map((c) => c.id)) : undefined,
+    carteira,
   })
 }
 
 const ETAPAS_RECOMPRA_ATIVAS = ["onboarding", "reposicao", "ativos"]
 
 /** B34-01: coortes pelo mês da primeira venda, as 12 mais recentes. Mesma regra do atendente. */
-export async function buscarCoorte(filtro: { atendenteId?: string | null }): Promise<ResultadoCoorte | null> {
+export async function buscarCoorte(filtro: { atendenteId?: string | null; campo?: FiltroPorCampo | null }): Promise<ResultadoCoorte | null> {
   const { user, perfil } = await sessaoAtual()
   if (!user || !perfil) return null
   const atendenteId = perfil.role === "atendente" ? user.id : (filtro.atendenteId ?? null)
-  const dados = await carregarVendas(atendenteId)
+  const dados = await carregarVendas(atendenteId, filtro.campo)
   if (!dados) return null
   return calcularCoortes(dados.vendas, hojeNoFuso())
 }
 
 /** B34-03: funil "1+ a 7+ compras" em toda a história. Mesma regra do atendente. */
-export async function buscarFunilClientes(filtro: { atendenteId?: string | null }): Promise<ResultadoFunilClientes | null> {
+export async function buscarFunilClientes(filtro: { atendenteId?: string | null; campo?: FiltroPorCampo | null }): Promise<ResultadoFunilClientes | null> {
   const { user, perfil } = await sessaoAtual()
   if (!user || !perfil) return null
   const atendenteId = perfil.role === "atendente" ? user.id : (filtro.atendenteId ?? null)
-  const dados = await carregarVendas(atendenteId)
+  const dados = await carregarVendas(atendenteId, filtro.campo)
   if (!dados) return null
   return calcularFunilClientes(dados.vendas, hojeNoFuso())
 }
@@ -255,7 +267,7 @@ const ETAPAS_ATIVAS = ["onboarding", "reposicao", "ativos"]
  * B35-01: painel de carteiras. Admin e Gerente veem a empresa inteira e o histórico; o
  * Atendente só o próprio cartão (a RLS já limita os contatos dele).
  */
-export async function buscarCarteiras(): Promise<ResultadoCarteiras | null> {
+export async function buscarCarteiras(filtro: { campo?: FiltroPorCampo | null } = {}): Promise<ResultadoCarteiras | null> {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user || !perfil) return null
   const atendente = perfil.role === "atendente"
@@ -270,8 +282,11 @@ export async function buscarCarteiras(): Promise<ResultadoCarteiras | null> {
   ])
   const comCompra = new Set((compras ?? []).map((c) => c.contact_id))
   const ativos = new Set((cards ?? []).map((c) => c.contact_id).filter(Boolean) as string[])
+  // B38-07: só os contatos que atendem ao filtro por campo
+  const doCampo = await contatosDoFiltroPorCampo(supabase, perfil.workspace_id, filtro.campo)
   const lista = (contatos ?? [])
     .filter((c) => !atendente || c.atendente_id === user.id)
+    .filter((c) => !doCampo || doCampo.has(c.id))
     .map((c) => ({ id: c.id, atendenteId: c.atendente_id, temCompra: comCompra.has(c.id), ativo: ativos.has(c.id) }))
   const vendedores = (perfis ?? []).map((p) => ({ id: p.id, nome: p.name as string }))
   const painel = calcularPainelDeCarteiras(lista, vendedores)

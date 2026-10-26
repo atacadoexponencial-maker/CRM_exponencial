@@ -11,6 +11,7 @@ import { buscarRfv } from "../actions"
 import { ListaClientesRfv } from "./lista-clientes-rfv"
 import { EvolucaoPerfis } from "./evolucao-perfis"
 import { Entenda } from "./entenda"
+import type { FiltroPorCampo } from "@/lib/filtro-por-campo"
 
 const ENTENDA_RFV = [
   ["O que é RFV?", "RFV dá a cada cliente três notas, de 1 a 5: Recência (há quanto tempo foi a última compra), Frequência (quantas compras nos últimos 12 meses) e Valor (quanto gastou nos últimos 12 meses). Quanto maior a nota, melhor."],
@@ -104,11 +105,15 @@ export function IndicadoresPorPerfil({ indicadores }: { indicadores: IndicadorPe
 
 interface RfvClientProps {
   atendenteId: string | null
+  /** B38-07: filtro por campo completo, ou null. */
+  campo?: FiltroPorCampo | null
   /** Resultado já carregado (testes e primeira carga); sem ele, busca ao montar. */
   inicial?: ResultadoRfv | null
 }
 
-export function RfvClient({ atendenteId, inicial = null }: RfvClientProps) {
+export function RfvClient({ atendenteId, campo = null, inicial = null }: RfvClientProps) {
+  // B38-07: recarrega quando o filtro por campo muda
+  const chaveDoCampo = JSON.stringify(campo ?? null)
   const [resultado, setResultado] = useState<ResultadoRfv | null>(inicial)
   const [erro, setErro] = useState(false)
   const [celula, setCelula] = useState<CelulaSelecionada>(null)
@@ -130,7 +135,7 @@ export function RfvClient({ atendenteId, inicial = null }: RfvClientProps) {
     if (inicial) return
     startTransition(async () => {
       try {
-        const r = await buscarRfv({ atendenteId })
+        const r = await buscarRfv({ atendenteId, ...(campo ? { campo } : {}) })
         if (r) {
           setResultado(r)
           setErro(false)
@@ -140,7 +145,7 @@ export function RfvClient({ atendenteId, inicial = null }: RfvClientProps) {
       }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [atendenteId])
+  }, [atendenteId, chaveDoCampo])
 
   if (erro) return <p className="text-sm text-destructive">Não foi possível carregar o RFV. Tente novamente.</p>
   if (!resultado) return <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> Calculando os perfis…</p>

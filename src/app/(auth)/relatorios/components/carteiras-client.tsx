@@ -11,6 +11,7 @@ import { ROTULO_MOTIVO } from "@/lib/carteira"
 import { buscarCarteiras, buscarHistoricoDeCarteira, type LinhaDoHistoricoDeCarteira, type ResultadoCarteiras } from "../actions"
 import { RemoverCarteiraDialog, TransferirCarteiraDialog } from "./acoes-carteira"
 import { DistribuirDialog, ReprocessarDialog } from "./acoes-sem-vendedor"
+import type { FiltroPorCampo } from "@/lib/filtro-por-campo"
 
 const NUMEROS: Array<{ id: keyof NumerosDaCarteira; titulo: string; cor: string }> = [
   { id: "leads", titulo: "Leads", cor: "text-violet-700 dark:text-violet-300" },
@@ -177,7 +178,9 @@ function HistoricoDeCarteira({ inicial, totalInicial }: { inicial: LinhaDoHistor
   )
 }
 
-export function CarteirasClient({ inicial = null }: { inicial?: ResultadoCarteiras | null }) {
+export function CarteirasClient({ campo = null, inicial = null }: { campo?: FiltroPorCampo | null; inicial?: ResultadoCarteiras | null }) {
+  // B38-07: recarrega quando o filtro por campo muda
+  const chaveDoCampo = JSON.stringify(campo ?? null)
   const [resultado, setResultado] = useState<ResultadoCarteiras | null>(inicial)
   const [erro, setErro] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -185,7 +188,7 @@ export function CarteirasClient({ inicial = null }: { inicial?: ResultadoCarteir
   function carregar() {
     startTransition(async () => {
       try {
-        const r = await buscarCarteiras()
+        const r = await (campo ? buscarCarteiras({ campo }) : buscarCarteiras())
         if (r) {
           setResultado(r)
           setErro(false)
@@ -200,7 +203,7 @@ export function CarteirasClient({ inicial = null }: { inicial?: ResultadoCarteir
     if (inicial) return
     carregar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [chaveDoCampo])
 
   if (erro) return <p className="text-sm text-destructive">Não foi possível carregar as carteiras. Tente novamente.</p>
   if (!resultado) return <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> Carregando as carteiras…</p>

@@ -14,6 +14,9 @@ import { SecoesMetricas } from "./secoes-metricas"
 import { FaixaDeNumeros } from "@/components/shared/faixa-de-numeros"
 import { BlocoEsperandoResposta, BlocoFunilEntrada, BlocoParaHoje } from "./blocos-do-dia"
 import { formatarMoeda } from "./graficos"
+import { FiltroPorCampoControle } from "@/components/shared/filtro-por-campo"
+import { filtroPorCampoCompleto, type FiltroPorCampo } from "@/lib/filtro-por-campo"
+import type { CampoParaFiltro } from "@/lib/filtro-contatos"
 
 interface DashboardClientProps {
   painelInicial: PainelDashboard
@@ -22,9 +25,11 @@ interface DashboardClientProps {
   cabecalho: { data: string; saudacao: string }
   paraHoje: TarefaDeHoje[]
   esperando: { conversas: ConversaEsperando[]; total: number }
+  /** B38-07: campos personalizados da empresa, para o filtro por campo. */
+  campos?: CampoParaFiltro[]
 }
 
-export function DashboardClient({ painelInicial, atendentes, papel, cabecalho, paraHoje, esperando }: DashboardClientProps) {
+export function DashboardClient({ painelInicial, atendentes, papel, cabecalho, paraHoje, esperando, campos = [] }: DashboardClientProps) {
   const [painel, setPainel] = useState<PainelDashboard>(painelInicial)
   const [filtros, setFiltros] = useState<FiltrosState>({
     periodo: "30d",
@@ -33,12 +38,14 @@ export function DashboardClient({ painelInicial, atendentes, papel, cabecalho, p
     atendenteId: "",
   })
   const [erro, setErro] = useState(false)
+  // B38-07: o filtro por campo só vale completo (campo e valor)
+  const [campo, setCampo] = useState<FiltroPorCampo | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const podeFiltrarAtendente = papel === "admin" || papel === "gerente"
   const { metricas, variacoes } = painel
 
-  function aplicarFiltros(novos: FiltrosState) {
+  function aplicarFiltros(novos: FiltrosState, novoCampo = campo) {
     setFiltros(novos)
     if (novos.periodo === "custom" && !novos.inicio) return
     setErro(false)
@@ -49,6 +56,7 @@ export function DashboardClient({ painelInicial, atendentes, papel, cabecalho, p
           inicio: novos.inicio || undefined,
           fim: novos.fim || undefined,
           atendenteId: novos.atendenteId || null,
+          ...(filtroPorCampoCompleto(novoCampo) ? { campo: novoCampo } : {}),
         })
         if (resultado) setPainel(resultado)
         else setErro(true)
@@ -74,6 +82,14 @@ export function DashboardClient({ painelInicial, atendentes, papel, cabecalho, p
             onChange={aplicarFiltros}
             atendentes={atendentes}
             mostrarAtendente={podeFiltrarAtendente}
+          />
+          <FiltroPorCampoControle
+            campos={campos}
+            valor={campo}
+            onChange={(novo) => {
+              setCampo(novo)
+              if (!novo || filtroPorCampoCompleto(novo)) aplicarFiltros(filtros, novo)
+            }}
           />
           {podeFiltrarAtendente && (
             <Link

@@ -10,6 +10,7 @@ import { MESES_DA_COORTE, rotuloDoMesK, type Coorte, type ResultadoCoorte, type 
 import { urlDeExportacaoCoorte, type TabelaCoorte } from "@/lib/relatorios/exportar-coorte"
 import { buscarCoorte } from "../actions"
 import { Entenda } from "./entenda"
+import type { FiltroPorCampo } from "@/lib/filtro-por-campo"
 
 const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })
 const COLUNAS = Array.from({ length: MESES_DA_COORTE }, (_, k) => k)
@@ -130,7 +131,9 @@ export function EntendaCoortes() {
   return <Entenda titulo="Entenda a análise de coortes" itens={ENTENDA} />
 }
 
-export function CoorteClient({ atendenteId, inicial = null }: { atendenteId: string | null; inicial?: ResultadoCoorte | null }) {
+export function CoorteClient({ atendenteId, campo = null, inicial = null }: { atendenteId: string | null; campo?: FiltroPorCampo | null; inicial?: ResultadoCoorte | null }) {
+  // B38-07: recarrega quando o filtro por campo muda
+  const chaveDoCampo = JSON.stringify(campo ?? null)
   const [resultado, setResultado] = useState<ResultadoCoorte | null>(inicial)
   const [erro, setErro] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -139,7 +142,7 @@ export function CoorteClient({ atendenteId, inicial = null }: { atendenteId: str
     if (inicial) return
     startTransition(async () => {
       try {
-        const r = await buscarCoorte({ atendenteId })
+        const r = await buscarCoorte({ atendenteId, ...(campo ? { campo } : {}) })
         if (r) {
           setResultado(r)
           setErro(false)
@@ -149,7 +152,7 @@ export function CoorteClient({ atendenteId, inicial = null }: { atendenteId: str
       }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [atendenteId])
+  }, [atendenteId, chaveDoCampo])
 
   if (erro) return <p className="text-sm text-destructive">Não foi possível carregar as coortes. Tente novamente.</p>
   if (!resultado) return <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> Calculando as coortes…</p>

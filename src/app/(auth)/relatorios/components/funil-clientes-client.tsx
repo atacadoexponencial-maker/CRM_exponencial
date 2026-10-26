@@ -9,6 +9,7 @@ import { Info, Loader2 } from "lucide-react"
 import { Balao } from "@/app/(auth)/dashboard/components/graficos"
 import { DIAS_PARADO, type EtapaDoFunil, type ResultadoFunilClientes } from "@/lib/relatorios/funil-clientes"
 import { buscarFunilClientes } from "../actions"
+import type { FiltroPorCampo } from "@/lib/filtro-por-campo"
 
 const moeda = (v: number | null) => (v === null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }))
 const pct = (v: number | null) => (v === null ? "—" : `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`)
@@ -107,7 +108,9 @@ export function FunilDeClientes({ resultado }: { resultado: ResultadoFunilClient
   )
 }
 
-export function FunilClientesClient({ atendenteId, inicial = null }: { atendenteId: string | null; inicial?: ResultadoFunilClientes | null }) {
+export function FunilClientesClient({ atendenteId, campo = null, inicial = null }: { atendenteId: string | null; campo?: FiltroPorCampo | null; inicial?: ResultadoFunilClientes | null }) {
+  // B38-07: recarrega quando o filtro por campo muda
+  const chaveDoCampo = JSON.stringify(campo ?? null)
   const [resultado, setResultado] = useState<ResultadoFunilClientes | null>(inicial)
   const [erro, setErro] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -116,7 +119,7 @@ export function FunilClientesClient({ atendenteId, inicial = null }: { atendente
     if (inicial) return
     startTransition(async () => {
       try {
-        const r = await buscarFunilClientes({ atendenteId })
+        const r = await buscarFunilClientes({ atendenteId, ...(campo ? { campo } : {}) })
         if (r) {
           setResultado(r)
           setErro(false)
@@ -126,7 +129,7 @@ export function FunilClientesClient({ atendenteId, inicial = null }: { atendente
       }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [atendenteId])
+  }, [atendenteId, chaveDoCampo])
 
   if (erro) return <p className="text-sm text-destructive">Não foi possível carregar o funil. Tente novamente.</p>
   if (!resultado) return <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> Calculando o funil…</p>

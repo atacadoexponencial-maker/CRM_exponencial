@@ -4,7 +4,9 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "@/integrations/supabase/types"
+import { comparacaoDoFiltroPorCampo, filtroPorCampoCompleto, tipoDoFiltroPorCampo, type FiltroPorCampo } from "@/lib/filtro-por-campo"
 import {
+  campoAtende,
   conferirValor,
   valorDaLinha,
   type CampoDaEmpresa,
@@ -103,4 +105,34 @@ export async function valoresDosContatos(
     mapa.set(l.contact_id, doContato)
   }
   return mapa
+}
+
+/**
+ * B38-07: os contatos da empresa que atendem ao filtro por campo, com a mesma
+ * comparação da condição das automações (`campoAtende`). Sem filtro completo, null
+ * (não filtra). Campo que não é da empresa: nenhum contato.
+ */
+export async function contatosDoFiltroPorCampo(
+  supabase: Cliente,
+  workspaceId: string,
+  filtro: FiltroPorCampo | null | undefined
+): Promise<Set<string> | null> {
+  if (!filtroPorCampoCompleto(filtro)) return null
+  const tipo = tipoDoFiltroPorCampo(filtro) as TipoDeCampo
+  const campoId = filtro.campo.split(":")[2]
+  const { data: campo } = await supabase
+    .from("campos_personalizados")
+    .select("id")
+    .eq("id", campoId)
+    .eq("workspace_id", workspaceId)
+    .eq("tipo", tipo)
+    .maybeSingle()
+  if (!campo) return new Set()
+  const { data } = await supabase
+    .from("contato_campos")
+    .select("contact_id, valor_texto, valor_numero, valor_data, valor_booleano, valor_opcoes")
+    .eq("campo_id", campoId)
+  const comparacao = comparacaoDoFiltroPorCampo(tipo)
+  const valores = filtro.valores.map((v) => v.trim())
+  return new Set((data ?? []).filter((l) => campoAtende(tipo, valorDaLinha(l), comparacao, valores)).map((l) => l.contact_id))
 }

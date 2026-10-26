@@ -8,6 +8,8 @@ export type FiltroDashboard = {
   inicio?: string // ISO yyyy-mm-dd, apenas para periodo = custom
   fim?: string
   atendenteId?: string | null
+  /** B38-07: filtro por um campo personalizado. */
+  campo?: import("@/lib/filtro-por-campo").FiltroPorCampo | null
 }
 
 export type MetricasDashboard = {

@@ -24,6 +24,7 @@ import {
   type VariacoesDashboard,
 } from "@/lib/painel-dashboard"
 import { ETAPAS_ENTRADA } from "@/app/(auth)/pipeline/mock-pipeline"
+import { contatosDoFiltroPorCampo } from "@/lib/campos-personalizados-servidor"
 import { listarMinhaAgenda, type ItemAgenda } from "@/app/(auth)/agenda/actions"
 
 export type { FiltroDashboard, MetricasDashboard, PerformanceVendedor, PeriodoKey } from "@/lib/metricas-dashboard"
@@ -43,6 +44,8 @@ async function carregarDados(filtro: FiltroDashboard) {
     .eq("workspace_id", perfil.workspace_id)
 
   if (atendenteId) cardsQuery = cardsQuery.eq("atendente_id", atendenteId)
+  // B38-07: contatos do filtro por campo, para os cards (e as compras, abaixo)
+  const doCampoDosCards = await contatosDoFiltroPorCampo(supabase, perfil.workspace_id, filtro.campo)
 
   const [{ data: cardsData }, { data: purchasesData }] = await Promise.all([
     cardsQuery,
@@ -55,7 +58,7 @@ async function carregarDados(filtro: FiltroDashboard) {
       .is("contato.excluido_em", null),
   ])
 
-  const cards = (cardsData ?? []) as CardRow[]
+  const cards = ((cardsData ?? []) as CardRow[]).filter((c) => !doCampoDosCards || (!!c.contact_id && doCampoDosCards.has(c.contact_id)))
 
   const cardIds = cards.map((c) => c.id)
   let history: HistoryRow[] = []
@@ -69,6 +72,8 @@ async function carregarDados(filtro: FiltroDashboard) {
 
   // Com filtro de atendente: compras dele e, das sem atendente, as dos contatos dele (B30-03).
   let purchases = (purchasesData ?? []) as PurchaseRow[]
+  // B38-07: só as compras dos contatos que atendem ao filtro por campo
+  if (doCampoDosCards) purchases = purchases.filter((p) => doCampoDosCards.has(p.contact_id))
   if (atendenteId) {
     const contatosDoAtendente = new Set(cards.map((c) => c.contact_id).filter(Boolean))
     purchases = purchases.filter((p) => compraEhDoAtendente(p, atendenteId, contatosDoAtendente))

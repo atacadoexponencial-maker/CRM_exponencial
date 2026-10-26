@@ -13,6 +13,8 @@ export type PeriodoRelatorio =
 export type FiltroRelatorio = {
   periodo: PeriodoRelatorio
   atendenteId?: string | null
+  /** B38-07: filtro por um campo personalizado. */
+  campo?: import("@/lib/filtro-por-campo").FiltroPorCampo | null
 }
 
 export type VendaRow = {

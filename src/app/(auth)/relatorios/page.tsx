@@ -3,6 +3,7 @@ import { sessaoAtual } from "@/lib/sessao"
 import { hojeNoFuso, periodoPadrao } from "@/lib/relatorios/visao-geral"
 import { buscarVisaoGeral } from "./actions"
 import { RelatoriosClient } from "./components/relatorios-client"
+import { listarCamposDaEmpresa } from "../contatos/campos-personalizados"
 
 export const metadata = { title: "Relatórios" }
 
@@ -11,7 +12,8 @@ export default async function RelatoriosPage() {
   if (!user || !perfil) redirect("/login")
 
   const hoje = hojeNoFuso()
-  const [visao, { data: atendentesData }] = await Promise.all([
+  // B38-07: e os campos personalizados, para o filtro por campo
+  const [visao, { data: atendentesData }, campos] = await Promise.all([
     buscarVisaoGeral({ periodo: periodoPadrao(hoje), atendenteId: null }),
     supabase
       .from("profiles")
@@ -19,6 +21,7 @@ export default async function RelatoriosPage() {
       .eq("workspace_id", perfil.workspace_id)
       .eq("status", "active")
       .order("name"),
+    listarCamposDaEmpresa(),
   ])
   if (!visao) redirect("/login")
 
@@ -26,7 +29,7 @@ export default async function RelatoriosPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-8 lg:px-10">
-      <RelatoriosClient visaoInicial={visao} atendentes={atendentes} papel={perfil.role} hoje={hoje} />
+      <RelatoriosClient visaoInicial={visao} atendentes={atendentes} papel={perfil.role} hoje={hoje} campos={campos} />
     </div>
   )
 }
