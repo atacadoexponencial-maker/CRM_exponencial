@@ -15,6 +15,7 @@ import { normalizarTexto } from "@/lib/catalogo/planilha"
 import { itensDaLista, normalizarTag, SEM_COMPRAS, type Verificacao } from "@/lib/fluxo-automacao"
 import { dentroDoHorario, horarioDoBanco } from "@/lib/horario-comercial"
 import { conversaDoEvento, type ContextoDaExecucao } from "./contexto"
+import { campoAtende, valorDaLinha, type TipoDeCampo } from "@/lib/campos-personalizados"
 
 /** Opção do editor ("Canal da conversa é …") → `whatsapp_connections.canal`. */
 const CANAL_DA_OPCAO: Record<string, string> = {
@@ -42,6 +43,8 @@ export async function verificacaoVale(contexto: ContextoDaExecucao, verificacao:
       return classificacaoVale(contexto, verificacao)
     case "perfil_rfv":
       return perfilRfvVale(contexto, verificacao)
+    case "campo_personalizado":
+      return campoPersonalizadoVale(contexto, verificacao)
     case "horario_comercial":
       return horarioVale(contexto, verificacao)
     // Trazem a mensagem os gatilhos de mensagem e, depois dela, a saída de mensagem da espera (B28-03)
@@ -149,6 +152,36 @@ async function tagVale({ supabase, gatilho }: ContextoDaExecucao, { operador, va
 }
 
 /** Contato sem tipo "não é" nenhum tipo. */
+/**
+ * B38-04: o campo personalizado do contato pela comparação escolhida (as do filtro).
+ * O tipo vem do banco, e o campo precisa ser da empresa do evento.
+ */
+async function campoPersonalizadoVale({ supabase, gatilho }: ContextoDaExecucao, { operador, valor, campo }: Verificacao): Promise<boolean> {
+  if (!gatilho.contactId || !campo?.startsWith("campo:")) return false
+  const campoId = campo.split(":")[2] ?? ""
+  const { data: definicao, error: erroCampo } = await supabase
+    .from("campos_personalizados")
+    .select("tipo")
+    .eq("id", campoId)
+    .eq("workspace_id", gatilho.workspaceId)
+    .maybeSingle()
+  if (erroCampo) throw erroCampo
+  if (!definicao) return false
+
+  const { data: linha, error } = await supabase
+    .from("contato_campos")
+    .select("valor_texto, valor_numero, valor_data, valor_booleano, valor_opcoes")
+    .eq("contact_id", gatilho.contactId)
+    .eq("campo_id", campoId)
+    .maybeSingle()
+  if (error) throw error
+
+  const tipo = definicao.tipo as TipoDeCampo
+  // Em texto, o valor inteiro (pode ter vírgula); nos outros, a lista
+  const varios = ["lista", "multipla", "numero", "dinheiro", "data"].includes(tipo)
+  return campoAtende(tipo, linha ? valorDaLinha(linha) : null, operador, varios ? itensDaLista(valor) : [valor])
+}
+
 async function tipoVale({ supabase, gatilho }: ContextoDaExecucao, { operador, valor }: Verificacao): Promise<boolean> {
   if (operador !== "e" && operador !== "nao_e") return false
   if (!gatilho.contactId) return false

@@ -327,3 +327,155 @@ export function valorDaLinha(linha: {
     opcoes: linha.valor_opcoes,
   }
 }
+
+// ---------------------------------------------------------------------------
+// B38-04: automações
+// ---------------------------------------------------------------------------
+
+/**
+ * O valor num formato único, para o gatilho comparar e a ação gravar: número com
+ * ponto, data aaaa-mm-dd, ids das opções separados por vírgula, "sim"/"nao", ou o
+ * texto. Sem valor, "".
+ */
+export function canonicoDoValor(tipo: TipoDeCampo, valor: ValorGuardado | null): string {
+  if (!valor) return ""
+  switch (tipo) {
+    case "numero":
+    case "dinheiro":
+      return valor.numero === null ? "" : String(valor.numero)
+    case "data":
+      return valor.data ?? ""
+    case "sim_nao":
+      return valor.booleano === null ? "" : valor.booleano ? "sim" : "nao"
+    case "lista":
+    case "multipla":
+      return (valor.opcoes ?? []).join(",")
+    default:
+      return valor.texto ?? ""
+  }
+}
+
+/** O formato único de volta como entrada da tela (`conferirValor` aceita número com ponto). */
+export function entradaDoCanonico(tipo: TipoDeCampo, canonico: string): EntradaDoCampo {
+  if (tipo === "multipla") return canonico.split(",").map((v) => v.trim()).filter(Boolean)
+  return canonico
+}
+
+/** O formato único lido como valor, para mostrar nas frases do editor e do histórico. */
+export function valorDoCanonico(campo: Pick<CampoPersonalizado, "tipo" | "opcoes">, canonico: string): ValorGuardado | null {
+  const conferido = conferirValor(campo, entradaDoCanonico(campo.tipo, canonico))
+  return "erro" in conferido ? null : conferido.valor
+}
+
+/** "Hoje" no fuso da operação, como aaaa-mm-dd. */
+function hojeEmBrasilia(agora: Date): string {
+  return agora.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })
+}
+
+function diasAntes(dia: string, n: number): string {
+  const d = new Date(`${dia}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() - n)
+  return d.toISOString().slice(0, 10)
+}
+
+const textoComparavel = (tipo: TipoDeCampo, texto: string) =>
+  tipo === "telefone"
+    ? texto.replace(/\D/g, "")
+    : texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim()
+
+/**
+ * A condição "campo personalizado" das automações (CA-B38-38): as mesmas comparações
+ * do filtro de Contatos, com a mesma regra. As negativas ("não é", "não contém",
+ * "não é nenhum de") não valem para quem está com o campo vazio.
+ */
+export function campoAtende(
+  tipo: TipoDeCampo,
+  valor: ValorGuardado | null,
+  comparacao: string,
+  valores: string[],
+  agora = new Date()
+): boolean {
+  const [v1 = "", v2 = ""] = valores
+  if (tipo === "lista" || tipo === "multipla") {
+    const tem = valor?.opcoes ?? []
+    switch (comparacao) {
+      case "qualquer_de":
+      case "tem_qualquer":
+        return valores.some((v) => tem.includes(v))
+      case "tem_todas":
+        return valores.length > 0 && valores.every((v) => tem.includes(v))
+      case "nenhum_de":
+        return tem.length > 0 && !valores.some((v) => tem.includes(v))
+      case "vazio":
+        return tem.length === 0
+      case "nao_vazio":
+        return tem.length > 0
+      default:
+        return false
+    }
+  }
+  if (tipo === "sim_nao") {
+    const b = valor?.booleano ?? null
+    if (comparacao === "e") return b !== null && b === (v1 === "sim")
+    if (comparacao === "vazio") return b === null
+    return false
+  }
+  if (tipo === "numero" || tipo === "dinheiro") {
+    const n = valor?.numero ?? null
+    if (comparacao === "vazio") return n === null
+    if (comparacao === "nao_vazio") return n !== null
+    if (n === null) return false
+    switch (comparacao) {
+      case "igual":
+        return n === Number(v1)
+      case "maior":
+        return n > Number(v1)
+      case "menor":
+        return n < Number(v1)
+      case "entre":
+        return n >= Number(v1) && n <= Number(v2)
+      default:
+        return false
+    }
+  }
+  if (tipo === "data") {
+    const d = valor?.data ?? null
+    if (comparacao === "vazio") return d === null
+    if (comparacao === "nao_vazio") return d !== null
+    if (d === null) return false
+    const hoje = hojeEmBrasilia(agora)
+    switch (comparacao) {
+      case "antes":
+        return d < v1
+      case "depois":
+        return d > v1
+      case "entre":
+        return d >= v1 && d <= v2
+      case "ultimos_dias":
+        return d >= diasAntes(hoje, Number(v1))
+      case "ha_mais_de_dias":
+        return d < diasAntes(hoje, Number(v1))
+      default:
+        return false
+    }
+  }
+  // Texto, texto longo, link, e-mail e telefone
+  const texto = valor?.texto?.trim() ? textoComparavel(tipo, valor.texto) : ""
+  const procurado = textoComparavel(tipo, v1)
+  switch (comparacao) {
+    case "vazio":
+      return texto === ""
+    case "nao_vazio":
+      return texto !== ""
+    case "contem":
+      return texto !== "" && texto.includes(procurado)
+    case "nao_contem":
+      return texto !== "" && !texto.includes(procurado)
+    case "igual":
+      return texto !== "" && texto === procurado
+    case "nao_e":
+      return texto !== "" && texto !== procurado
+    default:
+      return false
+  }
+}

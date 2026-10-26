@@ -30,7 +30,8 @@ const bloco = z.discriminatedUnion("tipo", [
     tipo: z.literal("condicao"),
     // O tipo da verificação fica aberto: o que o motor não conhece vira pendência "em breve"
     verificacoes: z
-      .array(z.object({ id, tipo: z.string().max(40), operador: z.string().max(40), valor: texto }))
+      // B38-04: "campo" só na verificação de campo personalizado ("campo:<tipo>:<uuid>")
+      .array(z.object({ id, tipo: z.string().max(40), operador: z.string().max(40), valor: texto, campo: z.string().max(60).optional() }))
       .max(20),
     posicao,
   }),

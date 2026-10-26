@@ -47,10 +47,13 @@ import {
   etapasDoFunil,
   opcoesDaFonte,
   opcoesDoCampoContato,
+  campoPersonalizadoDoEditor,
   type CampoTela,
   type Opcao,
   type OpcoesEditor,
 } from "./catalogo"
+import { campoDoFiltro, campoPersonalizado, comparacoesDoCampo, rotuloDaComparacao, valoresPedidos, type CampoParaFiltro, type Comparacao } from "@/lib/filtro-contatos"
+import { conferirValor, entradaDoCanonico, type TipoDeCampo } from "@/lib/campos-personalizados"
 import { CampoSelecao, type ItemSelecao } from "./campo-selecao"
 import { CampoVarias } from "./campo-varias"
 import { VARIAVEIS_DA_MENSAGEM, inserirNoCursor } from "./variaveis-mensagem"
@@ -483,6 +486,11 @@ function CampoParametro({
         />
       )
     case "valor_do_campo": {
+      // B38-04: campo personalizado no controle do tipo
+      const personalizado = campoPersonalizadoDoEditor(parametros.campo, opcoes)
+      if (personalizado) {
+        return <ValorDoCampoPersonalizado id={id} campo={personalizado} valor={valor} vazio={campo.vazio} onMudar={(novo) => onMudar("valor", novo)} />
+      }
       const lista = opcoesDoCampoContato(parametros.campo, opcoes)
       if (!parametros.campo) {
         return <Input id={id} disabled placeholder="Escolha o campo primeiro" value="" onChange={() => {}} />
@@ -703,18 +711,23 @@ function EditorVerificacoes({
               itens={itensAtributo}
               onMudar={(valor) => {
                 const tipo = valor as VerificacaoTipo
-                mudar(v.id, { tipo, operador: VERIFICACOES[tipo].operadores[0].id, valor: "" })
+                // B38-04: o campo personalizado escolhe o campo antes da comparação
+                mudar(v.id, { tipo, operador: VERIFICACOES[tipo].operadores[0]?.id ?? "", valor: "", campo: undefined })
               }}
             />
             {invalida && (
               <p className="text-xs text-erro">Não vale para este gatilho. Remova ou troque a verificação.</p>
             )}
-            <CampoSelecao
-              aria-label="Operador"
-              valor={v.operador}
-              itens={paraItens(item.operadores)}
-              onMudar={(operador) => mudar(v.id, { operador })}
-            />
+            {v.tipo === "campo_personalizado" ? (
+              <CondicaoDeCampoPersonalizado verificacao={v} opcoes={opcoes} onMudar={(mudanca) => mudar(v.id, mudanca)} />
+            ) : (
+              <CampoSelecao
+                aria-label="Operador"
+                valor={v.operador}
+                itens={paraItens(item.operadores)}
+                onMudar={(operador) => mudar(v.id, { operador })}
+              />
+            )}
             {v.tipo === "horario_comercial" && (
               <p className="text-xs text-muted-foreground">
                 Horário comercial: {descreverHorario(opcoes.horarioComercial)}. Para mudar, use o botão
@@ -884,6 +897,154 @@ const ITENS_LIMITE_DA_ESPERA: ItemSelecao[] = [
 ]
 
 /** Valor no formato `funil:etapa`. Só fica completo com os dois escolhidos. */
+// ─── B38-04: campos personalizados ───────────────────────────────────────────
+
+/** Em texto, o valor inteiro (pode ter vírgula); nos outros tipos, a lista separada por vírgula. */
+const VALOR_EM_LISTA = ["lista", "multipla", "numero", "dinheiro", "data"]
+
+const SIM_NAO_DO_EDITOR: Opcao[] = [
+  { id: "sim", nome: "Sim" },
+  { id: "nao", nome: "Não" },
+]
+
+/** O controle de um valor da condição de campo personalizado: número, data, opções ou texto. */
+function EntradaDoValor({
+  rotulo,
+  campo,
+  valor,
+  dias,
+  onMudar,
+}: {
+  rotulo: string
+  campo: CampoParaFiltro
+  valor: string
+  dias?: boolean
+  onMudar: (valor: string) => void
+}) {
+  if (dias) {
+    return <Input aria-label={rotulo} type="number" min={1} value={valor} onChange={(e) => onMudar(e.target.value)} />
+  }
+  if (campo.tipo === "numero" || campo.tipo === "dinheiro") {
+    return <Input aria-label={rotulo} type="number" step="0.01" inputMode="decimal" value={valor} onChange={(e) => onMudar(e.target.value)} />
+  }
+  if (campo.tipo === "data") {
+    return <Input aria-label={rotulo} type="date" value={valor} onChange={(e) => onMudar(e.target.value)} />
+  }
+  const lista = campo.tipo === "sim_nao" ? SIM_NAO_DO_EDITOR : campo.tipo === "lista" || campo.tipo === "multipla" ? campo.opcoes : null
+  if (lista) {
+    return <CampoSelecao aria-label={rotulo} valor={valor} vazio="Escolha…" itens={comEscolhaApagada(paraItens(lista), valor)} onMudar={onMudar} />
+  }
+  return <Input aria-label={rotulo} value={valor} onChange={(e) => onMudar(e.target.value)} />
+}
+
+/** A condição "campo personalizado": o campo, a comparação do tipo e o valor (as do filtro). */
+function CondicaoDeCampoPersonalizado({
+  verificacao: v,
+  opcoes,
+  onMudar,
+}: {
+  verificacao: Verificacao
+  opcoes: OpcoesEditor
+  onMudar: (mudanca: Partial<Verificacao>) => void
+}) {
+  const campos = opcoes.camposPersonalizados ?? []
+  const campo = campoPersonalizadoDoEditor(v.campo, opcoes)
+  const doFiltro = v.campo ? campoDoFiltro(v.campo, undefined, campos) : undefined
+  const comparacoes = doFiltro ? comparacoesDoCampo(doFiltro) : []
+  const forma = v.operador ? valoresPedidos(v.operador as Comparacao) : "nenhum"
+  const emLista = !!campo && VALOR_EM_LISTA.includes(campo.tipo)
+  const valores = emLista ? itensDaLista(v.valor) : [v.valor]
+  const dias = v.operador === "ultimos_dias" || v.operador === "ha_mais_de_dias"
+  const mudarValor = (posicao: number, novo: string) => {
+    const proximos = [...valores]
+    proximos[posicao] = novo
+    onMudar({ valor: emLista ? proximos.map((x) => (x ?? "").trim()).join(",") : novo })
+  }
+
+  return (
+    <>
+      <CampoSelecao
+        aria-label="Campo"
+        valor={v.campo ?? ""}
+        vazio="Escolha o campo…"
+        itens={comEscolhaApagada(campos.map((c) => ({ valor: campoPersonalizado(c), rotulo: c.nome })), v.campo ?? "")}
+        onMudar={(novo) => {
+          const escolhido = campoDoFiltro(novo, undefined, campos)
+          onMudar({ campo: novo, operador: escolhido ? comparacoesDoCampo(escolhido)[0] : "", valor: "" })
+        }}
+      />
+      {doFiltro && (
+        <CampoSelecao
+          aria-label="Operador"
+          valor={v.operador}
+          itens={comparacoes.map((c) => ({ valor: c, rotulo: rotuloDaComparacao(doFiltro, c) }))}
+          onMudar={(operador) => onMudar({ operador, valor: "" })}
+        />
+      )}
+      {campo && forma === "varios" && (
+        <CampoVarias rotulo="Valor" valor={v.valor} opcoes={campo.opcoes} onMudar={(valor) => onMudar({ valor })} />
+      )}
+      {campo && forma === "um" && (
+        <EntradaDoValor rotulo="Valor" campo={campo} valor={valores[0] ?? ""} dias={dias} onMudar={(novo) => mudarValor(0, novo)} />
+      )}
+      {campo && forma === "dois" && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <EntradaDoValor rotulo="Valor" campo={campo} valor={valores[0] ?? ""} onMudar={(novo) => mudarValor(0, novo)} />
+          e
+          <EntradaDoValor rotulo="Até" campo={campo} valor={valores[1] ?? ""} onMudar={(novo) => mudarValor(1, novo)} />
+        </div>
+      )}
+    </>
+  )
+}
+
+/**
+ * O valor do gatilho e da ação de campo personalizado, no controle do tipo. O valor
+ * fora do formato aparece apontado embaixo (CA-B38-40); o servidor também recusa.
+ */
+function ValorDoCampoPersonalizado({
+  id,
+  campo,
+  valor,
+  vazio,
+  onMudar,
+}: {
+  id: string
+  campo: CampoParaFiltro
+  valor: string
+  vazio?: string
+  onMudar: (valor: string) => void
+}) {
+  const doCampo = { tipo: campo.tipo as TipoDeCampo, opcoes: campo.opcoes }
+  const conferido = valor ? conferirValor(doCampo, entradaDoCanonico(doCampo.tipo, valor)) : null
+  const erro = conferido && "erro" in conferido ? conferido.erro : null
+  let controle: React.ReactNode
+  if (campo.tipo === "multipla") {
+    controle = <CampoVarias rotulo="Valor" valor={valor} opcoes={campo.opcoes} onMudar={onMudar} />
+  } else if (campo.tipo === "lista" || campo.tipo === "sim_nao") {
+    const lista = campo.tipo === "lista" ? campo.opcoes : SIM_NAO_DO_EDITOR
+    controle = <CampoSelecao id={id} valor={valor} vazio={vazio} itens={comEscolhaApagada(paraItens(lista), valor)} onMudar={onMudar} />
+  } else {
+    const tipo = campo.tipo === "data" ? "date" : campo.tipo === "numero" || campo.tipo === "dinheiro" ? "number" : "text"
+    controle = (
+      <Input
+        id={id}
+        type={tipo}
+        step={tipo === "number" ? "0.01" : undefined}
+        value={valor}
+        aria-invalid={erro ? true : undefined}
+        onChange={(e) => onMudar(e.target.value)}
+      />
+    )
+  }
+  return (
+    <>
+      {controle}
+      {erro && <p className="text-xs text-erro">{erro}</p>}
+    </>
+  )
+}
+
 function SeletorFunilEtapa({ valor, opcoes, onMudar }: { valor: string; opcoes: OpcoesEditor; onMudar: (valor: string) => void }) {
   const [funil = "", etapa = ""] = valor.split(":")
   return (

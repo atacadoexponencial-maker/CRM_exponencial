@@ -12,6 +12,7 @@ import {
   limparFiltro,
   ehCampoDeFunil,
   ehCampoPersonalizado,
+  campoPersonalizado,
   type CampoParaFiltro,
   type FunilParaFiltro,
   FILTRO_VAZIO,
@@ -22,12 +23,12 @@ import { calcularClassificacao } from "./classificacao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { tirarDaLixeira } from "@/lib/lixeira"
 import { buscarEGuardarFotoDoContato, urlAssinadaDaFoto } from "@/lib/whatsapp/foto-de-perfil"
-import { dispararDadosAlterados, dispararTagAdicionada } from "@/lib/automacoes/gatilhos-do-crm"
+import { dispararCamposAlterados, dispararDadosAlterados, dispararTagAdicionada } from "@/lib/automacoes/gatilhos-do-crm"
 import { normalizarWhatsapp, TELEFONE_INVALIDO } from "@/lib/telefone"
 import { perfilDoMapa, perfisRfvDosContatos } from "@/lib/perfil-rfv-do-contato"
 import { esquemaCompra, type CompraEntrada, type FormaPagamento, type OrigemCompra } from "@/lib/compras"
 import { normalizarUf, UF_INVALIDA } from "@/lib/uf"
-import type { EntradaDoCampo, ValorGuardado } from "@/lib/campos-personalizados"
+import { canonicoDoValor, type EntradaDoCampo, type ValorGuardado } from "@/lib/campos-personalizados"
 import { camposDaEmpresa, conferirEntradas, gravarValores, valoresDosContatos } from "@/lib/campos-personalizados-servidor"
 
 const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, cidade, uf, created_at, profiles!contacts_atendente_id_fkey(name)"
@@ -108,7 +109,8 @@ export async function criarContato(dados: {
   const uf = normalizarUf(dados.uf)
   if (uf === undefined) return { erro: UF_INVALIDA }
   // B38-02: os campos são conferidos antes de criar; com erro, o contato não nasce.
-  const campos = conferirEntradas(await camposDaEmpresa(supabase, profile.workspace_id), dados.campos ?? {})
+  const camposDaEmpresaDoContato = await camposDaEmpresa(supabase, profile.workspace_id)
+  const campos = conferirEntradas(camposDaEmpresaDoContato, dados.campos ?? {})
   if ("erro" in campos || "erros" in campos) return campos
 
   // B13-05: telefone de contato na lixeira restaura o contato antigo, com o
@@ -151,6 +153,15 @@ export async function criarContato(dados: {
   // B38-02: o contato já existe; os campos conferidos são gravados nele.
   const gravado = await gravarValores(supabase, profile.workspace_id, data.id, campos)
   if (gravado.erro) return { id: data.id, erro: "Contato criado, mas os campos personalizados não foram salvos." }
+  // B38-04: campo preenchido no cadastro também é "dado do contato alterado"
+  await dispararCamposAlterados(
+    profile.workspace_id,
+    data.id,
+    campos.gravar.flatMap(({ campoId, valor }) => {
+      const campo = camposDaEmpresaDoContato.find((c) => c.id === campoId)
+      return campo ? [{ campo: campoPersonalizado(campo), valor: canonicoDoValor(campo.tipo, valor) }] : []
+    })
+  )
 
   // B29-02: a foto vem pelo canal direto, depois de o contato existir. Nunca falha.
   await buscarEGuardarFotoDoContato({ workspaceId: profile.workspace_id, contactId: data.id, telefone })

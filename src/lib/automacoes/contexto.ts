@@ -40,10 +40,16 @@ export type GatilhoAutomacao =
       tipo: "dado_contato_alterado"
       workspaceId: string
       contactId: string
-      /** classificacao, tipo ou cidade. */
+      /** classificacao, tipo ou cidade; B38-04: ou um campo personalizado ("campo:<tipo>:<uuid>"). */
       campo: string
       /** O valor novo; vazio quando o dado foi apagado. */
       valor: string
+      /**
+       * B38-04: regras que já rodaram nesta sequência de mudanças, quando quem mudou o
+       * campo personalizado foi uma automação. Regra que está aqui não roda de novo
+       * (PER-B38-14).
+       */
+      sequencia?: string[]
     }
   // Gatilhos de mensagem, que nascem logo depois de a mensagem ser gravada: a
   // recebida, nos dois canais (B11-04); a enviada por uma pessoa, no chat (B11-05)

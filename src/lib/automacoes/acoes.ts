@@ -25,6 +25,8 @@ import { conversaDoEvento, type ContextoDaExecucao } from "./contexto"
 import { enviarArquivo, enviarMensagemRapida, enviarTexto } from "./envio"
 import { criarLembrete } from "./lembrete"
 import { dadoDoContatoValido } from "./referencias"
+import { dispararCamposAlterados } from "./gatilhos-do-crm"
+import { canonicoDoValor, conferirValor, entradaDoCanonico, valorDaLinha, type TipoDeCampo } from "@/lib/campos-personalizados"
 import { atendenteDoContato, registrarMudancasDeCarteira } from "@/lib/carteira"
 
 const CONVERSA_ABERTA = ["em_espera", "em_atendimento"]
@@ -116,6 +118,11 @@ export async function executarAcao(contexto: ContextoDaExecucao, bloco: BlocoAca
     }
     case "alterar_dado_contato": {
       const { campo, valor } = parametros
+      // B38-04: campo personalizado ("campo:<tipo>:<uuid>")
+      if (campo?.startsWith("campo:")) {
+        if (!valor) return CONFIGURACAO_INCOMPLETA
+        return alterarCampoPersonalizado(contexto, contactId, campo, valor)
+      }
       if (!campo || !valor || !dadoDoContatoValido(campo, valor)) return falhou("O campo ou o valor não é válido")
       return alterarDadoDoContato(contexto, contactId, campo, valor)
     }
@@ -434,6 +441,65 @@ async function cardDoContato({
 }
 
 /** Tipo e cidade trocam o valor; observações ganham uma linha no fim. */
+/**
+ * B38-04: grava o campo personalizado no contato. Se o valor mudou, dispara o gatilho
+ * "dado do contato alterado" levando esta regra na sequência: é a exceção à regra de
+ * que automação não dispara automação (PER-B38-13), e cada regra roda uma vez por
+ * sequência (PER-B38-14).
+ */
+async function alterarCampoPersonalizado(
+  { supabase, gatilho, regra }: ContextoDaExecucao,
+  contactId: string,
+  campo: string,
+  valor: string
+): Promise<ResultadoAcao> {
+  const campoId = campo.split(":")[2] ?? ""
+  const { data: definicao, error: erroCampo } = await supabase
+    .from("campos_personalizados")
+    .select("id, tipo, campo_opcoes (id, nome)")
+    .eq("id", campoId)
+    .eq("workspace_id", gatilho.workspaceId)
+    .maybeSingle()
+  if (erroCampo) return ERRO_NO_BANCO
+  if (!definicao) return falhou("O campo personalizado não existe mais")
+  const tipo = definicao.tipo as TipoDeCampo
+  const doCampo = { tipo, opcoes: definicao.campo_opcoes ?? [] }
+  const conferido = conferirValor(doCampo, entradaDoCanonico(tipo, valor))
+  if ("erro" in conferido || !conferido.valor) return falhou("O valor não serve para o campo")
+  const novo = conferido.valor
+
+  const { data: antes, error: erroAntes } = await supabase
+    .from("contato_campos")
+    .select("valor_texto, valor_numero, valor_data, valor_booleano, valor_opcoes")
+    .eq("contact_id", contactId)
+    .eq("campo_id", campoId)
+    .maybeSingle()
+  if (erroAntes) return ERRO_NO_BANCO
+
+  const { error } = await supabase.from("contato_campos").upsert(
+    {
+      contact_id: contactId,
+      campo_id: campoId,
+      workspace_id: gatilho.workspaceId,
+      valor_texto: novo.texto,
+      valor_numero: novo.numero,
+      valor_data: novo.data,
+      valor_booleano: novo.booleano,
+      valor_opcoes: novo.opcoes,
+    },
+    { onConflict: "contact_id,campo_id" }
+  )
+  if (error) return ERRO_NO_BANCO
+
+  const valorNovo = canonicoDoValor(tipo, novo)
+  if (canonicoDoValor(tipo, antes ? valorDaLinha(antes) : null) !== valorNovo) {
+    const ja = gatilho.tipo === "dado_contato_alterado" ? (gatilho.sequencia ?? []) : []
+    const sequencia = regra ? [...ja, regra.id] : ja
+    await dispararCamposAlterados(gatilho.workspaceId, contactId, [{ campo, valor: valorNovo }], sequencia)
+  }
+  return FEITO
+}
+
 async function alterarDadoDoContato(
   { supabase, gatilho }: ContextoDaExecucao,
   contactId: string,

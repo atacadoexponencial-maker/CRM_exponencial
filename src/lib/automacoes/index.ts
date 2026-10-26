@@ -57,6 +57,25 @@ interface RegraCarregada extends RegraDaExecucao {
   fluxo: Fluxo | null
 }
 
+/** B38-04: motivo da regra que já rodou na mesma sequência de mudanças de campo (PER-B38-14). */
+export const JA_RODOU_NA_SEQUENCIA = "Não rodou: já rodou nesta sequência de mudanças"
+
+/**
+ * O valor do gatilho contra o valor novo. Em campo personalizado, número compara o
+ * número, e múltipla escolha, o conjunto de opções em qualquer ordem; o resto, sem
+ * diferença de maiúscula, acento e espaço, como as verificações de texto (B22-05).
+ */
+function mesmoValorDoCampo(campo: string, esperado: string, novo: string): boolean {
+  const tipo = campo.startsWith("campo:") ? campo.split(":")[1] : null
+  if (tipo === "numero" || tipo === "dinheiro") return novo !== "" && Number(esperado) === Number(novo)
+  if (tipo === "multipla") {
+    const a = itensDaLista(esperado).sort()
+    const b = itensDaLista(novo).sort()
+    return a.length === b.length && a.every((v, i) => v === b[i])
+  }
+  return normalizarTexto(esperado) === normalizarTexto(novo)
+}
+
 /** Motivo da regra com fluxo fora do formato (B22-25). */
 export const FLUXO_FORA_DO_FORMATO =
   "Não rodou: o fluxo desta regra está fora do formato. Exclua a regra e crie de novo pelo editor"
@@ -96,6 +115,11 @@ export async function processarAutomacoes(gatilho: GatilhoAutomacao, opcoes: Opc
       const { fluxo } = regra
       const blocoGatilho = fluxo ? gatilhoDoFluxo(fluxo) : undefined
       if (blocoGatilho && !gatilhoCorresponde(blocoGatilho, gatilho)) continue
+      // B38-04: na sequência de mudanças de campo feitas por automações, cada regra roda uma vez
+      if (gatilho.tipo === "dado_contato_alterado" && gatilho.sequencia?.includes(regra.id)) {
+        await registrarExecucao(supabase, { gatilho, regra, resultado: "ignorada", motivo: JA_RODOU_NA_SEQUENCIA })
+        continue
+      }
       const semRodar =
         opcoes.naoRodarPorque ??
         motivoDoFluxo(fluxo) ??
@@ -240,7 +264,7 @@ export function gatilhoCorresponde(bloco: BlocoGatilho, gatilho: GatilhoAutomaca
     case "dado_contato_alterado":
       // O campo é obrigatório no gatilho; o valor, não. Sem diferença de
       // maiúscula, acento e espaço, como as verificações de texto (B22-05)
-      return p.campo === gatilho.campo && (!p.valor || normalizarTexto(p.valor) === normalizarTexto(gatilho.valor))
+      return p.campo === gatilho.campo && (!p.valor || mesmoValorDoCampo(p.campo, p.valor, gatilho.valor))
     case "entrou_perfil_rfv": {
       // B43-03: destino obrigatório; origem vazia vale como "de qualquer perfil"
       const origens = itensDaLista(p.origens)

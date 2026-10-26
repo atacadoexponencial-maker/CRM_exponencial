@@ -8,6 +8,8 @@ import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "@/app/(auth)/contatos/mock-cont
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
 import { horaDoGatilho, itensDaLista, SEM_COMPRAS, SEM_PERFIL_DE_DESTINO, type Fluxo } from "@/lib/fluxo-automacao"
 import { PERFIL_POR_ID } from "@/lib/relatorios/rfv"
+import { conferirValor, entradaDoCanonico, type TipoDeCampo } from "@/lib/campos-personalizados"
+import { campoDoFiltro, comparacoesDoCampo, valoresPedidos, type CampoParaFiltro, type Comparacao } from "@/lib/filtro-contatos"
 
 export interface ReferenciasDoFluxo {
   etiquetas: string[]
@@ -33,6 +35,11 @@ export interface ReferenciasDoFluxo {
   /** B11-07 */
   mensagensRapidas: string[]
   arquivos: Array<{ url: string; tipo: string }>
+  /**
+   * B38-04: campos personalizados citados no gatilho, numa condição ou numa ação, com o
+   * valor (e a comparação, na condição). Ficam fora de `dadosDoContato` e `gatilhosDeDado`.
+   */
+  camposPersonalizados: Array<{ onde: "gatilho" | "acao" | "condicao"; campo: string; valor: string; operador?: string }>
 }
 
 const PREFIXO_NUMERO = "numero:"
@@ -53,9 +60,15 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
   const gatilhosDeDado: ReferenciasDoFluxo["gatilhosDeDado"] = []
   const mensagensRapidas = new Set<string>()
   const arquivos: ReferenciasDoFluxo["arquivos"] = []
+  const camposPersonalizados: ReferenciasDoFluxo["camposPersonalizados"] = []
 
   for (const bloco of fluxo.blocos) {
     if (bloco.tipo === "condicao") {
+      for (const v of bloco.verificacoes) {
+        if (v.tipo === "campo_personalizado") {
+          camposPersonalizados.push({ onde: "condicao", campo: v.campo ?? "", valor: v.valor, operador: v.operador })
+        }
+      }
       for (const v of bloco.verificacoes) {
         if (v.tipo === "etiqueta_conversa" && v.valor) etiquetas.add(v.valor)
         if (v.tipo === "atendente" && v.operador === "e" && v.valor) atendentes.add(v.valor)
@@ -92,10 +105,12 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
     // Funil sozinho também é conferido: o gatilho "card movido" aceita "qualquer etapa"
     if (p.funil) etapas.push({ funil: p.funil, etapa: p.etapa ?? "", bloco: bloco.tipo === "gatilho" ? "Card movido para etapa" : "Mover card para etapa" })
     if (bloco.tipo === "acao" && bloco.acao === "alterar_dado_contato") {
-      dadosDoContato.push({ campo: p.campo ?? "", valor: p.valor ?? "" })
+      if (p.campo?.startsWith("campo:")) camposPersonalizados.push({ onde: "acao", campo: p.campo, valor: p.valor ?? "" })
+      else dadosDoContato.push({ campo: p.campo ?? "", valor: p.valor ?? "" })
     }
     if (bloco.tipo === "gatilho" && bloco.gatilho === "dado_contato_alterado") {
-      gatilhosDeDado.push({ campo: p.campo ?? "", valor: p.valor ?? "" })
+      if (p.campo?.startsWith("campo:")) camposPersonalizados.push({ onde: "gatilho", campo: p.campo, valor: p.valor ?? "" })
+      else gatilhosDeDado.push({ campo: p.campo ?? "", valor: p.valor ?? "" })
     }
     if (p.mensagem_rapida_id) mensagensRapidas.add(p.mensagem_rapida_id)
     if (bloco.tipo === "acao" && bloco.acao === "enviar_midia") arquivos.push({ url: p.arquivo ?? "", tipo: p.arquivo_tipo ?? "" })
@@ -117,7 +132,44 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
     gatilhosDeDado,
     mensagensRapidas: [...mensagensRapidas],
     arquivos,
+    camposPersonalizados,
   }
+}
+
+/**
+ * B38-04: o que está errado no campo personalizado citado no fluxo, ou null. `campos`
+ * são os da empresa: campo de outra empresa ou apagado não é achado.
+ */
+export function problemaDoCampoPersonalizado(
+  ref: ReferenciasDoFluxo["camposPersonalizados"][number],
+  campos: CampoParaFiltro[]
+): string | null {
+  const [, tipo, id] = ref.campo.split(":")
+  const campo = campos.find((c) => c.id === id && c.tipo === tipo)
+  if (!campo) return "Um campo personalizado escolhido não existe mais. Escolha de novo."
+  const doCampo = { tipo: campo.tipo as TipoDeCampo, opcoes: campo.opcoes }
+  const valorServe = (valor: string) => !("erro" in conferirValor(doCampo, entradaDoCanonico(doCampo.tipo, valor)))
+
+  if (ref.onde === "acao") {
+    return ref.valor && valorServe(ref.valor) ? null : "O dado do contato escolhido não pode receber esse valor. Confira o campo e o valor."
+  }
+  if (ref.onde === "gatilho") {
+    return !ref.valor || valorServe(ref.valor) ? null : "O campo ou o valor do gatilho não é válido. Escolha de novo."
+  }
+  // Condição: a comparação é do tipo, e os valores, do campo
+  const doFiltro = campoDoFiltro(ref.campo, undefined, campos)
+  const comparacao = ref.operador as Comparacao
+  if (!doFiltro || !comparacoesDoCampo(doFiltro).includes(comparacao)) return "A comparação escolhida numa condição não vale para o campo. Escolha de novo."
+  const forma = valoresPedidos(comparacao)
+  if (forma === "nenhum") return null
+  const emTexto = doFiltro.tipo === "texto"
+  const valores = emTexto ? [ref.valor] : itensDaLista(ref.valor)
+  const quantos = forma === "dois" ? valores.length === 2 : valores.length >= 1
+  const dias = comparacao === "ultimos_dias" || comparacao === "ha_mais_de_dias"
+  const cada = valores.every((v) =>
+    dias ? /^\d{1,5}$/.test(v) && Number(v) > 0 : emTexto ? v.trim() !== "" : doFiltro.opcoes ? doFiltro.opcoes.some((o) => o.valor === v) : valorServe(v)
+  )
+  return quantos && cada ? null : "O valor de uma condição não vale para o campo. Escolha de novo."
 }
 
 /** Onde os arquivos das automações ficam (B11-07): o bucket das campanhas, numa pasta por empresa. */

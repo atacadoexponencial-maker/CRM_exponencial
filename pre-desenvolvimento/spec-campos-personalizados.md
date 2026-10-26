@@ -468,6 +468,12 @@ também os campos personalizados.
 - **Quando** o Admin digita "muito" no valor e tenta salvar a automação
 - **Então** o editor aponta o valor e não salva
 
+#### CA-B38-62 — Cada automação roda uma vez por sequência · prova: automática
+
+- **Dado** a automação A ("quando Porte mudar para Grande, mudar Porte para Pequeno") e a automação B ("quando Porte mudar para Pequeno, mudar Porte para Grande"), as duas ligadas
+- **Quando** alguém muda o Porte de um contato para Grande
+- **Então** A roda, B roda e A não roda de novo: a sequência termina, o histórico mostra a segunda vez de A como "Não rodou: já rodou nesta sequência de mudanças", e o contato fica com Porte Grande
+
 ### 7. Campos nas variáveis das mensagens
 
 **Descrição:** o texto da ação "Enviar mensagem" das automações e o texto das campanhas
@@ -707,3 +713,5 @@ depois das colunas de hoje, na ordem da empresa.
 | PER-B38-10 | Importar e exportar contatos entram nesta série? | respondida | Entram, mas como série separada, logo depois desta, porque hoje não existe importar nem exportar contatos. Marcelle, 26/10/2026. |
 | PER-B38-11 | O que os campos fazem nos Relatórios e no Dashboard? | respondida | Filtro por campo, tabela de vendas por valor do campo e colunas nos Excel que listam clientes ou vendas. Marcelle, 26/10/2026. |
 | PER-B38-12 | Tirar opção de lista em uso: bloqueia ou desliga a automação? | respondida | Bloqueia e mostra onde é usada. Marcelle, 26/10/2026. |
+| PER-B38-13 | Mudança de campo personalizado feita por automação dispara outras automações? (Desde a B11, automação não dispara automação.) | respondida | Sim, só para campos personalizados; é uma exceção à regra da B11 (CA-B38-37). Marcelle, 26/10/2026. |
+| PER-B38-14 | Como evitar laço infinito entre automações que mudam campos personalizados? | respondida | Numa mesma sequência de mudanças, cada automação roda no máximo uma vez; não há limite de quantas automações em cadeia (CA-B38-62). Marcelle, 26/10/2026. |

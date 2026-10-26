@@ -29,6 +29,7 @@ import type { HorarioComercial } from "@/lib/horario-comercial"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "../../../pipeline/mock-pipeline"
 import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "../../../contatos/mock-contatos"
 import { PERFIS } from "@/lib/relatorios/rfv"
+import { campoPersonalizado, type CampoParaFiltro } from "@/lib/filtro-contatos"
 
 export type Opcao = { id: string; nome: string }
 
@@ -45,6 +46,8 @@ export interface OpcoesEditor {
   horarioComercial: HorarioComercial
   /** B41-04: funis da empresa, além de Entrada e Recompra, com as etapas na ordem. */
   funis?: Array<{ id: string; nome: string; etapas: Opcao[] }>
+  /** B38-04: campos personalizados da empresa, na ordem dela. */
+  camposPersonalizados?: CampoParaFiltro[]
 }
 
 export type FonteOpcoes =
@@ -137,9 +140,21 @@ const CAMPOS_CONTATO: Record<string, string> = {
   observacoes: "Observações (acrescentar linha)",
 }
 
-export function rotuloCampoContato(campo: string): string {
+/** B38-04: o campo personalizado do editor pelo id "campo:<tipo>:<uuid>". */
+export function campoPersonalizadoDoEditor(campo: string | undefined, opcoes: OpcoesEditor | undefined): CampoParaFiltro | undefined {
+  if (!campo?.startsWith("campo:")) return undefined
+  const id = campo.split(":")[2]
+  return opcoes?.camposPersonalizados?.find((c) => c.id === id)
+}
+
+export function rotuloCampoContato(campo: string, opcoes?: OpcoesEditor): string {
+  // B38-04: campo personalizado pelo nome que a empresa deu
+  if (campo.startsWith("campo:")) return campoPersonalizadoDoEditor(campo, opcoes)?.nome ?? "Campo personalizado apagado"
   return CAMPOS_CONTATO[campo] ?? campo
 }
+
+const camposDoEditor = (opcoes: OpcoesEditor): Opcao[] =>
+  (opcoes.camposPersonalizados ?? []).map((c) => ({ id: campoPersonalizado(c), nome: c.nome }))
 
 const TIPOS_MENSAGEM: Opcao[] = [
   { id: "texto", nome: "Texto" },
@@ -170,7 +185,8 @@ export function opcoesDaFonte(fonte: FonteOpcoes, opcoes: OpcoesEditor): Opcao[]
       ]
     case "camposContatoGatilho":
       // Sem "atendente": contacts.atendente_id não é gravado por nenhuma tela (B11-06)
-      return ["classificacao", "tipo", "cidade"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] }))
+      // B38-04: depois dos fixos, os campos personalizados da empresa
+      return [...["classificacao", "tipo", "cidade"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] })), ...camposDoEditor(opcoes)]
     case "perfisRfv":
       return [...opcoesDaFonte("perfisRfvDestino", opcoes), { id: SEM_COMPRAS, nome: "Sem compras" }]
     case "perfisRfvDestino":
@@ -179,7 +195,7 @@ export function opcoesDaFonte(fonte: FonteOpcoes, opcoes: OpcoesEditor): Opcao[]
       return Array.from({ length: 24 }, (_, h) => ({ id: String(h), nome: `${h}h` }))
     case "camposContatoAcao":
       // Sem classificação: o CRM a calcula pela etapa dos cards (B11-11)
-      return ["tipo", "cidade", "observacoes"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] }))
+      return [...["tipo", "cidade", "observacoes"].map((id) => ({ id, nome: CAMPOS_CONTATO[id] })), ...camposDoEditor(opcoes)]
     default:
       return opcoes[fonte]
   }
@@ -190,6 +206,10 @@ export function opcoesDoCampoContato(campo: string | undefined, opcoes: OpcoesEd
   if (campo === "classificacao") return opcoesDaFonte("classificacoes", opcoes)
   if (campo === "tipo") return opcoesDaFonte("tiposContato", opcoes)
   if (campo === "atendente") return opcoes.atendentes
+  // B38-04: lista de opções e sim/não do campo personalizado; múltipla escolha é à parte
+  const personalizado = campoPersonalizadoDoEditor(campo, opcoes)
+  if (personalizado?.tipo === "lista") return personalizado.opcoes
+  if (personalizado?.tipo === "sim_nao") return [{ id: "sim", nome: "Sim" }, { id: "nao", nome: "Não" }]
   return null
 }
 
@@ -299,6 +319,12 @@ export const VERIFICACOES: Record<
       { id: "nao_e", nome: "não é" },
     ],
     valor: { tipo: "opcoes", fonte: "classificacoes" },
+  },
+  // B38-04: o campo, as comparações e o valor dependem do campo escolhido (painel-bloco)
+  campo_personalizado: {
+    rotulo: "Campo personalizado",
+    operadores: [],
+    valor: { tipo: "nenhum" },
   },
   // B43-02
   perfil_rfv: {

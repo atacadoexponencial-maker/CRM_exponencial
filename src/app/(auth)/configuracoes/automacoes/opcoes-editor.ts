@@ -5,11 +5,12 @@
 import type { createClient } from "@/integrations/supabase/server"
 import { horarioDoBanco } from "@/lib/horario-comercial"
 import type { OpcoesEditor } from "./components/catalogo"
+import { camposDaEmpresa } from "@/lib/campos-personalizados-servidor"
 
 type ClienteDaSessao = Awaited<ReturnType<typeof createClient>>
 
 export async function carregarOpcoesEditor(supabase: ClienteDaSessao, workspaceId: string): Promise<OpcoesEditor> {
-  const [etiquetas, perfis, tags, times, sequencias, rapidas, numeros, horario, funis] = await Promise.all([
+  const [etiquetas, perfis, tags, times, sequencias, rapidas, numeros, horario, funis, campos] = await Promise.all([
     supabase.from("labels").select("id, name, color").eq("workspace_id", workspaceId).order("name"),
     supabase.from("profiles").select("id, name").eq("workspace_id", workspaceId).eq("status", "active").order("name"),
     supabase.from("contact_tags").select("tag").eq("workspace_id", workspaceId),
@@ -20,6 +21,8 @@ export async function carregarOpcoesEditor(supabase: ClienteDaSessao, workspaceI
     supabase.from("business_hours").select("dias, inicio, fim").eq("workspace_id", workspaceId).maybeSingle(),
     // B41-04: funis da empresa e as etapas deles, na ordem
     supabase.from("funis").select("id, nome, created_at, funil_etapas (id, nome, ordem)").eq("workspace_id", workspaceId).order("created_at"),
+    // B38-04: campos personalizados da empresa, na ordem dela
+    camposDaEmpresa(supabase, workspaceId),
   ])
 
   const nomesDeTag = [...new Set((tags.data ?? []).map((t) => t.tag))].sort((a, b) => a.localeCompare(b, "pt-BR"))
@@ -38,5 +41,6 @@ export async function carregarOpcoesEditor(supabase: ClienteDaSessao, workspaceI
       nome: f.nome,
       etapas: [...(f.funil_etapas ?? [])].sort((a, b) => a.ordem - b.ordem).map((e) => ({ id: e.id, nome: e.nome })),
     })),
+    camposPersonalizados: campos.map(({ id, nome, tipo, opcoes }) => ({ id, nome, tipo, opcoes })),
   }
 }

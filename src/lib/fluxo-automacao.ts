@@ -23,6 +23,8 @@ export type VerificacaoTipo =
   | "classificacao"
   // B43-02
   | "perfil_rfv"
+  // B38-04
+  | "campo_personalizado"
   | "tipo_contato"
   | "etiqueta_conversa"
   | "atendente"
@@ -54,6 +56,12 @@ export interface Verificacao {
   tipo: VerificacaoTipo
   operador: string
   valor: string
+  /**
+   * B38-04: só na verificação "campo_personalizado": o campo escolhido, como no filtro
+   * ("campo:<tipo>:<uuid>"). Os valores ficam em `valor`, separados por vírgula quando
+   * são vários (opções, "entre"); em texto, o valor inteiro.
+   */
+  campo?: string
 }
 
 export type Posicao = { x: number; y: number }
@@ -275,6 +283,8 @@ export const VERIFICACOES_DISPONIVEIS: readonly VerificacaoTipo[] = [
   "classificacao",
   // B43-02
   "perfil_rfv",
+  // B38-04
+  "campo_personalizado",
   "tipo_contato",
   "canal",
   "etiqueta_conversa",
@@ -494,6 +504,13 @@ function verificacaoCompleta(v: Verificacao): boolean {
   if (OPERADORES_SEM_VALOR.includes(v.operador)) return true
   // "Card do contato está em": valor `funil:etapa`, com as duas partes
   if (v.tipo === "card_etapa") return /^[^:]+:[^:]+$/.test(v.valor)
+  // B38-04: o campo escolhido; "está vazio" não pede valor, e "entre", dois
+  if (v.tipo === "campo_personalizado") {
+    if (!v.campo?.startsWith("campo:")) return false
+    if (v.operador === "vazio" || v.operador === "nao_vazio") return true
+    if (v.operador === "entre") return itensDaLista(v.valor).length === 2
+    return v.valor.trim() !== ""
+  }
   return v.valor.trim() !== ""
 }
 

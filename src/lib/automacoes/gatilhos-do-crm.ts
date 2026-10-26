@@ -103,6 +103,22 @@ export async function dispararDadosAlterados(
 }
 
 /**
+ * B38-04: campos personalizados que mudaram (perfil, Chat, cadastro ou automação), já
+ * com o valor no formato único (`canonicoDoValor`). Um evento por campo. `sequencia`
+ * são as regras que já rodaram, quando quem mudou foi uma automação (PER-B38-14).
+ */
+export async function dispararCamposAlterados(
+  workspaceId: string,
+  contactId: string,
+  mudancas: Array<{ campo: string; valor: string }>,
+  sequencia?: string[]
+): Promise<void> {
+  for (const { campo, valor } of mudancas) {
+    await dispararAutomacoes({ tipo: "dado_contato_alterado", workspaceId, contactId, campo, valor, ...(sequencia ? { sequencia } : {}) })
+  }
+}
+
+/**
  * Para as actions do funil: lê os cards do contato ANTES de mexer neles e devolve
  * a função que, chamada no fim, dispara "classificação alterada" se a mudança
  * manual (`mudanca`) mudou a classificação. A classificação de depois é calculada

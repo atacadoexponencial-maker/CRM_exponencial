@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache"
 import { sessaoAtual } from "@/lib/sessao"
 import type { CampoDaEmpresa, CampoPersonalizado, EntradaDoCampo, ValorGuardado } from "@/lib/campos-personalizados"
 import { camposDaEmpresa, conferirEntradas, gravarValores, valoresDosContatos } from "@/lib/campos-personalizados-servidor"
+import { canonicoDoValor } from "@/lib/campos-personalizados"
+import { campoPersonalizado } from "@/lib/filtro-contatos"
+import { dispararCamposAlterados } from "@/lib/automacoes/gatilhos-do-crm"
 
 // B38-01: os campos personalizados no contato. Tudo roda com a sessão: o RLS de
 // `contato_campos` deixa ler e gravar só quem vê o contato (Admin e Gerente, a
@@ -59,10 +62,21 @@ export async function salvarCamposDoContato(
   if (!acesso) return { erro: "Contato não encontrado" }
   const { supabase, perfil } = acesso
 
-  const conferidas = conferirEntradas(await camposDaEmpresa(supabase, perfil.workspace_id), valores)
+  const campos = await camposDaEmpresa(supabase, perfil.workspace_id)
+  const conferidas = conferirEntradas(campos, valores)
   if ("erro" in conferidas || "erros" in conferidas) return conferidas
+  // B38-04: os valores de antes, para disparar o gatilho só do que mudou de fato
+  const tocados = [...conferidas.gravar.map((g) => g.campoId), ...conferidas.apagar]
+  const antes = (await valoresDosContatos(supabase, [contactId], tocados)).get(contactId) ?? {}
   const gravado = await gravarValores(supabase, perfil.workspace_id, contactId, conferidas)
   if (gravado.erro) return gravado
+
+  const novos = new Map(conferidas.gravar.map((g) => [g.campoId, g.valor]))
+  const mudancas = campos
+    .filter((c) => tocados.includes(c.id))
+    .map((c) => ({ campo: campoPersonalizado(c), antes: canonicoDoValor(c.tipo, antes[c.id] ?? null), valor: canonicoDoValor(c.tipo, novos.get(c.id) ?? null) }))
+    .filter((m) => m.antes !== m.valor)
+  await dispararCamposAlterados(perfil.workspace_id, contactId, mudancas)
 
   revalidatePath(`/contatos/${contactId}`)
   revalidatePath("/configuracoes/campos")

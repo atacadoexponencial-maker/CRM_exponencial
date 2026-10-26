@@ -29,9 +29,11 @@ import {
   ehFunilDaEmpresa,
   gatilhoDeDadoValido,
   pastaDosArquivos,
+  problemaDoCampoPersonalizado,
   referenciasDoFluxo,
   tipoDeContatoValido,
 } from "@/lib/automacoes/referencias"
+import { camposDaEmpresa } from "@/lib/campos-personalizados-servidor"
 import { simularFluxo } from "@/lib/automacoes/simulacao"
 import { BLOCO_SAIU, REGRA_DESATIVADA, REGRA_EXCLUIDA, cancelarEsperas, esperasDaRegra } from "@/lib/automacoes/esperas"
 import { RESULTADOS_DA_EXECUCAO, type PassoGravado, type ResultadoExecucao } from "@/lib/automacoes/execucoes"
@@ -240,7 +242,16 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
     gatilhosDeDado,
     mensagensRapidas,
     arquivos,
+    camposPersonalizados,
   } = referenciasDoFluxo(fluxo)
+  // B38-04: campos personalizados citados, contra os da empresa
+  if (camposPersonalizados.length > 0) {
+    const campos = await camposDaEmpresa(supabase, workspaceId)
+    for (const ref of camposPersonalizados) {
+      const problema = problemaDoCampoPersonalizado(ref, campos)
+      if (problema) return problema
+    }
+  }
   // B41-04: funis da empresa. Funil ou etapa apagado deixa a regra "precisando de ajuste".
   const funisDaEmpresa: Record<string, string[]> = {}
   const idsDaEmpresa = [...new Set(etapas.map((e) => e.funil).filter(ehFunilDaEmpresa))].filter((f) => UUID.test(f))

@@ -30,11 +30,14 @@ import {
   etapasDoFunil,
   funisDoEditor,
   opcoesDaFonte,
+  campoPersonalizadoDoEditor,
   opcoesDoCampoContato,
   rotuloCampoContato,
   type Opcao,
   type OpcoesEditor,
 } from "./catalogo"
+import { formatarValor, valorDoCanonico, type TipoDeCampo } from "@/lib/campos-personalizados"
+import { descreverCondicao, type Comparacao } from "@/lib/filtro-contatos"
 
 const nomeEm = (lista: Opcao[], id: string | undefined) => lista.find((o) => o.id === id)?.nome ?? id ?? ""
 
@@ -47,6 +50,13 @@ const trecho = (texto: string, max = 60) => (texto.length > max ? `${texto.slice
 const plural = (n: number, singular: string, varios: string) => `${n} ${n === 1 ? singular : varios}`
 
 function valorDoCampo(campo: string | undefined, valor: string | undefined, opcoes: OpcoesEditor): string {
+  // B38-04: campo personalizado no formato do tipo ("R$ 1.500,00", "Jeans, Malha")
+  const personalizado = campoPersonalizadoDoEditor(campo, opcoes)
+  if (personalizado) {
+    const doCampo = { tipo: personalizado.tipo as TipoDeCampo, opcoes: personalizado.opcoes }
+    const lido = valorDoCanonico(doCampo, valor ?? "")
+    return lido ? formatarValor(doCampo, lido) : (valor ?? "")
+  }
   const lista = opcoesDoCampoContato(campo, opcoes)
   return lista ? nomeEm(lista, valor) : (valor ?? "")
 }
@@ -95,7 +105,7 @@ export function fraseGatilho(bloco: BlocoGatilho, opcoes: OpcoesEditor): string 
         : "Quando qualquer etiqueta for aplicada"
     case "dado_contato_alterado": {
       if (!p.campo) return "Quando um dado do contato mudar"
-      const campo = rotuloCampoContato(p.campo).toLowerCase()
+      const campo = nomeDoCampoNaFrase(p.campo, opcoes)
       return p.valor
         ? `Quando ${campo} do contato mudar para "${valorDoCampo(p.campo, p.valor, opcoes)}"`
         : `Quando ${campo} do contato mudar`
@@ -103,7 +113,23 @@ export function fraseGatilho(bloco: BlocoGatilho, opcoes: OpcoesEditor): string 
   }
 }
 
+/** O campo no meio da frase: o fixo em minúscula ("tipo"); o personalizado, como a empresa escreveu. */
+function nomeDoCampoNaFrase(campo: string, opcoes: OpcoesEditor): string {
+  const rotulo = rotuloCampoContato(campo, opcoes)
+  return campo.startsWith("campo:") ? rotulo : rotulo.toLowerCase()
+}
+
+/** B38-04: "Porte é qualquer um de Grande", a mesma frase do filtro de Contatos. */
+function fraseDoCampoPersonalizado(v: Verificacao, opcoes: OpcoesEditor): string {
+  if (!v.campo || !v.operador) return "campo personalizado …"
+  const tipo = v.campo.split(":")[1]
+  const varios = ["lista", "multipla", "numero", "dinheiro", "data"].includes(tipo)
+  const condicao = { campo: v.campo, comparacao: v.operador as Comparacao, valores: varios ? itensDaLista(v.valor) : [v.valor] }
+  return descreverCondicao(condicao, { campos: opcoes.camposPersonalizados ?? [] })
+}
+
 export function fraseVerificacao(v: Verificacao, opcoes: OpcoesEditor): string {
+  if (v.tipo === "campo_personalizado") return fraseDoCampoPersonalizado(v, opcoes)
   const item = VERIFICACOES[v.tipo]
   const operador = nomeEm(item.operadores, v.operador)
   if (item.valor.tipo === "nenhum" || v.operador === "sem_atendente") {
@@ -143,9 +169,9 @@ export function fraseAcao(bloco: BlocoAcao, opcoes: OpcoesEditor): string {
     case "alterar_dado_contato":
       if (!p.campo) return rotulo
       // B22-34: sem valor ainda, a frase diz o que falta, e não `= ""`
-      if (!p.valor) return `Alterar ${rotuloCampoContato(p.campo).toLowerCase()} do contato`
+      if (!p.valor) return `Alterar ${nomeDoCampoNaFrase(p.campo, opcoes)} do contato`
       if (p.campo === "observacoes") return `Acrescentar às observações: "${trecho(p.valor, 40)}"`
-      return `${rotuloCampoContato(p.campo)} do contato = "${valorDoCampo(p.campo, p.valor, opcoes)}"`
+      return `${rotuloCampoContato(p.campo, opcoes)} do contato = "${valorDoCampo(p.campo, p.valor, opcoes)}"`
     case "atribuir_atendente":
       return p.atendente_id ? `Atribuir a ${nomeOuApagado(opcoes.atendentes, p.atendente_id)}` : rotulo
     case "atribuir_time":
@@ -244,7 +270,7 @@ export function fraseDoEvento(evento: Record<string, string>, opcoes?: OpcoesEdi
       return `Entrou em ${nome(evento.para)} (vindo de ${nome(evento.de)})`
     }
     case "dado_contato_alterado": {
-      const campo = rotuloCampoContato(evento.campo)
+      const campo = rotuloCampoContato(evento.campo, opcoes)
       if (!evento.valor) return `${campo} apagado`
       return `${campo} mudou para "${opcoes ? valorDoCampo(evento.campo, evento.valor, opcoes) : evento.valor}"`
     }
