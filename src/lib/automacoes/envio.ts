@@ -14,10 +14,13 @@ import type { ResultadoAcao } from "@/lib/fluxo-automacao"
 import { GatewayIndisponivel } from "@/lib/whatsapp/gateway/cliente"
 import { enviarWhatsAppComMotivo, type ConteudoDoEnvio } from "@/lib/whatsapp-envio"
 import { conversaDoEvento, type ContextoDaExecucao } from "./contexto"
+import { chaveDaVariavel, preencherVariaveis as preencherVariaveisDoTexto, variaveisSemReserva } from "@/lib/variaveis-mensagem"
+import { formatarValor } from "@/lib/campos-personalizados"
+import { camposDaEmpresa, valoresDosContatos } from "@/lib/campos-personalizados-servidor"
 import { arquivoDaAutomacaoValido } from "./referencias"
 
 export interface VariaveisDaMensagem {
-  /** Nome do contato ou, sem nome, o telefone: a regra das sequências e das campanhas. */
+  /** Nome do contato; sem nome, vazio, e entra o texto reserva da variável (B38-05). */
   nomeContato: string
   /** Primeira palavra do nome. Sem nome, vazio: "Oi 5519…" soa pior que "Oi ,". */
   primeiroNome: string
@@ -29,16 +32,27 @@ export interface VariaveisDaMensagem {
  * das chaves. Uma troca só (B22-39): o que entra no lugar de uma variável não é lido
  * de novo, então um contato chamado "{{nome_vendedor}}" continua com esse nome.
  */
-export function textoComVariaveis(texto: string, variaveis: VariaveisDaMensagem): string {
-  const valores: Record<string, string> = {
+export function textoComVariaveis(texto: string, variaveis: VariaveisDaMensagem, campos: Record<string, string> = {}): string {
+  // B38-05: com `{{chave|reserva}}`, o reserva entra quando o valor está vazio; os
+  // campos personalizados entram pela chave da variável de cada um
+  return preencherVariaveisDoTexto(texto, {
+    ...campos,
     nome_contato: variaveis.nomeContato,
     primeiro_nome: variaveis.primeiroNome,
     nome_vendedor: variaveis.nomeVendedor,
-  }
-  return texto.replace(/\{\{\s*(nome_contato|primeiro_nome|nome_vendedor)\s*\}\}/g, (_, nome: string) => valores[nome])
+  })
+}
+
+/** B38-05: o motivo da ação que não sai porque o texto tem variável sem reserva (SUP-B38-18). */
+export function motivoSemReserva(texto: string): string | null {
+  const sem = variaveisSemReserva(texto)
+  return sem.length > 0 ? `Precisa de ajuste: ${sem.join(", ")} sem texto reserva` : null
 }
 
 export async function enviarTexto(contexto: ContextoDaExecucao, contactId: string, texto: string): Promise<ResultadoAcao> {
+  // B38-05: texto salvo antes, com variável sem reserva, não sai até ganhar o reserva
+  const semReserva = motivoSemReserva(texto)
+  if (semReserva) return { ok: false, motivo: semReserva }
   return enviar(contexto, contactId, { tipo: "texto", texto: await preencherVariaveis(contexto, contactId, texto) })
 }
 
@@ -96,7 +110,17 @@ async function enviar(contexto: ContextoDaExecucao, contactId: string, conteudo:
 /** Também usado pelo lembrete criado por automação (B28-01), com as mesmas variáveis. */
 export async function preencherVariaveis(contexto: ContextoDaExecucao, contactId: string, texto: string): Promise<string> {
   if (!texto.includes("{{")) return texto
-  return textoComVariaveis(texto, await variaveisDoContato(contexto, contactId))
+  return textoComVariaveis(texto, await variaveisDoContato(contexto, contactId), await variaveisDosCampos(contexto, contactId))
+}
+
+/** B38-05: o valor de cada campo personalizado do contato, no formato do tipo, pela chave da variável. */
+async function variaveisDosCampos({ supabase, gatilho }: ContextoDaExecucao, contactId: string): Promise<Record<string, string>> {
+  const campos = await camposDaEmpresa(supabase, gatilho.workspaceId)
+  if (campos.length === 0) return {}
+  const valores = (await valoresDosContatos(supabase, [contactId], campos.map((c) => c.id))).get(contactId) ?? {}
+  return Object.fromEntries(
+    campos.flatMap((c) => (valores[c.id] ? [[chaveDaVariavel(c.nome), formatarValor(c, valores[c.id])]] : []))
+  )
 }
 
 /**
@@ -132,8 +156,9 @@ async function variaveisDoContato(contexto: ContextoDaExecucao, contactId: strin
     nomeVendedor = vendedor?.name ?? ""
   }
 
+  // B38-05: sem nome, entra o texto reserva da variável (CA-B38-60), e não mais o telefone
   return {
-    nomeContato: nome || contato?.phone_number || "",
+    nomeContato: nome,
     primeiroNome: nome.split(/\s+/)[0] ?? "",
     nomeVendedor,
   }

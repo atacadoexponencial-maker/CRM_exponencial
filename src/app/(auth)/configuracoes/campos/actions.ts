@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache"
 import { sessaoAtual } from "@/lib/sessao"
+import { createServiceClient } from "@/integrations/supabase/service"
+import type { Json } from "@/integrations/supabase/types"
+import { lerFluxo } from "@/lib/automacoes/fluxo-recebido"
+import { VARIAVEIS_FIXAS, chaveDaVariavel, trocarChave } from "@/lib/variaveis-mensagem"
 import {
   LIMITE_DE_CAMPOS,
   LIMITE_DE_OPCOES,
@@ -70,6 +74,53 @@ async function nomeDeCampoLivre({ supabase, perfil }: Quem, nome: string, ignora
   return !(data ?? []).some((c) => c.id !== ignorarId && mesmoNome(c.nome, nome))
 }
 
+/** B38-05: a variável que o nome gera não pode ser a de outro campo nem uma fixa (SUP-B38-12). */
+async function problemaDaVariavel({ supabase, perfil }: Quem, nome: string, ignorarId?: string): Promise<string | null> {
+  const chave = chaveDaVariavel(nome)
+  if (!chave) return "O nome precisa ter letras ou números."
+  const { data } = await supabase.from("campos_personalizados").select("id, nome").eq("workspace_id", perfil.workspace_id)
+  const deOutro = (data ?? []).some((c) => c.id !== ignorarId && chaveDaVariavel(c.nome) === chave)
+  return deOutro || (VARIAVEIS_FIXAS as readonly string[]).includes(chave)
+    ? `Esse nome gera a variável {{${chave}}}, que já é de outro campo ou do sistema.`
+    : null
+}
+
+/**
+ * B38-05: renomeado o campo, a variável nova entra no lugar da antiga, com o mesmo
+ * reserva, nas automações, nas campanhas não enviadas e nas mensagens rápidas da
+ * empresa (CA-B38-46). Com o service client: o Gerente renomeia o campo, mas não
+ * grava automação.
+ */
+async function trocarVariavelNosTextos(workspaceId: string, antiga: string, nova: string): Promise<void> {
+  const service = createServiceClient()
+  const [{ data: fluxos }, { data: campanhas }, { data: rapidas }] = await Promise.all([
+    service.from("automation_flows").select("id, fluxo").eq("workspace_id", workspaceId),
+    service.from("campaigns").select("id, conteudo").eq("workspace_id", workspaceId).in("status", ["rascunho", "agendada"]),
+    service.from("quick_replies").select("id, content").eq("workspace_id", workspaceId),
+  ])
+  for (const f of fluxos ?? []) {
+    const fluxo = lerFluxo(f.fluxo)
+    if (!fluxo) continue
+    let mudou = false
+    const blocos = fluxo.blocos.map((b) => {
+      if (b.tipo !== "acao" || !b.parametros.texto) return b
+      const texto = trocarChave(b.parametros.texto, antiga, nova)
+      if (texto === b.parametros.texto) return b
+      mudou = true
+      return { ...b, parametros: { ...b.parametros, texto } }
+    })
+    if (mudou) await service.from("automation_flows").update({ fluxo: { ...fluxo, blocos } as unknown as Json }).eq("id", f.id)
+  }
+  for (const c of campanhas ?? []) {
+    const conteudo = trocarChave(c.conteudo ?? "", antiga, nova)
+    if (conteudo !== (c.conteudo ?? "")) await service.from("campaigns").update({ conteudo }).eq("id", c.id)
+  }
+  for (const r of rapidas ?? []) {
+    const content = trocarChave(r.content, antiga, nova)
+    if (content !== r.content) await service.from("quick_replies").update({ content }).eq("id", r.id)
+  }
+}
+
 async function campoDaEmpresa({ supabase, perfil }: Quem, campoId: string) {
   if (!UUID.test(campoId ?? "")) return null
   const { data } = await supabase
@@ -134,6 +185,8 @@ export async function criarCampo(nome: string, tipo: string, opcoes: string[] = 
   const { data: existentes } = await supabase.from("campos_personalizados").select("ordem").eq("workspace_id", perfil.workspace_id)
   if ((existentes ?? []).length >= LIMITE_DE_CAMPOS) return { erro: `A empresa pode ter até ${LIMITE_DE_CAMPOS} campos.` }
   if (!(await nomeDeCampoLivre(quem, nomeOk.nome))) return { erro: NOME_REPETIDO }
+  const variavel = await problemaDaVariavel(quem, nomeOk.nome)
+  if (variavel) return { erro: variavel }
 
   const ordem = Math.max(-1, ...(existentes ?? []).map((c) => c.ordem)) + 1
   const { data: campo, error } = await supabase
@@ -164,9 +217,14 @@ export async function renomearCampo(campoId: string, nome: string): Promise<Resu
   const nomeOk = conferirNome(nome, "campo")
   if ("erro" in nomeOk) return { erro: nomeOk.erro }
   if (!(await nomeDeCampoLivre(quem, nomeOk.nome, campoId))) return { erro: NOME_REPETIDO }
+  const variavel = await problemaDaVariavel(quem, nomeOk.nome, campoId)
+  if (variavel) return { erro: variavel }
 
+  const { data: antes } = await quem.supabase.from("campos_personalizados").select("nome").eq("id", campoId).single()
   const { error } = await quem.supabase.from("campos_personalizados").update({ nome: nomeOk.nome }).eq("id", campoId)
   if (error) return { erro: error.code === "23505" ? NOME_REPETIDO : "Não foi possível renomear o campo." }
+  const [antiga, nova] = [chaveDaVariavel(antes?.nome ?? ""), chaveDaVariavel(nomeOk.nome)]
+  if (antiga && antiga !== nova) await trocarVariavelNosTextos(quem.perfil.workspace_id, antiga, nova)
   revalidar()
   return {}
 }

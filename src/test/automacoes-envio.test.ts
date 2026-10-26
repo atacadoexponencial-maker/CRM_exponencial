@@ -123,22 +123,27 @@ describe("enviar mensagem com variáveis", () => {
 
     await executarAcao(
       b.contexto(mensagemRecebida),
-      acao("enviar_mensagem", { texto: "Oi {{primeiro_nome}}, aqui é {{nome_vendedor}} ({{nome_contato}})" })
+      // B38-05: toda variável tem texto reserva
+      acao("enviar_mensagem", { texto: "Oi {{primeiro_nome|cliente}}, aqui é {{nome_vendedor|a equipe}} ({{nome_contato|cliente}})" })
     )
 
     expect(provider.enviarTexto).toHaveBeenCalledWith("5511999998888", "Oi Ana, aqui é Bruna (Ana Paula Souza)")
   })
 
-  it("contato sem nome: nome_contato vira o telefone, e primeiro_nome fica vazio", async () => {
+  // B38-05: sem nome nem vendedor, entra o texto reserva (CA-B38-60), e não mais o telefone
+  it("contato sem nome: nome_contato e primeiro_nome viram o texto reserva", async () => {
     const b = banco({
       contacts: { um: { name: null, phone_number: "5511999998888" } },
       conversations: { um: { assigned_to: null } },
       pipeline_cards: { lista: [] },
     })
 
-    await executarAcao(b.contexto(mensagemRecebida), acao("enviar_mensagem", { texto: "Oi {{primeiro_nome}} / {{nome_contato}} / {{nome_vendedor}}" }))
+    await executarAcao(
+      b.contexto(mensagemRecebida),
+      acao("enviar_mensagem", { texto: "Oi {{primeiro_nome|cliente}} / {{nome_contato|cliente}} / {{nome_vendedor|a equipe}}" })
+    )
 
-    expect(provider.enviarTexto).toHaveBeenCalledWith("5511999998888", "Oi  / 5511999998888 / ")
+    expect(provider.enviarTexto).toHaveBeenCalledWith("5511999998888", "Oi cliente / cliente / a equipe")
   })
 
   it("conversa sem atendente: o vendedor é o do card principal (Recompra antes da Entrada)", async () => {
@@ -154,7 +159,7 @@ describe("enviar mensagem com variáveis", () => {
       profiles: { um: { name: "Carla" } },
     })
 
-    await executarAcao(b.contexto(mensagemRecebida), acao("enviar_mensagem", { texto: "Aqui é {{nome_vendedor}}" }))
+    await executarAcao(b.contexto(mensagemRecebida), acao("enviar_mensagem", { texto: "Aqui é {{nome_vendedor|a equipe}}" }))
 
     expect(b.filtros("profiles")).toContainEqual(["id", "u-recompra"])
     expect(provider.enviarTexto).toHaveBeenCalledWith("5511999998888", "Aqui é Carla")
@@ -189,7 +194,7 @@ describe("enviar mensagem com variáveis", () => {
 describe("enviar mensagem rápida", () => {
   it("manda o texto cadastrado, com as variáveis, e confere a empresa da mensagem", async () => {
     const b = banco({
-      quick_replies: { um: { content: "Oi {{primeiro_nome}}, segue nossa tabela" } },
+      quick_replies: { um: { content: "Oi {{primeiro_nome|cliente}}, segue nossa tabela" } },
       contacts: { um: { name: "Ana Paula", phone_number: "5511999998888" } },
       conversations: { um: { assigned_to: null } },
       pipeline_cards: { lista: [] },

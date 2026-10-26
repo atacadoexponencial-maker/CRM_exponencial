@@ -22,8 +22,10 @@ describe("B22-14 — inserir variável no cursor", () => {
     expect(inserirNoCursor("", 0, 0, "{{nome_vendedor}}")).toEqual({ texto: "{{nome_vendedor}}", cursor: 17 })
   })
 
+  // B38-05: o botão insere a variável com o texto reserva
   it("todo botão insere uma variável que o envio preenche", () => {
-    for (const { variavel } of VARIAVEIS_DA_MENSAGEM) {
+    for (const { chave } of VARIAVEIS_DA_MENSAGEM) {
+      const variavel = `{{${chave}|reserva}}`
       const enviado = textoComVariaveis(variavel, { nomeContato: "Ana Souza", primeiroNome: "Ana", nomeVendedor: "Bruno" })
       expect(enviado, variavel).not.toContain("{{")
     }

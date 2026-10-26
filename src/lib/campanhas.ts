@@ -5,6 +5,9 @@
 // e o processamento oportunista continuam de onde parou.
 
 import { createServiceClient } from "@/integrations/supabase/service"
+import { chaveDaVariavel, preencherVariaveis, variaveisSemReserva } from "@/lib/variaveis-mensagem"
+import { formatarValor } from "@/lib/campos-personalizados"
+import { camposDaEmpresa, valoresDosContatos } from "@/lib/campos-personalizados-servidor"
 import { providerDaConexao, resolverProvider } from "@/lib/whatsapp"
 import {
   MOTIVO_SEM_NUMERO,
@@ -57,22 +60,48 @@ type RecipientRow = {
  */
 export function substituirVariaveis(
   texto: string,
-  contexto: { nomeContato: string; nomeVendedor: string }
+  contexto: { nomeContato: string; nomeVendedor: string; campos?: Record<string, string> }
 ): string {
-  return texto
-    .replaceAll("{{nome_contato}}", contexto.nomeContato)
-    .replaceAll("{{nome_vendedor}}", contexto.nomeVendedor)
+  // B38-05: `{{chave|reserva}}`, com o reserva quando o valor está vazio, e os campos
+  // personalizados pela chave da variável de cada um. A campanha não tem `primeiro_nome`.
+  return preencherVariaveis(texto, { ...contexto.campos, nome_contato: contexto.nomeContato, nome_vendedor: contexto.nomeVendedor })
+}
+
+/** B38-05: campanha com variável sem texto reserva não começa nem continua o envio (SUP-B38-18). */
+export function campanhaPodeEnviar(conteudo: string | null): boolean {
+  return variaveisSemReserva(conteudo ?? "").length === 0
+}
+
+/** B38-05: o valor de cada campo personalizado dos contatos, no formato do tipo, pela chave da variável. */
+export async function variaveisDosCamposDosContatos(
+  supabase: ServiceClient,
+  workspaceId: string,
+  contactIds: string[]
+): Promise<Map<string, Record<string, string>>> {
+  const porContato = new Map<string, Record<string, string>>()
+  const campos = await camposDaEmpresa(supabase, workspaceId)
+  if (campos.length === 0 || contactIds.length === 0) return porContato
+  const valores = await valoresDosContatos(supabase, contactIds, campos.map((c) => c.id))
+  for (const [contato, doContato] of valores) {
+    porContato.set(
+      contato,
+      Object.fromEntries(campos.flatMap((c) => (doContato[c.id] ? [[chaveDaVariavel(c.nome), formatarValor(c, doContato[c.id])]] : [])))
+    )
+  }
+  return porContato
 }
 
 async function enviarParaDestinatario(
   provider: ProviderWhatsApp,
   campanha: CampaignRow,
   destinatario: RecipientRow,
-  nomeVendedor: string
+  nomeVendedor: string,
+  campos: Record<string, string> = {}
 ): Promise<{ ok: boolean; wamid: string | null; motivo: string | null }> {
   const texto = substituirVariaveis(campanha.conteudo ?? "", {
     nomeContato: destinatario.nome_snapshot ?? "",
     nomeVendedor,
+    campos,
   })
 
   // O try/catch continua aqui, e não dentro do provider: campanha trata falha
@@ -149,6 +178,8 @@ async function providerDaCampanha(
 }
 
 async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow): Promise<number> {
+  // B38-05: texto salvo antes, com variável sem reserva, não envia até ganhar o reserva
+  if (!campanhaPodeEnviar(campanha.conteudo)) return 0
   const provider = await providerDaCampanha(supabase, campanha)
 
   if (!provider) {
@@ -195,6 +226,9 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
     }
   }
 
+  // B38-05: os campos personalizados do lote, para as variáveis
+  const camposPorContato = await variaveisDosCamposDosContatos(supabase, campanha.workspace_id, contactIds)
+
   let enviados = 0
   for (const destinatario of lote) {
     // B8-03: a parada é conferida no meio do lote, e não só entre lotes. Com
@@ -219,7 +253,8 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
     const nomeVendedor = destinatario.contact_id
       ? (vendedorPorContato[destinatario.contact_id] ?? "")
       : ""
-    const resultado = await enviarParaDestinatario(provider, campanha, destinatario, nomeVendedor)
+    const campos = destinatario.contact_id ? (camposPorContato.get(destinatario.contact_id) ?? {}) : {}
+    const resultado = await enviarParaDestinatario(provider, campanha, destinatario, nomeVendedor, campos)
     await supabase
       .from("campaign_recipients")
       .update({
@@ -257,12 +292,17 @@ export async function processarCampanhasPendentes(): Promise<number> {
   const supabase = createServiceClient()
   const agora = new Date().toISOString()
 
-  // Campanhas agendadas vencidas passam para "enviando"
-  await supabase
+  // Campanhas agendadas vencidas passam para "enviando". B38-05: a que tem variável
+  // sem texto reserva continua agendada, marcada "precisa de ajuste", até ganhar o reserva.
+  const { data: vencidas } = await supabase
     .from("campaigns")
-    .update({ status: "enviando" })
+    .select("id, conteudo")
     .eq("status", "agendada")
     .lte("agendada_para", agora)
+  const prontas = (vencidas ?? []).filter((c) => campanhaPodeEnviar(c.conteudo)).map((c) => c.id)
+  if (prontas.length > 0) {
+    await supabase.from("campaigns").update({ status: "enviando" }).in("id", prontas).eq("status", "agendada")
+  }
 
   const { data: enviando } = await supabase
     .from("campaigns")

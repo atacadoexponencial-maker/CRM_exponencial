@@ -548,6 +548,18 @@ aceitam a variável de cada campo personalizado, ao lado de `{{nome_contato}}`,
 - **Então** a automação ou a campanha aparece marcada "precisa de ajuste", o editor aponta a
   variável sem reserva, e ela só volta a enviar depois que o texto ganha o reserva e é salvo
 
+#### CA-B38-63 — Mensagem rápida exige texto reserva · prova: automática
+
+- **Dado** a tela de mensagens rápidas, em Configurações
+- **Quando** o Admin escreve "Olá {{nome_contato}}" e tenta salvar, ou insere uma variável pelo botão
+- **Então** a tela não salva o texto sem reserva e aponta a variável; pelo botão, pede o texto reserva antes de inserir; com "Olá {{nome_contato|cliente}}", salva; a mensagem rápida antiga sem reserva aparece marcada "precisa de ajuste" na lista e não é enviada por automação até ganhar o reserva
+
+#### CA-B38-64 — Lembrete da automação exige texto reserva · prova: automática
+
+- **Dado** a ação "Criar lembrete na Agenda" de uma automação
+- **Quando** o texto do lembrete tem "Ligar para {{primeiro_nome}}", sem reserva, e o Admin tenta salvar
+- **Então** o editor aponta a variável e o servidor não salva; com "Ligar para {{primeiro_nome|o cliente}}", o lembrete do contato sem nome nasce como "Ligar para o cliente"
+
 ### 8. Campos nos Relatórios e no Dashboard
 
 **Descrição:** os Relatórios e o Dashboard ganham um filtro por campo personalizado; a aba
@@ -670,6 +682,7 @@ depois das colunas de hoje, na ordem da empresa.
   os campos fixos e os personalizados.
 - Cada usuário escolher as próprias colunas da lista de Contatos: a escolha é da empresa.
 - Filtro por mais de um campo personalizado ao mesmo tempo nos Relatórios e no Dashboard.
+- Trocar as variáveis da mensagem rápida quando o atendente a escolhe no Chat: hoje o texto entra como está, e continua assim.
 - Tipos além dos onze da tabela (arquivo, endereço com mapa, campo calculado, usuário, data e hora).
 - Campos personalizados no catálogo da loja.
 - Permissão por campo (campo que só alguns papéis veem ou editam).
@@ -714,4 +727,5 @@ depois das colunas de hoje, na ordem da empresa.
 | PER-B38-11 | O que os campos fazem nos Relatórios e no Dashboard? | respondida | Filtro por campo, tabela de vendas por valor do campo e colunas nos Excel que listam clientes ou vendas. Marcelle, 26/10/2026. |
 | PER-B38-12 | Tirar opção de lista em uso: bloqueia ou desliga a automação? | respondida | Bloqueia e mostra onde é usada. Marcelle, 26/10/2026. |
 | PER-B38-13 | Mudança de campo personalizado feita por automação dispara outras automações? (Desde a B11, automação não dispara automação.) | respondida | Sim, só para campos personalizados; é uma exceção à regra da B11 (CA-B38-37). Marcelle, 26/10/2026. |
+| PER-B38-15 | O texto reserva obrigatório vale também para as mensagens rápidas e para o texto do lembrete da Agenda? | respondida | Sim, em tudo: mensagem das automações, campanhas, mensagens rápidas e lembrete (CA-B38-63, CA-B38-64). Marcelle, 26/10/2026. |
 | PER-B38-14 | Como evitar laço infinito entre automações que mudam campos personalizados? | respondida | Numa mesma sequência de mudanças, cada automação roda no máximo uma vez; não há limite de quantas automações em cadeia (CA-B38-62). Marcelle, 26/10/2026. |

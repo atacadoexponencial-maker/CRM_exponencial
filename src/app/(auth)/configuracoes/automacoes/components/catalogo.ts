@@ -30,6 +30,7 @@ import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "../../../pipeline/mock-pipeline
 import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "../../../contatos/mock-contatos"
 import { PERFIS } from "@/lib/relatorios/rfv"
 import { campoPersonalizado, type CampoParaFiltro } from "@/lib/filtro-contatos"
+import { variaveisSemReserva } from "@/lib/variaveis-mensagem"
 
 export type Opcao = { id: string; nome: string }
 
@@ -531,6 +532,9 @@ export function referenciasQueSumiram(fluxo: Fluxo, opcoes: OpcoesEditor): Recor
     const campos = bloco.tipo === "gatilho" ? GATILHOS[bloco.gatilho]?.campos : ACOES[bloco.acao]?.campos
     for (const campo of campos ?? []) {
       if (campo.tipo === "opcoes" && sumiu(campo.fonte, bloco.parametros[campo.chave])) anotar(bloco.id, campo.rotulo)
+      // B38-05: texto salvo antes, com variável sem reserva (SUP-B38-18)
+      const sem = campo.tipo === "texto_longo" && campo.variaveis ? variaveisSemReserva(bloco.parametros[campo.chave] ?? "") : []
+      if (sem.length > 0) (porBloco[bloco.id] ??= []).push(`${campo.rotulo}: precisa de ajuste, ${sem.join(", ")} sem texto reserva`)
     }
   }
   return porBloco

@@ -2,6 +2,7 @@
 
 import { sessaoAtual } from "@/lib/sessao"
 import { escaparLike } from "@/lib/escapar-like"
+import { avisoDeSemReserva } from "@/lib/variaveis-mensagem"
 
 const ATALHO_MAXIMO = 40
 const CONTEUDO_MAXIMO = 2000
@@ -20,6 +21,9 @@ async function conferirMensagemRapida(
   if (atalho.length > ATALHO_MAXIMO) return { erro: `O atalho passa de ${ATALHO_MAXIMO} caracteres.` }
   if (!texto) return { erro: "Escreva a mensagem." }
   if (texto.length > CONTEUDO_MAXIMO) return { erro: `A mensagem passa de ${CONTEUDO_MAXIMO} caracteres.` }
+  // B38-05: toda variável tem texto reserva (CA-B38-63)
+  const semReserva = avisoDeSemReserva(texto)
+  if (semReserva) return { erro: semReserva }
   let q = supabase.from("quick_replies").select("id").eq("workspace_id", workspaceId).ilike("title", escaparLike(atalho))
   if (ignorarId) q = q.neq("id", ignorarId)
   const { data } = await q.limit(1).maybeSingle()

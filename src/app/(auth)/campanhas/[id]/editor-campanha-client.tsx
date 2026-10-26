@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { PainelFiltro } from "../../contatos/components/painel-filtro"
+import { TextoComVariaveis, type VariavelDoBotao } from "@/components/shared/texto-com-variaveis"
+import { chaveDaVariavel, preencherVariaveis } from "@/lib/variaveis-mensagem"
 import { FaixaFiltrosSalvos } from "../../contatos/components/faixa-filtros-salvos"
 import { atualizarFiltroSalvo, salvarFiltro, type FiltroSalvo } from "../../contatos/filtros-salvos"
 import {
@@ -276,9 +278,13 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
     router.push("/campanhas")
   }
 
-  const previewMensagem = conteudo
-    .replaceAll("{{nome_contato}}", amostra[0]?.nome ?? "Maria")
-    .replaceAll("{{nome_vendedor}}", "Vendedor(a)")
+  // B38-05: a prévia usa o primeiro contato da amostra; os campos mostram o texto reserva
+  const previewMensagem = preencherVariaveis(conteudo, { nome_contato: amostra[0]?.nome ?? "Maria", nome_vendedor: "Vendedor(a)" })
+  const variaveis: VariavelDoBotao[] = [
+    { chave: "nome_contato", rotulo: "Nome do contato" },
+    { chave: "nome_vendedor", rotulo: "Nome do vendedor" },
+    ...(opcoes.campos ?? []).map((c) => ({ chave: chaveDaVariavel(c.nome), rotulo: c.nome })),
+  ]
 
   return (
     <>
@@ -467,20 +473,17 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
           )}
 
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="camp-conteudo">
-                {tipoMensagem === "texto" ? "Mensagem" : "Legenda"}
-              </Label>
-              <span className="text-xs text-muted-foreground">
-                Variáveis: {"{{nome_contato}}"} e {"{{nome_vendedor}}"}
-              </span>
-            </div>
-            <textarea
+            <Label htmlFor="camp-conteudo">
+              {tipoMensagem === "texto" ? "Mensagem" : "Legenda"}
+            </Label>
+            {/* B38-05: cada variável pede o texto reserva */}
+            <TextoComVariaveis
               id="camp-conteudo"
               className={textareaClass}
-              value={conteudo}
-              onChange={(e) => setConteudo(e.target.value)}
-              placeholder="Olá {{nome_contato}}! Temos novidades para você…"
+              valor={conteudo}
+              variaveis={variaveis}
+              onMudar={setConteudo}
+              placeholder="Olá {{nome_contato|cliente}}! Temos novidades para você…"
             />
           </div>
 

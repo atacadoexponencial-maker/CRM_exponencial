@@ -169,6 +169,8 @@ export function CampanhasClient({ campanhasIniciais }: { campanhasIniciais: Camp
                     <span className={cn("text-xs rounded-full px-2 py-0.5 font-medium", STATUS_CLASS[c.status])}>
                       {STATUS_LABEL[c.status] ?? c.status}
                     </span>
+                    {/* B38-05: variável sem texto reserva; não envia até ganhar o reserva */}
+                    {c.precisaDeAjuste && <span className="mt-0.5 block text-xs text-aviso">Precisa de ajuste: variável sem texto reserva</span>}
                   </td>
                   {/* Rascunho ainda não tem lista: os destinatários nascem na confirmação. */}
                   <td className="px-4 py-3 text-muted-foreground">{c.status === "rascunho" ? "—" : c.totalDestinatarios}</td>

@@ -6,6 +6,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LIMITE_DE_OPCOES, NOME_MAXIMO, TIPOS_DE_CAMPO, rotuloDoTipo, temOpcoes } from "@/lib/campos-personalizados"
+import { chaveDaVariavel } from "@/lib/variaveis-mensagem"
 import { adicionarOpcao, criarCampo, marcarNaLista, moverCampo, moverOpcao, renomearCampo, renomearOpcao, type CampoParaGerenciar, type OpcaoParaGerenciar } from "./actions"
 
 // B38-01: tela de campos personalizados. Admin e Gerente criam o campo com nome e tipo,
@@ -187,6 +188,10 @@ function EditorDoCampo({ campo, onFechar, onSalvo }: { campo: CampoParaGerenciar
           <p className="text-xs text-muted-foreground">O tipo não muda depois de criado.</p>
         </div>
       </div>
+      {/* B38-05: a variável do campo nas mensagens; acompanha o nome */}
+      <p className="text-sm">
+        Variável nas mensagens: <code data-variavel className="rounded bg-muted px-1.5 py-0.5 text-xs">{`{{${chaveDaVariavel(campo.nome)}}}`}</code>
+      </p>
       <label className="flex items-center gap-2 text-sm">
         <input
           type="checkbox"

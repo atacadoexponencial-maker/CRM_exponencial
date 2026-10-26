@@ -637,7 +637,8 @@ describe("criar lembrete na Agenda (B28-01)", () => {
     const antes = Date.now()
     const ok = await executarAcao(
       { ...b.contexto(conversaCriada), regra },
-      lembrete({ texto: "Ligar para {{nome_contato}}", vence_em: "2", vence_unidade: "dias" })
+      // B38-05: toda variável tem texto reserva
+      lembrete({ texto: "Ligar para {{nome_contato|o cliente}}", vence_em: "2", vence_unidade: "dias" })
     )
 
     expect(ok).toEqual({ ok: true })

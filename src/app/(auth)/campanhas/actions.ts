@@ -19,6 +19,7 @@ import { lerSaudeDoNumero } from "@/lib/whatsapp/gateway/saude"
 import { filtrarContatos, valoresDoFiltro } from "../contatos/actions"
 import { condicoesComFunilApagado, esquemaFiltro } from "@/lib/filtro-contatos"
 import { filtroDoSegmento, type Segmento } from "@/lib/segmento-campanha"
+import { avisoDeSemReserva, variaveisSemReserva } from "@/lib/variaveis-mensagem"
 
 export type { Segmento } from "@/lib/segmento-campanha"
 
@@ -29,6 +30,8 @@ export type CampanhaListada = {
   totalDestinatarios: number
   dataEnvio: string | null
   criador: string | null
+  /** B38-05: não enviada, com variável sem texto reserva (SUP-B38-18). */
+  precisaDeAjuste: boolean
 }
 
 export type CampanhaDetalhe = {
@@ -152,7 +155,7 @@ export async function listarCampanhas(): Promise<CampanhaListada[]> {
 
   const { data } = await supabase
     .from("campaigns")
-    .select("id, nome, status, agendada_para, enviada_em, criador:profiles!criado_por(name), campaign_recipients(id)")
+    .select("id, nome, status, conteudo, agendada_para, enviada_em, criador:profiles!criado_por(name), campaign_recipients(id)")
     .eq("workspace_id", perfil.workspace_id)
     .order("created_at", { ascending: false })
 
@@ -160,6 +163,7 @@ export async function listarCampanhas(): Promise<CampanhaListada[]> {
     id: string
     nome: string
     status: string
+    conteudo: string | null
     agendada_para: string | null
     enviada_em: string | null
     criador: { name: string } | null
@@ -173,6 +177,7 @@ export async function listarCampanhas(): Promise<CampanhaListada[]> {
     totalDestinatarios: (c.campaign_recipients ?? []).length,
     dataEnvio: c.enviada_em ?? c.agendada_para,
     criador: c.criador?.name ?? null,
+    precisaDeAjuste: ["rascunho", "agendada", "enviando"].includes(c.status) && variaveisSemReserva(c.conteudo ?? "").length > 0,
   }))
 }
 
@@ -333,6 +338,9 @@ function paraATela(segmento: Segmento): Segmento {
 function validarDados(dados: DadosCampanha, paraEnvio: boolean): string | null {
   if (!dados.nome.trim()) return "Informe o nome da campanha"
   if (dados.segmento.filtro && !esquemaFiltro.safeParse(dados.segmento.filtro).success) return "Filtro inválido."
+  // B38-05: toda variável tem texto reserva (CA-B38-48)
+  const semReserva = avisoDeSemReserva(dados.conteudo ?? "")
+  if (semReserva) return semReserva
   if (paraEnvio) {
     if (!dados.conteudo.trim()) return "Escreva a mensagem da campanha"
     if (dados.tipoMensagem !== "texto" && !dados.arquivoUrl) return "Anexe o arquivo da campanha"

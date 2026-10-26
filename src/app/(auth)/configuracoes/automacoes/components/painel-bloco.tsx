@@ -56,7 +56,8 @@ import { campoDoFiltro, campoPersonalizado, comparacoesDoCampo, rotuloDaComparac
 import { conferirValor, entradaDoCanonico, type TipoDeCampo } from "@/lib/campos-personalizados"
 import { CampoSelecao, type ItemSelecao } from "./campo-selecao"
 import { CampoVarias } from "./campo-varias"
-import { VARIAVEIS_DA_MENSAGEM, inserirNoCursor } from "./variaveis-mensagem"
+import { variaveisDaAutomacao } from "./variaveis-mensagem"
+import { TextoComVariaveis } from "@/components/shared/texto-com-variaveis"
 
 const textareaClass =
   "w-full min-h-24 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 resize-y"
@@ -345,55 +346,6 @@ function CamposParametros({
   )
 }
 
-/** Texto da mensagem com botões que inserem cada variável onde está o cursor (B22-14). */
-function TextoComVariaveis({
-  id,
-  valor,
-  placeholder,
-  onMudar,
-}: {
-  id: string
-  valor: string
-  placeholder?: string
-  onMudar: (valor: string) => void
-}) {
-  const ref = useRef<HTMLTextAreaElement>(null)
-
-  function inserir(variavel: string) {
-    const campo = ref.current
-    const inicio = campo?.selectionStart ?? valor.length
-    const fim = campo?.selectionEnd ?? valor.length
-    const { texto, cursor } = inserirNoCursor(valor, inicio, fim, variavel)
-    onMudar(texto)
-    requestAnimationFrame(() => {
-      campo?.focus()
-      campo?.setSelectionRange(cursor, cursor)
-    })
-  }
-
-  return (
-    <>
-      <textarea
-        ref={ref}
-        id={id}
-        className={textareaClass}
-        value={valor}
-        placeholder={placeholder}
-        onChange={(e) => onMudar(e.target.value)}
-      />
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs text-muted-foreground">Inserir:</span>
-        {VARIAVEIS_DA_MENSAGEM.map(({ variavel, rotulo }) => (
-          <Button key={variavel} variant="outline" size="xs" title={variavel} onClick={() => inserir(variavel)}>
-            <Plus />
-            {rotulo}
-          </Button>
-        ))}
-      </div>
-    </>
-  )
-}
-
 function CampoParametro({
   id,
   campo,
@@ -421,6 +373,7 @@ function CampoParametro({
             id={id}
             valor={valor}
             placeholder={campo.placeholder}
+            variaveis={variaveisDaAutomacao(opcoes)}
             onMudar={(novo) => onMudar(campo.chave, novo)}
           />
         )

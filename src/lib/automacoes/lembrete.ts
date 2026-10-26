@@ -15,7 +15,7 @@
 
 import { vencimentoDoLembrete, type Parametros, type ResultadoAcao } from "@/lib/fluxo-automacao"
 import { conversaDoEvento, type ContextoDaExecucao } from "./contexto"
-import { preencherVariaveis } from "./envio"
+import { motivoSemReserva, preencherVariaveis } from "./envio"
 
 const falhou = (motivo: string): ResultadoAcao => ({ ok: false, motivo })
 const ERRO_NO_BANCO = falhou("Erro ao gravar no banco")
@@ -31,6 +31,9 @@ export async function criarLembrete(
   const texto = (parametros.texto ?? "").trim()
   const vencimento = vencimentoDoLembrete(parametros)
   if (!texto || !vencimento) return falhou("A ação está sem configuração")
+  // B38-05: lembrete salvo antes, com variável sem reserva, não nasce até ganhar o reserva
+  const semReserva = motivoSemReserva(texto)
+  if (semReserva) return falhou(semReserva)
 
   const destino = parametros.responsavel_id
     ? await pessoaEscolhida(contexto, parametros.responsavel_id)

@@ -34,6 +34,7 @@ import {
   tipoDeContatoValido,
 } from "@/lib/automacoes/referencias"
 import { camposDaEmpresa } from "@/lib/campos-personalizados-servidor"
+import { avisoDeSemReserva } from "@/lib/variaveis-mensagem"
 import { simularFluxo } from "@/lib/automacoes/simulacao"
 import { BLOCO_SAIU, REGRA_DESATIVADA, REGRA_EXCLUIDA, cancelarEsperas, esperasDaRegra } from "@/lib/automacoes/esperas"
 import { RESULTADOS_DA_EXECUCAO, type PassoGravado, type ResultadoExecucao } from "@/lib/automacoes/execucoes"
@@ -244,6 +245,12 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
     arquivos,
     camposPersonalizados,
   } = referenciasDoFluxo(fluxo)
+  // B38-05: toda variável do texto da mensagem e do lembrete tem texto reserva (CA-B38-48, CA-B38-64)
+  for (const bloco of fluxo.blocos) {
+    if (bloco.tipo !== "acao" || (bloco.acao !== "enviar_mensagem" && bloco.acao !== "criar_lembrete")) continue
+    const aviso = avisoDeSemReserva(bloco.parametros.texto ?? "")
+    if (aviso) return aviso
+  }
   // B38-04: campos personalizados citados, contra os da empresa
   if (camposPersonalizados.length > 0) {
     const campos = await camposDaEmpresa(supabase, workspaceId)

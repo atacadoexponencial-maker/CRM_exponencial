@@ -18,12 +18,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { criarMensagemRapida, editarMensagemRapida, excluirMensagemRapida, type MensagemRapidaListada } from "./actions"
+import { TextoComVariaveis, type VariavelDoBotao } from "@/components/shared/texto-com-variaveis"
+import { avisoDeSemReserva, variaveisSemReserva } from "@/lib/variaveis-mensagem"
 
 interface MensagensRapidasClientProps {
   mensagensIniciais: MensagemRapidaListada[]
+  /** B38-05: variáveis dos botões (as fixas e os campos personalizados), cada uma com reserva. */
+  variaveis?: VariavelDoBotao[]
 }
 
-export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasClientProps) {
+export function MensagensRapidasClient({ mensagensIniciais, variaveis = [] }: MensagensRapidasClientProps) {
   const [mensagens, setMensagens] = useState<MensagemRapidaListada[]>(mensagensIniciais)
 
   const [dialogCriarAberto, setDialogCriarAberto] = useState(false)
@@ -144,6 +148,10 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
                   </td>
                   <td className="px-4 py-3 text-muted-foreground truncate max-w-0">
                     <span className="block truncate">{msg.conteudo}</span>
+                    {/* B38-05: salva antes, com variável sem reserva; a automação não a envia */}
+                    {variaveisSemReserva(msg.conteudo).length > 0 && (
+                      <span className="mt-0.5 block text-xs text-aviso">Precisa de ajuste: {variaveisSemReserva(msg.conteudo).join(", ")} sem texto reserva</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <DropdownMenu>
@@ -188,13 +196,13 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="novo-conteudo">Conteúdo</Label>
-              <textarea
+              <TextoComVariaveis
                 id="novo-conteudo"
                 rows={4}
-                value={novoConteudo}
-                onChange={(e) => setNovoConteudo(e.target.value)}
+                valor={novoConteudo}
+                variaveis={variaveis}
+                onMudar={setNovoConteudo}
                 placeholder="Texto que será inserido no campo de mensagem..."
-                className="resize-none text-sm rounded-md border border-input px-3 py-2 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground"
               />
             </div>
             {erroCriar && <p className="text-sm text-erro">{erroCriar}</p>}
@@ -204,7 +212,7 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
               </DialogClose>
               <Button
                 onClick={handleCriar}
-                disabled={!novoTitulo.trim() || !novoConteudo.trim() || isPendingCriar}
+                disabled={!novoTitulo.trim() || !novoConteudo.trim() || !!avisoDeSemReserva(novoConteudo) || isPendingCriar}
               >
                 Salvar
               </Button>
@@ -229,12 +237,12 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="edit-conteudo">Conteúdo</Label>
-              <textarea
+              <TextoComVariaveis
                 id="edit-conteudo"
                 rows={4}
-                value={editConteudo}
-                onChange={(e) => setEditConteudo(e.target.value)}
-                className="resize-none text-sm rounded-md border border-input px-3 py-2 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground"
+                valor={editConteudo}
+                variaveis={variaveis}
+                onMudar={setEditConteudo}
               />
             </div>
             {erroEditar && <p className="text-sm text-erro">{erroEditar}</p>}
@@ -244,7 +252,7 @@ export function MensagensRapidasClient({ mensagensIniciais }: MensagensRapidasCl
               </DialogClose>
               <Button
                 onClick={handleEditar}
-                disabled={!editTitulo.trim() || !editConteudo.trim() || isPendingEditar}
+                disabled={!editTitulo.trim() || !editConteudo.trim() || !!avisoDeSemReserva(editConteudo) || isPendingEditar}
               >
                 Salvar
               </Button>
