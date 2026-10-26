@@ -12,6 +12,8 @@ import { Dialog, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import {
   TODOS_OS_CAMPOS,
   camposDosFunis,
+  camposPersonalizadosDoFiltro,
+  type CampoParaFiltro,
   type FunilParaFiltro,
   campoDoFiltro,
   comparacoesDoCampo,
@@ -36,7 +38,8 @@ const inputClass = selectClass
 const CONDICAO_NOVA: Condicao = { campo: "", comparacao: "", valores: [] }
 const grupoNovo = (): Grupo => ({ juncao: "e", condicoes: [{ ...CONDICAO_NOVA }] })
 
-const ASSUNTOS = Array.from(new Set(TODOS_OS_CAMPOS.map((c) => c.assunto)))
+// B38-03: os campos personalizados vêm por último, num grupo próprio.
+const ASSUNTOS = [...Array.from(new Set(TODOS_OS_CAMPOS.map((c) => c.assunto))), "Campos personalizados"]
 
 interface PainelFiltroProps {
   aberto: boolean
@@ -48,6 +51,8 @@ interface PainelFiltroProps {
   etiquetas: string[]
   /** B41-06: funis da empresa. */
   funis?: FunilParaFiltro[]
+  /** B38-03: campos personalizados da empresa. */
+  campos?: CampoParaFiltro[]
   onAplicar: (filtro: Filtro) => void
   onLimpar: () => void
   /** B37-03: Admin e Gerente salvam e atualizam filtros (o servidor confere de novo). */
@@ -66,6 +71,7 @@ export function PainelFiltro({
   atendentes,
   etiquetas,
   funis = [],
+  campos = [],
   onAplicar,
   onLimpar,
   podeSalvar = false,
@@ -78,7 +84,7 @@ export function PainelFiltro({
   const [nomeNovo, setNomeNovo] = useState<string | null>(null)
   const [erroSalvar, setErroSalvar] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
-  const daEmpresa: ValoresDaEmpresa = { atendentes: atendentes.map((a) => a.id), etiquetas, funis }
+  const daEmpresa: ValoresDaEmpresa = { atendentes: atendentes.map((a) => a.id), etiquetas, funis, campos }
 
   async function enviar(acao: () => Promise<string | null>) {
     setSalvando(true)
@@ -316,14 +322,14 @@ function LinhaCondicao({
   onChange: (condicao: Condicao) => void
   onRemover: () => void
 }) {
-  const campo = campoDoFiltro(condicao.campo, daEmpresa.funis)
+  const campo = campoDoFiltro(condicao.campo, daEmpresa.funis, daEmpresa.campos)
   const comparacao = condicao.comparacao || null
   // B37-03: em filtro salvo, o valor pode ter deixado de existir (SUP-B37-05).
   const sumiu = valorSumiu(condicao, daEmpresa)
   const incompleta = !!campo && !sumiu && !condicaoCompleta(condicao)
 
   function escolherCampo(id: string) {
-    const novo = campoDoFiltro(id, daEmpresa.funis)
+    const novo = campoDoFiltro(id, daEmpresa.funis, daEmpresa.campos)
     onChange({ campo: id, comparacao: novo ? comparacoesDoCampo(novo)[0] : "", valores: [] })
   }
 
@@ -344,15 +350,19 @@ function LinhaCondicao({
         <option value="" disabled>
           Escolha o campo
         </option>
-        {ASSUNTOS.map((assunto) => (
-          <optgroup key={assunto} label={assunto}>
-            {[...TODOS_OS_CAMPOS, ...camposDosFunis(daEmpresa.funis)].filter((c) => c.assunto === assunto).map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.rotulo}
-              </option>
-            ))}
-          </optgroup>
-        ))}
+        {ASSUNTOS.map((assunto) => {
+          const doAssunto = [...TODOS_OS_CAMPOS, ...camposDosFunis(daEmpresa.funis), ...camposPersonalizadosDoFiltro(daEmpresa.campos)].filter((c) => c.assunto === assunto)
+          if (doAssunto.length === 0) return null
+          return (
+            <optgroup key={assunto} label={assunto}>
+              {doAssunto.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.rotulo}
+                </option>
+              ))}
+            </optgroup>
+          )
+        })}
       </select>
 
       {campo && (
@@ -452,7 +462,7 @@ function CampoDeValor({
           aria-label="Valor"
           type="number"
           min={0}
-          step={campo.id === "total_comprado" ? "0.01" : "1"}
+          step={campo.id === "total_comprado" || campo.personalizado ? "0.01" : "1"}
           inputMode="decimal"
           className={cn(inputClass, "numero w-28")}
           value={valores[0] ?? ""}
@@ -465,7 +475,7 @@ function CampoDeValor({
               aria-label="Até"
               type="number"
               min={0}
-              step={campo.id === "total_comprado" ? "0.01" : "1"}
+              step={campo.id === "total_comprado" || campo.personalizado ? "0.01" : "1"}
               inputMode="decimal"
               className={cn(inputClass, "numero w-28")}
               value={valores[1] ?? ""}

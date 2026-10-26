@@ -20,7 +20,7 @@ export type Juncao = "e" | "ou"
 
 export type TipoDeCampo = "texto" | "lista" | "data" | "numero" | "etiqueta" | "funil"
 
-export type Assunto = "Cadastro" | "Etiquetas" | "Compras" | "Funil"
+export type Assunto = "Cadastro" | "Etiquetas" | "Compras" | "Funil" | "Campos personalizados"
 
 export type Comparacao =
   | "contem"
@@ -48,6 +48,8 @@ export type Comparacao =
   | "fora_da_etapa"
   | "no_funil"
   | "fora_do_funil"
+  // B38-03: lista e múltipla escolha dos campos personalizados
+  | "nenhum_de"
 
 export interface Condicao {
   campo: string
@@ -78,6 +80,8 @@ export interface CampoDoFiltro {
   obrigatorio: boolean
   /** Opções fixas de um campo de lista. Sem elas, as opções vêm do servidor (atendente, etiqueta). */
   opcoes?: Opcao[]
+  /** B38-03: tipo do campo personalizado (texto, dinheiro, múltipla escolha...). */
+  personalizado?: string
 }
 
 /** Campo que é uma coluna de `contacts`. */
@@ -163,6 +167,71 @@ export function camposDosFunis(funis: FunilParaFiltro[] = []): CampoDoFiltro[] {
   }))
 }
 
+// B38-03: um campo por campo personalizado da empresa, com o tipo e o id no id do
+// campo ("campo:<tipo>:<uuid>"). O tipo no id serve à tela e à validação; o banco usa
+// o tipo que está gravado.
+
+/** Campo personalizado da empresa para o filtro: nome, tipo e opções, na ordem. */
+export type CampoParaFiltro = { id: string; nome: string; tipo: string; opcoes: Array<{ id: string; nome: string }> }
+
+const TIPOS_PERSONALIZADOS = ["texto", "texto_longo", "numero", "dinheiro", "data", "lista", "multipla", "sim_nao", "link", "email", "telefone"]
+const CAMPO_PERSONALIZADO = new RegExp(
+  `^campo:(${TIPOS_PERSONALIZADOS.join("|")}):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`,
+  "i"
+)
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export const ehCampoPersonalizado = (id: string) => CAMPO_PERSONALIZADO.test(id)
+export const campoPersonalizado = (c: Pick<CampoParaFiltro, "id" | "tipo">) => `campo:${c.tipo}:${c.id}`
+
+const SIM_NAO: Opcao[] = [
+  { valor: "sim", rotulo: "Sim" },
+  { valor: "nao", rotulo: "Não" },
+]
+
+/** O tipo do campo personalizado no filtro: decide o controle do valor na tela. */
+function tipoNoFiltro(tipo: string): TipoDeCampo {
+  if (tipo === "numero" || tipo === "dinheiro") return "numero"
+  if (tipo === "data") return "data"
+  if (tipo === "lista" || tipo === "multipla" || tipo === "sim_nao") return "lista"
+  return "texto"
+}
+
+function campoDoFiltroPersonalizado(id: string, rotulo: string, tipo: string, opcoes?: Opcao[]): CampoDoFiltro {
+  return {
+    id,
+    rotulo,
+    assunto: "Campos personalizados",
+    tipo: tipoNoFiltro(tipo),
+    obrigatorio: false,
+    // Só lista e múltipla escolha têm opções da empresa; texto, número e data, nenhuma.
+    opcoes: tipo === "sim_nao" ? SIM_NAO : tipo === "lista" || tipo === "multipla" ? opcoes : undefined,
+    personalizado: tipo,
+  }
+}
+
+/** Os campos personalizados da empresa como campos do filtro, na ordem dela. */
+export function camposPersonalizadosDoFiltro(campos: CampoParaFiltro[] = []): CampoDoFiltro[] {
+  return campos.map((c) =>
+    campoDoFiltroPersonalizado(campoPersonalizado(c), c.nome, c.tipo, c.opcoes.map((o) => ({ valor: o.id, rotulo: o.nome })))
+  )
+}
+
+/** Comparações de cada tipo de campo personalizado (tabela da spec, CA-B38-32). */
+const COMPARACOES_PERSONALIZADAS: Record<string, Comparacao[]> = {
+  texto: ["contem", "nao_contem", "igual", "nao_e", "vazio", "nao_vazio"],
+  numero: ["igual", "maior", "menor", "entre", "vazio", "nao_vazio"],
+  data: ["antes", "depois", "entre", "ultimos_dias", "ha_mais_de_dias", "vazio", "nao_vazio"],
+  lista: ["qualquer_de", "nenhum_de", "vazio", "nao_vazio"],
+  multipla: ["tem_qualquer", "tem_todas", "nenhum_de", "vazio", "nao_vazio"],
+  sim_nao: ["e", "vazio"],
+}
+
+function comparacoesPersonalizadas(tipo: string): Comparacao[] {
+  if (tipo === "lista" || tipo === "multipla" || tipo === "sim_nao") return COMPARACOES_PERSONALIZADAS[tipo]
+  return COMPARACOES_PERSONALIZADAS[tipoNoFiltro(tipo)]
+}
+
 /**
  * Colunas de `contacts` que ficam fora do filtro de propósito. Coluna nova no
  * contato precisa entrar no catálogo ou aqui, senão o teste do CA-B37-04 falha.
@@ -202,6 +271,7 @@ export const ROTULO_DA_COMPARACAO: Record<Comparacao, string> = {
   fora_da_etapa: "não está na etapa",
   no_funil: "está no funil (qualquer etapa)",
   fora_do_funil: "não está no funil",
+  nenhum_de: "não é nenhum de",
 }
 
 const COMPARACOES_DO_TIPO: Record<TipoDeCampo, Comparacao[]> = {
@@ -218,7 +288,13 @@ const COMPARACOES_DO_TIPO: Record<TipoDeCampo, Comparacao[]> = {
  * apagado, é um campo genérico, sem opções fixas: quem confere se o funil e a etapa
  * existem é `valorSumiu`, com os valores da empresa.
  */
-export function campoDoFiltro(id: string, funis?: FunilParaFiltro[]): CampoDoFiltro | undefined {
+export function campoDoFiltro(id: string, funis?: FunilParaFiltro[], campos?: CampoParaFiltro[]): CampoDoFiltro | undefined {
+  // B38-03: campo personalizado; sem os campos da empresa, um campo genérico do tipo
+  // do id, sem opções (quem confere se existe é o banco).
+  if (ehCampoPersonalizado(id)) {
+    const daEmpresa = camposPersonalizadosDoFiltro(campos).find((c) => c.id === id)
+    return daEmpresa ?? campoDoFiltroPersonalizado(id, "Campo personalizado", id.split(":")[1])
+  }
   const fixo = TODOS_OS_CAMPOS.find((c) => c.id === id)
   if (fixo || !ehCampoDeFunil(id)) return fixo
   const doFunil = camposDosFunis(funis).find((c) => c.id === id)
@@ -227,6 +303,7 @@ export function campoDoFiltro(id: string, funis?: FunilParaFiltro[]): CampoDoFil
 
 /** Comparações que o campo oferece; campo obrigatório não tem "está vazio". */
 export function comparacoesDoCampo(campo: CampoDoFiltro): Comparacao[] {
+  if (campo.personalizado) return comparacoesPersonalizadas(campo.personalizado)
   const todas = COMPARACOES_DO_TIPO[campo.tipo]
   return campo.obrigatorio ? todas.filter((c) => c !== "vazio" && c !== "nao_vazio") : todas
 }
@@ -236,6 +313,13 @@ export function rotuloDaComparacao(campo: CampoDoFiltro, comparacao: Comparacao)
   if (campo.tipo === "data" && comparacao === "vazio") return "está vazia"
   if (campo.tipo === "data" && comparacao === "nao_vazio") return "não está vazia"
   if (campo.tipo === "numero" && comparacao === "igual") return "igual a"
+  // B38-03: nomes da tabela da spec para os campos personalizados
+  if (campo.personalizado === "multipla") {
+    if (comparacao === "tem_qualquer") return "tem qualquer um de"
+    if (comparacao === "tem_todas") return "tem todos de"
+    if (comparacao === "nenhum_de") return "não tem nenhum de"
+  }
+  if (campo.personalizado && campo.tipo === "texto" && comparacao === "igual") return "é"
   return ROTULO_DA_COMPARACAO[comparacao]
 }
 
@@ -243,7 +327,7 @@ export function rotuloDaComparacao(campo: CampoDoFiltro, comparacao: Comparacao)
 export function valoresPedidos(comparacao: Comparacao): "nenhum" | "um" | "dois" | "varios" {
   if (["vazio", "nao_vazio", "sem_etiqueta", "com_etiqueta", "no_funil", "fora_do_funil"].includes(comparacao)) return "nenhum"
   if (comparacao === "entre") return "dois"
-  if (comparacao === "qualquer_de" || comparacao === "tem_qualquer" || comparacao === "tem_todas") return "varios"
+  if (comparacao === "qualquer_de" || comparacao === "tem_qualquer" || comparacao === "tem_todas" || comparacao === "nenhum_de") return "varios"
   return "um"
 }
 
@@ -259,6 +343,8 @@ function valorValido(campo: CampoDoFiltro, comparacao: Comparacao, valor: string
   if (campo.tipo === "data") return DATA.test(valor) && !Number.isNaN(Date.parse(valor))
   if (campo.tipo === "numero") return NUMERO.test(valor)
   if (campo.opcoes) return campo.opcoes.some((o) => o.valor === valor)
+  // B38-03: opção de campo personalizado sem as opções à mão: ao menos um id.
+  if (campo.personalizado === "lista" || campo.personalizado === "multipla") return UUID.test(valor)
   return true
 }
 
@@ -285,7 +371,7 @@ export function condicaoCompleta(condicao: Condicao): boolean {
 export const CAMPO_NUNCA = "nunca"
 
 /** Valores dos campos de lista que vêm da empresa (atendente por id, etiqueta e, na B41-06, os funis). */
-export type ValoresDaEmpresa = { atendentes: string[]; etiquetas: string[]; funis?: FunilParaFiltro[] }
+export type ValoresDaEmpresa = { atendentes: string[]; etiquetas: string[]; funis?: FunilParaFiltro[]; campos?: CampoParaFiltro[] }
 
 /**
  * B37-03: a condição usa um valor que não existe mais (etiqueta apagada, atendente
@@ -298,6 +384,13 @@ export function valorSumiu(condicao: Condicao, daEmpresa?: ValoresDaEmpresa): bo
     if (!funil) return true
     if (!condicao.comparacao || valoresPedidos(condicao.comparacao) === "nenhum") return false
     return condicao.valores.filter((v) => v.trim()).some((v) => !funil.etapas.some((e) => e.valor === v))
+  }
+  // B38-03: opção que não é mais do campo personalizado. Campo que não é da empresa não
+  // "sumiu": o banco o recusa (CA-B38-44).
+  if (ehCampoPersonalizado(condicao.campo)) {
+    const campo = daEmpresa?.campos ? campoDoFiltro(condicao.campo, undefined, daEmpresa.campos) : undefined
+    if (!campo?.opcoes || !condicao.comparacao || valoresPedidos(condicao.comparacao) === "nenhum") return false
+    return condicao.valores.filter((v) => v.trim()).some((v) => !campo.opcoes!.some((o) => o.valor === v))
   }
   const campo = campoDoFiltro(condicao.campo)
   if (!campo || !condicao.comparacao || valoresPedidos(condicao.comparacao) === "nenhum") return false
@@ -341,7 +434,9 @@ export function chaveDoNome(nome: string): string {
 /** No telefone, só os dígitos contam (QA M29): "(11) 9" procura "119". */
 function paraOBanco(condicao: Condicao): Condicao {
   const valores = condicao.valores.slice(0, valoresPedidos(condicao.comparacao as Comparacao) === "varios" ? undefined : 2)
-  if (condicao.campo === "telefone") return { ...condicao, valores: valores.map((v) => v.replace(/\D/g, "")) }
+  if (condicao.campo === "telefone" || condicao.campo.startsWith("campo:telefone:")) {
+    return { ...condicao, valores: valores.map((v) => v.replace(/\D/g, "")) }
+  }
   return { ...condicao, valores: valores.map((v) => v.trim()) }
 }
 
@@ -353,11 +448,11 @@ export function contarCondicoes(filtro: Filtro): number {
 export const FILTRO_VAZIO: Filtro = { juncao: "e", grupos: [] }
 
 /** Nomes da empresa que o resumo usa no lugar dos ids (atendente, funil e etapa). */
-export type NomesDoFiltro = { atendentes?: Array<{ id: string; nome: string }>; funis?: FunilParaFiltro[] }
+export type NomesDoFiltro = { atendentes?: Array<{ id: string; nome: string }>; funis?: FunilParaFiltro[]; campos?: CampoParaFiltro[] }
 
 /** A frase de uma condição, a mesma do resumo (B42-03 a usa no aviso de etapa apagada). */
 export function descreverCondicao(condicao: Condicao, nomes: NomesDoFiltro = {}): string {
-  const campo = campoDoFiltro(condicao.campo, nomes.funis)!
+  const campo = campoDoFiltro(condicao.campo, nomes.funis, nomes.campos)!
   const comparacao = condicao.comparacao as Comparacao
   const nomeDoValor = (v: string) =>
     campo.opcoes?.find((o) => o.valor === v)?.rotulo ??

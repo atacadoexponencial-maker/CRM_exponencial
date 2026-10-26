@@ -21,7 +21,10 @@ import {
   moverCampo,
 } from "@/app/(auth)/configuracoes/campos/actions"
 import { camposDoContato, listarCamposDaEmpresa, salvarCamposDoContato } from "@/app/(auth)/contatos/campos-personalizados"
-import { criarContato as cadastrarContato, filtrarContatos } from "@/app/(auth)/contatos/actions"
+import { criarContato as cadastrarContato, filtrarContatos, valoresDoFiltro } from "@/app/(auth)/contatos/actions"
+import { listarFiltrosSalvos, salvarFiltro } from "@/app/(auth)/contatos/filtros-salvos"
+import { contarDestinatarios } from "@/app/(auth)/campanhas/actions"
+import { campoDoFiltro, campoPersonalizado, comparacoesDoCampo, type Comparacao, type Filtro } from "@/lib/filtro-contatos"
 import { TIPOS_DE_CAMPO, formatarValor } from "@/lib/campos-personalizados"
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -31,7 +34,7 @@ const service = createClient(URL, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth
 const ts = Date.now()
 
 type Pessoa = { id: string; cliente: SupabaseClient }
-let wsA = "", wsB = "", wsC = ""
+let wsA = "", wsB = "", wsC = "", wsD = ""
 const pessoas: Record<string, Pessoa> = {}
 const contatos: Record<string, string> = {}
 const usuarios: string[] = []
@@ -80,6 +83,12 @@ beforeAll(async () => {
   // B38-02: contato que o atendente atende pela conversa (regra de pode_ver_contato).
   await criarContato("daConversa", wsA, "Loja da Conversa", 4)
   await service.from("conversations").insert({ workspace_id: wsA, contact_id: contatos.daConversa, assigned_to: pessoas.atendente.id })
+  // B38-03: empresa com os dados do filtro; a empresa B ganha um contato (CA-B38-44).
+  await criarContato("deB", wsB, "Loja da B", 5)
+  wsD = (await service.from("workspaces").insert({ name: `[TESTE] B38 D ${ts}` }).select("id").single()).data!.id
+  await criarPessoa("adminD", wsD, "admin")
+  await criarPessoa("gerenteD", wsD, "gerente")
+  await criarPessoa("atendenteD", wsD, "atendente")
   await criarContato("daCarteira", wsA, "Loja do Atendente", 1)
   await criarContato("outro", wsA, "Loja de Outro", 2)
   // O atendente atende o contato pelo card do funil (regra de pode_ver_contato).
@@ -87,7 +96,7 @@ beforeAll(async () => {
 }, 120_000)
 
 afterAll(async () => {
-  for (const ws of [wsA, wsB, wsC]) {
+  for (const ws of [wsA, wsB, wsC, wsD]) {
     await service.from("conversations").delete().eq("workspace_id", ws)
     await service.from("pipeline_cards").delete().eq("workspace_id", ws)
     await service.from("campos_personalizados").delete().eq("workspace_id", ws)
@@ -95,7 +104,7 @@ afterAll(async () => {
     await service.from("profiles").delete().eq("workspace_id", ws)
   }
   for (const id of usuarios) await service.auth.admin.deleteUser(id)
-  await service.from("workspaces").delete().in("id", [wsA, wsB, wsC])
+  await service.from("workspaces").delete().in("id", [wsA, wsB, wsC, wsD])
 }, 120_000)
 
 describe("B38-01 — campos personalizados", { timeout: 60_000 }, () => {
@@ -329,5 +338,208 @@ describe("B38-02 — campos no Chat, no cadastro e na lista", { timeout: 60_000 
     expect((await listarCamposDaEmpresa()).filter((c) => c.mostrarNaLista).map((c) => c.nome)).toEqual(["CNPJ", "Porte"])
     const doAtendente = await daLista("atendente")
     expect(Object.keys(doAtendente).sort()).toEqual([cnpj.id, porte.id].sort())
+  })
+})
+
+describe("B38-03 — campos no filtro e nas campanhas", { timeout: 120_000 }, () => {
+  // Empresa D: Porte com 5 Grande (2 em SP), 3 Pequeno e 4 sem valor (A, B, C e Vazio).
+  // A, B e C têm os outros tipos; C fica sem nada.
+  const campos: Record<string, { id: string; tipo: string; opcoes: Array<{ id: string; nome: string }> }> = {}
+  const doD: Record<string, string> = {}
+  const nomeDe = (id: string) => Object.entries(doD).find(([, v]) => v === id)?.[0]
+  const diasAtras = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10)
+  const opcao = (campo: string, nome: string) => campos[campo].opcoes.find((o) => o.nome === nome)!.id
+  const so = (campo: string, comparacao: Comparacao, valores: string[] = []): Filtro => ({
+    juncao: "e",
+    grupos: [{ juncao: "e", condicoes: [{ campo: campoPersonalizado({ id: campos[campo].id, tipo: campos[campo].tipo }), comparacao, valores }] }],
+  })
+
+  async function nomes(filtro: Filtro, quem = "adminD", entre?: string[]) {
+    como(quem)
+    const r = await filtrarContatos({ filtro, limite: 200 })
+    if ("erro" in r) throw new Error(r.erro)
+    return r.contatos.map((c) => nomeDe(c.id)!).filter((n) => !entre || entre.includes(n)).sort()
+  }
+
+  beforeAll(async () => {
+    como("adminD")
+    const definicoes: Array<[string, string, string[]]> = [
+      ["Porte", "lista", ["Pequeno", "Grande"]],
+      ["Apelido", "texto", []],
+      ["Endereço", "texto_longo", []],
+      ["Lojas", "numero", []],
+      ["Limite", "dinheiro", []],
+      ["Aniversário", "data", []],
+      ["Linhas", "multipla", ["Jeans", "Malha", "Praia"]],
+      ["VIP", "sim_nao", []],
+      ["Site", "link", []],
+      ["E-mail fin", "email", []],
+      ["Fone fin", "telefone", []],
+    ]
+    for (const [nome, tipo, opcoes] of definicoes) expect((await criarCampo(nome, tipo, opcoes)).erro).toBeUndefined()
+    for (const c of await listarCamposParaGerenciar()) campos[c.nome] = { id: c.id, tipo: c.tipo, opcoes: c.opcoes }
+
+    const pessoasD = ["G1", "G2", "G3", "G4", "G5", "P1", "P2", "P3", "A", "B", "C", "Vazio"]
+    for (const [i, nome] of pessoasD.entries()) {
+      const uf = nome === "G1" || nome === "G2" ? "SP" : "MG"
+      doD[nome] = (await service.from("contacts").insert({ workspace_id: wsD, name: nome, uf, phone_number: `55319${String(ts).slice(-6)}${String(i).padStart(2, "0")}` }).select("id").single()).data!.id
+    }
+    const valor = (contato: string, campo: string, coluna: Record<string, unknown>) =>
+      ({ contact_id: doD[contato], campo_id: campos[campo].id, workspace_id: wsD, ...coluna })
+    const grande = opcao("Porte", "Grande"), pequeno = opcao("Porte", "Pequeno")
+    const { error } = await service.from("contato_campos").insert([
+      ...["G1", "G2", "G3", "G4", "G5"].map((n) => valor(n, "Porte", { valor_opcoes: [grande] })),
+      ...["P1", "P2", "P3"].map((n) => valor(n, "Porte", { valor_opcoes: [pequeno] })),
+      valor("A", "Apelido", { valor_texto: "Loja Bela" }),
+      valor("B", "Apelido", { valor_texto: "Casa Rosa" }),
+      valor("A", "Endereço", { valor_texto: "Rua das Flores, 10" }),
+      valor("A", "Lojas", { valor_numero: 3 }),
+      valor("B", "Lojas", { valor_numero: 10 }),
+      valor("A", "Limite", { valor_numero: 1500.5 }),
+      valor("B", "Limite", { valor_numero: 200 }),
+      valor("A", "Aniversário", { valor_data: diasAtras(300) }),
+      valor("B", "Aniversário", { valor_data: diasAtras(100) }),
+      valor("A", "Linhas", { valor_opcoes: [opcao("Linhas", "Jeans"), opcao("Linhas", "Malha")] }),
+      valor("B", "Linhas", { valor_opcoes: [opcao("Linhas", "Malha")] }),
+      valor("A", "VIP", { valor_booleano: true }),
+      valor("B", "VIP", { valor_booleano: false }),
+      valor("A", "Site", { valor_texto: "https://loja.com" }),
+      valor("B", "E-mail fin", { valor_texto: "fin@casa.com" }),
+      valor("A", "Fone fin", { valor_texto: "21988887777" }),
+    ])
+    expect(error).toBeNull()
+    // O Atendente D atende G1 e G3 (cards do funil).
+    await service.from("pipeline_cards").insert([
+      { workspace_id: wsD, contact_id: doD.G1, funil: "entrada", etapa: "lead", atendente_id: pessoas.atendenteD.id },
+      { workspace_id: wsD, contact_id: doD.G3, funil: "entrada", etapa: "lead", atendente_id: pessoas.atendenteD.id },
+    ])
+  }, 120_000)
+
+  it("CA-B38-31: should filtrar pelo Porte e contar os contatos, e trazer os 4 sem valor com está vazio", async () => {
+    como("adminD")
+    const r = await filtrarContatos({ filtro: so("Porte", "qualquer_de", [opcao("Porte", "Grande")]), limite: 200 })
+    if ("erro" in r) throw new Error(r.erro)
+    expect(r.total).toBe(5)
+    expect(r.contatos.map((c) => nomeDe(c.id)).sort()).toEqual(["G1", "G2", "G3", "G4", "G5"])
+    expect(await nomes(so("Porte", "vazio"))).toEqual(["A", "B", "C", "Vazio"])
+  })
+
+  it("CA-B38-32: should oferecer as comparações de cada tipo e trazer exatamente os contatos esperados", async () => {
+    const comparacoes = (nome: string) => comparacoesDoCampo(campoDoFiltro(campoPersonalizado({ id: campos[nome].id, tipo: campos[nome].tipo }))!)
+    expect(comparacoes("Apelido")).toEqual(["contem", "nao_contem", "igual", "nao_e", "vazio", "nao_vazio"])
+    for (const n of ["Endereço", "Site", "E-mail fin", "Fone fin"]) expect(comparacoes(n)).toEqual(comparacoes("Apelido"))
+    expect(comparacoes("Lojas")).toEqual(["igual", "maior", "menor", "entre", "vazio", "nao_vazio"])
+    expect(comparacoes("Limite")).toEqual(comparacoes("Lojas"))
+    expect(comparacoes("Aniversário")).toEqual(["antes", "depois", "entre", "ultimos_dias", "ha_mais_de_dias", "vazio", "nao_vazio"])
+    expect(comparacoes("Porte")).toEqual(["qualquer_de", "nenhum_de", "vazio", "nao_vazio"])
+    expect(comparacoes("Linhas")).toEqual(["tem_qualquer", "tem_todas", "nenhum_de", "vazio", "nao_vazio"])
+    expect(comparacoes("VIP")).toEqual(["e", "vazio"])
+
+    const ABC = ["A", "B", "C"]
+    const casos: Array<[string, Comparacao, string[], string[]]> = [
+      ["Apelido", "contem", ["loja"], ["A"]],
+      ["Apelido", "nao_contem", ["loja"], ["B"]],
+      ["Apelido", "igual", ["casa rosa"], ["B"]],
+      ["Apelido", "nao_e", ["Casa Rosa"], ["A"]],
+      ["Apelido", "vazio", [], ["C"]],
+      ["Apelido", "nao_vazio", [], ["A", "B"]],
+      ["Endereço", "contem", ["flores"], ["A"]],
+      ["Endereço", "vazio", [], ["B", "C"]],
+      ["Lojas", "igual", ["3"], ["A"]],
+      ["Lojas", "maior", ["5"], ["B"]],
+      ["Lojas", "menor", ["5"], ["A"]],
+      ["Lojas", "entre", ["2", "4"], ["A"]],
+      ["Lojas", "vazio", [], ["C"]],
+      ["Lojas", "nao_vazio", [], ["A", "B"]],
+      ["Limite", "maior", ["1000"], ["A"]],
+      ["Limite", "igual", ["200"], ["B"]],
+      ["Limite", "entre", ["100", "300"], ["B"]],
+      ["Aniversário", "antes", [diasAtras(200)], ["A"]],
+      ["Aniversário", "depois", [diasAtras(200)], ["B"]],
+      ["Aniversário", "entre", [diasAtras(301), diasAtras(299)], ["A"]],
+      ["Aniversário", "ultimos_dias", ["200"], ["B"]],
+      ["Aniversário", "ha_mais_de_dias", ["200"], ["A"]],
+      ["Aniversário", "vazio", [], ["C"]],
+      ["Aniversário", "nao_vazio", [], ["A", "B"]],
+      ["Linhas", "tem_qualquer", [opcao("Linhas", "Malha")], ["A", "B"]],
+      ["Linhas", "tem_todas", [opcao("Linhas", "Jeans"), opcao("Linhas", "Malha")], ["A"]],
+      ["Linhas", "nenhum_de", [opcao("Linhas", "Jeans")], ["B"]],
+      ["Linhas", "vazio", [], ["C"]],
+      ["Linhas", "nao_vazio", [], ["A", "B"]],
+      ["VIP", "e", ["sim"], ["A"]],
+      ["VIP", "e", ["nao"], ["B"]],
+      ["VIP", "vazio", [], ["C"]],
+      ["Site", "contem", ["loja.com"], ["A"]],
+      ["Site", "vazio", [], ["B", "C"]],
+      ["E-mail fin", "igual", ["fin@casa.com"], ["B"]],
+      ["Fone fin", "contem", ["(21) 98888"], ["A"]],
+      ["Fone fin", "igual", ["21988887777"], ["A"]],
+    ]
+    const divergentes: string[] = []
+    for (const [campo, comparacao, valores, esperado] of casos) {
+      const achados = await nomes(so(campo, comparacao, valores), "adminD", ABC)
+      if (JSON.stringify(achados) !== JSON.stringify(esperado)) divergentes.push(`${campo} ${comparacao} ${valores.join(",")}: ${achados.join(",") || "nada"}`)
+    }
+    expect(divergentes).toEqual([])
+    // Lista: "não é nenhum de" não traz quem está vazio.
+    expect(await nomes(so("Porte", "nenhum_de", [opcao("Porte", "Grande")]))).toEqual(["P1", "P2", "P3"])
+    expect(await nomes(so("Porte", "nao_vazio"))).toHaveLength(8)
+  })
+
+  it("CA-B38-33: should combinar o campo personalizado com a UF", async () => {
+    const filtro: Filtro = {
+      juncao: "e",
+      grupos: [{
+        juncao: "e",
+        condicoes: [
+          so("Porte", "qualquer_de", [opcao("Porte", "Grande")]).grupos[0].condicoes[0],
+          { campo: "uf", comparacao: "qualquer_de", valores: ["SP"] },
+        ],
+      }],
+    }
+    expect(await nomes(filtro)).toEqual(["G1", "G2"])
+  })
+
+  it("CA-B38-34: should guardar o filtro salvo pelo Gerente e trazer os mesmos contatos depois de renomear", async () => {
+    como("gerenteD")
+    expect((await salvarFiltro("Lojas grandes", so("Porte", "qualquer_de", [opcao("Porte", "Grande")]))).erro).toBeUndefined()
+    como("adminD")
+    const salvo = (await listarFiltrosSalvos()).find((f) => f.nome === "Lojas grandes")!
+    const grandes = ["G1", "G2", "G3", "G4", "G5"]
+    expect(await nomes(salvo.filtro, "adminD")).toEqual(grandes)
+    expect(await nomes(salvo.filtro, "gerenteD")).toEqual(grandes)
+
+    como("adminD")
+    expect(await renomearCampo(campos.Porte.id, "Porte da loja")).toEqual({})
+    expect(await renomearOpcao(campos.Porte.id, opcao("Porte", "Grande"), "Grande porte")).toEqual({})
+    expect(await nomes(salvo.filtro, "adminD")).toEqual(grandes)
+  })
+
+  it("CA-B38-35: should escolher o público da campanha com os mesmos contatos do filtro de Contatos", async () => {
+    const filtro = so("Porte", "qualquer_de", [opcao("Porte", "Grande")])
+    como("adminD")
+    const publico = await contarDestinatarios({ filtro })
+    expect(publico.total).toBe(5)
+    expect(publico.amostra.map((d) => nomeDe(d.id)).sort()).toEqual(await nomes(filtro))
+  })
+
+  it("CA-B38-36: should trazer ao Atendente só os contatos que ele já via", async () => {
+    expect(await nomes(so("Porte", "qualquer_de", [opcao("Porte", "Grande")]), "atendenteD")).toEqual(["G1", "G3"])
+  })
+
+  it("CA-B38-44: should esconder da empresa B os campos e os valores da A, e recusar o filtro e a gravação com o campo da A", async () => {
+    // O campo e o contato são da empresa D; quem pede é o Admin da empresa B.
+    const porteA = { ...campos["Porte da loja"] ?? campos.Porte }
+    como("adminB")
+    expect(await listarCamposParaGerenciar()).toEqual([])
+    expect(await camposDoContato(doD.G1)).toBeNull()
+    expect((await valoresDoFiltro()).campos).toEqual([])
+    const filtro: Filtro = { juncao: "e", grupos: [{ juncao: "e", condicoes: [{ campo: campoPersonalizado(porteA), comparacao: "nao_vazio", valores: [] }] }] }
+    expect(await filtrarContatos({ filtro })).toEqual({ erro: "Não foi possível aplicar o filtro." })
+    expect(await salvarCamposDoContato(contatos.deB, { [porteA.id]: porteA.opcoes[0].id })).toEqual({ erro: "Campo não encontrado" })
+    const { error } = await pessoas.adminB.cliente
+      .from("contato_campos")
+      .insert({ contact_id: contatos.deB, campo_id: porteA.id, workspace_id: wsB, valor_opcoes: [porteA.opcoes[0].id] })
+    expect(error).not.toBeNull()
   })
 })

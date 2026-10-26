@@ -37,6 +37,8 @@ vi.mock("@/app/(auth)/chat/actions", () => ({
 import { PainelContato } from "@/app/(auth)/chat/components/painel-contato"
 import { NovoContatoDialog } from "@/app/(auth)/contatos/components/novo-contato-dialog"
 import { ListaContatos } from "@/app/(auth)/contatos/components/lista-contatos"
+import { PainelFiltro } from "@/app/(auth)/contatos/components/painel-filtro"
+import { FILTRO_VAZIO, campoPersonalizado } from "@/lib/filtro-contatos"
 
 const VAZIO: ValorGuardado = { texto: null, numero: null, data: null, booleano: null, opcoes: null }
 const CNPJ = { id: "c", nome: "CNPJ", tipo: "texto" as const, opcoes: [] }
@@ -144,5 +146,46 @@ describe("B38-02 — campos no Chat, no cadastro e na lista", () => {
     const celula = (nome: string) => screen.getByText(nome).closest("tr")!.querySelector('[data-coluna="Limite de crédito"]')!
     expect(celula("Ana").textContent!.replace(/\s/g, " ")).toBe("R$ 1.500,00")
     expect(celula("Bruno").textContent).toBe("—")
+  })
+})
+
+describe("B38-03 — campos personalizados no painel do filtro", () => {
+  // No filtro, o campo personalizado é reconhecido pelo id "campo:<tipo>:<uuid>".
+  const CNPJ_F = { ...CNPJ, id: "11111111-1111-4111-8111-111111111111" }
+  const PORTE_F = {
+    ...PORTE,
+    id: "22222222-2222-4222-8222-222222222222",
+    opcoes: [{ id: "33333333-3333-4333-8333-333333333333", nome: "Pequeno" }, { id: "44444444-4444-4444-8444-444444444444", nome: "Grande" }],
+  }
+
+  it("CA-B38-31: should oferecer o campo em Campos personalizados, com as comparações da lista e as opções", () => {
+    const onAplicar = vi.fn()
+    render(
+      <PainelFiltro
+        aberto
+        onAbertoChange={vi.fn()}
+        filtro={FILTRO_VAZIO}
+        atendentes={[]}
+        etiquetas={[]}
+        campos={[CNPJ_F, PORTE_F]}
+        onAplicar={onAplicar}
+        onLimpar={vi.fn()}
+      />
+    )
+    const painel = screen.getByRole("dialog")
+    const campo = within(painel).getByLabelText("Campo") as HTMLSelectElement
+    const grupo = Array.from(campo.querySelectorAll("optgroup")).find((g) => g.label === "Campos personalizados")!
+    expect(Array.from(grupo.querySelectorAll("option")).map((o) => o.textContent)).toEqual(["CNPJ", "Porte"])
+
+    fireEvent.change(campo, { target: { value: campoPersonalizado(PORTE_F) } })
+    const comparacoes = Array.from((within(painel).getByLabelText("Comparação") as HTMLSelectElement).options).map((o) => o.textContent)
+    expect(comparacoes).toEqual(["é qualquer um de", "não é nenhum de", "está vazio", "não está vazio"])
+
+    fireEvent.click(within(painel).getByLabelText("Grande"))
+    fireEvent.click(within(painel).getByRole("button", { name: "Aplicar" }))
+    expect(onAplicar).toHaveBeenCalledWith({
+      juncao: "e",
+      grupos: [{ juncao: "e", condicoes: [{ campo: `campo:lista:${PORTE_F.id}`, comparacao: "qualquer_de", valores: ["44444444-4444-4444-8444-444444444444"] }] }],
+    })
   })
 })

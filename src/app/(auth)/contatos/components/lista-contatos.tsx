@@ -342,6 +342,7 @@ export function ListaContatos({
         atendentes={atendentes}
         etiquetas={etiquetas}
         funis={funis}
+        campos={campos}
         onAplicar={aplicarFiltro}
         onLimpar={limparFiltroAplicado}
         podeSalvar={podeGerirSalvos}

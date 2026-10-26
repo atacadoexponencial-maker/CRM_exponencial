@@ -19,6 +19,7 @@ import {
   limparFiltro,
   type Filtro,
   type FunilParaFiltro,
+  type CampoParaFiltro,
 } from "@/lib/filtro-contatos"
 import {
   avaliarDisparo,
@@ -45,7 +46,8 @@ const textareaClass =
 interface EditorCampanhaClientProps {
   campanha: CampanhaDetalhe | null
   /** B42-02: o que o painel do filtro precisa da empresa (o mesmo da lista de Contatos). */
-  opcoes: { atendentes: Array<{ id: string; nome: string }>; etiquetas: string[]; funis: FunilParaFiltro[] }
+  // B38-03: e os campos personalizados da empresa.
+  opcoes: { atendentes: Array<{ id: string; nome: string }>; etiquetas: string[]; funis: FunilParaFiltro[]; campos?: CampoParaFiltro[] }
   /** B7-03: números conectados do workspace, com o canal de cada um. */
   numeros: NumeroParaCampanha[]
   /** B42-03: filtros salvos da empresa, os mesmos da lista de Contatos. */
@@ -368,6 +370,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
                 atendentes={opcoes.atendentes}
                 etiquetas={opcoes.etiquetas}
                 funis={opcoes.funis}
+                campos={opcoes.campos}
                 onAplicar={aplicarFiltro}
                 onLimpar={() => aplicarFiltro(FILTRO_VAZIO)}
                 podeSalvar

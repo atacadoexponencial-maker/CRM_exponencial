@@ -11,6 +11,8 @@ import {
   esquemaRapidos,
   limparFiltro,
   ehCampoDeFunil,
+  ehCampoPersonalizado,
+  type CampoParaFiltro,
   type FunilParaFiltro,
   FILTRO_VAZIO,
   type Condicao,
@@ -25,7 +27,7 @@ import { normalizarWhatsapp, TELEFONE_INVALIDO } from "@/lib/telefone"
 import { perfilDoMapa, perfisRfvDosContatos } from "@/lib/perfil-rfv-do-contato"
 import { esquemaCompra, type CompraEntrada, type FormaPagamento, type OrigemCompra } from "@/lib/compras"
 import { normalizarUf, UF_INVALIDA } from "@/lib/uf"
-import type { EntradaDoCampo } from "@/lib/campos-personalizados"
+import type { EntradaDoCampo, ValorGuardado } from "@/lib/campos-personalizados"
 import { camposDaEmpresa, conferirEntradas, gravarValores, valoresDosContatos } from "@/lib/campos-personalizados-servidor"
 
 const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, cidade, uf, created_at, profiles!contacts_atendente_id_fkey(name)"
@@ -584,8 +586,9 @@ export async function filtrarContatos(
   const ordem: OrdemDaLista = opcoes.ordem === "nome" || opcoes.ordem === "classificacao" ? opcoes.ordem : "recente"
   // B37-03: filtro salvo pode citar etiqueta ou atendente que não existe mais.
   // B41-06: e funil ou etapa de funil da empresa que foi apagado.
+  // B38-03: e opção de campo personalizado que não existe mais.
   const citaValorDaEmpresa = (filtro.data as Filtro).grupos.some((g) =>
-    g.condicoes.some((c) => c.campo === "etiqueta" || c.campo === "atendente" || ehCampoDeFunil(c.campo))
+    g.condicoes.some((c) => c.campo === "etiqueta" || c.campo === "atendente" || ehCampoDeFunil(c.campo) || ehCampoPersonalizado(c.campo))
   )
   const daEmpresa = citaValorDaEmpresa
     ? await valoresDoFiltro().then((v) => ({ ...v, atendentes: v.atendentes.map((a) => a.id) }))
@@ -603,9 +606,15 @@ export async function filtrarContatos(
   const linhas = (data ?? []) as Database["public"]["Functions"]["filtrar_contatos"]["Returns"]
   // B43-01: o perfil RFV da hora de cada contato da página, numa leitura só.
   const perfis = await perfisRfvDosContatos(supabase, linhas.map((c) => c.id))
-  // B38-02: valores dos campos marcados "Mostrar na lista de Contatos".
-  const naLista = (await camposDaEmpresa(supabase, perfil.workspace_id)).filter((c) => c.mostrarNaLista).map((c) => c.id)
-  const valores = await valoresDosContatos(supabase, linhas.map((c) => c.id), naLista)
+  // B38-02: valores dos campos marcados "Mostrar na lista de Contatos". Como o perfil
+  // RFV, é um extra: se a leitura falhar, a lista (e a contagem da campanha) sai sem ele.
+  let valores = new Map<string, Record<string, ValorGuardado>>()
+  try {
+    const naLista = (await camposDaEmpresa(supabase, perfil.workspace_id)).filter((c) => c.mostrarNaLista).map((c) => c.id)
+    valores = await valoresDosContatos(supabase, linhas.map((c) => c.id), naLista)
+  } catch {
+    // segue sem as colunas dos campos personalizados
+  }
   return {
     contatos: linhas.map((c) => ({
       ...mapContato({ ...c, profiles: c.atendente_nome ? { name: c.atendente_nome } : null }),
@@ -624,13 +633,16 @@ export async function valoresDoFiltro(): Promise<{
   etiquetas: string[]
   /** B41-06: funis da empresa, com as etapas na ordem. */
   funis: FunilParaFiltro[]
+  /** B38-03: campos personalizados da empresa, na ordem dela. */
+  campos: CampoParaFiltro[]
 }> {
   const { supabase, perfil } = await sessaoAtual()
-  if (!perfil) return { atendentes: [], etiquetas: [], funis: [] }
-  const [atendentes, { data: etiquetas }, { data: funis }] = await Promise.all([
+  if (!perfil) return { atendentes: [], etiquetas: [], funis: [], campos: [] }
+  const [atendentes, { data: etiquetas }, { data: funis }, campos] = await Promise.all([
     listarAtendentesAtivos(),
     supabase.from("contact_tags").select("tag").eq("workspace_id", perfil.workspace_id),
     supabase.from("funis").select("id, nome, created_at, funil_etapas (id, nome, ordem)").eq("workspace_id", perfil.workspace_id).order("created_at"),
+    camposDaEmpresa(supabase, perfil.workspace_id),
   ])
   const unicos = (valores: string[]) =>
     Array.from(new Set(valores.map((v) => v.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"))
@@ -642,6 +654,7 @@ export async function valoresDoFiltro(): Promise<{
       nome: f.nome,
       etapas: [...(f.funil_etapas ?? [])].sort((a, b) => a.ordem - b.ordem).map((e) => ({ valor: e.id, rotulo: e.nome })),
     })),
+    campos: campos.map(({ id, nome, tipo, opcoes }) => ({ id, nome, tipo, opcoes })),
   }
 }
 

@@ -1,0 +1,240 @@
+-- B38-03: o filtro de contatos (e o público das campanhas, que usa o mesmo filtro)
+-- ganha os campos personalizados, com o id "campo:<tipo>:<uuid>".
+--
+-- É a mesma função da B42-01, com o caso novo. O tipo que vale é o do banco, e o campo
+-- é lido com o RLS de quem filtra (a função não é security definer): campo de outra
+-- empresa não é achado e o filtro é recusado. O valor vem de contato_campos, também
+-- com o RLS, então o Atendente só alcança os contatos que já vê.
+-- Spec: pre-desenvolvimento/spec-campos-personalizados.md
+
+create or replace function public.condicao_de_contato_sql(p_cond jsonb)
+returns text
+language plpgsql
+stable
+set search_path = public, extensions
+as $$
+declare
+  v_campo text := p_cond->>'campo';
+  v_comp text := p_cond->>'comparacao';
+  v_valores text[] := coalesce(array(select jsonb_array_elements_text(p_cond->'valores')), '{}');
+  v_tipo text;
+  v_col text;
+  v_v1 text := v_valores[1];
+  v_v2 text := v_valores[2];
+  v_norm text;
+  v_like text;
+  v_funil text;
+  v_hoje text := format('(now() at time zone %L)::date', 'America/Sao_Paulo');
+  v_tem text := 'exists (select 1 from contact_tags t where t.contact_id = c.id%s)';
+  v_card text := 'exists (select 1 from pipeline_cards k where k.contact_id = c.id and k.funil = %L%s)';
+  v_rfv text;
+  v_campo_id uuid;
+  v_ctipo text;
+  v_x text;
+  v_tem_valor text;
+begin
+  if v_campo = 'nunca' then
+    return 'false';
+  end if;
+
+  case v_campo
+    when 'nome' then v_tipo := 'texto'; v_col := 'c.name';
+    when 'telefone' then v_tipo := 'texto'; v_col := 'c.phone_number';
+    when 'cidade' then v_tipo := 'texto'; v_col := 'c.cidade';
+    when 'observacoes' then v_tipo := 'texto'; v_col := 'c.observacoes';
+    when 'classificacao' then v_tipo := 'lista'; v_col := 'c.classificacao';
+    when 'tipo' then v_tipo := 'lista'; v_col := 'c.tipo';
+    when 'uf' then v_tipo := 'lista'; v_col := 'c.uf::text';
+    when 'icp' then v_tipo := 'lista'; v_col := 'c.icp';
+    when 'atendente' then v_tipo := 'lista'; v_col := 'c.atendente_id::text';
+    when 'data_cadastro' then v_tipo := 'data'; v_col := 'c.created_at';
+    when 'etiqueta' then v_tipo := 'etiqueta';
+    when 'total_comprado' then
+      v_tipo := 'numero'; v_col := '(select coalesce(sum(p.valor), 0) from contact_purchases p where p.contact_id = c.id)';
+    when 'qtd_compras' then
+      v_tipo := 'numero'; v_col := '(select count(*) from contact_purchases p where p.contact_id = c.id)';
+    when 'ultima_compra' then
+      v_tipo := 'dia'; v_col := '(select max(p.data) from contact_purchases p where p.contact_id = c.id)';
+    -- B42-01: perfil RFV, calculado sobre a empresa inteira (perfis_rfv_da_empresa)
+    when 'perfil_rfv' then v_tipo := 'rfv';
+    when 'etapa_entrada' then v_tipo := 'funil'; v_funil := 'entrada';
+    when 'etapa_recompra' then v_tipo := 'funil'; v_funil := 'recompra';
+    else
+      -- B41-06: funil da empresa, com o id do funil no campo ("funil:<uuid>")
+      if v_campo ~ '^funil:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+        v_tipo := 'funil'; v_funil := substr(v_campo, 7);
+      -- B38-03: campo personalizado ("campo:<tipo>:<uuid>"). O tipo que vale é o do
+      -- banco; o campo é lido com o RLS de quem filtra, então o de outra empresa não
+      -- é achado e o filtro é recusado.
+      elsif v_campo ~ '^campo:[a-z_]+:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+        v_campo_id := right(v_campo, 36)::uuid;
+        select cp.tipo into v_ctipo from campos_personalizados cp where cp.id = v_campo_id;
+        if v_ctipo is null then
+          raise exception 'Campo de filtro desconhecido: %', v_campo;
+        end if;
+        v_x := 'select x.%s from contato_campos x where x.contact_id = c.id and x.campo_id = ' || quote_literal(v_campo_id);
+        v_tem_valor := 'exists (select 1 from contato_campos x where x.contact_id = c.id and x.campo_id = ' || quote_literal(v_campo_id) || '%s)';
+        case
+          when v_ctipo in ('texto', 'texto_longo', 'link', 'email') then
+            v_tipo := 'texto'; v_col := '(' || format(v_x, 'valor_texto') || ')';
+          when v_ctipo = 'telefone' then
+            -- Só os dígitos contam, como no telefone do contato (QA M29).
+            v_tipo := 'texto'; v_col := format('regexp_replace((%s), %L, %L, %L)', format(v_x, 'valor_texto'), '[^0-9]', '', 'g');
+          when v_ctipo in ('numero', 'dinheiro') then
+            v_tipo := 'numero'; v_col := '(' || format(v_x, 'valor_numero') || ')';
+          when v_ctipo = 'data' then
+            v_tipo := 'dia'; v_col := '(' || format(v_x, 'valor_data') || ')';
+          when v_ctipo in ('lista', 'multipla') then
+            v_tipo := 'opcoes';
+          when v_ctipo = 'sim_nao' then
+            v_tipo := 'sim_nao';
+          else
+            raise exception 'Campo de filtro desconhecido: %', v_campo;
+        end case;
+      else
+        raise exception 'Campo de filtro desconhecido: %', v_campo;
+      end if;
+  end case;
+
+  if v_tipo = 'rfv' then
+    -- Subconsulta sem correlação: o cálculo roda uma vez por consulta. Quem não tem
+    -- perfil (nunca comprou) não entra em "não é", como nas outras negativas.
+    v_rfv := 'c.id in (select r.contact_id from public.perfis_rfv_da_empresa() r%s)';
+    case v_comp
+      when 'e' then return format(v_rfv, format(' where r.perfil = %L', v_v1));
+      when 'nao_e' then return format(v_rfv, format(' where r.perfil <> %L', v_v1));
+      when 'qualquer_de' then return format(v_rfv, format(' where r.perfil = any(%L::text[])', v_valores));
+      when 'nao_vazio' then return format(v_rfv, '');
+      when 'vazio' then return 'not ' || format(v_rfv, '');
+      else raise exception 'Comparação % não vale para perfil RFV', v_comp;
+    end case;
+  end if;
+
+  -- B38-03: lista e múltipla escolha guardam os ids das opções.
+  if v_tipo = 'opcoes' then
+    case v_comp
+      when 'qualquer_de', 'tem_qualquer' then return format(v_tem_valor, format(' and x.valor_opcoes && %L::uuid[]', v_valores));
+      when 'tem_todas' then return format(v_tem_valor, format(' and x.valor_opcoes @> %L::uuid[]', v_valores));
+      -- "Não é nenhum de" não traz quem está vazio, como as outras negativas.
+      when 'nenhum_de' then return format(v_tem_valor, format(' and not (x.valor_opcoes && %L::uuid[])', v_valores));
+      when 'nao_vazio' then return format(v_tem_valor, '');
+      when 'vazio' then return 'not ' || format(v_tem_valor, '');
+      else raise exception 'Comparação % não vale para lista', v_comp;
+    end case;
+  end if;
+
+  if v_tipo = 'sim_nao' then
+    case v_comp
+      when 'e' then
+        if v_v1 not in ('sim', 'nao') then
+          raise exception 'Valor % não vale para sim/não', v_v1;
+        end if;
+        return format(v_tem_valor, format(' and x.valor_booleano = %L::boolean', v_v1 = 'sim'));
+      when 'vazio' then return 'not ' || format(v_tem_valor, '');
+      else raise exception 'Comparação % não vale para sim/não', v_comp;
+    end case;
+  end if;
+
+  if v_tipo = 'etiqueta' then
+    case v_comp
+      when 'tem' then return format(v_tem, format(' and t.tag = %L', v_v1));
+      when 'nao_tem' then return 'not ' || format(v_tem, format(' and t.tag = %L', v_v1));
+      when 'tem_qualquer' then return format(v_tem, format(' and t.tag = any(%L::text[])', v_valores));
+      when 'tem_todas' then
+        return format(
+          '((select count(distinct t.tag) from contact_tags t where t.contact_id = c.id and t.tag = any(%L::text[])) = %s)',
+          v_valores, (select count(distinct v) from unnest(v_valores) v)
+        );
+      when 'sem_etiqueta' then return 'not ' || format(v_tem, '');
+      when 'com_etiqueta' then return format(v_tem, '');
+      else raise exception 'Comparação % não vale para etiqueta', v_comp;
+    end case;
+  end if;
+
+  if v_tipo = 'funil' then
+    case v_comp
+      when 'na_etapa' then return format(v_card, v_funil, format(' and k.etapa = %L', v_v1));
+      when 'fora_da_etapa' then
+        return format('(%s and not %s)', format(v_card, v_funil, ''), format(v_card, v_funil, format(' and k.etapa = %L', v_v1)));
+      when 'no_funil' then return format(v_card, v_funil, '');
+      when 'fora_do_funil' then return 'not ' || format(v_card, v_funil, '');
+      else raise exception 'Comparação % não vale para funil', v_comp;
+    end case;
+  end if;
+
+  if v_tipo = 'numero' then
+    case v_comp
+      -- B38-03: número de campo personalizado pode estar vazio.
+      when 'vazio' then return format('(%s is null)', v_col);
+      when 'nao_vazio' then return format('(%s is not null)', v_col);
+      when 'maior' then return format('(%s > %L::numeric)', v_col, v_v1);
+      when 'menor' then return format('(%s < %L::numeric)', v_col, v_v1);
+      when 'igual' then return format('(%s = %L::numeric)', v_col, v_v1);
+      when 'entre' then return format('(%s between %L::numeric and %L::numeric)', v_col, v_v1, v_v2);
+      else raise exception 'Comparação % não vale para número', v_comp;
+    end case;
+  end if;
+
+  if v_tipo = 'dia' then
+    -- A compra guarda o dia; "hoje" é o dia em Brasília.
+    case v_comp
+      when 'antes' then return format('(%s < %L::date)', v_col, v_v1);
+      when 'depois' then return format('(%s > %L::date)', v_col, v_v1);
+      when 'entre' then return format('(%s between %L::date and %L::date)', v_col, v_v1, v_v2);
+      when 'ultimos_dias' then return format('(%s >= %s - %L::int)', v_col, v_hoje, v_v1);
+      when 'ha_mais_de_dias' then return format('(%s < %s - %L::int)', v_col, v_hoje, v_v1);
+      when 'vazio' then return format('(%s is null)', v_col);
+      when 'nao_vazio' then return format('(%s is not null)', v_col);
+      else raise exception 'Comparação % não vale para data', v_comp;
+    end case;
+  end if;
+
+  v_norm := format('lower(extensions.unaccent(%s))', v_col);
+
+  if v_comp = 'vazio' and v_tipo <> 'data' then
+    return format('(%s is null or btrim(%s) = %L)', v_col, v_col, '');
+  elsif v_comp = 'nao_vazio' and v_tipo <> 'data' then
+    return format('(%s is not null and btrim(%s) <> %L)', v_col, v_col, '');
+  end if;
+
+  if v_tipo = 'texto' then
+    -- %, _ e \ digitados são literais (QA M18).
+    v_like := '%' || replace(replace(replace(lower(extensions.unaccent(coalesce(v_v1, ''))), '\', '\\'), '%', '\%'), '_', '\_') || '%';
+    case v_comp
+      when 'contem' then return format('(%s like %L escape %L)', v_norm, v_like, '\');
+      when 'nao_contem' then
+        return format('(%s is not null and btrim(%s) <> %L and %s not like %L escape %L)', v_col, v_col, '', v_norm, v_like, '\');
+      when 'igual' then return format('(%s = lower(extensions.unaccent(%L)))', v_norm, v_v1);
+      -- B38-03: "não é" de campo personalizado; não traz quem está vazio.
+      when 'nao_e' then
+        return format('(%s is not null and btrim(%s) <> %L and %s <> lower(extensions.unaccent(%L)))', v_col, v_col, '', v_norm, v_v1);
+      else raise exception 'Comparação % não vale para texto', v_comp;
+    end case;
+  elsif v_tipo = 'lista' then
+    case v_comp
+      when 'e' then return format('(%s = %L)', v_col, v_v1);
+      when 'nao_e' then return format('(%s <> %L)', v_col, v_v1);
+      when 'qualquer_de' then return format('(%s = any(%L::text[]))', v_col, v_valores);
+      else raise exception 'Comparação % não vale para lista', v_comp;
+    end case;
+  else
+    -- Datas no fuso da operação: o dia escolhido vai de 00:00 a 24:00 em Brasília.
+    case v_comp
+      when 'antes' then
+        return format('(%s < (%L::date)::timestamp at time zone %L)', v_col, v_v1, 'America/Sao_Paulo');
+      when 'depois' then
+        return format('(%s >= ((%L::date) + 1)::timestamp at time zone %L)', v_col, v_v1, 'America/Sao_Paulo');
+      when 'entre' then
+        return format('(%s >= (%L::date)::timestamp at time zone %L and %s < ((%L::date) + 1)::timestamp at time zone %L)',
+          v_col, v_v1, 'America/Sao_Paulo', v_col, v_v2, 'America/Sao_Paulo');
+      when 'ultimos_dias' then
+        return format('(%s >= now() - make_interval(days => %L::int))', v_col, v_v1);
+      when 'ha_mais_de_dias' then
+        return format('(%s < now() - make_interval(days => %L::int))', v_col, v_v1);
+      when 'vazio' then return format('(%s is null)', v_col);
+      when 'nao_vazio' then return format('(%s is not null)', v_col);
+      else raise exception 'Comparação % não vale para data', v_comp;
+    end case;
+  end if;
+end;
+$$;
