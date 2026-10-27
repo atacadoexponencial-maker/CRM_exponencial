@@ -1,6 +1,6 @@
 # issues
 
-- **Arquivos soltos nesta pasta = issues abertas.** Hoje: B30-05 (gráficos do dashboard, aguardando o teste manual), B31-03 (grade fechada, aguardando o teste manual) B32-04 e B32-06 (relatórios: Visão Geral, aguardando os testes manuais) B33-03 (RFV, aguardando o teste manual) B34-03 (Coorte e Funil, aguardando o teste manual) e B35-01 a B35-03 (relatórios: Carteiras).
+- **Arquivos soltos nesta pasta = issues abertas.** Hoje: B30-05 (gráficos do dashboard, aguardando o teste manual), B31-03 (grade fechada, aguardando o teste manual) B32-04 e B32-06 (relatórios: Visão Geral, aguardando os testes manuais) B33-03 (RFV, aguardando o teste manual) B34-03 (Coorte e Funil, aguardando o teste manual) e B35-01 a B35-03 (relatórios: Carteiras). B46-01 a B46-13 (correções do teste de UI/UX de 27/10, no branch `b46-correcoes-qa-ux`).
 - `concluidas_<série>/` = entregues e no ar. Não se mexe mais nelas.
 - `bloqueadas_modulo6/` = escritas, mas sem como fazer (API da Meta não tem grupos).
 
@@ -40,4 +40,5 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B43 | `pre-desenvolvimento/spec-automacao-por-perfil-rfv.md` (reservada em 24/10/2026: automação pelo perfil RFV e perfil RFV no contato, na lista e no chat) | `concluidas_B43/` (quando houver) |
 | B44 | `pre-desenvolvimento/spec-seguranca-rodada-4.md` (reservada em 27/10/2026: correção das 13 suspeitas da auditoria security-audit run-1, cada uma com teste que mostra a falha antes e passa depois) | `concluidas_B44/` (quando houver) |
 | B45 | `pre-desenvolvimento/spec-dono-do-contato.md` (reservada em 27/10/2026: todo contato nasce com card e o atendente é dono do que está atribuído a ele, em todas as telas) | `concluidas_B45/` (quando houver) |
+| B46 | `pre-desenvolvimento/spec-correcoes-qa-ux.md` (escrita em 27/10/2026: correções do teste de UI/UX do CRM inteiro, achados em `analise-qa/qa-ux-2026-10-27.md`; branch `b46-correcoes-qa-ux`, merge só com o ok do Luan) | `concluidas_B46/` (quando houver) |
 | F1 | `docs/specs-arquivadas/spec-fluxo-com-prova.md` (melhoria do fluxo de desenvolvimento: critérios de aceite com código, auditor, lições) | `concluidas_F1/` |
