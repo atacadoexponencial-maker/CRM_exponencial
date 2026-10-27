@@ -175,3 +175,4 @@ Migration `supabase/migrations/20261026000001_campos_personalizados.sql`:
 | Critério | Conferido por | Dia |
 |---|---|---|
 | CA-B38-25 | Marcelle | 26/10/2026 |
+| CA-B38-16 | Marcelle | 27/10/2026 |

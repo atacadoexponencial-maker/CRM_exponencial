@@ -107,3 +107,4 @@ Migration `supabase/migrations/20261026000004_colunas_de_cada_usuario.sql`:
 
 | Critério | Conferido por | Dia |
 |---|---|---|
+| CA-B38-59 | Marcelle | 27/10/2026 |
