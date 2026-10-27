@@ -17,6 +17,7 @@ import { formatarMoeda } from "./graficos"
 import { FiltroPorCampoControle } from "@/components/shared/filtro-por-campo"
 import { filtroPorCampoCompleto, type FiltroPorCampo } from "@/lib/filtro-por-campo"
 import type { CampoParaFiltro } from "@/lib/filtro-contatos"
+import { formatarIntervalo } from "@/lib/datas"
 
 interface DashboardClientProps {
   painelInicial: PainelDashboard
@@ -111,7 +112,8 @@ export function DashboardClient({ painelInicial, atendentes, papel, cabecalho, p
       <FaixaDeNumeros
         destaque
         itens={[
-          { rotulo: `Faturado no período (${metricas.receita.quantidadeCompras} compras)`, valor: formatarMoeda(metricas.receita.totalCompras), variacao: variacoes.totalCompras },
+          // B46-10: o período escrito, para não confundir com o mês dos Relatórios
+          { rotulo: `Faturado ${metricas.periodo ? `de ${formatarIntervalo(metricas.periodo.inicio, metricas.periodo.fim)}` : "no período"} (${metricas.receita.quantidadeCompras} compras)`, valor: formatarMoeda(metricas.receita.totalCompras), variacao: variacoes.totalCompras },
           { rotulo: "Ticket médio", valor: formatarMoeda(metricas.receita.ticketMedioGeral), variacao: variacoes.ticketMedioGeral },
           { rotulo: "Novos leads", valor: metricas.entrada.novosLeads, variacao: variacoes.novosLeads },
           { rotulo: "Taxa de recompra", valor: metricas.recompra.taxaRecompra, sufixo: "%", variacao: variacoes.taxaRecompra },

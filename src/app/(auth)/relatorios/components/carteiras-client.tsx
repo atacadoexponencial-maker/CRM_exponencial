@@ -14,7 +14,8 @@ import { DistribuirDialog, ReprocessarDialog } from "./acoes-sem-vendedor"
 import type { FiltroPorCampo } from "@/lib/filtro-por-campo"
 
 const NUMEROS: Array<{ id: keyof NumerosDaCarteira; titulo: string; cor: string }> = [
-  { id: "leads", titulo: "Leads", cor: "text-violet-700 dark:text-violet-300" },
+  // B46-10 (PER-B46-02): "Sem compra", para não confundir com os leads do Pipeline
+  { id: "leads", titulo: "Sem compra", cor: "text-violet-700 dark:text-violet-300" },
   { id: "base", titulo: "Base de clientes", cor: "text-orange-700 dark:text-orange-300" },
   { id: "ativos", titulo: "Ativos", cor: "text-sucesso" },
   { id: "inativos", titulo: "Inativos", cor: "text-erro" },
@@ -89,7 +90,7 @@ export function PainelDeCarteiras({ resultado, acoesDoVendedor, acoesDosSemVende
             <p data-testid="sem-vendedor">
               <span className="text-3xl font-semibold text-erro numero mr-2">{painel.semVendedor.total}</span>
               <span className="text-sm">contatos sem vendedor</span>
-              <span className="block text-xs text-muted-foreground">{painel.semVendedor.comCompra} com compra · {painel.semVendedor.leads} leads</span>
+              <span className="block text-xs text-muted-foreground">{painel.semVendedor.comCompra} com compra · {painel.semVendedor.leads} sem compra</span>
             </p>
             {acoesDosSemVendedor}
           </div>

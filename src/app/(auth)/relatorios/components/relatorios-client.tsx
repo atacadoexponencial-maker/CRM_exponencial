@@ -5,7 +5,8 @@
 import { useEffect, useState, useTransition } from "react"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { MESES, periodoMesAnterior, periodoPadrao, type PeriodoRelatorio } from "@/lib/relatorios/visao-geral"
+import { MESES, intervaloDoPeriodo, periodoMesAnterior, periodoPadrao, type PeriodoRelatorio } from "@/lib/relatorios/visao-geral"
+import { formatarIntervaloDoCalendario } from "@/lib/datas"
 import { buscarVisaoGeral, type VisaoGeral } from "../actions"
 import { CartoesResumo } from "./cartoes-resumo"
 import { GraficoFormaPagamento, GraficoProjecao, GraficoVendasDiarias } from "./graficos-visao-geral"
@@ -70,6 +71,8 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje, campos
   const [isPending, startTransition] = useTransition()
 
   const podeFiltrarAtendente = papel === "admin" || papel === "gerente"
+  // B46-10: as datas do período, nos cartões de faturamento
+  const intervaloDoFaturamento = intervaloDoPeriodo(periodo, hoje)
   const anoDeHoje = Number(hoje.slice(0, 4))
   const anos = [anoDeHoje, anoDeHoje - 1, anoDeHoje - 2]
 
@@ -214,7 +217,7 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje, campos
 
       {erro && <p className="text-sm text-destructive mb-4">Não foi possível carregar o relatório. Tente novamente.</p>}
 
-      <CartoesResumo cartoes={visao.cartoes} />
+      <CartoesResumo cartoes={visao.cartoes} periodo={formatarIntervaloDoCalendario(intervaloDoFaturamento.de, intervaloDoFaturamento.ate)} />
 
       {/* B32-04: gráficos abaixo dos cartões; a projeção só no mês atual. */}
       <div className="flex flex-col gap-4 mt-6">

@@ -131,6 +131,17 @@ export function paraCamposDoFormulario(iso: string): { data: string; hora: strin
   return { data, hora: formatarHoraDoDia(iso) }
 }
 
+/** Período entre dois instantes, no fuso da operação: `01/10 a 27/10` (B46-10). */
+export function formatarIntervalo(inicioIso: string, fimIso: string): string {
+  return `${formatarDiaDoMes(inicioIso)} a ${formatarDiaDoMes(fimIso)}`
+}
+
+/** Período entre dois dias de calendário (`2026-10-01`, `2026-10-27`): `01/10 a 27/10`. */
+export function formatarIntervaloDoCalendario(de: string, ate: string): string {
+  const diaEMes = (dia: string) => formatarDataDoCalendario(dia).slice(0, 5)
+  return `${diaEMes(de)} a ${diaEMes(ate)}`
+}
+
 /** Data curta: `15 abr. 2026`. */
 export function formatarDataCurta(iso: string): string {
   return DATA_CURTA.format(new Date(iso))

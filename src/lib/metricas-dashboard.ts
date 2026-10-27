@@ -37,6 +37,8 @@ export type MetricasDashboard = {
     ticketMedioGeral: number | null
     percentualNovos: number | null // % do faturamento vindo de clientes novos no período
   }
+  /** B46-10: começo e fim do período, em ISO, para a tela dizer de quando são os números. */
+  periodo?: { inicio: string; fim: string }
 }
 
 export type PerformanceVendedor = {
@@ -289,6 +291,7 @@ export function calcularMetricas(
     totalCompras > 0 ? Math.round((faturamentoNovos / totalCompras) * 100) : null
 
   return {
+    periodo: { inicio: inicio.toISOString(), fim: fim.toISOString() },
     entrada: { novosLeads: novosLeadsCards.length, leadsAtivos, leadsPorSemana },
     conversao: { taxaGeral, funil: funilComPercentual },
     recompra: { clientesAtivos, taxaRecompra, emRisco, inativos, perdidos, distribuicao },

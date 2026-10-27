@@ -30,13 +30,19 @@ function LinhaComparativo({ rotulo, comparativo, formato }: { rotulo: string; co
   )
 }
 
-export function CartoesResumo({ cartoes }: { cartoes: Cartao[] }) {
+/** B46-10: os cartões de faturamento dizem de quando são (`01/10 a 27/10`). */
+const CARTOES_DE_FATURAMENTO = ["faturamentoBruto", "faturamentoLiquido"]
+
+export function CartoesResumo({ cartoes, periodo }: { cartoes: Cartao[]; periodo?: string }) {
   return (
     // B36-07: faixa de números do Caderno — linha grossa em cima, linhas finas entre as linhas.
     <div className="grid grid-cols-2 border-t-2 border-t-foreground lg:grid-cols-5" data-testid="cartoes-resumo">
       {cartoes.map((c) => (
         <div key={c.id} className="flex flex-col gap-1 border-b py-4 pr-4" data-testid={`cartao-${c.id}`}>
-          <span className="text-xs text-muted-foreground">{c.titulo}</span>
+          <span className="text-xs text-muted-foreground">
+            {c.titulo}
+            {periodo && CARTOES_DE_FATURAMENTO.includes(c.id) && <span className="block">{periodo}</span>}
+          </span>
           <span className="numero text-[22px] font-medium leading-tight tracking-tight">{formatarValor(c.valor, c.formato)}</span>
           {c.vsMesPassado && <LinhaComparativo rotulo="vs mês passado" comparativo={c.vsMesPassado} formato={c.formato} />}
           {c.vsAnoPassado && <LinhaComparativo rotulo="vs ano passado" comparativo={c.vsAnoPassado} formato={c.formato} />}
