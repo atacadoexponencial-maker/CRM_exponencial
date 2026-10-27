@@ -336,8 +336,43 @@ function paraATela(segmento: Segmento): Segmento {
   return segmento.reenvioDe ? { reenvioDe: segmento.reenvioDe } : { filtro: filtroDoSegmento(segmento) }
 }
 
-function validarDados(dados: DadosCampanha, paraEnvio: boolean): string | null {
+/** B44-06: tipos que o anexo da campanha aceita (SUP-B44-04), com a extensão que o CRM grava. */
+const EXTENSAO_DO_ANEXO: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "application/pdf": "pdf",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+  "application/vnd.ms-excel": "xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "application/vnd.ms-powerpoint": "ppt",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+  "text/plain": "txt",
+}
+const AVISO_TIPO_DO_ANEXO =
+  "Tipo de arquivo não aceito. Envie imagem JPG, PNG ou WebP, ou documento PDF, Word, Excel, PowerPoint ou TXT."
+const AVISO_ANEXO_DE_FORA = "Anexe o arquivo pela própria campanha"
+
+/**
+ * B44-06: o arquivo da campanha é sempre um enviado pela própria empresa, pela tela
+ * da campanha. O endereço vai para o canal buscar; um endereço qualquer faria o
+ * gateway buscar o que o navegador quisesse.
+ */
+function anexoDaEmpresa(arquivoUrl: string, workspaceId: string): boolean {
+  const pasta = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/chat-attachments/${workspaceId}/campanhas/`
+  let endereco: URL
+  try {
+    endereco = new URL(arquivoUrl)
+  } catch {
+    return false
+  }
+  return endereco.href === arquivoUrl && arquivoUrl.startsWith(pasta) && /^[A-Za-z0-9._-]+$/.test(arquivoUrl.slice(pasta.length))
+}
+
+function validarDados(dados: DadosCampanha, paraEnvio: boolean, workspaceId: string): string | null {
   if (!dados.nome.trim()) return "Informe o nome da campanha"
+  if (dados.arquivoUrl && !anexoDaEmpresa(dados.arquivoUrl, workspaceId)) return AVISO_ANEXO_DE_FORA
   if (dados.segmento.filtro && !esquemaFiltro.safeParse(dados.segmento.filtro).success) return "Filtro inválido."
   // B38-05: toda variável tem texto reserva (CA-B38-48)
   const semReserva = avisoDeSemReserva(dados.conteudo ?? "")
@@ -356,7 +391,7 @@ export async function salvarRascunho(
   const { supabase, user, perfil } = await perfilGestor()
   if (!perfil) return { erro: "Sem permissão" }
 
-  const erro = validarDados(dados, false)
+  const erro = validarDados(dados, false, perfil.workspace_id)
   if (erro) return { erro }
 
   // B20-03: o número escolhido tem de ser da empresa de quem salva.
@@ -414,7 +449,7 @@ export async function confirmarCampanha(
   const { supabase, perfil } = await perfilGestor()
   if (!perfil) return { erro: "Sem permissão" }
 
-  const erroValidacao = validarDados(dados, true)
+  const erroValidacao = validarDados(dados, true, perfil.workspace_id)
   if (erroValidacao) return { erro: erroValidacao }
 
   if (agendadaPara && new Date(agendadaPara) <= new Date()) {
@@ -624,9 +659,13 @@ export async function uploadArquivoCampanha(
   if (!arquivo) return { erro: "Arquivo inválido" }
   if (arquivo.size > 10 * 1024 * 1024) return { erro: "Arquivo muito grande (máximo 10 MB)" }
 
+  // B44-06: só os tipos da campanha, com a extensão escolhida pelo tipo e não pelo
+  // nome: o bucket é público e o arquivo não pode abrir como página.
+  const ext = EXTENSAO_DO_ANEXO[arquivo.type]
+  if (!ext) return { erro: AVISO_TIPO_DO_ANEXO }
+
   const service = createServiceClient()
-  const ext = arquivo.name.split(".").pop() ?? "bin"
-  const path = `${perfil.workspace_id}/campanhas/${Date.now()}.${ext}`
+  const path = `${perfil.workspace_id}/campanhas/${Date.now()}-${crypto.randomUUID()}.${ext}`
 
   const { error } = await service.storage
     .from("chat-attachments")
