@@ -27,7 +27,7 @@ import { criarLembrete } from "./lembrete"
 import { dadoDoContatoValido } from "./referencias"
 import { dispararCamposAlterados } from "./gatilhos-do-crm"
 import { canonicoDoValor, conferirValor, entradaDoCanonico, valorDaLinha, type TipoDeCampo } from "@/lib/campos-personalizados"
-import { atendenteDoContato, registrarMudancasDeCarteira } from "@/lib/carteira"
+import { passarContatosPara } from "@/lib/carteira"
 
 const CONVERSA_ABERTA = ["em_espera", "em_atendimento"]
 
@@ -368,19 +368,12 @@ async function passarCardEConcluir(
   }
   // QA A5 (06/10): o contato acompanha o card. Campanhas segmentam e a lista de
   // Contatos mostra `contacts.atendente_id`. B35-01: e a mudança vai para o histórico.
+  // B45-02: um dono só: os outros cards e as outras conversas do contato vão junto.
   if (contexto.gatilho.contactId) {
-    const anterior = await atendenteDoContato(contexto.supabase, contexto.gatilho.contactId)
-    const { error } = await contexto.supabase
-      .from("contacts")
-      .update({ atendente_id: atendenteId })
-      .eq("id", contexto.gatilho.contactId)
-      .eq("workspace_id", contexto.gatilho.workspaceId)
+    const { error } = await passarContatosPara(contexto.supabase, {
+      workspaceId: contexto.gatilho.workspaceId, contactIds: [contexto.gatilho.contactId], para: atendenteId, motivo: "pelo_card", por: null,
+    })
     erros.push(error)
-    if (!error) {
-      await registrarMudancasDeCarteira(contexto.supabase, [
-        { workspaceId: contexto.gatilho.workspaceId, contactId: contexto.gatilho.contactId, de: anterior, para: atendenteId, motivo: "pelo_card", por: null },
-      ])
-    }
   }
   if (!conversaId && !card.id && !card.erro) return falhou("O contato não tem conversa aberta nem card")
   if (erros.some(apontaParaApagado)) return falhou("O atendente não existe mais")

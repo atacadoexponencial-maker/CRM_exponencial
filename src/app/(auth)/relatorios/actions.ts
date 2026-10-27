@@ -27,7 +27,7 @@ import { calcularRfv, type ResultadoRfv } from "@/lib/relatorios/rfv"
 import { calcularCoortes, type ResultadoCoorte } from "@/lib/relatorios/coorte"
 import { calcularFunilClientes, type ResultadoFunilClientes } from "@/lib/relatorios/funil-clientes"
 import { calcularPainelDeCarteiras, HISTORICO_POR_PAGINA, type PainelDeCarteiras } from "@/lib/relatorios/carteiras"
-import { registrarMudancasDeCarteira, type MotivoDaCarteira } from "@/lib/carteira"
+import { passarContatosPara, type MotivoDaCarteira } from "@/lib/carteira"
 import { camposDaEmpresa, contatosDoFiltroPorCampo, valoresDosContatos } from "@/lib/campos-personalizados-servidor"
 import type { FiltroPorCampo } from "@/lib/filtro-por-campo"
 
@@ -322,16 +322,9 @@ async function mudarCarteira(de: string, para: string | null, motivo: MotivoDaCa
   const ids = (contatos ?? []).map((c) => c.id)
   if (ids.length === 0) return { quantidade: 0 }
 
-  const [{ error: e1 }, { error: e2 }] = await Promise.all([
-    supabase.from("contacts").update({ atendente_id: para }).in("id", ids).eq("workspace_id", perfil.workspace_id),
-    supabase.from("pipeline_cards").update({ atendente_id: para }).in("contact_id", ids).eq("workspace_id", perfil.workspace_id),
-  ])
-  if (e1 || e2) return { erro: para ? "Não foi possível transferir. Tente novamente." : "Não foi possível remover. Tente novamente." }
-
-  await registrarMudancasDeCarteira(
-    supabase,
-    ids.map((contactId) => ({ workspaceId: perfil.workspace_id, contactId, de, para, motivo, por: user.id }))
-  )
+  // B45-02: as conversas dos contatos vão junto com os cards
+  const { error } = await passarContatosPara(supabase, { workspaceId: perfil.workspace_id, contactIds: ids, para, motivo, por: user.id })
+  if (error) return { erro: para ? "Não foi possível transferir. Tente novamente." : "Não foi possível remover. Tente novamente." }
   return { quantidade: ids.length }
 }
 
@@ -344,7 +337,7 @@ export async function removerCarteira(de: string): Promise<{ erro?: string; quan
   return mudarCarteira(de, null, "remocao")
 }
 
-/** Aplica um dono a cada contato (e aos cards dele) e grava no histórico. */
+/** Aplica um dono a cada contato (com os cards e as conversas dele, B45-02) e grava no histórico. */
 async function aplicarDonos(
   supabase: Awaited<ReturnType<typeof sessaoAtual>>["supabase"],
   workspaceId: string,
@@ -355,16 +348,9 @@ async function aplicarDonos(
   const porDono = new Map<string, string[]>()
   for (const a of atribuicoes) porDono.set(a.para, [...(porDono.get(a.para) ?? []), a.contactId])
   for (const [para, ids] of porDono) {
-    const [{ error: e1 }, { error: e2 }] = await Promise.all([
-      supabase.from("contacts").update({ atendente_id: para }).in("id", ids).eq("workspace_id", workspaceId),
-      supabase.from("pipeline_cards").update({ atendente_id: para }).in("contact_id", ids).eq("workspace_id", workspaceId),
-    ])
-    if (e1 || e2) return false
+    const { error } = await passarContatosPara(supabase, { workspaceId, contactIds: ids, para, motivo, por })
+    if (error) return false
   }
-  await registrarMudancasDeCarteira(
-    supabase,
-    atribuicoes.map((a) => ({ workspaceId, contactId: a.contactId, de: null, para: a.para, motivo, por }))
-  )
   return true
 }
 

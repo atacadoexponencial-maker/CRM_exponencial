@@ -149,8 +149,9 @@ describe("atribuir a um time (B22-04: escolha e conversa gravadas pela função 
     expect(await executarAcao(b.contexto(conversaCriada), acao("atribuir_time", { time_id: "time-1" }))).toEqual({ ok: true })
 
     expect(rpcDoTime(b)).toEqual([{ p_workspace_id: "ws-1", p_team_id: "time-1", p_conversation_id: "conv-1" }])
-    // A conversa é gravada pela função, travada por time; o motor não grava nela
-    expect(b.gravacoes("conversations")).toEqual([])
+    // A conversa é gravada pela função, travada por time; o motor só passa o
+    // responsável de todas as conversas do contato ao novo dono (B45-02)
+    expect(b.gravacoes("conversations").map((g) => g.args[0])).toEqual([{ assigned_to: "carla" }])
     expect(b.gravacoes("pipeline_cards")[0].args[0]).toEqual({ atendente_id: "carla" })
   })
 
@@ -487,7 +488,8 @@ describe("atribuir passa também o card principal do contato (B11-08)", () => {
     expect(await executarAcao(b.contexto(tagAdicionada), acao("atribuir_atendente", { atendente_id: "u-1" }))).toEqual({
       ok: true,
     })
-    expect(b.gravacoes("conversations")).toEqual([])
+    // B45-02: nenhuma conversa do evento muda de status; só o responsável das conversas do contato
+    expect(b.gravacoes("conversations").map((g) => g.args[0])).toEqual([{ assigned_to: "u-1" }])
     expect(cardAtualizado(b)).toEqual(["card-entrada"])
   })
 
@@ -619,7 +621,8 @@ describe("atribuir põe a conversa em espera em atendimento, como o chat (B22-03
       pipeline_cards: { lista: [{ id: "card-entrada", funil: "entrada" }] },
     })
     expect(await executarAcao(b.contexto(conversaCriada), atribuirU1)).toEqual({ ok: false, motivo: "Erro ao gravar no banco" })
-    expect(b.gravacoes("conversations")).toEqual([])
+    // B45-02: o status da conversa do evento não muda; só o responsável das conversas do contato
+    expect(b.gravacoes("conversations").map((g) => g.args[0])).toEqual([{ assigned_to: "u-1" }])
     expect(b.gravacoes("pipeline_cards")[0].args[0]).toEqual({ atendente_id: "u-1" })
   })
 })

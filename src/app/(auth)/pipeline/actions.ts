@@ -11,7 +11,7 @@ import { normalizarWhatsapp, TELEFONE_INVALIDO } from "@/lib/telefone"
 import { type CardLead, type EtapaEntrada, type CardCliente, type EtapaRecompra, type HistoricoEtapa, type NotaInterna, type FunilDaEmpresa, type CardDoFunil, ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "./mock-pipeline"
 import { escaparLike } from "@/lib/escapar-like"
 import { lerNomesDosFunis } from "@/lib/funis"
-import { atendenteDoContato, registrarMudancasDeCarteira } from "@/lib/carteira"
+import { passarContatosPara } from "@/lib/carteira"
 import { buscarConfigAlertas } from "@/app/(auth)/alertas/actions"
 import { limiteDeParado } from "@/lib/card-parado"
 
@@ -93,19 +93,11 @@ export async function atribuirAtendente(cardId: string, atendenteId: string): Pr
   // QA A5 (06/10): o atendente do card só ficava no card. Campanhas segmentam e a
   // lista de Contatos mostra `contacts.atendente_id`; sem isto, ficava "—" e 0.
   // B35-01: a mudança de dono do contato fica no histórico de carteira.
-  const contatoId = cardAtualizado.contact_id
-  const anterior = contatoId ? await atendenteDoContato(supabase, contatoId) : null
-  const { error: erroContato } = await supabase
-    .from("contacts")
-    .update({ atendente_id: atendenteId })
-    .eq("id", contatoId)
-    .eq("workspace_id", profile.workspace_id)
+  // B45-02: um dono só: os outros cards e as conversas do contato vão junto.
+  const { error: erroContato } = await passarContatosPara(supabase, {
+    workspaceId: profile.workspace_id, contactIds: [cardAtualizado.contact_id], para: atendenteId, motivo: "pelo_card", por: user.id,
+  })
   if (erroContato) throw new Error("Erro ao atribuir atendente")
-  if (contatoId) {
-    await registrarMudancasDeCarteira(supabase, [
-      { workspaceId: profile.workspace_id, contactId: contatoId, de: anterior, para: atendenteId, motivo: "pelo_card", por: user.id },
-    ])
-  }
 }
 
 /** Devolve o contato do telefone (na lixeira ou não), criando se não existir. `null` quando o banco falha. */
