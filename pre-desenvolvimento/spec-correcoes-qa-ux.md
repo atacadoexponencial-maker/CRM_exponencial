@@ -65,14 +65,14 @@ lugar.
 ### 3. Menu de cada linha diz de quem é (B46-03)
 
 **Comportamentos:** o botão "⋯" de cada linha das listas de configuração tem
-o nome da linha ("Menu de Interessado"), e a confirmação de apagar mostra o
+o nome da linha ("Abrir menu de Interessado", como já é nas Automações), e a confirmação de apagar mostra o
 nome em destaque.
 
 #### CA-B46-06 — Botão de menu com o nome da linha · prova: automática
 
 - **Dado** as etiquetas "Interessado" e "Cliente" na lista de Etiquetas
 - **Quando** a lista é desenhada
-- **Então** os botões de menu se chamam "Menu de Interessado" e "Menu de Cliente", e não "Abrir menu"
+- **Então** os botões de menu se chamam "Abrir menu de Interessado" e "Abrir menu de Cliente", e não só "Abrir menu"
 
 #### CA-B46-07 — Confirmação de apagar com o nome em destaque · prova: automática
 

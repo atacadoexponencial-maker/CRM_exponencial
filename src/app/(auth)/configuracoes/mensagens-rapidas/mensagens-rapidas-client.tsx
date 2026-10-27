@@ -157,7 +157,7 @@ export function MensagensRapidasClient({ mensagensIniciais, variaveis = [] }: Me
                     <DropdownMenu>
                       <DropdownMenuTrigger className="inline-flex h-6 w-6 items-center justify-center rounded-md hover:bg-accent transition-colors">
                         <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Abrir menu</span>
+                        <span className="sr-only">Abrir menu de {msg.titulo}</span>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => abrirEditar(msg)}>
