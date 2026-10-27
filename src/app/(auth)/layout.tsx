@@ -3,6 +3,7 @@ import { sessaoAtual } from "@/lib/sessao"
 import { SidebarNav } from "@/components/shared/sidebar-nav"
 import { COOKIE_MENU_RECOLHIDO } from "@/lib/preferencias-layout"
 import { SincronizarTema } from "@/components/shared/sincronizar-tema"
+import { AvisosNaTela } from "@/components/shared/avisos-na-tela"
 import { temaValido, type Tema } from "@/lib/tema"
 
 async function dadosDoUsuario(): Promise<{
@@ -49,6 +50,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
   return (
     <div className="h-screen overflow-hidden flex flex-col lg:flex-row">
       <SincronizarTema tema={tema} />
+      <AvisosNaTela />
       <SidebarNav papel={papel} nomeUsuario={nome} email={email} atrasados={atrasados} pedidosNovos={pedidosNovos} tema={tema} recolhidoInicial={menuRecolhido} />
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* B36-03: no computador o usuário fica no pé do menu lateral; a barra de cima saiu.

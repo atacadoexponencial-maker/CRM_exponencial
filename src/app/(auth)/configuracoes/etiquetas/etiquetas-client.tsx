@@ -20,6 +20,7 @@ import {
 import { cn } from "@/lib/utils"
 import { criarEtiqueta, editarEtiqueta, excluirEtiqueta } from "./actions"
 import type { EtiquetaListada } from "./actions"
+import { avisar } from "@/lib/aviso-na-tela"
 
 const CORES_DISPONIVEIS = [
   "#ef4444",
@@ -109,6 +110,7 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
     // Na mesma ordem do servidor (por nome), para não mudar ao recarregar.
     setEtiquetas((prev) => [...prev, resultado.etiqueta!].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")))
     setDialogCriarAberto(false)
+    avisar("Etiqueta salva")
   }
 
   function abrirEditar(etiqueta: EtiquetaListada) {
@@ -134,6 +136,7 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
       prev.map((e) => (e.id === editandoId ? { ...e, nome, cor: editCor } : e))
     )
     setDialogEditarAberto(false)
+    avisar("Etiqueta salva")
   }
 
   function abrirExcluir(id: string) {

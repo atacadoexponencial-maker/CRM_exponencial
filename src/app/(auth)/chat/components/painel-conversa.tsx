@@ -19,6 +19,7 @@ import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio
 import type { Conversa } from "../mock-conversas"
 import type { Mensagem, StatusMensagem } from "../mock-mensagens"
 import { formatarHoraDoDia } from "@/lib/datas"
+import { useFecharComEsc } from "@/hooks/use-fechar-com-esc"
 
 async function converterParaMp3(blob: Blob): Promise<Blob> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -131,6 +132,11 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
   const [texto, setTexto] = useState("")
   const [seletorMRAberto, setSeletorMRAberto] = useState(false)
   const [termoBuscaMR, setTermoBuscaMR] = useState("")
+  // B46-04: Esc fecha o seletor de mensagens rápidas
+  useFecharComEsc(() => {
+    setSeletorMRAberto(false)
+    setTermoBuscaMR("")
+  }, seletorMRAberto)
   const [enviando, setEnviando] = useState(false)
   const [enviandoImagem, setEnviandoImagem] = useState(false)
   const [enviandoDocumento, setEnviandoDocumento] = useState(false)

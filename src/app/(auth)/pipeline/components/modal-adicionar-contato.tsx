@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Search, X } from "lucide-react"
 import { formatarNumero } from "@/lib/whatsapp"
 import { buscarContatosParaFunil, adicionarContatoAoFunil, criarCardNaEtapa } from "../actions"
+import { useFecharComEsc } from "@/hooks/use-fechar-com-esc"
 
 interface ModalAdicionarContatoProps {
   /** "entrada" ou o id do funil da empresa. */
@@ -22,6 +23,7 @@ export function ModalAdicionarContato({ funilId, funilNome, etapa, onSucesso, on
   const [buscando, setBuscando] = useState(false)
   const [adicionando, setAdicionando] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
+  useFecharComEsc(onFechar)
 
   useEffect(() => {
     let ativo = true

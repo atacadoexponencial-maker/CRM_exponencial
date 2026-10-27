@@ -11,6 +11,7 @@ import { excluirProduto, prepararEnvioFoto, salvarProduto } from "../../actions"
 import { conteudoDoTipo } from "@/lib/automacoes/referencias"
 import { HREFS_CATALOGO } from "../../produtos-client"
 import { ALVOS_TOQUE_CELULAR } from "../../components/alvos-toque"
+import { avisar } from "@/lib/aviso-na-tela"
 
 export function EditorClient({ inicial, categorias }: { inicial: ProdutoEditavel; categorias: CategoriaCatalogo[] }) {
   const router = useRouter()
@@ -51,6 +52,7 @@ export function EditorClient({ inicial, categorias }: { inicial: ProdutoEditavel
         onSalvar={async (produto) => {
           const r = await salvarProduto(produto)
           if (r.erro) return { erro: r.erro }
+          avisar("Produto salvo")
           // /catalogo é dinâmica: abrir já traz a lista nova (um refresh aqui cancelaria a navegação).
           router.push("/catalogo")
           return {}

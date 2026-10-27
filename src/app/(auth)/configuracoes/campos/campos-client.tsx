@@ -21,6 +21,7 @@ import {
   type OpcaoParaGerenciar,
   type ResumoParaApagar,
 } from "./actions"
+import { avisar } from "@/lib/aviso-na-tela"
 
 // B38-01: tela de campos personalizados. Admin e Gerente criam o campo com nome e tipo,
 // e editam o nome e as opções das listas. O tipo aparece só para leitura depois de criado.
@@ -56,7 +57,9 @@ function NovoCampo({ onFechar, onCriado }: { onFechar: () => void; onCriado: () 
 
   async function salvar() {
     const ok = await executar(() => criarCampo(nome, tipo, comOpcoes ? opcoes.filter((o) => o.trim()) : []), setErro, setSalvando)
-    if (ok) onCriado()
+    if (!ok) return
+    avisar("Campo salvo")
+    onCriado()
   }
 
   return (

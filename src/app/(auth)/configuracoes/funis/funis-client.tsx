@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { CORES_PRONTAS, LIMITE_DE_ETAPAS, NOME_MAXIMO, ehCorPropria } from "@/lib/funis"
 import { adicionarEtapa, apagarEtapa, apagarFunil, automacoesQueUsam, criarFunil, editarEtapa, moverEtapa, renomearFunil, type FunilParaGerenciar, type FunisParaGerenciar } from "./actions"
+import { avisar } from "@/lib/aviso-na-tela"
 
 // Amostra das cores prontas com as mesmas cores das colunas do quadro (B15-02).
 const AMOSTRA: Record<string, string> = {
@@ -107,6 +108,7 @@ function NovoFunil({ onFechar, onCriado }: { onFechar: () => void; onCriado: () 
     try {
       const r = await criarFunil(nome, etapas)
       if (r.erro) { setErro(r.erro); return }
+      avisar("Funil salvo")
       onCriado()
     } catch {
       setErro("Não foi possível criar o funil. Tente de novo.")

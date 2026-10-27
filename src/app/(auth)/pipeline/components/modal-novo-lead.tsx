@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { criarNovoLead } from "../actions"
+import { avisar } from "@/lib/aviso-na-tela"
+import { useFecharComEsc } from "@/hooks/use-fechar-com-esc"
 
 const schema = z.object({
   telefone: z.string().min(1, "Número de WhatsApp é obrigatório"),
@@ -24,6 +26,7 @@ interface ModalNovoLeadProps {
 
 export function ModalNovoLead({ onSucesso, onFechar }: ModalNovoLeadProps) {
   const [erroGeral, setErroGeral] = useState<string | null>(null)
+  useFecharComEsc(onFechar)
 
   const {
     register,
@@ -39,6 +42,7 @@ export function ModalNovoLead({ onSucesso, onFechar }: ModalNovoLeadProps) {
         setErroGeral(erro)
         return
       }
+      avisar("Lead criado")
       onSucesso()
     } catch {
       setErroGeral("Não foi possível criar o lead. Tente novamente.")
