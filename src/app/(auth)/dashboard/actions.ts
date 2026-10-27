@@ -26,6 +26,7 @@ import {
 import { ETAPAS_ENTRADA } from "@/app/(auth)/pipeline/mock-pipeline"
 import { contatosDoFiltroPorCampo } from "@/lib/campos-personalizados-servidor"
 import { listarMinhaAgenda, type ItemAgenda } from "@/app/(auth)/agenda/actions"
+import { previaDaMensagemGravada } from "@/lib/whatsapp/recebimento"
 
 export type { FiltroDashboard, MetricasDashboard, PerformanceVendedor, PeriodoKey } from "@/lib/metricas-dashboard"
 export type { EtapaComQuantidade, Variacao, VariacoesDashboard } from "@/lib/painel-dashboard"
@@ -199,7 +200,7 @@ export async function listarEsperandoResposta(): Promise<{ conversas: ConversaEs
     conversas: linhas.slice(0, 5).map((l) => ({
       conversaId: l.conversa_id,
       contatoNome: l.contato_nome || l.telefone || "—",
-      trecho: l.tipo === "texto" || l.tipo === "text" ? (l.trecho ?? "") : `[${l.tipo}] ${l.trecho ?? ""}`.trim(),
+      trecho: previaDaMensagemGravada(l.tipo, l.trecho),
       desde: l.desde,
       minutosEsperando: minutosDesde(l.desde),
       funil: l.funil === "entrada" || l.funil === "recompra" ? l.funil : null,
