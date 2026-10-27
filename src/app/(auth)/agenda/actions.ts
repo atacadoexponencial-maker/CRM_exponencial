@@ -2,6 +2,7 @@
 
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
+import { escaparLike } from "@/lib/escapar-like"
 
 export type ItemAgenda = {
   id: string
@@ -205,20 +206,31 @@ export async function buscarContatosParaFollowUp(termo: string): Promise<Array<{
   const { supabase, perfil } = await perfilAtual()
   if (!perfil) return []
 
-  let query = supabase
-    .from("contacts")
-    .select("id, name, phone_number")
-    .eq("workspace_id", perfil.workspace_id)
-    .is("excluido_em", null)
-    .order("name")
-    .limit(10)
+  const base = () =>
+    supabase
+      .from("contacts")
+      .select("id, name, phone_number")
+      .eq("workspace_id", perfil.workspace_id)
+      .is("excluido_em", null)
+      .order("name")
+      .limit(10)
 
-  if (termo.trim()) {
-    query = query.or(`name.ilike.%${termo.trim()}%,phone_number.ilike.%${termo.trim()}%`)
-  }
+  // B44-10: o termo vai como valor de filtro, não dentro de um "or" montado como texto:
+  // vírgula, parênteses e aspas no nome quebravam o filtro. Nome e telefone viram
+  // duas buscas simples, juntadas aqui.
+  const limpo = termo.trim()
+  const digitos = limpo.replace(/\D/g, "")
+  const [porNome, porTelefone] = await Promise.all([
+    limpo ? base().ilike("name", `%${escaparLike(limpo)}%`) : base(),
+    digitos.length >= 3 ? base().ilike("phone_number", `%${digitos}%`) : Promise.resolve({ data: [] }),
+  ])
 
-  const { data } = await query
-  return (data ?? []).map((c) => ({ id: c.id, nome: c.name || c.phone_number }))
+  const vistos = new Set<string>()
+  return [...(porNome.data ?? []), ...(porTelefone.data ?? [])]
+    .filter((c) => (vistos.has(c.id) ? false : (vistos.add(c.id), true)))
+    .sort((a, b) => (a.name || a.phone_number).localeCompare(b.name || b.phone_number, "pt-BR"))
+    .slice(0, 10)
+    .map((c) => ({ id: c.id, nome: c.name || c.phone_number }))
 }
 
 export async function contarAtrasados(): Promise<number> {

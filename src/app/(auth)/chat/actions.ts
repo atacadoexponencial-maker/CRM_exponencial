@@ -50,19 +50,19 @@ async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promi
     .eq("id", conversaId)
     .single()
 
-  if (errConversa || !conversa) throw new Error("Conversa não encontrada")
+  if (errConversa || !conversa) throw new AvisoDoEnvio("Conversa não encontrada")
 
   type ConversaRow = { workspace_id: string; contact_id: string; contact: { phone_number: string } | null }
   const { workspace_id, contact_id, contact } = conversa as unknown as ConversaRow
-  if (!contact) throw new Error("Contato não encontrado")
+  if (!contact) throw new AvisoDoEnvio("Contato não encontrado")
 
   const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
 
-  if (!provider) throw new Error("Conexão WhatsApp não encontrada")
+  if (!provider) throw new AvisoDoEnvio("Conexão WhatsApp não encontrada")
 
   const resultado = await provider.enviarTexto(contact.phone_number, texto)
 
-  if (!resultado.ok) throw new Error(resultado.motivo)
+  if (!resultado.ok) throw new AvisoDoEnvio(resultado.motivo)
 
   const wamid = resultado.mensagemId
 
@@ -94,15 +94,31 @@ async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promi
   return gravada ? { id: gravada.id, status: statusInicialDoEnvio(provider.canal) } : null
 }
 
+/**
+ * B44-10: falha que a pessoa precisa ler (tipo, tamanho, conexão, recusa do canal).
+ * Erro de banco ou de armazenamento não é aviso: aparece como "tente de novo".
+ */
+class AvisoDoEnvio extends Error {}
+
+/** B44-10: tipos aceitos no chat, com a extensão que o CRM grava (nunca a do nome). */
+const EXTENSAO_DA_IMAGEM: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" }
+const EXTENSAO_DO_VIDEO: Record<string, string> = { "video/mp4": "mp4", "video/3gpp": "3gp" }
+const EXTENSAO_DO_AUDIO: Record<string, string> = {
+  "audio/ogg": "ogg", "audio/mpeg": "mp3", "audio/mp4": "m4a", "audio/aac": "aac", "audio/amr": "amr", "audio/webm": "webm",
+}
+const AVISO_TIPO_NAO_ACEITO = "Tipo de arquivo não aceito."
+/** O tipo sem parâmetros: "audio/ogg; codecs=opus" → "audio/ogg". */
+const tipoBase = (tipo: string) => tipo.split(";")[0].trim().toLowerCase()
+
 async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Promise<MensagemGravada | null> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Não autorizado")
+  if (!user) throw new AvisoDoEnvio("Não autorizado")
 
   const arquivo = formData.get("arquivo") as File
-  if (!arquivo || !arquivo.type.startsWith("image/")) throw new Error("Arquivo inválido")
-  if (arquivo.size > LIMITE_ANEXO_BYTES) throw new Error("Arquivo muito grande (máximo 4 MB por envio)")
+  if (!arquivo || !EXTENSAO_DA_IMAGEM[tipoBase(arquivo.type)]) throw new AvisoDoEnvio(AVISO_TIPO_NAO_ACEITO)
+  if (arquivo.size > LIMITE_ANEXO_BYTES) throw new AvisoDoEnvio("Arquivo muito grande (máximo 4 MB por envio)")
 
   const { data: conversa, error: errConversa } = await supabase
     .from("conversations")
@@ -110,18 +126,18 @@ async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Pr
     .eq("id", conversaId)
     .single()
 
-  if (errConversa || !conversa) throw new Error("Conversa não encontrada")
+  if (errConversa || !conversa) throw new AvisoDoEnvio("Conversa não encontrada")
 
   type ConversaRow = { workspace_id: string; contact_id: string; contact: { phone_number: string } | null }
   const { workspace_id, contact_id, contact } = conversa as unknown as ConversaRow
-  if (!contact) throw new Error("Contato não encontrado")
+  if (!contact) throw new AvisoDoEnvio("Contato não encontrado")
 
   const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
 
-  if (!provider) throw new Error("Conexão WhatsApp não encontrada")
+  if (!provider) throw new AvisoDoEnvio("Conexão WhatsApp não encontrada")
 
   const serviceClient = createServiceClient()
-  const ext = arquivo.name.split(".").pop() ?? "jpg"
+  const ext = EXTENSAO_DA_IMAGEM[tipoBase(arquivo.type)]
   const path = `${workspace_id}/${conversaId}/${Date.now()}.${ext}`
 
   const { error: errUpload } = await serviceClient.storage
@@ -139,7 +155,7 @@ async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Pr
     tipo: "imagem",
   })
 
-  if (!resultado.ok) throw new Error(resultado.motivo)
+  if (!resultado.ok) throw new AvisoDoEnvio(resultado.motivo)
 
   const agora = new Date().toISOString()
 
@@ -188,11 +204,11 @@ async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData):
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Não autorizado")
+  if (!user) throw new AvisoDoEnvio("Não autorizado")
 
   const arquivo = formData.get("arquivo") as File
-  if (!arquivo || !TIPOS_DOCUMENTO_VALIDOS.includes(arquivo.type)) throw new Error("Tipo de arquivo inválido")
-  if (arquivo.size > LIMITE_ANEXO_BYTES) throw new Error("Arquivo muito grande (máximo 4 MB por envio)")
+  if (!arquivo || !TIPOS_DOCUMENTO_VALIDOS.includes(arquivo.type)) throw new AvisoDoEnvio("Tipo de arquivo inválido")
+  if (arquivo.size > LIMITE_ANEXO_BYTES) throw new AvisoDoEnvio("Arquivo muito grande (máximo 4 MB por envio)")
 
   const { data: conversa, error: errConversa } = await supabase
     .from("conversations")
@@ -200,15 +216,15 @@ async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData):
     .eq("id", conversaId)
     .single()
 
-  if (errConversa || !conversa) throw new Error("Conversa não encontrada")
+  if (errConversa || !conversa) throw new AvisoDoEnvio("Conversa não encontrada")
 
   type ConversaRow = { workspace_id: string; contact_id: string; contact: { phone_number: string } | null }
   const { workspace_id, contact_id, contact } = conversa as unknown as ConversaRow
-  if (!contact) throw new Error("Contato não encontrado")
+  if (!contact) throw new AvisoDoEnvio("Contato não encontrado")
 
   const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
 
-  if (!provider) throw new Error("Conexão WhatsApp não encontrada")
+  if (!provider) throw new AvisoDoEnvio("Conexão WhatsApp não encontrada")
 
   const serviceClient = createServiceClient()
   const nomeArquivoSanitizado = arquivo.name.replace(/[^a-zA-Z0-9._-]/g, "_")
@@ -230,7 +246,7 @@ async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData):
     nomeArquivo: arquivo.name,
   })
 
-  if (!resultado.ok) throw new Error(resultado.motivo)
+  if (!resultado.ok) throw new AvisoDoEnvio(resultado.motivo)
 
   const agora = new Date().toISOString()
 
@@ -268,11 +284,11 @@ async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Pro
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Não autorizado")
+  if (!user) throw new AvisoDoEnvio("Não autorizado")
 
   const arquivo = formData.get("arquivo") as File
-  if (!arquivo || !["video/mp4", "video/3gpp"].includes(arquivo.type)) throw new Error("Tipo de arquivo inválido")
-  if (arquivo.size > LIMITE_ANEXO_BYTES) throw new Error("Arquivo muito grande (máximo 4 MB por envio)")
+  if (!arquivo || !EXTENSAO_DO_VIDEO[tipoBase(arquivo.type)]) throw new AvisoDoEnvio(AVISO_TIPO_NAO_ACEITO)
+  if (arquivo.size > LIMITE_ANEXO_BYTES) throw new AvisoDoEnvio("Arquivo muito grande (máximo 4 MB por envio)")
 
   const { data: conversa, error: errConversa } = await supabase
     .from("conversations")
@@ -280,18 +296,18 @@ async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Pro
     .eq("id", conversaId)
     .single()
 
-  if (errConversa || !conversa) throw new Error("Conversa não encontrada")
+  if (errConversa || !conversa) throw new AvisoDoEnvio("Conversa não encontrada")
 
   type ConversaRow = { workspace_id: string; contact_id: string; contact: { phone_number: string } | null }
   const { workspace_id, contact_id, contact } = conversa as unknown as ConversaRow
-  if (!contact) throw new Error("Contato não encontrado")
+  if (!contact) throw new AvisoDoEnvio("Contato não encontrado")
 
   const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
 
-  if (!provider) throw new Error("Conexão WhatsApp não encontrada")
+  if (!provider) throw new AvisoDoEnvio("Conexão WhatsApp não encontrada")
 
   const serviceClient = createServiceClient()
-  const ext = arquivo.name.split(".").pop() ?? "mp4"
+  const ext = EXTENSAO_DO_VIDEO[tipoBase(arquivo.type)]
   const path = `${workspace_id}/${conversaId}/${Date.now()}.${ext}`
 
   const { error: errUpload } = await serviceClient.storage
@@ -309,7 +325,7 @@ async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Pro
     tipo: "video",
   })
 
-  if (!resultado.ok) throw new Error(resultado.motivo)
+  if (!resultado.ok) throw new AvisoDoEnvio(resultado.motivo)
 
   const agora = new Date().toISOString()
 
@@ -344,11 +360,11 @@ async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Pro
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Não autorizado")
+  if (!user) throw new AvisoDoEnvio("Não autorizado")
 
   const arquivo = formData.get("arquivo") as File
-  if (!arquivo || !arquivo.type.startsWith("audio/")) throw new Error("Arquivo inválido")
-  if (arquivo.size > LIMITE_ANEXO_BYTES) throw new Error("Arquivo muito grande (máximo 4 MB por envio)")
+  if (!arquivo || !EXTENSAO_DO_AUDIO[tipoBase(arquivo.type)]) throw new AvisoDoEnvio(AVISO_TIPO_NAO_ACEITO)
+  if (arquivo.size > LIMITE_ANEXO_BYTES) throw new AvisoDoEnvio("Arquivo muito grande (máximo 4 MB por envio)")
 
   const { data: conversa, error: errConversa } = await supabase
     .from("conversations")
@@ -356,18 +372,18 @@ async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Pro
     .eq("id", conversaId)
     .single()
 
-  if (errConversa || !conversa) throw new Error("Conversa não encontrada")
+  if (errConversa || !conversa) throw new AvisoDoEnvio("Conversa não encontrada")
 
   type ConversaRow = { workspace_id: string; contact_id: string; contact: { phone_number: string } | null }
   const { workspace_id, contact_id, contact } = conversa as unknown as ConversaRow
-  if (!contact) throw new Error("Contato não encontrado")
+  if (!contact) throw new AvisoDoEnvio("Contato não encontrado")
 
   const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
 
-  if (!provider) throw new Error("Conexão WhatsApp não encontrada")
+  if (!provider) throw new AvisoDoEnvio("Conexão WhatsApp não encontrada")
 
   const serviceClient = createServiceClient()
-  const ext = arquivo.type.includes("ogg") ? "ogg" : arquivo.type.includes("mp4") ? "mp4" : arquivo.type.includes("mpeg") ? "mp3" : "webm"
+  const ext = EXTENSAO_DO_AUDIO[tipoBase(arquivo.type)]
   const path = `${workspace_id}/${conversaId}/${Date.now()}.${ext}`
 
   const { error: errUpload } = await serviceClient.storage
@@ -385,7 +401,7 @@ async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Pro
     tipo: "audio",
   })
 
-  if (!resultado.ok) throw new Error(resultado.motivo)
+  if (!resultado.ok) throw new AvisoDoEnvio(resultado.motivo)
 
   const agora = new Date().toISOString()
 
@@ -441,8 +457,9 @@ async function comMotivo(
     return gravada ? { mensagemId: gravada.id, status: gravada.status } : {}
   } catch (erro) {
     const aviso = await avisoDaConexao(conversaId).catch(() => null)
+    // B44-10: só aviso para a pessoa vira texto; erro interno (banco, armazenamento) não.
     const motivo = `Não enviada: ${
-      aviso ?? (erro instanceof Error && erro.message ? erro.message : "tente de novo em instantes.")
+      aviso ?? (erro instanceof AvisoDoEnvio && erro.message ? erro.message : "tente de novo em instantes.")
     }`
     // Registrar a falha nunca troca o motivo que o atendente vai ler.
     if (aoFalhar) await aoFalhar(motivo).catch(() => {})
