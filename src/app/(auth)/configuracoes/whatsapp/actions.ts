@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
-import { numeroTesteHabilitado } from "./numero-teste"
 import { clienteGatewayDoAmbiente } from "@/lib/whatsapp/gateway/cliente"
 import {
   criarConexaoDoGateway,
@@ -534,6 +533,8 @@ export async function sincronizarEstadoDoNumero(
   return { estado: resultado.estado.state }
 }
 
+const NUMERO_EM_OUTRA_EMPRESA = "Este número já está conectado em outra empresa."
+
 export async function completarConexaoWhatsApp(params: {
   code: string
   phoneNumberId: string
@@ -560,6 +561,18 @@ export async function completarConexaoWhatsApp(params: {
     .maybeSingle()
 
   if (existente) return { erro: "Já existe um número conectado" }
+
+  // B44-01: um número da Meta é de uma empresa só. Confere antes de falar com a Meta,
+  // pela chave de serviço, porque o navegador só enxerga as conexões da própria empresa.
+  const service = createServiceClient()
+  const { data: emOutraEmpresa } = await service
+    .from("whatsapp_connections")
+    .select("id")
+    .eq("phone_number_id", params.phoneNumberId)
+    .neq("workspace_id", workspaceId)
+    .limit(1)
+
+  if (emOutraEmpresa?.length) return { erro: NUMERO_EM_OUTRA_EMPRESA }
 
   const appId = process.env.NEXT_PUBLIC_META_APP_ID!
   const appSecret = process.env.META_APP_SECRET!
@@ -621,7 +634,8 @@ export async function completarConexaoWhatsApp(params: {
     return { erro: "Número registrado mas não foi possível configurar o recebimento de mensagens. Tente novamente." }
   }
 
-  const { error } = await ssrClient
+  // B44-01: criar conexão é só do servidor; o navegador não grava mais nesta tabela.
+  const { error } = await service
     .from("whatsapp_connections")
     .insert({
       workspace_id: workspaceId,
@@ -633,56 +647,9 @@ export async function completarConexaoWhatsApp(params: {
       access_token: accessToken,
     })
 
+  // Outra empresa gravou o mesmo número entre a conferência e aqui: o índice único recusa.
+  if (error?.code === "23505") return { erro: NUMERO_EM_OUTRA_EMPRESA }
   if (error) return { erro: "Não foi possível conectar o número. Tente novamente." }
-
-  revalidatePath("/configuracoes/whatsapp")
-  return {}
-}
-
-// TEMPORÁRIO — remover após aprovação da Meta
-export async function conectarNumeroTeste(): Promise<{ erro?: string }> {
-  if (!numeroTesteHabilitado()) return { erro: "O número de teste não está disponível neste ambiente." }
-
-  const ssrClient = await createSsrClient()
-  const { data: { user } } = await ssrClient.auth.getUser()
-  if (!user) return { erro: "Não autorizado" }
-
-  const { data: perfil } = await ssrClient
-    .from("profiles")
-    .select("role, workspace_id")
-    .eq("id", user.id)
-    .single()
-
-  if (perfil?.role !== "admin") return { erro: "Sem permissão" }
-
-  const { data: existente } = await ssrClient
-    .from("whatsapp_connections")
-    .select("id")
-    .eq("workspace_id", perfil.workspace_id)
-    .maybeSingle()
-
-  if (existente) return { erro: "Já existe um número conectado" }
-
-  const accessToken = process.env.META_TEST_ACCESS_TOKEN
-  if (!accessToken) return { erro: "META_TEST_ACCESS_TOKEN não configurado" }
-
-  const phoneNumberId = process.env.META_TEST_PHONE_NUMBER_ID
-  const wabaId = process.env.META_TEST_WABA_ID
-  if (!phoneNumberId || !wabaId) return { erro: "META_TEST_PHONE_NUMBER_ID ou META_TEST_WABA_ID não configurados" }
-
-  const { error } = await ssrClient
-    .from("whatsapp_connections")
-    .insert({
-      workspace_id: perfil.workspace_id,
-      phone_number: "+1 555 631 2003",
-      display_name: "Número de Teste Meta",
-      status: "connected",
-      waba_id: wabaId,
-      phone_number_id: phoneNumberId,
-      access_token: accessToken,
-    })
-
-  if (error) return { erro: "Erro ao salvar: " + error.message }
 
   revalidatePath("/configuracoes/whatsapp")
   return {}
@@ -769,7 +736,8 @@ export async function desconectarWhatsApp(
 
   if (perfil?.role !== "admin") return { erro: "Sem permissão" }
 
-  const { error } = await ssrClient
+  // B44-01: alterar conexão é só do servidor; o filtro da empresa fica.
+  const { error } = await createServiceClient()
     .from("whatsapp_connections")
     .update({ status: "disconnected" })
     .eq("id", id)
@@ -796,7 +764,8 @@ export async function reconectarWhatsApp(
 
   if (perfil?.role !== "admin") return { erro: "Sem permissão" }
 
-  const { error } = await ssrClient
+  // B44-01: alterar conexão é só do servidor; o filtro da empresa fica.
+  const { error } = await createServiceClient()
     .from("whatsapp_connections")
     .update({ status: "connected" })
     .eq("id", id)

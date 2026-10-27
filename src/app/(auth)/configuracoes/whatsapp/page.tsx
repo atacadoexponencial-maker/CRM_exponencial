@@ -7,7 +7,6 @@ import {
 } from "./actions"
 import { AcoesWhatsApp } from "./acoes-whatsapp"
 import { WizardConexao } from "./wizard-conexao"
-import { numeroTesteHabilitado } from "./numero-teste"
 import { ListaNumeros } from "./canal-direto/lista-numeros"
 import type { NumeroConectado } from "./canal-direto/cartao-numero"
 import type { EstadoConexao } from "./canal-direto/estado-badge"
@@ -64,7 +63,7 @@ export default async function WhatsAppPage() {
       <ListaNumeros
         numeros={numeros}
         termoAceito={termoAceito}
-        fluxoMeta={conexao ? null : <WizardConexao mostrarNumeroTeste={numeroTesteHabilitado()} />}
+        fluxoMeta={conexao ? null : <WizardConexao />}
       />
 
       {/* O passo de conexão da Meta vive na escolha de canal, acima; aqui ficam

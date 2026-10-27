@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { completarConexaoWhatsApp, conectarNumeroTeste } from "./actions"
+import { completarConexaoWhatsApp } from "./actions"
 
 declare global {
   interface Window {
@@ -30,13 +30,10 @@ function FacebookIcon() {
   )
 }
 
-/** B21-05: o bloco do número de teste da Meta só aparece onde a variável o libera. */
-export function WizardConexao({ mostrarNumeroTeste = false }: { mostrarNumeroTeste?: boolean }) {
+export function WizardConexao() {
   const router = useRouter()
   const [step, setStep] = useState<Step>("intro")
   const [erro, setErro] = useState<string | null>(null)
-  const [erroTeste, setErroTeste] = useState<string | null>(null)
-  const [conectandoTeste, setConectandoTeste] = useState(false)
   const pendingData = useRef<{ phoneNumberId?: string; wabaId?: string }>({})
 
   useEffect(() => {
@@ -132,18 +129,6 @@ export function WizardConexao({ mostrarNumeroTeste = false }: { mostrarNumeroTes
     )
   }
 
-  async function handleConectarTeste() {
-    setErroTeste(null)
-    setConectandoTeste(true)
-    const resultado = await conectarNumeroTeste()
-    setConectandoTeste(false)
-    if (resultado.erro) {
-      setErroTeste(resultado.erro)
-      return
-    }
-    router.push("/chat")
-  }
-
   const stepAtivo = step === "finalizando" ? 2 : 1
 
   return (
@@ -211,24 +196,6 @@ export function WizardConexao({ mostrarNumeroTeste = false }: { mostrarNumeroTes
           <FacebookIcon />
           {step === "finalizando" ? "Finalizando configuração..." : "Continuar com o Facebook"}
         </Button>
-
-        {mostrarNumeroTeste && (
-          <div className="flex flex-col items-center gap-1">
-            <p className="text-xs text-muted-foreground">
-              Ambiente de teste (aguardando aprovação da Meta)
-            </p>
-            {erroTeste && (
-              <p className="text-xs text-erro">{erroTeste}</p>
-            )}
-            <button
-              onClick={handleConectarTeste}
-              disabled={conectandoTeste || step !== "intro"}
-              className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
-            >
-              {conectandoTeste ? "Conectando..." : "Usar número de teste"}
-            </button>
-          </div>
-        )}
       </div>
     </div>
   )
