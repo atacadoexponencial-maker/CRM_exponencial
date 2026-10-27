@@ -8,7 +8,7 @@ import { normalizarTexto, type ErroPlanilha, type ProdutoPlanilha } from "./plan
 import { chaveCombinacao, type TipoVariacao } from "./combinacoes"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { baixarFoto } from "./baixar-foto"
-import { BUCKET_CATALOGO } from "./regras"
+import { BUCKET_CATALOGO, caminhoDaEmpresa } from "./regras"
 import { detalheDaGrade, faixasDoBanco, faixasParaBanco, gradeDoBanco, validarGrade, type FaixaPreco, type GradeFechada } from "./regras-de-venda"
 
 const formatarPreco = (valor: number) => valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
@@ -322,7 +322,8 @@ export async function gravarImportacao(supabase: SupabaseClient, workspaceId: st
     }
     // Fotos substituídas saem do armazenamento, como no editor.
     if (e && fotos !== null) {
-      const antigas = e.fotos.filter((c) => !fotos.includes(c))
+      // B44-07: só apaga arquivo da pasta da empresa; o banco pode ter caminho de fora.
+      const antigas = e.fotos.filter((c) => !fotos.includes(c) && caminhoDaEmpresa(c, workspaceId, "produtos"))
       if (antigas.length) await armazenamento.remove(antigas).catch(() => {})
     }
     if (e) resultado.atualizados++

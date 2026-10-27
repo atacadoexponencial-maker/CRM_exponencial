@@ -8,7 +8,7 @@ import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import type { CategoriaCatalogo, ProdutoResumo } from "./components/lista-produtos"
 import type { FotoProduto, ProdutoEditavel } from "./components/editor-produto"
-import { BUCKET_CATALOGO, ESTOQUE_MAXIMO, FORMATOS_FOTO, MAX_FOTOS, MAX_OPCOES_POR_TIPO, TAMANHO_MAX_FOTO } from "@/lib/catalogo/regras"
+import { BUCKET_CATALOGO, caminhoDaEmpresa, ESTOQUE_MAXIMO, FORMATOS_FOTO, MAX_FOTOS, MAX_OPCOES_POR_TIPO, TAMANHO_MAX_FOTO } from "@/lib/catalogo/regras"
 import { chaveCombinacao, combinacoes, MAX_TIPOS_VARIACAO, type TipoVariacao } from "@/lib/catalogo/combinacoes"
 import { faixasDoBanco, faixasParaBanco, gradeDoBanco, validarFaixas, validarGrade, validarMinimo } from "@/lib/catalogo/regras-de-venda"
 
@@ -172,7 +172,7 @@ export async function salvarProduto(produto: ProdutoEditavel): Promise<Resultado
   if (produto.precoDe !== null && !(produto.precoDe > produto.preco)) return { erro: "O preço \"de\" precisa ser maior que o preço." }
   const caminhos = produto.fotos.map((f) => f.id)
   if (caminhos.length > MAX_FOTOS) return { erro: `O produto aceita até ${MAX_FOTOS} fotos.` }
-  if (caminhos.some((c) => !c.startsWith(`${perfil.workspace_id}/produtos/`))) return { erro: "Foto inválida. Envie de novo." }
+  if (caminhos.some((c) => !caminhoDaEmpresa(c, perfil.workspace_id, "produtos"))) return { erro: "Foto inválida. Envie de novo." }
   if (!(await categoriaDaEmpresa(supabase, perfil.workspace_id, produto.categoriaId))) return { erro: "Categoria não encontrada." }
   const variacoes = validarVariacoes(produto.tipos, produto.estoque)
   if ("erro" in variacoes) return { erro: variacoes.erro }
@@ -229,7 +229,8 @@ export async function salvarProduto(produto: ProdutoEditavel): Promise<Resultado
   if (error) return { erro: "Não deu para salvar o produto. Tente de novo." }
   if (!(await gravarEstoque(supabase, produto.id, variacoes))) return { erro: "Não deu para salvar o estoque. Tente de novo." }
 
-  const removidas = ((antes.photos as string[]) ?? []).filter((c) => !caminhos.includes(c))
+  // B44-07: só apaga arquivo da pasta da empresa; o banco pode ter caminho de fora.
+  const removidas = ((antes.photos as string[]) ?? []).filter((c) => !caminhos.includes(c) && caminhoDaEmpresa(c, perfil.workspace_id, "produtos"))
   if (removidas.length) await createServiceClient().storage.from(BUCKET_CATALOGO).remove(removidas).catch(() => {})
   return { id: produto.id }
 }
@@ -245,7 +246,8 @@ export async function excluirProduto(id: string): Promise<Resultado> {
     .select("photos")
     .maybeSingle()
   if (!data) return { erro: "Produto não encontrado." }
-  const fotos = (data.photos as string[]) ?? []
+  // B44-07: só apaga arquivo da pasta da empresa; o banco pode ter caminho de fora.
+  const fotos = ((data.photos as string[]) ?? []).filter((c) => caminhoDaEmpresa(c, s.perfil.workspace_id, "produtos"))
   if (fotos.length) await createServiceClient().storage.from(BUCKET_CATALOGO).remove(fotos).catch(() => {})
   return {}
 }

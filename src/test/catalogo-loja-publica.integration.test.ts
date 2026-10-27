@@ -158,9 +158,10 @@ describe("B16-08 — Aparência da loja aplicada na vitrine", { timeout: 30_000 
     expect((await salvarAparencia({ ...TEMA_PADRAO, logoUrl: "https://outro-site.com/logo.png" })).erro).toMatch(/Imagem inválida/)
   })
 
-  it("logo aceita SVG; banner não", async () => {
+  // B44-07: a logo também deixou de aceitar SVG (decisão da Marcelle, 27/10/2026).
+  it("logo e banner não aceitam SVG", async () => {
     await entrarComo(emailA)
-    expect("token" in (await prepararEnvioImagemLoja("logo", { tipo: "image/svg+xml", tamanho: 1000 }))).toBe(true)
+    expect(await prepararEnvioImagemLoja("logo", { tipo: "image/svg+xml", tamanho: 1000 })).toMatchObject({ erro: expect.stringMatching(/PNG, JPG ou WebP/) })
     expect(await prepararEnvioImagemLoja("banner", { tipo: "image/svg+xml", tamanho: 1000 })).toMatchObject({ erro: expect.stringMatching(/PNG, JPG ou WebP/) })
     expect(await prepararEnvioImagemLoja("logo", { tipo: "image/png", tamanho: 3 * 1024 * 1024 })).toMatchObject({ erro: expect.stringMatching(/2 MB/) })
   })

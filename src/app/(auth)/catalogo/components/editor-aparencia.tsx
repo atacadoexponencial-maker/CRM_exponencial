@@ -146,7 +146,7 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
   async function escolherImagem(tipo: TipoImagemLoja, arquivo: File | undefined) {
     if (!arquivo) return
     if (!FORMATOS_IMAGEM[tipo].includes(arquivo.type)) {
-      setErroImagem((e) => ({ ...e, [tipo]: tipo === "logo" ? "Use PNG, JPG, SVG ou WebP." : "Use PNG, JPG ou WebP." }))
+      setErroImagem((e) => ({ ...e, [tipo]: "Use PNG, JPG ou WebP." }))
       return
     }
     if (arquivo.size > LIMITE_IMAGEM[tipo]) {
@@ -211,7 +211,7 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          {tipo === "logo" ? "PNG, JPG, SVG ou WebP, até 2 MB. Sem logo, aparece o nome da loja." : "PNG, JPG ou WebP, até 5 MB. Formato largo (ex.: 1500 × 500)."}
+          {tipo === "logo" ? "PNG, JPG ou WebP, até 2 MB. Sem logo, aparece o nome da loja." : "PNG, JPG ou WebP, até 5 MB. Formato largo (ex.: 1500 × 500)."}
         </p>
         {erroImagem[tipo] && <p className="text-xs text-erro">{erroImagem[tipo]}</p>}
         {tipo === "logo" && avisoLogo && (

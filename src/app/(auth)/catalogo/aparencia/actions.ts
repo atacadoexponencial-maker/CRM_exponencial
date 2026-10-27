@@ -5,7 +5,7 @@
 import { randomUUID } from "node:crypto"
 import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
-import { BUCKET_CATALOGO, FORMATOS_FOTO, FORMATOS_LOGO, IDS_FONTE, LAYOUTS_VITRINE, TAMANHO_MAX_BANNER, TAMANHO_MAX_LOGO } from "@/lib/catalogo/regras"
+import { BUCKET_CATALOGO, caminhoDaEmpresa, FORMATOS_FOTO, FORMATOS_LOGO, IDS_FONTE, LAYOUTS_VITRINE, TAMANHO_MAX_BANNER, TAMANHO_MAX_LOGO } from "@/lib/catalogo/regras"
 import { temaDasConfiguracoes, urlPublicaImagem } from "@/lib/catalogo/loja-publica"
 import { corValida, type TemaLoja } from "@/app/loja/components/tema"
 
@@ -33,7 +33,7 @@ export async function prepararEnvioImagemLoja(tipo: "logo" | "banner", arquivo: 
   if (!s.ok) return { erro: s.erro }
   const formatos = tipo === "logo" ? FORMATOS_LOGO : FORMATOS_FOTO
   const extensao = formatos[arquivo.tipo]
-  if (!extensao) return { erro: tipo === "logo" ? "Use PNG, JPG, SVG ou WebP." : "Use PNG, JPG ou WebP." }
+  if (!extensao) return { erro: "Use PNG, JPG ou WebP." }
   if (arquivo.tamanho > (tipo === "logo" ? TAMANHO_MAX_LOGO : TAMANHO_MAX_BANNER)) return { erro: `A imagem passa de ${tipo === "logo" ? 2 : 5} MB.` }
   const caminho = `${s.perfil.workspace_id}/marca/${tipo}-${randomUUID()}.${extensao}`
   const { data, error } = await createServiceClient().storage.from(BUCKET_CATALOGO).createSignedUploadUrl(caminho)
@@ -47,7 +47,7 @@ function caminhoDaMarca(url: string | null, workspaceId: string): string | null 
   const prefixo = urlPublicaImagem("")
   if (!url.startsWith(prefixo)) return false
   const caminho = url.slice(prefixo.length)
-  return caminho.startsWith(`${workspaceId}/marca/`) ? caminho : false
+  return caminhoDaEmpresa(caminho, workspaceId, "marca") ? caminho : false
 }
 
 export async function salvarAparencia(tema: TemaLoja): Promise<{ erro?: string; aviso?: string }> {
@@ -83,7 +83,10 @@ export async function salvarAparencia(tema: TemaLoja): Promise<{ erro?: string; 
   })
   if (error) return { erro: "Não deu para salvar a aparência. Tente de novo." }
 
-  const trocados = [antes?.logo_path, antes?.banner_path].filter((c): c is string => !!c && c !== logo && c !== banner)
+  // B44-07: só apaga arquivo da pasta da empresa; o banco pode ter caminho de fora.
+  const trocados = [antes?.logo_path, antes?.banner_path].filter(
+    (c): c is string => caminhoDaEmpresa(c, perfil.workspace_id, "marca") && c !== logo && c !== banner
+  )
   if (trocados.length) await createServiceClient().storage.from(BUCKET_CATALOGO).remove(trocados).catch(() => {})
   return { aviso: "Salvo. A loja já abre com a aparência nova." }
 }
