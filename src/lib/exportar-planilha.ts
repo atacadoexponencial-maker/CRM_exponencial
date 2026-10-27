@@ -93,7 +93,9 @@ export function gerarCsv<T>(colunas: ColunaPlanilha<T>[], linhas: T[]): string {
     if (coluna.tipo === "moeda") return Number(bruto).toFixed(2).replace(".", ",")
     if (coluna.tipo === "numero") return String(bruto).replace(".", ",")
     if (coluna.tipo === "percentual") return `${String(bruto).replace(".", ",")}%`
-    const texto = String(bruto)
+    // B44-08: texto que começa como fórmula (o nome do comprador da loja, por exemplo)
+    // ganha um apóstrofo, que o Excel e o Google Planilhas leem como "isto é texto".
+    const texto = /^[=+\-@\t\r]/.test(String(bruto)) ? `'${String(bruto)}` : String(bruto)
     return /[";\r\n]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto
   }
   const titulos = colunas.map((c) => (/[";]/.test(c.titulo) ? `"${c.titulo.replace(/"/g, '""')}"` : c.titulo))

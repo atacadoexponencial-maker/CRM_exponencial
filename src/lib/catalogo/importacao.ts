@@ -4,7 +4,7 @@
 import { randomUUID } from "node:crypto"
 import * as XLSX from "xlsx"
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { normalizarTexto, type ErroPlanilha, type ProdutoPlanilha } from "./planilha"
+import { MAX_LINHAS_PLANILHA, normalizarTexto, type ErroPlanilha, type ProdutoPlanilha } from "./planilha"
 import { chaveCombinacao, type TipoVariacao } from "./combinacoes"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { baixarFoto } from "./baixar-foto"
@@ -26,7 +26,17 @@ function decodificarCsv(bytes: ArrayBuffer): string {
   }
 }
 
-/** Matriz de células da primeira aba. CSV é lido como texto (sem converter números à moda americana). */
+/** B44-08: a planilha tem célula além do limite de produtos (cabeçalho + MAX_LINHAS_PLANILHA). */
+export class ErroPlanilhaGrande extends Error {}
+
+/**
+ * Matriz de células da primeira aba. CSV é lido como texto (sem converter números à moda americana).
+ *
+ * B44-08: a área que o arquivo declara (`!ref`) não é confiável. Um arquivo de poucos
+ * KB pode declarar A1:XFD1048576, e montar a matriz por ela esgota a memória. A área
+ * passa a ser a das células que existem de verdade, e célula além do limite recusa a
+ * planilha antes de montar a matriz.
+ */
 export function lerArquivoPlanilha(nome: string, bytes: ArrayBuffer): unknown[][] {
   const csv = nome.toLowerCase().endsWith(".csv")
   const livro = csv
@@ -34,6 +44,19 @@ export function lerArquivoPlanilha(nome: string, bytes: ArrayBuffer): unknown[][
     : XLSX.read(new Uint8Array(bytes), { type: "array" })
   const aba = livro.Sheets[livro.SheetNames[0]]
   if (!aba) return []
+
+  let ultimaLinha = -1
+  let ultimaColuna = -1
+  for (const endereco of Object.keys(aba)) {
+    if (endereco.startsWith("!")) continue
+    const { r, c } = XLSX.utils.decode_cell(endereco)
+    if (r > ultimaLinha) ultimaLinha = r
+    if (c > ultimaColuna) ultimaColuna = c
+  }
+  if (ultimaLinha < 0) return []
+  if (ultimaLinha > MAX_LINHAS_PLANILHA) throw new ErroPlanilhaGrande()
+  aba["!ref"] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: ultimaLinha, c: ultimaColuna } })
+
   return XLSX.utils.sheet_to_json<unknown[]>(aba, { header: 1, raw: true, defval: null, blankrows: true })
 }
 

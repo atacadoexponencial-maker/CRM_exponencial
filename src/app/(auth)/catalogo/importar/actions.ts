@@ -5,7 +5,7 @@
 
 import { sessaoAtual } from "@/lib/sessao"
 import { EXTENSOES_PLANILHA, interpretarPlanilha, MAX_LINHAS_PLANILHA, TAMANHO_MAX_PLANILHA } from "@/lib/catalogo/planilha"
-import { gravarImportacao, lerArquivoPlanilha, montarPrevia, type PreviaImportacao, type ResultadoGravacao } from "@/lib/catalogo/importacao"
+import { ErroPlanilhaGrande, gravarImportacao, lerArquivoPlanilha, montarPrevia, type PreviaImportacao, type ResultadoGravacao } from "@/lib/catalogo/importacao"
 
 export type ResultadoPrevia = { erro: string } | { previa: PreviaImportacao }
 export type ResultadoLote = { erro: string } | { lote: ResultadoGravacao }
@@ -27,7 +27,9 @@ async function lerEConferir(dados: FormData) {
   let matriz: unknown[][]
   try {
     matriz = lerArquivoPlanilha(arquivo.name, await arquivo.arrayBuffer())
-  } catch {
+  } catch (erro) {
+    // B44-08: célula além do limite recusa antes de montar a planilha inteira.
+    if (erro instanceof ErroPlanilhaGrande) return { erro: `A planilha passa de ${MAX_LINHAS_PLANILHA.toLocaleString("pt-BR")} linhas.` }
     return { erro: "Não deu para ler o arquivo. Abra no Excel ou no Google Planilhas e salve de novo." }
   }
 
