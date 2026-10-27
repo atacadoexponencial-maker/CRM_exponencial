@@ -231,11 +231,11 @@ desliga.
 - **Quando** a tabela é desenhada
 - **Então** nenhuma célula quebra palavra no meio, e a tabela rola de lado quando não cabe, com todas as colunas inteiras
 
-#### CA-B46-27 — Só a busca e a classificação ficam à vista · prova: automática
+#### CA-B46-27 — Tipo e atendente recolhidos · prova: automática
 
 - **Dado** a tela Contatos
 - **Quando** ela abre
-- **Então** ficam à vista a busca e a faixa de classificação; tipo, atendente e salvos ficam atrás de "Filtrar", com o número de filtros ligados no botão
+- **Então** ficam à vista a busca, os filtros salvos da empresa e a faixa de classificação; tipo e atendente ficam atrás de "Mais filtros", com o número dos ligados no botão
 
 #### CA-B46-28 — Contatos no celular · prova: manual
 
