@@ -198,9 +198,11 @@ export function calcularMetricas(
       return d >= cursor && d < proximo
     }).length
     leadsPorSemana.push({
+      // B46-01: as semanas começam à meia-noite do processo (UTC na Vercel); o
+      // rótulo diz a data desse começo, no mesmo relógio da conta
       label: porMes
-        ? cursor.toLocaleDateString("pt-BR", { month: "2-digit", year: "2-digit" })
-        : cursor.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+        ? cursor.toLocaleDateString("pt-BR", { timeZone: "UTC", month: "2-digit", year: "2-digit" })
+        : cursor.toLocaleDateString("pt-BR", { timeZone: "UTC", day: "2-digit", month: "2-digit" }),
       valor,
     })
     cursor.setTime(proximo.getTime())

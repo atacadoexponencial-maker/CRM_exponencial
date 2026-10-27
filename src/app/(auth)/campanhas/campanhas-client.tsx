@@ -1,5 +1,6 @@
 "use client"
 
+import { formatarDataEHora } from "@/lib/datas"
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -176,7 +177,7 @@ export function CampanhasClient({ campanhasIniciais }: { campanhasIniciais: Camp
                   <td className="px-4 py-3 text-muted-foreground">{c.status === "rascunho" ? "—" : c.totalDestinatarios}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {c.dataEnvio
-                      ? new Date(c.dataEnvio).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
+                      ? formatarDataEHora(c.dataEnvio)
                       : "—"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{c.criador ?? "—"}</td>

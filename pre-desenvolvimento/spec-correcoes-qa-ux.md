@@ -36,7 +36,7 @@ data aparece igual nos dois, e a tela não troca o texto ao carregar.
 #### CA-B46-02 — Nenhuma data na tela sem fuso · prova: automática
 
 - **Dado** o código das telas em `src/app` e `src/components`
-- **Quando** se procura `toLocaleString`, `toLocaleDateString` ou `toLocaleTimeString` sem `timeZone`
+- **Quando** se procura formatação de data (`toLocaleDateString`, `toLocaleTimeString`, `toLocaleString` de uma data ou `Intl.DateTimeFormat`) sem `timeZone`
 - **Então** não há nenhum: toda data passa pelo fuso da operação
 
 #### CA-B46-03 — Campanhas abrem sem erro de hidratação · prova: manual

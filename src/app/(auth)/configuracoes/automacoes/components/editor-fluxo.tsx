@@ -8,6 +8,7 @@
 // O resultado do "Testar com um contato" deixa de valer quando o fluxo muda (B22-10),
 // e o teste só roda com o fluxo completo, como o Salvar (B22-11).
 
+import { formatarDiaDoMes, formatarHoraDoDia } from "@/lib/datas"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Background,
@@ -812,12 +813,9 @@ function EditorFluxoInterno({
   )
 }
 
-/** "13/10 às 14:32", no horário de quem está vendo. */
+/** "13/10 às 14:32", no horário da operação (B46-01). */
 function quandoFoiGuardado(iso: string): string {
-  const data = new Date(iso)
-  const dia = data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
-  const hora = data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-  return `${dia} às ${hora}`
+  return `${formatarDiaDoMes(iso)} às ${formatarHoraDoDia(iso)}`
 }
 
 /** Busca e lista de contatos do "Testar com um contato". */

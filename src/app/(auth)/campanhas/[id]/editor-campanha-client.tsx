@@ -1,5 +1,6 @@
 "use client"
 
+import { formatarDataDoCalendario } from "@/lib/datas"
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { FileText, Image as ImageIcon, Info, Loader2, MessageSquare, Paperclip, SlidersHorizontal } from "lucide-react"
@@ -635,7 +636,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
                 {agendamento === "agora"
                   ? "Imediato"
                   : dataAgendada
-                    ? `${new Date(dataAgendada + "T00:00:00").toLocaleDateString("pt-BR")} às ${horaAgendada || "09:00"}`
+                    ? `${formatarDataDoCalendario(dataAgendada)} às ${horaAgendada || "09:00"}`
                     : "—"}
               </span>
             </div>

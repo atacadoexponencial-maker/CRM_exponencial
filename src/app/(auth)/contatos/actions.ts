@@ -1,5 +1,6 @@
 "use server"
 
+import { formatarDataDoCalendario } from "@/lib/datas"
 import { enderecoDoFunil, lerNomesDosFunis } from "@/lib/funis"
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
@@ -432,7 +433,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
     cards,
     compras: rawCompras.map((p) => ({
       id: p.id,
-      data: new Date(p.data + "T00:00:00").toLocaleDateString("pt-BR"),
+      data: formatarDataDoCalendario(p.data),
       valor: Number(p.valor),
       pecas: p.pecas ?? null,
       desconto: p.desconto === null || p.desconto === undefined ? null : Number(p.desconto),

@@ -1,5 +1,6 @@
 "use server"
 
+import { formatarData, formatarDataEHora } from "@/lib/datas"
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import { dispararAutomacoes } from "@/lib/automacoes/fila"
@@ -398,7 +399,7 @@ export async function buscarDadosPainel(cardId: string): Promise<{ historico: Hi
   const historico: HistoricoEtapa[] = (historicoResult.data ?? []).map((row) => ({
     deEtapa: rotulo(row.de_etapa),
     etapa: rotulo(row.para_etapa),
-    data: new Date(row.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }),
+    data: formatarDataEHora(row.created_at),
     responsavel: (row.alterado_por as unknown as { name: string } | null)?.name,
   }))
 
@@ -406,7 +407,7 @@ export async function buscarDadosPainel(cardId: string): Promise<{ historico: Hi
     id: row.id,
     autor: (row.autor as unknown as { name: string } | null)?.name ?? "Desconhecido",
     texto: row.texto,
-    data: new Date(row.created_at).toLocaleDateString("pt-BR"),
+    data: formatarData(row.created_at),
   }))
 
   return { historico, notas }
@@ -488,7 +489,7 @@ async function lerCardsDoFunil(funil: string): Promise<CardBase[]> {
     contactId: row.contact_id,
     etapa: row.etapa,
     tempoNaEtapa: calcularTempoNaEtapa(row.etapa_changed_at),
-    dataEntradaEtapa: new Date(row.etapa_changed_at).toLocaleDateString("pt-BR"),
+    dataEntradaEtapa: formatarData(row.etapa_changed_at),
     tempoNoFunil: calcularTempoNaEtapa(row.created_at),
     atendente: (row.atendente as unknown as { name: string } | null)?.name ?? null,
     contato: {

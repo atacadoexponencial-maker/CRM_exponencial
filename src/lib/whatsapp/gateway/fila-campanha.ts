@@ -10,6 +10,7 @@
 // mais de onze horas, e passam da janela. Sem ver isso antes de confirmar, o
 // cliente acha que a campanha travou e dispara de novo.
 
+import { FUSO_DA_OPERACAO } from "@/lib/datas"
 import { GatewayRecusou, type ClienteGateway } from "./cliente"
 import type { SaudeDoNumero } from "./saude"
 import type { RitmoDoNumero } from "./tipos"
@@ -131,6 +132,7 @@ function formatarDuracao(minutos: number): string {
 
 function formatarQuando(data: Date): string {
   return data.toLocaleString("pt-BR", {
+    timeZone: FUSO_DA_OPERACAO,
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",

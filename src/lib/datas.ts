@@ -38,6 +38,19 @@ const DATA_CURTA = new Intl.DateTimeFormat("pt-BR", {
   year: "numeric",
 })
 
+const DATA_E_HORA = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: FUSO_DA_OPERACAO,
+  dateStyle: "short",
+  timeStyle: "short",
+})
+
+const DATA = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: FUSO_DA_OPERACAO,
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+})
+
 /** Partes do dia no fuso da operação — o que `getDate()` daria se o processo rodasse lá. */
 function partesNoFuso(data: Date): { ano: number; mes: number; dia: number } {
   const partes = new Intl.DateTimeFormat("en-CA", {
@@ -82,6 +95,30 @@ export function formatarDiaEHora(iso: string): string {
 export function diasAte(iso: string, agora: Date = new Date()): number {
   // A diferença ao contrário: de agora até a data
   return diasDeDiferenca(agora, new Date(iso))
+}
+
+/** Dia e mês: `22/10`. */
+export function formatarDiaDoMes(iso: string): string {
+  return DIA_E_MES.format(new Date(iso))
+}
+
+/** Data e hora: `27/10/2026, 15:00`. É o histórico do card e as datas das campanhas (B46-01). */
+export function formatarDataEHora(iso: string): string {
+  return DATA_E_HORA.format(new Date(iso))
+}
+
+/** Só a data, no fuso da operação: `27/10/2026`. */
+export function formatarData(iso: string): string {
+  return DATA.format(new Date(iso))
+}
+
+/**
+ * Data de calendário guardada sem hora (`2026-10-27`), como a da compra: `27/10/2026`.
+ * Não passa por fuso, porque não é um instante: virar `Date` a deslocaria um dia (B46-01).
+ */
+export function formatarDataDoCalendario(dia: string): string {
+  const [ano, mes, d] = dia.slice(0, 10).split("-")
+  return `${d}/${mes}/${ano}`
 }
 
 /** Data curta: `15 abr. 2026`. */

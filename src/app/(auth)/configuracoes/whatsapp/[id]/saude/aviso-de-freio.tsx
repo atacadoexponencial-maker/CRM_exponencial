@@ -9,6 +9,7 @@
 // O botão de retomar só passa a funcionar na B4-04; aqui ele existe para a
 // forma ser aprovada. Banimento nunca oferece retomada.
 
+import { formatarDataEHora } from "@/lib/datas"
 import { Ban, OctagonPause } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { MotivoDoFreio, SaudeDoNumero } from "./tipos"
@@ -56,7 +57,7 @@ export function AvisoDeFreio({
         {freio.desde && (
           <span className="text-muted-foreground">
             {" "}
-            · desde {new Date(freio.desde).toLocaleString("pt-BR")}
+            · desde {formatarDataEHora(freio.desde)}
           </span>
         )}
       </p>
