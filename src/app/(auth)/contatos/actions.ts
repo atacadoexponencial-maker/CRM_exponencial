@@ -22,6 +22,7 @@ import {
 import { calcularClassificacao } from "./classificacao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { tirarDaLixeira } from "@/lib/lixeira"
+import { criarCardDeEntrada } from "@/lib/card-de-entrada"
 import { buscarEGuardarFotoDoContato, urlAssinadaDaFoto } from "@/lib/whatsapp/foto-de-perfil"
 import { dispararCamposAlterados, dispararDadosAlterados, dispararTagAdicionada } from "@/lib/automacoes/gatilhos-do-crm"
 import { normalizarWhatsapp, TELEFONE_INVALIDO } from "@/lib/telefone"
@@ -151,6 +152,9 @@ export async function criarContato(dados: {
     return { erro: "Erro ao criar contato. Tente novamente." }
   }
 
+  // B45-01: todo contato nasce com card na Entrada
+  const comCard = await criarCardDeEntrada(createServiceClient(), profile.workspace_id, data.id)
+
   // B38-02: o contato já existe; os campos conferidos são gravados nele.
   const gravado = await gravarValores(supabase, profile.workspace_id, data.id, campos)
   if (gravado.erro) return { id: data.id, erro: "Contato criado, mas os campos personalizados não foram salvos." }
@@ -167,6 +171,7 @@ export async function criarContato(dados: {
   // B29-02: a foto vem pelo canal direto, depois de o contato existir. Nunca falha.
   await buscarEGuardarFotoDoContato({ workspaceId: profile.workspace_id, contactId: data.id, telefone })
 
+  if (!comCard) return { id: data.id, erro: "Contato criado, mas o card no Funil de Entrada não foi criado." }
   return { id: data.id }
 }
 

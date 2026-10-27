@@ -107,7 +107,8 @@ describe("B16-10 — Pedidos no CRM e no perfil do contato", { timeout: 30_000 }
   it("o perfil do contato traz os pedidos e o evento na linha do tempo", async () => {
     // B21-02: o atendente só abre o perfil de contato dele — aqui, pelo card.
     const atendenteId = criados.userIds[0]
-    await service.from("pipeline_cards").insert({ workspace_id: ws, contact_id: contatoId, etapa: "lead", atendente_id: atendenteId })
+    // B45-01: o card na Entrada já nasceu com o pedido; ele ganha o atendente.
+    await service.from("pipeline_cards").update({ atendente_id: atendenteId }).eq("contact_id", contatoId).eq("funil", "entrada")
     await entrarComo(emailAtend)
     const perfil = await buscarDadosContato(contatoId)
     expect(perfil?.pedidosCatalogo).toEqual([expect.objectContaining({ numero: 1001, situacao: "em_atendimento" })])

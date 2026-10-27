@@ -8,6 +8,7 @@ import { buscarEGuardarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
 import { lerMensagemMeta } from "@/lib/whatsapp/mensagem-meta"
 import { escolherConversaDoNumero, nomeDoPerfil, statusAoReabrir } from "@/lib/whatsapp/recebimento"
 import { tirarDaLixeira } from "@/lib/lixeira"
+import { criarCardDeEntrada } from "@/lib/card-de-entrada"
 
 // Valida a assinatura X-Hub-Signature-256 que a Meta envia em todo webhook.
 // B21-06: sem META_APP_SECRET configurado, recusa (antes, a validação era pulada e
@@ -149,6 +150,8 @@ export async function POST(request: NextRequest) {
         .single()
       if (error || !newContact) return NextResponse.json({ error: "db error" }, { status: 500 })
       contact = newContact
+      // B45-01: todo contato nasce com card na Entrada
+      await criarCardDeEntrada(supabase, workspace_id, newContact.id)
     }
 
     // A caixa é por NÚMERO DONO, e não só por contato: o mesmo cliente que
