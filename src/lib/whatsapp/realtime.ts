@@ -49,8 +49,9 @@ async function transmitir(workspaceId: string, event: string, payload: unknown):
 
 /**
  * B21-01: a mensagem leva o texto, então não vai mais para o tópico da empresa toda.
- * Vai para `workspace:<id>:gestao` (Admin/Gerente) e para `usuario:<responsável>` —
- * conversa sem responsável só a gestão vê, como na caixa de entrada.
+ * Vai para `workspace:<id>:gestao` (Admin/Gerente) e para `usuario:<responsável>`.
+ * B45-03: conversa sem responsável vai para `workspace:<id>:sem-responsavel`, que
+ * toda a empresa ouve, como na caixa de entrada (fila aberta).
  */
 export async function transmitirMensagem(mensagem: MensagemTransmitida): Promise<void> {
   const { data: conversa } = await createServiceClient()
@@ -62,6 +63,8 @@ export async function transmitirMensagem(mensagem: MensagemTransmitida): Promise
 
   const topicos = [`workspace:${mensagem.workspace_id}:gestao`]
   if (conversa?.assigned_to) topicos.push(`usuario:${conversa.assigned_to}`)
+  // B45-03: fila aberta: a conversa sem responsável chega a todos os atendentes
+  else if (conversa) topicos.push(`workspace:${mensagem.workspace_id}:sem-responsavel`)
 
   await enviarAoRealtime(topicos.map((topic) => ({ topic, event: "nova_mensagem", payload: mensagem })))
 }

@@ -43,8 +43,9 @@ async function criarUsuario(ws: string, nome: string, role: string) {
 }
 
 async function criarContatoComCard(nome: string, sufixo: string, atendente: string) {
+  // B45-02: o dono do contato é o mesmo atendente do card
   const contato = (await service.from("contacts")
-    .insert({ workspace_id: empresa, name: nome, phone_number: `55218${sufixo}${String(ts).slice(-7)}` })
+    .insert({ workspace_id: empresa, name: nome, phone_number: `55218${sufixo}${String(ts).slice(-7)}`, atendente_id: atendente })
     .select("id").single()).data!.id
   const card = (await service.from("pipeline_cards")
     .insert({ workspace_id: empresa, contact_id: contato, etapa: "lead", atendente_id: atendente })

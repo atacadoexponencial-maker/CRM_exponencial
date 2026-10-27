@@ -44,8 +44,9 @@ async function criarUsuario(nome: string, role: string) {
 }
 
 async function criarConversa(nome: string, sufixo: string, responsavel: string | null) {
+  // B45-02: o dono do contato é o mesmo responsável da conversa
   const contato = (await service.from("contacts")
-    .insert({ workspace_id: empresa, name: nome, phone_number: `55219${sufixo}${String(ts).slice(-7)}` })
+    .insert({ workspace_id: empresa, name: nome, phone_number: `55219${sufixo}${String(ts).slice(-7)}`, atendente_id: responsavel })
     .select("id").single()).data!.id
   const conversa = (await service.from("conversations")
     .insert({ workspace_id: empresa, contact_id: contato, assigned_to: responsavel, status: responsavel ? "em_atendimento" : "em_espera" })
@@ -86,11 +87,12 @@ describe("B21-01 — Atendente só alcança as conversas dele", { timeout: 40_00
     await service.from("conversation_labels").insert({ conversation_id: conversaBia, label_id: etiqueta })
     const navAna = navegadores[ana]
 
+    // B45-03: fila aberta: a conversa sem responsável também aparece; a da colega, não
     const { data: conversas } = await navAna.from("conversations").select("id").eq("workspace_id", empresa)
-    expect((conversas ?? []).map((c) => c.id)).toEqual([conversaAna])
+    expect((conversas ?? []).map((c) => c.id).sort()).toEqual([conversaAna, conversaSemDono].sort())
 
     const { data: mensagens } = await navAna.from("messages").select("content").eq("workspace_id", empresa)
-    expect((mensagens ?? []).map((m) => m.content)).toEqual(["segredo de Cliente da Ana"])
+    expect((mensagens ?? []).map((m) => m.content).sort()).toEqual(["segredo de Cliente da Ana", "segredo de Sem dono"])
 
     const { data: vinculos } = await navAna.from("conversation_labels").select("conversation_id").eq("conversation_id", conversaBia)
     expect(vinculos ?? []).toHaveLength(0)

@@ -258,8 +258,12 @@ describe("B41-01 — Funis da empresa", { timeout: 60_000 }, () => {
       { workspace_id: wsA, contact_id: contatos.rosa, funil: feira.id, etapa: feira.etapas[0].id, atendente_id: pessoas.atendente2.id },
       { workspace_id: wsA, contact_id: contatos.sol, funil: feira.id, etapa: feira.etapas[0].id },
     ])
+    // B45-02: o dono do contato é o mesmo do card
+    await service.from("contacts").update({ atendente_id: pessoas.atendente1.id }).eq("id", contatos.bella)
+    await service.from("contacts").update({ atendente_id: pessoas.atendente2.id }).eq("id", contatos.rosa)
     como("atendente1")
-    expect((await listarCardsDoFunil(feira.id)).map((c) => c.contato.nome)).toEqual(["Bella Kids"])
+    // B45-03 (PER-B45-13): os cards sem atendente (Sol e Loja Março) também aparecem; o da colega, não
+    expect((await listarCardsDoFunil(feira.id)).map((c) => c.contato.nome).sort()).toEqual(["Bella Kids", "Loja Março", "Sol Atacado"])
     como("admin")
     expect((await listarCardsDoFunil(feira.id)).map((c) => c.contato.nome).sort()).toEqual(["Bella Kids", "Loja Março", "Rosa Modas", "Sol Atacado"])
   })
@@ -270,7 +274,8 @@ describe("B41-01 — Funis da empresa", { timeout: 60_000 }, () => {
     como("gerente")
     await atribuirAtendente(card!.id, pessoas.atendente2.id)
     como("atendente2")
-    expect((await listarCardsDoFunil(feira.id)).map((c) => c.contato.nome).sort()).toEqual(["Rosa Modas", "Sol Atacado"])
+    // B45-03 (PER-B45-13): a Loja Março, sem atendente, também aparece
+    expect((await listarCardsDoFunil(feira.id)).map((c) => c.contato.nome).sort()).toEqual(["Loja Março", "Rosa Modas", "Sol Atacado"])
     expect((await removerCardDoFunil(card!.id)).erro).toBe("Sem permissão")
 
     como("gerente")

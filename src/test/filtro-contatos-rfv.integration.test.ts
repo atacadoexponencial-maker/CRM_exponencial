@@ -85,6 +85,8 @@ beforeAll(async () => {
   for (const c of contatos) ids[c.name as string] = c.id as string
 
   // A e A2 são da carteira da Carla (atendente do contato, B33-04) e têm card com ela.
+  // B45-03: os outros são do Admin; sem dono, a Carla também os veria (fila aberta).
+  await service.from("contacts").update({ atendente_id: adminId }).eq("workspace_id", ws)
   await service.from("contacts").update({ atendente_id: atendenteId }).in("id", [ids["A"], ids["A2"]])
   await service.from("pipeline_cards").insert([
     { workspace_id: ws, contact_id: ids["A"], funil: "entrada", etapa: "lead", atendente_id: atendenteId },

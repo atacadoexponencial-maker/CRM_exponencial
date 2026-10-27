@@ -537,36 +537,10 @@ export async function listarContatos(opcoes: OpcoesListagemContatos = {}): Promi
   const { supabase, user, perfil: profile } = await sessaoAtual()
   if (!user || !profile) return []
 
-  if (profile.role === "admin" || profile.role === "gerente") {
-    const { data } = await aplicarOpcoes(
-      supabase.from("contacts").select(CONTACT_SELECT).eq("workspace_id", profile.workspace_id).is("excluido_em", null),
-      opcoes
-    )
-
-    return (data ?? []).map(mapContato)
-  }
-
-  // Atendente: filtra por conversas e cards atribuídos
-  const [{ data: convData }, { data: cardData }] = await Promise.all([
-    supabase
-      .from("conversations")
-      .select("contact_id")
-      .eq("assigned_to", user.id),
-    supabase
-      .from("pipeline_cards")
-      .select("contact_id")
-      .eq("atendente_id", user.id),
-  ])
-
-  const contactIds = Array.from(new Set([
-    ...(convData ?? []).map((c) => c.contact_id as string),
-    ...(cardData ?? []).map((c) => c.contact_id as string),
-  ]))
-
-  if (contactIds.length === 0) return []
-
+  // B45-03: Admin e Gerente veem a empresa toda; o atendente, os contatos dele e os sem
+  // dono. Quem decide é o banco (pode_ver_contato), a mesma regra do perfil e do resto.
   const { data } = await aplicarOpcoes(
-    supabase.from("contacts").select(CONTACT_SELECT).in("id", contactIds).is("excluido_em", null),
+    supabase.from("contacts").select(CONTACT_SELECT).eq("workspace_id", profile.workspace_id).is("excluido_em", null),
     opcoes
   )
 
