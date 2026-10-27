@@ -5,7 +5,7 @@
 
 import { registrarPedido, type ItemSolicitado, type ResultadoPedido } from "@/lib/catalogo/pedidos"
 import { prepararRepeticao, type PecaGuardada, type ResultadoRepeticao } from "@/lib/catalogo/repetir-pedido"
-import { chaveDoPedidoNaLoja, ipDaRequisicao, passouDoLimite, registrarTentativa } from "@/lib/limite-de-tentativas"
+import { chaveDoPedidoNaLoja, ipDaRequisicao, liberarTentativa, reservarTentativa } from "@/lib/limite-de-tentativas"
 
 // B21-07: um robô não cria pedidos (e contatos) em massa — no máximo 10 por hora por
 // endereço de internet, em cada loja. Conta só pedido que entrou.
@@ -23,14 +23,20 @@ export async function repetirPedido(endereco: string, pecas: PecaGuardada[]): Pr
 
 export async function fazerPedido(endereco: string, cliente: { nome: string; whatsapp: string }, itens: ItemSolicitado[]): Promise<ResultadoPedido> {
   try {
+    // B44-09: a vaga é reservada antes (conta e grava de uma vez); pedidos ao mesmo
+    // tempo não passam juntos do limite. Pedido que não entra devolve a vaga.
     const chave = chaveDoPedidoNaLoja(await ipDaRequisicao(), endereco)
-    if (await passouDoLimite("pedido_loja", [{ chave, limite: PEDIDOS_POR_HORA }], 60)) {
-      return { ok: false, erro: AVISO_MUITOS_PEDIDOS }
-    }
+    const vaga = await reservarTentativa("pedido_loja", chave, PEDIDOS_POR_HORA, 60)
+    if (!vaga.reservada) return { ok: false, erro: AVISO_MUITOS_PEDIDOS }
 
-    const resultado = await registrarPedido(endereco, cliente, itens)
-    if (resultado.ok) await registrarTentativa("pedido_loja", [chave])
-    return resultado
+    try {
+      const resultado = await registrarPedido(endereco, cliente, itens)
+      if (!resultado.ok) await liberarTentativa(vaga.id)
+      return resultado
+    } catch (erro) {
+      await liberarTentativa(vaga.id)
+      throw erro
+    }
   } catch {
     return { ok: false, erro: "Não deu para enviar o pedido. Tente de novo." }
   }

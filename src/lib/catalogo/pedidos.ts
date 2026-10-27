@@ -5,6 +5,7 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import { buscarEGuardarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
 import { chaveCombinacao, combinacoes, type TipoVariacao } from "./combinacoes"
 import { carregarLojaPublica } from "./loja-publica"
+import { chaveDoTelefoneNaLoja, liberarTentativa, reservarTentativa } from "@/lib/limite-de-tentativas"
 import { aplicarDesconto, blocoDaCombinacao, descontoAlcancado, detalheDaGrade, faixaAlcancada, faixasDoBanco, gradeDoBanco, opcaoDaCombinacao, pacotesDoBloco, unitarioDaGrade, type FaixaPreco } from "./regras-de-venda"
 import { faltaParaMinimo, linkWhatsapp, montarMensagemPedido, normalizarWhatsapp, totaisDoPedido, type GradeNoPedido, type ItemPedido } from "@/app/loja/components/pedido"
 
@@ -65,7 +66,30 @@ async function acharOuCriarContato(workspaceId: string, whatsapp: string, nome: 
   return criado.id
 }
 
+const AVISO_ESPERE_PARA_PEDIR = "Você acabou de fazer um pedido. Espere 2 minutos para enviar outro."
+
+/**
+ * B44-09: um pedido por telefone a cada 2 minutos, em cada loja, valendo também para
+ * pedidos ao mesmo tempo: a vaga do telefone é reservada antes de gravar (conta e grava
+ * de uma vez) e devolvida se o pedido não entrar.
+ */
 export async function registrarPedido(endereco: string, cliente: { nome: string; whatsapp: string }, solicitados: ItemSolicitado[]): Promise<ResultadoPedido> {
+  const whatsapp = normalizarWhatsapp(cliente.whatsapp)
+  if (!whatsapp) return registrarPedidoConferido(endereco, cliente, solicitados)
+
+  const vaga = await reservarTentativa("pedido_telefone", chaveDoTelefoneNaLoja(endereco, whatsapp), 1, INTERVALO_ENTRE_PEDIDOS_MS / 60_000)
+  if (!vaga.reservada) return { ok: false, erro: AVISO_ESPERE_PARA_PEDIR }
+  try {
+    const resultado = await registrarPedidoConferido(endereco, cliente, solicitados)
+    if (!resultado.ok) await liberarTentativa(vaga.id)
+    return resultado
+  } catch (erro) {
+    await liberarTentativa(vaga.id)
+    throw erro
+  }
+}
+
+async function registrarPedidoConferido(endereco: string, cliente: { nome: string; whatsapp: string }, solicitados: ItemSolicitado[]): Promise<ResultadoPedido> {
   const nome = cliente.nome.trim()
   if (!nome) return { ok: false, erro: "Informe seu nome." }
   if (nome.length > 80) return { ok: false, erro: "O nome passa de 80 caracteres." }
@@ -87,7 +111,7 @@ export async function registrarPedido(endereco: string, cliente: { nome: string;
     .in("customer_whatsapp", formasDoNumero(whatsapp))
     .gte("created_at", desde)
     .limit(1)
-  if (recente?.length) return { ok: false, erro: "Você acabou de fazer um pedido. Espere 2 minutos para enviar outro." }
+  if (recente?.length) return { ok: false, erro: AVISO_ESPERE_PARA_PEDIR }
 
   const ids = [...new Set(solicitados.map((i) => i.produtoId))]
   if (ids.some((id) => !/^[0-9a-f-]{36}$/i.test(id))) return { ok: false, erro: "Um produto do carrinho não existe mais. Tire-o e tente de novo." }
