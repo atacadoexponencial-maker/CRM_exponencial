@@ -81,7 +81,8 @@ interface EditorFluxoProps {
   opcoes: OpcoesEditor
   /** Busca por nome ou telefone; texto vazio traz os contatos que conversaram por último. */
   buscarContatos: (texto: string) => Promise<ContatoTeste[]>
-  salvar: (regra: RegraEditada) => Promise<{ erro?: string; aviso?: string }>
+  /** `ativar`: o "Salvar e ativar" (B46-08), que também liga a regra. */
+  salvar: (regra: RegraEditada, ativar?: boolean) => Promise<{ erro?: string; aviso?: string }>
   simular: (contatoId: string, fluxo: Fluxo) => Promise<{ erro?: string; resultado?: ResultadoSimulacao }>
   /** Sobe o arquivo da ação "enviar imagem ou documento" (B11-07). */
   guardarArquivo: GuardarArquivo
@@ -94,6 +95,8 @@ interface EditorFluxoProps {
   avisoInicial?: string
   /** Quantos contatos esperam num bloco que este fluxo não tem mais, para o aviso antes de salvar (B28-04). */
   contarEsperasQueSaem?: (fluxo: Fluxo) => Promise<number>
+  /** A regra já está ligada. Desligada (como a nova, B46-08), o editor oferece "Salvar e ativar". */
+  ativa?: boolean
 }
 
 // Distância do bloco novo até o bloco de onde ele sai
@@ -191,6 +194,7 @@ function EditorFluxoInterno({
   regraNova,
   avisoInicial,
   contarEsperasQueSaem,
+  ativa = true,
 }: EditorFluxoProps) {
   // B36-12: o canvas segue o tema da tela (era sempre escuro).
   const modoDeCor = useTemaDaTela()
@@ -218,6 +222,8 @@ function EditorFluxoInterno({
   )
   const [salvando, setSalvando] = useState(false)
   const salvandoAgora = useRef(false)
+  // B46-08: o botão escolhido vale também quando o Salvar passa pelos avisos de confirmação
+  const ativarAoSalvar = useRef(false)
   const [confirmarSaida, setConfirmarSaida] = useState(false)
   // B22-36: apagar 2 ou mais blocos de uma vez espera a resposta da pessoa
   const [confirmarApagar, setConfirmarApagar] = useState<{ quantos: number; responder: (sim: boolean) => void } | null>(
@@ -527,7 +533,7 @@ function EditorFluxoInterno({
     salvandoAgora.current = true
     setSalvando(true)
     const enviada = { nome: nome.trim(), repeticao, fluxo }
-    const resultado = await salvar(enviada).finally(() => {
+    const resultado = await salvar(enviada, ativarAoSalvar.current).finally(() => {
       salvandoAgora.current = false
     })
     setSalvando(false)
@@ -578,9 +584,29 @@ function EditorFluxoInterno({
             <span className="hidden md:inline">Testar com um contato</span>
             <span className="md:hidden">Testar</span>
           </Button>
-          <Button size="sm" onClick={() => tentarSalvar()} disabled={salvando}>
+          <Button
+            size="sm"
+            variant={ativa ? "default" : "outline"}
+            onClick={() => {
+              ativarAoSalvar.current = false
+              tentarSalvar()
+            }}
+            disabled={salvando}
+          >
             Salvar
           </Button>
+          {!ativa && (
+            <Button
+              size="sm"
+              onClick={() => {
+                ativarAoSalvar.current = true
+                tentarSalvar()
+              }}
+              disabled={salvando}
+            >
+              Salvar e ativar
+            </Button>
+          )}
         </div>
       </div>
 

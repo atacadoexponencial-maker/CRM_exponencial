@@ -66,6 +66,8 @@ export interface RegraDoEditor {
   nome: string
   fluxo: Fluxo
   repeticao: Repeticao
+  /** B46-08: a regra nova nasce desligada; o editor oferece "Salvar e ativar". */
+  ativa: boolean
 }
 
 /** Uma execução como a página de histórico mostra. */
@@ -210,19 +212,19 @@ export async function buscarRegraParaEditor(id: string): Promise<{ regra: RegraD
   if (id === "nova") {
     const gatilho: BlocoGatilho = { id: "gatilho", tipo: "gatilho", gatilho: "card_movido", parametros: {}, posicao: { x: 0, y: 0 } }
     return {
-      regra: { id: null, nome: "", fluxo: { blocos: [gatilho], ligacoes: [] }, repeticao: repeticaoPadrao(gatilho.gatilho) },
+      regra: { id: null, nome: "", fluxo: { blocos: [gatilho], ligacoes: [] }, repeticao: repeticaoPadrao(gatilho.gatilho), ativa: false },
     }
   }
 
   const { data } = await supabase
     .from("automation_flows")
-    .select("id, nome, fluxo, repeticao")
+    .select("id, nome, fluxo, repeticao, ativa")
     .eq("id", id)
     .eq("workspace_id", workspaceId)
     .maybeSingle()
   const fluxo = data ? lerFluxo(data.fluxo) : null
   if (!data || !fluxo) return { redirecionar: CAMINHO_LISTA }
-  return { regra: { id: data.id, nome: data.nome, fluxo, repeticao: lerRepeticao(data.repeticao) } }
+  return { regra: { id: data.id, nome: data.nome, fluxo, repeticao: lerRepeticao(data.repeticao), ativa: data.ativa } }
 }
 
 /** Etiquetas, atendentes, números, times, sequências e etapas citados no fluxo existem e são da empresa? */
@@ -433,7 +435,8 @@ export async function salvarRegra(dados: {
   if (await chegouAoLimiteDeAutomacoes(admin)) return { erro: LIMITE_DE_AUTOMACOES }
   const { data, error } = await supabase
     .from("automation_flows")
-    .insert({ workspace_id: workspaceId, nome, fluxo: paraJson(fluxo), repeticao: repeticaoJson, ativa: true })
+    // B46-08: nasce desligada, para não agir sobre contatos antes de a pessoa ligar
+    .insert({ workspace_id: workspaceId, nome, fluxo: paraJson(fluxo), repeticao: repeticaoJson, ativa: false })
     .select("id")
     .single()
   if (error || !data) return { erro: "Não foi possível salvar a automação. Tente novamente." }
