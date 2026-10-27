@@ -3,14 +3,16 @@ import { sessaoAtual } from "@/lib/sessao"
 import { hojeNoFuso, periodoPadrao } from "@/lib/relatorios/visao-geral"
 import { buscarVisaoGeral } from "./actions"
 import { RelatoriosClient } from "./components/relatorios-client"
+import { abaDoEndereco } from "@/lib/relatorios/abas"
 import { listarCamposDaEmpresa } from "../contatos/campos-personalizados"
 
 export const metadata = { title: "Relatórios" }
 
-export default async function RelatoriosPage() {
+export default async function RelatoriosPage({ searchParams }: { searchParams: Promise<{ aba?: string }> }) {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user || !perfil) redirect("/login")
 
+  const { aba } = await searchParams
   const hoje = hojeNoFuso()
   // B38-07: e os campos personalizados, para o filtro por campo
   const [visao, { data: atendentesData }, campos] = await Promise.all([
@@ -29,7 +31,7 @@ export default async function RelatoriosPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-8 lg:px-10">
-      <RelatoriosClient visaoInicial={visao} atendentes={atendentes} papel={perfil.role} hoje={hoje} campos={campos} />
+      <RelatoriosClient visaoInicial={visao} atendentes={atendentes} papel={perfil.role} hoje={hoje} campos={campos} abaInicial={abaDoEndereco(aba)} />
     </div>
   )
 }
