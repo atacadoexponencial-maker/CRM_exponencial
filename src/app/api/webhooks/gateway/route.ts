@@ -237,7 +237,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "invalid payload" }, { status: 400 })
     }
 
-    const aplicado = await aplicarStatusDeMensagem({ supabase, evento: dados })
+    const aplicado = await aplicarStatusDeMensagem({ supabase, workspaceId: conexao.workspace_id, evento: dados })
 
     // B26-02: o aviso de envio pode chegar antes de o CRM gravar a mensagem que
     // acabou de mandar. Recente e sem nada para atualizar, pede reentrega (o

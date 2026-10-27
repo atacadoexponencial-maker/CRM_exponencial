@@ -512,15 +512,19 @@ export async function acharMensagemPorWamid(
  */
 export async function aplicarReacao({
   supabase,
+  workspaceId,
   reacao,
 }: {
   supabase: ServiceClient
+  /** B44-03: só mensagem da empresa do número por onde o evento chegou. */
+  workspaceId: string
   reacao: NonNullable<EventoMensagemRecebida["reaction"]>
 }): Promise<boolean> {
   const { data } = await supabase
     .from("messages")
     .update({ reaction_emoji: reacao.emoji === "" ? null : reacao.emoji })
     .eq("wamid", reacao.target_message_id)
+    .eq("workspace_id", workspaceId)
     .select("id")
     .maybeSingle()
 
@@ -535,10 +539,13 @@ export async function aplicarReacao({
  */
 export async function aplicarAvisoDeSistema({
   supabase,
+  workspaceId,
   aviso,
   quando,
 }: {
   supabase: ServiceClient
+  /** B44-03: só mensagem da empresa do número por onde o evento chegou. */
+  workspaceId: string
   aviso: NonNullable<EventoMensagemRecebida["system"]>
   quando: string
 }): Promise<boolean> {
@@ -551,6 +558,7 @@ export async function aplicarAvisoDeSistema({
     .from("messages")
     .update(alteracao)
     .eq("wamid", aviso.target_message_id)
+    .eq("workspace_id", workspaceId)
     .select("id")
     .maybeSingle()
 
@@ -585,13 +593,14 @@ export async function receberMensagem({
   connectionId?: string | null
 }): Promise<ResultadoDoEvento> {
   if (evento.reaction) {
-    const alvoEncontrado = await aplicarReacao({ supabase, reacao: evento.reaction })
+    const alvoEncontrado = await aplicarReacao({ supabase, workspaceId, reacao: evento.reaction })
     return { tratamento: "reacao", alvoEncontrado }
   }
 
   if (evento.system) {
     const alvoEncontrado = await aplicarAvisoDeSistema({
       supabase,
+      workspaceId,
       aviso: evento.system,
       quando: recebidoEm,
     })

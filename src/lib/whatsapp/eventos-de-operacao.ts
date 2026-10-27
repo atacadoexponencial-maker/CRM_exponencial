@@ -46,9 +46,12 @@ export type EventoDeStatus = {
  */
 export async function aplicarStatusDeMensagem({
   supabase,
+  workspaceId,
   evento,
 }: {
   supabase: ServiceClient
+  /** B44-03: só mensagem e destinatário da empresa do número por onde o aviso chegou. */
+  workspaceId: string
   evento: EventoDeStatus
 }): Promise<{ status: string | null; achou?: boolean }> {
   const status = STATUS_NO_CRM[evento.status]
@@ -68,6 +71,7 @@ export async function aplicarStatusDeMensagem({
       { count: "exact" }
     )
     .eq("wamid", evento.message_id)
+    .eq("workspace_id", workspaceId)
 
   const { count: destinatarios } = await supabase
     .from("campaign_recipients")
@@ -85,6 +89,7 @@ export async function aplicarStatusDeMensagem({
       { count: "exact" }
     )
     .eq("wamid", evento.message_id)
+    .eq("workspace_id", workspaceId)
 
   return { status, achou: (mensagens ?? 0) + (destinatarios ?? 0) > 0 }
 }

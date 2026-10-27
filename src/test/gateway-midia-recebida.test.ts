@@ -23,6 +23,9 @@ import {
 import type { createServiceClient } from "@/integrations/supabase/service"
 
 const WORKSPACE = "11111111-1111-1111-1111-111111111111"
+
+// B44-03: a mídia só é baixada do gateway configurado; aqui ele é o fictício.
+vi.stubEnv("GATEWAY_BASE_URL", "https://gateway.exemplo")
 const RECEBIDO_EM = "2026-09-17T14:32:07.412Z"
 
 const MIDIA = {
@@ -396,7 +399,7 @@ describe("reação", () => {
   it("emoji vazio remove a reação em vez de gravar vazio", async () => {
     const { supabase, escritas } = supabaseFalso()
 
-    await aplicarReacao({ supabase, reacao: { emoji: "", target_message_id: "3EB0ALVO" } })
+    await aplicarReacao({ supabase, workspaceId: WORKSPACE, reacao: { emoji: "", target_message_id: "3EB0ALVO" } })
 
     expect(escritas[0].linha).toEqual({ reaction_emoji: null })
   })
@@ -423,6 +426,7 @@ describe("mensagem editada e apagada", () => {
 
     await aplicarAvisoDeSistema({
       supabase,
+      workspaceId: WORKSPACE,
       aviso: { action: "edited", target_message_id: "3EB0ALVO", new_text: "corrigido" },
       quando: RECEBIDO_EM,
     })

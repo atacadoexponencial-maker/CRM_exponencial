@@ -48,13 +48,100 @@ export function mimeComCodec(mimeType: string | null, inicio: Uint8Array): strin
   return mimeType
 }
 
-/** Extensão a partir do nome original ou do mime; `bin` quando não há pista. */
-function extensaoDe(midia: MidiaDoEvento): string {
-  const doNome = midia.filename?.includes(".") ? midia.filename.split(".").pop() : null
-  if (doNome) return doNome.toLowerCase()
+/** B44-03: limites da mídia recebida (SUP-B44-03): o maior documento do WhatsApp e um minuto. */
+export const LIMITE_DA_MIDIA_EM_BYTES = 100 * 1024 * 1024
+export const TEMPO_LIMITE_DA_MIDIA_MS = 60_000
 
-  const doMime = midia.mime_type?.split("/")[1]?.split(";")[0]
-  return doMime ? doMime.toLowerCase() : "bin"
+/**
+ * B44-03: tipos guardados como são, com a extensão que o CRM escolhe. Qualquer
+ * outro (página HTML, SVG, tipo desconhecido) vira download genérico: o bucket é
+ * público e o arquivo não pode abrir como página no navegador de quem clica.
+ */
+const EXTENSAO_DO_TIPO: Record<string, string> = {
+  "image/jpeg": "jpeg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "video/mp4": "mp4",
+  "video/3gpp": "3gp",
+  "video/quicktime": "mov",
+  "audio/ogg": "ogg",
+  "audio/mpeg": "mp3",
+  "audio/mp4": "m4a",
+  "audio/aac": "aac",
+  "audio/amr": "amr",
+  "application/pdf": "pdf",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+  "application/vnd.ms-excel": "xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "application/vnd.ms-powerpoint": "ppt",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+  "text/plain": "txt",
+  "text/csv": "csv",
+  "application/zip": "zip",
+}
+const TIPO_GENERICO = "application/octet-stream"
+
+/** Tipo e extensão que o CRM grava, a partir do tipo declarado (nunca do nome). */
+function tipoGuardado(mimeType: string | null): { contentType: string; extensao: string } {
+  const base = mimeType?.split(";")[0].trim().toLowerCase() ?? ""
+  const extensao = EXTENSAO_DO_TIPO[base]
+  return extensao ? { contentType: base, extensao } : { contentType: TIPO_GENERICO, extensao: "bin" }
+}
+
+/** B44-03: só o endereço do gateway configurado recebe o token da instância. */
+function eDoGateway(url: string, baseDoGateway: string | undefined): boolean {
+  if (!baseDoGateway) return false
+  try {
+    return new URL(url).origin === new URL(baseDoGateway).origin
+  } catch {
+    return false
+  }
+}
+
+/** Lê o corpo até o limite; passou dele, desiste e devolve null. */
+async function lerComLimite(resposta: Response): Promise<ArrayBuffer | null> {
+  const declarado = Number(resposta.headers.get("content-length"))
+  if (declarado > LIMITE_DA_MIDIA_EM_BYTES) return null
+  if (!resposta.body) return null
+
+  const leitor = resposta.body.getReader()
+  const pedacos: Uint8Array[] = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await leitor.read()
+    if (done) break
+    total += value.byteLength
+    if (total > LIMITE_DA_MIDIA_EM_BYTES) {
+      await leitor.cancel()
+      return null
+    }
+    pedacos.push(value)
+  }
+  const tudo = new Uint8Array(total)
+  let posicao = 0
+  for (const pedaco of pedacos) {
+    tudo.set(pedaco, posicao)
+    posicao += pedaco.byteLength
+  }
+  return tudo.buffer
+}
+
+/** Busca no gateway com token, tempo e tamanho limitados. Null quando não deve ou não deu. */
+async function baixarDoGateway(
+  url: string,
+  instanceToken: string | null | undefined,
+  buscar: typeof fetch
+): Promise<{ conteudo: ArrayBuffer; tipo: string | null } | null> {
+  if (!eDoGateway(url, process.env.GATEWAY_BASE_URL)) return null
+  const resposta = await buscar(url, {
+    headers: instanceToken ? { "X-Instance-Token": instanceToken } : undefined,
+    signal: AbortSignal.timeout(TEMPO_LIMITE_DA_MIDIA_MS),
+  })
+  if (!resposta.ok) return null
+  const conteudo = await lerComLimite(resposta)
+  return conteudo ? { conteudo, tipo: resposta.headers.get("content-type") } : null
 }
 
 /**
@@ -78,21 +165,21 @@ export async function guardarMidiaRecebida({
   buscar?: typeof fetch
 }): Promise<MidiaGuardada | null> {
   try {
-    const resposta = await buscar(midia.url, {
-      headers: instanceToken ? { "X-Instance-Token": instanceToken } : undefined,
-    })
-    if (!resposta.ok) return null
+    const baixada = await baixarDoGateway(midia.url, instanceToken, buscar)
+    if (!baixada) return null
 
-    const conteudo = await resposta.arrayBuffer()
-    const mimeType = mimeComCodec(midia.mime_type ?? resposta.headers.get("content-type") ?? null, new Uint8Array(conteudo))
+    const { conteudo } = baixada
+    const { contentType, extensao } = tipoGuardado(midia.mime_type ?? baixada.tipo ?? null)
+    // B44-03: o codec só vale para vídeo aceito; tipo recusado fica genérico.
+    const mimeType = contentType === TIPO_GENERICO ? TIPO_GENERICO : mimeComCodec(contentType, new Uint8Array(conteudo))
 
     // Nome próprio, não o do remetente: nome de arquivo de fora não define
-    // caminho no nosso Storage. O original fica em `messages.media_filename`.
-    const caminho = `${workspaceId}/recebidas/${Date.now()}-${crypto.randomUUID()}.${extensaoDe(midia)}`
+    // caminho nem extensão no nosso Storage. O original fica em `messages.media_filename`.
+    const caminho = `${workspaceId}/recebidas/${Date.now()}-${crypto.randomUUID()}.${extensao}`
 
     const { error } = await supabase.storage
       .from(BUCKET)
-      .upload(caminho, conteudo, { contentType: mimeType?.split(";")[0] ?? "application/octet-stream" })
+      .upload(caminho, conteudo, { contentType })
 
     if (error) return null
 
@@ -105,14 +192,12 @@ export async function guardarMidiaRecebida({
     let thumbnailUrl: string | null = null
     if (midia.thumbnail_url) {
       try {
-        const miniatura = await buscar(midia.thumbnail_url, {
-          headers: instanceToken ? { "X-Instance-Token": instanceToken } : undefined,
-        })
-        if (miniatura.ok) {
+        const miniatura = await baixarDoGateway(midia.thumbnail_url, instanceToken, buscar)
+        if (miniatura) {
           const caminhoDaMiniatura = `${caminho}.thumb.jpg`
           const { error: erroMiniatura } = await supabase.storage
             .from(BUCKET)
-            .upload(caminhoDaMiniatura, await miniatura.arrayBuffer(), { contentType: "image/jpeg" })
+            .upload(caminhoDaMiniatura, miniatura.conteudo, { contentType: "image/jpeg" })
           if (!erroMiniatura) thumbnailUrl = supabase.storage.from(BUCKET).getPublicUrl(caminhoDaMiniatura).data.publicUrl
         }
       } catch {

@@ -68,16 +68,18 @@ describe("status de mensagem", () => {
 
     await aplicarStatusDeMensagem({
       supabase,
+      workspaceId: WORKSPACE,
       evento: { message_id: "3EB0", status: "delivered", error: null },
     })
 
     const mensagem = escritaDe(escritas, "messages")
     const campanha = escritaDe(escritas, "campaign_recipients")
     expect(mensagem?.linha).toEqual({ status: "entregue", status_error: null })
-    expect(mensagem?.filtros).toEqual([["wamid", "3EB0"]])
+    // B44-03: o filtro inclui a empresa do número por onde o aviso chegou.
+    expect(mensagem?.filtros).toEqual([["wamid", "3EB0"], ["workspace_id", WORKSPACE]])
     expect(campanha?.linha).toMatchObject({ status: "entregue" })
     expect((campanha?.linha as Record<string, unknown>).atualizado_em).toBeTruthy()
-    expect(campanha?.filtros).toEqual([["wamid", "3EB0"]])
+    expect(campanha?.filtros).toEqual([["wamid", "3EB0"], ["workspace_id", WORKSPACE]])
   })
 
   it("falha preserva o motivo legível para o atendente", async () => {
@@ -85,6 +87,7 @@ describe("status de mensagem", () => {
 
     await aplicarStatusDeMensagem({
       supabase,
+      workspaceId: WORKSPACE,
       evento: {
         message_id: "3EB0",
         status: "failed",
@@ -103,6 +106,7 @@ describe("status de mensagem", () => {
 
     await aplicarStatusDeMensagem({
       supabase,
+      workspaceId: WORKSPACE,
       evento: { message_id: "3EB0", status: "failed", error: { code: "media_too_large" } },
     })
 
@@ -116,6 +120,7 @@ describe("status de mensagem", () => {
 
     const resultado = await aplicarStatusDeMensagem({
       supabase,
+      workspaceId: WORKSPACE,
       evento: { message_id: "3EB0", status: "pendurado" },
     })
 
