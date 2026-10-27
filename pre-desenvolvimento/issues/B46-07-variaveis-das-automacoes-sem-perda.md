@@ -25,7 +25,7 @@ O exemplo não tem chaves, a variável pendente não some ao salvar, os erros ap
 
 | ID | Suposição | Status | Resolução |
 |---|---|---|---|
-| SUP-B46-03 | A variável pendente é inserida ao salvar, em vez de bloquear o Salvar (CA-B46-17) | aberta | |
+| SUP-B46-03 | A variável pendente é inserida ao salvar, em vez de bloquear o Salvar (CA-B46-17) | confirmada | Luan, 27/10/2026 |
 
 ## Perguntas em aberto
 

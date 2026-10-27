@@ -25,7 +25,7 @@ O histórico do card, a lixeira e as campanhas mostram a mesma hora, a de Brasí
 
 | ID | Suposição | Status | Resolução |
 |---|---|---|---|
-| SUP-B46-01 | O fuso de todas as telas é o da operação (`America/Sao_Paulo`, já em `src/lib/datas.ts`), para todas as empresas | aberta | |
+| SUP-B46-01 | O fuso de todas as telas é o da operação (`America/Sao_Paulo`, já em `src/lib/datas.ts`), para todas as empresas | confirmada | Brasília é o padrão. Luan, 27/10/2026, que pediu também uma configuração para trocar o fuso: fica na B46-14, separada desta |
 
 ## Perguntas em aberto
 

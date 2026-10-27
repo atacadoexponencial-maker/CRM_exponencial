@@ -133,11 +133,11 @@ hora, nota) e apagado. "Feito" mostra "Feito. Desfazer" por alguns segundos.
 - **Quando** se clica em Desfazer
 - **Então** o follow-up volta para a Agenda como pendente, com a mesma data
 
-#### CA-B46-14 — Atendente não mexe no follow-up de colega · prova: automática
+#### CA-B46-14 — Qualquer usuário da empresa mexe no follow-up, e só da empresa · prova: automática
 
-- **Dado** o follow-up de outro atendente
-- **Quando** um Atendente tenta editar, apagar ou desfazer
-- **Então** o servidor recusa ("Sem permissão") e nada muda
+- **Dado** o follow-up de um atendente da empresa
+- **Quando** outro Atendente da mesma empresa edita ou apaga, e um usuário de outra empresa tenta o mesmo
+- **Então** o da mesma empresa consegue, e o de outra empresa é recusado sem mudar nada
 
 #### CA-B46-15 — Agendar diz o que falta · prova: automática
 
@@ -220,7 +220,7 @@ desliga.
 
 - **Dado** a aba Carteiras dos Relatórios
 - **Quando** os totais são desenhados
-- **Então** o número de contatos sem compra não se chama "Leads", e sim o nome da PER-B46-02
+- **Então** o número de contatos sem compra não se chama "Leads", e sim "Sem compra"
 
 ### 11. Tabela de Contatos legível e filtros recolhidos (B46-11)
 
@@ -292,13 +292,13 @@ desliga.
 
 | ID | Suposição | Status | Resolução |
 |---|---|---|---|
-| SUP-B46-01 | O fuso de todas as telas é o da operação (`America/Sao_Paulo`, já em `src/lib/datas.ts`), para todas as empresas | aberta | |
-| SUP-B46-02 | O follow-up pode ser editado e apagado por quem o criou, pelo atendente dele e por Admin e Gerente, como já é no adiar | aberta | |
-| SUP-B46-03 | A variável pendente é inserida ao salvar, em vez de bloquear o Salvar (CA-B46-17) | aberta | |
+| SUP-B46-01 | O fuso de todas as telas é o da operação (`America/Sao_Paulo`, já em `src/lib/datas.ts`), para todas as empresas | confirmada | Brasília é o padrão. Luan, 27/10/2026, que pediu também uma configuração para trocar o fuso: fica na B46-14, separada desta |
+| SUP-B46-02 | O follow-up pode ser editado e apagado por quem o criou, pelo atendente dele e por Admin e Gerente, como já é no adiar | invalidada | Por enquanto, todo usuário da empresa edita e apaga qualquer follow-up da empresa (CA-B46-14 reescrito). Luan, 27/10/2026 |
+| SUP-B46-03 | A variável pendente é inserida ao salvar, em vez de bloquear o Salvar (CA-B46-17) | confirmada | Luan, 27/10/2026 |
 
 ## Perguntas em aberto
 
 | ID | Pergunta | Status | Resposta |
 |---|---|---|---|
-| PER-B46-01 | A automação nova deve nascer desligada, com "Salvar e ativar" à parte? Hoje nasce ligada (B46-08) | aberta | |
-| PER-B46-02 | Que nome dar aos contatos sem compra nas Carteiras, para não confundir com os "Leads" do Pipeline? Sugestão: "Sem compra" (B46-10) | aberta | |
+| PER-B46-01 | A automação nova deve nascer desligada, com "Salvar e ativar" à parte? Hoje nasce ligada (B46-08) | respondida | Sim, nasce desligada. Luan, 27/10/2026 |
+| PER-B46-02 | Que nome dar aos contatos sem compra nas Carteiras, para não confundir com os "Leads" do Pipeline? Sugestão: "Sem compra" (B46-10) | respondida | "Sem compra". Luan, 27/10/2026 |

@@ -9,7 +9,7 @@
 
 ## Descrição
 
-Salvar uma automação nova grava com `ativa: true`, e ela já age sobre contatos de verdade. Espera a resposta da PER-B46-01.
+Salvar uma automação nova grava com `ativa: true`, e ela já age sobre contatos de verdade. Decidido na PER-B46-01: nasce desligada.
 
 ## Pronto quando
 
@@ -29,4 +29,4 @@ Nenhuma.
 
 | ID | Pergunta | Status | Resposta |
 |---|---|---|---|
-| PER-B46-01 | A automação nova deve nascer desligada, com "Salvar e ativar" à parte? Hoje nasce ligada (B46-08) | aberta | |
+| PER-B46-01 | A automação nova deve nascer desligada, com "Salvar e ativar" à parte? Hoje nasce ligada (B46-08) | respondida | Sim, nasce desligada. Luan, 27/10/2026 |
