@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { ListaLixeira, type ItemLixeira } from "./components/lista-lixeira"
 import { apagarContatoDeVez, restaurarContato } from "./actions"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export function LixeiraClient({ itens }: { itens: ItemLixeira[] }) {
   const router = useRouter()
@@ -31,7 +32,7 @@ export function LixeiraClient({ itens }: { itens: ItemLixeira[] }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8">
+    <div className={CLASSE_DA_PAGINA}>
       <div className="mb-2 flex items-center gap-3">
         <Link
           href="/contatos"

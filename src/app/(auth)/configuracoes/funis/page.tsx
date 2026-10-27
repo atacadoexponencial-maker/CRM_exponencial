@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { sessaoAtual } from "@/lib/sessao"
 import { listarFunisParaGerenciar } from "./actions"
 import { FunisClient } from "./funis-client"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Funis" }
 
@@ -14,7 +15,7 @@ export default async function FunisPage() {
   const dados = await listarFunisParaGerenciar()
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <FunisClient dados={dados} />
     </div>
   )

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { sessaoAtual } from "@/lib/sessao"
 import { relatorioCampanha } from "../../actions"
 import { RelatorioCampanhaClient } from "./relatorio-client"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Relatório da campanha" }
 
@@ -16,7 +17,7 @@ export default async function RelatorioCampanhaPage({ params }: { params: Promis
   if (!relatorio) redirect("/campanhas")
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <RelatorioCampanhaClient relatorio={relatorio} />
     </div>
   )

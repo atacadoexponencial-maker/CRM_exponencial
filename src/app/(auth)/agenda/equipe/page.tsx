@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { sessaoAtual } from "@/lib/sessao"
 import { listarAgendaEquipe } from "../actions"
 import { AgendaEquipeClient } from "./agenda-equipe-client"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Agenda da equipe" }
 
@@ -26,7 +27,7 @@ export default async function AgendaEquipePage() {
   const atendentes = (atendentesData ?? []).map((a) => ({ id: a.id, nome: a.name }))
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <AgendaEquipeClient
         itensIniciais={dados.itens}
         atendentes={atendentes}

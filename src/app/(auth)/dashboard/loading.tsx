@@ -1,9 +1,11 @@
 import { Esqueleto } from "@/components/shared/esqueleto"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
+import { cn } from "@/lib/utils"
 
 // B36-04: o esqueleto segue o desenho novo — cabeçalho, faixa de números e os blocos.
 export default function Loading() {
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-7 sm:px-8 lg:px-10" role="status" aria-label="Carregando dashboard">
+    <div className={cn(CLASSE_DA_PAGINA, "flex flex-col gap-8")} role="status" aria-label="Carregando dashboard">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-2">
           <Esqueleto className="h-4 w-40" />

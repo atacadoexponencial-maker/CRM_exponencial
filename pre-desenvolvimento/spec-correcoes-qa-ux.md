@@ -249,7 +249,7 @@ desliga.
 
 - **Dado** as páginas de `src/app/(auth)`
 - **Quando** se confere o contêiner da página
-- **Então** todas usam o mesmo componente de página, na largura normal ou na larga (tabelas e quadros)
+- **Então** nenhuma monta o próprio contêiner centralizado, e todas usam o mesmo contêiner de página (`CLASSE_DA_PAGINA`), com a mesma largura e as mesmas margens; Chat, Pipeline e editor de automação ocupam a tela inteira
 
 #### CA-B46-30 — Título no mesmo lugar ao navegar · prova: manual
 

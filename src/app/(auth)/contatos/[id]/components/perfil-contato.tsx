@@ -30,6 +30,7 @@ import { UFS } from "@/lib/uf"
 import { SeloPerfilRfv } from "@/components/shared/selo-perfil-rfv"
 import { CamposPersonalizadosContato } from "./campos-personalizados-contato"
 import type { CampoComValor } from "../../campos-personalizados"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 const CLASSIFICACAO_BADGE: Record<string, string> = {
   lead: "bg-info-fundo text-info border-info/30",
@@ -102,7 +103,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
       ? "Será apagado de vez hoje."
       : `Será apagado de vez em ${naLixeira.diasRestantes} ${naLixeira.diasRestantes === 1 ? "dia" : "dias"}.`
     return (
-      <div className="max-w-3xl mx-auto w-full px-4 py-16">
+      <div className={cn(CLASSE_DA_PAGINA, "py-16 *:max-w-3xl")}>
         <div className="rounded-lg border border-border bg-card px-4 py-4">
           <p className="mb-1 font-semibold">Este contato está na lixeira</p>
           <p className="mb-3 text-sm text-muted-foreground">
@@ -143,7 +144,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
 
   if (!contato) {
     return (
-      <div className="max-w-3xl mx-auto w-full px-4 py-16 text-center text-muted-foreground">
+      <div className={cn(CLASSE_DA_PAGINA, "py-16 text-center text-muted-foreground *:max-w-3xl")}>
         Contato não encontrado.
       </div>
     )
@@ -234,7 +235,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
   }
 
   return (
-    <div className="max-w-3xl mx-auto w-full px-4 py-8 space-y-6">
+    <div className={cn(CLASSE_DA_PAGINA, "space-y-6 *:max-w-3xl")}>
       {/* Voltar */}
       <Link
         href="/contatos"

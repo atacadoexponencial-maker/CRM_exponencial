@@ -20,6 +20,7 @@ import {
 import { criarMensagemRapida, editarMensagemRapida, excluirMensagemRapida, type MensagemRapidaListada } from "./actions"
 import { TextoComVariaveis, type VariavelDoBotao } from "@/components/shared/texto-com-variaveis"
 import { avisoDeSemReserva, variaveisSemReserva } from "@/lib/variaveis-mensagem"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 interface MensagensRapidasClientProps {
   mensagensIniciais: MensagemRapidaListada[]
@@ -116,7 +117,7 @@ export function MensagensRapidasClient({ mensagensIniciais, variaveis = [] }: Me
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Mensagens Rápidas</h1>
         <Button onClick={abrirCriar} size="sm">

@@ -11,6 +11,8 @@ import { hrefsDoCatalogo } from "../produtos-client"
 import { carregarPedido, filtrarPedidos, mudarSituacaoPedido, type ProdutoDoFiltro } from "./actions"
 import { ALVOS_TOQUE_CELULAR } from "../components/alvos-toque"
 import { FILTROS_PADRAO, filtrosProntos, type FiltrosPedidos } from "@/lib/catalogo/filtros-pedidos"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
+import { cn } from "@/lib/utils"
 
 interface PedidosClientProps {
   inicial: PedidoResumo[]
@@ -86,7 +88,7 @@ export function PedidosClient({ inicial, totalInicial, novos, abertoInicial, pap
   }
 
   return (
-    <div className={`max-w-6xl mx-auto w-full px-4 py-8 ${ALVOS_TOQUE_CELULAR}`}>
+    <div className={cn(CLASSE_DA_PAGINA, ALVOS_TOQUE_CELULAR)}>
       <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-4">{papel === "atendente" ? "Pedidos" : "Catálogo"}</h1>
       <AbasCatalogo ativa="pedidos" hrefs={hrefsDoCatalogo(papel)} contadores={{ pedidos: novos }} />
       <div className="grid gap-6 lg:grid-cols-[1fr_24rem] items-start">

@@ -5,6 +5,7 @@ import { buscarVisaoGeral } from "./actions"
 import { RelatoriosClient } from "./components/relatorios-client"
 import { abaDoEndereco } from "@/lib/relatorios/abas"
 import { listarCamposDaEmpresa } from "../contatos/campos-personalizados"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Relatórios" }
 
@@ -30,7 +31,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
   const atendentes = (atendentesData ?? []).map((a) => ({ id: a.id, nome: a.name }))
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <RelatoriosClient visaoInicial={visao} atendentes={atendentes} papel={perfil.role} hoje={hoje} campos={campos} abaInicial={abaDoEndereco(aba)} />
     </div>
   )

@@ -4,6 +4,7 @@ import { sessaoAtual } from "@/lib/sessao"
 import { FormPerfil } from "./form-perfil"
 import { FormAlterarSenha } from "./form-alterar-senha"
 import { realizarLogout } from "./actions"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Meu perfil" }
 
@@ -13,7 +14,7 @@ export default async function PerfilPage({ searchParams }: { searchParams: Promi
   const { motivo } = await searchParams
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <div className="max-w-lg flex flex-col gap-10">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight -mb-2">Meu perfil</h1>
         {/* QA M30 (06/10): quem abre uma tela que o papel não permite cai aqui e sabe por quê. */}

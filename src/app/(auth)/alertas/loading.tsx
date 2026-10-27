@@ -1,8 +1,9 @@
 import { Esqueleto } from "@/components/shared/esqueleto"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export default function Loading() {
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-7 sm:px-8 lg:px-10" role="status" aria-label="Carregando alertas">
+    <div className={CLASSE_DA_PAGINA} role="status" aria-label="Carregando alertas">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Central de Alertas</h1>
         <div className="flex items-center gap-2">

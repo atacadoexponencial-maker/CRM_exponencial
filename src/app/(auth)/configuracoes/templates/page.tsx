@@ -5,6 +5,7 @@ import { motivoDoRecursoIndisponivel, recursosDoCanal } from "@/lib/whatsapp"
 import type { CanalWhatsApp } from "@/lib/whatsapp"
 import { listarTemplates } from "./actions"
 import { TemplatesClient } from "./templates-client"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Templates" }
 
@@ -32,7 +33,7 @@ export default async function TemplatesPage() {
   // conectado"). Agora diz logo o que falta e aonde ir.
   if (canais.length === 0) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+      <div className={CLASSE_DA_PAGINA}>
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-2">Templates de mensagem</h1>
         <p className="rounded-md border bg-card p-4 text-sm text-muted-foreground">
           Nenhum número de WhatsApp conectado. Os templates valem para o número da API Oficial:{" "}
@@ -44,7 +45,7 @@ export default async function TemplatesPage() {
 
   if (nenhumNumeroSuportaTemplates) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+      <div className={CLASSE_DA_PAGINA}>
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-2">Templates de mensagem</h1>
         <p className="rounded-md border bg-card p-4 text-sm text-muted-foreground">
           {motivoDoRecursoIndisponivel("templates", semTemplates[0])}
@@ -56,7 +57,7 @@ export default async function TemplatesPage() {
   const templates = await listarTemplates()
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       {semTemplates.length > 0 && comTemplates.length > 0 && (
         <p className="mb-5 rounded-lg border border-aviso/30 bg-aviso-fundo p-4 text-sm">
           Este workspace tem número no canal direto e número na API Oficial. Os templates

@@ -14,6 +14,7 @@ import { ALVOS_TOQUE_CELULAR } from "../components/alvos-toque"
 import { PreviaImportacao } from "../components/previa-importacao"
 import { HREFS_CATALOGO } from "../produtos-client"
 import { importarLote, previaImportacao } from "./actions"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 /** Produtos por envio: o progresso anda a cada lote. */
 const POR_LOTE = 10
@@ -86,7 +87,7 @@ export function ImportarClient() {
   const prontos = previa ? previa.novos + previa.atualizados : 0
 
   return (
-    <div className={`max-w-6xl mx-auto w-full px-4 py-8 ${ALVOS_TOQUE_CELULAR}`}>
+    <div className={cn(CLASSE_DA_PAGINA, ALVOS_TOQUE_CELULAR)}>
       <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-4">Catálogo</h1>
       <AbasCatalogo ativa="produtos" hrefs={HREFS_CATALOGO} />
 

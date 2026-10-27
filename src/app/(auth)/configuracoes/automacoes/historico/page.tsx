@@ -4,6 +4,7 @@ import { sessaoAtual } from "@/lib/sessao"
 import { listarExecucoes, regrasDoFiltroDoHistorico, type FiltrosDoHistorico } from "../actions"
 import { carregarOpcoesEditor } from "../opcoes-editor"
 import { HistoricoClient } from "./historico-client"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Histórico das automações" }
 
@@ -32,7 +33,7 @@ export default async function HistoricoAutomacoesPage({
   const { execucoes, erro } = await listarExecucoes(filtros)
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8">
+    <div className={CLASSE_DA_PAGINA}>
       <HistoricoClient
         execucoes={execucoes}
         regras={regras}

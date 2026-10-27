@@ -25,6 +25,7 @@ import {
 } from "../mock-contatos"
 import { SeloPerfilRfv } from "@/components/shared/selo-perfil-rfv"
 import { formatarValor, type CampoDaEmpresa } from "@/lib/campos-personalizados"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 const CLASSIFICACOES: { label: string; valor: ClassificacaoContato | "todas" }[] = [
   { label: "Todas", valor: "todas" },
@@ -284,7 +285,7 @@ export function ListaContatos({
   const ordenacaoLabel = ORDENACOES.find((o) => o.valor === ordenacao)?.label ?? "Ordenar"
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Contatos</h1>

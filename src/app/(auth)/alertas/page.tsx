@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { sessaoAtual } from "@/lib/sessao"
 import { listarAlertas } from "./actions"
 import { AlertasClient } from "./alertas-client"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Alertas" }
 
@@ -13,7 +14,7 @@ export default async function AlertasPage() {
   if (!dados) redirect("/login")
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <AlertasClient
         alertasIniciais={dados.alertas}
         alertasDeNumero={dados.alertasDeNumero}

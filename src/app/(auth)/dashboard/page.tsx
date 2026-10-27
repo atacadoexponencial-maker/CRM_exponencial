@@ -4,6 +4,7 @@ import { cabecalhoDoDia } from "@/lib/painel-dashboard"
 import { buscarPainelDashboard, listarEsperandoResposta, listarParaHoje } from "./actions"
 import { DashboardClient } from "./components/dashboard-client"
 import { listarCamposDaEmpresa } from "../contatos/campos-personalizados"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Dashboard" }
 
@@ -33,7 +34,7 @@ export default async function DashboardPage() {
   const atendentes = (atendentesData ?? []).map((a) => ({ id: a.id, nome: a.name }))
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <DashboardClient
         painelInicial={painel}
         atendentes={atendentes}

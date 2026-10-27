@@ -12,6 +12,8 @@ import { conteudoDoTipo } from "@/lib/automacoes/referencias"
 import { HREFS_CATALOGO } from "../../produtos-client"
 import { ALVOS_TOQUE_CELULAR } from "../../components/alvos-toque"
 import { avisar } from "@/lib/aviso-na-tela"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
+import { cn } from "@/lib/utils"
 
 export function EditorClient({ inicial, categorias }: { inicial: ProdutoEditavel; categorias: CategoriaCatalogo[] }) {
   const router = useRouter()
@@ -41,7 +43,7 @@ export function EditorClient({ inicial, categorias }: { inicial: ProdutoEditavel
   }
 
   return (
-    <div className={`max-w-6xl mx-auto w-full px-4 py-8 ${ALVOS_TOQUE_CELULAR}`}>
+    <div className={cn(CLASSE_DA_PAGINA, ALVOS_TOQUE_CELULAR)}>
       <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-4">{inicial.id ? inicial.nome : "Novo produto"}</h1>
       <AbasCatalogo ativa="produtos" hrefs={HREFS_CATALOGO} />
       <EditorProduto
