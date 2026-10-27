@@ -134,11 +134,11 @@ hora, nota) e apagado. "Feito" mostra "Feito. Desfazer" por alguns segundos.
 - **Quando** se clica em Desfazer
 - **Então** o follow-up volta para a Agenda como pendente, com a mesma data
 
-#### CA-B46-14 — Qualquer usuário da empresa mexe no follow-up, e só da empresa · prova: automática
+#### CA-B46-14 — Quem vê o follow-up mexe nele, e só da empresa · prova: automática
 
-- **Dado** o follow-up de um atendente da empresa
-- **Quando** outro Atendente da mesma empresa edita ou apaga, e um usuário de outra empresa tenta o mesmo
-- **Então** o da mesma empresa consegue, e o de outra empresa é recusado sem mudar nada
+- **Dado** o follow-up que a automação criou para a Ana
+- **Quando** a Ana e o Gerente editam ou apagam, e o Admin de outra empresa tenta o mesmo
+- **Então** a Ana e o Gerente conseguem, e o de outra empresa é recusado sem mudar nada
 
 #### CA-B46-15 — Agendar diz o que falta · prova: automática
 

@@ -159,6 +159,37 @@ export async function reatribuirLembrete(id: string, atendenteId: string): Promi
   return {}
 }
 
+/**
+ * Vencimento do follow-up a partir da data e da hora do formulário, no horário de
+ * Brasília (QA M12, 06/10: a Vercel roda em UTC, e 09:00 viraria 06:00). Serve ao
+ * criar e ao editar (B46-06).
+ */
+function lerVencimento(data: string, hora?: string): { dueAt: Date } | { erro: string } {
+  if (!data) return { erro: "Escolha a data" }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return { erro: "Data inválida" }
+  if (hora && !/^\d{2}:\d{2}$/.test(hora)) return { erro: "Hora inválida" }
+  const dueAt = new Date(`${data}T${hora || "09:00"}:00-03:00`)
+  if (Number.isNaN(dueAt.getTime())) return { erro: "Data inválida" }
+  // QA baixos (06/10): follow-up no passado nasceria atrasado.
+  if (dueAt.getTime() < Date.now() - 60_000) return { erro: "A data do follow-up já passou." }
+  return { dueAt }
+}
+
+/** O contato existe, é da empresa e não está na lixeira (B13-03). */
+async function contatoDaEmpresa(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  contactId: string,
+  workspaceId: string
+): Promise<boolean> {
+  const { data: contato } = await supabase
+    .from("contacts")
+    .select("workspace_id")
+    .eq("id", contactId)
+    .is("excluido_em", null)
+    .single()
+  return !!contato && contato.workspace_id === workspaceId
+}
+
 export async function criarFollowUp(params: {
   contactId: string
   data: string // yyyy-mm-dd
@@ -167,27 +198,16 @@ export async function criarFollowUp(params: {
 }): Promise<{ erro?: string }> {
   const { supabase, user, perfil } = await perfilAtual()
   if (!user || !perfil) return { erro: "Não autenticado" }
+  if (!params.contactId) return { erro: "Escolha o contato" }
   if (!params.nota.trim()) return { erro: "Escreva uma nota para o follow-up" }
   if (!params.data) return { erro: "Escolha a data" }
 
-  const { data: contato } = await supabase
-    .from("contacts")
-    .select("workspace_id")
-    .eq("id", params.contactId)
-    .is("excluido_em", null)
-    .single()
-
   // B13-03: contato na lixeira não recebe follow-up.
-  if (!contato || contato.workspace_id !== perfil.workspace_id) return { erro: "Contato não encontrado" }
+  if (!(await contatoDaEmpresa(supabase, params.contactId, perfil.workspace_id))) return { erro: "Contato não encontrado" }
 
-  // QA M12 (06/10): o horário é de Brasília, não do servidor (a Vercel roda em UTC:
-  // 09:00 viraria 06:00). Data e hora conferidas antes de montar.
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(params.data)) return { erro: "Data inválida" }
-  if (params.hora && !/^\d{2}:\d{2}$/.test(params.hora)) return { erro: "Hora inválida" }
-  const dueAt = new Date(`${params.data}T${params.hora || "09:00"}:00-03:00`)
-  if (Number.isNaN(dueAt.getTime())) return { erro: "Data inválida" }
-  // QA baixos (06/10): follow-up no passado nasceria atrasado.
-  if (dueAt.getTime() < Date.now() - 60_000) return { erro: "A data do follow-up já passou." }
+  const vencimento = lerVencimento(params.data, params.hora)
+  if ("erro" in vencimento) return vencimento
+  const { dueAt } = vencimento
 
   const { error } = await supabase.from("reminders").insert({
     workspace_id: perfil.workspace_id,
@@ -199,6 +219,69 @@ export async function criarFollowUp(params: {
   })
 
   if (error) return { erro: "Não foi possível criar o follow-up" }
+  return {}
+}
+
+/**
+ * B46-06: edita contato, data, hora e nota de um lembrete pendente. Quem pode é
+ * quem já pode adiar (o RLS: Admin e Gerente na empresa toda, o atendente nos dele).
+ */
+export async function editarLembrete(
+  id: string,
+  params: { contactId: string; data: string; hora?: string; nota: string }
+): Promise<{ erro?: string }> {
+  const { supabase, perfil } = await perfilAtual()
+  if (!perfil) return { erro: "Não autenticado" }
+  if (!params.contactId) return { erro: "Escolha o contato" }
+  if (!params.nota.trim()) return { erro: "Escreva uma nota para o follow-up" }
+  const vencimento = lerVencimento(params.data, params.hora)
+  if ("erro" in vencimento) return vencimento
+  if (!(await contatoDaEmpresa(supabase, params.contactId, perfil.workspace_id))) return { erro: "Contato não encontrado" }
+
+  const { data, error } = await supabase
+    .from("reminders")
+    .update({ contact_id: params.contactId, instrucao: params.nota.trim(), due_at: vencimento.dueAt.toISOString() })
+    .eq("id", id)
+    .eq("workspace_id", perfil.workspace_id)
+    .eq("status", "pendente")
+    .select("id")
+    .maybeSingle()
+  if (error) return { erro: "Não foi possível salvar o follow-up" }
+  if (!data) return { erro: "Este lembrete não existe mais ou não é seu." }
+  return {}
+}
+
+/** B46-06: apaga o lembrete. O RLS decide quem pode (migration 20261027000020). */
+export async function apagarLembrete(id: string): Promise<{ erro?: string }> {
+  const { supabase, perfil } = await perfilAtual()
+  if (!perfil) return { erro: "Não autenticado" }
+
+  const { data, error } = await supabase
+    .from("reminders")
+    .delete()
+    .eq("id", id)
+    .eq("workspace_id", perfil.workspace_id)
+    .select("id")
+    .maybeSingle()
+  if (error) return { erro: "Não foi possível apagar o lembrete" }
+  if (!data) return { erro: "Este lembrete não existe mais ou não é seu." }
+  return {}
+}
+
+/** B46-06: o "Desfazer" do Feito volta o lembrete para pendente, com a mesma data. */
+export async function desfazerFeito(id: string): Promise<{ erro?: string }> {
+  const { supabase, perfil } = await perfilAtual()
+  if (!perfil) return { erro: "Não autenticado" }
+
+  const { data, error } = await supabase
+    .from("reminders")
+    .update({ status: "pendente", done_at: null })
+    .eq("id", id)
+    .eq("workspace_id", perfil.workspace_id)
+    .eq("status", "feito")
+    .select("id")
+    .maybeSingle()
+  if (error || !data) return { erro: "Não foi possível desfazer" }
   return {}
 }
 

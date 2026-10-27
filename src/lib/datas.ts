@@ -121,6 +121,16 @@ export function formatarDataDoCalendario(dia: string): string {
   return `${d}/${mes}/${ano}`
 }
 
+/**
+ * Data (`2026-10-27`) e hora (`15:00`) no fuso da operação, como os campos de data
+ * e hora de um formulário esperam. É o que o "Editar follow-up" preenche (B46-06).
+ */
+export function paraCamposDoFormulario(iso: string): { data: string; hora: string } {
+  const { ano, mes, dia } = partesNoFuso(new Date(iso))
+  const data = `${ano}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`
+  return { data, hora: formatarHoraDoDia(iso) }
+}
+
 /** Data curta: `15 abr. 2026`. */
 export function formatarDataCurta(iso: string): string {
   return DATA_CURTA.format(new Date(iso))
