@@ -26,7 +26,37 @@ import type { ConexaoParaProvider, ProviderWhatsApp, ResultadoEnvio } from "@/li
  */
 const TAMANHO_LOTE = 40
 
+/** B44-05: quantas campanhas saem por rodada, para caber no tempo da função. */
+const CAMPANHAS_POR_RODADA = 3
+
+/** B44-05: reserva mais velha que isso é de execução que caiu no meio do lote. */
+const RESERVA_VENCE_EM_MS = 10 * 60 * 1000
+
+/** B44-05: motivos que o relatório mostra. */
+export const MOTIVO_CONTATO_APAGADO = "Contato apagado"
+export const MOTIVO_TEXTO_SEM_RESERVA =
+  "A mensagem tem variável sem texto reserva. Ajuste o texto e retome a campanha."
+
 type ServiceClient = ReturnType<typeof createServiceClient>
+
+/**
+ * B44-05: reserva o destinatário antes de enviar. Só grava quem o encontra livre
+ * (pendente e sem reserva recente); duas execuções ao mesmo tempo não mandam a
+ * mesma mensagem duas vezes, porque só uma consegue a reserva.
+ */
+async function reservarDestinatario(supabase: ServiceClient, destinatarioId: string): Promise<boolean> {
+  const agora = new Date()
+  const vencida = new Date(agora.getTime() - RESERVA_VENCE_EM_MS).toISOString()
+  const { data } = await supabase
+    .from("campaign_recipients")
+    .update({ reservado_em: agora.toISOString() })
+    .eq("id", destinatarioId)
+    .eq("status", "pendente")
+    .or(`reservado_em.is.null,reservado_em.lt.${vencida}`)
+    .select("id")
+    .maybeSingle()
+  return Boolean(data)
+}
 
 type CampaignRow = {
   id: string
@@ -242,7 +272,20 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
 
     if (atual?.status !== "enviando") return enviados
 
-    if (destinatario.contact_id && naLixeira.has(destinatario.contact_id)) {
+    // B44-05: o contato apagado de vez deixa o destinatário sem contato ligado
+    // (a lista é sempre montada a partir de contatos). Ele não recebe mais nada.
+    if (!destinatario.contact_id) {
+      await supabase
+        .from("campaign_recipients")
+        .update({ status: "excluido", motivo: MOTIVO_CONTATO_APAGADO, atualizado_em: new Date().toISOString() })
+        .eq("id", destinatario.id)
+        .eq("status", "pendente")
+      continue
+    }
+
+    if (!(await reservarDestinatario(supabase, destinatario.id))) continue
+
+    if (naLixeira.has(destinatario.contact_id)) {
       await supabase
         .from("campaign_recipients")
         .update({ status: "excluido", atualizado_em: new Date().toISOString() })
@@ -304,14 +347,29 @@ export async function processarCampanhasPendentes(): Promise<number> {
     await supabase.from("campaigns").update({ status: "enviando" }).in("id", prontas).eq("status", "agendada")
   }
 
+  // B44-05: a fila é de todas as empresas. Em ordem de chegada, e a campanha que
+  // não tem como sair vira "Interrompida" e sai da fila, para não ocupar a vaga
+  // de quem pode sair (antes, três travadas de uma empresa seguravam as demais).
   const { data: enviando } = await supabase
     .from("campaigns")
     .select("id, workspace_id, tipo_mensagem, conteudo, arquivo_url, arquivo_nome, whatsapp_connection_id")
     .eq("status", "enviando")
-    .limit(3)
+    .order("agendada_para", { ascending: true, nullsFirst: true })
+    .order("created_at", { ascending: true })
+
+  const fila = (enviando ?? []) as CampaignRow[]
+  const travadas = fila.filter((c) => !campanhaPodeEnviar(c.conteudo)).map((c) => c.id)
+  if (travadas.length > 0) {
+    await supabase
+      .from("campaigns")
+      .update({ status: "interrompida", interrompida_motivo: MOTIVO_TEXTO_SEM_RESERVA, interrompida_em: agora })
+      .in("id", travadas)
+      .eq("status", "enviando")
+  }
+  const daVez = fila.filter((c) => campanhaPodeEnviar(c.conteudo)).slice(0, CAMPANHAS_POR_RODADA)
 
   let total = 0
-  for (const campanha of (enviando ?? []) as CampaignRow[]) {
+  for (const campanha of daVez) {
     try {
       total += await processarCampanha(supabase, campanha)
     } catch {

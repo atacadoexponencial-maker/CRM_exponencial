@@ -99,13 +99,14 @@ async function buscarDestinatariosSegmento(
       .select("contact_id, nome_snapshot, telefone_snapshot, contato:contacts(excluido_em)")
       .eq("campaign_id", segmento.reenvioDe)
       .eq("status", "falhou")
-    // B13-03: quem foi para a lixeira não entra no reenvio.
+    // B13-03: quem foi para a lixeira não entra no reenvio. B44-05: nem quem teve o
+    // contato apagado de vez (o destinatário fica sem contato ligado).
     const ativos = ((data ?? []) as unknown as Array<{
       contact_id: string | null
       nome_snapshot: string | null
       telefone_snapshot: string
       contato: { excluido_em: string | null } | null
-    }>).filter((r) => !r.contato?.excluido_em)
+    }>).filter((r) => r.contact_id && !r.contato?.excluido_em)
     return ativos.map((r) => ({
       id: r.contact_id ?? r.telefone_snapshot,
       nome: r.nome_snapshot ?? r.telefone_snapshot,

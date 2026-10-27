@@ -21,9 +21,15 @@ function consulta(tabela: string) {
     in: (c: string, vs: unknown[]) => { filtros.push((l) => vs.includes(l[c])); return elo },
     lte: (c: string, v: string) => { filtros.push((l) => String(l[c]) <= v); return elo },
     is: () => elo,
+    // B44-05: a reserva do destinatário filtra "sem reserva ou vencida"; aqui nada está reservado.
+    or: () => elo,
     order: () => elo,
     limit: (n: number) => { limite = n; return elo },
-    maybeSingle: async () => ({ data: linhas()[0] ?? null, error: null }),
+    maybeSingle: async () => {
+      const alvo = linhas()[0] ?? null
+      if (alvo && alteracao) Object.assign(alvo, alteracao)
+      return { data: alvo, error: null }
+    },
     single: async () => ({ data: linhas()[0] ?? null, error: null }),
     then: (ok: (r: { data: Linha[]; error: null }) => unknown) => {
       const alvo = linhas().slice(0, limite)
