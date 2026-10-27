@@ -218,7 +218,8 @@ function EditorFluxoInterno({
   const [esperasQueSaem, setEsperasQueSaem] = useState(0)
   const [destacarErros, setDestacarErros] = useState(false)
   const [erroNome, setErroNome] = useState(false)
-  const [mensagem, setMensagem] = useState<{ tipo: "erro" | "ok"; texto: string } | null>(
+  // B46-07: `itens`, os problemas do Salvar, um por linha
+  const [mensagem, setMensagem] = useState<{ tipo: "erro" | "ok"; texto: string; itens?: string[] } | null>(
     avisoInicial ? { tipo: "ok", texto: avisoInicial } : null
   )
   const [salvando, setSalvando] = useState(false)
@@ -508,7 +509,7 @@ function EditorFluxoInterno({
 
     if (partes.length > 0) {
       setDestacarErros(true)
-      setMensagem({ tipo: "erro", texto: partes.join(". ") })
+      setMensagem({ tipo: "erro", texto: partes.join(". "), itens: partes.length > 1 ? partes : undefined })
       return
     }
 
@@ -632,7 +633,8 @@ function EditorFluxoInterno({
             <Background gap={20} />
             <Controls showInteractive={false} />
             {(aviso || simulacao || rascunhoAchado) && (
-              <Panel position="top-center" className="flex max-w-[90vw] flex-col items-center gap-2">
+              // B46-07: à esquerda, longe do painel do bloco, que abre à direita
+              <Panel position="top-left" className="flex max-w-[min(90vw,32rem)] flex-col items-start gap-2">
                 {rascunhoAchado && (
                   <div
                     role="status"
@@ -663,7 +665,15 @@ function EditorFluxoInterno({
                         : "border-sucesso/40 bg-background text-sucesso"
                     )}
                   >
-                    <span>{aviso.texto}</span>
+                    {aviso.itens ? (
+                      <ul className="list-disc pl-4">
+                        {aviso.itens.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <span>{aviso.texto}</span>
+                    )}
                     <Button variant="ghost" size="icon-xs" aria-label="Fechar aviso" onClick={() => setMensagem(null)}>
                       <X />
                     </Button>

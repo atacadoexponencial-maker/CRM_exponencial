@@ -383,7 +383,7 @@ export const ACOES: Record<AcaoTipo, { rotulo: string; icone: LucideIcon; campos
         chave: "texto",
         rotulo: "Mensagem",
         tipo: "texto_longo",
-        placeholder: "Oi {{primeiro_nome}}, aqui é {{nome_vendedor}}…",
+        placeholder: "Ex.: Oi, tudo bem? Para pôr o nome do cliente, clique em Primeiro nome, aqui embaixo.",
         variaveis: true,
       },
     ],
@@ -471,7 +471,7 @@ export const ACOES: Record<AcaoTipo, { rotulo: string; icone: LucideIcon; campos
         chave: "texto",
         rotulo: "Lembrete",
         tipo: "texto_longo",
-        placeholder: "Ligar para {{primeiro_nome}} e perguntar do pedido",
+        placeholder: "Ex.: Ligar e perguntar do pedido. Para pôr o nome do cliente, clique em Primeiro nome, aqui embaixo.",
         variaveis: true,
       },
       // B28-01: o padrão é o responsável pela conversa; dá para escolher outra pessoa
