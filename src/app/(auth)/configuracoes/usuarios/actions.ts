@@ -1,8 +1,28 @@
 "use server"
 
-import { createClient } from "@supabase/supabase-js"
+import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
+
+/** B44-02: Admin pode dar qualquer um dos três papéis, inclusive Admin. */
+export type Papel = "admin" | "gerente" | "atendente"
+const PAPEIS: Papel[] = ["admin", "gerente", "atendente"]
+const DONO_PROTEGIDO = "O dono da empresa não pode ser alterado"
+
+type ClienteDeServico = SupabaseClient
+
+/** B44-02: quem criou a empresa só muda pelo suporte (`workspaces.dono_id`). */
+async function ehDonoDaEmpresa(adminClient: ClienteDeServico, workspaceId: string, usuarioId: string) {
+  const { data } = await adminClient.from("workspaces").select("dono_id").eq("id", workspaceId).single()
+  return (data as { dono_id: string | null } | null)?.dono_id === usuarioId
+}
+
+/** B44-02: todos os times pedidos são da empresa do Admin. */
+async function timesSaoDaEmpresa(adminClient: ClienteDeServico, workspaceId: string, timesIds: string[]) {
+  if (timesIds.length === 0) return true
+  const { data } = await adminClient.from("teams").select("id").eq("workspace_id", workspaceId).in("id", timesIds)
+  return (data ?? []).length === new Set(timesIds).size
+}
 
 export type UsuarioListado = {
   id: string
@@ -64,13 +84,14 @@ export async function listarUsuarios(): Promise<UsuarioListado[]> {
 
 export async function editarPapel(
   usuarioId: string,
-  novoPapel: "gerente" | "atendente"
+  novoPapel: Papel
 ): Promise<{ erro?: string }> {
   const ssrClient = await createSsrClient()
   const { data: { user } } = await ssrClient.auth.getUser()
   if (!user) return { erro: "Não autorizado" }
 
   if (user.id === usuarioId) return { erro: "Você não pode alterar o próprio papel" }
+  if (!PAPEIS.includes(novoPapel)) return { erro: "Papel inválido" }
 
   const { data: perfil } = await ssrClient
     .from("profiles")
@@ -86,13 +107,17 @@ export async function editarPapel(
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
-  const { error } = await adminClient
+  if (await ehDonoDaEmpresa(adminClient, perfil.workspace_id, usuarioId)) return { erro: DONO_PROTEGIDO }
+
+  const { data: alterado, error } = await adminClient
     .from("profiles")
     .update({ role: novoPapel })
     .eq("id", usuarioId)
     .eq("workspace_id", perfil.workspace_id)
+    .select("id")
+    .maybeSingle()
 
-  if (error) return { erro: "Não foi possível alterar o papel. Tente novamente." }
+  if (error || !alterado) return { erro: "Não foi possível alterar o papel. Tente novamente." }
 
   return {}
 }
@@ -101,7 +126,7 @@ export async function adicionarUsuario(data: {
   nome: string
   email: string
   senha: string
-  papel: "gerente" | "atendente"
+  papel: Papel
   times: string[]
 }): Promise<{ erro?: string }> {
   const ssrClient = await createSsrClient()
@@ -129,8 +154,10 @@ export async function adicionarUsuario(data: {
   const nome = data.nome.trim()
   if (!nome) return { erro: "Informe o nome do usuário." }
   if (nome.length > 80) return { erro: "O nome passa de 80 caracteres." }
-  if (!["gerente", "atendente"].includes(data.papel)) return { erro: "Papel inválido" }
+  if (!PAPEIS.includes(data.papel)) return { erro: "Papel inválido" }
   if (!Array.isArray(data.times) || data.times.some((t) => typeof t !== "string")) return { erro: "Times inválidos" }
+  // B44-02: só times da própria empresa, conferido antes de criar o login.
+  if (!(await timesSaoDaEmpresa(adminClient, workspaceId, data.times))) return { erro: "Times inválidos" }
 
   const { data: userData, error: userError } = await adminClient.auth.admin.createUser({
     email: data.email,
@@ -227,6 +254,8 @@ export async function desativarUsuario(
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
+  if (await ehDonoDaEmpresa(adminClient, perfil.workspace_id, usuarioId)) return { erro: DONO_PROTEGIDO }
+
   const { data: desativado, error } = await adminClient
     .from("profiles")
     .update({ status: "inactive" })
@@ -268,6 +297,19 @@ export async function gerenciarTimes(
   const adminClient = createClient(url, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
+
+  // B44-02: o usuário e cada time pedido precisam ser da empresa do Admin. O gatilho
+  // do banco só exige usuário e time da mesma empresa entre si, não a do Admin.
+  if (!Array.isArray(timesIds) || timesIds.some((t) => typeof t !== "string")) return { erro: "Times inválidos" }
+  const { data: usuarioDaEmpresa } = await adminClient
+    .from("profiles")
+    .select("id")
+    .eq("id", usuarioId)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle()
+  if (!usuarioDaEmpresa || !(await timesSaoDaEmpresa(adminClient, workspaceId, timesIds))) {
+    return { erro: "Usuário ou time não encontrado nesta empresa." }
+  }
 
   const { data: timesDoWorkspace } = await adminClient
     .from("teams")

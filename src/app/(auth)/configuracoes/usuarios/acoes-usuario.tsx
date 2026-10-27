@@ -17,7 +17,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal } from "lucide-react"
-import { editarPapel, gerenciarTimes, desativarUsuario, reativarUsuario } from "./actions"
+import { editarPapel, gerenciarTimes, desativarUsuario, reativarUsuario, type Papel } from "./actions"
+
+/** B44-02: o papel atual do usuário, entre os três que a edição oferece. */
+function papelInicial(role: string): Papel {
+  return role === "admin" || role === "gerente" ? role : "atendente"
+}
 
 type Team = { id: string; name: string }
 
@@ -40,9 +45,7 @@ export function AcoesUsuario({
 }) {
   const router = useRouter()
   const [dialogAberto, setDialogAberto] = useState(false)
-  const [novoPapel, setNovoPapel] = useState<"gerente" | "atendente">(
-    usuario.role === "gerente" ? "gerente" : "atendente"
-  )
+  const [novoPapel, setNovoPapel] = useState<Papel>(papelInicial(usuario.role))
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
 
@@ -76,7 +79,7 @@ export function AcoesUsuario({
     setDialogAberto(open)
     if (!open) {
       setErro(null)
-      setNovoPapel(usuario.role === "gerente" ? "gerente" : "atendente")
+      setNovoPapel(papelInicial(usuario.role))
     }
   }
 
@@ -184,9 +187,10 @@ export function AcoesUsuario({
               <select
                 id="novo-papel"
                 value={novoPapel}
-                onChange={(e) => setNovoPapel(e.target.value as "gerente" | "atendente")}
+                onChange={(e) => setNovoPapel(e.target.value as Papel)}
                 className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
+                <option value="admin">Admin</option>
                 <option value="gerente">Gerente</option>
                 <option value="atendente">Atendente</option>
               </select>

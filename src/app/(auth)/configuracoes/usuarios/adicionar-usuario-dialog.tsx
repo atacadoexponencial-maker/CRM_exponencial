@@ -21,7 +21,7 @@ const schema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   email: z.string().min(1, "E-mail é obrigatório").email("E-mail inválido"),
   senha: z.string().min(8, "Senha deve ter pelo menos 8 caracteres"),
-  papel: z.enum(["gerente", "atendente"], { error: "Papel é obrigatório" }),
+  papel: z.enum(["admin", "gerente", "atendente"], { error: "Papel é obrigatório" }),
   times: z.array(z.string()),
 })
 
@@ -139,6 +139,7 @@ export function AdicionarUsuarioDialog({
               {...register("papel")}
             >
               <option value="">Selecione um papel</option>
+              <option value="admin">Admin</option>
               <option value="gerente">Gerente</option>
               <option value="atendente">Atendente</option>
             </select>
