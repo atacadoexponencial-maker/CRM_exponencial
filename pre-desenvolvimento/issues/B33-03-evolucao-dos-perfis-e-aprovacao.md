@@ -83,3 +83,9 @@ Nenhuma.
 - [x] Lib: evolução semanal e mensal calculada do histórico
 - [x] Bloco de evolução com Semanal/Mensal e base saudável na aba
 - [x] Testes automáticos passando; roteiro manual do CA-B33-16 registrado
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B33-16 | Marcelle | 27/10/2026 |
