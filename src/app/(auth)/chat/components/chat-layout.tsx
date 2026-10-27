@@ -3,13 +3,14 @@
 import { useState, useTransition, useEffect, useRef } from "react"
 import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import { createClient } from "@/integrations/supabase/client"
-import { formatarHoraDoDia, formatarHorarioDaLista } from "@/lib/datas"
+import { formatarHoraDoDia } from "@/lib/datas"
 import { FiltrosCaixa } from "./filtros-caixa"
 import { PainelConversa } from "./painel-conversa"
 import { PainelContato } from "./painel-contato"
 import { COOKIE_CAIXA_RECOLHIDA, gravarPreferencia } from "@/lib/preferencias-layout"
 import { buscarConversa, buscarMensagens, carregarMaisConversas, marcarComoLidas } from "../actions"
-import type { Conversa, StatusConversa } from "../mock-conversas"
+import type { Conversa } from "../mock-conversas"
+import { aplicarAtualizacaoDaConversa, type LinhaDaConversa } from "../conversa-atualizada"
 import type { Mensagem } from "../mock-mensagens"
 import { aplicarStatus, confirmarEnvio } from "../mensagens-locais"
 
@@ -66,28 +67,8 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
           filter: `workspace_id=eq.${workspaceId}`,
         },
         (payload) => {
-          const row = payload.new as {
-            id: string
-            last_message_text: string
-            last_message_at: string
-            unread_count: number
-            status: string
-          }
-
-          setConversasState((prev) => {
-            const idx = prev.findIndex((c) => c.id === row.id)
-            if (idx === -1) return prev
-            const atualizada: Conversa = {
-              ...prev[idx],
-              ultimaMensagem: {
-                texto: row.last_message_text,
-                horario: formatarHorarioDaLista(row.last_message_at),
-              },
-              naoLidas: row.unread_count,
-              status: row.status as StatusConversa,
-            }
-            return [atualizada, ...prev.filter((c) => c.id !== row.id)]
-          })
+          const row = payload.new as LinhaDaConversa
+          setConversasState((prev) => aplicarAtualizacaoDaConversa(prev, row))
         }
       )
       .on(
