@@ -15,8 +15,9 @@ que nasce ligada, abas dos Relatórios sem endereço, números com o mesmo nome 
 significados diferentes, a tabela de Contatos, a largura das telas e os
 acabamentos.
 
-Os achados de clareza que mudam o produto (C-01 a C-35) esperam a decisão do
-Luan e ficam fora desta spec até lá.
+Os achados de clareza entram pelas recomendações do arquivo do QA, aceitas pelo
+Luan em 27/10/2026 (seções 15 a 19). Os que mudam o produto ficam fora (ver
+"Fora de escopo"). O Luan pediu também o fuso configurável (seção 14).
 
 ## Páginas / Módulos
 
@@ -282,9 +283,118 @@ desliga.
 - **Quando** o Luan confere: "Editar funil" sem quebra e aberto perto do botão; mensagens rápidas com o nome inteiro; campos do produto no mesmo fundo; a barra de Aparência sem cobrir texto; Dashboard sem barras zeradas; Carteiras em tabela; lista de contatos do follow-up recolhida; editor de automação novo com a dica do "+"; seção "Agenda" visível no seletor; cartões de etapa sem "0 cards" quebrado
 - **Então** ele aprova cada um, ou o que não aprovar volta para a issue
 
+### 14. Fuso do CRM configurável pela empresa (B46-14)
+
+**Comportamentos:** a empresa tem um fuso, que começa em Brasília. Só o Admin
+troca, em Configurações. Toda data e hora das telas da empresa usa esse fuso.
+
+#### CA-B46-35 — Empresa nova começa no horário de Brasília · prova: automática
+
+- **Dado** uma empresa sem fuso escolhido
+- **Quando** uma tela formata a hora de um movimento feito às 18:00 UTC
+- **Então** aparece "15:00"
+
+#### CA-B46-36 — Admin troca o fuso e as telas seguem · prova: automática
+
+- **Dado** a empresa no horário de Brasília
+- **Quando** o Admin escolhe "Manaus (UTC−4)" e salva
+- **Então** o mesmo movimento aparece com "14:00" para todos os usuários da empresa
+
+#### CA-B46-37 — Só o Admin troca o fuso · prova: automática
+
+- **Dado** um Gerente ou um Atendente da empresa
+- **Quando** tenta salvar outro fuso
+- **Então** o servidor recusa ("Sem permissão") e o fuso continua o mesmo
+
+### 15. Ajuda onde falta explicação (B46-15)
+
+**Comportamentos:** onde a tela usa um termo ou um botão sem dizer o que é,
+aparece uma frase curta ou um "?" com a explicação. Decisão do Luan
+(27/10/2026): descrição na tela ou ajuda com interrogação.
+
+#### CA-B46-38 — Termos e botões explicados · prova: automática
+
+- **Dado** as telas com termo ou botão sem explicação: funis "fixo" da Entrada e da Recompra (C-01), "ICP" e "Perfil RFV" na ficha do contato (C-13), "Tag" no card e "Etiqueta" na conversa (C-04), "Corrigir recebimento de mensagens" no WhatsApp (C-32), o código na importação de produtos (C-17), "Marcar como Fechado" e "Cancelar pedido" (C-20)
+- **Quando** cada uma é desenhada
+- **Então** cada termo ou botão tem ao lado uma frase curta ou um "?" que, aberto, diz o que é ou o que faz
+
+#### CA-B46-39 — Ícones do campo de mensagem com nome · prova: automática
+
+- **Dado** o campo de mensagem do Chat
+- **Quando** é desenhado
+- **Então** os botões de anexo, mensagens rápidas, nota interna e áudio têm nome visível em dica e nome acessível ("Mensagens rápidas", "Nota interna"…)
+
+#### CA-B46-40 — Template rejeitado mostra o motivo · prova: automática
+
+- **Dado** um template com status "Rejeitado" e o motivo devolvido pela Meta gravado
+- **Quando** a lista de templates é desenhada
+- **Então** o motivo aparece junto do status; sem motivo gravado, aparece "A Meta não informou o motivo"
+
+#### CA-B46-41 — Tag sem espaço barrada na digitação · prova: automática
+
+- **Dado** o campo "Nova tag" do card
+- **Quando** se digita um espaço
+- **Então** o espaço não entra e a dica diz "Tags não têm espaço"
+
+### 16. Botões perigosos separados dos comuns (B46-16)
+
+#### CA-B46-42 — Excluir e apagar de vez fora do caminho · prova: automática
+
+- **Dado** o painel do card (C-07), a ficha do contato (C-15), a lixeira (C-36), as Carteiras (C-21) e o WhatsApp (C-31)
+- **Quando** cada um é desenhado
+- **Então** "Excluir", "Apagar de vez", "Remover da carteira" e "Remover número" ficam num menu "⋯" ou como botão secundário vermelho, separados dos botões comuns, e "Remover da carteira" pede confirmação
+
+### 17. Atalhos entre telas (B46-17)
+
+#### CA-B46-43 — Do chat para a ficha do contato · prova: automática
+
+- **Dado** uma conversa aberta com contato cadastrado
+- **Quando** se olha o cabeçalho
+- **Então** o nome do contato é um link para `/contatos/<id>`
+
+#### CA-B46-44 — Do pedido para a conversa · prova: automática
+
+- **Dado** um pedido de contato que tem conversa
+- **Quando** o pedido é aberto
+- **Então** há "Abrir conversa" ao lado de "Perfil do contato", levando à conversa dele no Chat
+
+### 18. Rótulos que dizem a mesma coisa do mesmo jeito (B46-18)
+
+#### CA-B46-45 — Rótulos padronizados · prova: automática
+
+- **Dado** as telas com rótulo confuso
+- **Quando** cada uma é desenhada
+- **Então** o menu e o Pipeline dizem "Funis" nos dois (C-02); Novo lead e Novo contato pedem nome e depois telefone, os dois com nome obrigatório (C-03); o catálogo publicado mostra "Tirar a loja do ar", e o fora do ar, "Publicar a loja" (C-18); os tipos de campo são "Uma opção" e "Várias opções" (C-26), com exemplo em cinza (C-27); o campo da mensagem rápida é "Atalho (digite / no chat)" (C-29); o X dos alertas é "Dispensar" (C-33); a faixa de filtros salvos se chama "Filtros salvos" e o menu dela diz "Editar" e "Apagar" (C-12); a campanha tem "Ver todos os N" na lista de destinatários (C-35)
+
+### 19. Telas menos carregadas (B46-19)
+
+#### CA-B46-46 — Filtros do Chat numa linha · prova: automática
+
+- **Dado** a lista de conversas
+- **Quando** é desenhada
+- **Então** "Minhas / Meu time / Todas" e o status ficam no mesmo seletor, e as etiquetas atrás de um botão "Etiquetas" (C-10)
+
+#### CA-B46-47 — Um Editar só na ficha · prova: automática
+
+- **Dado** a ficha do contato
+- **Quando** se clica em Editar
+- **Então** os dados do contato e os campos personalizados ficam editáveis juntos, com um Salvar (C-14)
+
+#### CA-B46-48 — Mover pelo painel mantém o painel aberto · prova: automática
+
+- **Dado** o painel do card aberto
+- **Quando** se move o card de etapa pela lista
+- **Então** o painel continua aberto, com a etapa nova e o histórico atualizado (C-06)
+
+#### CA-B46-49 — Alertas agrupados e filtro do Dashboard separado · prova: automática
+
+- **Dado** 46 alertas de "Lead sem resposta" e o filtro "Todos os contatos" do Dashboard
+- **Quando** as telas são desenhadas
+- **Então** os alertas aparecem agrupados por tipo, com "ver mais", e o filtro do Dashboard separa os grupos de contato dos campos (C-34, C-22)
+
 ## Fora de escopo
 
-- Os achados de clareza C-01 a C-35, até a decisão do Luan (ver o arquivo do QA).
+- Dos achados de clareza, os que mudam o produto: editar as etapas da Entrada e da Recompra (C-01, só ganha a explicação), renomear "Tag" e "Etiqueta" (C-04, só ganha a explicação), um caminho só para Pedidos (C-16), a Agenda como calendário (C-24) e arrastar para ordenar funis e campos (C-28).
 - O "Abrir conversa" do card sem conversa (C-05): a B45 decidiu que vai com a spec de começar conversa.
 - O que o teste não cobriu (envio de mensagem, número de WhatsApp, pedido, planilha, campanha, convites).
 
@@ -294,6 +404,7 @@ desliga.
 |---|---|---|---|
 | SUP-B46-01 | O fuso de todas as telas é o da operação (`America/Sao_Paulo`, já em `src/lib/datas.ts`), para todas as empresas | confirmada | Brasília é o padrão. Luan, 27/10/2026, que pediu também uma configuração para trocar o fuso: fica na B46-14, separada desta |
 | SUP-B46-02 | O follow-up pode ser editado e apagado por quem o criou, pelo atendente dele e por Admin e Gerente, como já é no adiar | invalidada | Por enquanto, todo usuário da empresa edita e apaga qualquer follow-up da empresa (CA-B46-14 reescrito). Luan, 27/10/2026 |
+| SUP-B46-04 | O fuso é da empresa e só o Admin troca (B46-14). Era a recomendação, aceita junto com as outras | confirmada | Luan, 27/10/2026 ("pode levar em consideração as recomendações") |
 | SUP-B46-03 | A variável pendente é inserida ao salvar, em vez de bloquear o Salvar (CA-B46-17) | confirmada | Luan, 27/10/2026 |
 
 ## Perguntas em aberto

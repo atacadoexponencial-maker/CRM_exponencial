@@ -1,6 +1,6 @@
 # issues
 
-- **Arquivos soltos nesta pasta = issues abertas.** Hoje: B30-05 (gráficos do dashboard, aguardando o teste manual), B31-03 (grade fechada, aguardando o teste manual) B32-04 e B32-06 (relatórios: Visão Geral, aguardando os testes manuais) B33-03 (RFV, aguardando o teste manual) B34-03 (Coorte e Funil, aguardando o teste manual) e B35-01 a B35-03 (relatórios: Carteiras). B46-01 a B46-13 (correções do teste de UI/UX de 27/10, no branch `b46-correcoes-qa-ux`).
+- **Arquivos soltos nesta pasta = issues abertas.** Hoje: B30-05 (gráficos do dashboard, aguardando o teste manual), B31-03 (grade fechada, aguardando o teste manual) B32-04 e B32-06 (relatórios: Visão Geral, aguardando os testes manuais) B33-03 (RFV, aguardando o teste manual) B34-03 (Coorte e Funil, aguardando o teste manual) e B35-01 a B35-03 (relatórios: Carteiras). B46-01 a B46-19 (correções do teste de UI/UX de 27/10, no branch `b46-correcoes-qa-ux`).
 - `concluidas_<série>/` = entregues e no ar. Não se mexe mais nelas.
 - `bloqueadas_modulo6/` = escritas, mas sem como fazer (API da Meta não tem grupos).
 
