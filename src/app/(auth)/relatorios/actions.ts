@@ -47,8 +47,8 @@ export type VisaoGeral = VisaoGeralCartoes & {
 
 /**
  * B32-03: compras da empresa para a Visão Geral. Compra de contato na lixeira não
- * conta (B13-03). Com filtro de atendente, valem as compras dele e, das sem
- * atendente, as dos contatos dele (regra da B30-03, a mesma do Dashboard).
+ * conta (B13-03). Com filtro de atendente, valem as compras dos contatos da carteira
+ * dele (B45-04, a mesma regra do Dashboard).
  */
 async function carregarVendas(atendenteId: string | null, campo?: FiltroPorCampo | null) {
   const { supabase, user, perfil } = await sessaoAtual()
@@ -60,14 +60,15 @@ async function carregarVendas(atendenteId: string | null, campo?: FiltroPorCampo
   const doCampo = await contatosDoFiltroPorCampo(supabase, perfil.workspace_id, campo)
   if (doCampo) vendas = vendas.filter((v) => doCampo.has(v.contact_id))
 
+  // B45-04: as vendas do atendente são as dos contatos da carteira dele
   if (atendenteId) {
-    const { data: cards } = await supabase
-      .from("pipeline_cards")
-      .select("contact_id")
+    const { data: carteira } = await supabase
+      .from("contacts")
+      .select("id")
       .eq("workspace_id", perfil.workspace_id)
       .eq("atendente_id", atendenteId)
-    const contatosDoAtendente = new Set((cards ?? []).map((c) => c.contact_id).filter(Boolean) as string[])
-    vendas = vendas.filter((v) => compraEhDoAtendente(v, atendenteId, contatosDoAtendente))
+    const contatosDoAtendente = new Set<string | null>((carteira ?? []).map((c) => c.id))
+    vendas = vendas.filter((v) => compraEhDoAtendente(v, contatosDoAtendente))
   }
 
   return { perfil, user, vendas }

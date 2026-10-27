@@ -70,13 +70,18 @@ async function carregarDados(filtro: FiltroDashboard) {
     history = (historyData ?? []) as HistoryRow[]
   }
 
-  // Com filtro de atendente: compras dele e, das sem atendente, as dos contatos dele (B30-03).
+  // B45-04: com filtro de atendente, as compras dos contatos da carteira dele
   let purchases = (purchasesData ?? []) as PurchaseRow[]
   // B38-07: só as compras dos contatos que atendem ao filtro por campo
   if (doCampoDosCards) purchases = purchases.filter((p) => doCampoDosCards.has(p.contact_id))
   if (atendenteId) {
-    const contatosDoAtendente = new Set(cards.map((c) => c.contact_id).filter(Boolean))
-    purchases = purchases.filter((p) => compraEhDoAtendente(p, atendenteId, contatosDoAtendente))
+    const { data: carteira } = await supabase
+      .from("contacts")
+      .select("id")
+      .eq("workspace_id", perfil.workspace_id)
+      .eq("atendente_id", atendenteId)
+    const contatosDoAtendente = new Set<string | null>((carteira ?? []).map((c) => c.id))
+    purchases = purchases.filter((p) => compraEhDoAtendente(p, contatosDoAtendente))
   }
 
   return { perfil, cards, history, purchases }

@@ -56,6 +56,9 @@ beforeAll(async () => {
     { workspace_id: ws, contact_id: c1, funil: "entrada", etapa: "ganho", atendente_id: anaId },
     { workspace_id: ws, contact_id: c3, funil: "recompra", etapa: "ativos", atendente_id: anaId },
   ])
+  // B45-04: as vendas do atendente são as dos clientes da carteira dele (dono do contato)
+  await service.from("contacts").update({ atendente_id: anaId }).in("id", [c1, c3])
+  await service.from("contacts").update({ atendente_id: brunoId }).eq("id", c2)
 
   await service.from("contact_purchases").insert([
     { workspace_id: ws, contact_id: c1, data: hoje, valor: 100, atendente_id: anaId, origem: "manual" },
