@@ -11,7 +11,9 @@ import { PainelFiltro } from "./painel-filtro"
 import { FaixaFiltrosSalvos } from "./faixa-filtros-salvos"
 import { atualizarFiltroSalvo, salvarFiltro, type FiltroSalvo } from "../filtros-salvos"
 import { resumoExclusaoContato, excluirContato, type ResumoExclusao } from "../lixeira/actions"
-import { filtrarContatos, type OrdemDaLista } from "../actions"
+import { filtrarContatos, salvarColunasOcultas, type OrdemDaLista } from "../actions"
+import { COLUNAS_FIXAS } from "../colunas"
+import { MenuColunas } from "./menu-colunas"
 import { contarCondicoes, limparFiltro, FILTRO_VAZIO, type Condicao, type Filtro, type FunilParaFiltro } from "@/lib/filtro-contatos"
 import {
   type Contato,
@@ -75,6 +77,8 @@ interface ListaContatosProps {
   totalLixeira?: number
   /** B38-02: campos personalizados da empresa, na ordem dela. */
   campos?: CampoDaEmpresa[]
+  /** B38-09: colunas que este usuário escondeu (chave da fixa ou id do campo). */
+  colunasOcultas?: string[]
 }
 
 export function ListaContatos({
@@ -87,9 +91,18 @@ export function ListaContatos({
   papel,
   totalLixeira = 0,
   campos = [],
+  colunasOcultas = [],
 }: ListaContatosProps) {
   const router = useRouter()
-  const camposNaLista = campos.filter((c) => c.mostrarNaLista)
+  // B38-09: todo campo é coluna; cada usuário esconde as que quiser, menos o Nome.
+  const [ocultas, setOcultas] = useState<string[]>(colunasOcultas)
+  const ve = (chave: string) => !ocultas.includes(chave)
+  const camposNaLista = campos.filter((c) => ve(c.id))
+  const colunasDoMenu = COLUNAS_FIXAS
+    .filter((c) => c.chave !== "atendente" || papel !== "atendente")
+    .flatMap((c) => c.chave === "cidade"
+      ? [c, ...campos.map((campo) => ({ chave: campo.id, nome: campo.nome }))]
+      : [c])
   const [busca, setBusca] = useState("")
   const [classificacao, setClassificacao] = useState<ClassificacaoContato | "todas">("todas")
   const [tipo, setTipo] = useState<TipoContato | "todos">("todos")
@@ -249,6 +262,22 @@ export function ListaContatos({
     setPainelAberto(false)
   }
 
+  // B38-09: muda a tabela na hora e grava a escolha; se não gravar, volta como estava.
+  async function alternarColuna(chave: string) {
+    const antes = ocultas
+    const depois = antes.includes(chave) ? antes.filter((c) => c !== chave) : [...antes, chave]
+    setOcultas(depois)
+    setErroLista(null)
+    try {
+      const r = await salvarColunasOcultas(depois)
+      if (!r.erro) return
+    } catch {
+      // cai no aviso abaixo
+    }
+    setOcultas(antes)
+    setErroLista("Não foi possível guardar as colunas.")
+  }
+
   const ordenacaoLabel = ORDENACOES.find((o) => o.valor === ordenacao)?.label ?? "Ordenar"
 
   return (
@@ -333,6 +362,9 @@ export function ListaContatos({
             Limpar filtro
           </button>
         )}
+
+        {/* B38-09: cada usuário escolhe as colunas que vê */}
+        <MenuColunas colunas={colunasDoMenu} ocultas={ocultas} onAlternar={alternarColuna} />
       </div>
 
       <PainelFiltro
@@ -451,16 +483,16 @@ export function ListaContatos({
             <thead>
               <tr className="border-b">
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Nome</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">WhatsApp</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Classificação</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Perfil RFV</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Tipo</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Cidade</th>
-                {/* B38-02: os campos personalizados marcados para a lista, na ordem da empresa. */}
+                {ve("whatsapp") && <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">WhatsApp</th>}
+                {ve("classificacao") && <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Classificação</th>}
+                {ve("perfil_rfv") && <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Perfil RFV</th>}
+                {ve("tipo") && <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Tipo</th>}
+                {ve("cidade") && <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Cidade</th>}
+                {/* B38-02: os campos personalizados, na ordem da empresa (B38-09: menos os escondidos). */}
                 {camposNaLista.map((c) => (
                   <th key={c.id} className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">{c.nome}</th>
                 ))}
-                {papel !== "atendente" && (
+                {papel !== "atendente" && ve("atendente") && (
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Atendente</th>
                 )}
                 <th className="px-4 py-3" />
@@ -474,29 +506,35 @@ export function ListaContatos({
                   className="border-b last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
                 >
                   <td className="px-4 py-3 font-medium min-w-40 max-w-64 [overflow-wrap:anywhere]">{contato.nome}</td>
-                  <td className="numero px-4 py-3 text-muted-foreground">{contato.telefone}</td>
-                  <td className="px-4 py-3">
-                    <span className={cn(
-                      "inline-flex items-center whitespace-nowrap px-2 py-0.5 text-xs rounded-md border font-medium",
-                      CLASSIFICACAO_BADGE[contato.classificacao]
-                    )}>
-                      {CLASSIFICACAO_LABEL[contato.classificacao]}
-                    </span>
-                  </td>
+                  {ve("whatsapp") && <td className="numero px-4 py-3 text-muted-foreground">{contato.telefone}</td>}
+                  {ve("classificacao") && (
+                    <td className="px-4 py-3">
+                      <span className={cn(
+                        "inline-flex items-center whitespace-nowrap px-2 py-0.5 text-xs rounded-md border font-medium",
+                        CLASSIFICACAO_BADGE[contato.classificacao]
+                      )}>
+                        {CLASSIFICACAO_LABEL[contato.classificacao]}
+                      </span>
+                    </td>
+                  )}
                   {/* B43-01: perfil RFV da hora, como na aba RFV dos Relatórios. */}
-                  <td className="px-4 py-3">
-                    <SeloPerfilRfv perfil={contato.perfilRfv} />
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {contato.tipo ? TIPO_LABEL[contato.tipo] : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{contato.cidade ?? "—"}</td>
+                  {ve("perfil_rfv") && (
+                    <td className="px-4 py-3">
+                      <SeloPerfilRfv perfil={contato.perfilRfv} />
+                    </td>
+                  )}
+                  {ve("tipo") && (
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {contato.tipo ? TIPO_LABEL[contato.tipo] : "—"}
+                    </td>
+                  )}
+                  {ve("cidade") && <td className="px-4 py-3 text-muted-foreground">{contato.cidade ?? "—"}</td>}
                   {camposNaLista.map((c) => (
                     <td key={c.id} data-coluna={c.nome} className="px-4 py-3 text-muted-foreground max-w-56 [overflow-wrap:anywhere]">
                       {formatarValor(c, contato.campos?.[c.id] ?? null)}
                     </td>
                   ))}
-                  {papel !== "atendente" && (
+                  {papel !== "atendente" && ve("atendente") && (
                     <td className="px-4 py-3 text-muted-foreground">{contato.atendente ?? "—"}</td>
                   )}
                   <td className="px-4 py-3 text-right">

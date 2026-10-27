@@ -78,7 +78,7 @@ beforeEach(() => {
 
 describe("B38-05 — variáveis com texto reserva nas telas", () => {
   it("CA-B38-14: should mostrar a variável do campo no editor do campo", () => {
-    render(<CamposClient campos={[{ id: LIMITE.id, nome: "Limite de crédito", tipo: "dinheiro", ordem: 0, mostrarNaLista: false, opcoes: [], preenchidos: 0 }]} />)
+    render(<CamposClient campos={[{ id: LIMITE.id, nome: "Limite de crédito", tipo: "dinheiro", ordem: 0, opcoes: [], preenchidos: 0 }]} />)
     fireEvent.click(screen.getByRole("button", { name: "Editar" }))
     expect(document.querySelector("[data-variavel]")).toHaveTextContent("{{limite_de_credito}}")
   })

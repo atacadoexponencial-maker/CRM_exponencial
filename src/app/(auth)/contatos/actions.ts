@@ -30,6 +30,7 @@ import { esquemaCompra, type CompraEntrada, type FormaPagamento, type OrigemComp
 import { normalizarUf, UF_INVALIDA } from "@/lib/uf"
 import { canonicoDoValor, type EntradaDoCampo, type ValorGuardado } from "@/lib/campos-personalizados"
 import { camposDaEmpresa, conferirEntradas, gravarValores, valoresDosContatos } from "@/lib/campos-personalizados-servidor"
+import { conferirColunasOcultas } from "./colunas"
 
 const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, cidade, uf, created_at, profiles!contacts_atendente_id_fkey(name)"
 
@@ -617,12 +618,12 @@ export async function filtrarContatos(
   const linhas = (data ?? []) as Database["public"]["Functions"]["filtrar_contatos"]["Returns"]
   // B43-01: o perfil RFV da hora de cada contato da página, numa leitura só.
   const perfis = await perfisRfvDosContatos(supabase, linhas.map((c) => c.id))
-  // B38-02: valores dos campos marcados "Mostrar na lista de Contatos". Como o perfil
+  // B38-02: valores dos campos personalizados (B38-09: todos viram coluna). Como o perfil
   // RFV, é um extra: se a leitura falhar, a lista (e a contagem da campanha) sai sem ele.
   let valores = new Map<string, Record<string, ValorGuardado>>()
   try {
-    const naLista = (await camposDaEmpresa(supabase, perfil.workspace_id)).filter((c) => c.mostrarNaLista).map((c) => c.id)
-    valores = await valoresDosContatos(supabase, linhas.map((c) => c.id), naLista)
+    const campos = (await camposDaEmpresa(supabase, perfil.workspace_id)).map((c) => c.id)
+    valores = await valoresDosContatos(supabase, linhas.map((c) => c.id), campos)
   } catch {
     // segue sem as colunas dos campos personalizados
   }
@@ -635,6 +636,25 @@ export async function filtrarContatos(
     // Página além do fim vem vazia e sem total: aí o total é o que já se sabia.
     total: linhas.length > 0 ? Number(linhas[0].total) : (opcoes.offset ?? 0),
   }
+}
+
+/** B38-09: colunas da lista de Contatos que quem está logado escondeu. */
+export async function colunasOcultasDoUsuario(): Promise<string[]> {
+  const { supabase, user } = await sessaoAtual()
+  if (!user) return []
+  const { data } = await supabase.from("profiles").select("colunas_ocultas_contatos").eq("id", user.id).single()
+  return data?.colunas_ocultas_contatos ?? []
+}
+
+/** B38-09: grava as colunas que quem está logado escondeu; vale só para ele. */
+export async function salvarColunasOcultas(colunas: string[]): Promise<{ erro?: string }> {
+  const conferidas = conferirColunasOcultas(colunas)
+  if (!conferidas) return { erro: "Colunas inválidas." }
+  const { supabase, user } = await sessaoAtual()
+  if (!user) return { erro: "Não autorizado" }
+  const { error } = await supabase.from("profiles").update({ colunas_ocultas_contatos: conferidas }).eq("id", user.id)
+  if (error) return { erro: "Não foi possível guardar as colunas." }
+  return {}
 }
 
 /** B37-01: valores dos campos de lista que vêm da empresa (atendente). */

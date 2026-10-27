@@ -1,7 +1,7 @@
 # Spec: Campos personalizados do contato
 
 > série: B38
-> estado: aprovada em 26/10/2026
+> estado: aprovada em 26/10/2026; revisão das colunas e do editor em 26/10/2026 (B38-09)
 
 ## Visão Geral
 
@@ -32,7 +32,7 @@ Os campos aparecem em todo lugar onde o dado do contato já aparece ou é usado:
 - no perfil do contato;
 - no painel do contato, no Chat;
 - no cadastro de novo contato;
-- como colunas da lista de Contatos, nos campos que a empresa marcar;
+- como colunas da lista de Contatos, todos por padrão, e cada usuário escolhe quais colunas vê;
 - no filtro avançado de Contatos e no público das Campanhas, que usa o mesmo filtro;
 - nas automações: gatilho "Dado do contato alterado", condição e ação "Alterar dado do contato";
 - nas variáveis das mensagens das automações e das campanhas;
@@ -55,11 +55,16 @@ criam, editam, ordenam e apagam os campos da empresa.
 
 **Componentes:**
 - **Lista de campos:** mostra cada campo na ordem escolhida pela empresa, com o nome, o
-  tipo, se aparece na lista de Contatos e quantos contatos têm valor preenchido. Sem
+  tipo e quantos contatos têm valor preenchido. Sem
   nenhum campo, mostra um texto que explica para que servem e o botão de criar.
-- **Editor do campo:** tem o nome, o tipo e a marca "Mostrar na lista de Contatos". Nos tipos Lista de opções e Múltipla escolha,
+- **Editor do campo:** tem o nome e o tipo. Nos tipos Lista de opções e Múltipla escolha,
   tem também a lista de opções, com botões para acrescentar, renomear, subir, descer e
-  tirar opção. Depois de criado, o tipo aparece só para leitura.
+  tirar opção. Depois de criado, o tipo aparece só para leitura. No rodapé, os botões
+  **Cancelar** e **Salvar**, sempre visíveis: Salvar grava o nome do campo e os nomes de
+  opção mudados e fecha o editor; Cancelar fecha sem gravar o que foi digitado.
+  Acrescentar, subir, descer e tirar opção gravam na hora, cada um no seu botão.
+  (Revisado em 26/10/2026, B38-09: antes o editor tinha a marca "Mostrar na lista de
+  Contatos" e o Salvar só aparecia quando o nome mudava.)
 - **Variável do campo:** o editor mostra a variável que o campo usa nas mensagens (ex.:
   `{{cnpj}}`).
 - **Botões de ordem:** sobem e descem o campo na lista.
@@ -78,7 +83,7 @@ criam, editam, ordenam e apagam os campos da empresa.
 - Mudar a ordem das opções.
 - Tirar opção de uma lista.
 - Tentar tirar opção em uso e ver onde ela é usada.
-- Marcar ou desmarcar "Mostrar na lista de Contatos".
+- Salvar o editor pelo botão Salvar, ou fechar sem gravar pelo Cancelar.
 - Mudar a ordem dos campos.
 - Apagar campo que não está em uso.
 - Tentar apagar campo em uso e ver onde ele é usado.
@@ -211,12 +216,12 @@ criam, editam, ordenam e apagam os campos da empresa.
 - **Então** ela aprova a lista, o editor, as opções e os avisos no estilo Caderno, sem nada
   desalinhado, cortado ou ilegível
 
-#### CA-B38-47 — Marcar o campo para aparecer na lista · prova: automática
+#### CA-B38-67 — Editor salva pelo botão Salvar · prova: automática
 
-- **Dado** os campos "CNPJ" e "Porte", só o "Porte" com "Mostrar na lista de Contatos" marcado
-- **Quando** qualquer pessoa da empresa abre Contatos
-- **Então** a lista tem a coluna "Porte" e não tem a coluna "CNPJ"; ao marcar também o CNPJ, a
-  coluna "CNPJ" aparece para todos
+- **Dado** o editor do campo "Porte" aberto, com a opção "Pequeno"
+- **Quando** o Admin muda o nome para "Porte da loja" e a opção para "Pequena" e clica Salvar
+- **Então** os dois nomes são gravados e o editor fecha; se ele tivesse clicado Cancelar, o
+  editor fecharia e nada seria gravado
 
 ### 2. Campos no perfil do contato
 
@@ -639,25 +644,58 @@ ganham uma coluna por campo personalizado.
 
 ### 9. Colunas na lista de Contatos
 
-**Descrição:** os campos marcados com "Mostrar na lista de Contatos" viram colunas da lista,
-depois das colunas de hoje, na ordem da empresa.
+**Descrição:** todo campo vira coluna da lista, depois de "Cidade", na ordem da empresa, sem
+ninguém precisar marcar nada. Acima da lista, o botão **Colunas** abre a lista de colunas com
+uma marca em cada uma: a pessoa liga e desliga as que quer ver. O Nome fica sempre. A escolha
+é de cada usuário, fica guardada para ele (vale em qualquer aparelho) e não muda a tela de
+ninguém mais. Campo criado depois aparece ligado para todos, mesmo para quem já escolheu
+colunas. A coluna Atendente continua só para Admin e Gerente.
+
+> Revisado em 26/10/2026 (B38-09), depois do teste manual CA-B38-59. Antes: a empresa marcava
+> "Mostrar na lista de Contatos" no campo, e todos viam as mesmas colunas.
 
 **Comportamentos:**
-- Ver os valores dos campos marcados na lista.
+- Ver os valores de todos os campos na lista.
+- Esconder e mostrar de novo qualquer coluna, menos o Nome, pelo botão Colunas.
 
 **Critérios de aceite:**
 
+#### CA-B38-47 — Todo campo vira coluna · prova: automática
+
+- **Dado** os campos "CNPJ" e "Porte", nessa ordem
+- **Quando** qualquer pessoa da empresa abre Contatos
+- **Então** a lista tem as colunas "CNPJ" e "Porte", depois de "Cidade", nessa ordem, sem ninguém
+  ter marcado nada
+
+> Revisado em 26/10/2026 (B38-09). Antes: só o campo marcado com "Mostrar na lista de Contatos"
+> virava coluna.
+
+#### CA-B38-65 — Cada usuário esconde as próprias colunas · prova: automática
+
+- **Dado** o Admin e o Atendente da mesma empresa, com os campos "CNPJ" e "Porte"
+- **Quando** o Admin desliga "CNPJ" e "Cidade" no botão Colunas e abre Contatos de novo
+- **Então** a lista do Admin não tem as colunas "CNPJ" e "Cidade", e a do Atendente tem; quando o
+  Admin liga "CNPJ" de novo, a coluna volta para ele
+
+#### CA-B38-66 — Nome fica sempre e campo novo aparece ligado · prova: automática
+
+- **Dado** o Admin com a coluna "CNPJ" desligada
+- **Quando** ele abre o botão Colunas, e depois cria o campo "Instagram da loja"
+- **Então** o Nome não está entre as colunas que dá para desligar, e a coluna "Instagram da loja"
+  aparece na lista dele sem ele mexer no botão Colunas, com o "CNPJ" ainda escondido
+
 #### CA-B38-58 — Coluna mostra o valor no formato do tipo · prova: automática
 
-- **Dado** o campo "Limite de crédito" (Dinheiro) marcado para a lista, e um contato com 1500
+- **Dado** o campo "Limite de crédito" (Dinheiro), e um contato com 1500
 - **Quando** alguém abre Contatos
 - **Então** a coluna "Limite de crédito" mostra "R$ 1.500,00" nesse contato e "—" em quem não tem valor
 
 #### CA-B38-59 — Aprovação visual das colunas · prova: manual
 
-- **Dado** a lista de Contatos com três campos marcados
-- **Quando** a Marcelle a abre no computador e no celular, nos temas claro e escuro
-- **Então** ela aprova as colunas novas, sem nada desalinhado, cortado ou ilegível
+- **Dado** a lista de Contatos com três campos
+- **Quando** a Marcelle a abre no computador e no celular, nos temas claro e escuro, e liga e
+  desliga colunas pelo botão Colunas
+- **Então** ela aprova as colunas e o botão Colunas, sem nada desalinhado, cortado ou ilegível
 
 ### 10. Isolamento entre empresas
 
@@ -680,7 +718,7 @@ depois das colunas de hoje, na ordem da empresa.
 - Mudar o tipo de um campo depois de criado.
 - Importar e exportar contatos por planilha: vira uma série própria, logo depois desta, com
   os campos fixos e os personalizados.
-- Cada usuário escolher as próprias colunas da lista de Contatos: a escolha é da empresa.
+- Mudar a ordem das colunas da lista de Contatos: a ordem é a de hoje, com os campos na ordem da empresa.
 - Filtro por mais de um campo personalizado ao mesmo tempo nos Relatórios e no Dashboard.
 - Trocar as variáveis da mensagem rápida quando o atendente a escolhe no Chat: hoje o texto entra como está, e continua assim.
 - Tipos além dos onze da tabela (arquivo, endereço com mapa, campo calculado, usuário, data e hora).
@@ -722,7 +760,7 @@ depois das colunas de hoje, na ordem da empresa.
 | PER-B38-06 | O tipo pode mudar depois de criado? | respondida | Não. Marcelle, 26/10/2026. |
 | PER-B38-07 | Em que ordem os campos aparecem? | respondida | Na ordem que a empresa escolhe em Configurações. Marcelle, 26/10/2026. |
 | PER-B38-08 | O atendente pode preencher os campos? | respondida | Sim, nos contatos que ele atende; os dados fixos continuam só com Admin e Gerente. Marcelle, 26/10/2026. |
-| PER-B38-09 | Os campos viram colunas da lista de Contatos? Quem escolhe quais? | respondida | Sim; a empresa marca "Mostrar na lista de Contatos" no campo, e todos veem as mesmas colunas. Marcelle, 26/10/2026. |
+| PER-B38-09 | Os campos viram colunas da lista de Contatos? Quem escolhe quais? | respondida | Sim, todos, por padrão. Cada usuário escolhe quais colunas vê, pelo botão Colunas, e pode esconder qualquer uma menos o Nome (CA-B38-47, CA-B38-65, CA-B38-66). Marcelle, 26/10/2026, depois do teste CA-B38-59; antes era "a empresa marca 'Mostrar na lista de Contatos' e todos veem as mesmas colunas". |
 | PER-B38-10 | Importar e exportar contatos entram nesta série? | respondida | Entram, mas como série separada, logo depois desta, porque hoje não existe importar nem exportar contatos. Marcelle, 26/10/2026. |
 | PER-B38-11 | O que os campos fazem nos Relatórios e no Dashboard? | respondida | Filtro por campo, tabela de vendas por valor do campo e colunas nos Excel que listam clientes ou vendas. Marcelle, 26/10/2026. |
 | PER-B38-12 | Tirar opção de lista em uso: bloqueia ou desliga a automação? | respondida | Bloqueia e mostra onde é usada. Marcelle, 26/10/2026. |

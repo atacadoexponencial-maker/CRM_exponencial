@@ -11,7 +11,6 @@ import {
   adicionarOpcao,
   apagarCampo,
   criarCampo,
-  marcarNaLista,
   moverCampo,
   moverOpcao,
   renomearCampo,
@@ -213,8 +212,8 @@ function ConfirmarApagar({
   )
 }
 
-function OpcaoEditavel({ campoId, opcao, posicao, total, onSalvo }: { campoId: string; opcao: OpcaoParaGerenciar; posicao: number; total: number; onSalvo: () => void }) {
-  const [nome, setNome] = useState(opcao.nome)
+// B38-09: o nome da opção é rascunho do editor e grava no Salvar do rodapé.
+function OpcaoEditavel({ campoId, opcao, nome, onNome, posicao, total, onSalvo }: { campoId: string; opcao: OpcaoParaGerenciar; nome: string; onNome: (nome: string) => void; posicao: number; total: number; onSalvo: () => void }) {
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
   const [tirando, setTirando] = useState(false)
@@ -230,14 +229,9 @@ function OpcaoEditavel({ campoId, opcao, posicao, total, onSalvo }: { campoId: s
           aria-label={`Nome da opção ${posicao + 1}`}
           value={nome}
           maxLength={NOME_MAXIMO}
-          onChange={(e) => setNome(e.target.value)}
+          onChange={(e) => onNome(e.target.value)}
           className="sm:max-w-72"
         />
-        {nome.trim() !== opcao.nome && (
-          <Button type="button" size="sm" variant="outline" disabled={salvando} onClick={() => rodar(() => renomearOpcao(campoId, opcao.id, nome))}>
-            Salvar
-          </Button>
-        )}
         <Button type="button" size="icon-sm" variant="ghost" aria-label={`Subir ${opcao.nome}`} disabled={salvando || posicao === 0} onClick={() => rodar(() => moverOpcao(campoId, opcao.id, "subir"))}>
           <ArrowUp className="size-3.5" />
         </Button>
@@ -258,6 +252,8 @@ function OpcaoEditavel({ campoId, opcao, posicao, total, onSalvo }: { campoId: s
 
 function EditorDoCampo({ campo, onFechar, onSalvo }: { campo: CampoParaGerenciar; onFechar: () => void; onSalvo: () => void }) {
   const [nome, setNome] = useState(campo.nome)
+  // B38-09: nomes das opções mudados e ainda não salvos, por id da opção.
+  const [nomesDasOpcoes, setNomesDasOpcoes] = useState<Record<string, string>>({})
   const [novaOpcao, setNovaOpcao] = useState("")
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
@@ -267,6 +263,25 @@ function EditorDoCampo({ campo, onFechar, onSalvo }: { campo: CampoParaGerenciar
       depois?.()
       onSalvo()
     }
+  }
+
+  // B38-09: o Salvar do rodapé grava o nome do campo e as opções renomeadas e fecha.
+  // Acrescentar, subir, descer e tirar opção gravam na hora, cada um no seu botão.
+  async function salvar() {
+    const mudancas: Array<() => Promise<{ erro?: string }>> = []
+    if (nome.trim() !== campo.nome) mudancas.push(() => renomearCampo(campo.id, nome))
+    for (const o of campo.opcoes) {
+      const novo = nomesDasOpcoes[o.id]
+      if (novo !== undefined && novo.trim() !== o.nome) mudancas.push(() => renomearOpcao(campo.id, o.id, novo))
+    }
+    for (const [i, mudanca] of mudancas.entries()) {
+      if (!(await executar(mudanca, setErro, setSalvando))) {
+        if (i > 0) onSalvo()
+        return
+      }
+    }
+    if (mudancas.length > 0) onSalvo()
+    onFechar()
   }
 
   return (
@@ -280,14 +295,7 @@ function EditorDoCampo({ campo, onFechar, onSalvo }: { campo: CampoParaGerenciar
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5 text-sm">
           <label htmlFor="nome-do-campo">Nome do campo</label>
-          <div className="flex gap-2">
-            <Input id="nome-do-campo" value={nome} maxLength={NOME_MAXIMO} onChange={(e) => setNome(e.target.value)} />
-            {nome.trim() !== campo.nome && (
-              <Button type="button" size="sm" disabled={salvando} onClick={() => rodar(() => renomearCampo(campo.id, nome))}>
-                Salvar
-              </Button>
-            )}
-          </div>
+          <Input id="nome-do-campo" value={nome} maxLength={NOME_MAXIMO} onChange={(e) => setNome(e.target.value)} />
         </div>
         <div className="space-y-1.5 text-sm">
           <span id="tipo-do-campo">Tipo</span>
@@ -301,22 +309,21 @@ function EditorDoCampo({ campo, onFechar, onSalvo }: { campo: CampoParaGerenciar
       <p className="text-sm">
         Variável nas mensagens: <code data-variavel className="rounded bg-muted px-1.5 py-0.5 text-xs">{`{{${chaveDaVariavel(campo.nome)}}}`}</code>
       </p>
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={campo.mostrarNaLista}
-          disabled={salvando}
-          onChange={(e) => rodar(() => marcarNaLista(campo.id, e.target.checked))}
-          className="size-4 accent-primary"
-        />
-        Mostrar na lista de Contatos
-      </label>
       {temOpcoes(campo.tipo) && (
         <div className="space-y-2">
           <span className="text-sm">Opções, na ordem em que aparecem</span>
           <ul className="space-y-2">
             {campo.opcoes.map((o, i) => (
-              <OpcaoEditavel key={`${o.id}-${o.nome}`} campoId={campo.id} opcao={o} posicao={i} total={campo.opcoes.length} onSalvo={onSalvo} />
+              <OpcaoEditavel
+                key={o.id}
+                campoId={campo.id}
+                opcao={o}
+                nome={nomesDasOpcoes[o.id] ?? o.nome}
+                onNome={(n) => setNomesDasOpcoes((atual) => ({ ...atual, [o.id]: n }))}
+                posicao={i}
+                total={campo.opcoes.length}
+                onSalvo={onSalvo}
+              />
             ))}
           </ul>
           {campo.opcoes.length < LIMITE_DE_OPCOES && (
@@ -338,6 +345,10 @@ function EditorDoCampo({ campo, onFechar, onSalvo }: { campo: CampoParaGerenciar
         </div>
       )}
       {erro && <p role="alert" className="text-xs text-destructive">{erro}</p>}
+      <div className="flex justify-end gap-2 border-t border-border pt-4">
+        <Button type="button" size="sm" variant="ghost" onClick={onFechar}>Cancelar</Button>
+        <Button type="button" size="sm" disabled={salvando} onClick={salvar}>{salvando ? "Salvando..." : "Salvar"}</Button>
+      </div>
     </section>
   )
 }
@@ -396,7 +407,6 @@ export function CamposClient({ campos }: { campos: CampoParaGerenciar[] }) {
               <span className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{c.nome}</span>
                 <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">{rotuloDoTipo(c.tipo)}</span>
-                {c.mostrarNaLista && <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">na lista</span>}
               </span>
               <span className="flex items-center gap-2">
                 <span className="numero mr-2 text-xs text-muted-foreground">

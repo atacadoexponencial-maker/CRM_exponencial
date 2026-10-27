@@ -13,12 +13,14 @@ const criarContato = vi.fn()
 const camposDoContato = vi.fn()
 const salvarCamposDoContato = vi.fn()
 const buscarInfoContato = vi.fn()
+const salvarColunasOcultas = vi.fn()
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }))
 vi.mock("@/app/(auth)/contatos/actions", () => ({
   criarContato: (...a: unknown[]) => criarContato(...a),
   verificarNumeroDuplicado: vi.fn(async () => false),
   filtrarContatos: vi.fn(),
+  salvarColunasOcultas: (...a: unknown[]) => salvarColunasOcultas(...a),
   atualizarDadosContato: vi.fn(),
   adicionarTagContato: vi.fn(),
   removerTagContato: vi.fn(),
@@ -123,17 +125,58 @@ describe("B38-02 — campos no Chat, no cadastro e na lista", () => {
     expect(criarContato).not.toHaveBeenCalled()
   })
 
-  it("CA-B38-47: should mostrar na lista só a coluna do campo marcado", () => {
-    const campos: CampoDaEmpresa[] = [{ ...CNPJ, mostrarNaLista: false }, { ...PORTE, mostrarNaLista: true }]
-    render(<ListaContatos contatos={[contato("c-1", "Ana", { p: { ...VAZIO, opcoes: ["o-g"] } })]} total={1} atendentes={[]} papel="admin" campos={campos} />)
-    expect(cabecalhos()).toContain("Porte")
-    expect(cabecalhos()).not.toContain("CNPJ")
+  it("CA-B38-47: should mostrar todo campo como coluna, depois de Cidade, na ordem da empresa", () => {
+    const campos: CampoDaEmpresa[] = [CNPJ, PORTE]
+    render(<ListaContatos contatos={[contato("c-1", "Ana", { p: { ...VAZIO, opcoes: ["o-g"] } })]} total={1} atendentes={[]} papel="atendente" campos={campos} />)
+    const ths = cabecalhos()
+    expect(ths.indexOf("CNPJ")).toBe(ths.indexOf("Cidade") + 1)
+    expect(ths.indexOf("Porte")).toBe(ths.indexOf("Cidade") + 2)
     const linha = screen.getByText("Ana").closest("tr")!
     expect(linha.querySelector('[data-coluna="Porte"]')).toHaveTextContent("Grande")
   })
 
+  it("CA-B38-65: should esconder as colunas desligadas no botão Colunas, gravar a escolha e voltar a coluna ao ligar", async () => {
+    salvarColunasOcultas.mockResolvedValue({})
+    render(<ListaContatos contatos={[contato("c-1", "Ana")]} total={1} atendentes={[]} papel="admin" campos={[CNPJ, PORTE]} />)
+    fireEvent.click(screen.getByRole("button", { name: "Colunas" }))
+    const menu = screen.getByRole("group", { name: "Colunas da lista" })
+    fireEvent.click(within(menu).getByLabelText("CNPJ"))
+    await waitFor(() => expect(salvarColunasOcultas).toHaveBeenLastCalledWith(["c"]))
+    fireEvent.click(within(menu).getByLabelText("Cidade"))
+    await waitFor(() => expect(salvarColunasOcultas).toHaveBeenLastCalledWith(["c", "cidade"]))
+    expect(cabecalhos()).not.toContain("CNPJ")
+    expect(cabecalhos()).not.toContain("Cidade")
+    expect(cabecalhos()).toContain("Porte")
+
+    fireEvent.click(within(menu).getByLabelText("CNPJ"))
+    await waitFor(() => expect(salvarColunasOcultas).toHaveBeenLastCalledWith(["cidade"]))
+    expect(cabecalhos()).toContain("CNPJ")
+  })
+
+  it("CA-B38-65: should voltar a coluna e avisar quando a escolha não é gravada", async () => {
+    salvarColunasOcultas.mockResolvedValue({ erro: "Não foi possível guardar as colunas." })
+    render(<ListaContatos contatos={[contato("c-1", "Ana")]} total={1} atendentes={[]} papel="admin" campos={[CNPJ]} />)
+    fireEvent.click(screen.getByRole("button", { name: "Colunas" }))
+    fireEvent.click(within(screen.getByRole("group", { name: "Colunas da lista" })).getByLabelText("CNPJ"))
+    expect(await screen.findByText("Não foi possível guardar as colunas.")).toBeInTheDocument()
+    expect(cabecalhos()).toContain("CNPJ")
+  })
+
+  it("CA-B38-66: should deixar o Nome fora do botão Colunas e mostrar o campo novo com o CNPJ ainda escondido", () => {
+    const INSTAGRAM: CampoDaEmpresa = { id: "i", nome: "Instagram da loja", tipo: "link", opcoes: [] }
+    render(<ListaContatos contatos={[contato("c-1", "Ana")]} total={1} atendentes={[]} papel="admin" campos={[CNPJ, INSTAGRAM]} colunasOcultas={["c"]} />)
+    fireEvent.click(screen.getByRole("button", { name: "Colunas" }))
+    const menu = screen.getByRole("group", { name: "Colunas da lista" })
+    expect(within(menu).queryByLabelText("Nome")).toBeNull()
+    expect(within(menu).getByLabelText("CNPJ")).not.toBeChecked()
+    expect(within(menu).getByLabelText("Instagram da loja")).toBeChecked()
+    expect(cabecalhos()).toContain("Nome")
+    expect(cabecalhos()).toContain("Instagram da loja")
+    expect(cabecalhos()).not.toContain("CNPJ")
+  })
+
   it("CA-B38-58: should mostrar a coluna de dinheiro formatada e — em quem não tem valor", () => {
-    const LIMITE: CampoDaEmpresa = { id: "l", nome: "Limite de crédito", tipo: "dinheiro", opcoes: [], mostrarNaLista: true }
+    const LIMITE: CampoDaEmpresa = { id: "l", nome: "Limite de crédito", tipo: "dinheiro", opcoes: [] }
     render(
       <ListaContatos
         contatos={[contato("c-1", "Ana", { l: { ...VAZIO, numero: 1500 } }), contato("c-2", "Bruno")]}

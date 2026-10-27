@@ -29,6 +29,14 @@ vi.mock("@/app/(auth)/contatos/lixeira/actions", () => ({
   excluirContato: vi.fn(),
   restaurarContato: vi.fn(),
 }))
+// B38-09: o Salvar do editor; o resto das actions segue o de verdade (o CA-B38-03 usa).
+const renomearCampo = vi.fn()
+const renomearOpcao = vi.fn()
+vi.mock("@/app/(auth)/configuracoes/campos/actions", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/app/(auth)/configuracoes/campos/actions")>()),
+  renomearCampo: (...a: unknown[]) => renomearCampo(...a),
+  renomearOpcao: (...a: unknown[]) => renomearOpcao(...a),
+}))
 const salvarCamposDoContato = vi.fn()
 vi.mock("@/app/(auth)/contatos/campos-personalizados", () => ({
   salvarCamposDoContato: (...a: unknown[]) => salvarCamposDoContato(...a),
@@ -101,7 +109,7 @@ describe("B38-01 — campos personalizados na tela", () => {
   })
 
   it("CA-B38-08: should mostrar o tipo só para leitura no editor do campo", () => {
-    const campo: CampoParaGerenciar = { id: "q", nome: "Quantidade de lojas", tipo: "numero", ordem: 0, mostrarNaLista: false, opcoes: [], preenchidos: 2 }
+    const campo: CampoParaGerenciar = { id: "q", nome: "Quantidade de lojas", tipo: "numero", ordem: 0, opcoes: [], preenchidos: 2 }
     render(<CamposClient campos={[campo]} />)
     fireEvent.click(screen.getByRole("button", { name: "Editar" }))
     const editor = screen.getByRole("region", { name: "Editar Quantidade de lojas" })
@@ -110,6 +118,31 @@ describe("B38-01 — campos personalizados na tela", () => {
     expect(tipo.tagName).toBe("P")
     expect(within(editor).queryByRole("combobox")).toBeNull()
     expect(within(editor).getByText("O tipo não muda depois de criado.")).toBeInTheDocument()
+  })
+
+  it("CA-B38-67: should gravar o nome do campo e da opção no Salvar e fechar o editor; Cancelar fecha sem gravar", async () => {
+    renomearCampo.mockReset().mockResolvedValue({})
+    renomearOpcao.mockReset().mockResolvedValue({})
+    const campo: CampoParaGerenciar = { id: "p", nome: "Porte", tipo: "lista", ordem: 0, opcoes: [{ id: "o-p", nome: "Pequeno", ordem: 0 }], preenchidos: 0 }
+    render(<CamposClient campos={[campo]} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }))
+    let editor = screen.getByRole("region", { name: "Editar Porte" })
+    fireEvent.change(within(editor).getByLabelText("Nome do campo"), { target: { value: "Porte da loja" } })
+    fireEvent.change(within(editor).getByLabelText("Nome da opção 1"), { target: { value: "Pequena" } })
+    fireEvent.click(within(editor).getByRole("button", { name: "Cancelar" }))
+    expect(screen.queryByRole("region", { name: "Editar Porte" })).toBeNull()
+    expect(renomearCampo).not.toHaveBeenCalled()
+    expect(renomearOpcao).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }))
+    editor = screen.getByRole("region", { name: "Editar Porte" })
+    fireEvent.change(within(editor).getByLabelText("Nome do campo"), { target: { value: "Porte da loja" } })
+    fireEvent.change(within(editor).getByLabelText("Nome da opção 1"), { target: { value: "Pequena" } })
+    fireEvent.click(within(editor).getByRole("button", { name: "Salvar" }))
+    await waitFor(() => expect(screen.queryByRole("region", { name: "Editar Porte" })).toBeNull())
+    expect(renomearCampo).toHaveBeenCalledWith("p", "Porte da loja")
+    expect(renomearOpcao).toHaveBeenCalledWith("p", "o-p", "Pequena")
   })
 
   it("CA-B38-17: should mostrar no perfil os campos na ordem da empresa, com os valores e — no vazio", () => {

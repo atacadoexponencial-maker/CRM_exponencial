@@ -21,9 +21,8 @@ O atendente preenche o Porte sem sair da conversa, o Admin cadastra um contato j
 - **CA-B38-28** (automática) — Cadastro com campos personalizados. Dado o Admin no formulário de Novo contato, numa empresa com os campos "CNPJ" e "Porte", quando ele preenche nome, telefone, CNPJ e Porte e salva, então o contato é criado e o perfil dele mostra o CNPJ e o Porte
 - **CA-B38-29** (automática) — Campos personalizados não são obrigatórios. Dado o mesmo formulário, quando o Admin preenche só nome e telefone e salva, então o contato é criado, com os campos personalizados vazios
 - **CA-B38-30** (automática) — Valor fora do formato no cadastro. Dado o formulário de Novo contato com o campo "E-mail do financeiro", quando o Admin digita "fulano@" e tenta salvar, então a tela aponta o campo e o contato não é criado
-- **CA-B38-47** (automática) — Marcar o campo para aparecer na lista. Dado os campos "CNPJ" e "Porte", só o "Porte" com "Mostrar na lista de Contatos" marcado, quando qualquer pessoa da empresa abre Contatos, então a lista tem a coluna "Porte" e não tem a coluna "CNPJ"; ao marcar também o CNPJ, a coluna "CNPJ" aparece para todos
-- **CA-B38-58** (automática) — Coluna mostra o valor no formato do tipo. Dado o campo "Limite de crédito" (Dinheiro) marcado para a lista, e um contato com 1500, quando alguém abre Contatos, então a coluna "Limite de crédito" mostra "R$ 1.500,00" nesse contato e "—" em quem não tem valor
-- **CA-B38-59** (manual) — Aprovação visual das colunas. Dado a lista de Contatos com três campos marcados, quando a Marcelle a abre no computador e no celular, nos temas claro e escuro, então ela aprova as colunas novas, sem nada desalinhado, cortado ou ilegível
+- CA-B38-47 e CA-B38-59 foram revisados em 26/10/2026 e passaram para a B38-09 (todo campo vira coluna; cada usuário escolhe as colunas).
+- **CA-B38-58** (automática) — Coluna mostra o valor no formato do tipo. Dado o campo "Limite de crédito" (Dinheiro), e um contato com 1500, quando alguém abre Contatos, então a coluna "Limite de crédito" mostra "R$ 1.500,00" nesse contato e "—" em quem não tem valor
 
 ## Suposições
 
@@ -35,7 +34,7 @@ Nenhuma.
 |---|---|---|---|
 | PER-B38-03 | Além do perfil e do filtro, onde os campos aparecem? | respondida | Painel do contato no Chat, cadastro de novo contato, automações e variáveis na mensagem. Marcelle, 26/10/2026. |
 | PER-B38-07 | Em que ordem os campos aparecem? | respondida | Na ordem que a empresa escolhe em Configurações. Marcelle, 26/10/2026. |
-| PER-B38-09 | Os campos viram colunas da lista de Contatos? Quem escolhe quais? | respondida | Sim; a empresa marca "Mostrar na lista de Contatos" no campo, e todos veem as mesmas colunas. Marcelle, 26/10/2026. |
+| PER-B38-09 | Os campos viram colunas da lista de Contatos? Quem escolhe quais? | respondida | Sim; a empresa marca "Mostrar na lista de Contatos" no campo, e todos veem as mesmas colunas. Marcelle, 26/10/2026. Revisada em 26/10/2026: ver a B38-09. |
 
 ## Cenários
 
@@ -65,19 +64,12 @@ Nenhuma.
 | CA-B38-28 | automática | `src/test/campos-personalizados.integration.test.ts` | `criarContato` com CNPJ e Porte cria o contato, e `camposDoContato` traz os dois; na tela, o formulário manda os campos preenchidos |
 | CA-B38-29 | automática | `src/test/campos-personalizados.integration.test.ts` | `criarContato` só com nome e telefone cria o contato com os campos vazios |
 | CA-B38-30 | automática | `src/test/campos-personalizados-chat-cadastro-lista.test.tsx` | A tela aponta o e-mail e não chama `criarContato`; no teste de integração, o servidor devolve o erro e nenhum contato é criado |
-| CA-B38-47 | automática | `src/test/campos-personalizados.integration.test.ts` | Só o Porte marcado volta com valor na lista do servidor; marcado o CNPJ, ele também volta, para o Atendente; na tela, a tabela tem a coluna Porte e não a CNPJ |
 | CA-B38-58 | automática | `src/test/campos-personalizados-chat-cadastro-lista.test.tsx` | A coluna "Limite de crédito" mostra "R$ 1.500,00" num contato e "—" no outro |
-| CA-B38-59 | manual | roteiro abaixo | Colunas aprovadas no computador e no celular, claro e escuro |
 
 ### Roteiro manual — CA-B38-27
 1. Na empresa de teste, com campos de vários tipos, abra uma conversa no Chat e o painel do contato.
 2. Confira a seção "Campos personalizados" abaixo do cadastro; edite um campo de cada tipo pelo lápis.
 3. Repita no celular e no tema escuro. Aprove se nada ficar desalinhado, cortado ou ilegível.
-
-### Roteiro manual — CA-B38-59
-1. Marque três campos com "Mostrar na lista de Contatos" e abra Contatos.
-2. Confira as três colunas depois de "Cidade", com os valores formatados e "—" no vazio.
-3. Repita no celular (a tabela rola de lado) e no tema escuro. Aprove se nada ficar desalinhado, cortado ou ilegível.
 
 ## Banco de Dados
 

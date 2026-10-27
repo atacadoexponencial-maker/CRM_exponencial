@@ -460,7 +460,6 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          mostrar_na_lista: boolean
           nome: string
           ordem: number
           tipo: string
@@ -469,7 +468,6 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          mostrar_na_lista?: boolean
           nome: string
           ordem?: number
           tipo: string
@@ -478,7 +476,6 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
-          mostrar_na_lista?: boolean
           nome?: string
           ordem?: number
           tipo?: string
@@ -2011,6 +2008,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          colunas_ocultas_contatos: string[]
           created_at: string
           id: string
           name: string
@@ -2020,6 +2018,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          colunas_ocultas_contatos?: string[]
           created_at?: string
           id: string
           name: string
@@ -2029,6 +2028,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          colunas_ocultas_contatos?: string[]
           created_at?: string
           id?: string
           name?: string

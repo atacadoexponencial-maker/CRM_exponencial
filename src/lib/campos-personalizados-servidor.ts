@@ -21,7 +21,7 @@ type Cliente = SupabaseClient<Database>
 export async function camposDaEmpresa(supabase: Cliente, workspaceId: string): Promise<CampoDaEmpresa[]> {
   const { data } = await supabase
     .from("campos_personalizados")
-    .select("id, nome, tipo, ordem, mostrar_na_lista, created_at, campo_opcoes (id, nome, ordem)")
+    .select("id, nome, tipo, ordem, created_at, campo_opcoes (id, nome, ordem)")
     .eq("workspace_id", workspaceId)
     .order("ordem")
     .order("created_at")
@@ -29,7 +29,6 @@ export async function camposDaEmpresa(supabase: Cliente, workspaceId: string): P
     id: c.id,
     nome: c.nome,
     tipo: c.tipo as TipoDeCampo,
-    mostrarNaLista: c.mostrar_na_lista,
     opcoes: [...(c.campo_opcoes ?? [])].sort((a, b) => a.ordem - b.ordem).map((o) => ({ id: o.id, nome: o.nome })),
   }))
 }

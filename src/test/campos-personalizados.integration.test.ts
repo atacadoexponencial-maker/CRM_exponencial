@@ -17,11 +17,10 @@ import {
   moverOpcao,
   renomearCampo,
   renomearOpcao,
-  marcarNaLista,
   moverCampo,
 } from "@/app/(auth)/configuracoes/campos/actions"
 import { camposDoContato, listarCamposDaEmpresa, salvarCamposDoContato } from "@/app/(auth)/contatos/campos-personalizados"
-import { criarContato as cadastrarContato, filtrarContatos, valoresDoFiltro } from "@/app/(auth)/contatos/actions"
+import { colunasOcultasDoUsuario, criarContato as cadastrarContato, filtrarContatos, salvarColunasOcultas, valoresDoFiltro } from "@/app/(auth)/contatos/actions"
 import { listarFiltrosSalvos, salvarFiltro } from "@/app/(auth)/contatos/filtros-salvos"
 import { contarDestinatarios } from "@/app/(auth)/campanhas/actions"
 import { campoDoFiltro, campoPersonalizado, comparacoesDoCampo, type Comparacao, type Filtro } from "@/lib/filtro-contatos"
@@ -318,26 +317,44 @@ describe("B38-02 — campos no Chat, no cadastro e na lista", { timeout: 60_000 
     expect(data).toEqual([])
   })
 
-  it("CA-B38-47: should trazer na lista só os campos marcados, para todos da empresa", async () => {
+  it("CA-B38-47: should trazer na lista os valores de todos os campos, sem marcar nada, para todos da empresa", async () => {
     const porte = await campoPorNome("Porte")
     const cnpj = await campoPorNome("CNPJ")
-    como("admin")
-    expect(await marcarNaLista(porte.id, true)).toEqual({})
     const daLista = async (quem: string) => {
       como(quem)
       const r = await filtrarContatos()
       if ("erro" in r) throw new Error(r.erro)
       return r.contatos.find((c) => c.id === contatos.daCarteira)!.campos!
     }
-    const soPorte = await daLista("admin")
-    expect(Object.keys(soPorte)).toEqual([porte.id])
+    for (const quem of ["admin", "atendente"]) {
+      const campos = await daLista(quem)
+      expect(Object.keys(campos)).toEqual(expect.arrayContaining([cnpj.id, porte.id]))
+    }
+    como("admin")
+    expect((await listarCamposDaEmpresa()).map((c) => c.nome)).toEqual(expect.arrayContaining(["CNPJ", "Porte"]))
+  })
+
+  it("CA-B38-65: should guardar as colunas escondidas só para quem escondeu, e voltar a coluna ao ligar", async () => {
+    const cnpj = await campoPorNome("CNPJ")
+    como("admin")
+    expect(await salvarColunasOcultas(["cidade", cnpj.id])).toEqual({})
+    como("admin")
+    expect((await colunasOcultasDoUsuario()).sort()).toEqual(["cidade", cnpj.id].sort())
+    como("atendente")
+    expect(await colunasOcultasDoUsuario()).toEqual([])
 
     como("admin")
-    expect(await marcarNaLista(cnpj.id, true)).toEqual({})
+    expect(await salvarColunasOcultas(["cidade"])).toEqual({})
     como("admin")
-    expect((await listarCamposDaEmpresa()).filter((c) => c.mostrarNaLista).map((c) => c.nome)).toEqual(["CNPJ", "Porte"])
-    const doAtendente = await daLista("atendente")
-    expect(Object.keys(doAtendente).sort()).toEqual([cnpj.id, porte.id].sort())
+    expect(await colunasOcultasDoUsuario()).toEqual(["cidade"])
+
+    // Lista que não é de colunas: recusa sem gravar.
+    como("admin")
+    expect(await salvarColunasOcultas(["nome"])).toEqual({ erro: "Colunas inválidas." })
+    como("admin")
+    expect(await salvarColunasOcultas([1] as unknown as string[])).toEqual({ erro: "Colunas inválidas." })
+    como("admin")
+    expect(await colunasOcultasDoUsuario()).toEqual(["cidade"])
   })
 })
 

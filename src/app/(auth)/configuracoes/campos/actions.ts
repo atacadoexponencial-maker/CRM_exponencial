@@ -29,8 +29,6 @@ export type CampoParaGerenciar = {
   nome: string
   tipo: TipoDeCampo
   ordem: number
-  /** B38-02: aparece como coluna na lista de Contatos. */
-  mostrarNaLista: boolean
   opcoes: OpcaoParaGerenciar[]
   /** Contatos com valor neste campo (fora da lixeira). */
   preenchidos: number
@@ -152,7 +150,7 @@ export async function listarCamposParaGerenciar(): Promise<CampoParaGerenciar[]>
 
   const { data: campos } = await supabase
     .from("campos_personalizados")
-    .select("id, nome, tipo, ordem, mostrar_na_lista, created_at, campo_opcoes (id, nome, ordem)")
+    .select("id, nome, tipo, ordem, created_at, campo_opcoes (id, nome, ordem)")
     .eq("workspace_id", perfil.workspace_id)
     .order("ordem")
     .order("created_at")
@@ -168,7 +166,6 @@ export async function listarCamposParaGerenciar(): Promise<CampoParaGerenciar[]>
     nome: c.nome,
     tipo: c.tipo as TipoDeCampo,
     ordem: c.ordem,
-    mostrarNaLista: c.mostrar_na_lista,
     opcoes: [...(c.campo_opcoes ?? [])].sort((a, b) => a.ordem - b.ordem),
     preenchidos: preenchidos[c.id] ?? 0,
   }))
@@ -318,17 +315,6 @@ export async function moverCampo(campoId: string, direcao: "subir" | "descer"): 
     const { error } = await quem.supabase.from("campos_personalizados").update({ ordem }).eq("id", c.id)
     if (error) return { erro: "Não foi possível mudar a ordem." }
   }
-  revalidar()
-  return {}
-}
-
-/** B38-02: marca ou desmarca "Mostrar na lista de Contatos" (CA-B38-47). */
-export async function marcarNaLista(campoId: string, mostrar: boolean): Promise<Resultado> {
-  const quem = await quemGerencia()
-  if (!quem) return { erro: SEM_PERMISSAO }
-  if (!(await campoDaEmpresa(quem, campoId))) return { erro: CAMPO_NAO_ENCONTRADO }
-  const { error } = await quem.supabase.from("campos_personalizados").update({ mostrar_na_lista: mostrar === true }).eq("id", campoId)
-  if (error) return { erro: "Não foi possível salvar." }
   revalidar()
   return {}
 }

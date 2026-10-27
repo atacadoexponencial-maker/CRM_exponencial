@@ -17,7 +17,6 @@ vi.mock("@/app/(auth)/configuracoes/campos/actions", () => ({
   tirarOpcao: (...a: unknown[]) => tirarOpcao(...a),
   adicionarOpcao: vi.fn(),
   criarCampo: vi.fn(),
-  marcarNaLista: vi.fn(),
   moverCampo: vi.fn(),
   moverOpcao: vi.fn(),
   renomearCampo: vi.fn(),
@@ -28,10 +27,10 @@ import { CamposClient } from "@/app/(auth)/configuracoes/campos/campos-client"
 
 const NADA = { automacoes: [], filtros: [], campanhas: [] }
 const PORTE: CampoParaGerenciar = {
-  id: "p", nome: "Porte", tipo: "lista", ordem: 0, mostrarNaLista: false, preenchidos: 5,
+  id: "p", nome: "Porte", tipo: "lista", ordem: 0, preenchidos: 5,
   opcoes: [{ id: "o-p", nome: "Pequeno", ordem: 0 }, { id: "o-r", nome: "Rede", ordem: 1 }],
 }
-const ANIVERSARIO: CampoParaGerenciar = { id: "a", nome: "Aniversário da loja", tipo: "data", ordem: 1, mostrarNaLista: false, preenchidos: 4, opcoes: [] }
+const ANIVERSARIO: CampoParaGerenciar = { id: "a", nome: "Aniversário da loja", tipo: "data", ordem: 1, preenchidos: 4, opcoes: [] }
 
 beforeEach(() => {
   resumoParaApagar.mockReset()
