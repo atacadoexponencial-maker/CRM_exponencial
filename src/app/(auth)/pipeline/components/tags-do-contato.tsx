@@ -8,15 +8,16 @@ import { useEffect, useState } from "react"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { DICA_TAG_SEM_ESPACO, useCampoDeTag } from "@/hooks/use-campo-de-tag"
 import { Ajuda } from "@/components/shared/ajuda"
 import { adicionarTagContato, listarTagsContato, removerTagContato } from "../../contatos/actions"
 
 export function TagsDoContato({ contactId }: { contactId: string }) {
   const [tags, setTags] = useState<string[] | null>(null)
-  const [nova, setNova] = useState("")
+  const campo = useCampoDeTag()
+  const nova = campo.valor
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
-  const [comEspaco, setComEspaco] = useState(false)
 
   useEffect(() => {
     let descartar = false
@@ -39,8 +40,7 @@ export function TagsDoContato({ contactId }: { contactId: string }) {
       setErro(resultado.erro)
       return
     }
-    setNova("")
-    setComEspaco(false)
+    campo.limpar()
     setTags(await listarTagsContato(contactId))
   }
 
@@ -95,10 +95,7 @@ export function TagsDoContato({ contactId }: { contactId: string }) {
           disabled={salvando}
           className="h-7 text-xs"
           onChange={(e) => {
-            // B48-15: tag não tem espaço; o espaço não entra, e a dica diz por quê
-            const digitado = e.target.value
-            setComEspaco(/\s/.test(digitado))
-            setNova(digitado.replace(/\s/g, ""))
+            campo.mudar(e.target.value)
             setErro(null)
           }}
           onKeyDown={(e) => {
@@ -112,7 +109,7 @@ export function TagsDoContato({ contactId }: { contactId: string }) {
           Adicionar
         </Button>
       </div>
-      {comEspaco && !erro && <p className="text-xs text-muted-foreground">Tags não têm espaço</p>}
+      {campo.comEspaco && !erro && <p className="text-xs text-muted-foreground">{DICA_TAG_SEM_ESPACO}</p>}
       {erro && <p className="text-xs text-destructive">{erro}</p>}
     </div>
   )

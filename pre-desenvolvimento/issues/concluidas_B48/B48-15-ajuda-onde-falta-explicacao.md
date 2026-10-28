@@ -48,6 +48,7 @@ Nenhuma.
 - A lista de templates já vem da Graph API a cada abertura; o motivo vem no mesmo pedido, no campo `rejected_reason`. "NONE", vazio ou ausente: "A Meta não informou o motivo". Código que o CRM não conhece aparece como veio.
 - A tradução do motivo é do servidor (`listarTemplates`); a tela só mostra.
 - Colar "cliente vip" na Nova tag do card vira "clientevip", com a dica.
+- Depois do fechamento, o Luan pediu o mesmo na Nova tag da ficha do contato e na do painel do contato no Chat (28/10/2026). As três usam o `useCampoDeTag`.
 - Pedido Fechado: a linha diz que voltar ou cancelar devolve o estoque e desfaz a compra (B30-02).
 
 ### Cenário de Erro
@@ -60,14 +61,16 @@ Nenhuma.
 | CA-B48-38 | automática | `src/test/ajuda-onde-falta-explicacao.test.tsx` | O "?" de funil fixo (nos dois fixos), ICP, Perfil RFV, Tag e Corrigir recebimento abre o texto certo e fecha com Esc; a frase das Etiquetas aparece no submenu do Chat; a importação explica o código; o pedido diz o que Fechar e Cancelar mudam |
 | CA-B48-39 | automática | `src/test/ajuda-onde-falta-explicacao.test.tsx` | "Anexar arquivo", "Mensagens rápidas", "Nota interna" e "Gravar áudio" são nomes acessíveis de botões com dica |
 | CA-B48-40 | automática | `src/test/ajuda-onde-falta-explicacao.test.tsx` | A lista mostra o motivo junto do "Rejeitado" e o aviso sem motivo; `listarTemplates` pede `rejected_reason` e traduz INVALID_FORMAT, NONE e ausente |
-| CA-B48-41 | automática | `src/test/ajuda-onde-falta-explicacao.test.tsx` | "cliente vip" vira "clientevip" na Nova tag do card, com "Tags não têm espaço" |
+| CA-B48-41 | automática | `src/test/ajuda-onde-falta-explicacao.test.tsx` | "cliente vip" vira "clientevip" na Nova tag do card, da ficha do contato e do painel do Chat, com "Tags não têm espaço" |
 
 ## Arquivos
 
 - **Criar:** `src/components/shared/ajuda.tsx` — o "?" com a explicação, que fecha com Esc.
 - **Criar:** `src/test/ajuda-onde-falta-explicacao.test.tsx` — CA-B48-38 a 41.
+- **Criar:** `src/hooks/use-campo-de-tag.ts` — o campo de tag que barra o espaço, usado nas três telas.
+- **Modificar:** `src/app/(auth)/chat/components/painel-contato.tsx` — espaço barrado na tag do painel do Chat.
 - **Modificar:** `src/app/(auth)/configuracoes/funis/funis-client.tsx` — "?" do funil fixo.
-- **Modificar:** `src/app/(auth)/contatos/[id]/components/perfil-contato.tsx` — "?" do ICP e do Perfil RFV.
+- **Modificar:** `src/app/(auth)/contatos/[id]/components/perfil-contato.tsx` — "?" do ICP e do Perfil RFV; espaço barrado na Nova tag.
 - **Modificar:** `src/app/(auth)/pipeline/components/tags-do-contato.tsx` — "?" da Tag; espaço barrado na Nova tag.
 - **Modificar:** `src/app/(auth)/chat/components/painel-conversa.tsx` — frase das Etiquetas; nomes dos botões do campo de mensagem.
 - **Modificar:** `src/app/(auth)/configuracoes/whatsapp/acoes-whatsapp.tsx` — "?" do Corrigir recebimento.
@@ -82,5 +85,5 @@ Nenhuma.
 - [x] Explicações de funil fixo, ICP, Perfil RFV, Tag, Etiqueta, Corrigir recebimento, código da importação e botões do pedido
 - [x] Nomes dos botões do campo de mensagem
 - [x] Motivo do template rejeitado traduzido no servidor
-- [x] Espaço barrado na Nova tag do card
+- [x] Espaço barrado na Nova tag do card, da ficha e do painel do Chat
 - [x] Testes do CA-B48-38 a 41 passando, tsc e lint

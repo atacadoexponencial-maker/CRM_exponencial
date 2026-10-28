@@ -31,6 +31,7 @@ import { SeloPerfilRfv } from "@/components/shared/selo-perfil-rfv"
 import { CamposPersonalizadosContato } from "./campos-personalizados-contato"
 import type { CampoComValor } from "../../campos-personalizados"
 import { CLASSE_DA_PAGINA } from "@/lib/pagina"
+import { DICA_TAG_SEM_ESPACO, useCampoDeTag } from "@/hooks/use-campo-de-tag"
 import { Ajuda } from "@/components/shared/ajuda"
 
 const CLASSIFICACAO_BADGE: Record<string, string> = {
@@ -76,7 +77,8 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
   const [aba, setAba] = useState<Aba>("dados")
   const [editando, setEditando] = useState(false)
   const [erroEdicao, setErroEdicao] = useState<string | null>(null)
-  const [novaTag, setNovaTag] = useState("")
+  const campoDaTag = useCampoDeTag()
+  const novaTag = campoDaTag.valor
   const [erroTag, setErroTag] = useState<string | null>(null)
   const [resumoExclusao, setResumoExclusao] = useState<ResumoExclusao | null>(null)
   const [preparandoExclusao, setPreparandoExclusao] = useState(false)
@@ -214,7 +216,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
       setErroTag(resultado.erro)
       return
     }
-    setNovaTag("")
+    campoDaTag.limpar()
     router.refresh()
   }
 
@@ -494,7 +496,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
                 placeholder="Nova tag (sem espaços)"
                 value={novaTag}
                 onChange={(e) => {
-                  setNovaTag(e.target.value)
+                  campoDaTag.mudar(e.target.value)
                   setErroTag(null)
                 }}
                 onKeyDown={async (e) => {
@@ -517,6 +519,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
                 Adicionar
               </Button>
             </div>
+            {campoDaTag.comEspaco && !erroTag && <p className="text-sm text-muted-foreground">{DICA_TAG_SEM_ESPACO}</p>}
             {erroTag && (
               <p className="text-sm text-erro">{erroTag}</p>
             )}

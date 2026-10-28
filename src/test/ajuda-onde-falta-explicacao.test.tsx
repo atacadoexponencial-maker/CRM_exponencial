@@ -25,6 +25,11 @@ vi.mock("@/app/(auth)/chat/actions", () => ({
   enviarMensagem: vi.fn(), enviarImagem: vi.fn(), enviarDocumento: vi.fn(), enviarVideo: vi.fn(), enviarAudio: vi.fn(),
   atribuirConversa: vi.fn(), transferirConversa: vi.fn(), resolverConversa: vi.fn(), reabrirConversa: vi.fn(),
   aplicarEtiqueta: vi.fn(), removerEtiqueta: vi.fn(),
+  buscarInfoContato: vi.fn(async () => ({
+    dataPrimeiroContato: "20 de out.",
+    cadastro: { contactId: "c-1", classificacao: "ativo", tipo: null, cidade: null, uf: null, icp: null, atendente: null, perfilRfv: null, tags: [], funis: [] },
+  })),
+  atualizarNomeContato: vi.fn(),
 }))
 vi.mock("@/app/(auth)/configuracoes/whatsapp/actions", () => ({
   desconectarWhatsApp: vi.fn(), reconectarWhatsApp: vi.fn(), reinscreverWebhookWhatsApp: vi.fn(), removerConexaoWhatsApp: vi.fn(),
@@ -41,6 +46,7 @@ import { FunisClient } from "@/app/(auth)/configuracoes/funis/funis-client"
 import { PerfilContato } from "@/app/(auth)/contatos/[id]/components/perfil-contato"
 import { TagsDoContato } from "@/app/(auth)/pipeline/components/tags-do-contato"
 import { PainelConversa } from "@/app/(auth)/chat/components/painel-conversa"
+import { PainelContato } from "@/app/(auth)/chat/components/painel-contato"
 import { AcoesWhatsApp } from "@/app/(auth)/configuracoes/whatsapp/acoes-whatsapp"
 import { ImportarClient } from "@/app/(auth)/catalogo/importar/importar-client"
 import { DetalhePedido, type PedidoDetalhe } from "@/app/(auth)/catalogo/components/detalhe-pedido"
@@ -214,5 +220,21 @@ describe("B48-15 — Ajuda onde falta explicação", () => {
     expect(screen.getByText("Tags não têm espaço")).toBeTruthy()
     fireEvent.change(campo, { target: { value: "clientevip2" } })
     await waitFor(() => expect(screen.queryByText("Tags não têm espaço")).toBeNull())
+  })
+
+  it("CA-B48-41: should barrar o espaço também na Nova tag da ficha do contato", () => {
+    render(<PerfilContato contato={CONTATO} papel="admin" />)
+    const campo = screen.getByPlaceholderText("Nova tag (sem espaços)") as HTMLInputElement
+    fireEvent.change(campo, { target: { value: "cliente vip" } })
+    expect(campo.value).toBe("clientevip")
+    expect(screen.getByText("Tags não têm espaço")).toBeTruthy()
+  })
+
+  it("CA-B48-41: should barrar o espaço também na tag do painel do contato no Chat", async () => {
+    render(<PainelContato conversa={CONVERSA} conversaId="conv-1" onFechar={vi.fn()} onConversaAtualizada={vi.fn()} podeEditar />)
+    const campo = (await screen.findByRole("textbox", { name: "Nova tag" })) as HTMLInputElement
+    fireEvent.change(campo, { target: { value: "cliente vip" } })
+    expect(campo.value).toBe("clientevip")
+    expect(screen.getByText("Tags não têm espaço")).toBeTruthy()
   })
 })
