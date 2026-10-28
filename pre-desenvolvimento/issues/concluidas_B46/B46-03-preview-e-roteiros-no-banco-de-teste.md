@@ -101,3 +101,9 @@ Fora do código: as três variáveis do Supabase do Preview na Vercel e o `.env`
 - [x] Enviar o branch e esperar o preview novo
 - [x] Atualizar o README dos roteiros
 - [x] Rodar o `tsc` no projeto inteiro
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B46-10 | Marcelle | 28/10/2026 |
