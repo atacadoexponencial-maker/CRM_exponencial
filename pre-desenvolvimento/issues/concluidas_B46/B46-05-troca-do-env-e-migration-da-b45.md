@@ -95,3 +95,4 @@ Fora do git: o `.env.teste.local` copiado para a pasta principal.
 |---|---|---|
 | CA-B46-16 | Claude, a pedido da Marcelle | 28/10/2026 |
 | CA-B46-17 | Claude, a pedido da Marcelle | 28/10/2026 |
+| CA-B46-15 | Claude, a pedido da Marcelle | 28/10/2026 |
