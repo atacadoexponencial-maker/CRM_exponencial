@@ -15,6 +15,7 @@ import { listarConversas, TAMANHO_PAGINA_CONVERSAS } from "./conversas"
 /** Mesmo teto do painel: limite da requisição no Vercel, não do WhatsApp. */
 const LIMITE_ANEXO_BYTES = 4 * 1024 * 1024
 import { sessaoAtual } from "@/lib/sessao"
+import { comLinksDosAnexos } from "@/lib/anexos-do-chat"
 import { passarContatosPara } from "@/lib/carteira"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
 import { dispararEtiquetaAplicada, dispararMensagemEnviadaPeloTime } from "@/lib/automacoes/gatilhos-do-crm"
@@ -969,13 +970,16 @@ export async function buscarMensagens(conversaId: string): Promise<Mensagem[]> {
 
   const { data, error } = await supabase
     .from("messages")
-    .select("id, conversation_id, direction, type, content, status, status_error, reply_to_id, reply_preview_text, created_at, sent_from_phone, media_mime_type, media_filename, media_thumbnail_url")
+    .select("id, workspace_id, conversation_id, direction, type, content, status, status_error, reply_to_id, reply_preview_text, created_at, sent_from_phone, media_mime_type, media_filename, media_thumbnail_url")
     .eq("conversation_id", conversaId)
     .order("created_at", { ascending: true })
 
   if (error) throw new Error(error.message)
 
-  return (data ?? []).map((row) => {
+  // B49-01: as mídias vão com link assinado de 1 hora, só da própria empresa
+  const linhas = data && data.length > 0 ? await comLinksDosAnexos(createServiceClient(), data[0].workspace_id, data) : []
+
+  return linhas.map((row) => {
     const horario = formatarHoraDoDia(row.created_at)
 
     const mensagem: Mensagem = {

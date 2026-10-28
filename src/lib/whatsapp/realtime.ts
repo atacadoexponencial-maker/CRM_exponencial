@@ -9,6 +9,7 @@
 // faria o gateway reenviar um evento já gravado.
 
 import { createServiceClient } from "@/integrations/supabase/service"
+import { comLinksDosAnexos } from "@/lib/anexos-do-chat"
 
 export type MensagemTransmitida = {
   id: string
@@ -53,8 +54,11 @@ async function transmitir(workspaceId: string, event: string, payload: unknown):
  * B45-03: conversa sem responsável vai para `workspace:<id>:sem-responsavel`, que
  * toda a empresa ouve, como na caixa de entrada (fila aberta).
  */
-export async function transmitirMensagem(mensagem: MensagemTransmitida): Promise<void> {
-  const { data: conversa } = await createServiceClient()
+export async function transmitirMensagem(transmitida: MensagemTransmitida): Promise<void> {
+  const svc = createServiceClient()
+  // B49-01: a mídia vai com link assinado de 1 hora, não com o endereço gravado
+  const [mensagem] = await comLinksDosAnexos(svc, transmitida.workspace_id, [transmitida])
+  const { data: conversa } = await svc
     .from("conversations")
     .select("assigned_to")
     .eq("id", mensagem.conversation_id)
