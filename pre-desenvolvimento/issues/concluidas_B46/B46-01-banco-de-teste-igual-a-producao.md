@@ -22,7 +22,7 @@ produção.
 - **CA-B46-01** (automática) — o banco de teste tem todas as migrations do master. Dado o banco de teste criado, quando se compara a lista de migrations aplicadas nele com a pasta de migrations do `master`, então as duas listas são iguais, sem nenhuma faltando.
 - **CA-B46-02** (automática) — as pastas de arquivos são as mesmas da produção. Dado o banco de teste criado, quando se compara a lista de pastas de arquivos dele com a da produção, então as pastas são as mesmas, com os mesmos limites de tamanho e de tipo de arquivo e a mesma regra de pública ou privada.
 - **CA-B46-03** (automática) — dá para criar usuário e entrar no banco de teste. Dado o banco de teste criado, quando um teste cria um usuário com e-mail e senha e entra com ele, então o login funciona, sem pedir confirmação de e-mail, igual à produção.
-- **CA-B46-04** (automática) — o banco de teste não tem empresa de cliente. Dado o banco de teste em uso, quando se lista as empresas dele, então todas têm o nome começando com "[TESTE]".
+- **CA-B46-04** (automática) — o banco de teste não tem empresa de cliente. Dado o banco de teste em uso, quando se comparam as empresas dele com as da produção, então nenhuma empresa da produção existe no banco de teste (pelo identificador; empresas criadas pelos próprios testes e a "[TESTE]" recriada lá não contam).
 - **CA-B46-14** (automática) — dá para aplicar migration só no banco de teste. Dado uma migration nova que ainda não está em nenhum dos dois bancos, quando alguém usa o comando de aplicar migration no banco de teste, então ela aparece aplicada no banco de teste e continua faltando na produção.
 
 ## Suposições
@@ -65,7 +65,7 @@ produção.
 | CA-B46-01 | automática | `src/test/banco-de-teste.integration.test.ts` | a lista de versões em `supabase_migrations.schema_migrations` do banco de teste é igual à lista de arquivos de `supabase/migrations/` |
 | CA-B46-02 | automática | `src/test/banco-de-teste.integration.test.ts` | `storage.listBuckets()` do banco de teste e da produção devolvem as mesmas pastas, com o mesmo `public`, `file_size_limit` e `allowed_mime_types` |
 | CA-B46-03 | automática | `src/test/banco-de-teste.integration.test.ts` | no banco de teste, um usuário criado com `email_confirm: true` entra com `signInWithPassword` e recebe sessão; o usuário é apagado no fim |
-| CA-B46-04 | automática | `src/test/banco-de-teste.integration.test.ts` | toda linha de `workspaces` do banco de teste tem `name` começando com "[TESTE]" |
+| CA-B46-04 | automática | `src/test/banco-de-teste.integration.test.ts` | nenhum `id` de `workspaces` da produção aparece em `workspaces` do banco de teste |
 | CA-B46-14 | automática | `src/test/banco-de-teste.integration.test.ts` | com uma pasta temporária contendo as migrations + uma migration de prova (cria `public._b46_prova`), `aplicar-migrations.mjs --workdir` aplica a de prova só no teste: a versão aparece em `schema_migrations` do teste e não na da produção, e a tabela existe só no teste. No fim, a tabela é apagada e a versão desfeita (`migration repair --status reverted`) |
 
 ## Banco de Dados

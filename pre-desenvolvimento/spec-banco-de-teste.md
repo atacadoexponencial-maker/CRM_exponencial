@@ -72,8 +72,8 @@ no plano grátis. Tem a mesma estrutura da produção e nenhum dado de cliente.
 #### CA-B46-04 — o banco de teste não tem empresa de cliente · prova: automática
 
 - **Dado** o banco de teste em uso
-- **Quando** se lista as empresas dele
-- **Então** todas têm o nome começando com "[TESTE]"
+- **Quando** se comparam as empresas dele com as da produção
+- **Então** nenhuma empresa da produção existe no banco de teste (pelo identificador; empresas criadas pelos próprios testes e a "[TESTE]" recriada lá não contam). Critério trocado pela Marcelle em 27/10/2026: antes pedia que todas começassem com "[TESTE]", o que falhava com as empresas temporárias dos testes
 
 ### 2. Testes automáticos
 
@@ -299,6 +299,7 @@ diária usa o banco de teste para que ele nunca pause.
 | SUP-B46-03 | O Luan já tem acesso ao banco de teste por ser membro da organização "Atacado Exponencial"; as chaves chegam a ele do mesmo jeito que as da produção | invalidada | O banco de teste fica na organização própria "crm-exponencial-teste", no plano grátis; o Luan precisa ser convidado para ela (Marcelle, 27/10/2026) |
 | SUP-B46-04 | Os segredos do gateway e da Meta no preview continuam os mesmos de hoje: sem número conectado no banco de teste, o preview não envia nada | confirmada | Marcelle, 27/10/2026 |
 | SUP-B46-05 | A rotina que mantém o banco acordado não usa nenhuma das rotinas diárias da Vercel, que já estão no limite do plano | confirmada | Marcelle, 27/10/2026 |
+| SUP-B46-06 | A trava vale para a execução inteira do Vitest, inclusive os testes de unidade: sem `.env.teste.local`, nenhum teste roda | confirmada | Marcelle, 27/10/2026 |
 
 ## Perguntas em aberto
 

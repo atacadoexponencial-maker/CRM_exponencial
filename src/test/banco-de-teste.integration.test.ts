@@ -8,13 +8,14 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { spawnSync } from "node:child_process"
 import { describe, it, expect, afterAll } from "vitest"
-import { enderecoDoBanco, lerEnvTeste, REF_PRODUCAO, rodarSupabase } from "../../supabase/banco-de-teste/comum.mjs"
+import { enderecoDoBanco, lerEnvProducao, lerEnvTeste, REF_PRODUCAO, rodarSupabase } from "../../supabase/banco-de-teste/comum.mjs"
 
 const envTeste = lerEnvTeste()
 const semSessao = { auth: { autoRefreshToken: false, persistSession: false } }
 const testeAdmin = createClient(envTeste.NEXT_PUBLIC_SUPABASE_URL, envTeste.SUPABASE_SERVICE_ROLE_KEY, semSessao)
 const testeAnon = createClient(envTeste.NEXT_PUBLIC_SUPABASE_URL, envTeste.NEXT_PUBLIC_SUPABASE_ANON_KEY, semSessao)
-const producaoAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, semSessao)
+const envProducao = lerEnvProducao()
+const producaoAdmin = createClient(envProducao.NEXT_PUBLIC_SUPABASE_URL, envProducao.SUPABASE_SERVICE_ROLE_KEY, semSessao)
 
 const PASTA_MIGRATIONS = resolve(__dirname, "../../supabase/migrations")
 const VERSAO_DE_PROVA = "99991231000000"
@@ -84,11 +85,16 @@ describe("B46-01 — banco de teste no ar, igual à produção", () => {
     })
   })
 
-  it("CA-B46-04: should ter só empresas com o nome começando por [TESTE] no banco de teste", async () => {
-    const { data, error } = await testeAdmin.from("workspaces").select("name")
-    expect(error).toBeNull()
-    const deCliente = (data ?? []).filter((w) => !w.name.startsWith("[TESTE]"))
-    expect(deCliente).toEqual([])
+  it("CA-B46-04: should não ter no banco de teste nenhuma empresa da produção", async () => {
+    const ids = async (c: typeof testeAdmin) => {
+      const { data, error } = await c.from("workspaces").select("id")
+      expect(error).toBeNull()
+      return new Set((data ?? []).map((w) => w.id as string))
+    }
+    const naProducao = await ids(producaoAdmin)
+    expect(naProducao.size).toBeGreaterThan(0)
+    const vindasDaProducao = [...(await ids(testeAdmin))].filter((id) => naProducao.has(id))
+    expect(vindasDaProducao).toEqual([])
   })
 
   describe("migration só no banco de teste", () => {
