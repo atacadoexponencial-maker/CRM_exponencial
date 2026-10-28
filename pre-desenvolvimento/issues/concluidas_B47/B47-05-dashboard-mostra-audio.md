@@ -1,4 +1,4 @@
-# B46-05: O Dashboard mostra "Áudio", e não o endereço do arquivo
+# B47-05: O Dashboard mostra "Áudio", e não o endereço do arquivo
 
 **Tipo:** Correção
 **Página:** Dashboard (Esperando resposta)
@@ -17,7 +17,7 @@ O Dashboard resume a mídia do mesmo jeito que o Chat.
 
 ## Critérios de aceite
 
-- **CA-B46-10** (automática) — Resumo da mídia sem endereço. Dado uma conversa cuja última mensagem é "[audio] https://…supabase.co/storage/…", quando o Dashboard monta "Esperando resposta", então a linha mostra "Áudio", sem o endereço
+- **CA-B47-10** (automática) — Resumo da mídia sem endereço. Dado uma conversa cuja última mensagem é "[audio] https://…supabase.co/storage/…", quando o Dashboard monta "Esperando resposta", então a linha mostra "Áudio", sem o endereço
 
 ## Suposições
 
@@ -45,13 +45,13 @@ Nenhuma.
 
 | Critério | Prova | Onde | O que confere |
 |---|---|---|---|
-| CA-B46-10 | automática | `src/test/dashboard-previa-da-midia.test.ts` | `listarEsperandoResposta` devolve "🎤 Áudio" para o áudio com endereço, sem "https://", e a prévia do tipo para foto, vídeo e documento |
+| CA-B47-10 | automática | `src/test/dashboard-previa-da-midia.test.ts` | `listarEsperandoResposta` devolve "🎤 Áudio" para o áudio com endereço, sem "https://", e a prévia do tipo para foto, vídeo e documento |
 
 ## Arquivos
 
 - **Modificar:** `src/lib/whatsapp/recebimento.ts` — `previaDaMensagemGravada(tipo, conteudo)`, sobre o `PREVIA_POR_TIPO` que o recebimento já usa.
 - **Modificar:** `src/app/(auth)/dashboard/actions.ts` — `listarEsperandoResposta` usa `previaDaMensagemGravada`.
-- **Criar:** `src/test/dashboard-previa-da-midia.test.ts` — testes do CA-B46-10.
+- **Criar:** `src/test/dashboard-previa-da-midia.test.ts` — testes do CA-B47-10.
 
 Reuso: `PREVIA_POR_TIPO` de `src/lib/whatsapp/recebimento.ts`, a mesma prévia gravada em `last_message_text` para a lista do Chat.
 
@@ -59,4 +59,4 @@ Reuso: `PREVIA_POR_TIPO` de `src/lib/whatsapp/recebimento.ts`, a mesma prévia g
 
 - [x] `previaDaMensagemGravada` criada sobre o `PREVIA_POR_TIPO`
 - [x] "Esperando resposta" usa a prévia
-- [x] Testes do CA-B46-10 e os que usam o recebimento e o Dashboard passando, tsc e lint
+- [x] Testes do CA-B47-10 e os que usam o recebimento e o Dashboard passando, tsc e lint

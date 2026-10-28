@@ -1,4 +1,4 @@
-// B46-05: "Esperando resposta" no Dashboard resume a mídia como o Chat, sem o
+// B47-05: "Esperando resposta" no Dashboard resume a mídia como o Chat, sem o
 // endereço do arquivo.
 
 import { describe, it, expect, vi } from "vitest"
@@ -25,15 +25,15 @@ function comLinhas(linhas: Array<{ trecho: string | null; tipo: string | null }>
   vi.mocked(sessaoAtual).mockResolvedValue({ supabase: { rpc }, user: { id: "u1" } } as never)
 }
 
-describe("B46-05: prévia da mídia no Dashboard", () => {
-  it("CA-B46-10: áudio aparece como Áudio, sem o endereço", async () => {
+describe("B47-05: prévia da mídia no Dashboard", () => {
+  it("CA-B47-10: áudio aparece como Áudio, sem o endereço", async () => {
     comLinhas([{ tipo: "audio", trecho: ENDERECO }])
     const { conversas } = await listarEsperandoResposta()
     expect(conversas[0].trecho).toBe("🎤 Áudio")
     expect(conversas[0].trecho).not.toContain("https://")
   })
 
-  it("CA-B46-10: foto, vídeo e documento também pelo tipo; texto como veio", async () => {
+  it("CA-B47-10: foto, vídeo e documento também pelo tipo; texto como veio", async () => {
     comLinhas([
       { tipo: "imagem", trecho: ENDERECO },
       { tipo: "video", trecho: ENDERECO },

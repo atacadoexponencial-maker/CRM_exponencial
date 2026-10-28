@@ -108,7 +108,7 @@ export function ListaContatos({
   const [classificacao, setClassificacao] = useState<ClassificacaoContato | "todas">("todas")
   const [tipo, setTipo] = useState<TipoContato | "todos">("todos")
   const [atendente, setAtendente] = useState<string | null>(null)
-  // B46-11: tipo e atendente ficam atrás de "Mais filtros"; o botão conta os ligados
+  // B47-11: tipo e atendente ficam atrás de "Mais filtros"; o botão conta os ligados
   const [maisFiltros, setMaisFiltros] = useState(false)
   const filtrosRecolhidosLigados = (tipo !== "todos" ? 1 : 0) + (atendente !== null ? 1 : 0)
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("recente")

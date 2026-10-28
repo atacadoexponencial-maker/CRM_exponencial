@@ -1,4 +1,4 @@
-// B46-08: no editor, "Salvar e ativar" salva e liga pela mesma action do botão da
+// B47-08: no editor, "Salvar e ativar" salva e liga pela mesma action do botão da
 // lista; "Salvar" sozinho deixa desligada; a regra ligada não mostra o botão.
 
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
@@ -63,8 +63,8 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe("B46-08: Salvar e ativar no editor", () => {
-  it("CA-B46-19: Salvar uma automação nova não liga e avisa que está desligada", async () => {
+describe("B47-08: Salvar e ativar no editor", () => {
+  it("CA-B47-19: Salvar uma automação nova não liga e avisa que está desligada", async () => {
     abrir({ id: null, ativa: false })
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Salvar" })))
     await waitFor(() => expect(salvarRegra).toHaveBeenCalledTimes(1))
@@ -73,7 +73,7 @@ describe("B46-08: Salvar e ativar no editor", () => {
     expect(avisoDoPrimeiroSalvamento("1")).toBe(AVISO_SALVA_DESLIGADA)
   })
 
-  it("CA-B46-20: Salvar e ativar salva e liga pela action do botão da lista", async () => {
+  it("CA-B47-20: Salvar e ativar salva e liga pela action do botão da lista", async () => {
     abrir({ id: null, ativa: false })
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Salvar e ativar" })))
     await waitFor(() => expect(alternarRegra).toHaveBeenCalledWith("regra-nova", true))
@@ -82,14 +82,14 @@ describe("B46-08: Salvar e ativar no editor", () => {
     expect(avisoDoPrimeiroSalvamento("ativa")).toBe(AVISO_SALVA_LIGADA)
   })
 
-  it("CA-B46-20: se a conferência recusa ligar, diz que foi salva e continua desligada", async () => {
+  it("CA-B47-20: se a conferência recusa ligar, diz que foi salva e continua desligada", async () => {
     vi.mocked(alternarRegra).mockResolvedValueOnce({ erro: "Não dá para ativar: a etiqueta escolhida não existe mais." })
     abrir({ id: "regra-1", ativa: false })
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Salvar e ativar" })))
     expect(await screen.findByText(/A automação foi salva, mas continua desligada\. Não dá para ativar/)).toBeTruthy()
   })
 
-  it("CA-B46-21: a automação ligada não mostra Salvar e ativar, e Salvar não chama o liga/desliga", async () => {
+  it("CA-B47-21: a automação ligada não mostra Salvar e ativar, e Salvar não chama o liga/desliga", async () => {
     abrir({ id: "regra-1", ativa: true })
     expect(screen.queryByRole("button", { name: "Salvar e ativar" })).toBeNull()
     vi.mocked(salvarRegra).mockResolvedValueOnce({ id: "regra-1" })

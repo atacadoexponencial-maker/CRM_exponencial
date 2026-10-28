@@ -1,4 +1,4 @@
-// B46-04 — Esc fecha as janelas que o CRM monta à mão, e salvar mostra a mesma
+// B47-04 — Esc fecha as janelas que o CRM monta à mão, e salvar mostra a mesma
 // confirmação curta em todas as telas. As actions são falsas.
 
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
@@ -61,8 +61,8 @@ const CONVERSA: Conversa = {
 
 beforeEach(() => vi.clearAllMocks())
 
-describe("B46-04 — Esc fecha as janelas", () => {
-  it("CA-B46-08: Esc fecha o Novo lead sem criar nada", () => {
+describe("B47-04 — Esc fecha as janelas", () => {
+  it("CA-B47-08: Esc fecha o Novo lead sem criar nada", () => {
     const onFechar = vi.fn()
     render(<ModalNovoLead onSucesso={vi.fn()} onFechar={onFechar} />)
     apertarEsc()
@@ -70,7 +70,7 @@ describe("B46-04 — Esc fecha as janelas", () => {
     expect(criarNovoLead).not.toHaveBeenCalled()
   })
 
-  it("CA-B46-08: Esc fecha o seletor de mensagens rápidas do Chat", () => {
+  it("CA-B47-08: Esc fecha o seletor de mensagens rápidas do Chat", () => {
     render(
       <PainelConversa
         conversa={CONVERSA}
@@ -94,15 +94,15 @@ describe("B46-04 — Esc fecha as janelas", () => {
   })
 })
 
-describe("B46-04 — salvar confirma", () => {
-  it("CA-B46-09: criar lead mostra 'Lead criado'", async () => {
+describe("B47-04 — salvar confirma", () => {
+  it("CA-B47-09: criar lead mostra 'Lead criado'", async () => {
     render(<><AvisosNaTela /><ModalNovoLead onSucesso={vi.fn()} onFechar={vi.fn()} /></>)
     fireEvent.change(screen.getByLabelText(/Número de WhatsApp/), { target: { value: "11999990000" } })
     await act(async () => fireEvent.click(screen.getByRole("button", { name: /Criar lead/ })))
     expect(await screen.findByRole("status")).toHaveTextContent("Lead criado")
   })
 
-  it("CA-B46-09: salvar etiqueta mostra 'Etiqueta salva'", async () => {
+  it("CA-B47-09: salvar etiqueta mostra 'Etiqueta salva'", async () => {
     render(<><AvisosNaTela /><EtiquetasClient etiquetasIniciais={[]} /></>)
     fireEvent.click(screen.getByRole("button", { name: /Nova etiqueta/ }))
     const dialogo = await screen.findByRole("dialog")
@@ -112,7 +112,7 @@ describe("B46-04 — salvar confirma", () => {
     expect(await screen.findByText("Etiqueta salva")).toBeTruthy()
   })
 
-  it("CA-B46-09: criar campo mostra 'Campo salvo'", async () => {
+  it("CA-B47-09: criar campo mostra 'Campo salvo'", async () => {
     render(<><AvisosNaTela /><CamposClient campos={[]} /></>)
     fireEvent.click(screen.getByRole("button", { name: "Criar campo" }))
     const regiao = screen.getByRole("region", { name: "Novo campo" })
@@ -122,16 +122,16 @@ describe("B46-04 — salvar confirma", () => {
     expect(await screen.findByText("Campo salvo")).toBeTruthy()
   })
 
-  it("CA-B46-09: criar funil mostra 'Funil salvo'", async () => {
+  it("CA-B47-09: criar funil mostra 'Funil salvo'", async () => {
     render(<><AvisosNaTela /><FunisClient dados={{ fixos: [], funis: [] }} /></>)
     fireEvent.click(screen.getByRole("button", { name: /Novo funil/ }))
-    // B46-13: o nome vazio é barrado no formulário
+    // B47-13: o nome vazio é barrado no formulário
     fireEvent.change(screen.getByPlaceholderText("Ex.: Feira de Março"), { target: { value: "Feira" } })
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Criar funil" })))
     expect(await screen.findByText("Funil salvo")).toBeTruthy()
   })
 
-  it("CA-B46-09: salvar produto mostra 'Produto salvo' e volta para a lista", async () => {
+  it("CA-B47-09: salvar produto mostra 'Produto salvo' e volta para a lista", async () => {
     render(
       <>
         <AvisosNaTela />

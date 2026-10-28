@@ -1,4 +1,4 @@
-// B46-01: as datas da tela saem no horário de Brasília, mesmo montadas no servidor
+// B47-01: as datas da tela saem no horário de Brasília, mesmo montadas no servidor
 // da Vercel, que roda em UTC. O processo do teste roda em UTC, como lá.
 process.env.TZ = "UTC"
 
@@ -44,8 +44,8 @@ function argumentos(texto: string, inicio: number): string {
   return texto.slice(inicio)
 }
 
-describe("B46-01: datas no horário de Brasília", () => {
-  it("CA-B46-01: o histórico do card mostra 15:00 para um movimento das 18:00 UTC", async () => {
+describe("B47-01: datas no horário de Brasília", () => {
+  it("CA-B47-01: o histórico do card mostra 15:00 para um movimento das 18:00 UTC", async () => {
     vi.mocked(createClient).mockResolvedValue(
       banco({
         pipeline_card_history: [{ de_etapa: "lead", para_etapa: "sondagem", created_at: "2026-10-27T18:00:00.000Z", alterado_por: { name: "Ana" } }],
@@ -61,11 +61,11 @@ describe("B46-01: datas no horário de Brasília", () => {
     expect(notas[0].data).toBe("27/10/2026")
   })
 
-  it("CA-B46-01: data de calendário sem hora não muda de dia", () => {
+  it("CA-B47-01: data de calendário sem hora não muda de dia", () => {
     expect(formatarDataDoCalendario("2026-10-27")).toBe("27/10/2026")
   })
 
-  it("CA-B46-02: nenhuma data das telas é formatada sem fuso", () => {
+  it("CA-B47-02: nenhuma data das telas é formatada sem fuso", () => {
     const raiz = path.resolve(__dirname, "..")
     const semFuso: string[] = []
     const chamada = /\.toLocaleDateString\(|\.toLocaleTimeString\(|new Date\([^()]*(?:\([^()]*\)[^()]*)*\)\.toLocaleString\(|\bdata\.toLocaleString\(|new Intl\.DateTimeFormat\(/g

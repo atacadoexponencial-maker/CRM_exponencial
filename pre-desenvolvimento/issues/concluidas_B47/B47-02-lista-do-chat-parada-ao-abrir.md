@@ -1,4 +1,4 @@
-# B46-02: A lista do Chat não pula ao abrir uma conversa
+# B47-02: A lista do Chat não pula ao abrir uma conversa
 
 **Tipo:** Correção
 **Página:** Chat (lista de conversas)
@@ -17,8 +17,8 @@ Abrir qualquer conversa deixa a lista na mesma ordem; só mensagem nova sobe a c
 
 ## Critérios de aceite
 
-- **CA-B46-04** (automática) — Abrir conversa não muda a ordem. Dado a lista com as conversas A (mais recente), B e C, quando chega a atualização de C só com `unread_count` zerado, sem `last_message_at` novo, então a ordem continua A, B, C, e C aparece sem não lidas
-- **CA-B46-05** (automática) — Mensagem nova continua subindo a conversa. Dado a mesma lista, quando chega a atualização de C com `last_message_at` mais novo que o de A, então a ordem passa a ser C, A, B
+- **CA-B47-04** (automática) — Abrir conversa não muda a ordem. Dado a lista com as conversas A (mais recente), B e C, quando chega a atualização de C só com `unread_count` zerado, sem `last_message_at` novo, então a ordem continua A, B, C, e C aparece sem não lidas
+- **CA-B47-05** (automática) — Mensagem nova continua subindo a conversa. Dado a mesma lista, quando chega a atualização de C com `last_message_at` mais novo que o de A, então a ordem passa a ser C, A, B
 
 ## Suposições
 
@@ -48,14 +48,14 @@ Nenhuma.
 
 | Critério | Prova | Onde | O que confere |
 |---|---|---|---|
-| CA-B46-04 | automática | `src/test/chat-lista-parada-ao-abrir.test.ts` | Com A, B, C, o UPDATE de C só com `unread_count: 0` deixa a ordem A, B, C e C com 0 não lidas |
-| CA-B46-05 | automática | `src/test/chat-lista-parada-ao-abrir.test.ts` | O UPDATE de C com `last_message_at` mais novo deixa a ordem C, A, B, com o texto e a atividade novos |
+| CA-B47-04 | automática | `src/test/chat-lista-parada-ao-abrir.test.ts` | Com A, B, C, o UPDATE de C só com `unread_count: 0` deixa a ordem A, B, C e C com 0 não lidas |
+| CA-B47-05 | automática | `src/test/chat-lista-parada-ao-abrir.test.ts` | O UPDATE de C com `last_message_at` mais novo deixa a ordem C, A, B, com o texto e a atividade novos |
 
 ## Arquivos
 
 - **Criar:** `src/app/(auth)/chat/conversa-atualizada.ts` — `aplicarAtualizacaoDaConversa(lista, linha)`: atualiza a conversa no lugar e só a sobe ao topo quando o `last_message_at` mudou.
 - **Modificar:** `src/app/(auth)/chat/components/chat-layout.tsx` — o UPDATE de `conversations` passa a usar `aplicarAtualizacaoDaConversa`.
-- **Criar:** `src/test/chat-lista-parada-ao-abrir.test.ts` — testes do CA-B46-04 e do CA-B46-05.
+- **Criar:** `src/test/chat-lista-parada-ao-abrir.test.ts` — testes do CA-B47-04 e do CA-B47-05.
 
 Reuso: `formatarHorarioDaLista` (já usado no `chat-layout.tsx`) e o campo `atividadeEm` da `Conversa` (B10-04), que guarda o `last_message_at` em ISO.
 
@@ -63,5 +63,5 @@ Reuso: `formatarHorarioDaLista` (já usado no `chat-layout.tsx`) e o campo `ativ
 
 - [x] `aplicarAtualizacaoDaConversa` criada, com `atividadeEm` atualizada
 - [x] `chat-layout.tsx` usa a função no UPDATE
-- [x] Testes do CA-B46-04 e CA-B46-05 passando
+- [x] Testes do CA-B47-04 e CA-B47-05 passando
 - [x] Testes que renderizam o `ChatLayout` passando (L-05), tsc (L-07), lint

@@ -1,4 +1,4 @@
-# B46-08: Automação nova nasce desligada
+# B47-08: Automação nova nasce desligada
 
 **Tipo:** Correção
 **Página:** Configurações → Automações (editor e lista)
@@ -9,7 +9,7 @@
 
 ## Descrição
 
-Salvar uma automação nova grava com `ativa: true`, e ela já age sobre contatos de verdade. Decidido na PER-B46-01: nasce desligada.
+Salvar uma automação nova grava com `ativa: true`, e ela já age sobre contatos de verdade. Decidido na PER-B47-01: nasce desligada.
 
 ## Pronto quando
 
@@ -17,9 +17,9 @@ Automação nova salva desligada; "Salvar e ativar" liga; editar uma ligada não
 
 ## Critérios de aceite
 
-- **CA-B46-19** (automática) — Salvar automação nova grava desligada. Dado uma automação nova, com o fluxo completo, quando se clica em Salvar, então ela é gravada com `ativa` falso e a lista mostra a chave desligada
-- **CA-B46-20** (automática) — "Salvar e ativar" liga. Dado a mesma automação nova, quando se clica em "Salvar e ativar", então ela é gravada ligada, passando pela mesma conferência do botão da lista
-- **CA-B46-21** (automática) — Editar automação ligada mantém ligada. Dado uma automação ligada, quando se muda o nome e salva, então ela continua ligada
+- **CA-B47-19** (automática) — Salvar automação nova grava desligada. Dado uma automação nova, com o fluxo completo, quando se clica em Salvar, então ela é gravada com `ativa` falso e a lista mostra a chave desligada
+- **CA-B47-20** (automática) — "Salvar e ativar" liga. Dado a mesma automação nova, quando se clica em "Salvar e ativar", então ela é gravada ligada, passando pela mesma conferência do botão da lista
+- **CA-B47-21** (automática) — Editar automação ligada mantém ligada. Dado uma automação ligada, quando se muda o nome e salva, então ela continua ligada
 
 ## Suposições
 
@@ -29,7 +29,7 @@ Nenhuma.
 
 | ID | Pergunta | Status | Resposta |
 |---|---|---|---|
-| PER-B46-01 | A automação nova deve nascer desligada, com "Salvar e ativar" à parte? Hoje nasce ligada (B46-08) | respondida | Sim, nasce desligada. Luan, 27/10/2026 |
+| PER-B47-01 | A automação nova deve nascer desligada, com "Salvar e ativar" à parte? Hoje nasce ligada (B47-08) | respondida | Sim, nasce desligada. Luan, 27/10/2026 |
 
 ## Cenários
 
@@ -50,9 +50,9 @@ Nenhuma.
 
 | Critério | Prova | Onde | O que confere |
 |---|---|---|---|
-| CA-B46-19 | automática | `src/test/automacao-nasce-desligada.test.ts` | O insert da regra nova grava `ativa: false` |
-| CA-B46-20 | automática | `src/test/automacao-salvar-e-ativar.test.tsx` | "Salvar e ativar" chama `salvarRegra` e depois `alternarRegra(id, true)`; recusa da conferência mostra "salva, mas continua desligada" |
-| CA-B46-21 | automática | `src/test/automacao-nasce-desligada.test.ts` | Salvar uma regra que existe faz update sem o campo `ativa`; a regra ligada não mostra "Salvar e ativar" |
+| CA-B47-19 | automática | `src/test/automacao-nasce-desligada.test.ts` | O insert da regra nova grava `ativa: false` |
+| CA-B47-20 | automática | `src/test/automacao-salvar-e-ativar.test.tsx` | "Salvar e ativar" chama `salvarRegra` e depois `alternarRegra(id, true)`; recusa da conferência mostra "salva, mas continua desligada" |
+| CA-B47-21 | automática | `src/test/automacao-nasce-desligada.test.ts` | Salvar uma regra que existe faz update sem o campo `ativa`; a regra ligada não mostra "Salvar e ativar" |
 
 ## Arquivos
 
@@ -61,8 +61,8 @@ Nenhuma.
 - **Modificar:** `src/app/(auth)/configuracoes/automacoes/[id]/page.tsx` — aviso do primeiro salvamento pelo `?salva=`.
 - **Criar:** `src/app/(auth)/configuracoes/automacoes/[id]/avisos-do-salvar.ts` — textos dos avisos, fora do componente de cliente.
 - **Modificar:** `src/app/(auth)/configuracoes/automacoes/components/editor-fluxo.tsx` — botão "Salvar e ativar" quando a regra está desligada.
-- **Criar:** `src/test/automacao-nasce-desligada.test.ts` — CA-B46-19 e CA-B46-21 no servidor.
-- **Criar:** `src/test/automacao-salvar-e-ativar.test.tsx` — CA-B46-19 a CA-B46-21 no editor.
+- **Criar:** `src/test/automacao-nasce-desligada.test.ts` — CA-B47-19 e CA-B47-21 no servidor.
+- **Criar:** `src/test/automacao-salvar-e-ativar.test.tsx` — CA-B47-19 a CA-B47-21 no editor.
 - **Modificar:** `src/test/automacao-perfil-rfv-protecoes.integration.test.ts` — liga a regra depois de salvar.
 - **Modificar:** `src/test/funis-nas-automacoes.integration.test.ts` — liga a regra depois de salvar.
 - **Modificar:** `src/test/pipeline-mais-na-etapa.integration.test.ts` — liga a regra depois de salvar.
@@ -74,6 +74,6 @@ Reuso: `alternarRegra`, que já confere as escolhas antes de ligar (B22-27).
 - [x] Insert com `ativa: false`
 - [x] "Salvar e ativar" no editor, pela `alternarRegra`
 - [x] Avisos do Salvar e do primeiro salvamento
-- [x] Testes do CA-B46-19 a CA-B46-21 passando
+- [x] Testes do CA-B47-19 a CA-B47-21 passando
 - [x] Testes de integração que contavam com a regra ligada ajustados e passando
 - [x] Testes das automações (L-05), tsc (L-07) e lint

@@ -154,7 +154,7 @@ const PREVIA_POR_TIPO: Record<string, string> = {
 }
 
 /**
- * Prévia de uma mensagem já gravada, como a lista do Chat mostra (B46-05): texto
+ * Prévia de uma mensagem já gravada, como a lista do Chat mostra (B47-05): texto
  * aparece como veio; mídia, pelo tipo, e nunca pelo endereço do arquivo.
  */
 export function previaDaMensagemGravada(tipo: string | null, conteudo: string | null): string {

@@ -1,4 +1,4 @@
-# B46-04: Esc fecha as janelas e salvar confirma
+# B47-04: Esc fecha as janelas e salvar confirma
 
 **Tipo:** Correção
 **Página:** Pipeline (Novo lead), Chat (mensagens rápidas), Catálogo, Funis, Campos personalizados, Etiquetas
@@ -17,8 +17,8 @@ Esc fecha essas janelas sem criar nada, e salvar produto, lead, funil, campo e e
 
 ## Critérios de aceite
 
-- **CA-B46-08** (automática) — Esc fecha "Novo lead" e mensagens rápidas. Dado a janela "Novo lead" aberta no Pipeline, ou o painel de mensagens rápidas aberto no Chat, quando se aperta Esc, então a janela fecha e nada é criado
-- **CA-B46-09** (automática) — Salvar mostra confirmação. Dado o formulário de produto, de lead, de funil, de campo personalizado ou de etiqueta, quando o salvamento dá certo, então aparece uma confirmação curta ("Produto salvo", "Lead criado", "Funil salvo", "Campo salvo", "Etiqueta salva")
+- **CA-B47-08** (automática) — Esc fecha "Novo lead" e mensagens rápidas. Dado a janela "Novo lead" aberta no Pipeline, ou o painel de mensagens rápidas aberto no Chat, quando se aperta Esc, então a janela fecha e nada é criado
+- **CA-B47-09** (automática) — Salvar mostra confirmação. Dado o formulário de produto, de lead, de funil, de campo personalizado ou de etiqueta, quando o salvamento dá certo, então aparece uma confirmação curta ("Produto salvo", "Lead criado", "Funil salvo", "Campo salvo", "Etiqueta salva")
 
 ## Suposições
 
@@ -47,8 +47,8 @@ Nenhuma.
 
 | Critério | Prova | Onde | O que confere |
 |---|---|---|---|
-| CA-B46-08 | automática | `src/test/esc-fecha-e-salvar-confirma.test.tsx` | Esc chama o fechar do Novo lead sem `criarNovoLead`, e some o seletor de mensagens rápidas |
-| CA-B46-09 | automática | `src/test/esc-fecha-e-salvar-confirma.test.tsx` | Depois de salvar, aparecem "Lead criado", "Etiqueta salva", "Campo salvo", "Funil salvo" e "Produto salvo" |
+| CA-B47-08 | automática | `src/test/esc-fecha-e-salvar-confirma.test.tsx` | Esc chama o fechar do Novo lead sem `criarNovoLead`, e some o seletor de mensagens rápidas |
+| CA-B47-09 | automática | `src/test/esc-fecha-e-salvar-confirma.test.tsx` | Depois de salvar, aparecem "Lead criado", "Etiqueta salva", "Campo salvo", "Funil salvo" e "Produto salvo" |
 
 ## Arquivos
 
@@ -63,11 +63,11 @@ Nenhuma.
 - **Modificar:** `src/app/(auth)/configuracoes/funis/funis-client.tsx` — "Funil salvo".
 - **Modificar:** `src/app/(auth)/configuracoes/campos/campos-client.tsx` — "Campo salvo".
 - **Modificar:** `src/app/(auth)/configuracoes/etiquetas/etiquetas-client.tsx` — "Etiqueta salva".
-- **Criar:** `src/test/esc-fecha-e-salvar-confirma.test.tsx` — testes do CA-B46-08 e do CA-B46-09.
+- **Criar:** `src/test/esc-fecha-e-salvar-confirma.test.tsx` — testes do CA-B47-08 e do CA-B47-09.
 
 ## Checklist
 
 - [x] Gancho do Esc nas janelas montadas à mão e no seletor de mensagens rápidas
 - [x] Aviso de salvo no layout e nos cinco formulários
-- [x] Testes do CA-B46-08 e do CA-B46-09 passando
+- [x] Testes do CA-B47-08 e do CA-B47-09 passando
 - [x] Testes que renderizam essas telas passando (as 2 falhas de tema já existem na master), tsc e lint

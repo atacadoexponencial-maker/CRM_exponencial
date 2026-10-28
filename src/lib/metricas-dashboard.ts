@@ -37,7 +37,7 @@ export type MetricasDashboard = {
     ticketMedioGeral: number | null
     percentualNovos: number | null // % do faturamento vindo de clientes novos no período
   }
-  /** B46-10: começo e fim do período, em ISO, para a tela dizer de quando são os números. */
+  /** B47-10: começo e fim do período, em ISO, para a tela dizer de quando são os números. */
   periodo?: { inicio: string; fim: string }
 }
 
@@ -197,7 +197,7 @@ export function calcularMetricas(
       return d >= cursor && d < proximo
     }).length
     leadsPorSemana.push({
-      // B46-01: as semanas começam à meia-noite do processo (UTC na Vercel); o
+      // B47-01: as semanas começam à meia-noite do processo (UTC na Vercel); o
       // rótulo diz a data desse começo, no mesmo relógio da conta
       label: porMes
         ? cursor.toLocaleDateString("pt-BR", { timeZone: "UTC", month: "2-digit", year: "2-digit" })

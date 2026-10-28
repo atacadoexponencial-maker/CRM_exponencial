@@ -1,6 +1,6 @@
 "use client"
 
-// B46-04: mostra por alguns segundos a confirmação que a tela pediu com `avisar`.
+// B47-04: mostra por alguns segundos a confirmação que a tela pediu com `avisar`.
 
 import { useEffect, useState } from "react"
 import { Check } from "lucide-react"

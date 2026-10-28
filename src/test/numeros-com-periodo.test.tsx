@@ -1,4 +1,4 @@
-// B46-10 — números que não se confundem: o faturamento diz de quando é, no
+// B47-10 — números que não se confundem: o faturamento diz de quando é, no
 // Dashboard e nos Relatórios, e os contatos sem compra das Carteiras não se chamam
 // "Leads", como os cards do Pipeline.
 
@@ -22,8 +22,8 @@ import { calcularMetricas } from "@/lib/metricas-dashboard"
 
 const HOJE = "2026-10-27"
 
-describe("B46-10 — números com período e nomes claros", () => {
-  it("CA-B46-24: o faturamento do Dashboard em 30 dias diz as datas de começo e fim", () => {
+describe("B47-10 — números com período e nomes claros", () => {
+  it("CA-B47-24: o faturamento do Dashboard em 30 dias diz as datas de começo e fim", () => {
     // 30 dias até 27/10 às 15:00 de Brasília
     const range = { inicio: new Date("2026-09-27T18:00:00.000Z"), fim: new Date("2026-10-27T18:00:00.000Z") }
     const metricas = calcularMetricas([], [], [], range)
@@ -40,7 +40,7 @@ describe("B46-10 — números com período e nomes claros", () => {
     expect(screen.getByText(/Faturado de 27\/09 a 27\/10/)).toBeTruthy()
   })
 
-  it("CA-B46-24: o faturamento dos Relatórios no mês diz de 01/10 a hoje", () => {
+  it("CA-B47-24: o faturamento dos Relatórios no mês diz de 01/10 a hoje", () => {
     const periodo = periodoPadrao(HOJE)
     const visao = { ...calcularCartoes([], periodo, HOJE), graficos: calcularGraficos([], periodo, HOJE, {}), tabela: [], porUf: variacaoPorUf([], periodo, HOJE), mesesHistorico: historicoDe25Meses([], HOJE), atendenteId: null }
     render(<RelatoriosClient visaoInicial={visao} atendentes={[]} papel="admin" hoje={HOJE} />)
@@ -48,7 +48,7 @@ describe("B46-10 — números com período e nomes claros", () => {
     expect(within(screen.getByTestId("cartao-faturamentoLiquido")).getByText("01/10 a 27/10")).toBeTruthy()
   })
 
-  it("CA-B46-25: nas Carteiras, os contatos sem compra se chamam 'Sem compra', e não 'Leads'", () => {
+  it("CA-B47-25: nas Carteiras, os contatos sem compra se chamam 'Sem compra', e não 'Leads'", () => {
     const painel = calcularPainelDeCarteiras(
       [{ id: "l1", atendenteId: null, temCompra: false, ativo: false }, { id: "b1", atendenteId: null, temCompra: true, ativo: true }],
       []

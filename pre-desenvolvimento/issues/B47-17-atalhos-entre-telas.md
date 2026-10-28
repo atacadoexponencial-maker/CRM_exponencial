@@ -1,4 +1,4 @@
-# B46-17: Atalhos do Chat para a ficha e do pedido para a conversa
+# B47-17: Atalhos do Chat para a ficha e do pedido para a conversa
 
 **Tipo:** Correção
 **Página:** Chat (cabeçalho) e Pedidos
@@ -17,8 +17,8 @@ O nome no cabeçalho do chat leva à ficha, e o pedido tem "Abrir conversa".
 
 ## Critérios de aceite
 
-- **CA-B46-43** (automática) — Do chat para a ficha do contato. Dado uma conversa aberta com contato cadastrado, quando se olha o cabeçalho, então o nome do contato é um link para `/contatos/<id>`
-- **CA-B46-44** (automática) — Do pedido para a conversa. Dado um pedido de contato que tem conversa, quando o pedido é aberto, então há "Abrir conversa" ao lado de "Perfil do contato", levando à conversa dele no Chat
+- **CA-B47-43** (automática) — Do chat para a ficha do contato. Dado uma conversa aberta com contato cadastrado, quando se olha o cabeçalho, então o nome do contato é um link para `/contatos/<id>`
+- **CA-B47-44** (automática) — Do pedido para a conversa. Dado um pedido de contato que tem conversa, quando o pedido é aberto, então há "Abrir conversa" ao lado de "Perfil do contato", levando à conversa dele no Chat
 
 ## Suposições
 

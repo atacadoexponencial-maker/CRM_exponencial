@@ -61,7 +61,7 @@ async function novaRegra(chave: string, nome: string, fluxo: Fluxo) {
   const r = await salvarRegra({ id: null, nome, fluxo, repeticao: { modo: "sempre" } })
   expect(r.erro).toBeUndefined()
   regras[chave] = r.id!
-  // B46-08: a regra nova nasce desligada
+  // B47-08: a regra nova nasce desligada
   como("admin")
   expect(await alternarRegra(r.id!, true)).toEqual({})
 }

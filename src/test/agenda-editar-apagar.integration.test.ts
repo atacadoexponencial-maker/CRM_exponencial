@@ -1,5 +1,5 @@
 // @vitest-environment node
-// B46-06 — follow-up da Agenda: editar, apagar e desfazer o Feito, e quem pode.
+// B47-06 — follow-up da Agenda: editar, apagar e desfazer o Feito, e quem pode.
 // Bate no Supabase real, numa empresa criada para o teste e apagada no fim.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
@@ -48,8 +48,8 @@ async function lembrete(atendente: string, instrucao: string, status = "pendente
 const linha = async (id: string) => (await service.from("reminders").select("instrucao, due_at, status, done_at").eq("id", id).maybeSingle()).data
 
 beforeAll(async () => {
-  ws = (await service.from("workspaces").insert({ name: `B46-06 ${ts}` }).select("id").single()).data!.id
-  const outra = (await service.from("workspaces").insert({ name: `B46-06 outra ${ts}` }).select("id").single()).data!.id
+  ws = (await service.from("workspaces").insert({ name: `B47-06 ${ts}` }).select("id").single()).data!.id
+  const outra = (await service.from("workspaces").insert({ name: `B47-06 outra ${ts}` }).select("id").single()).data!.id
   empresas.push(ws, outra)
   gerenteId = await criarUsuario(ws, "Gerente", "gerente")
   anaId = await criarUsuario(ws, "Ana", "atendente")
@@ -70,8 +70,8 @@ afterAll(async () => {
   for (const e of empresas) await service.from("workspaces").delete().eq("id", e)
 }, 120_000)
 
-describe("B46-06 — editar, apagar e desfazer o Feito", { timeout: 60_000 }, () => {
-  it("CA-B46-11: should mudar a data e a nota do follow-up, e recusar data no passado", async () => {
+describe("B47-06 — editar, apagar e desfazer o Feito", { timeout: 60_000 }, () => {
+  it("CA-B47-11: should mudar a data e a nota do follow-up, e recusar data no passado", async () => {
     const id = await lembrete(anaId, "Ligar")
     entrarComo(anaId)
     expect(await editarLembrete(id, { contactId: contatoAna, data: diaDaqui(2), hora: "10:00", nota: "Ligar às 10h" })).toEqual({})
@@ -84,14 +84,14 @@ describe("B46-06 — editar, apagar e desfazer o Feito", { timeout: 60_000 }, ()
     expect((await linha(id))!.instrucao).toBe("Ligar às 10h")
   })
 
-  it("CA-B46-12: should tirar o follow-up da Agenda e do banco ao apagar", async () => {
+  it("CA-B47-12: should tirar o follow-up da Agenda e do banco ao apagar", async () => {
     const id = await lembrete(anaId, "Apagar este")
     entrarComo(anaId)
     expect(await apagarLembrete(id)).toEqual({})
     expect(await linha(id)).toBeNull()
   })
 
-  it("CA-B46-13: should voltar o Feito para pendente com a mesma data ao desfazer", async () => {
+  it("CA-B47-13: should voltar o Feito para pendente com a mesma data ao desfazer", async () => {
     const id = await lembrete(anaId, "Feito sem querer")
     const antes = (await linha(id))!.due_at
     entrarComo(anaId)
@@ -105,7 +105,7 @@ describe("B46-06 — editar, apagar e desfazer o Feito", { timeout: 60_000 }, ()
     expect(depois!.due_at).toBe(antes)
   })
 
-  it("CA-B46-14: should deixar a empresa mexer no follow-up e recusar quem é de outra empresa", async () => {
+  it("CA-B47-14: should deixar a empresa mexer no follow-up e recusar quem é de outra empresa", async () => {
     // Lembrete criado pela automação para a Ana: ela edita e apaga, mesmo sem ter criado
     const daAna = await lembrete(anaId, "Da automação")
     entrarComo(anaId)

@@ -91,7 +91,7 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
 
   function abrirCriar() {
     setNovoNome("")
-    // B46-13: abre com a primeira cor marcada
+    // B47-13: abre com a primeira cor marcada
     setNovaCor(CORES_DISPONIVEIS[0])
     setErroCriar(null)
     setDialogCriarAberto(true)

@@ -1,4 +1,4 @@
-// Avisos do Salvar do editor de automação (B46-08). Fora do componente de
+// Avisos do Salvar do editor de automação (B47-08). Fora do componente de
 // cliente porque a página, no servidor, escolhe o aviso de quem chega pelo
 // primeiro salvamento (`?salva=`).
 

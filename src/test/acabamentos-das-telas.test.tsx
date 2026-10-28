@@ -1,4 +1,4 @@
-// B46-13 — acabamentos: funil sem nome barrado no formulário, nova etiqueta com a
+// B47-13 — acabamentos: funil sem nome barrado no formulário, nova etiqueta com a
 // primeira cor marcada, e nenhum "workspace" no texto das telas. As actions são falsas.
 
 import { readdirSync, readFileSync, statSync } from "node:fs"
@@ -24,8 +24,8 @@ import { criarFunil } from "@/app/(auth)/configuracoes/funis/actions"
 
 beforeEach(() => vi.clearAllMocks())
 
-describe("B46-13 — formulários", () => {
-  it("CA-B46-31: Criar funil com o nome vazio diz 'Informe o nome do funil.' na hora, sem ir ao servidor", async () => {
+describe("B47-13 — formulários", () => {
+  it("CA-B47-31: Criar funil com o nome vazio diz 'Informe o nome do funil.' na hora, sem ir ao servidor", async () => {
     render(<FunisClient dados={{ fixos: [], funis: [] }} />)
     fireEvent.click(screen.getByRole("button", { name: /Novo funil/ }))
     fireEvent.change(screen.getByPlaceholderText("Ex.: Feira de Março"), { target: { value: "   " } })
@@ -34,7 +34,7 @@ describe("B46-13 — formulários", () => {
     expect(criarFunil).not.toHaveBeenCalled()
   })
 
-  it("CA-B46-32: Nova etiqueta abre com a primeira cor marcada, e Salvar sem nome diz 'Dê um nome à etiqueta'", async () => {
+  it("CA-B47-32: Nova etiqueta abre com a primeira cor marcada, e Salvar sem nome diz 'Dê um nome à etiqueta'", async () => {
     render(<EtiquetasClient etiquetasIniciais={[]} />)
     fireEvent.click(screen.getByRole("button", { name: /Nova etiqueta/ }))
     const cores = await screen.findAllByRole("button", { name: /^Cor #/ })
@@ -49,7 +49,7 @@ describe("B46-13 — formulários", () => {
   })
 })
 
-// Textos jurídicos ficam como estão (PER-B46-03): o termo do canal direto tem versão,
+// Textos jurídicos ficam como estão (PER-B47-03): o termo do canal direto tem versão,
 // e mudar o texto pede novo aceite; Política e Termos de Serviço são do jurídico.
 const TEXTOS_LEGAIS = [
   "lib/whatsapp/gateway/termo.ts",
@@ -78,8 +78,8 @@ function textosComWorkspace(codigo: string): string[] {
   )
 }
 
-describe("B46-13 — textos", () => {
-  it("CA-B46-33: nenhum texto das telas diz 'workspace'; diz 'empresa'", () => {
+describe("B47-13 — textos", () => {
+  it("CA-B47-33: nenhum texto das telas diz 'workspace'; diz 'empresa'", () => {
     const raiz = join(process.cwd(), "src")
     const achados = arquivosDaTela(raiz)
       .filter((a) => !TEXTOS_LEGAIS.includes(relative(raiz, a).split(sep).join("/")))

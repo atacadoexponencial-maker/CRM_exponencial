@@ -104,7 +104,7 @@ function NovoFunil({ onFechar, onCriado }: { onFechar: () => void; onCriado: () 
   }
 
   async function salvar() {
-    // B46-13: o nome vazio é barrado aqui, na hora; o servidor continua validando
+    // B47-13: o nome vazio é barrado aqui, na hora; o servidor continua validando
     if (!nome.trim()) { setErroNome("Informe o nome do funil."); return }
     setErroNome(null)
     setErro(null)
@@ -456,7 +456,7 @@ export function FunisClient({ dados }: { dados: FunisParaGerenciar }) {
                 <Trash2 className="size-3.5" />
               </Button>
             </span>
-            {/* B46-13: o editor abre logo abaixo do funil, perto do botão */}
+            {/* B47-13: o editor abre logo abaixo do funil, perto do botão */}
             {editando?.id === f.id && (
               <div className="w-full pt-2">
                 <EditorDoFunil key={f.id} funil={f} onFechar={() => setEditandoId(null)} onSalvo={() => router.refresh()} />

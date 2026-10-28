@@ -1,4 +1,4 @@
-# B46-13: Acabamentos das telas
+# B47-13: Acabamentos das telas
 
 **Tipo:** Correção
 **Página:** Funis, Etiquetas, WhatsApp, Chat, Catálogo, Dashboard, Relatórios, Agenda, Automações
@@ -9,7 +9,7 @@
 
 ## Descrição
 
-Erro de funil vazio vindo só do servidor, nova etiqueta sem cor marcada, "workspace" no texto, e os ajustes visuais listados no CA-B46-34.
+Erro de funil vazio vindo só do servidor, nova etiqueta sem cor marcada, "workspace" no texto, e os ajustes visuais listados no CA-B47-34.
 
 ## Pronto quando
 
@@ -17,28 +17,28 @@ Os três acabamentos com teste passam, e o Luan aprova os visuais no preview.
 
 ## Critérios de aceite
 
-- **CA-B46-31** (automática) — Funil sem nome barrado no formulário. Dado o formulário "Novo funil" com o nome vazio, quando se clica em Criar, então "Informe o nome do funil." aparece na hora, junto do campo, sem ir ao servidor
-- **CA-B46-32** (automática) — Nova etiqueta com cor marcada. Dado o formulário "Nova etiqueta", quando ele abre, então a primeira cor já vem marcada, e Salvar sem nome diz "Dê um nome à etiqueta"
-- **CA-B46-33** (automática) — Sem "workspace" no texto. Dado os textos das telas, quando se procura "workspace" em texto visível, então não há nenhum; aparece "empresa"
-- **CA-B46-34** (manual) — Acabamentos visuais aprovados. Dado a empresa de teste no preview, quando o Luan confere: "Editar funil" sem quebra e aberto perto do botão; mensagens rápidas com o nome inteiro; campos do produto no mesmo fundo; a barra de Aparência sem cobrir texto; Dashboard sem barras zeradas; Carteiras em tabela; lista de contatos do follow-up recolhida; editor de automação novo com a dica do "+"; seção "Agenda" visível no seletor; cartões de etapa sem "0 cards" quebrado, então ele aprova cada um, ou o que não aprovar volta para a issue
+- **CA-B47-31** (automática) — Funil sem nome barrado no formulário. Dado o formulário "Novo funil" com o nome vazio, quando se clica em Criar, então "Informe o nome do funil." aparece na hora, junto do campo, sem ir ao servidor
+- **CA-B47-32** (automática) — Nova etiqueta com cor marcada. Dado o formulário "Nova etiqueta", quando ele abre, então a primeira cor já vem marcada, e Salvar sem nome diz "Dê um nome à etiqueta"
+- **CA-B47-33** (automática) — Sem "workspace" no texto. Dado os textos das telas, quando se procura "workspace" em texto visível, então não há nenhum; aparece "empresa"
+- **CA-B47-34** (manual) — Acabamentos visuais aprovados. Dado a empresa de teste no preview, quando o Luan confere: "Editar funil" sem quebra e aberto perto do botão; mensagens rápidas com o nome inteiro; campos do produto no mesmo fundo; a barra de Aparência sem cobrir texto; Dashboard sem barras zeradas; Carteiras em tabela; lista de contatos do follow-up recolhida; editor de automação novo com a dica do "+"; seção "Agenda" visível no seletor; cartões de etapa sem "0 cards" quebrado, então ele aprova cada um, ou o que não aprovar volta para a issue
 
 ## Suposições
 
 | ID | Suposição | Status | Resolução |
 |---|---|---|---|
-| SUP-B46-05 | Dashboard com o funil todo zerado mostra "Nenhum card neste funil ainda" e o link do Pipeline, em vez das barras vazias; com algum card, as barras continuam | confirmada | Luan, 28/10/2026 |
-| SUP-B46-06 | A "Visão geral" das Carteiras vira tabela: Total, Com carteira e Sem carteira nas linhas; Sem compra, Base, Ativos e Inativos nas colunas | confirmada | Luan, 28/10/2026 |
-| SUP-B46-07 | O Novo follow-up abre só com a busca; a lista de contatos aparece quando se digita | confirmada | Luan, 28/10/2026 |
-| SUP-B46-08 | O "Editar funil" abre logo abaixo do funil clicado, na própria lista | confirmada | Luan, 28/10/2026 |
-| SUP-B46-09 | O seletor de blocos fica mais largo, com os grupos em duas colunas, para "Agenda" aparecer sem rolar | confirmada | Luan, 28/10/2026 |
-| SUP-B46-10 | Automação nova: enquanto só existe o gatilho, aparece "Clique no + embaixo do gatilho para escolher o próximo bloco" | confirmada | Luan, 28/10/2026 |
-| SUP-B46-11 | Mensagens rápidas no Chat: nome inteiro em cima, texto embaixo cortado em uma linha | confirmada | Luan, 28/10/2026 |
+| SUP-B47-05 | Dashboard com o funil todo zerado mostra "Nenhum card neste funil ainda" e o link do Pipeline, em vez das barras vazias; com algum card, as barras continuam | confirmada | Luan, 28/10/2026 |
+| SUP-B47-06 | A "Visão geral" das Carteiras vira tabela: Total, Com carteira e Sem carteira nas linhas; Sem compra, Base, Ativos e Inativos nas colunas | confirmada | Luan, 28/10/2026 |
+| SUP-B47-07 | O Novo follow-up abre só com a busca; a lista de contatos aparece quando se digita | confirmada | Luan, 28/10/2026 |
+| SUP-B47-08 | O "Editar funil" abre logo abaixo do funil clicado, na própria lista | confirmada | Luan, 28/10/2026 |
+| SUP-B47-09 | O seletor de blocos fica mais largo, com os grupos em duas colunas, para "Agenda" aparecer sem rolar | confirmada | Luan, 28/10/2026 |
+| SUP-B47-10 | Automação nova: enquanto só existe o gatilho, aparece "Clique no + embaixo do gatilho para escolher o próximo bloco" | confirmada | Luan, 28/10/2026 |
+| SUP-B47-11 | Mensagens rápidas no Chat: nome inteiro em cima, texto embaixo cortado em uma linha | confirmada | Luan, 28/10/2026 |
 
 ## Perguntas em aberto
 
 | ID | Pergunta | Status | Resposta |
 |---|---|---|---|
-| PER-B46-03 | O termo do canal direto (versionado: mudar o texto pede novo aceite), a Política de Privacidade e os Termos de Serviço também trocam "workspace" por "empresa"? | respondida | Não, os três ficam como estão; o teste do CA-B46-33 os ignora, com o motivo escrito. Luan, 28/10/2026 |
+| PER-B47-03 | O termo do canal direto (versionado: mudar o texto pede novo aceite), a Política de Privacidade e os Termos de Serviço também trocam "workspace" por "empresa"? | respondida | Não, os três ficam como estão; o teste do CA-B47-33 os ignora, com o motivo escrito. Luan, 28/10/2026 |
 
 ## Cenários
 
@@ -59,7 +59,7 @@ Os três acabamentos com teste passam, e o Luan aprova os visuais no preview.
 - Dashboard: funil próprio escolhido no seletor e zerado também mostra a frase, com o link para ele.
 - Follow-up: ao apagar o texto da busca, a lista recolhe de novo. No Editar, o contato já vem escolhido, como antes.
 - Seletor de blocos no celular: uma coluna, como antes, e a janela rola.
-- Textos do termo do canal direto, da Política de Privacidade e dos Termos de Serviço ficam como estão (PER-B46-03).
+- Textos do termo do canal direto, da Política de Privacidade e dos Termos de Serviço ficam como estão (PER-B47-03).
 
 ### Cenário de Erro
 - Funil: erro do servidor (nome repetido, falha) continua aparecendo no mesmo lugar de antes.
@@ -69,12 +69,12 @@ Os três acabamentos com teste passam, e o Luan aprova os visuais no preview.
 
 | Critério | Prova | Onde | O que confere |
 |---|---|---|---|
-| CA-B46-31 | automática | `src/test/acabamentos-das-telas.test.tsx` | Criar funil com o nome vazio mostra "Informe o nome do funil." e `criarFunil` não é chamado |
-| CA-B46-32 | automática | `src/test/acabamentos-das-telas.test.tsx` | Ao abrir "Nova etiqueta", a primeira cor está marcada (`aria-pressed`); Salvar sem nome diz "Dê um nome à etiqueta" e `criarEtiqueta` não é chamado |
-| CA-B46-33 | automática | `src/test/acabamentos-das-telas.test.tsx` | Nenhum texto entre aspas ou de JSX em `src/` (fora testes, tipos gerados e os três textos legais) contém "workspace" |
-| CA-B46-34 | manual | roteiro abaixo | Os dez acabamentos aprovados pelo Luan |
+| CA-B47-31 | automática | `src/test/acabamentos-das-telas.test.tsx` | Criar funil com o nome vazio mostra "Informe o nome do funil." e `criarFunil` não é chamado |
+| CA-B47-32 | automática | `src/test/acabamentos-das-telas.test.tsx` | Ao abrir "Nova etiqueta", a primeira cor está marcada (`aria-pressed`); Salvar sem nome diz "Dê um nome à etiqueta" e `criarEtiqueta` não é chamado |
+| CA-B47-33 | automática | `src/test/acabamentos-das-telas.test.tsx` | Nenhum texto entre aspas ou de JSX em `src/` (fora testes, tipos gerados e os três textos legais) contém "workspace" |
+| CA-B47-34 | manual | roteiro abaixo | Os dez acabamentos aprovados pelo Luan |
 
-### Roteiro manual — CA-B46-34
+### Roteiro manual — CA-B47-34
 No preview do branch, logado na "[TESTE] Automações B11", desktop a 1440 px:
 1. Configurações → Funis: crie um funil de teste e clique em Editar. O painel abre logo abaixo dele; "Avisar parado depois de — dias" e "0 cards" ficam numa linha só, cada etapa sem quebra.
 2. Chat: abra uma conversa e o seletor de mensagens rápidas. O nome de cada uma aparece inteiro.
@@ -113,8 +113,8 @@ No preview do branch, logado na "[TESTE] Automações B11", desktop a 1440 px:
 - **Modificar:** `src/test/relatorios-carteiras.test.tsx` — lê os números da tabela nova (CA-B35-02).
 - **Modificar:** `src/test/gateway-instancias.test.ts` — mensagem do limite com "empresa".
 - **Modificar:** `src/test/relatorios-ajustes-pos-teste.test.tsx` — conta só as linhas da tabela do histórico, agora que a visão geral também é tabela.
-- **Modificar:** `src/test/esc-fecha-e-salvar-confirma.test.tsx` — dá nome ao funil antes de criar (CA-B46-09), agora que o nome vazio é barrado.
-- **Criar:** `src/test/acabamentos-das-telas.test.tsx` — testes do CA-B46-31, do CA-B46-32 e do CA-B46-33.
+- **Modificar:** `src/test/esc-fecha-e-salvar-confirma.test.tsx` — dá nome ao funil antes de criar (CA-B47-09), agora que o nome vazio é barrado.
+- **Criar:** `src/test/acabamentos-das-telas.test.tsx` — testes do CA-B47-31, do CA-B47-32 e do CA-B47-33.
 
 ## Checklist
 
@@ -122,4 +122,4 @@ No preview do branch, logado na "[TESTE] Automações B11", desktop a 1440 px:
 - [x] Etiquetas: primeira cor marcada e "Dê um nome à etiqueta"
 - [x] "empresa" no lugar de "workspace" nos textos visíveis
 - [x] Chat, produto, Aparência, Dashboard, Carteiras, follow-up, editor e seletor de blocos
-- [x] Testes do CA-B46-31, 32 e 33 e os das telas tocadas passando, tsc e lint
+- [x] Testes do CA-B47-31, 32 e 33 e os das telas tocadas passando, tsc e lint

@@ -1,4 +1,4 @@
-# B46-10: Números com período à vista e nomes que não se confundem
+# B47-10: Números com período à vista e nomes que não se confundem
 
 **Tipo:** Correção
 **Página:** Dashboard e Relatórios (Visão Geral e Carteiras)
@@ -9,7 +9,7 @@
 
 ## Descrição
 
-"Leads" é 46 no Pipeline e 2 nas Carteiras, com definições diferentes. O faturamento do Dashboard (30 dias) e o dos Relatórios (mês) diferem sem que a tela mostre o período. Decidido na PER-B46-02: "Sem compra".
+"Leads" é 46 no Pipeline e 2 nas Carteiras, com definições diferentes. O faturamento do Dashboard (30 dias) e o dos Relatórios (mês) diferem sem que a tela mostre o período. Decidido na PER-B47-02: "Sem compra".
 
 ## Pronto quando
 
@@ -17,8 +17,8 @@ Cada cartão de faturamento mostra o período, e os contatos sem compra das Cart
 
 ## Critérios de aceite
 
-- **CA-B46-24** (automática) — Cartões de faturamento dizem o período. Dado o Dashboard em "30 dias" e os Relatórios em "mês", quando os cartões de faturamento são desenhados, então cada um mostra a data inicial e a final ("01/10 a 27/10")
-- **CA-B46-25** (automática) — "Leads" das Carteiras com outro nome. Dado a aba Carteiras dos Relatórios, quando os totais são desenhados, então o número de contatos sem compra não se chama "Leads", e sim "Sem compra"
+- **CA-B47-24** (automática) — Cartões de faturamento dizem o período. Dado o Dashboard em "30 dias" e os Relatórios em "mês", quando os cartões de faturamento são desenhados, então cada um mostra a data inicial e a final ("01/10 a 27/10")
+- **CA-B47-25** (automática) — "Leads" das Carteiras com outro nome. Dado a aba Carteiras dos Relatórios, quando os totais são desenhados, então o número de contatos sem compra não se chama "Leads", e sim "Sem compra"
 
 ## Suposições
 
@@ -28,7 +28,7 @@ Nenhuma.
 
 | ID | Pergunta | Status | Resposta |
 |---|---|---|---|
-| PER-B46-02 | Que nome dar aos contatos sem compra nas Carteiras, para não confundir com os "Leads" do Pipeline? Sugestão: "Sem compra" (B46-10) | respondida | "Sem compra". Luan, 27/10/2026 |
+| PER-B47-02 | Que nome dar aos contatos sem compra nas Carteiras, para não confundir com os "Leads" do Pipeline? Sugestão: "Sem compra" (B47-10) | respondida | "Sem compra". Luan, 27/10/2026 |
 
 ## Cenários
 
@@ -49,8 +49,8 @@ Nenhuma.
 
 | Critério | Prova | Onde | O que confere |
 |---|---|---|---|
-| CA-B46-24 | automática | `src/test/numeros-com-periodo.test.tsx` | `calcularMetricas` devolve o período, o Dashboard mostra "Faturado de 27/09 a 27/10", e os cartões de faturamento dos Relatórios mostram "01/10 a 27/10" |
-| CA-B46-25 | automática | `src/test/numeros-com-periodo.test.tsx` | O painel das Carteiras mostra "Sem compra" e nenhum "Leads" |
+| CA-B47-24 | automática | `src/test/numeros-com-periodo.test.tsx` | `calcularMetricas` devolve o período, o Dashboard mostra "Faturado de 27/09 a 27/10", e os cartões de faturamento dos Relatórios mostram "01/10 a 27/10" |
+| CA-B47-25 | automática | `src/test/numeros-com-periodo.test.tsx` | O painel das Carteiras mostra "Sem compra" e nenhum "Leads" |
 
 ## Arquivos
 
@@ -61,10 +61,10 @@ Nenhuma.
 - **Modificar:** `src/app/(auth)/relatorios/components/relatorios-client.tsx` — passa o período aos cartões.
 - **Modificar:** `src/app/(auth)/relatorios/components/carteiras-client.tsx` — "Sem compra".
 - **Modificar:** `src/test/relatorios-carteiras.test.tsx` — o resumo dos sem vendedor com "sem compra".
-- **Criar:** `src/test/numeros-com-periodo.test.tsx` — testes do CA-B46-24 e do CA-B46-25.
+- **Criar:** `src/test/numeros-com-periodo.test.tsx` — testes do CA-B47-24 e do CA-B47-25.
 
 ## Checklist
 
 - [x] Período no Dashboard e nos Relatórios
 - [x] "Sem compra" nas Carteiras
-- [x] Testes do CA-B46-24 e do CA-B46-25 e os do Dashboard e dos Relatórios passando (as falhas de tema já existem na master), tsc e lint
+- [x] Testes do CA-B47-24 e do CA-B47-25 e os do Dashboard e dos Relatórios passando (as falhas de tema já existem na master), tsc e lint
