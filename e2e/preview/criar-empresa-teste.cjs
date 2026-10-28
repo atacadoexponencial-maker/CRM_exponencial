@@ -1,20 +1,19 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-// Cria a empresa "[TESTE] Automações B11" no Supabase (que é o de produção), pelo
+// Cria a empresa "[TESTE] Automações B11" no banco de teste (B46-03), pelo
 // mesmo caminho do cadastro do site: usuário no Auth + `cadastrar_empresa`. Depois
 // acrescenta o que os roteiros usam: 3 contatos com card no Funil de Entrada
 // (telefones falsos), conversas da Ana e do Bruno sem número conectado, a
 // etiqueta "Interessado" na conversa do Bruno e o admin no time Entrada.
-// Grava e-mail, senha e id no .env.local, sem mostrar a senha.
+// Grava e-mail, senha e id no .env.teste.local, sem mostrar a senha.
 // Uso: node e2e/preview/criar-empresa-teste.cjs
 
 const crypto = require("crypto")
 const fs = require("fs")
-const path = require("path")
-const { PROJETO, lerEnv, bancoDeServico } = require("./comum.cjs")
+const { arquivoDoBancoDeTeste, lerEnv, bancoDeServico } = require("./comum.cjs")
 
 ;(async () => {
   const env = lerEnv()
-  if (env.B11_TESTE_WORKSPACE_ID) throw new Error("o .env.local já aponta para uma empresa de teste; use o resetar")
+  if (env.B11_TESTE_WORKSPACE_ID) throw new Error("o .env.teste.local já aponta para uma empresa de teste; use o resetar")
   const db = bancoDeServico(env)
   const feito = async (consulta) => {
     const { data, error } = await consulta
@@ -22,7 +21,8 @@ const { PROJETO, lerEnv, bancoDeServico } = require("./comum.cjs")
     return data
   }
 
-  const email = "teste-automacoes-b11@example.com"
+  // Único por criação: a cópia temporária do teste (CA-B46-12) cria outra ao lado da de uso
+  const email = `teste-automacoes-b11-${Date.now()}@example.com`
   const senha = crypto.randomBytes(18).toString("base64url")
   const { data: usuario, error: erroUsuario } = await db.auth.admin.createUser({ email, password: senha, email_confirm: true })
   if (erroUsuario) throw new Error("usuário: " + erroUsuario.message)
@@ -79,9 +79,10 @@ const { PROJETO, lerEnv, bancoDeServico } = require("./comum.cjs")
   const conversaBruno = conversas.find((c) => c.contact_id === porNome.Bruno).id
   await feito(db.from("conversation_labels").insert({ conversation_id: conversaBruno, label_id: etiqueta.id }))
 
-fs.appendFileSync(
-    path.join(PROJETO, ".env.local"),
+  fs.appendFileSync(
+    arquivoDoBancoDeTeste(),
     [
+      "",
       "# Empresa de teste da B11 (e2e/preview). Não versionar.",
       `B11_TESTE_EMAIL=${email}`,
       `B11_TESTE_SENHA=${senha}`,

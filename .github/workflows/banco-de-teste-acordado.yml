@@ -1,0 +1,27 @@
+# B46-04 — o plano grátis do Supabase pausa o banco de teste depois de 7 dias sem
+# uso. Esta rotina entra nele uma vez por dia. Não usa as rotinas da Vercel.
+name: Banco de teste acordado
+
+on:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acordar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node supabase/banco-de-teste/manter-acordado.mjs
+        env:
+          BANCO_TESTE_URL: ${{ secrets.BANCO_TESTE_URL }}
+          BANCO_TESTE_ANON_KEY: ${{ secrets.BANCO_TESTE_ANON_KEY }}
+          BANCO_TESTE_ROTINA_EMAIL: ${{ secrets.BANCO_TESTE_ROTINA_EMAIL }}
+          BANCO_TESTE_ROTINA_SENHA: ${{ secrets.BANCO_TESTE_ROTINA_SENHA }}

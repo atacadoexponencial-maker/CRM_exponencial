@@ -72,3 +72,9 @@ Nenhuma.
 
 - [x] Migration das três funções
 - [x] Testes do CA-B44-39 a 41
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B44-42 | Marcelle | 28/10/2026 |
