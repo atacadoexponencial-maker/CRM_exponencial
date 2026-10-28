@@ -1,7 +1,7 @@
 # Spec: Todo contato nasce com card e tem um dono só
 
 > série: B45
-> estado: aprovada em 27/10/2026
+> estado: aprovada em 27/10/2026; no ar e arquivada em 28/10/2026
 
 ## Visão Geral
 

@@ -83,3 +83,9 @@ Na empresa de teste, o Atendente Teste abre a Visão Geral e o Dashboard e vê a
 - [x] Dashboard: `carregarDados` pela carteira
 - [x] Escrever `src/test/vendas-pela-carteira.integration.test.ts`
 - [x] Rodar os testes de Dashboard, performance e Relatórios (L-05) e o `tsc` (L-07)
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B45-19 | Marcelle | 28/10/2026 |
