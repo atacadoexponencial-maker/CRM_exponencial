@@ -205,7 +205,7 @@ export async function registrarEnviadaPeloCelular({
     connectionId,
   })
 
-  const respondendo = await acharMensagemPorWamid(supabase, evento.reply_to?.message_id)
+  const respondendo = await acharMensagemPorWamid(supabase, workspaceId, evento.reply_to?.message_id)
 
   const { data: inserida } = await supabase
     .from("messages")

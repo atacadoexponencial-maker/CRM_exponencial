@@ -270,7 +270,7 @@ export async function registrarMensagemRecebida({
     })
   }
 
-  const respondendo = await acharMensagemPorWamid(supabase, evento.reply_to?.message_id)
+  const respondendo = await acharMensagemPorWamid(supabase, workspaceId, evento.reply_to?.message_id)
 
   const { data: inserida } = await supabase
     .from("messages")
@@ -493,14 +493,25 @@ async function abrirOuReusarConversa({
   return { conversationId: nova.id, conversaCriada: true }
 }
 
-/** Mensagem local citada pela recebida. Null quando o CRM não a tem. */
+/**
+ * Mensagem local citada pela recebida. Null quando o CRM não a tem. B47-03: só da
+ * empresa do número por onde o evento chegou. A de outra empresa, além de não ser
+ * dela, fazia o banco recusar a gravação (`garantir_mesma_empresa`), e a mensagem do
+ * cliente se perdia.
+ */
 export async function acharMensagemPorWamid(
   supabase: ServiceClient,
+  workspaceId: string,
   wamid: string | undefined
 ): Promise<string | null> {
   if (!wamid) return null
 
-  const { data } = await supabase.from("messages").select("id").eq("wamid", wamid).maybeSingle()
+  const { data } = await supabase
+    .from("messages")
+    .select("id")
+    .eq("wamid", wamid)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle()
   return data?.id ?? null
 }
 

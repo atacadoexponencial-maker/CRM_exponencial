@@ -30,7 +30,10 @@ quatro deram cinco correções:
 4. **Link da foto do contato.** O servidor assina, com a chave de serviço, o caminho que
    está gravado no contato, e o usuário consegue mudar esse caminho.
 5. **Resposta citada no canal direto.** A mensagem citada é procurada sem filtrar a
-   empresa.
+   empresa. Na B47-03 apareceu o efeito real: desde a B21, o banco recusa ligar mensagens
+   de empresas diferentes (`garantir_mesma_empresa`), então a mensagem do cliente que
+   citava o identificador de outra empresa **não era gravada**, sem aviso. Não vazava
+   nada, mas perdia a mensagem.
 
 Como nas outras rodadas, cada falha ganha um teste automático que reproduz o ataque. Quem
 usa o CRM não vê diferença, a não ser no relatório de uma campanha adulterada.
