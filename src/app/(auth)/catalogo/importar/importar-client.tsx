@@ -106,6 +106,10 @@ export function ImportarClient() {
           <p className="text-sm text-muted-foreground">
             Preencha no Excel ou no Google Planilhas. Só <strong className="text-foreground">Código, Nome e Preço</strong> são obrigatórios. Produto com variação ocupa uma linha por combinação, todas com o mesmo código.
           </p>
+          {/* B48-15: no cadastro o código é opcional; aqui ele é o que liga a linha ao produto */}
+          <p className="text-sm text-muted-foreground">
+            O código liga a linha ao produto: código que já existe atualiza esse produto; código novo cadastra outro. Por isso ele é obrigatório na planilha, mesmo sendo opcional no cadastro.
+          </p>
           <a href="/catalogo/importar/modelo" download data-slot="button" className={buttonVariants({ size: "sm", variant: "outline" })}>
             <Download className="size-4 mr-1.5" />
             Baixar modelo

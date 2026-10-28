@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { CORES_PRONTAS, LIMITE_DE_ETAPAS, NOME_MAXIMO, ehCorPropria } from "@/lib/funis"
 import { adicionarEtapa, apagarEtapa, apagarFunil, automacoesQueUsam, criarFunil, editarEtapa, moverEtapa, renomearFunil, type FunilParaGerenciar, type FunisParaGerenciar } from "./actions"
 import { avisar } from "@/lib/aviso-na-tela"
+import { Ajuda } from "@/components/shared/ajuda"
 
 // Amostra das cores prontas com as mesmas cores das colunas do quadro (B15-02).
 const AMOSTRA: Record<string, string> = {
@@ -440,6 +441,9 @@ export function FunisClient({ dados }: { dados: FunisParaGerenciar }) {
             <span className="flex items-center gap-2">
               <Link href={f.id === "entrada" ? "/pipeline" : "/pipeline/recompra"} className="font-medium hover:underline">{f.nome}</Link>
               <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">fixo</span>
+              <Ajuda termo="funil fixo">
+                As etapas de Entrada e Recompra são as do método de vendas e não mudam. Para outras etapas, crie um funil novo.
+              </Ajuda>
             </span>
             <span className="numero text-xs text-muted-foreground">{f.etapas} etapas</span>
           </li>

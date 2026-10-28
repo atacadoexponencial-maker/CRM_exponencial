@@ -117,7 +117,10 @@ export function TemplatesClient({ templates: initial }: { templates: Template[] 
                   <td className="px-4 py-3 text-muted-foreground">
                     {IDIOMAS.find(l => l.value === t.language)?.label ?? t.language}
                   </td>
-                  <td className="px-4 py-3">{statusBadge(t.status)}</td>
+                  <td className="px-4 py-3">
+                    {statusBadge(t.status)}
+                    {t.motivo && <p className="mt-1 text-xs text-muted-foreground">{t.motivo}</p>}
+                  </td>
                 </tr>
               ))}
             </tbody>

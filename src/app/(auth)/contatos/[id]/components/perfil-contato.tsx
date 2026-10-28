@@ -31,6 +31,7 @@ import { SeloPerfilRfv } from "@/components/shared/selo-perfil-rfv"
 import { CamposPersonalizadosContato } from "./campos-personalizados-contato"
 import type { CampoComValor } from "../../campos-personalizados"
 import { CLASSE_DA_PAGINA } from "@/lib/pagina"
+import { Ajuda } from "@/components/shared/ajuda"
 
 const CLASSIFICACAO_BADGE: Record<string, string> = {
   lead: "bg-info-fundo text-info border-info/30",
@@ -262,6 +263,8 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
             </span>
             {/* B43-01: perfil RFV da hora. */}
             <SeloPerfilRfv perfil={contato.perfilRfv} />
+            {/* B48-15: o que é o perfil RFV, para quem não usa os Relatórios */}
+            <Ajuda termo="Perfil RFV">{AJUDA_RFV}</Ajuda>
           </div>
         </div>
         </div>
@@ -417,7 +420,10 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="edit-icp">ICP</Label>
+                  <span className="flex items-center gap-1">
+                    <Label htmlFor="edit-icp">ICP</Label>
+                    <Ajuda termo="ICP">{AJUDA_ICP}</Ajuda>
+                  </span>
                   <select
                     id="edit-icp"
                     className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -445,7 +451,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
                 <Row label="Tipo" value={contato.tipo ? TIPO_LABEL[contato.tipo] : "—"} />
                 <Row label="Cidade" value={contato.cidade ?? "—"} />
                 <Row label="UF" value={contato.uf ?? "—"} />
-                <Row label="ICP" value={contato.icp ? ICP_LABEL[contato.icp] : "—"} />
+                <Row label="ICP" ajuda={<Ajuda termo="ICP">{AJUDA_ICP}</Ajuda>} value={contato.icp ? ICP_LABEL[contato.icp] : "—"} />
               </div>
             )}
           </section>
@@ -666,10 +672,14 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
   )
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+// B48-15: termos da ficha que a tela não explicava
+const AJUDA_ICP = "ICP é o perfil de cliente ideal: diz se o contato já revende este nicho ou se é a primeira vez dele no nicho."
+const AJUDA_RFV = "O perfil RFV classifica o contato pelas compras: há quanto tempo comprou (Recência), quantas vezes (Frequência) e quanto gastou (Valor). É o mesmo da aba RFV dos Relatórios."
+
+function Row({ label, value, ajuda }: { label: string; value: string; ajuda?: React.ReactNode }) {
   return (
     <div className="flex items-center px-4 py-3 gap-4">
-      <span className="w-28 shrink-0 text-muted-foreground">{label}</span>
+      <span className="flex w-28 shrink-0 items-center gap-1 text-muted-foreground">{label}{ajuda}</span>
       <span className="text-foreground">{value}</span>
     </div>
   )

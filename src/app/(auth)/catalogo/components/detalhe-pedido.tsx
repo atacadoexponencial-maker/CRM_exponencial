@@ -147,10 +147,11 @@ export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedi
                 </Button>
               ))}
             </div>
+            {/* B48-15: o que cada botão muda, antes do clique */}
             <p className="text-xs text-muted-foreground">
               {pedido.situacao === "fechado"
-                ? "O estoque deste pedido já foi baixado. Voltar para Em atendimento ou cancelar devolve as peças ao estoque."
-                : "Ao marcar como Fechado, o estoque das peças do pedido baixa."}
+                ? "O estoque deste pedido já foi baixado e a compra está no contato. Voltar para Em atendimento ou cancelar devolve as peças ao estoque e desfaz a compra."
+                : "Marcar como Fechado baixa o estoque das peças e registra a compra no contato. Cancelar pedido encerra o pedido: ele não muda mais de situação."}
             </p>
             {erro && <p className="text-xs text-erro" role="alert">{erro}</p>}
           </section>

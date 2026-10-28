@@ -9,6 +9,25 @@ export type Template = {
   status: string
   category: string
   language: string
+  /** B48-15: só no rejeitado; o motivo da Meta em português, ou o aviso de que ela não disse. */
+  motivo?: string
+}
+
+// B48-15: os valores de `rejected_reason` da Graph API (WhatsApp Message Template).
+// Valor que não está aqui aparece como veio, para não esconder o motivo.
+const MOTIVO_DA_REJEICAO: Record<string, string> = {
+  ABUSIVE_CONTENT: "Conteúdo considerado abusivo pela Meta",
+  INVALID_FORMAT: "Formato inválido: confira as variáveis e os exemplos",
+  PROMOTIONAL: "Conteúdo promocional fora da categoria Marketing",
+  TAG_CONTENT_MISMATCH: "A categoria não combina com o texto",
+  INCORRECT_CATEGORY: "Categoria errada para este texto",
+  SCAM: "Suspeita de golpe",
+}
+const SEM_MOTIVO = "A Meta não informou o motivo"
+
+function motivoDaRejeicao(codigo: unknown): string {
+  if (typeof codigo !== "string" || !codigo || codigo === "NONE") return SEM_MOTIVO
+  return MOTIVO_DA_REJEICAO[codigo] ?? codigo
 }
 
 async function obterConexao() {
@@ -32,13 +51,15 @@ export async function listarTemplates(): Promise<Template[]> {
   if (!conexao) return []
 
   const res = await fetch(
-    `https://graph.facebook.com/v21.0/${conexao.waba_id}/message_templates?fields=id,name,status,category,language&limit=50&access_token=${conexao.access_token}`
+    `https://graph.facebook.com/v21.0/${conexao.waba_id}/message_templates?fields=id,name,status,category,language,rejected_reason&limit=50&access_token=${conexao.access_token}`
   )
 
   if (!res.ok) return []
 
   const data = await res.json()
-  return (data.data ?? []) as Template[]
+  return ((data.data ?? []) as Array<Template & { rejected_reason?: unknown }>).map(({ rejected_reason, ...t }) =>
+    t.status === "REJECTED" ? { ...t, motivo: motivoDaRejeicao(rejected_reason) } : t
+  )
 }
 
 export async function criarTemplate(params: {

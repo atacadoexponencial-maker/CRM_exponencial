@@ -8,6 +8,7 @@ import { useEffect, useState } from "react"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Ajuda } from "@/components/shared/ajuda"
 import { adicionarTagContato, listarTagsContato, removerTagContato } from "../../contatos/actions"
 
 export function TagsDoContato({ contactId }: { contactId: string }) {
@@ -15,6 +16,7 @@ export function TagsDoContato({ contactId }: { contactId: string }) {
   const [nova, setNova] = useState("")
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [comEspaco, setComEspaco] = useState(false)
 
   useEffect(() => {
     let descartar = false
@@ -38,6 +40,7 @@ export function TagsDoContato({ contactId }: { contactId: string }) {
       return
     }
     setNova("")
+    setComEspaco(false)
     setTags(await listarTagsContato(contactId))
   }
 
@@ -53,7 +56,12 @@ export function TagsDoContato({ contactId }: { contactId: string }) {
 
   return (
     <div className="space-y-1.5">
-      <p className="text-xs font-medium text-muted-foreground">Tags</p>
+      <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+        Tags
+        <Ajuda termo="Tag">
+          A tag fica no contato e aparece em todos os cards e conversas dele; serve para filtrar os contatos. É diferente da etiqueta, que marca só a conversa no Chat.
+        </Ajuda>
+      </p>
       {tags === null ? (
         <p className="text-xs text-muted-foreground">Carregando…</p>
       ) : tags.length === 0 ? (
@@ -87,7 +95,10 @@ export function TagsDoContato({ contactId }: { contactId: string }) {
           disabled={salvando}
           className="h-7 text-xs"
           onChange={(e) => {
-            setNova(e.target.value)
+            // B48-15: tag não tem espaço; o espaço não entra, e a dica diz por quê
+            const digitado = e.target.value
+            setComEspaco(/\s/.test(digitado))
+            setNova(digitado.replace(/\s/g, ""))
             setErro(null)
           }}
           onKeyDown={(e) => {
@@ -101,6 +112,7 @@ export function TagsDoContato({ contactId }: { contactId: string }) {
           Adicionar
         </Button>
       </div>
+      {comEspaco && !erro && <p className="text-xs text-muted-foreground">Tags não têm espaço</p>}
       {erro && <p className="text-xs text-destructive">{erro}</p>}
     </div>
   )

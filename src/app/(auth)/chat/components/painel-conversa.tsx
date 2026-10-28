@@ -522,6 +522,10 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>Etiquetas</DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
+                    {/* B48-15: etiqueta e tag são coisas diferentes; a frase diz qual é qual */}
+                    <p className="max-w-56 px-2 py-1.5 text-xs text-muted-foreground">
+                      Etiquetas marcam esta conversa, para filtrar a caixa de entrada. As tags ficam no contato.
+                    </p>
                     {etiquetasDisponiveis.length === 0 ? (
                       <DropdownMenuItem disabled>Nenhuma etiqueta disponível</DropdownMenuItem>
                     ) : (
@@ -829,6 +833,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
                   // B7-02: o motivo vem do backend, junto do canal. A tela não
                   // decide o que o canal faz — e não há `if (canal === ...)` aqui.
                   title={semMidia ?? "Anexar arquivo"}
+                  aria-label="Anexar arquivo"
                   onClick={() => !semMidia && setAnexoAberto((v) => !v)}
                   disabled={!!semMidia || enviandoImagem || enviandoDocumento || enviandoVideo}
                   className={cn(
@@ -861,6 +866,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
               </div>
               <button
                 title="Mensagens rápidas"
+                aria-label="Mensagens rápidas"
                 onClick={() => { setSeletorMRAberto((v) => !v); setTermoBuscaMR("") }}
                 className={cn(
                   "h-7 w-7 flex items-center justify-center rounded-md transition-colors",
@@ -873,6 +879,8 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
               </button>
               <button
                 title={modoNota ? "Cancelar nota interna" : "Adicionar nota interna"}
+                aria-label="Nota interna"
+                aria-pressed={modoNota}
                 onClick={() => setModoNota((v) => !v)}
                 className={cn(
                   "h-7 w-7 flex items-center justify-center rounded-md transition-colors",
@@ -918,7 +926,9 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
                 </>
               )}
               <button
-                title={gravando ? "Clique para enviar" : "Clique para gravar"}
+                // B48-15: o ícone do microfone diz o que faz, na dica e para leitor de tela
+                title={gravando ? "Enviar áudio" : "Gravar áudio"}
+                aria-label={gravando ? "Enviar áudio" : "Gravar áudio"}
                 onClick={gravando ? handlePararGravacao : handleIniciarGravacao}
                 disabled={enviandoAudio}
                 className={cn(

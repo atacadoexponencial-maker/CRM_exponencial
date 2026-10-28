@@ -10,6 +10,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import { desconectarWhatsApp, reconectarWhatsApp, reinscreverWebhookWhatsApp, removerConexaoWhatsApp } from "./actions"
+import { Ajuda } from "@/components/shared/ajuda"
 
 export function AcoesWhatsApp({
   conexaoId,
@@ -97,14 +98,19 @@ export function AcoesWhatsApp({
         {corrigidoOk && (
           <p className="text-xs text-sucesso">Recebimento de mensagens corrigido com sucesso.</p>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={corrigindo || status !== "connected"}
-          onClick={handleCorrigirRecebimento}
-        >
-          {corrigindo ? "Corrigindo..." : "Corrigir recebimento de mensagens"}
-        </Button>
+        <span className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={corrigindo || status !== "connected"}
+            onClick={handleCorrigirRecebimento}
+          >
+            {corrigindo ? "Corrigindo..." : "Corrigir recebimento de mensagens"}
+          </Button>
+          <Ajuda termo="Corrigir recebimento de mensagens">
+            Use quando as mensagens dos clientes pararem de chegar no Chat: o CRM pede de novo à Meta para mandar as mensagens deste número. Não apaga nada.
+          </Ajuda>
+        </span>
       </div>
 
       <div className="flex gap-2 mt-3">
