@@ -19,9 +19,48 @@ function lerArquivoEnv(arquivo) {
   )
 }
 
-/** `.env` e, por cima, `.env.local` (onde ficam as credenciais da empresa de teste). */
-function lerEnv() {
-  return { ...lerArquivoEnv(path.join(PROJETO, ".env")), ...lerArquivoEnv(path.join(PROJETO, ".env.local")) }
+// B46-03 — o preview grava no banco de teste; a produção, no da produção.
+const URL_PRODUCAO = "https://crm-exponencial.vercel.app"
+const DO_BANCO_DE_TESTE = [
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "B11_TESTE_EMAIL",
+  "B11_TESTE_SENHA",
+  "B11_TESTE_WORKSPACE_ID",
+]
+
+function ehProducao(endereco) {
+  return (endereco ?? "").replace(/\/+$/, "") === URL_PRODUCAO
+}
+
+/** O arquivo do banco de teste; `ARQUIVO_ENV_TESTE` troca por outro (os testes usam uma cópia). */
+function arquivoDoBancoDeTeste() {
+  return path.resolve(PROJETO, process.env.ARQUIVO_ENV_TESTE || ".env.teste.local")
+}
+
+/**
+ * `.env` e, por cima, `.env.local`. Com o endereço da produção, é só isso. Com
+ * outro endereço, ou nenhum, o Supabase e a empresa de teste vêm do banco de
+ * teste (`.env.teste.local`), que é onde o preview grava.
+ */
+function lerEnv(endereco) {
+  const env = { ...lerArquivoEnv(path.join(PROJETO, ".env")), ...lerArquivoEnv(path.join(PROJETO, ".env.local")) }
+  if (ehProducao(endereco)) return env
+  const arquivo = arquivoDoBancoDeTeste()
+  if (!fs.existsSync(arquivo)) throw new Error(`falta o arquivo ${path.basename(arquivo)} na raiz do projeto`)
+  const teste = lerArquivoEnv(arquivo)
+  const { REF_PRODUCAO } = require("../../supabase/banco-de-teste/comum.mjs")
+  if (!teste.NEXT_PUBLIC_SUPABASE_URL || teste.NEXT_PUBLIC_SUPABASE_URL.includes(REF_PRODUCAO)) {
+    throw new Error(`o ${path.basename(arquivo)} não aponta para o banco de teste`)
+  }
+  for (const nome of DO_BANCO_DE_TESTE) env[nome] = teste[nome]
+  return env
+}
+
+/** Roteiros que mandam mensagem de verdade: só com o endereço da produção. */
+function exigirProducao(endereco) {
+  if (!ehProducao(endereco)) throw new Error("este roteiro envia mensagem de verdade: rode contra a produção")
 }
 
 /** Cliente com a chave de serviço: passa por cima da RLS. Só para preparar e conferir a empresa de teste. */
@@ -46,7 +85,7 @@ async function conferirEmpresaDeTeste(db, workspaceId) {
  * um cookie; as seguintes já entram com ele. Chromium: PLAYWRIGHT_CHROMIUM, se definido.
  */
 async function abrirPreview(urlPreview, login) {
-  const env = lerEnv()
+  const env = lerEnv(urlPreview)
   const { chromium } = require("playwright")
   const browser = await chromium.launch(
     process.env.PLAYWRIGHT_CHROMIUM ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM } : {}
@@ -260,7 +299,10 @@ async function apagarAtendente(db, ws, id) {
 
 module.exports = {
   PROJETO,
+  URL_PRODUCAO,
+  arquivoDoBancoDeTeste,
   lerEnv,
+  exigirProducao,
   bancoDeServico,
   conferirEmpresaDeTeste,
   abrirPreview,

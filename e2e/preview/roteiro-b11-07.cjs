@@ -29,6 +29,7 @@ const {
   criarRelatorio,
   enviarEventoDoGateway,
   esperarAutomacoes,
+  exigirProducao,
   lerEnv,
   prepararNumeroReal,
 } = require("./comum.cjs")
@@ -66,7 +67,8 @@ function pdfDeTeste() {
 
 ;(async () => {
   if (!URL_PREVIEW) throw new Error("passe o endereço do preview (veja endereco-preview.cjs)")
-  const env = lerEnv()
+  exigirProducao(URL_PREVIEW)
+  const env = lerEnv(URL_PREVIEW)
   const db = bancoDeServico(env)
   const ws = env.B11_TESTE_WORKSPACE_ID
   await conferirEmpresaDeTeste(db, ws)

@@ -85,7 +85,8 @@ async function moverCard(page, url, nomeContato, etapa) {
     ),
     page.getByRole("button", { name: etapa, exact: true }).last().click(),
   ])
-  await esperarAutomacoes(bancoDeServico(), lerEnv().B11_TESTE_WORKSPACE_ID)
+  const env = lerEnv(url)
+  await esperarAutomacoes(bancoDeServico(env), env.B11_TESTE_WORKSPACE_ID)
 }
 
 module.exports = { escolher, adicionarBloco, novaRegra, salvarRegra, moverCard }
