@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
+import { anexoDaEmpresa } from "@/lib/anexo-da-campanha"
 import { processarCampanhasPendentes } from "@/lib/campanhas"
 import { nomeDoCanal } from "@/lib/whatsapp"
 import { MOTIVO_CAMPANHA_INTERROMPIDA } from "@/lib/whatsapp/motivo-da-falha"
@@ -353,22 +354,6 @@ const EXTENSAO_DO_ANEXO: Record<string, string> = {
 const AVISO_TIPO_DO_ANEXO =
   "Tipo de arquivo não aceito. Envie imagem JPG, PNG ou WebP, ou documento PDF, Word, Excel, PowerPoint ou TXT."
 const AVISO_ANEXO_DE_FORA = "Anexe o arquivo pela própria campanha"
-
-/**
- * B44-06: o arquivo da campanha é sempre um enviado pela própria empresa, pela tela
- * da campanha. O endereço vai para o canal buscar; um endereço qualquer faria o
- * gateway buscar o que o navegador quisesse.
- */
-function anexoDaEmpresa(arquivoUrl: string, workspaceId: string): boolean {
-  const pasta = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/chat-attachments/${workspaceId}/campanhas/`
-  let endereco: URL
-  try {
-    endereco = new URL(arquivoUrl)
-  } catch {
-    return false
-  }
-  return endereco.href === arquivoUrl && arquivoUrl.startsWith(pasta) && /^[A-Za-z0-9._-]+$/.test(arquivoUrl.slice(pasta.length))
-}
 
 function validarDados(dados: DadosCampanha, paraEnvio: boolean, workspaceId: string): string | null {
   if (!dados.nome.trim()) return "Informe o nome da campanha"

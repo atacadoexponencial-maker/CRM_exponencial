@@ -97,7 +97,7 @@ describe("B44-05 — Campanha sai uma vez só e não trava a fila", () => {
     for (let i = 0; i < 40; i++) {
       const telefone = `55119900${String(i).padStart(5, "0")}`
       tabelas.campaign_recipients.push(destinatario(`r${i}`, "camp_a", "ws_a", telefone, `contato-${i}`))
-      tabelas.contacts.push({ id: `contato-${i}`, excluido_em: null, atendente: null })
+      tabelas.contacts.push({ id: `contato-${i}`, workspace_id: "ws_a", phone_number: telefone, excluido_em: null, atendente: null })
     }
 
     await Promise.all([processarCampanhasPendentes(), processarCampanhasPendentes()])
@@ -123,7 +123,7 @@ describe("B44-05 — Campanha sai uma vez só e não trava a fila", () => {
     }
     tabelas.campaigns.push(campanha("camp_b", "ws_b", { created_at: "2026-10-27T09:00:00Z" }))
     tabelas.campaign_recipients.push(destinatario("rb", "camp_b", "ws_b", "5511990000099", "cb"))
-    tabelas.contacts.push({ id: "cb", excluido_em: null, atendente: null })
+    tabelas.contacts.push({ id: "cb", workspace_id: "ws_b", phone_number: "5511990000099", excluido_em: null, atendente: null })
 
     await processarCampanhasPendentes()
 
@@ -135,7 +135,7 @@ describe("B44-05 — Campanha sai uma vez só e não trava a fila", () => {
     tabelas.campaigns.push(campanha("camp_a", "ws_a"))
     tabelas.campaign_recipients.push(destinatario("r_apagado", "camp_a", "ws_a", "5511990000001", null))
     tabelas.campaign_recipients.push(destinatario("r_ativo", "camp_a", "ws_a", "5511990000002", "c2"))
-    tabelas.contacts.push({ id: "c2", excluido_em: null, atendente: null })
+    tabelas.contacts.push({ id: "c2", workspace_id: "ws_a", phone_number: "5511990000002", excluido_em: null, atendente: null })
 
     await processarCampanhasPendentes()
 

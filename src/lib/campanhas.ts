@@ -5,6 +5,7 @@
 // e o processamento oportunista continuam de onde parou.
 
 import { createServiceClient } from "@/integrations/supabase/service"
+import { anexoDaEmpresa } from "@/lib/anexo-da-campanha"
 import { chaveDaVariavel, preencherVariaveis, variaveisSemReserva } from "@/lib/variaveis-mensagem"
 import { formatarValor } from "@/lib/campos-personalizados"
 import { camposDaEmpresa, valoresDosContatos } from "@/lib/campos-personalizados-servidor"
@@ -36,6 +37,9 @@ const RESERVA_VENCE_EM_MS = 10 * 60 * 1000
 export const MOTIVO_CONTATO_APAGADO = "Contato apagado"
 export const MOTIVO_TEXTO_SEM_RESERVA =
   "A mensagem tem variável sem texto reserva. Ajuste o texto e retome a campanha."
+/** B47-01: motivos de quem o envio barra ao conferir de novo o que está gravado. */
+export const MOTIVO_ANEXO_DE_FORA = "O anexo da campanha não é um arquivo da empresa"
+export const MOTIVO_FORA_DA_EMPRESA = "Não é contato da empresa"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -245,12 +249,16 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
   const vendedorPorContato: Record<string, string> = {}
   // B13-03: contato que foi para a lixeira depois da confirmação não recebe.
   const naLixeira = new Set<string>()
+  // B47-01: só contato da empresa da campanha, e a mensagem vai para o telefone atual dele
+  const telefoneAtual = new Map<string, string>()
   if (contactIds.length > 0) {
     const { data: contatos } = await supabase
       .from("contacts")
-      .select("id, excluido_em, atendente:profiles!contacts_atendente_id_fkey(name)")
+      .select("id, phone_number, excluido_em, atendente:profiles!contacts_atendente_id_fkey(name)")
       .in("id", contactIds)
-    for (const c of (contatos ?? []) as unknown as Array<{ id: string; excluido_em: string | null; atendente: { name: string } | null }>) {
+      .eq("workspace_id", campanha.workspace_id)
+    for (const c of (contatos ?? []) as unknown as Array<{ id: string; phone_number: string; excluido_em: string | null; atendente: { name: string } | null }>) {
+      telefoneAtual.set(c.id, c.phone_number)
       if (c.atendente?.name) vendedorPorContato[c.id] = c.atendente.name
       if (c.excluido_em) naLixeira.add(c.id)
     }
@@ -285,6 +293,15 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
 
     if (!(await reservarDestinatario(supabase, destinatario.id))) continue
 
+    const telefone = telefoneAtual.get(destinatario.contact_id)
+    if (!telefone) {
+      await supabase
+        .from("campaign_recipients")
+        .update({ status: "excluido", motivo: MOTIVO_FORA_DA_EMPRESA, atualizado_em: new Date().toISOString() })
+        .eq("id", destinatario.id)
+      continue
+    }
+
     if (naLixeira.has(destinatario.contact_id)) {
       await supabase
         .from("campaign_recipients")
@@ -297,10 +314,12 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
       ? (vendedorPorContato[destinatario.contact_id] ?? "")
       : ""
     const campos = destinatario.contact_id ? (camposPorContato.get(destinatario.contact_id) ?? {}) : {}
-    const resultado = await enviarParaDestinatario(provider, campanha, destinatario, nomeVendedor, campos)
+    const resultado = await enviarParaDestinatario(provider, campanha, { ...destinatario, telefone_snapshot: telefone }, nomeVendedor, campos)
     await supabase
       .from("campaign_recipients")
       .update({
+        // B47-01: o relatório mostra para onde foi, mesmo que o guardado fosse outro
+        telefone_snapshot: telefone,
         // B8-02: pelo canal direto a resposta significa *aceita*, não
         // *enviada* — toda mensagem é enfileirada e respeita ritmo, tetos e
         // janela. Quem confirma o envio é o evento `message.status` com `sent`.
@@ -366,7 +385,17 @@ export async function processarCampanhasPendentes(): Promise<number> {
       .in("id", travadas)
       .eq("status", "enviando")
   }
-  const daVez = fila.filter((c) => campanhaPodeEnviar(c.conteudo)).slice(0, CAMPANHAS_POR_RODADA)
+  // B47-01: anexo que não é da empresa só chega aqui gravado direto no banco
+  const anexoDeFora = (c: CampaignRow) => Boolean(c.arquivo_url) && !anexoDaEmpresa(c.arquivo_url!, c.workspace_id)
+  const adulteradas = fila.filter(anexoDeFora).map((c) => c.id)
+  if (adulteradas.length > 0) {
+    await supabase
+      .from("campaigns")
+      .update({ status: "interrompida", interrompida_motivo: MOTIVO_ANEXO_DE_FORA, interrompida_em: agora })
+      .in("id", adulteradas)
+      .eq("status", "enviando")
+  }
+  const daVez = fila.filter((c) => campanhaPodeEnviar(c.conteudo) && !anexoDeFora(c)).slice(0, CAMPANHAS_POR_RODADA)
 
   let total = 0
   for (const campanha of daVez) {
