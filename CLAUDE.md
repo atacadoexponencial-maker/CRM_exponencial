@@ -31,14 +31,39 @@ O app está deployado no Vercel. **Todas as variáveis de ambiente já estão co
 - `WHATSAPP_VERIFY_TOKEN` — validação do webhook Meta
 - `META_TEST_ACCESS_TOKEN` — token temporário do número de teste Meta (expira em 24h)
 
+### Bancos de dados
+
+São dois projetos Supabase separados (B46, desde 28/10/2026):
+
+| Banco | Projeto | Quem usa |
+|---|---|---|
+| **Produção** | `lvlypfvqnfgahihxdosn` (us-west-2) | o site no ar, os clientes, os testes com chip e os roteiros que mandam mensagem de verdade (B11-05 e B11-07) |
+| **Teste** | `cxqdiqhcvdecujlxthmd` (us-east-1, plano grátis, organização "crm-exponencial-teste") | o preview da Vercel de qualquer branch, os testes do Vitest e os roteiros de tela de `e2e/preview/` |
+
+- **Arquivos de ambiente:** o `.env.local` aponta para a produção (o `npm run dev`
+  local também). O `.env.teste.local` guarda o banco de teste. Os dois ficam fora
+  do git; quem não tiver o `.env.teste.local` deve pedir à Marcelle ou ao Luan.
+- **Vitest:** põe o Supabase do `.env.teste.local` por cima do `.env.local` e se
+  recusa a rodar contra a produção ("os testes de integração só rodam no banco
+  de teste"). Sem o `.env.teste.local`, nenhum teste roda.
+- **Migration nova:** primeiro `npm run db:teste:push` (aplica no banco de
+  teste) e os testes da série; só depois `npx supabase db push --linked`
+  (produção).
+- **Banco de teste acordado:** o plano grátis pausa o projeto depois de 7 dias
+  sem uso. O GitHub Actions ("Banco de teste acordado") entra nele uma vez por
+  dia. Se ele aparecer pausado, reative no painel do Supabase.
+
 ### Empresa de teste
 
-Existe uma empresa só para testes: **"[TESTE] Automações B11"**. Ela fica no
-banco de produção, porque o Supabase é um só. Use-a para testar no preview ou na
-produção sem mexer em empresa de cliente. Ela fica de vez: não apague.
+Existe uma empresa só para testes: **"[TESTE] Automações B11"**. Ela existe nos
+dois bancos: no de teste, para o preview e os roteiros de tela, recriável pelo
+`criar-empresa-teste.cjs` e pelo `resetar-empresa-teste.cjs`; na produção, só
+para os testes com chip e os roteiros de envio. A da produção fica de vez: não
+apague.
 
 - **Login:** `B11_TESTE_EMAIL`, `B11_TESTE_SENHA` e `B11_TESTE_WORKSPACE_ID`, no
-  `.env.local`, que fica fora do git. Quem não tiver deve pedir ao Luan.
+  `.env.teste.local` (banco de teste) e no `.env.local` (produção), fora do git.
+  Quem não tiver deve pedir à Marcelle ou ao Luan.
 - **Dados:** contatos com telefone falso, nenhum número de WhatsApp conectado.
 - **Roteiros:** os testes automáticos pela tela ficam em `e2e/preview/` e só
   gravam em empresa cujo nome começa com `[TESTE]`. `resetar-empresa-teste.cjs`
@@ -117,7 +142,7 @@ Rotas existentes:
 - **Database**: PostgreSQL com RLS (Row Level Security) para isolamento por workspace.
 - **Auth**: Supabase Auth via SSR cookies — o middleware gerencia o redirecionamento.
 - **Types**: `src/integrations/supabase/types.ts` é auto-gerado (`supabase gen types typescript --linked`) — não editar.
-- **Migrations**: adicionar novos `.sql` em `supabase/migrations/`.
+- **Migrations**: adicionar novos `.sql` em `supabase/migrations/`. Aplique primeiro no banco de teste (`npm run db:teste:push`) e só depois na produção (`npx supabase db push --linked`); veja "Bancos de dados".
 - **Server Actions**: lógica backend fica em arquivos `actions.ts` co-localizados com a rota. Ex: `src/app/cadastro/actions.ts`.
 
 ### Key Directories
