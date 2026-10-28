@@ -21,6 +21,7 @@ import {
   type OpcaoParaGerenciar,
   type ResumoParaApagar,
 } from "./actions"
+import { avisar } from "@/lib/aviso-na-tela"
 
 // B38-01: tela de campos personalizados. Admin e Gerente criam o campo com nome e tipo,
 // e editam o nome e as opções das listas. O tipo aparece só para leitura depois de criado.
@@ -46,6 +47,8 @@ async function executar(acao: () => Promise<{ erro?: string }>, setErro: (e: str
   }
 }
 
+const EXEMPLOS_DE_OPCAO = ["Varejo", "Atacado"]
+
 function NovoCampo({ onFechar, onCriado }: { onFechar: () => void; onCriado: () => void }) {
   const [nome, setNome] = useState("")
   const [tipo, setTipo] = useState("")
@@ -56,7 +59,9 @@ function NovoCampo({ onFechar, onCriado }: { onFechar: () => void; onCriado: () 
 
   async function salvar() {
     const ok = await executar(() => criarCampo(nome, tipo, comOpcoes ? opcoes.filter((o) => o.trim()) : []), setErro, setSalvando)
-    if (ok) onCriado()
+    if (!ok) return
+    avisar("Campo salvo")
+    onCriado()
   }
 
   return (
@@ -92,7 +97,8 @@ function NovoCampo({ onFechar, onCriado }: { onFechar: () => void; onCriado: () 
                 value={opcao}
                 maxLength={NOME_MAXIMO}
                 onChange={(e) => setOpcoes((lista) => lista.map((o, j) => (j === i ? e.target.value : o)))}
-                placeholder={`Opção ${i + 1}`}
+                // B48-18: "Opção 1" parecia já preenchido; o exemplo diz que é exemplo
+                placeholder={`Ex.: ${EXEMPLOS_DE_OPCAO[i] ?? "outra opção"}`}
                 className="sm:max-w-72"
               />
               {opcoes.length > 1 && (

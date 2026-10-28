@@ -7,6 +7,8 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { MessageSquare, ArrowLeft, Pencil, X, Trash2, Download } from "lucide-react"
+import { MenuMaisAcoes } from "@/components/shared/menu-mais-acoes"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { AvatarContato } from "@/components/shared/avatar-contato"
 import { Button } from "@/components/ui/button"
@@ -28,8 +30,12 @@ import { atualizarDadosContato, adicionarTagContato, removerTagContato, atualiza
 import { ROTULO_FORMA_PAGAMENTO, ROTULO_ORIGEM_COMPRA } from "@/lib/compras"
 import { UFS } from "@/lib/uf"
 import { SeloPerfilRfv } from "@/components/shared/selo-perfil-rfv"
-import { CamposPersonalizadosContato } from "./campos-personalizados-contato"
-import type { CampoComValor } from "../../campos-personalizados"
+import { CamposPersonalizadosContato, conferirCampos, rascunhoDosCampos } from "./campos-personalizados-contato"
+import { salvarCamposDoContato, type CampoComValor } from "../../campos-personalizados"
+import type { EntradaDoCampo } from "@/lib/campos-personalizados"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
+import { DICA_TAG_SEM_ESPACO, useCampoDeTag } from "@/hooks/use-campo-de-tag"
+import { Ajuda } from "@/components/shared/ajuda"
 
 const CLASSIFICACAO_BADGE: Record<string, string> = {
   lead: "bg-info-fundo text-info border-info/30",
@@ -74,7 +80,15 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
   const [aba, setAba] = useState<Aba>("dados")
   const [editando, setEditando] = useState(false)
   const [erroEdicao, setErroEdicao] = useState<string | null>(null)
-  const [novaTag, setNovaTag] = useState("")
+  // B48-19: os campos personalizados entram no mesmo Editar e no mesmo Salvar dos dados
+  const [rascunhoCampos, setRascunhoCampos] = useState<Record<string, EntradaDoCampo>>({})
+  const [errosCampos, setErrosCampos] = useState<Record<string, string>>({})
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false)
+  // O Atendente não muda os dados fixos, mas preenche os campos personalizados
+  const podeEditarDados = papel !== "atendente"
+  const temCampos = !!contactId && camposPersonalizados.length > 0
+  const campoDaTag = useCampoDeTag()
+  const novaTag = campoDaTag.valor
   const [erroTag, setErroTag] = useState<string | null>(null)
   const [resumoExclusao, setResumoExclusao] = useState<ResumoExclusao | null>(null)
   const [preparandoExclusao, setPreparandoExclusao] = useState(false)
@@ -102,7 +116,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
       ? "Será apagado de vez hoje."
       : `Será apagado de vez em ${naLixeira.diasRestantes} ${naLixeira.diasRestantes === 1 ? "dia" : "dias"}.`
     return (
-      <div className="max-w-3xl mx-auto w-full px-4 py-16">
+      <div className={cn(CLASSE_DA_PAGINA, "py-16 *:max-w-3xl")}>
         <div className="rounded-lg border border-border bg-card px-4 py-4">
           <p className="mb-1 font-semibold">Este contato está na lixeira</p>
           <p className="mb-3 text-sm text-muted-foreground">
@@ -143,7 +157,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
 
   if (!contato) {
     return (
-      <div className="max-w-3xl mx-auto w-full px-4 py-16 text-center text-muted-foreground">
+      <div className={cn(CLASSE_DA_PAGINA, "py-16 text-center text-muted-foreground *:max-w-3xl")}>
         Contato não encontrado.
       </div>
     )
@@ -160,6 +174,8 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
       uf: contato!.uf ?? "",
       icp: (contato!.icp ?? "") as EditFormData["icp"],
     })
+    setRascunhoCampos(rascunhoDosCampos(camposPersonalizados))
+    setErrosCampos({})
     setErroEdicao(null)
     setEditando(true)
   }
@@ -212,29 +228,56 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
       setErroTag(resultado.erro)
       return
     }
-    setNovaTag("")
+    campoDaTag.limpar()
     router.refresh()
   }
 
-  async function onSubmitEdicao(data: EditFormData) {
+  /** Grava os dados (quem pode) e os campos personalizados num Salvar só. */
+  async function salvarEdicao(data: EditFormData | null) {
     setErroEdicao(null)
-    const resultado = await atualizarDadosContato(contato!.id, {
-      nome: data.nome,
-      tipo: data.tipo || null,
-      cidade: data.cidade || null,
-      uf: data.uf || null,
-      icp: data.icp || null,
-    })
-    if (resultado.erro) {
-      setErroEdicao(resultado.erro)
-      return
+    const daTela = temCampos ? conferirCampos(camposPersonalizados, rascunhoCampos) : {}
+    setErrosCampos(daTela)
+    if (Object.keys(daTela).length > 0) return
+
+    setSalvandoEdicao(true)
+    try {
+      if (data) {
+        const resultado = await atualizarDadosContato(contato!.id, {
+          nome: data.nome,
+          tipo: data.tipo || null,
+          cidade: data.cidade || null,
+          uf: data.uf || null,
+          icp: data.icp || null,
+        })
+        if (resultado.erro) {
+          setErroEdicao(resultado.erro)
+          return
+        }
+      }
+      if (temCampos) {
+        const r = await salvarCamposDoContato(contactId!, rascunhoCampos)
+        if (r.erros) {
+          setErrosCampos(r.erros)
+          return
+        }
+        if (r.erro) {
+          setErroEdicao(r.erro)
+          return
+        }
+      }
+      setEditando(false)
+      router.refresh()
+    } catch {
+      setErroEdicao("Não foi possível salvar. Tente de novo.")
+    } finally {
+      setSalvandoEdicao(false)
     }
-    setEditando(false)
-    router.refresh()
   }
+
+  const salvar = podeEditarDados ? handleSubmit(salvarEdicao) : () => salvarEdicao(null)
 
   return (
-    <div className="max-w-3xl mx-auto w-full px-4 py-8 space-y-6">
+    <div className={cn(CLASSE_DA_PAGINA, "space-y-6 *:max-w-3xl")}>
       {/* Voltar */}
       <Link
         href="/contatos"
@@ -261,6 +304,8 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
             </span>
             {/* B43-01: perfil RFV da hora. */}
             <SeloPerfilRfv perfil={contato.perfilRfv} />
+            {/* B48-15: o que é o perfil RFV, para quem não usa os Relatórios */}
+            <Ajuda termo="Perfil RFV">{AJUDA_RFV}</Ajuda>
           </div>
         </div>
         </div>
@@ -273,24 +318,27 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
             <MessageSquare className="size-3.5" />
             Abrir conversa
           </Link>
-          <Button
-            variant="destructive"
-            disabled={preparandoExclusao}
-            onClick={() => {
-              setErroExclusao(null)
-              setPreparandoExclusao(true)
-              resumoExclusaoContato(contato.id)
-                .then((r) => {
-                  if ("erro" in r) setErroExclusao(r.erro)
-                  else setResumoExclusao(r.resumo)
-                })
-                .catch(() => setErroExclusao("Não foi possível excluir. Tente de novo."))
-                .finally(() => setPreparandoExclusao(false))
-            }}
-          >
-            <Trash2 className="size-3.5" aria-hidden />
-            {preparandoExclusao ? "Carregando..." : "Excluir contato"}
-          </Button>
+          {/* B48-16: excluir fica no "⋯", longe do Abrir conversa */}
+          <MenuMaisAcoes rotulo="Mais ações do contato" className="border border-input">
+            <DropdownMenuItem
+              variant="destructive"
+              disabled={preparandoExclusao}
+              onClick={() => {
+                setErroExclusao(null)
+                setPreparandoExclusao(true)
+                resumoExclusaoContato(contato.id)
+                  .then((r) => {
+                    if ("erro" in r) setErroExclusao(r.erro)
+                    else setResumoExclusao(r.resumo)
+                  })
+                  .catch(() => setErroExclusao("Não foi possível excluir. Tente de novo."))
+                  .finally(() => setPreparandoExclusao(false))
+              }}
+            >
+              <Trash2 className="size-3.5" aria-hidden />
+              {preparandoExclusao ? "Carregando..." : "Excluir contato"}
+            </DropdownMenuItem>
+          </MenuMaisAcoes>
         </div>
       </div>
 
@@ -359,7 +407,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
           <section className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados do contato</h2>
-              {!editando && papel !== "atendente" && (
+              {!editando && (podeEditarDados || temCampos) && (
                 <Button size="sm" variant="outline" onClick={iniciarEdicao}>
                   <Pencil className="size-3.5" />
                   Editar
@@ -367,13 +415,14 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
               )}
             </div>
 
-            {editando ? (
-              <form onSubmit={handleSubmit(onSubmitEdicao)} className="rounded-lg border p-4 space-y-4 text-sm">
-                {erroEdicao && (
-                  <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
-                    {erroEdicao}
-                  </p>
-                )}
+            {editando && podeEditarDados ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  void salvar()
+                }}
+                className="rounded-lg border p-4 space-y-4 text-sm"
+              >
 
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="edit-nome">Nome</Label>
@@ -416,7 +465,10 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="edit-icp">ICP</Label>
+                  <span className="flex items-center gap-1">
+                    <Label htmlFor="edit-icp">ICP</Label>
+                    <Ajuda termo="ICP">{AJUDA_ICP}</Ajuda>
+                  </span>
                   <select
                     id="edit-icp"
                     className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -428,14 +480,6 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
                   </select>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button type="button" variant="outline" size="sm" onClick={cancelarEdicao}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" size="sm" disabled={isSubmitting}>
-                    {isSubmitting ? "Salvando..." : "Salvar"}
-                  </Button>
-                </div>
               </form>
             ) : (
               <div className="rounded-lg border divide-y text-sm">
@@ -444,13 +488,40 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
                 <Row label="Tipo" value={contato.tipo ? TIPO_LABEL[contato.tipo] : "—"} />
                 <Row label="Cidade" value={contato.cidade ?? "—"} />
                 <Row label="UF" value={contato.uf ?? "—"} />
-                <Row label="ICP" value={contato.icp ? ICP_LABEL[contato.icp] : "—"} />
+                <Row label="ICP" ajuda={<Ajuda termo="ICP">{AJUDA_ICP}</Ajuda>} value={contato.icp ? ICP_LABEL[contato.icp] : "—"} />
               </div>
             )}
           </section>
 
           {/* B38-01: campos criados pela empresa */}
-          {contactId && <CamposPersonalizadosContato contactId={contactId} campos={camposPersonalizados} />}
+          {temCampos && (
+            <CamposPersonalizadosContato
+              campos={camposPersonalizados}
+              editando={editando}
+              rascunho={rascunhoCampos}
+              erros={errosCampos}
+              onMudar={(id, valor) => setRascunhoCampos((r) => ({ ...r, [id]: valor }))}
+              desabilitado={salvandoEdicao}
+            />
+          )}
+
+          {editando && (
+            <div className="space-y-3">
+              {erroEdicao && (
+                <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">
+                  {erroEdicao}
+                </p>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={cancelarEdicao} disabled={salvandoEdicao}>
+                  Cancelar
+                </Button>
+                <Button type="button" size="sm" onClick={() => void salvar()} disabled={salvandoEdicao || isSubmitting}>
+                  {salvandoEdicao ? "Salvando..." : "Salvar"}
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Tags */}
           <section className="space-y-3">
@@ -487,7 +558,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
                 placeholder="Nova tag (sem espaços)"
                 value={novaTag}
                 onChange={(e) => {
-                  setNovaTag(e.target.value)
+                  campoDaTag.mudar(e.target.value)
                   setErroTag(null)
                 }}
                 onKeyDown={async (e) => {
@@ -510,6 +581,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
                 Adicionar
               </Button>
             </div>
+            {campoDaTag.comEspaco && !erroTag && <p className="text-sm text-muted-foreground">{DICA_TAG_SEM_ESPACO}</p>}
             {erroTag && (
               <p className="text-sm text-erro">{erroTag}</p>
             )}
@@ -665,10 +737,14 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
   )
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+// B48-15: termos da ficha que a tela não explicava
+const AJUDA_ICP = "ICP é o perfil de cliente ideal: diz se o contato já revende este nicho ou se é a primeira vez dele no nicho."
+const AJUDA_RFV = "O perfil RFV classifica o contato pelas compras: há quanto tempo comprou (Recência), quantas vezes (Frequência) e quanto gastou (Valor). É o mesmo da aba RFV dos Relatórios."
+
+function Row({ label, value, ajuda }: { label: string; value: string; ajuda?: React.ReactNode }) {
   return (
     <div className="flex items-center px-4 py-3 gap-4">
-      <span className="w-28 shrink-0 text-muted-foreground">{label}</span>
+      <span className="flex w-28 shrink-0 items-center gap-1 text-muted-foreground">{label}{ajuda}</span>
       <span className="text-foreground">{value}</span>
     </div>
   )

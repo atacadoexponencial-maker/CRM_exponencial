@@ -38,7 +38,7 @@ const MENSAGEM_POR_CODIGO: Record<string, string> = {
   // Removida no gateway e ainda no CRM: a operação pedida já está feita do lado
   // de lá, e o CRM só precisa acertar a sua cópia.
   instance_not_found: "Esta conexão já não existe no gateway.",
-  instance_forbidden: "Esta conexão pertence a outro workspace.",
+  instance_forbidden: "Esta conexão pertence a outra empresa.",
   invalid_credentials:
     "O CRM não conseguiu se autenticar no gateway. Confira a configuração do servidor.",
 }

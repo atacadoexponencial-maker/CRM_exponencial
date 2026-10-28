@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { sessaoAtual } from "@/lib/sessao"
 import { listarCampanhas } from "./actions"
 import { CampanhasClient } from "./campanhas-client"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Campanhas" }
 
@@ -15,7 +16,7 @@ export default async function CampanhasPage() {
   const campanhas = await listarCampanhas()
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <CampanhasClient campanhasIniciais={campanhas} />
     </div>
   )

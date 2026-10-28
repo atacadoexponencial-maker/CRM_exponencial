@@ -20,6 +20,7 @@ import {
 import { criarMensagemRapida, editarMensagemRapida, excluirMensagemRapida, type MensagemRapidaListada } from "./actions"
 import { TextoComVariaveis, type VariavelDoBotao } from "@/components/shared/texto-com-variaveis"
 import { avisoDeSemReserva, variaveisSemReserva } from "@/lib/variaveis-mensagem"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 interface MensagensRapidasClientProps {
   mensagensIniciais: MensagemRapidaListada[]
@@ -116,7 +117,7 @@ export function MensagensRapidasClient({ mensagensIniciais, variaveis = [] }: Me
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Mensagens Rápidas</h1>
         <Button onClick={abrirCriar} size="sm">
@@ -135,7 +136,7 @@ export function MensagensRapidasClient({ mensagensIniciais, variaveis = [] }: Me
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b">
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground w-40">Título</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground w-40">Atalho</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Conteúdo</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground w-20">Ações</th>
               </tr>
@@ -157,7 +158,7 @@ export function MensagensRapidasClient({ mensagensIniciais, variaveis = [] }: Me
                     <DropdownMenu>
                       <DropdownMenuTrigger className="inline-flex h-6 w-6 items-center justify-center rounded-md hover:bg-accent transition-colors">
                         <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Abrir menu</span>
+                        <span className="sr-only">Abrir menu de {msg.titulo}</span>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => abrirEditar(msg)}>
@@ -185,7 +186,7 @@ export function MensagensRapidasClient({ mensagensIniciais, variaveis = [] }: Me
           <DialogTitle className="mb-4">Nova mensagem rápida</DialogTitle>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="novo-titulo">Título (atalho)</Label>
+              <Label htmlFor="novo-titulo">Atalho (digite / no chat)</Label>
               <Input
                 id="novo-titulo"
                 type="text"
@@ -227,7 +228,7 @@ export function MensagensRapidasClient({ mensagensIniciais, variaveis = [] }: Me
           <DialogTitle className="mb-4">Editar mensagem rápida</DialogTitle>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="edit-titulo">Título (atalho)</Label>
+              <Label htmlFor="edit-titulo">Atalho (digite / no chat)</Label>
               <Input
                 id="edit-titulo"
                 type="text"

@@ -4,6 +4,8 @@
 // Datas são strings "yyyy-mm-dd" no fuso da operação, comparadas como texto: a compra
 // guarda só a data, e assim não há hora nem fuso para errar.
 
+import { diaNoFuso, FUSO_DA_OPERACAO } from "@/lib/datas"
+
 export type PeriodoRelatorio =
   /** Um ou vários meses (1 a 12) do mesmo ano. */
   | { tipo: "meses"; ano: number; meses: number[] }
@@ -131,9 +133,12 @@ export function deslocarMeses(iso: string, meses: number): string {
   return montarData(novoAno, novoMes, Math.min(dia, ultimoDiaDoMes(novoAno, novoMes)))
 }
 
-/** Hoje no fuso da operação, yyyy-mm-dd. */
-export function hojeNoFuso(agora = new Date()): string {
-  return agora.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })
+/**
+ * Hoje no fuso, yyyy-mm-dd. As telas passam o da empresa (B48-14); a conferência do
+ * RFV e os testes ficam no da operação, o mesmo dos filtros do banco.
+ */
+export function hojeNoFuso(fuso: string = FUSO_DA_OPERACAO, agora = new Date()): string {
+  return diaNoFuso(agora, fuso)
 }
 
 export function formatarDataBr(iso: string): string {

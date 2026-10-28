@@ -71,9 +71,11 @@ describe("QA C3 — novo lead não apaga o nome do contato", () => {
     expect(upserts).toBe(0)
   })
 
-  it("contato existente com nome e lead sem nome: nada muda no contato", async () => {
+  // B48-18: o nome passou a ser obrigatório no Novo lead, como no Novo contato
+  it("lead sem nome é recusado e nada muda no contato", async () => {
     banco({ contatoExistente: { id: "contato-1", name: "Ana Souza" } })
-    expect(await criarNovoLead("5511999998888", null)).toEqual({})
+    expect(await criarNovoLead("5511999998888", null)).toEqual({ erro: "Informe o nome do contato." })
+    expect(await criarNovoLead("5511999998888", "  ")).toEqual({ erro: "Informe o nome do contato." })
     expect(contatosAtualizados).toEqual([])
     expect(upserts).toBe(0)
   })

@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect, KeyboardEvent } from "react"
 import {
-  Search, Paperclip, Mic, Zap, StickyNote, Send, X, MoreVertical, Phone, Reply, ChevronUp, ChevronDown, Check, ArrowLeft,
+  Search, Paperclip, Mic, Zap, StickyNote, Send, X, MoreVertical, Phone, Reply, ChevronUp, ChevronDown, Check, ArrowLeft, UserRound,
 } from "lucide-react"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import {
   DropdownMenu,
@@ -19,6 +20,8 @@ import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio
 import type { Conversa } from "../mock-conversas"
 import type { Mensagem, StatusMensagem } from "../mock-mensagens"
 import { formatarHoraDoDia } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
+import { useFecharComEsc } from "@/hooks/use-fechar-com-esc"
 
 async function converterParaMp3(blob: Blob): Promise<Blob> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -88,10 +91,10 @@ const ACOES_POR_STATUS: Record<string, string[]> = {
   resolvida: ["Reabrir"],
 }
 
-function horaAtual(): string {
+function horaAtual(fuso: string): string {
   // Mesmo fuso do resto do chat: o balão otimista não pode marcar uma hora e a
   // mensagem confirmada pelo servidor marcar outra.
-  return formatarHoraDoDia(new Date().toISOString())
+  return formatarHoraDoDia(new Date().toISOString(), fuso)
 }
 
 interface PainelConversaProps {
@@ -117,6 +120,7 @@ interface PainelConversaProps {
 }
 
 export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensagemConfirmada, podeAtribuir, atendentes, atendentesTransferir, onConversaAtualizada, nomeUsuario, etiquetasDisponiveis, mensagensRapidas, onAbrirFicha, onVoltar }: PainelConversaProps) {
+  const fuso = useFuso()
   /**
    * B7-02: por que a mídia não está disponível neste canal, se for o caso.
    * `null` significa disponível. Vem pronto do servidor, via `conversa.canal`.
@@ -131,6 +135,11 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
   const [texto, setTexto] = useState("")
   const [seletorMRAberto, setSeletorMRAberto] = useState(false)
   const [termoBuscaMR, setTermoBuscaMR] = useState("")
+  // B48-04: Esc fecha o seletor de mensagens rápidas
+  useFecharComEsc(() => {
+    setSeletorMRAberto(false)
+    setTermoBuscaMR("")
+  }, seletorMRAberto)
   const [enviando, setEnviando] = useState(false)
   const [enviandoImagem, setEnviandoImagem] = useState(false)
   const [enviandoDocumento, setEnviandoDocumento] = useState(false)
@@ -192,7 +201,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
       tipo: modoNota ? "nota_interna" : "texto",
       direcao: "enviada",
       conteudo,
-      horario: horaAtual(),
+      horario: horaAtual(fuso),
       ...(replyPara && !modoNota ? { replyDe: { id: replyPara.id, texto: replyPara.conteudo } } : {}),
     }
     onMensagemEnviada(nova)
@@ -238,7 +247,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
       tipo: "imagem",
       direcao: "enviada",
       conteudo: blobUrl,
-      horario: horaAtual(),
+      horario: horaAtual(fuso),
     }
     onMensagemEnviada(nova)
 
@@ -274,7 +283,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
       direcao: "enviada",
       conteudo: arquivo.name,
       nomeDoArquivo: arquivo.name,
-      horario: horaAtual(),
+      horario: horaAtual(fuso),
     }
     onMensagemEnviada(nova)
 
@@ -310,7 +319,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
       tipo: "video",
       direcao: "enviada",
       conteudo: blobUrl,
-      horario: horaAtual(),
+      horario: horaAtual(fuso),
     }
     onMensagemEnviada(nova)
 
@@ -396,7 +405,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
         tipo: "audio",
         direcao: "enviada",
         conteudo: blobUrl,
-        horario: horaAtual(),
+        horario: horaAtual(fuso),
       }
       onMensagemEnviada(nova)
 
@@ -460,6 +469,18 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
             >
               {nomeExibido}
             </button>
+            {/* B48-17: o nome abre o painel ao lado, sem sair da conversa; o ícone vai
+                à ficha completa (SUP-B48-16). */}
+            {conversa.contato.contactId && (
+              <Link
+                href={`/contatos/${conversa.contato.contactId}`}
+                aria-label={`Abrir ficha completa de ${nomeExibido}`}
+                title="Abrir ficha completa"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <UserRound className="size-4" />
+              </Link>
+            )}
             {conversa.contato.nome && (
               <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-1">
                 <Phone className="size-3" />
@@ -514,6 +535,10 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>Etiquetas</DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
+                    {/* B48-15: etiqueta e tag são coisas diferentes; a frase diz qual é qual */}
+                    <p className="max-w-56 px-2 py-1.5 text-xs text-muted-foreground">
+                      Etiquetas marcam esta conversa, para filtrar a caixa de entrada. As tags ficam no contato.
+                    </p>
                     {etiquetasDisponiveis.length === 0 ? (
                       <DropdownMenuItem disabled>Nenhuma etiqueta disponível</DropdownMenuItem>
                     ) : (
@@ -756,10 +781,11 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
                         setTermoBuscaMR("")
                         setTimeout(() => inputRef.current?.focus(), 0)
                       }}
-                      className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors flex gap-3 items-start border-b last:border-0"
+                      className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors flex flex-col gap-0.5 border-b last:border-0"
                     >
-                      <span className="font-mono text-xs text-muted-foreground shrink-0 mt-0.5 w-24 truncate">{mr.titulo}</span>
-                      <span className="text-xs text-foreground truncate">{mr.conteudo}</span>
+                      {/* B48-13: o nome inteiro em cima, o texto numa linha embaixo */}
+                      <span className="font-mono text-xs text-muted-foreground break-words">{mr.titulo}</span>
+                      <span className="w-full text-xs text-foreground truncate">{mr.conteudo}</span>
                     </button>
                   ))
                 )}
@@ -820,6 +846,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
                   // B7-02: o motivo vem do backend, junto do canal. A tela não
                   // decide o que o canal faz — e não há `if (canal === ...)` aqui.
                   title={semMidia ?? "Anexar arquivo"}
+                  aria-label="Anexar arquivo"
                   onClick={() => !semMidia && setAnexoAberto((v) => !v)}
                   disabled={!!semMidia || enviandoImagem || enviandoDocumento || enviandoVideo}
                   className={cn(
@@ -852,6 +879,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
               </div>
               <button
                 title="Mensagens rápidas"
+                aria-label="Mensagens rápidas"
                 onClick={() => { setSeletorMRAberto((v) => !v); setTermoBuscaMR("") }}
                 className={cn(
                   "h-7 w-7 flex items-center justify-center rounded-md transition-colors",
@@ -864,6 +892,8 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
               </button>
               <button
                 title={modoNota ? "Cancelar nota interna" : "Adicionar nota interna"}
+                aria-label="Nota interna"
+                aria-pressed={modoNota}
                 onClick={() => setModoNota((v) => !v)}
                 className={cn(
                   "h-7 w-7 flex items-center justify-center rounded-md transition-colors",
@@ -909,7 +939,9 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
                 </>
               )}
               <button
-                title={gravando ? "Clique para enviar" : "Clique para gravar"}
+                // B48-15: o ícone do microfone diz o que faz, na dica e para leitor de tela
+                title={gravando ? "Enviar áudio" : "Gravar áudio"}
+                aria-label={gravando ? "Enviar áudio" : "Gravar áudio"}
                 onClick={gravando ? handlePararGravacao : handleIniciarGravacao}
                 disabled={enviandoAudio}
                 className={cn(

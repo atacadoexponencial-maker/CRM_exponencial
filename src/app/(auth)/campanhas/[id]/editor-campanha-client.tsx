@@ -1,5 +1,6 @@
 "use client"
 
+import { formatarDataDoCalendario } from "@/lib/datas"
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { FileText, Image as ImageIcon, Info, Loader2, MessageSquare, Paperclip, SlidersHorizontal } from "lucide-react"
@@ -38,6 +39,9 @@ import type {
   NumeroParaCampanha,
   Segmento,
 } from "../actions"
+
+/** B48-18: quantos destinatários a lista mostra antes do "Ver todos". */
+const DESTINATARIOS_VISIVEIS = 5
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -86,6 +90,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
 
   const [total, setTotal] = useState<number | null>(null)
   const [amostra, setAmostra] = useState<DestinatarioPreview[]>([])
+  const [verTodos, setVerTodos] = useState(false)
   const [contando, setContando] = useState(false)
 
   const [salvando, setSalvando] = useState(false)
@@ -150,6 +155,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
         if (ativo) {
           setTotal(resultado.total)
           setAmostra(resultado.amostra)
+          setVerTodos(false)
         }
       } finally {
         if (ativo) setContando(false)
@@ -278,6 +284,11 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
     router.push("/campanhas")
   }
 
+  async function verTodosOsDestinatarios() {
+    if ((total ?? 0) > amostra.length) setAmostra((await contarDestinatarios(segmento, true)).amostra)
+    setVerTodos(true)
+  }
+
   // B38-05: a prévia usa o primeiro contato da amostra; os campos mostram o texto reserva
   const previewMensagem = preencherVariaveis(conteudo, { nome_contato: amostra[0]?.nome ?? "Maria", nome_vendedor: "Vendedor(a)" })
   const variaveis: VariavelDoBotao[] = [
@@ -401,17 +412,18 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
               </span>
             </div>
             {amostra.length > 0 && (
-              <div className="max-h-40 overflow-y-auto divide-y text-sm">
-                {amostra.map((d) => (
+              <div className={cn("divide-y text-sm", verTodos && "max-h-80 overflow-y-auto")}>
+                {(verTodos ? amostra : amostra.slice(0, DESTINATARIOS_VISIVEIS)).map((d) => (
                   <div key={d.id} className="flex items-center justify-between py-1.5">
                     <span>{d.nome}</span>
                     <span className="text-muted-foreground text-xs">{d.telefone}</span>
                   </div>
                 ))}
-                {(total ?? 0) > amostra.length && (
-                  <p className="py-1.5 text-xs text-muted-foreground">
-                    … e mais {(total ?? 0) - amostra.length}
-                  </p>
+                {/* B48-18: a lista mostra os primeiros; o botão abre todos */}
+                {!verTodos && (total ?? 0) > DESTINATARIOS_VISIVEIS && (
+                  <button type="button" onClick={verTodosOsDestinatarios} className="py-1.5 text-xs text-primary hover:underline">
+                    Ver todos os {total}
+                  </button>
                 )}
               </div>
             )}
@@ -526,7 +538,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
                   value={numeroOrigem}
                   onChange={(e) => setNumeroOrigem(e.target.value)}
                 >
-                  <option value="">Usar o número conectado do workspace</option>
+                  <option value="">Usar o número conectado da empresa</option>
                   {numeros.map((n) => (
                     <option key={n.id} value={n.id}>
                       {[n.numero ?? "número não confirmado", n.nomeExibicao, n.canalNome]
@@ -635,7 +647,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
                 {agendamento === "agora"
                   ? "Imediato"
                   : dataAgendada
-                    ? `${new Date(dataAgendada + "T00:00:00").toLocaleDateString("pt-BR")} às ${horaAgendada || "09:00"}`
+                    ? `${formatarDataDoCalendario(dataAgendada)} às ${horaAgendada || "09:00"}`
                     : "—"}
               </span>
             </div>

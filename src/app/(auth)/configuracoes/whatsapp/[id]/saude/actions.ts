@@ -49,7 +49,7 @@ async function conexaoDoGateway(
     .eq("workspace_id", workspaceId)
     .maybeSingle()
 
-  if (!data) return { erro: "Número não encontrado neste workspace." }
+  if (!data) return { erro: "Número não encontrado nesta empresa." }
 
   if (data.canal !== "gateway") {
     return {

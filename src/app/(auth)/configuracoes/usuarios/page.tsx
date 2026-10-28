@@ -4,6 +4,7 @@ import { sessaoAtual } from "@/lib/sessao"
 import { AdicionarUsuarioDialog } from "./adicionar-usuario-dialog"
 import { AcoesUsuario } from "./acoes-usuario"
 import { listarUsuarios } from "./actions"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Usuários" }
 
@@ -35,7 +36,7 @@ export default async function UsuariosPage() {
   ])
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Usuários</h1>
         <AdicionarUsuarioDialog times={times ?? []} />

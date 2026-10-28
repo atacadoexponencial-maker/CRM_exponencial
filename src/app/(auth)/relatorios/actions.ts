@@ -30,6 +30,7 @@ import { calcularPainelDeCarteiras, HISTORICO_POR_PAGINA, type PainelDeCarteiras
 import { passarContatosPara, type MotivoDaCarteira } from "@/lib/carteira"
 import { camposDaEmpresa, contatosDoFiltroPorCampo, valoresDosContatos } from "@/lib/campos-personalizados-servidor"
 import type { FiltroPorCampo } from "@/lib/filtro-por-campo"
+import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 
 export type { FiltroRelatorio, PeriodoRelatorio, VisaoGeralCartoes } from "@/lib/relatorios/visao-geral"
 
@@ -115,7 +116,7 @@ export async function buscarVisaoGeral(filtro: FiltroRelatorio): Promise<VisaoGe
   const dados = await carregarVendas(atendenteId, filtro.campo)
   if (!dados) return null
 
-  const hoje = hojeNoFuso()
+  const hoje = hojeNoFuso(await fusoDaEmpresa())
   return {
     ...calcularCartoes(dados.vendas, filtro.periodo, hoje),
     graficos: calcularGraficos(dados.vendas, filtro.periodo, hoje, ROTULO_FORMA_PAGAMENTO),
@@ -133,7 +134,7 @@ export async function buscarVariacaoPorUf(filtro: FiltroRelatorio): Promise<Vari
   const atendenteId = perfil.role === "atendente" ? user.id : (filtro.atendenteId ?? null)
   const dados = await carregarVendas(atendenteId, filtro.campo)
   if (!dados) return null
-  return variacaoPorUf(dados.vendas, filtro.periodo, hojeNoFuso())
+  return variacaoPorUf(dados.vendas, filtro.periodo, hojeNoFuso(await fusoDaEmpresa()))
 }
 
 const ROTULOS_DA_TABELA = { origem: ROTULO_ORIGEM_COMPRA, forma: ROTULO_FORMA_PAGAMENTO }
@@ -145,7 +146,7 @@ export async function buscarVendasDoPeriodo(filtro: FiltroRelatorio): Promise<Ve
   const atendenteId = perfil.role === "atendente" ? user.id : (filtro.atendenteId ?? null)
   const dados = await carregarVendas(atendenteId, filtro.campo)
   if (!dados) return null
-  return vendasDoPeriodo(dados.vendas, intervaloDoPeriodo(filtro.periodo, hojeNoFuso()), ROTULOS_DA_TABELA)
+  return vendasDoPeriodo(dados.vendas, intervaloDoPeriodo(filtro.periodo, hojeNoFuso(await fusoDaEmpresa())), ROTULOS_DA_TABELA)
 }
 
 /** B33-01: RFV de hoje. Ativos = card da Recompra em etapa ativa; lembrete recente = criado nos últimos 15 dias. */
@@ -180,7 +181,7 @@ export async function buscarRfv(filtro: { atendenteId?: string | null; campo?: F
   const daCarteiraSet = atendenteId ? new Set((daCarteira ?? []).map((c) => c.id)) : null
   const carteira = daCarteiraSet && doCampo ? new Set([...daCarteiraSet].filter((id) => doCampo.has(id))) : (daCarteiraSet ?? doCampo ?? undefined)
 
-  return calcularRfv(vendas, hojeNoFuso(), {
+  return calcularRfv(vendas, hojeNoFuso(await fusoDaEmpresa()), {
     ativos: new Set((cards ?? []).map((c) => c.contact_id).filter(Boolean) as string[]),
     comLembreteRecente: new Set((lembretes ?? []).map((l) => l.contact_id)),
     atendenteDoContato,
@@ -197,7 +198,7 @@ export async function buscarCoorte(filtro: { atendenteId?: string | null; campo?
   const atendenteId = perfil.role === "atendente" ? user.id : (filtro.atendenteId ?? null)
   const dados = await carregarVendas(atendenteId, filtro.campo)
   if (!dados) return null
-  return calcularCoortes(dados.vendas, hojeNoFuso())
+  return calcularCoortes(dados.vendas, hojeNoFuso(await fusoDaEmpresa()))
 }
 
 /** B34-03: funil "1+ a 7+ compras" em toda a história. Mesma regra do atendente. */
@@ -207,7 +208,7 @@ export async function buscarFunilClientes(filtro: { atendenteId?: string | null;
   const atendenteId = perfil.role === "atendente" ? user.id : (filtro.atendenteId ?? null)
   const dados = await carregarVendas(atendenteId, filtro.campo)
   if (!dados) return null
-  return calcularFunilClientes(dados.vendas, hojeNoFuso())
+  return calcularFunilClientes(dados.vendas, hojeNoFuso(await fusoDaEmpresa()))
 }
 
 export type LinhaDoHistoricoDeCarteira = {
@@ -453,7 +454,7 @@ export async function buscarVendasPorCampo(filtro: FiltroRelatorio & { agrupar: 
   }
   return {
     campo: { id: campo.id, nome: campo.nome, tipo: campo.tipo },
-    variacao: variacaoPorChave(dados.vendas, filtro.periodo, hojeNoFuso(), chavesDe),
+    variacao: variacaoPorChave(dados.vendas, filtro.periodo, hojeNoFuso(await fusoDaEmpresa()), chavesDe),
     somaPodePassar: campo.tipo === "multipla",
   }
 }

@@ -25,6 +25,7 @@ import {
 } from "../mock-contatos"
 import { SeloPerfilRfv } from "@/components/shared/selo-perfil-rfv"
 import { formatarValor, type CampoDaEmpresa } from "@/lib/campos-personalizados"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 const CLASSIFICACOES: { label: string; valor: ClassificacaoContato | "todas" }[] = [
   { label: "Todas", valor: "todas" },
@@ -107,6 +108,9 @@ export function ListaContatos({
   const [classificacao, setClassificacao] = useState<ClassificacaoContato | "todas">("todas")
   const [tipo, setTipo] = useState<TipoContato | "todos">("todos")
   const [atendente, setAtendente] = useState<string | null>(null)
+  // B48-11: tipo e atendente ficam atrás de "Mais filtros"; o botão conta os ligados
+  const [maisFiltros, setMaisFiltros] = useState(false)
+  const filtrosRecolhidosLigados = (tipo !== "todos" ? 1 : 0) + (atendente !== null ? 1 : 0)
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("recente")
   const [ordenacaoAberta, setOrdenacaoAberta] = useState(false)
   // B37-01: filtro avançado aplicado (o painel edita um rascunho e só muda isto no "Aplicar").
@@ -281,7 +285,7 @@ export function ListaContatos({
   const ordenacaoLabel = ORDENACOES.find((o) => o.valor === ordenacao)?.label ?? "Ordenar"
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Contatos</h1>
@@ -415,7 +419,20 @@ export function ListaContatos({
           ))}
         </div>
 
+        <button
+          type="button"
+          aria-expanded={maisFiltros}
+          onClick={() => setMaisFiltros((v) => !v)}
+          className={cn(
+            "px-2.5 py-1 text-xs rounded-md border transition-colors",
+            filtrosRecolhidosLigados > 0 ? "border-primary text-foreground" : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+          )}
+        >
+          {filtrosRecolhidosLigados > 0 ? `Mais filtros · ${filtrosRecolhidosLigados}` : "Mais filtros"}
+        </button>
+
         {/* Tipo */}
+        {maisFiltros && (
         <div className="flex gap-1 flex-wrap">
           {TIPOS.map((f) => (
             <button
@@ -432,9 +449,10 @@ export function ListaContatos({
             </button>
           ))}
         </div>
+        )}
 
         {/* Atendente — apenas admin e gerente */}
-        {papel !== "atendente" && atendentes.length > 0 && (
+        {maisFiltros && papel !== "atendente" && atendentes.length > 0 && (
           <div className="flex gap-1 flex-wrap">
             <button
               onClick={() => setAtendente(null)}
@@ -505,7 +523,7 @@ export function ListaContatos({
                   onClick={() => router.push(`/contatos/${contato.id}`)}
                   className="border-b last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
                 >
-                  <td className="px-4 py-3 font-medium min-w-40 max-w-64 [overflow-wrap:anywhere]">{contato.nome}</td>
+                  <td className="px-4 py-3 font-medium min-w-40 max-w-64 break-words">{contato.nome}</td>
                   {ve("whatsapp") && <td className="numero px-4 py-3 text-muted-foreground">{contato.telefone}</td>}
                   {ve("classificacao") && (
                     <td className="px-4 py-3">
@@ -528,14 +546,14 @@ export function ListaContatos({
                       {contato.tipo ? TIPO_LABEL[contato.tipo] : "—"}
                     </td>
                   )}
-                  {ve("cidade") && <td className="px-4 py-3 text-muted-foreground">{contato.cidade ?? "—"}</td>}
+                  {ve("cidade") && <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{contato.cidade ?? "—"}</td>}
                   {camposNaLista.map((c) => (
-                    <td key={c.id} data-coluna={c.nome} className="px-4 py-3 text-muted-foreground max-w-56 [overflow-wrap:anywhere]">
+                    <td key={c.id} data-coluna={c.nome} className="px-4 py-3 text-muted-foreground min-w-24 max-w-56 break-words">
                       {formatarValor(c, contato.campos?.[c.id] ?? null)}
                     </td>
                   ))}
                   {papel !== "atendente" && ve("atendente") && (
-                    <td className="px-4 py-3 text-muted-foreground">{contato.atendente ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{contato.atendente ?? "—"}</td>
                   )}
                   <td className="px-4 py-3 text-right">
                     <button

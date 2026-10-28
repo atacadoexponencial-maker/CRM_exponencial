@@ -5,6 +5,8 @@
 
 import { useState } from "react"
 import { RotateCcw, Trash2 } from "lucide-react"
+import { MenuMaisAcoes } from "@/components/shared/menu-mais-acoes"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -101,10 +103,13 @@ export function ListaLixeira({ itens, onRestaurar, onApagarDeVez }: ListaLixeira
                       <RotateCcw className="size-3.5" aria-hidden />
                       Restaurar
                     </Button>
-                    <Button variant="destructive" size="sm" onClick={() => setApagando(item)}>
-                      <Trash2 className="size-3.5" aria-hidden />
-                      Apagar de vez
-                    </Button>
+                    {/* B48-16: apagar de vez fica no "⋯", longe do Restaurar */}
+                    <MenuMaisAcoes rotulo={`Mais ações de ${item.nome ?? item.telefone}`}>
+                      <DropdownMenuItem variant="destructive" onClick={() => setApagando(item)}>
+                        <Trash2 className="size-3.5" aria-hidden />
+                        Apagar de vez
+                      </DropdownMenuItem>
+                    </MenuMaisAcoes>
                   </div>
                 </td>
               </tr>

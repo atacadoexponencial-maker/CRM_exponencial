@@ -163,6 +163,8 @@ describe("B40-01 — nicho sai das telas do contato", () => {
 
   it("CA-B40-07: should mostrar os botões rápidos sem os de nicho", () => {
     renderizarLista()
+    // B48-11: tipo e atendente ficam atrás de "Mais filtros"
+    fireEvent.click(screen.getByRole("button", { name: "Mais filtros" }))
     expect(screen.queryByRole("button", { name: "Todos nichos" })).toBeNull()
     expect(screen.getAllByRole("button", { name: "Lojista" }).length).toBeGreaterThan(0)
     expect(screen.getAllByRole("button", { name: "Ativo" }).length).toBeGreaterThan(0)

@@ -5,6 +5,7 @@ import { sessaoAtual } from "@/lib/sessao"
 import { lerSaude } from "../saude/actions"
 import { lerRitmoDoNumero } from "./actions"
 import { RitmoClient } from "./ritmo-client"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Ritmo do número" }
 
@@ -32,7 +33,7 @@ export default async function RitmoDoNumeroPage({
   const [resultado, saude] = await Promise.all([lerRitmoDoNumero(id), lerSaude(id)])
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <Link
         href={`/configuracoes/whatsapp/${id}/saude`}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"

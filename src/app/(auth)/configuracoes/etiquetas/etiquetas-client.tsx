@@ -20,6 +20,7 @@ import {
 import { cn } from "@/lib/utils"
 import { criarEtiqueta, editarEtiqueta, excluirEtiqueta } from "./actions"
 import type { EtiquetaListada } from "./actions"
+import { avisar } from "@/lib/aviso-na-tela"
 
 const CORES_DISPONIVEIS = [
   "#ef4444",
@@ -90,14 +91,15 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
 
   function abrirCriar() {
     setNovoNome("")
-    setNovaCor("")
+    // B48-13: abre com a primeira cor marcada
+    setNovaCor(CORES_DISPONIVEIS[0])
     setErroCriar(null)
     setDialogCriarAberto(true)
   }
 
   async function handleCriar() {
     const nome = novoNome.trim()
-    if (!nome || !novaCor) return
+    if (!nome) { setErroCriar("Dê um nome à etiqueta"); return }
     setIsPendingCriar(true)
     setErroCriar(null)
     const resultado = await criarEtiqueta(nome, novaCor)
@@ -109,6 +111,7 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
     // Na mesma ordem do servidor (por nome), para não mudar ao recarregar.
     setEtiquetas((prev) => [...prev, resultado.etiqueta!].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")))
     setDialogCriarAberto(false)
+    avisar("Etiqueta salva")
   }
 
   function abrirEditar(etiqueta: EtiquetaListada) {
@@ -134,6 +137,7 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
       prev.map((e) => (e.id === editandoId ? { ...e, nome, cor: editCor } : e))
     )
     setDialogEditarAberto(false)
+    avisar("Etiqueta salva")
   }
 
   function abrirExcluir(id: string) {
@@ -200,7 +204,7 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
                     <DropdownMenu>
                       <DropdownMenuTrigger className="inline-flex h-6 w-6 items-center justify-center rounded-md hover:bg-accent transition-colors">
                         <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Abrir menu</span>
+                        <span className="sr-only">Abrir menu de {etiqueta.nome}</span>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => abrirEditar(etiqueta)}>
@@ -239,7 +243,7 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
                 id="novo-nome-etiqueta"
                 type="text"
                 value={novoNome}
-                onChange={(e) => setNovoNome(e.target.value)}
+                onChange={(e) => { setNovoNome(e.target.value); setErroCriar(null) }}
                 placeholder="Ex: Cliente VIP"
               />
             </div>
@@ -256,7 +260,7 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
               </DialogClose>
               <Button
                 onClick={handleCriar}
-                disabled={!novoNome.trim() || !novaCor || isPendingCriar}
+                disabled={isPendingCriar}
               >
                 Salvar
               </Button>

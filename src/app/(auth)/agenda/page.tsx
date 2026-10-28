@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { sessaoAtual } from "@/lib/sessao"
 import { listarMinhaAgenda } from "./actions"
 import { AgendaClient } from "./agenda-client"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Minha agenda" }
 
@@ -12,7 +13,7 @@ export default async function AgendaPage() {
   const itens = await listarMinhaAgenda()
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <AgendaClient itensIniciais={itens} papel={perfil?.role ?? "atendente"} />
     </div>
   )

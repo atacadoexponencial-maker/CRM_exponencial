@@ -3,7 +3,10 @@ import { sessaoAtual } from "@/lib/sessao"
 import { SidebarNav } from "@/components/shared/sidebar-nav"
 import { COOKIE_MENU_RECOLHIDO } from "@/lib/preferencias-layout"
 import { SincronizarTema } from "@/components/shared/sincronizar-tema"
+import { AvisosNaTela } from "@/components/shared/avisos-na-tela"
 import { temaValido, type Tema } from "@/lib/tema"
+import { ProvedorDeFuso } from "@/components/shared/fuso-da-empresa"
+import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 
 async function dadosDoUsuario(): Promise<{
   papel: "admin" | "gerente" | "atendente"
@@ -43,20 +46,23 @@ async function dadosDoUsuario(): Promise<{
 }
 
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
-  const [{ papel, nome, email, atrasados, pedidosNovos, tema }, cookieStore] = await Promise.all([dadosDoUsuario(), cookies()])
+  const [{ papel, nome, email, atrasados, pedidosNovos, tema }, cookieStore, fuso] = await Promise.all([dadosDoUsuario(), cookies(), fusoDaEmpresa()])
   const menuRecolhido = cookieStore.get(COOKIE_MENU_RECOLHIDO)?.value === "1"
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col lg:flex-row">
-      <SincronizarTema tema={tema} />
-      <SidebarNav papel={papel} nomeUsuario={nome} email={email} atrasados={atrasados} pedidosNovos={pedidosNovos} tema={tema} recolhidoInicial={menuRecolhido} />
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        {/* B36-03: no computador o usuário fica no pé do menu lateral; a barra de cima saiu.
-            No celular ele continua na barra do menu (56 px + borda = os 57 px que o chat desconta). */}
-        <main className="flex-1 min-w-0 flex flex-col overflow-y-auto">
-          {children}
-        </main>
+    <ProvedorDeFuso fuso={fuso}>
+      <div className="h-screen overflow-hidden flex flex-col lg:flex-row">
+        <SincronizarTema tema={tema} />
+        <AvisosNaTela />
+        <SidebarNav papel={papel} nomeUsuario={nome} email={email} atrasados={atrasados} pedidosNovos={pedidosNovos} tema={tema} recolhidoInicial={menuRecolhido} />
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          {/* B36-03: no computador o usuário fica no pé do menu lateral; a barra de cima saiu.
+              No celular ele continua na barra do menu (56 px + borda = os 57 px que o chat desconta). */}
+          <main className="flex-1 min-w-0 flex flex-col overflow-y-auto">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </ProvedorDeFuso>
   )
 }

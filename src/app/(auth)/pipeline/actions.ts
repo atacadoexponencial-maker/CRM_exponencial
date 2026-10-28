@@ -1,5 +1,7 @@
 "use server"
 
+import { formatarData, formatarDataEHora } from "@/lib/datas"
+import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import { dispararAutomacoes } from "@/lib/automacoes/fila"
@@ -152,6 +154,8 @@ export async function criarNovoLead(telefoneDigitado: string, nome: string | nul
   // QA M13 (06/10): telefone normalizado no servidor; "abcdef" e "1" não entram.
   const telefone = normalizarWhatsapp(telefoneDigitado)
   if (!telefone) return { erro: TELEFONE_INVALIDO }
+  // B48-18: o nome é obrigatório, como no Novo contato; o servidor confere, não só a tela
+  if (!nome?.trim()) return { erro: "Informe o nome do contato." }
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) throw new Error("Usuário não autenticado")
@@ -395,10 +399,11 @@ export async function buscarDadosPainel(cardId: string): Promise<{ historico: Hi
   const nomesDasEtapasNovas = (await lerNomesDosFunis(supabase, [doCard?.funil])).etapas
   const rotulo = (etapa: string | null | undefined) => (etapa && nomesDasEtapasNovas[etapa]) || rotuloDaEtapa(etapa)
 
+  const fuso = await fusoDaEmpresa()
   const historico: HistoricoEtapa[] = (historicoResult.data ?? []).map((row) => ({
     deEtapa: rotulo(row.de_etapa),
     etapa: rotulo(row.para_etapa),
-    data: new Date(row.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }),
+    data: formatarDataEHora(row.created_at, fuso),
     responsavel: (row.alterado_por as unknown as { name: string } | null)?.name,
   }))
 
@@ -406,7 +411,7 @@ export async function buscarDadosPainel(cardId: string): Promise<{ historico: Hi
     id: row.id,
     autor: (row.autor as unknown as { name: string } | null)?.name ?? "Desconhecido",
     texto: row.texto,
-    data: new Date(row.created_at).toLocaleDateString("pt-BR"),
+    data: formatarData(row.created_at, fuso),
   }))
 
   return { historico, notas }
@@ -483,12 +488,13 @@ async function lerCardsDoFunil(funil: string): Promise<CardBase[]> {
     for (const e of etapas ?? []) prazoDaEtapa[e.id] = e.parado_dias
   }
 
+  const fuso = await fusoDaEmpresa()
   return (data ?? []).map((row) => ({
     id: row.id,
     contactId: row.contact_id,
     etapa: row.etapa,
     tempoNaEtapa: calcularTempoNaEtapa(row.etapa_changed_at),
-    dataEntradaEtapa: new Date(row.etapa_changed_at).toLocaleDateString("pt-BR"),
+    dataEntradaEtapa: formatarData(row.etapa_changed_at, fuso),
     tempoNoFunil: calcularTempoNaEtapa(row.created_at),
     atendente: (row.atendente as unknown as { name: string } | null)?.name ?? null,
     contato: {

@@ -2,10 +2,11 @@
 
 // B32-03: tela Relatórios — abas, cabeçalho do período, atalhos, filtros e os cartões.
 
-import { useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { MESES, periodoMesAnterior, periodoPadrao, type PeriodoRelatorio } from "@/lib/relatorios/visao-geral"
+import { MESES, intervaloDoPeriodo, periodoMesAnterior, periodoPadrao, type PeriodoRelatorio } from "@/lib/relatorios/visao-geral"
+import { formatarIntervaloDoCalendario } from "@/lib/datas"
 import { buscarVisaoGeral, type VisaoGeral } from "../actions"
 import { CartoesResumo } from "./cartoes-resumo"
 import { GraficoFormaPagamento, GraficoProjecao, GraficoVendasDiarias } from "./graficos-visao-geral"
@@ -21,8 +22,8 @@ import { FiltroPorCampoControle } from "@/components/shared/filtro-por-campo"
 import { VendasPorCampoTabela } from "./vendas-por-campo"
 import { filtroPorCampoCompleto, type FiltroPorCampo } from "@/lib/filtro-por-campo"
 import type { CampoParaFiltro } from "@/lib/filtro-contatos"
+import { abaDoEndereco, type Aba } from "@/lib/relatorios/abas"
 
-type Aba = "visao-geral" | "rfv" | "coorte" | "funil" | "carteiras"
 
 const selectClass =
   "h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -38,20 +39,40 @@ interface RelatoriosClientProps {
   hoje: string
   /** B38-07: campos personalizados da empresa, para o filtro por campo. */
   campos?: CampoParaFiltro[]
+  /** B48-09: a aba que o endereço pediu. */
+  abaInicial?: Aba
 }
 
-export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje, campos = [] }: RelatoriosClientProps) {
+export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje, campos = [], abaInicial = "visao-geral" }: RelatoriosClientProps) {
   const [visao, setVisao] = useState<VisaoGeral>(visaoInicial)
   const [periodo, setPeriodo] = useState<PeriodoRelatorio>(periodoPadrao(hoje))
   const [atendenteId, setAtendenteId] = useState("")
   // B38-07: o filtro por campo só vale completo (campo e valor)
   const [campo, setCampo] = useState<FiltroPorCampo | null>(null)
   const campoAtivo = filtroPorCampoCompleto(campo) ? campo : null
-  const [aba, setAba] = useState<Aba>("visao-geral")
+  const [aba, setAba] = useState<Aba>(abaInicial)
+
+  // B48-09: a aba vai para o endereço sem recarregar a página (os filtros ficam), e o
+  // Voltar do navegador volta de aba
+  function trocarAba(nova: Aba) {
+    if (nova === aba) return
+    setAba(nova)
+    const url = new URL(window.location.href)
+    if (nova === "visao-geral") url.searchParams.delete("aba")
+    else url.searchParams.set("aba", nova)
+    window.history.pushState(null, "", url)
+  }
+  useEffect(() => {
+    const aoVoltar = () => setAba(abaDoEndereco(new URLSearchParams(window.location.search).get("aba")))
+    window.addEventListener("popstate", aoVoltar)
+    return () => window.removeEventListener("popstate", aoVoltar)
+  }, [])
   const [erro, setErro] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   const podeFiltrarAtendente = papel === "admin" || papel === "gerente"
+  // B48-10: as datas do período, nos cartões de faturamento
+  const intervaloDoFaturamento = intervaloDoPeriodo(periodo, hoje)
   const anoDeHoje = Number(hoje.slice(0, 4))
   const anos = [anoDeHoje, anoDeHoje - 1, anoDeHoje - 2]
 
@@ -106,7 +127,7 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje, campos
             type="button"
             role="tab"
             aria-selected={aba === id}
-            onClick={() => setAba(id)}
+            onClick={() => trocarAba(id)}
             className={cn("mr-5 py-2.5 text-sm -mb-px", aba === id ? "font-semibold text-foreground shadow-[inset_0_-2px_0_var(--foreground)]" : "text-muted-foreground hover:text-foreground")}
           >
             {nome}
@@ -196,7 +217,7 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje, campos
 
       {erro && <p className="text-sm text-destructive mb-4">Não foi possível carregar o relatório. Tente novamente.</p>}
 
-      <CartoesResumo cartoes={visao.cartoes} />
+      <CartoesResumo cartoes={visao.cartoes} periodo={formatarIntervaloDoCalendario(intervaloDoFaturamento.de, intervaloDoFaturamento.ate)} />
 
       {/* B32-04: gráficos abaixo dos cartões; a projeção só no mês atual. */}
       <div className="flex flex-col gap-4 mt-6">

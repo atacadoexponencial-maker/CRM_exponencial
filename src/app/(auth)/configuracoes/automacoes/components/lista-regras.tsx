@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { formatarHorarioDaLista } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import type { Fluxo } from "@/lib/fluxo-automacao"
 import { cn } from "@/lib/utils"
 import { referenciasQueSumiram, type OpcoesEditor } from "./catalogo"
@@ -86,6 +87,7 @@ export function ListaRegras({
   onExcluir,
   contarEsperas,
 }: ListaRegrasProps) {
+  const fuso = useFuso()
   // O interruptor muda na hora e fica "salvando" até a resposta do servidor (B22-21)
   const [regrasNaTela, marcarAlternando] = useOptimistic(
     regras as Array<RegraListada & { salvando?: boolean }>,
@@ -234,7 +236,7 @@ export function ListaRegras({
                     <>
                       <td className="hidden px-4 py-3 numero sm:table-cell">{r.execucoes7dias}</td>
                       <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
-                        {r.ultimaExecucao ? formatarHorarioDaLista(r.ultimaExecucao) : "Nunca"}
+                        {r.ultimaExecucao ? formatarHorarioDaLista(r.ultimaExecucao, fuso) : "Nunca"}
                       </td>
                     </>
                   )}

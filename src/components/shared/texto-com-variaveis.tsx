@@ -11,8 +11,15 @@ import { avisoDeSemReserva, inserirNoCursor } from "@/lib/variaveis-mensagem"
 // rápida). Cada botão pede o texto reserva antes de inserir `{{chave|reserva}}` onde
 // está o cursor; sem reserva, não insere. Variável escrita à mão sem reserva fica
 // apontada embaixo do texto.
+//
+// B48-07: quem clica no botão e sai da caixa do reserva sem "Inserir" (por exemplo,
+// direto no Salvar) não perde a variável: ela entra com o reserva digitado, ou
+// "cliente". Só o Cancelar e o Esc desistem.
 
 export type VariavelDoBotao = { chave: string; rotulo: string }
+
+/** Reserva de quem saiu da caixa sem escrever um (B48-07). */
+export const RESERVA_PADRAO = "cliente"
 
 const CLASSE_TEXTO =
   "w-full min-h-24 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 resize-y"
@@ -43,17 +50,24 @@ export function TextoComVariaveis({ id, valor, placeholder, variaveis, onMudar, 
     setPedindo(variavel)
   }
 
-  function inserir() {
+  function inserir(padrao?: string, focar = true) {
     // O reserva não pode ter chave nem barra: fecharia a variável antes da hora
-    const limpo = reserva.replace(/[{}|]/g, "").trim()
+    const limpo = reserva.replace(/[{}|]/g, "").trim() || padrao
     if (!pedindo || !limpo) return
     const { texto, cursor } = inserirNoCursor(valor, selecao.current.inicio, selecao.current.fim, `{{${pedindo.chave}|${limpo}}}`)
     onMudar(texto)
     setPedindo(null)
+    if (!focar) return
     requestAnimationFrame(() => {
       ref.current?.focus()
       ref.current?.setSelectionRange(cursor, cursor)
     })
+  }
+
+  // B48-07: o foco saiu da caixa do reserva para fora dela (Salvar, outro campo)
+  function aoSairDaCaixa(e: React.FocusEvent<HTMLDivElement>) {
+    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return
+    inserir(RESERVA_PADRAO, false)
   }
 
   return (
@@ -79,7 +93,7 @@ export function TextoComVariaveis({ id, valor, placeholder, variaveis, onMudar, 
         ))}
       </div>
       {pedindo && (
-        <div role="group" aria-label={`Texto reserva de ${pedindo.rotulo}`} className="flex flex-col gap-1.5 rounded-md border p-2">
+        <div role="group" aria-label={`Texto reserva de ${pedindo.rotulo}`} className="flex flex-col gap-1.5 rounded-md border p-2" onBlur={aoSairDaCaixa}>
           <label htmlFor={`${id}-reserva`} className="text-xs text-muted-foreground">
             Texto reserva de &quot;{pedindo.rotulo}&quot;: vai no lugar quando o contato não tiver o dado
           </label>
@@ -99,7 +113,7 @@ export function TextoComVariaveis({ id, valor, placeholder, variaveis, onMudar, 
               }}
               className="max-w-56"
             />
-            <Button type="button" size="xs" disabled={!reserva.replace(/[{}|]/g, "").trim()} onClick={inserir}>
+            <Button type="button" size="xs" disabled={!reserva.replace(/[{}|]/g, "").trim()} onClick={() => inserir()}>
               Inserir
             </Button>
             <Button type="button" size="xs" variant="ghost" onClick={() => setPedindo(null)}>

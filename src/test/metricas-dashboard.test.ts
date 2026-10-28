@@ -9,6 +9,7 @@ import {
   type HistoryRow,
   type PurchaseRow,
 } from "@/lib/metricas-dashboard"
+import { FUSO_DA_OPERACAO } from "@/lib/datas"
 
 const range = {
   inicio: new Date("2026-06-01T00:00:00"),
@@ -238,7 +239,7 @@ describe("calcularPerformanceVendedores", () => {
 describe("rangeDoPeriodo", () => {
   it("calcula intervalo de 7 dias", () => {
     const agora = new Date("2026-06-12T15:00:00")
-    const r = rangeDoPeriodo({ periodo: "7d" }, agora)
+    const r = rangeDoPeriodo({ periodo: "7d" }, FUSO_DA_OPERACAO, agora)
     // B32-01: o fim é o fim do dia de hoje, não a hora atual
     expect(r.fim.getTime()).toBe(new Date("2026-06-12T23:59:59.999").getTime())
     expect(r.inicio.getDate()).toBe(5)
@@ -246,7 +247,7 @@ describe("rangeDoPeriodo", () => {
 
   it("CA-B32-22: compra registrada hoje entra na receita dos últimos 30 dias mesmo com o relógio às 9h", () => {
     const agora = new Date("2026-10-21T09:00:00")
-    const range = rangeDoPeriodo({ periodo: "30d" }, agora)
+    const range = rangeDoPeriodo({ periodo: "30d" }, FUSO_DA_OPERACAO, agora)
     const compraDeHoje = { contact_id: "c1", data: "2026-10-21", valor: 150 }
     const m = calcularMetricas([], [], [compraDeHoje], range)
     expect(m.receita.totalCompras).toBe(150)
@@ -255,13 +256,13 @@ describe("rangeDoPeriodo", () => {
 
   it("calcula 'este mês' começando no dia 1", () => {
     const agora = new Date("2026-06-12T15:00:00")
-    const r = rangeDoPeriodo({ periodo: "mes" }, agora)
+    const r = rangeDoPeriodo({ periodo: "mes" }, FUSO_DA_OPERACAO, agora)
     expect(r.inicio.getDate()).toBe(1)
     expect(r.inicio.getMonth()).toBe(5) // junho
   })
 
   it("usa intervalo personalizado quando informado", () => {
-    const r = rangeDoPeriodo({ periodo: "custom", inicio: "2026-01-01", fim: "2026-01-31" })
+    const r = rangeDoPeriodo({ periodo: "custom", inicio: "2026-01-01", fim: "2026-01-31" }, FUSO_DA_OPERACAO)
     expect(r.inicio.getMonth()).toBe(0)
     expect(r.fim.getDate()).toBe(31)
   })

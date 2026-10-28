@@ -1,8 +1,9 @@
 import { Esqueleto } from "@/components/shared/esqueleto"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export default function Loading() {
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-7 sm:px-8 lg:px-10" role="status" aria-label="Carregando agenda">
+    <div className={CLASSE_DA_PAGINA} role="status" aria-label="Carregando agenda">
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Minha Agenda</h1>
         <Esqueleto className="h-8 w-32" />

@@ -1,3 +1,4 @@
+import { FUSO_DA_OPERACAO } from "@/lib/datas"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { TemaClaro } from "@/components/shared/tema-claro"
 
@@ -36,6 +37,7 @@ export default async function StatusExclusaoDados({ params }: { params: Promise<
             <p className="text-xs text-muted-foreground">
               Solicitado em{" "}
               {new Date(data.created_at).toLocaleDateString("pt-BR", {
+                timeZone: FUSO_DA_OPERACAO,
                 day: "2-digit",
                 month: "long",
                 year: "numeric",

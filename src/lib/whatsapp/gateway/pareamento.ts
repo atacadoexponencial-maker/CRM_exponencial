@@ -23,7 +23,7 @@ export type ResultadoDoPareamento<T> = { ok: true; dados: T } | { ok: false; err
 const MENSAGEM_POR_CODIGO: Record<string, string> = {
   instance_not_found:
     "Esta conexão não existe mais no gateway. Remova-a do CRM e conecte o número de novo.",
-  instance_forbidden: "Esta conexão pertence a outro workspace.",
+  instance_forbidden: "Esta conexão pertence a outra empresa.",
   invalid_credentials:
     "O CRM não conseguiu se autenticar no gateway. Confira a configuração do servidor.",
   invalid_payload: "Informe o número com código do país, apenas dígitos.",

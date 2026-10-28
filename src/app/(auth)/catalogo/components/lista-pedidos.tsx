@@ -3,6 +3,7 @@
 import { Loader2, Receipt } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import { formatarPreco } from "./lista-produtos"
 import { COR_SITUACAO, ROTULO_SITUACAO, type SituacaoPedido } from "./situacao-pedido"
 
@@ -54,6 +55,7 @@ export function ListaPedidos({
   onCarregarMais,
   carregandoMais = false,
 }: ListaPedidosProps) {
+  const fuso = useFuso()
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
@@ -79,7 +81,7 @@ export function ListaPedidos({
                     <span className="text-muted-foreground font-normal">#{p.numero}</span> {p.cliente.nome}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {formatarDataCurta(p.criadoEm)}, {formatarHoraDoDia(p.criadoEm)} · {formatarWhatsapp(p.cliente.whatsapp)}
+                    {formatarDataCurta(p.criadoEm, fuso)}, {formatarHoraDoDia(p.criadoEm, fuso)} · {formatarWhatsapp(p.cliente.whatsapp)}
                   </p>
                 </div>
                 <div className="text-right shrink-0 space-y-1">

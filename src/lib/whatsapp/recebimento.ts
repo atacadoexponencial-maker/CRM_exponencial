@@ -153,6 +153,15 @@ const PREVIA_POR_TIPO: Record<string, string> = {
   desconhecido: "Mensagem não suportada por aqui",
 }
 
+/**
+ * Prévia de uma mensagem já gravada, como a lista do Chat mostra (B48-05): texto
+ * aparece como veio; mídia, pelo tipo, e nunca pelo endereço do arquivo.
+ */
+export function previaDaMensagemGravada(tipo: string | null, conteudo: string | null): string {
+  if (!tipo || tipo === "texto" || tipo === "text") return conteudo ?? ""
+  return PREVIA_POR_TIPO[tipo] ?? PREVIA_POR_TIPO.desconhecido
+}
+
 /** Endereço legível da localização: o que o atendente consegue abrir e ler. */
 function textoDaLocalizacao(local: NonNullable<EventoMensagemRecebida["location"]>): string {
   const mapa = `https://www.google.com/maps?q=${local.latitude},${local.longitude}`

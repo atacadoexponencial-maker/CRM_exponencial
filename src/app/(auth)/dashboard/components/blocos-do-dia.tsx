@@ -6,7 +6,8 @@
 import { useState, useTransition } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { formatarHoraDoDia, formatarDataCurta } from "@/lib/datas"
+import { diaNoFuso, formatarHoraDoDia, formatarDataCurta } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import { textoDaEspera } from "@/lib/painel-dashboard"
 import { marcarLembreteFeito } from "@/app/(auth)/agenda/actions"
 import type { ConversaEsperando, EtapaComQuantidade, TarefaDeHoje } from "../actions"
@@ -36,6 +37,7 @@ export function BlocoFunilEntrada({
   const etapas = outro ? outro.etapas : etapasDaEntrada
   const titulo = outro ? outro.nome : "Funil de Entrada"
   const maior = Math.max(1, ...etapas.map((e) => e.quantidade))
+  const vazio = etapas.every((e) => e.quantidade === 0)
   return (
     <section aria-label={titulo} className="flex flex-col">
       <TituloDoBloco
@@ -57,32 +59,38 @@ export function BlocoFunilEntrada({
           </span>
         }
       />
-      <ul className="flex flex-col gap-2.5">
-        {etapas.map((e) => (
-          <li key={e.id} data-etapa={e.id} className="grid grid-cols-[132px_minmax(0,1fr)_48px] items-center gap-3">
-            <span className="truncate text-sm">{e.label}</span>
-            <span className="h-[18px] rounded-[3px] bg-muted" aria-hidden="true">
-              <span
-                data-largura={Math.round((e.quantidade / maior) * 100)}
-                className={cn("block h-full rounded-[3px]", !outro && e.id === "ganho" ? "bg-primary" : "bg-chart-5")}
-                style={{ width: `${(e.quantidade / maior) * 100}%` }}
-              />
-            </span>
-            <span className="numero text-right text-sm" data-quantidade>{e.quantidade}</span>
-          </li>
-        ))}
-      </ul>
+      {/* B48-13: funil sem nenhum card diz isso, em vez de mostrar barras zeradas */}
+      {vazio ? (
+        <p className="border-t py-4 text-sm text-muted-foreground">Nenhum card neste funil ainda.</p>
+      ) : (
+        <ul className="flex flex-col gap-2.5">
+          {etapas.map((e) => (
+            <li key={e.id} data-etapa={e.id} className="grid grid-cols-[132px_minmax(0,1fr)_48px] items-center gap-3">
+              <span className="truncate text-sm">{e.label}</span>
+              <span className="h-[18px] rounded-[3px] bg-muted" aria-hidden="true">
+                <span
+                  data-largura={Math.round((e.quantidade / maior) * 100)}
+                  className={cn("block h-full rounded-[3px]", !outro && e.id === "ganho" ? "bg-primary" : "bg-chart-5")}
+                  style={{ width: `${(e.quantidade / maior) * 100}%` }}
+                />
+              </span>
+              <span className="numero text-right text-sm" data-quantidade>{e.quantidade}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   )
 }
 
-function horaDaTarefa(t: TarefaDeHoje): string {
-  const hoje = new Date().toDateString() === new Date(t.dueAt).toDateString()
-  if (t.atrasado && !hoje) return `Atrasada · ${formatarDataCurta(t.dueAt)} ${formatarHoraDoDia(t.dueAt)}`
-  return `${t.atrasado ? "Atrasada · " : "Hoje · "}${formatarHoraDoDia(t.dueAt)}`
+function horaDaTarefa(t: TarefaDeHoje, fuso: string): string {
+  const hoje = diaNoFuso(new Date(), fuso) === diaNoFuso(new Date(t.dueAt), fuso)
+  if (t.atrasado && !hoje) return `Atrasada · ${formatarDataCurta(t.dueAt, fuso)} ${formatarHoraDoDia(t.dueAt, fuso)}`
+  return `${t.atrasado ? "Atrasada · " : "Hoje · "}${formatarHoraDoDia(t.dueAt, fuso)}`
 }
 
 export function BlocoParaHoje({ tarefasIniciais }: { tarefasIniciais: TarefaDeHoje[] }) {
+  const fuso = useFuso()
   const [tarefas, setTarefas] = useState(tarefasIniciais)
   const [erro, setErro] = useState("")
   const [, startTransition] = useTransition()
@@ -132,7 +140,7 @@ export function BlocoParaHoje({ tarefasIniciais }: { tarefasIniciais: TarefaDeHo
                   {t.instrucao ? <span className="text-muted-foreground"> — {t.instrucao}</span> : null}
                 </span>
                 <span data-atrasada={t.atrasado || undefined} className={cn("numero text-xs", t.atrasado ? "text-queda" : "text-muted-foreground")}>
-                  {horaDaTarefa(t)}
+                  {horaDaTarefa(t, fuso)}
                 </span>
               </span>
             </li>

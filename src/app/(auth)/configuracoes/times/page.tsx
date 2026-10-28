@@ -4,6 +4,7 @@ import { CriarTimeDialog } from "./criar-time-dialog"
 import { AcoesTime } from "./acoes-time"
 import { sessaoAtual } from "@/lib/sessao"
 import { listarTimes, listarUsuariosDoWorkspace } from "./actions"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Times" }
 
@@ -28,7 +29,7 @@ export default async function TimesPage() {
   const [times, todosUsuarios] = await Promise.all([listarTimes(), listarUsuariosDoWorkspace()])
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight">Times</h1>
         <CriarTimeDialog />

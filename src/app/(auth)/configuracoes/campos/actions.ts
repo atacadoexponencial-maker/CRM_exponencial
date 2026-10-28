@@ -234,7 +234,7 @@ export async function adicionarOpcao(campoId: string, nome: string): Promise<Res
   if (!quem) return { erro: SEM_PERMISSAO }
   const campo = await campoDaEmpresa(quem, campoId)
   if (!campo) return { erro: CAMPO_NAO_ENCONTRADO }
-  if (!temOpcoes(campo.tipo)) return { erro: "Só Lista de opções e Múltipla escolha têm opções." }
+  if (!temOpcoes(campo.tipo)) return { erro: "Só os tipos Uma opção e Várias opções têm opções." }
 
   const nomeOk = conferirNome(nome, "opção")
   if ("erro" in nomeOk) return { erro: nomeOk.erro }

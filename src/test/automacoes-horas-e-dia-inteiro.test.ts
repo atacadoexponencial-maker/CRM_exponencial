@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest"
 import { motivoParaIgnorar } from "@/lib/automacoes/execucoes"
 import { FIM_DO_DIA, dentroDoHorario, descreverHorario, problemaDoHorario } from "@/lib/horario-comercial"
 import type { ServiceClient } from "@/lib/automacoes/contexto"
+import { FUSO_DA_OPERACAO } from "@/lib/datas"
 
 /** Banco em que a regra já rodou para o contato, que não está esperando nela (B28-02). */
 function jaRodou(): ServiceClient {
@@ -43,8 +44,8 @@ describe("B22-41 — horário comercial o dia inteiro", () => {
 
   it("23:59 em Brasília está dentro", () => {
     // 23:59 de uma segunda em São Paulo = 02:59 UTC de terça
-    expect(dentroDoHorario(diaInteiro, new Date("2026-10-13T02:59:00Z"))).toBe(true)
-    expect(dentroDoHorario({ ...diaInteiro, fim: "23:59" }, new Date("2026-10-13T02:59:00Z"))).toBe(false)
+    expect(dentroDoHorario(diaInteiro, new Date("2026-10-13T02:59:00Z"), FUSO_DA_OPERACAO)).toBe(true)
+    expect(dentroDoHorario({ ...diaInteiro, fim: "23:59" }, new Date("2026-10-13T02:59:00Z"), FUSO_DA_OPERACAO)).toBe(false)
   })
 
   it("descrição: 'o dia inteiro'", () => {

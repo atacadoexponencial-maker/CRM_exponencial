@@ -16,7 +16,7 @@ import {
   type ConversaAbertaDoContato,
   type EventoMensagemRecebida,
 } from "@/lib/whatsapp/recebimento"
-import { formatarHoraDoDia, formatarHorarioDaLista, formatarDataCurta } from "@/lib/datas"
+import { formatarHoraDoDia, formatarHorarioDaLista, formatarDataCurta, FUSO_DA_OPERACAO } from "@/lib/datas"
 
 const NUMERO_1 = "aaaaaaaa-0000-0000-0000-000000000001"
 const NUMERO_3 = "aaaaaaaa-0000-0000-0000-000000000003"
@@ -94,13 +94,13 @@ describe("horário no fuso da operação", () => {
   const DEZESSEIS_HORAS = "2026-09-22T19:05:00.000Z"
 
   it("mostra a hora de Brasília, não a do servidor", () => {
-    expect(formatarHoraDoDia(DEZESSEIS_HORAS)).toBe("16:05")
+    expect(formatarHoraDoDia(DEZESSEIS_HORAS, FUSO_DA_OPERACAO)).toBe("16:05")
   })
 
   it("vale para a lista de conversas", () => {
     const agora = new Date("2026-09-22T19:30:00.000Z")
 
-    expect(formatarHorarioDaLista(DEZESSEIS_HORAS, agora)).toBe("16:05")
+    expect(formatarHorarioDaLista(DEZESSEIS_HORAS, FUSO_DA_OPERACAO, agora)).toBe("16:05")
   })
 
   it("23h de ontem é 'Ontem', mesmo faltando menos de 24 horas", () => {
@@ -108,7 +108,7 @@ describe("horário no fuso da operação", () => {
     const ontemTarde = "2026-09-22T02:30:00.000Z"
     const agora = new Date("2026-09-22T11:00:00.000Z")
 
-    expect(formatarHorarioDaLista(ontemTarde, agora)).toBe("Ontem")
+    expect(formatarHorarioDaLista(ontemTarde, FUSO_DA_OPERACAO, agora)).toBe("Ontem")
   })
 
   it("dentro da semana mostra o dia, contado no fuso certo", () => {
@@ -116,19 +116,19 @@ describe("horário no fuso da operação", () => {
     const domingo = "2026-09-20T15:00:00.000Z"
     const agora = new Date("2026-09-22T19:00:00.000Z")
 
-    expect(formatarHorarioDaLista(domingo, agora)).toBe("Dom")
+    expect(formatarHorarioDaLista(domingo, FUSO_DA_OPERACAO, agora)).toBe("Dom")
   })
 
   it("mais de uma semana mostra a data cheia", () => {
     const agora = new Date("2026-09-22T19:00:00.000Z")
 
-    expect(formatarHorarioDaLista("2026-04-15T15:00:00.000Z", agora)).toBe(formatarDataCurta("2026-04-15T15:00:00.000Z"))
+    expect(formatarHorarioDaLista("2026-04-15T15:00:00.000Z", FUSO_DA_OPERACAO, agora)).toBe(formatarDataCurta("2026-04-15T15:00:00.000Z", FUSO_DA_OPERACAO))
   })
 
   it("a data curta também respeita o fuso na virada do dia", () => {
     // 22/09 às 21:00 UTC é ainda 22/09 em Brasília (18:00).
-    expect(formatarDataCurta("2026-09-22T21:00:00.000Z")).toContain("22")
+    expect(formatarDataCurta("2026-09-22T21:00:00.000Z", FUSO_DA_OPERACAO)).toContain("22")
     // 23/09 às 02:00 UTC é 22/09 em Brasília (23:00).
-    expect(formatarDataCurta("2026-09-23T02:00:00.000Z")).toContain("22")
+    expect(formatarDataCurta("2026-09-23T02:00:00.000Z", FUSO_DA_OPERACAO)).toContain("22")
   })
 })

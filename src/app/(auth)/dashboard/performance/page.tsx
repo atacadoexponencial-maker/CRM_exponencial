@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { sessaoAtual } from "@/lib/sessao"
 import { buscarPerformanceVendedores } from "../actions"
 import { PerformanceClient } from "./performance-client"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Performance" }
 
@@ -16,7 +17,7 @@ export default async function PerformancePage() {
   if (!linhas) redirect("/dashboard")
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <PerformanceClient linhasIniciais={linhas} />
     </div>
   )

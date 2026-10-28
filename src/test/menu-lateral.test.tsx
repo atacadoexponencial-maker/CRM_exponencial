@@ -20,7 +20,7 @@ const ESPERADO: Record<Papel, Record<string, string[]>> = {
     Automação: ["Campanhas", "Automações"],
     // B41-01: "Funis" em Configurações, para o Admin e o Gerente
     // B38-01: "Campos personalizados" logo abaixo de Funis, para o Admin e o Gerente
-    Configurações: ["Funis", "Campos personalizados", "Mensagens Rápidas", "Etiquetas", "Templates", "Usuários", "Times", "WhatsApp"],
+    Configurações: ["Funis", "Campos personalizados", "Mensagens Rápidas", "Etiquetas", "Templates", "Usuários", "Times", "WhatsApp", "Empresa"],
   },
   gerente: {
     "": ["Dashboard", "Pipeline", "Chat", "Contatos", "Catálogo", "Pedidos", "Relatórios"],

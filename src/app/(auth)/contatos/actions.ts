@@ -1,5 +1,7 @@
 "use server"
 
+import { formatarData, formatarDataDoCalendario, formatarHoraDoDia } from "@/lib/datas"
+import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 import { enderecoDoFunil, lerNomesDosFunis } from "@/lib/funis"
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
@@ -148,7 +150,7 @@ export async function criarContato(dados: {
     .single()
 
   if (error) {
-    if (error.code === "23505") return { erro: "Número já cadastrado neste workspace" }
+    if (error.code === "23505") return { erro: "Número já cadastrado nesta empresa" }
     return { erro: "Erro ao criar contato. Tente novamente." }
   }
 
@@ -199,14 +201,9 @@ const ETAPA_ENTRADA_LABEL: Record<string, string> = {
 
 const PERFIL_SELECT = "id, workspace_id, name, phone_number, tipo, cidade, uf, icp, observacoes, created_at, atendente_id, photo_path"
 
-function formatarDataEvento(iso: string): string {
-  const d = new Date(iso)
-  const dia = String(d.getDate()).padStart(2, "0")
-  const mes = String(d.getMonth() + 1).padStart(2, "0")
-  const ano = d.getFullYear()
-  const hora = String(d.getHours()).padStart(2, "0")
-  const min = String(d.getMinutes()).padStart(2, "0")
-  return `${dia}/${mes}/${ano} ${hora}:${min}`
+// B48-14: no fuso da empresa; antes saía no relógio do servidor, que é UTC.
+function formatarDataEvento(iso: string, fuso: string): string {
+  return `${formatarData(iso, fuso)} ${formatarHoraDoDia(iso, fuso)}`
 }
 
 const ETAPA_LABEL_ALL: Record<string, string> = {
@@ -398,9 +395,10 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
 
   eventos.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
+  const fuso = await fusoDaEmpresa()
   const timeline = eventos.map((e) => ({
     id: e.id,
-    data: formatarDataEvento(e.created_at),
+    data: formatarDataEvento(e.created_at, fuso),
     tipo: e.tipo as import("./mock-contatos").TipoEvento,
     descricao: e.descricao,
     responsavel: e.responsavel,
@@ -433,7 +431,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
     cards,
     compras: rawCompras.map((p) => ({
       id: p.id,
-      data: new Date(p.data + "T00:00:00").toLocaleDateString("pt-BR"),
+      data: formatarDataDoCalendario(p.data),
       valor: Number(p.valor),
       pecas: p.pecas ?? null,
       desconto: p.desconto === null || p.desconto === undefined ? null : Number(p.desconto),

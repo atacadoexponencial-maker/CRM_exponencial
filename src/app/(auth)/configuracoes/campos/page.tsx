@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { sessaoAtual } from "@/lib/sessao"
 import { listarCamposParaGerenciar } from "./actions"
 import { CamposClient } from "./campos-client"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Campos personalizados" }
 
@@ -14,7 +15,7 @@ export default async function CamposPage() {
   const campos = await listarCamposParaGerenciar()
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <CamposClient campos={campos} />
     </div>
   )

@@ -14,6 +14,7 @@ import { calcularClassificacao } from "@/app/(auth)/contatos/classificacao"
 import { normalizarTexto } from "@/lib/catalogo/planilha"
 import { itensDaLista, normalizarTag, SEM_COMPRAS, type Verificacao } from "@/lib/fluxo-automacao"
 import { dentroDoHorario, horarioDoBanco } from "@/lib/horario-comercial"
+import { fusoDoWorkspace } from "@/lib/fuso-da-empresa"
 import { conversaDoEvento, type ContextoDaExecucao } from "./contexto"
 import { campoAtende, valorDaLinha, type TipoDeCampo } from "@/lib/campos-personalizados"
 
@@ -129,7 +130,8 @@ async function horarioVale({ supabase, gatilho }: ContextoDaExecucao, { operador
     .maybeSingle()
   if (error) throw error
 
-  const dentro = dentroDoHorario(horarioDoBanco(data), new Date())
+  const fuso = await fusoDoWorkspace(supabase, gatilho.workspaceId)
+  const dentro = dentroDoHorario(horarioDoBanco(data), new Date(), fuso)
   return operador === "dentro" ? dentro : !dentro
 }
 

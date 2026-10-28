@@ -11,6 +11,7 @@ import { ListaNumeros } from "./canal-direto/lista-numeros"
 import type { NumeroConectado } from "./canal-direto/cartao-numero"
 import type { EstadoConexao } from "./canal-direto/estado-badge"
 import { situacaoDaPausa } from "@/lib/whatsapp/gateway/pausa"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "WhatsApp" }
 
@@ -57,7 +58,7 @@ export default async function WhatsAppPage() {
   }))
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-6">WhatsApp</h1>
 
       <ListaNumeros
