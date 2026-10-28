@@ -406,6 +406,13 @@ aparece uma frase curta ou um "?" com a explicação. Decisão do Luan
 | SUP-B46-02 | O follow-up pode ser editado e apagado por quem o criou, pelo atendente dele e por Admin e Gerente, como já é no adiar | invalidada | Por enquanto, todo usuário da empresa edita e apaga qualquer follow-up da empresa (CA-B46-14 reescrito). Luan, 27/10/2026 |
 | SUP-B46-04 | O fuso é da empresa e só o Admin troca (B46-14). Era a recomendação, aceita junto com as outras | confirmada | Luan, 27/10/2026 ("pode levar em consideração as recomendações") |
 | SUP-B46-03 | A variável pendente é inserida ao salvar, em vez de bloquear o Salvar (CA-B46-17) | confirmada | Luan, 27/10/2026 |
+| SUP-B46-05 | Dashboard com o funil todo zerado mostra "Nenhum card neste funil ainda" e o link do Pipeline, em vez das barras vazias; com algum card, as barras continuam | confirmada | Luan, 28/10/2026 |
+| SUP-B46-06 | A "Visão geral" das Carteiras vira tabela: Total, Com carteira e Sem carteira nas linhas; Sem compra, Base, Ativos e Inativos nas colunas | confirmada | Luan, 28/10/2026 |
+| SUP-B46-07 | O Novo follow-up abre só com a busca; a lista de contatos aparece quando se digita | confirmada | Luan, 28/10/2026 |
+| SUP-B46-08 | O "Editar funil" abre logo abaixo do funil clicado, na própria lista | confirmada | Luan, 28/10/2026 |
+| SUP-B46-09 | O seletor de blocos fica mais largo, com os grupos em duas colunas, para "Agenda" aparecer sem rolar | confirmada | Luan, 28/10/2026 |
+| SUP-B46-10 | Automação nova: enquanto só existe o gatilho, aparece "Clique no + embaixo do gatilho para escolher o próximo bloco" | confirmada | Luan, 28/10/2026 |
+| SUP-B46-11 | Mensagens rápidas no Chat: nome inteiro em cima, texto embaixo cortado em uma linha | confirmada | Luan, 28/10/2026 |
 
 ## Perguntas em aberto
 
@@ -413,3 +420,4 @@ aparece uma frase curta ou um "?" com a explicação. Decisão do Luan
 |---|---|---|---|
 | PER-B46-01 | A automação nova deve nascer desligada, com "Salvar e ativar" à parte? Hoje nasce ligada (B46-08) | respondida | Sim, nasce desligada. Luan, 27/10/2026 |
 | PER-B46-02 | Que nome dar aos contatos sem compra nas Carteiras, para não confundir com os "Leads" do Pipeline? Sugestão: "Sem compra" (B46-10) | respondida | "Sem compra". Luan, 27/10/2026 |
+| PER-B46-03 | O termo do canal direto (versionado: mudar o texto pede novo aceite), a Política de Privacidade e os Termos de Serviço também trocam "workspace" por "empresa"? | respondida | Não, os três ficam como estão; o teste do CA-B46-33 os ignora, com o motivo escrito. Luan, 28/10/2026 |

@@ -91,14 +91,15 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
 
   function abrirCriar() {
     setNovoNome("")
-    setNovaCor("")
+    // B46-13: abre com a primeira cor marcada
+    setNovaCor(CORES_DISPONIVEIS[0])
     setErroCriar(null)
     setDialogCriarAberto(true)
   }
 
   async function handleCriar() {
     const nome = novoNome.trim()
-    if (!nome || !novaCor) return
+    if (!nome) { setErroCriar("Dê um nome à etiqueta"); return }
     setIsPendingCriar(true)
     setErroCriar(null)
     const resultado = await criarEtiqueta(nome, novaCor)
@@ -242,7 +243,7 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
                 id="novo-nome-etiqueta"
                 type="text"
                 value={novoNome}
-                onChange={(e) => setNovoNome(e.target.value)}
+                onChange={(e) => { setNovoNome(e.target.value); setErroCriar(null) }}
                 placeholder="Ex: Cliente VIP"
               />
             </div>
@@ -259,7 +260,7 @@ export function EtiquetasClient({ etiquetasIniciais }: { etiquetasIniciais: Etiq
               </DialogClose>
               <Button
                 onClick={handleCriar}
-                disabled={!novoNome.trim() || !novaCor || isPendingCriar}
+                disabled={isPendingCriar}
               >
                 Salvar
               </Button>

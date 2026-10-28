@@ -125,6 +125,8 @@ describe("B46-04 — salvar confirma", () => {
   it("CA-B46-09: criar funil mostra 'Funil salvo'", async () => {
     render(<><AvisosNaTela /><FunisClient dados={{ fixos: [], funis: [] }} /></>)
     fireEvent.click(screen.getByRole("button", { name: /Novo funil/ }))
+    // B46-13: o nome vazio é barrado no formulário
+    fireEvent.change(screen.getByPlaceholderText("Ex.: Feira de Março"), { target: { value: "Feira" } })
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Criar funil" })))
     expect(await screen.findByText("Funil salvo")).toBeTruthy()
   })

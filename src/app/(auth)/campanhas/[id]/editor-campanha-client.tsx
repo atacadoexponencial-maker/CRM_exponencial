@@ -527,7 +527,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
                   value={numeroOrigem}
                   onChange={(e) => setNumeroOrigem(e.target.value)}
                 >
-                  <option value="">Usar o número conectado do workspace</option>
+                  <option value="">Usar o número conectado da empresa</option>
                   {numeros.map((n) => (
                     <option key={n.id} value={n.id}>
                       {[n.numero ?? "número não confirmado", n.nomeExibicao, n.canalNome]

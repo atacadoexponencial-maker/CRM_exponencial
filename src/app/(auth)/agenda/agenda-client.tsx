@@ -169,7 +169,6 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
     setNotaFU("")
     setErroFU(null)
     setDialogAberto(true)
-    void buscarContatosParaFollowUp("").then(setResultados)
   }
 
   function abrirEditar(item: ItemAgenda) {
@@ -375,7 +374,8 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
                       className="pl-8"
                     />
                   </div>
-                  {resultados.length > 0 && (
+                  {/* B46-13: a lista só aparece quando se digita */}
+                  {termoBusca.trim() !== "" && resultados.length > 0 && (
                     <div className="rounded-lg border divide-y max-h-40 overflow-y-auto">
                       {resultados.map((c) => (
                         <button

@@ -710,6 +710,12 @@ function EditorFluxoInterno({
                 )}
               </Panel>
             )}
+            {/* B46-13: automação só com o gatilho ganha a dica de por onde seguir */}
+            {nos.length === 1 && nos[0].data.bloco.tipo === "gatilho" && (
+              <Panel position="bottom-center" className="rounded-lg border bg-background px-3 py-2 text-sm text-muted-foreground shadow-sm">
+                Clique no + embaixo do gatilho para escolher o próximo bloco
+              </Panel>
+            )}
           </ReactFlow>
         </ContextoEditorFluxo.Provider>
 

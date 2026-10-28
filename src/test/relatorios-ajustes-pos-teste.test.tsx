@@ -2,7 +2,7 @@
 // legenda de R/F/V/FV, indicadores embaixo da matriz, % no Excel e paginação do histórico.
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { act, fireEvent, render, screen } from "@testing-library/react"
+import { act, fireEvent, render, screen, within } from "@testing-library/react"
 import * as XLSX from "xlsx"
 import { calcularRfv } from "@/lib/relatorios/rfv"
 import { calcularPainelDeCarteiras } from "@/lib/relatorios/carteiras"
@@ -111,7 +111,7 @@ describe("Carteiras — histórico paginado", () => {
   it("mostra 10 por vez com 'Mostrando 1–10 de 25' e a seta busca a página seguinte no servidor", async () => {
     buscarHistoricoDeCarteira.mockResolvedValue({ linhas: Array.from({ length: 10 }, (_, i) => linha(11 + i)), total: 25 })
     render(<PainelDeCarteiras resultado={{ papel: "admin", painel, historico: Array.from({ length: 10 }, (_, i) => linha(1 + i)), historicoTotal: 25 }} />)
-    expect(screen.getAllByRole("row")).toHaveLength(11)
+    expect(within(screen.getByTestId("historico-carteira")).getAllByRole("row")).toHaveLength(11)
     expect(screen.getByTestId("paginacao-historico")).toHaveTextContent("Mostrando 1–10 de 25")
     expect(screen.getByRole("button", { name: "Página anterior" })).toBeDisabled()
 

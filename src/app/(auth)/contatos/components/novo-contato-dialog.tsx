@@ -93,7 +93,7 @@ export function NovoContatoDialog({ campos = [] }: { campos?: CampoPersonalizado
     const valor = e.target.value.trim()
     if (!valor) return
     const duplicado = await verificarNumeroDuplicado(valor)
-    if (duplicado) setErroTelefone("Número já cadastrado neste workspace")
+    if (duplicado) setErroTelefone("Número já cadastrado nesta empresa")
   }
 
   function handleTelefoneChange(e: React.FocusEvent<HTMLInputElement>) {

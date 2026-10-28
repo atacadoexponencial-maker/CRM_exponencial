@@ -60,7 +60,7 @@ export default async function TemplatesPage() {
     <div className={CLASSE_DA_PAGINA}>
       {semTemplates.length > 0 && comTemplates.length > 0 && (
         <p className="mb-5 rounded-lg border border-aviso/30 bg-aviso-fundo p-4 text-sm">
-          Este workspace tem número no canal direto e número na API Oficial. Os templates
+          Esta empresa tem número no canal direto e número na API Oficial. Os templates
           abaixo valem <strong>apenas para o número da API Oficial</strong> — no canal direto
           qualquer texto pode ser enviado, sem template.
         </p>

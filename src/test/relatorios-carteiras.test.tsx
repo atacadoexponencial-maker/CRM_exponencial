@@ -29,7 +29,7 @@ const CONTATOS = [
 ]
 const VENDEDORES = [{ id: ANA, nome: "Ana" }, { id: BRUNO, nome: "Bruno" }]
 
-const numeros = (testid: string) => Array.from(screen.getByTestId(testid).querySelectorAll("p.text-2xl")).map((p) => p.textContent)
+const numeros = (testid: string) => Array.from(screen.getByTestId(testid).querySelectorAll("[data-numero]")).map((p) => p.textContent)
 
 beforeEach(() => buscarCarteiras.mockReset())
 

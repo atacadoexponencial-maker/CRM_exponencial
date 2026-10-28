@@ -762,10 +762,11 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
                         setTermoBuscaMR("")
                         setTimeout(() => inputRef.current?.focus(), 0)
                       }}
-                      className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors flex gap-3 items-start border-b last:border-0"
+                      className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors flex flex-col gap-0.5 border-b last:border-0"
                     >
-                      <span className="font-mono text-xs text-muted-foreground shrink-0 mt-0.5 w-24 truncate">{mr.titulo}</span>
-                      <span className="text-xs text-foreground truncate">{mr.conteudo}</span>
+                      {/* B46-13: o nome inteiro em cima, o texto numa linha embaixo */}
+                      <span className="font-mono text-xs text-muted-foreground break-words">{mr.titulo}</span>
+                      <span className="w-full text-xs text-foreground truncate">{mr.conteudo}</span>
                     </button>
                   ))
                 )}

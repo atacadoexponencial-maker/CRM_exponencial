@@ -34,19 +34,20 @@ const LOGICA = {
 export function MenuNovoBloco({ aberto, saida, onFechar, onEscolher }: MenuNovoBlocoProps) {
   return (
     <Dialog open={aberto} onOpenChange={(open) => !open && onFechar()}>
-      <DialogPopup className="max-h-[85dvh] max-w-md overflow-y-auto">
+      {/* B46-13: mais largo, com os grupos em duas colunas, para todos caberem sem rolar */}
+      <DialogPopup className="max-h-[85dvh] max-w-md overflow-y-auto sm:max-w-2xl">
         <DialogTitle>{saida ? TITULO_POR_SAIDA[saida] : "Adicionar bloco"}</DialogTitle>
         <DialogDescription className="mb-4">
           {saida ? "O bloco novo já nasce ligado." : "O bloco nasce solto; ligue-o a um caminho depois."}
         </DialogDescription>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 sm:block sm:columns-2 sm:gap-6">
           {GRUPOS_NOVO_BLOCO.map((grupo) => (
-            <section key={grupo.titulo}>
+            <section key={grupo.titulo} className="sm:mb-4 sm:break-inside-avoid">
               <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {grupo.titulo}
               </h3>
-              <div className="grid gap-1 sm:grid-cols-2">
+              <div className="grid gap-1">
                 {grupo.itens.map((item) => {
                   const ehLogica = item === "condicao" || item === "espera"
                   const Icone = ehLogica ? LOGICA[item].icone : ACOES[item].icone

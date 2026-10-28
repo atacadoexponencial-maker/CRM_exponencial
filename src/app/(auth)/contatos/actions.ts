@@ -149,7 +149,7 @@ export async function criarContato(dados: {
     .single()
 
   if (error) {
-    if (error.code === "23505") return { erro: "Número já cadastrado neste workspace" }
+    if (error.code === "23505") return { erro: "Número já cadastrado nesta empresa" }
     return { erro: "Erro ao criar contato. Tente novamente." }
   }
 

@@ -97,12 +97,16 @@ function NovoFunil({ onFechar, onCriado }: { onFechar: () => void; onCriado: () 
   const [etapas, setEtapas] = useState<EtapaNova[]>([{ nome: "", cor: null }])
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [erroNome, setErroNome] = useState<string | null>(null)
 
   function mudarEtapa(i: number, mudanca: Partial<EtapaNova>) {
     setEtapas((lista) => lista.map((e, j) => (j === i ? { ...e, ...mudanca } : e)))
   }
 
   async function salvar() {
+    // B46-13: o nome vazio é barrado aqui, na hora; o servidor continua validando
+    if (!nome.trim()) { setErroNome("Informe o nome do funil."); return }
+    setErroNome(null)
     setErro(null)
     setSalvando(true)
     try {
@@ -127,7 +131,8 @@ function NovoFunil({ onFechar, onCriado }: { onFechar: () => void; onCriado: () 
       </div>
       <label className="block space-y-1.5 text-sm">
         <span>Nome do funil</span>
-        <Input value={nome} maxLength={NOME_MAXIMO} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Feira de Março" />
+        <Input value={nome} maxLength={NOME_MAXIMO} onChange={(e) => { setNome(e.target.value); setErroNome(null) }} placeholder="Ex.: Feira de Março" aria-invalid={!!erroNome} />
+        {erroNome && <span role="alert" className="block text-xs text-destructive">{erroNome}</span>}
       </label>
       <div className="space-y-2">
         <span className="text-sm">Etapas, na ordem das colunas</span>
@@ -222,7 +227,7 @@ function EtapaEditavel({ etapa, posicao, outras, onSalvo }: { etapa: EtapaDoEdit
           className="sm:max-w-56"
         />
         <SeletorDeCor rotulo={etapa.nome} cor={etapa.cor} onChange={(cor) => void salvar({ cor })} />
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <label className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground">
           Avisar parado depois de
           <Input
             aria-label={`Prazo de parado de ${etapa.nome}`}
@@ -235,7 +240,7 @@ function EtapaEditavel({ etapa, posicao, outras, onSalvo }: { etapa: EtapaDoEdit
           />
           dias
         </label>
-        <span className="numero text-xs text-muted-foreground">{etapa.cards} {etapa.cards === 1 ? "card" : "cards"}</span>
+        <span className="numero shrink-0 whitespace-nowrap text-xs text-muted-foreground">{etapa.cards} {etapa.cards === 1 ? "card" : "cards"}</span>
         <span className="flex items-center gap-1 sm:ml-auto">
           <Button type="button" size="icon-sm" variant="ghost" aria-label={`Subir ${etapa.nome}`} disabled={salvando || posicao === 0} onClick={() => executar(() => moverEtapa(etapa.id, "subir"))}>
             <ArrowUp className="size-3.5" />
@@ -428,7 +433,6 @@ export function FunisClient({ dados }: { dados: FunisParaGerenciar }) {
       </div>
 
       {criando && <NovoFunil onFechar={() => setCriando(false)} onCriado={() => { setCriando(false); router.refresh() }} />}
-      {editando && <EditorDoFunil key={editando.id} funil={editando} onFechar={() => setEditandoId(null)} onSalvo={() => router.refresh()} />}
 
       <ul aria-label="Lista de funis" className="divide-y divide-border rounded-lg border border-border bg-card">
         {dados.fixos.map((f) => (
@@ -444,7 +448,7 @@ export function FunisClient({ dados }: { dados: FunisParaGerenciar }) {
           <li key={f.id} data-funil={f.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
             <Link href={`/pipeline/funil/${f.id}`} className="font-medium hover:underline">{f.nome}</Link>
             <span className="flex items-center gap-4">
-              <span className="numero text-xs text-muted-foreground">
+              <span className="numero whitespace-nowrap text-xs text-muted-foreground">
                 {f.etapas.length} {f.etapas.length === 1 ? "etapa" : "etapas"} · {f.cards} {f.cards === 1 ? "card" : "cards"}
               </span>
               <Button size="sm" variant="ghost" onClick={() => { setEditandoId(f.id); setCriando(false) }}>Editar</Button>
@@ -452,6 +456,12 @@ export function FunisClient({ dados }: { dados: FunisParaGerenciar }) {
                 <Trash2 className="size-3.5" />
               </Button>
             </span>
+            {/* B46-13: o editor abre logo abaixo do funil, perto do botão */}
+            {editando?.id === f.id && (
+              <div className="w-full pt-2">
+                <EditorDoFunil key={f.id} funil={f} onFechar={() => setEditandoId(null)} onSalvo={() => router.refresh()} />
+              </div>
+            )}
             {apagandoId === f.id && (
               <ApagarFunil
                 funil={f}

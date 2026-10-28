@@ -279,7 +279,7 @@ export function ListaNumeros({
         <div>
           <h2 className="text-base font-semibold">Números conectados</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {numeros.length} {numeros.length === 1 ? "número" : "números"} neste workspace
+            {numeros.length} {numeros.length === 1 ? "número" : "números"} nesta empresa
           </p>
         </div>
         {!conectando && (

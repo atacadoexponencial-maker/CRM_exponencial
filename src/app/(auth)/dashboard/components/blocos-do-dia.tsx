@@ -36,6 +36,7 @@ export function BlocoFunilEntrada({
   const etapas = outro ? outro.etapas : etapasDaEntrada
   const titulo = outro ? outro.nome : "Funil de Entrada"
   const maior = Math.max(1, ...etapas.map((e) => e.quantidade))
+  const vazio = etapas.every((e) => e.quantidade === 0)
   return (
     <section aria-label={titulo} className="flex flex-col">
       <TituloDoBloco
@@ -57,21 +58,26 @@ export function BlocoFunilEntrada({
           </span>
         }
       />
-      <ul className="flex flex-col gap-2.5">
-        {etapas.map((e) => (
-          <li key={e.id} data-etapa={e.id} className="grid grid-cols-[132px_minmax(0,1fr)_48px] items-center gap-3">
-            <span className="truncate text-sm">{e.label}</span>
-            <span className="h-[18px] rounded-[3px] bg-muted" aria-hidden="true">
-              <span
-                data-largura={Math.round((e.quantidade / maior) * 100)}
-                className={cn("block h-full rounded-[3px]", !outro && e.id === "ganho" ? "bg-primary" : "bg-chart-5")}
-                style={{ width: `${(e.quantidade / maior) * 100}%` }}
-              />
-            </span>
-            <span className="numero text-right text-sm" data-quantidade>{e.quantidade}</span>
-          </li>
-        ))}
-      </ul>
+      {/* B46-13: funil sem nenhum card diz isso, em vez de mostrar barras zeradas */}
+      {vazio ? (
+        <p className="border-t py-4 text-sm text-muted-foreground">Nenhum card neste funil ainda.</p>
+      ) : (
+        <ul className="flex flex-col gap-2.5">
+          {etapas.map((e) => (
+            <li key={e.id} data-etapa={e.id} className="grid grid-cols-[132px_minmax(0,1fr)_48px] items-center gap-3">
+              <span className="truncate text-sm">{e.label}</span>
+              <span className="h-[18px] rounded-[3px] bg-muted" aria-hidden="true">
+                <span
+                  data-largura={Math.round((e.quantidade / maior) * 100)}
+                  className={cn("block h-full rounded-[3px]", !outro && e.id === "ganho" ? "bg-primary" : "bg-chart-5")}
+                  style={{ width: `${(e.quantidade / maior) * 100}%` }}
+                />
+              </span>
+              <span className="numero text-right text-sm" data-quantidade>{e.quantidade}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   )
 }
