@@ -88,3 +88,10 @@ Fora do git: o `.env.teste.local` copiado para a pasta principal.
 - [x] Atualizar o `CLAUDE.md`
 - [x] Copiar o `.env.teste.local` para a pasta principal
 - [x] Rodar o `tsc` no projeto inteiro
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B46-16 | Claude, a pedido da Marcelle | 28/10/2026 |
+| CA-B46-17 | Claude, a pedido da Marcelle | 28/10/2026 |
