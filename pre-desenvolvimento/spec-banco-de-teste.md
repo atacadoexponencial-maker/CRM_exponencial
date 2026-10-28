@@ -199,11 +199,15 @@ teste. Ela só vai para a produção depois de testada.
 - **Então** ela aparece aplicada no banco de teste e continua faltando na
   produção
 
-#### CA-B46-15 — a migration da B45 é testada no banco de teste antes da produção · prova: manual
+#### CA-B46-15 — a próxima migration nova é testada no banco de teste antes da produção · prova: manual
 
-- **Dado** a migration da B45 (todo contato nasce com card), commitada e ainda
-  não aplicada na produção
-- **Quando** ela é aplicada no banco de teste e os testes da B45 rodam lá
+> Trocado em 28/10/2026 (Marcelle): as migrations da B45 já tinham ido para a
+> produção em 27/10, antes do banco de teste ficar pronto. O critério passa a
+> valer para a primeira migration nova depois da série.
+
+- **Dado** a primeira migration nova commitada depois da B46, ainda não aplicada
+  na produção
+- **Quando** ela é aplicada no banco de teste e os testes da série dela rodam lá
 - **Então** a Marcelle confere que os testes passaram no banco de teste e que a
   produção só recebeu a migration depois disso
 

@@ -20,7 +20,7 @@ passou por ele antes da produção, e a documentação diz qual banco é qual.
 
 ## Critérios de aceite
 
-- **CA-B46-15** (manual) — a migration da B45 é testada no banco de teste antes da produção. Dado a migration da B45 (todo contato nasce com card), commitada e ainda não aplicada na produção, quando ela é aplicada no banco de teste e os testes da B45 rodam lá, então a Marcelle confere que os testes passaram no banco de teste e que a produção só recebeu a migration depois disso.
+- **CA-B46-15** (manual) — a próxima migration nova é testada no banco de teste antes da produção. Dado a primeira migration nova commitada depois da B46, ainda não aplicada na produção, quando ela é aplicada no banco de teste e os testes da série dela rodam lá, então a Marcelle confere que os testes passaram no banco de teste e que a produção só recebeu a migration depois disso.
 - **CA-B46-16** (manual) — a troca só acontece depois do commit da B45. Dado o banco de teste pronto e a B45 ainda sem commit no `master`, quando o commit da B45 aparece no `master`, então o `.env.local` passa a apontar os testes para o banco de teste, e antes desse commit ele não muda.
 - **CA-B46-17** (manual) — a documentação diz qual banco é qual. Dado a mudança no ar, quando alguém lê o `CLAUDE.md` e o `e2e/preview/README.md`, então os dois dizem que a produção e o banco de teste são separados, que o preview e os testes usam o de teste, que os testes com chip e os roteiros de envio usam a produção, e como aplicar migration no banco de teste. O aviso "o Supabase é um só" sai dos dois.
 
