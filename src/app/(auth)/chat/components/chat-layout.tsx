@@ -35,6 +35,12 @@ interface ChatLayoutProps {
 
 export function ChatLayout({ conversas, temMaisConversas = false, papel, userId, nomeUsuario, workspaceId, atendentes, atendentesTransferir, etiquetasDisponiveis, mensagensRapidas, conversaInicialId, caixaRecolhidaInicial = false }: ChatLayoutProps) {
   const fuso = useFuso()
+  // Os canais do tempo real vivem enquanto a empresa e o papel não mudam; o fuso que
+  // eles usam é sempre o atual, sem reabrir os canais quando o Admin troca o fuso.
+  const fusoAtual = useRef(fuso)
+  useEffect(() => {
+    fusoAtual.current = fuso
+  })
   const [conversasState, setConversasState] = useState<Conversa[]>(conversas)
   const [temMais, setTemMais] = useState(temMaisConversas)
   const [carregandoMais, setCarregandoMais] = useState(false)
@@ -70,7 +76,7 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
         },
         (payload) => {
           const row = payload.new as LinhaDaConversa
-          setConversasState((prev) => aplicarAtualizacaoDaConversa(prev, row, fuso))
+          setConversasState((prev) => aplicarAtualizacaoDaConversa(prev, row, fusoAtual.current))
         }
       )
       .on(
@@ -167,7 +173,7 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
         direcao: row.direction as Mensagem["direcao"],
         conteudo: row.content,
         // Mesma formatação das mensagens carregadas pela página.
-        horario: formatarHoraDoDia(row.created_at, fuso),
+        horario: formatarHoraDoDia(row.created_at, fusoAtual.current),
         status: row.status as Mensagem["status"] | undefined,
         ...(row.sent_from_phone ? { enviadaPeloCelular: true } : {}),
         ...(row.media_mime_type ? { tipoDoArquivo: row.media_mime_type } : {}),
