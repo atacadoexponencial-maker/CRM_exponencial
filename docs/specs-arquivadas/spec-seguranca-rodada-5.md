@@ -1,7 +1,7 @@
 # Spec: Segurança, rodada 5 (rodada 2 da auditoria de 27/10)
 
 > série: B47
-> estado: aprovada em 28/10/2026
+> estado: aprovada em 28/10/2026; no ar e arquivada em 28/10/2026
 
 > Origem: as 6 unidades que a auditoria `security-audit` de 27/10/2026 (run-1) deixou
 > adiadas por orçamento (`REPORT.md`, seção 7, em
