@@ -3,6 +3,7 @@
 
 import { createServiceClient } from "@/integrations/supabase/service"
 import { buscarEGuardarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
+import { criarCardDeEntrada } from "@/lib/card-de-entrada"
 import { chaveCombinacao, combinacoes, type TipoVariacao } from "./combinacoes"
 import { carregarLojaPublica } from "./loja-publica"
 import { chaveDoTelefoneNaLoja, liberarTentativa, reservarTentativa } from "@/lib/limite-de-tentativas"
@@ -63,6 +64,8 @@ async function acharOuCriarContato(workspaceId: string, whatsapp: string, nome: 
   if (existente) return existente.id
   const { data: criado, error } = await svc.from("contacts").insert({ workspace_id: workspaceId, phone_number: whatsapp, name: nome }).select("id").single()
   if (error || !criado) throw new Error(`Não foi possível criar o contato: ${error?.message ?? "sem detalhe"}`)
+  // B45-01: todo contato nasce com card na Entrada
+  await criarCardDeEntrada(svc, workspaceId, criado.id)
   return criado.id
 }
 

@@ -92,6 +92,9 @@ beforeAll(async () => {
   await criarContato("outro", wsA, "Loja de Outro", 2)
   // O atendente atende o contato pelo card do funil (regra de pode_ver_contato).
   await service.from("pipeline_cards").insert({ workspace_id: wsA, contact_id: contatos.daCarteira, funil: "entrada", etapa: "lead", atendente_id: pessoas.atendente.id })
+  // B45-02/03: o dono do contato decide quem o vê; o "outro" é do Admin, não do atendente
+  await service.from("contacts").update({ atendente_id: pessoas.atendente.id }).in("id", [contatos.daConversa, contatos.daCarteira])
+  await service.from("contacts").update({ atendente_id: pessoas.admin.id }).eq("id", contatos.outro)
 }, 120_000)
 
 afterAll(async () => {
@@ -430,6 +433,9 @@ describe("B38-03 — campos no filtro e nas campanhas", { timeout: 120_000 }, ()
       { workspace_id: wsD, contact_id: doD.G1, funil: "entrada", etapa: "lead", atendente_id: pessoas.atendenteD.id },
       { workspace_id: wsD, contact_id: doD.G3, funil: "entrada", etapa: "lead", atendente_id: pessoas.atendenteD.id },
     ])
+    // B45-02/03: G1 e G3 são do Atendente D; os outros, do Admin D (o atendente não os vê)
+    await service.from("contacts").update({ atendente_id: pessoas.adminD.id }).eq("workspace_id", wsD)
+    await service.from("contacts").update({ atendente_id: pessoas.atendenteD.id }).in("id", [doD.G1, doD.G3])
   }, 120_000)
 
   it("CA-B38-31: should filtrar pelo Porte e contar os contatos, e trazer os 4 sem valor com está vazio", async () => {

@@ -24,7 +24,8 @@ describe("QA A5 — atribuir grava o atendente no contato", () => {
     expect(await executarAcao(b.contexto(conversaCriada), acao("atribuir_atendente", { atendente_id: "u-1" }))).toEqual({ ok: true })
     expect(b.gravacoes("pipeline_cards")[0].args[0]).toEqual({ atendente_id: "u-1" })
     expect(b.gravacoes("contacts")[0].args[0]).toEqual({ atendente_id: "u-1" })
-    expect(b.filtros("contacts")).toContainEqual(["id", "contato-1"])
+    // B45-02: o contato é gravado junto com os cards e as conversas dele, pela lista de ids
+    expect(b.chamadas).toContainEqual(expect.objectContaining({ tabela: "contacts", metodo: "in", args: ["id", ["contato-1"]] }))
   })
 
   it("atribuir ao time: o contato recebe quem o time escolheu", async () => {

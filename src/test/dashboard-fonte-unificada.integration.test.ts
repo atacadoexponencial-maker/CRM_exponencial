@@ -59,8 +59,9 @@ beforeAll(async () => {
   const pedido = (await service.from("catalog_orders").select("id, contact_id").eq("workspace_id", ws).eq("number", r.numero).single()).data!
   contatoId = pedido.contact_id!
 
-  // O card do contato no funil de recompra é da Ana.
+  // O card do contato no funil de recompra é da Ana. B45-02: ela é a dona do contato.
   await service.from("pipeline_cards").insert({ workspace_id: ws, contact_id: contatoId, funil: "recompra", etapa: "ativos", atendente_id: anaId })
+  await service.from("contacts").update({ atendente_id: anaId }).eq("id", contatoId)
 
   // Admin fecha o pedido (compra do catálogo, R$ 250, atendente = Admin) e registra a manual de R$ 100 com o Bruno.
   entrarComo(adminId)
@@ -92,22 +93,25 @@ describe("B30-03 — Dashboard e performance na fonte unificada", { timeout: 60_
     expect(m?.receita.totalCompras).toBe(350)
     expect(m?.receita.quantidadeCompras).toBe(2)
 
-    // O filtro por atendente segue a regra da venda: a manual é do Bruno, a do catálogo de quem fechou (Admin).
-    expect((await buscarMetricasDashboard({ ...filtro, atendenteId: brunoId }))?.receita.totalCompras).toBe(100)
-    expect((await buscarMetricasDashboard({ ...filtro, atendenteId: adminId }))?.receita.totalCompras).toBe(250)
-    expect((await buscarMetricasDashboard({ ...filtro, atendenteId: anaId }))?.receita.totalCompras).toBe(0)
+    // B45-04 (PER-B45-06) substituiu a regra da B30-03: o filtro por atendente segue a
+    // carteira, não o vendedor da venda. As duas compras são da Ana, dona do cliente.
+    expect((await buscarMetricasDashboard({ ...filtro, atendenteId: anaId }))?.receita.totalCompras).toBe(350)
+    expect((await buscarMetricasDashboard({ ...filtro, atendenteId: brunoId }))?.receita.totalCompras).toBe(0)
+    expect((await buscarMetricasDashboard({ ...filtro, atendenteId: adminId }))?.receita.totalCompras).toBe(0)
   })
 
-  it("CA-B30-17: a compra registrada com o Bruno entra no ticket dele e não no da Ana, dona do card", async () => {
+  // B45-04 (PER-B45-06) substituiu a regra da B30-03: a compra registrada com o Bruno
+  // entra no ticket da Ana, dona do cliente, e não no dele.
+  it("CA-B30-17: a compra registrada com o Bruno entra no ticket da Ana, dona do cliente, e não no dele", async () => {
     entrarComo(adminId)
     const linhas = (await buscarPerformanceVendedores(filtro))!
     const bruno = linhas.find((l) => l.atendenteId === brunoId)!
     const ana = linhas.find((l) => l.atendenteId === anaId)!
-    expect(bruno.ticketMedio).toBe(100)
-    expect(ana.ticketMedio).toBeNull()
+    expect(ana.ticketMedio).toBe(175)
+    expect(bruno.ticketMedio).toBeNull()
   })
 
-  it("CA-B30-18: a compra sem atendente conta para a Ana, dona do card do contato", async () => {
+  it("CA-B30-18: a compra sem atendente conta para a Ana, dona do cliente", async () => {
     // Compra antiga, sem atendente (inserida direto, como as de antes da B30-01).
     const { data: antiga } = await service.from("contact_purchases").insert({ contact_id: contatoId, workspace_id: ws, data: hoje, valor: 80 }).select("id").single()
     try {
@@ -115,10 +119,11 @@ describe("B30-03 — Dashboard e performance na fonte unificada", { timeout: 60_
       const linhas = (await buscarPerformanceVendedores(filtro))!
       const ana = linhas.find((l) => l.atendenteId === anaId)!
       const bruno = linhas.find((l) => l.atendenteId === brunoId)!
-      expect(ana.ticketMedio).toBe(80)
-      expect(bruno.ticketMedio).toBe(100)
+      // B45-04: as três compras do cliente dela (100 + 250 + 80) entram no ticket da Ana
+      expect(ana.ticketMedio).toBeCloseTo(430 / 3, 2)
+      expect(bruno.ticketMedio).toBeNull()
       // E no dashboard filtrado pela Ana ela aparece.
-      expect((await buscarMetricasDashboard({ ...filtro, atendenteId: anaId }))?.receita.totalCompras).toBe(80)
+      expect((await buscarMetricasDashboard({ ...filtro, atendenteId: anaId }))?.receita.totalCompras).toBe(430)
     } finally {
       await service.from("contact_purchases").delete().eq("id", antiga!.id)
     }

@@ -67,9 +67,9 @@ describe("B16-09 — Carrinho e pedido pelo WhatsApp", { timeout: 30_000 }, () =
     expect(pedido!.catalog_order_events).toEqual([{ to_status: "novo" }])
     const { data: contato } = await service.from("contacts").select("name, phone_number").eq("id", pedido!.contact_id).single()
     expect(contato).toMatchObject({ name: "Ana Souza", phone_number: "5521988887777" })
-    // Sem automação embutida: nenhum card no funil.
-    const { data: cards } = await service.from("pipeline_cards").select("id").eq("contact_id", pedido!.contact_id)
-    expect(cards).toEqual([])
+    // B45-01: todo contato nasce com card na primeira etapa da Entrada.
+    const { data: cards } = await service.from("pipeline_cards").select("funil, etapa").eq("contact_id", pedido!.contact_id)
+    expect(cards).toEqual([{ funil: "entrada", etapa: "lead" }])
   })
 
   it("bloqueia outro pedido do mesmo WhatsApp por 2 minutos (com ou sem o nono dígito)", async () => {

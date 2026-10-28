@@ -46,8 +46,9 @@ export async function listarConversas(
     .eq("workspace_id", workspaceId)
     .order("last_message_at", { ascending: false })
 
+  // B45-03: fila aberta: o atendente vê as conversas dele e as sem responsável
   if (papel === "atendente") {
-    query = query.eq("assigned_to", userId)
+    query = query.or(`assigned_to.eq.${userId},assigned_to.is.null`)
   }
 
   if (conversaId) {

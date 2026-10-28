@@ -35,9 +35,10 @@ beforeAll(async () => {
   const contaDaAna = await criarAtendente("ana")
   ana = contaDaAna.id
   bia = (await criarAtendente("bia")).id
-  // Atendente vê o contato da conversa de que é responsável (pode_ver_contato).
-  contatoDaAna = (await service.from("contacts").insert({ workspace_id: empresa, name: NOME, phone_number: `55219${String(ts).slice(-8)}` }).select("id").single()).data!.id
-  contatoDaBia = (await service.from("contacts").insert({ workspace_id: empresa, name: `${NOME} da Bia`, phone_number: `55319${String(ts).slice(-8)}` }).select("id").single()).data!.id
+  // Atendente vê o contato de que é dono (pode_ver_contato); B45-02: o dono do contato
+  // é o mesmo responsável da conversa.
+  contatoDaAna = (await service.from("contacts").insert({ workspace_id: empresa, name: NOME, phone_number: `55219${String(ts).slice(-8)}`, atendente_id: ana }).select("id").single()).data!.id
+  contatoDaBia = (await service.from("contacts").insert({ workspace_id: empresa, name: `${NOME} da Bia`, phone_number: `55319${String(ts).slice(-8)}`, atendente_id: bia }).select("id").single()).data!.id
   await service.from("conversations").insert([
     { workspace_id: empresa, contact_id: contatoDaAna, assigned_to: ana },
     { workspace_id: empresa, contact_id: contatoDaBia, assigned_to: bia },

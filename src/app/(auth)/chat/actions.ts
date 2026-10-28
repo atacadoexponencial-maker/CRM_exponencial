@@ -15,6 +15,7 @@ import { listarConversas, TAMANHO_PAGINA_CONVERSAS } from "./conversas"
 /** Mesmo teto do painel: limite da requisição no Vercel, não do WhatsApp. */
 const LIMITE_ANEXO_BYTES = 4 * 1024 * 1024
 import { sessaoAtual } from "@/lib/sessao"
+import { passarContatosPara } from "@/lib/carteira"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
 import { dispararEtiquetaAplicada, dispararMensagemEnviadaPeloTime } from "@/lib/automacoes/gatilhos-do-crm"
 
@@ -443,6 +444,38 @@ export type ResultadoDoEnvio = { erro?: string; mensagemId?: string; status?: St
 type MensagemGravada = { id: string; status: StatusMensagem }
 
 /**
+ * B45-03: fila aberta. O atendente que responde uma conversa sem responsável vira o
+ * dono dela, do contato, dos cards e das outras conversas. A tomada é uma gravação só,
+ * "se ainda estiver sem responsável": de dois que respondem juntos, um fica com ela e o
+ * outro não envia. Admin e Gerente que respondem não mudam o dono (SUP-B45-04).
+ */
+async function assumirSeSemResponsavel(conversaId: string): Promise<void> {
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil || perfil.role !== "atendente") return
+  const { data: conversa } = await supabase.from("conversations").select("assigned_to").eq("id", conversaId).maybeSingle()
+  if (!conversa || conversa.assigned_to) return
+
+  // O banco não deixa o atendente trocar o responsável (B21-01): grava o servidor
+  const svc = createServiceClient()
+  const { data: tomada, error } = await svc
+    .from("conversations")
+    .update({ assigned_to: user.id })
+    .eq("id", conversaId)
+    .eq("workspace_id", perfil.workspace_id)
+    .is("assigned_to", null)
+    .select("contact_id")
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!tomada) throw new AvisoDoEnvio("outro atendente já está atendendo esta conversa.")
+  if (tomada.contact_id) {
+    const { error: erroDono } = await passarContatosPara(svc, {
+      workspaceId: perfil.workspace_id, contactIds: [tomada.contact_id], para: user.id, motivo: "pelo_chat", por: user.id,
+    })
+    if (erroDono) throw new Error(erroDono.message)
+  }
+}
+
+/**
  * Envolve os envios do chat. Em produção o Next.js troca a mensagem de toda
  * exceção de Server Action por um texto genérico, e o atendente via só o
  * triângulo vermelho — sem saber que o número estava desconectado.
@@ -453,6 +486,7 @@ async function comMotivo(
   aoFalhar?: (motivo: string) => Promise<void>
 ): Promise<ResultadoDoEnvio> {
   try {
+    await assumirSeSemResponsavel(conversaId)
     const gravada = await enviar()
     return gravada ? { mensagemId: gravada.id, status: gravada.status } : {}
   } catch (erro) {
@@ -574,12 +608,22 @@ export async function atribuirConversa(conversaId: string, atendenteId: string):
 
   if (!atendente) throw new Error("Atendente não encontrado")
 
-  const { error } = await supabase
+  const { data: conversa, error } = await supabase
     .from("conversations")
     .update({ assigned_to: atendenteId, status: "em_atendimento" })
     .eq("id", conversaId)
+    .select("contact_id")
+    .maybeSingle()
 
   if (error) throw new Error(error.message)
+
+  // B45-02: um dono só: o contato, os cards e as outras conversas vão junto
+  if (conversa?.contact_id) {
+    const { error: erroDono } = await passarContatosPara(supabase, {
+      workspaceId: perfil.workspace_id, contactIds: [conversa.contact_id], para: atendenteId, motivo: "pelo_chat", por: user.id,
+    })
+    if (erroDono) throw new Error(erroDono.message)
+  }
 
   return { nomeAtribuido: atendente.name ?? "" }
 }
@@ -640,19 +684,33 @@ export async function transferirConversa(conversaId: string, atendenteId: string
 
   // B21-01: o banco não deixa o atendente trocar o responsável; conferido acima que a
   // conversa é dele e o colega é do time, a troca é gravada pelo servidor.
-  const { error } = perfil.role === "atendente"
-    ? await createServiceClient()
+  const gravador = perfil.role === "atendente" ? createServiceClient() : supabase
+  const { data: conversa, error } = perfil.role === "atendente"
+    ? await gravador
         .from("conversations")
         .update({ assigned_to: atendenteId })
         .eq("id", conversaId)
         .eq("workspace_id", perfil.workspace_id)
         .eq("assigned_to", user.id)
+        .select("contact_id")
+        .maybeSingle()
     : await supabase
         .from("conversations")
         .update({ assigned_to: atendenteId })
         .eq("id", conversaId)
+        .select("contact_id")
+        .maybeSingle()
 
   if (error) throw new Error(error.message)
+
+  // B45-02: um dono só: o contato, os cards e as outras conversas vão junto. Pelo
+  // atendente, também com a chave de serviço (o banco não o deixa trocar o responsável).
+  if (conversa?.contact_id) {
+    const { error: erroDono } = await passarContatosPara(gravador, {
+      workspaceId: perfil.workspace_id, contactIds: [conversa.contact_id], para: atendenteId, motivo: "pelo_chat", por: user.id,
+    })
+    if (erroDono) throw new Error(erroDono.message)
+  }
 
   return { nomeAtribuido: atendente.name ?? "" }
 }

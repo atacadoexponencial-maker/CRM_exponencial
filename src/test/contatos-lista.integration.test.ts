@@ -181,6 +181,10 @@ describe("Issue 04 — Listar Contatos por Papel", () => {
       .select()
       .single()
     if (card) criados.cardIds.push(card.id)
+
+    // B45-02: o dono do contato é o mesmo da conversa e do card
+    await serviceClient.from("contacts").update({ atendente_id: atendente1Id }).eq("id", contactXId)
+    await serviceClient.from("contacts").update({ atendente_id: atendente2Id }).eq("id", contactYId)
   })
 
   it("Admin visualiza todos os contatos do workspace", async () => {
@@ -216,7 +220,8 @@ describe("Issue 04 — Listar Contatos por Papel", () => {
 
     expect(ids).toContain(contactXId)
     expect(ids).not.toContain(contactYId)
-    expect(ids).not.toContain(contactZId)
+    // B45-03: fila aberta: o contato sem dono aparece para todo atendente
+    expect(ids).toContain(contactZId)
   })
 
   it("Atendente NÃO vê contatos de outros atendentes", async () => {
@@ -228,7 +233,8 @@ describe("Issue 04 — Listar Contatos por Papel", () => {
 
     expect(ids).toContain(contactYId)
     expect(ids).not.toContain(contactXId)
-    expect(ids).not.toContain(contactZId)
+    // B45-03: fila aberta: o contato sem dono aparece para todo atendente
+    expect(ids).toContain(contactZId)
   })
 
   it("Admin da Empresa A NÃO vê contatos da Empresa B (isolamento multi-tenant)", async () => {

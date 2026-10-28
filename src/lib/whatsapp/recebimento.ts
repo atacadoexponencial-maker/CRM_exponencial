@@ -19,6 +19,7 @@ import { transmitirMensagem } from "./realtime"
 import { buscarEGuardarFotoDoContato } from "./foto-de-perfil"
 import { guardarMidiaRecebida, type MidiaDoEvento, type MidiaGuardada } from "./midia-recebida"
 import { tirarDaLixeira } from "@/lib/lixeira"
+import { criarCardDeEntrada } from "@/lib/card-de-entrada"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -367,6 +368,8 @@ export async function acharOuCriarContato(
   if (error || !criado) {
     throw new Error(`Não foi possível criar o contato: ${error?.message ?? "sem detalhe"}`)
   }
+  // B45-01: todo contato nasce com card na Entrada
+  await criarCardDeEntrada(supabase, workspaceId, criado.id)
   return criado.id
 }
 

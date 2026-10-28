@@ -1,7 +1,7 @@
 # Spec: Todo contato nasce com card e tem um dono só
 
 > série: B45
-> estado: aprovada em 27/10/2026
+> estado: aprovada em 27/10/2026; no ar e arquivada em 28/10/2026
 
 ## Visão Geral
 
@@ -230,3 +230,9 @@ A mudança deixa uma regra só, decidida pela Marcelle em 27/10/2026: **todo con
 | PER-B45-05 | O atendente pode pegar para si um contato sem dono? | respondida | Não pelos botões de atribuir, que ficam com Admin e Gerente; responder a conversa sem responsável faz dele o dono (PER-B45-07). Marcelle, 27/10/2026 |
 | PER-B45-06 | As vendas do atendente nos Relatórios são as dos clientes dele ou as que ele registrou? | respondida | As dos clientes da carteira dele. Marcelle, 27/10/2026 |
 | PER-B45-07 | O atendente que responde uma conversa sem responsável vira o dono dela e do contato? Se sim, ele "pega para si" ao responder, o que esbarra na PER-B45-05. Se não, o contato segue sem dono até o Admin ou o Gerente atribuir | respondida | Sim, vira dono: da conversa, do contato e dos cards (CA-B45-20). Os botões de atribuir seguem só com Admin e Gerente. Marcelle, 27/10/2026 |
+| PER-B45-08 | O card que nasce sozinho com o contato novo dispara as automações de "card entrou na etapa", como o "Novo lead"? | respondida | Sim, dispara o "card movido" e a reclassificação, como o Novo lead. Marcelle, 27/10/2026 |
+| PER-B45-09 | Os cards criados de uma vez para os contatos antigos sem card (CA-B45-05) disparam automações? | respondida | Não disparam: é arrumação da base, não chegada de lead. Marcelle, 27/10/2026 |
+| PER-B45-10 | Na arrumação dos dados antigos, contato sem dono e sem conversa com ninguém, mas com card que tem atendente: quem vira o dono? | respondida | O atendente do card (com dois cards de atendentes diferentes, o card mais recente). Marcelle, 27/10/2026 |
+| PER-B45-11 | As trocas de dono feitas pela arrumação dos dados antigos entram no histórico de carteira? | respondida | Não entram: é arrumação da base. Marcelle, 27/10/2026 |
+| PER-B45-12 | Como quase toda conversa nova chega sem responsável, o atendente vê essas conversas ao vivo (fila aberta, quem responde primeiro vira o dono), só ao recarregar, ou não vê (Admin, Gerente e o rodízio distribuem)? | respondida | Fila aberta, ao vivo: a mensagem de conversa sem responsável chega na hora para todos os atendentes da empresa. Marcelle, 27/10/2026 |
+| PER-B45-13 | Os cards sem atendente aparecem também no Funil do atendente (necessário para o perfil do contato sem dono mostrar o card)? | respondida | Sim, aparecem no Funil; mover continua só para o dono, Admin e Gerente. Marcelle, 27/10/2026 |
