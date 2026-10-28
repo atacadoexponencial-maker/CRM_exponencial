@@ -1,7 +1,7 @@
 # Spec: Segurança, rodada 4 (auditoria security-audit de 27/10)
 
 > série: B44
-> estado: aprovada em 27/10/2026
+> estado: aprovada em 27/10/2026; no ar e arquivada em 28/10/2026
 
 > Origem: auditoria de 27/10/2026 com a skill `security-audit` da Cloudflare (run-1),
 > cruzada com os 12 riscos do guia KipperDev. Relatório completo fora do repositório, em
