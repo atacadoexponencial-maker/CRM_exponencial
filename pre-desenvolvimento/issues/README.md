@@ -1,6 +1,6 @@
 # issues
 
-- **Arquivos soltos nesta pasta = issues abertas.** Hoje: B30-05 (gráficos do dashboard, aguardando o teste manual), B31-03 (grade fechada, aguardando o teste manual) B32-04 e B32-06 (relatórios: Visão Geral, aguardando os testes manuais) B33-03 (RFV, aguardando o teste manual) B34-03 (Coorte e Funil, aguardando o teste manual) e B35-01 a B35-03 (relatórios: Carteiras). B47-01 a B47-19 (correções do teste de UI/UX de 27/10, no branch `b46-correcoes-qa-ux`).
+- **Arquivos soltos nesta pasta = issues abertas.** Hoje: B30-05 (gráficos do dashboard, aguardando o teste manual), B31-03 (grade fechada, aguardando o teste manual) B32-04 e B32-06 (relatórios: Visão Geral, aguardando os testes manuais) B33-03 (RFV, aguardando o teste manual) B34-03 (Coorte e Funil, aguardando o teste manual) e B35-01 a B35-03 (relatórios: Carteiras).
 - `concluidas_<série>/` = entregues e no ar. Não se mexe mais nelas.
 - `bloqueadas_modulo6/` = escritas, mas sem como fazer (API da Meta não tem grupos).
 
@@ -41,5 +41,6 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B44 | `pre-desenvolvimento/spec-seguranca-rodada-4.md` (reservada em 27/10/2026: correção das 13 suspeitas da auditoria security-audit run-1, cada uma com teste que mostra a falha antes e passa depois) | `concluidas_B44/` (quando houver) |
 | B45 | `pre-desenvolvimento/spec-dono-do-contato.md` (reservada em 27/10/2026: todo contato nasce com card e o atendente é dono do que está atribuído a ele, em todas as telas) | `concluidas_B45/` (quando houver) |
 | B46 | `pre-desenvolvimento/spec-banco-de-teste.md` (reservada em 27/10/2026: banco de teste separado do de produção, usado pelos testes automáticos e pelo preview, com a empresa de teste recriável) | `concluidas_B46/` (quando houver) |
-| B47 | `pre-desenvolvimento/spec-correcoes-qa-ux.md` (escrita em 27/10/2026: correções do teste de UI/UX do CRM inteiro, achados em `analise-qa/qa-ux-2026-10-27.md`; branch `b46-correcoes-qa-ux`, merge só com o ok do Luan) | `concluidas_B47/` (quando houver) |
+| B47 | `docs/specs-arquivadas/spec-seguranca-rodada-5.md` (28/10/2026: rodada 2 da auditoria Cloudflare — envio de campanha que reconfere anexo e destinatários, tempo real e fotos de contato presos à empresa; no ar e arquivada em 28/10/2026) | `concluidas_B47/` |
+| B48 | reservada em 28/10/2026 para a série do Luan das correções do teste de UI/UX (`spec-correcoes-qa-ux.md`), que nasceu como "B46" no branch `b46-correcoes-qa-ux` ao mesmo tempo que a B46 do banco de teste; renumerar antes do merge | `concluidas_B48/` (quando houver) |
 | F1 | `docs/specs-arquivadas/spec-fluxo-com-prova.md` (melhoria do fluxo de desenvolvimento: critérios de aceite com código, auditor, lições) | `concluidas_F1/` |

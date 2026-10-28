@@ -52,7 +52,7 @@ describe("B29-02 — a foto é só para quem é da empresa", { timeout: 30_000 }
     expect(error).not.toBeNull()
 
     // O endereço assinado pelo servidor abre, e entrega a imagem.
-    const assinado = await urlAssinadaDaFoto(service, caminho)
+    const assinado = await urlAssinadaDaFoto(service, wsDona, `contato-${ts}`, caminho)
     expect(assinado).toBeTruthy()
     const resposta = await fetch(assinado!)
     expect(resposta.status).toBe(200)

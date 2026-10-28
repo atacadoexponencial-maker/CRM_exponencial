@@ -82,11 +82,3 @@ export async function transmitirContatoExcluido(workspaceId: string, contactId: 
 export async function transmitirContatoRestaurado(workspaceId: string, contactId: string): Promise<void> {
   await transmitir(workspaceId, "contato_restaurado", { contact_id: contactId })
 }
-
-/**
- * B29-02: a foto de perfil do contato acabou de ser guardada. O chat aberto troca
- * o círculo sem recarregar. `photo_url` é um endereço assinado, de 1 hora.
- */
-export async function transmitirContatoFoto(workspaceId: string, contactId: string, photoUrl: string): Promise<void> {
-  await transmitir(workspaceId, "contato_foto", { contact_id: contactId, photo_url: photoUrl })
-}
