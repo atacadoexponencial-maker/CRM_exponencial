@@ -1,4 +1,4 @@
-// B47-09: as abas dos Relatórios e a do endereço (`?aba=rfv`). Fora do componente
+// B48-09: as abas dos Relatórios e a do endereço (`?aba=rfv`). Fora do componente
 // de cliente porque a página, no servidor, lê a aba pedida.
 
 export type Aba = "visao-geral" | "rfv" | "coorte" | "funil" | "carteiras"

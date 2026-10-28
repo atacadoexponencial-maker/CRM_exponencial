@@ -1,4 +1,4 @@
-# B47-12: Mesma margem e largura em todas as telas
+# B48-12: Mesma margem e largura em todas as telas
 
 **Tipo:** Correção
 **Página:** Todas as telas de `src/app/(auth)`
@@ -17,8 +17,8 @@ Todas as telas usam o mesmo contêiner de página, na largura normal ou na larga
 
 ## Critérios de aceite
 
-- **CA-B47-29** (automática) — Um contêiner de página só. Dado as páginas de `src/app/(auth)`, quando se confere o contêiner da página, então nenhuma monta o próprio contêiner centralizado, e todas usam o mesmo contêiner de página (`CLASSE_DA_PAGINA`), com a mesma largura e as mesmas margens; Chat, Pipeline e editor de automação ocupam a tela inteira
-- **CA-B47-30** (manual) — Título no mesmo lugar ao navegar. Dado o desktop a 1440 px, quando se passa por Catálogo, Contatos, Automações, Funis, Agenda e Nova campanha, então o título começa no mesmo ponto em todas, e Times, Catálogo e Agenda não deixam metade da tela vazia
+- **CA-B48-29** (automática) — Um contêiner de página só. Dado as páginas de `src/app/(auth)`, quando se confere o contêiner da página, então nenhuma monta o próprio contêiner centralizado, e todas usam o mesmo contêiner de página (`CLASSE_DA_PAGINA`), com a mesma largura e as mesmas margens; Chat, Pipeline e editor de automação ocupam a tela inteira
+- **CA-B48-30** (manual) — Título no mesmo lugar ao navegar. Dado o desktop a 1440 px, quando se passa por Catálogo, Contatos, Automações, Funis, Agenda e Nova campanha, então o título começa no mesmo ponto em todas, e Times, Catálogo e Agenda não deixam metade da tela vazia
 
 ## Suposições
 
@@ -38,7 +38,7 @@ Nenhuma.
 - O editor de campanha e a ficha do contato eram estreitos (`max-w-3xl`): o contêiner é o mesmo, e o conteúdo estreita por dentro (`*:max-w-3xl`), alinhado à esquerda com o título das outras telas.
 - Agenda e Alertas eram `max-w-4xl`: ficam na largura das outras, sem margem enorme dos lados em tela larga.
 - Chat, Pipeline e o editor de automação ocupam a tela inteira, como antes.
-- O espaço vazio dentro de Times e das Configurações do catálogo (B-10, B-22) é do conteúdo da tela; fica para a conferência visual do CA-B47-30.
+- O espaço vazio dentro de Times e das Configurações do catálogo (B-10, B-22) é do conteúdo da tela; fica para a conferência visual do CA-B48-30.
 
 ### Cenário de Erro
 - Sem mudança de servidor.
@@ -47,10 +47,10 @@ Nenhuma.
 
 | Critério | Prova | Onde | O que confere |
 |---|---|---|---|
-| CA-B47-29 | automática | `src/test/mesma-largura-em-todas-as-telas.test.ts` | Nenhum arquivo de `src/app/(auth)` tem contêiner centralizado com largura própria, e 36 usam o `CLASSE_DA_PAGINA` |
-| CA-B47-30 | manual | roteiro abaixo | O título começa no mesmo ponto em todas, sem metade da tela vazia |
+| CA-B48-29 | automática | `src/test/mesma-largura-em-todas-as-telas.test.ts` | Nenhum arquivo de `src/app/(auth)` tem contêiner centralizado com largura própria, e 36 usam o `CLASSE_DA_PAGINA` |
+| CA-B48-30 | manual | roteiro abaixo | O título começa no mesmo ponto em todas, sem metade da tela vazia |
 
-### Roteiro manual — CA-B47-30
+### Roteiro manual — CA-B48-30
 1. No preview do branch, com a janela em 1440 px, passe por Catálogo, Contatos, Automações, Funis, Agenda e Nova campanha.
 2. Confira que o título de cada uma começa no mesmo ponto, e que Times, Catálogo e Agenda não deixam metade da tela vazia.
 
@@ -93,10 +93,10 @@ Nenhuma.
 - **Modificar:** `src/app/(auth)/perfil/page.tsx` — contêiner da página.
 - **Modificar:** `src/app/(auth)/relatorios/loading.tsx` — contêiner da página.
 - **Modificar:** `src/app/(auth)/relatorios/page.tsx` — contêiner da página.
-- **Criar:** `src/test/mesma-largura-em-todas-as-telas.test.ts` — teste do CA-B47-29.
+- **Criar:** `src/test/mesma-largura-em-todas-as-telas.test.ts` — teste do CA-B48-29.
 
 ## Checklist
 
 - [x] `CLASSE_DA_PAGINA` criada
 - [x] As 36 telas e carregamentos com o contêiner
-- [x] Teste do CA-B47-29 e a suíte unitária inteira (as 10 falhas que sobram já existem na master: tema, foto de perfil, miniatura de documento, planilha e esqueleto), tsc e lint
+- [x] Teste do CA-B48-29 e a suíte unitária inteira (as 10 falhas que sobram já existem na master: tema, foto de perfil, miniatura de documento, planilha e esqueleto), tsc e lint

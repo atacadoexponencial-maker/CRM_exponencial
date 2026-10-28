@@ -102,7 +102,7 @@ export function formatarDiaDoMes(iso: string): string {
   return DIA_E_MES.format(new Date(iso))
 }
 
-/** Data e hora: `27/10/2026, 15:00`. É o histórico do card e as datas das campanhas (B47-01). */
+/** Data e hora: `27/10/2026, 15:00`. É o histórico do card e as datas das campanhas (B48-01). */
 export function formatarDataEHora(iso: string): string {
   return DATA_E_HORA.format(new Date(iso))
 }
@@ -114,7 +114,7 @@ export function formatarData(iso: string): string {
 
 /**
  * Data de calendário guardada sem hora (`2026-10-27`), como a da compra: `27/10/2026`.
- * Não passa por fuso, porque não é um instante: virar `Date` a deslocaria um dia (B47-01).
+ * Não passa por fuso, porque não é um instante: virar `Date` a deslocaria um dia (B48-01).
  */
 export function formatarDataDoCalendario(dia: string): string {
   const [ano, mes, d] = dia.slice(0, 10).split("-")
@@ -123,7 +123,7 @@ export function formatarDataDoCalendario(dia: string): string {
 
 /**
  * Data (`2026-10-27`) e hora (`15:00`) no fuso da operação, como os campos de data
- * e hora de um formulário esperam. É o que o "Editar follow-up" preenche (B47-06).
+ * e hora de um formulário esperam. É o que o "Editar follow-up" preenche (B48-06).
  */
 export function paraCamposDoFormulario(iso: string): { data: string; hora: string } {
   const { ano, mes, dia } = partesNoFuso(new Date(iso))
@@ -131,7 +131,7 @@ export function paraCamposDoFormulario(iso: string): { data: string; hora: strin
   return { data, hora: formatarHoraDoDia(iso) }
 }
 
-/** Período entre dois instantes, no fuso da operação: `01/10 a 27/10` (B47-10). */
+/** Período entre dois instantes, no fuso da operação: `01/10 a 27/10` (B48-10). */
 export function formatarIntervalo(inicioIso: string, fimIso: string): string {
   return `${formatarDiaDoMes(inicioIso)} a ${formatarDiaDoMes(fimIso)}`
 }

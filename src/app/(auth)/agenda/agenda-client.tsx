@@ -33,7 +33,7 @@ import {
 import type { ItemAgenda } from "./actions"
 import { IconeDaOrigem, RegraDoLembrete } from "./origem-do-lembrete"
 
-// B47-06: quanto tempo o "Feito. Desfazer" fica na tela
+// B48-06: quanto tempo o "Feito. Desfazer" fica na tela
 const TEMPO_PARA_DESFAZER_MS = 6000
 
 type Grupo = "atrasados" | "hoje" | "amanha" | "semana" | "depois"
@@ -83,7 +83,7 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
   const [notaFU, setNotaFU] = useState("")
   const [salvandoFU, setSalvandoFU] = useState(false)
   const [erroFU, setErroFU] = useState<string | null>(null)
-  // B47-06: o lembrete que o formulário edita (null: novo follow-up)
+  // B48-06: o lembrete que o formulário edita (null: novo follow-up)
   const [editando, setEditando] = useState<ItemAgenda | null>(null)
   const [apagando, setApagando] = useState<ItemAgenda | null>(null)
   const [erroApagar, setErroApagar] = useState<string | null>(null)
@@ -374,7 +374,7 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
                       className="pl-8"
                     />
                   </div>
-                  {/* B47-13: a lista só aparece quando se digita */}
+                  {/* B48-13: a lista só aparece quando se digita */}
                   {termoBusca.trim() !== "" && resultados.length > 0 && (
                     <div className="rounded-lg border divide-y max-h-40 overflow-y-auto">
                       {resultados.map((c) => (
@@ -420,7 +420,7 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
               <DialogClose render={<Button type="button" variant="outline" />}>
                 Cancelar
               </DialogClose>
-              {/* B47-06 (B-14): o botão não fica cinza sem dizer o que falta; o servidor diz */}
+              {/* B48-06 (B-14): o botão não fica cinza sem dizer o que falta; o servidor diz */}
               <Button onClick={handleCriarFollowUp} disabled={salvandoFU}>
                 {editando ? "Salvar" : "Agendar"}
               </Button>
@@ -429,7 +429,7 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
         </DialogPopup>
       </Dialog>
 
-      {/* B47-06: apagar lembrete */}
+      {/* B48-06: apagar lembrete */}
       <Dialog open={apagando !== null} onOpenChange={(open) => !open && setApagando(null)}>
         <DialogPopup>
           <DialogTitle className="mb-4">Apagar lembrete</DialogTitle>

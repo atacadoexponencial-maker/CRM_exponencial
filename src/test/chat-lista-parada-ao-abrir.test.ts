@@ -1,4 +1,4 @@
-// B47-02: abrir uma conversa não muda a ordem da lista do chat; só mensagem nova
+// B48-02: abrir uma conversa não muda a ordem da lista do chat; só mensagem nova
 // sobe a conversa para o topo.
 
 import { describe, it, expect } from "vitest"
@@ -24,8 +24,8 @@ const A = conversa("A", "2026-10-27T18:00:00.000Z")
 const B = conversa("B", "2026-10-27T17:00:00.000Z")
 const C = conversa("C", "2026-10-27T16:00:00.000Z", 3)
 
-describe("B47-02: lista do chat ao receber atualização da conversa", () => {
-  it("CA-B47-04: abrir a conversa (só zera as não lidas) não muda a ordem", () => {
+describe("B48-02: lista do chat ao receber atualização da conversa", () => {
+  it("CA-B48-04: abrir a conversa (só zera as não lidas) não muda a ordem", () => {
     const lista = aplicarAtualizacaoDaConversa([A, B, C], {
       id: "C",
       last_message_text: "Oi de C",
@@ -37,7 +37,7 @@ describe("B47-02: lista do chat ao receber atualização da conversa", () => {
     expect(lista[2].naoLidas).toBe(0)
   })
 
-  it("CA-B47-04: aviso sem last_message_at também atualiza no lugar", () => {
+  it("CA-B48-04: aviso sem last_message_at também atualiza no lugar", () => {
     const lista = aplicarAtualizacaoDaConversa([A, B, C], {
       id: "C",
       last_message_text: "Oi de C",
@@ -49,7 +49,7 @@ describe("B47-02: lista do chat ao receber atualização da conversa", () => {
     expect(lista[2].status).toBe("resolvida")
   })
 
-  it("CA-B47-05: mensagem nova sobe a conversa para o topo", () => {
+  it("CA-B48-05: mensagem nova sobe a conversa para o topo", () => {
     const lista = aplicarAtualizacaoDaConversa([A, B, C], {
       id: "C",
       last_message_text: "Mensagem nova",

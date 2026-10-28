@@ -319,7 +319,7 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
           <p className="text-xs text-muted-foreground">{LAYOUTS.find((l) => l.id === tema.layout)?.descricao}</p>
         </section>
 
-        {/* B47-13: opaca e acima dos campos posicionados, para o texto não aparecer por baixo */}
+        {/* B48-13: opaca e acima dos campos posicionados, para o texto não aparecer por baixo */}
         <div className="sticky bottom-0 z-10 flex items-center justify-end gap-2 bg-background py-3 border-t">
           {alterado && <span className="mr-auto text-xs text-aviso">Alterações não salvas</span>}
           <Button variant="outline" size="sm" onClick={() => { setTema(salvo); setMensagem(null) }} disabled={!alterado}>Descartar alterações</Button>

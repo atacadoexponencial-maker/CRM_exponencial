@@ -1,4 +1,4 @@
-// B47-09 — a aba dos Relatórios fica no endereço (`?aba=rfv`): dá para mandar o
+// B48-09 — a aba dos Relatórios fica no endereço (`?aba=rfv`): dá para mandar o
 // link, recarregar na mesma aba e voltar com o navegador. As abas são falsas.
 
 import { act, fireEvent, render, screen, within } from "@testing-library/react"
@@ -25,15 +25,15 @@ const abaSelecionada = () => within(screen.getByRole("tablist")).getAllByRole("t
 
 beforeEach(() => window.history.replaceState(null, "", "/relatorios"))
 
-describe("B47-09 — aba dos Relatórios no endereço", () => {
-  it("CA-B47-22: abrir a aba RFV põe ?aba=rfv no endereço", () => {
+describe("B48-09 — aba dos Relatórios no endereço", () => {
+  it("CA-B48-22: abrir a aba RFV põe ?aba=rfv no endereço", () => {
     abrir()
     fireEvent.click(screen.getByRole("tab", { name: "RFV" }))
     expect(window.location.pathname + window.location.search).toBe("/relatorios?aba=rfv")
     expect(screen.getByText("Tela do RFV")).toBeTruthy()
   })
 
-  it("CA-B47-22: o endereço com ?aba=rfv abre direto na aba RFV, e aba desconhecida abre a Visão Geral", () => {
+  it("CA-B48-22: o endereço com ?aba=rfv abre direto na aba RFV, e aba desconhecida abre a Visão Geral", () => {
     expect(abaDoEndereco("rfv")).toBe("rfv")
     expect(abaDoEndereco("inventada")).toBe("visao-geral")
     expect(abaDoEndereco(undefined)).toBe("visao-geral")

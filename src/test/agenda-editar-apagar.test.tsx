@@ -1,4 +1,4 @@
-// B47-06 — tela da Agenda: o Agendar diz o que falta, o Editar preenche o formulário
+// B48-06 — tela da Agenda: o Agendar diz o que falta, o Editar preenche o formulário
 // e salva pela action de editar, e o Feito oferece o Desfazer. As actions são falsas.
 
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
@@ -41,8 +41,8 @@ async function escolherNoMenu(gatilho: string, item: string) {
 
 beforeEach(() => vi.clearAllMocks())
 
-describe("B47-06 — Agenda com editar, apagar e desfazer", () => {
-  it("CA-B47-15: Agendar sem contato diz 'Escolha o contato' e não cria nada", async () => {
+describe("B48-06 — Agenda com editar, apagar e desfazer", () => {
+  it("CA-B48-15: Agendar sem contato diz 'Escolha o contato' e não cria nada", async () => {
     render(<AgendaClient itensIniciais={[]} papel="atendente" />)
     fireEvent.click(screen.getByRole("button", { name: /Novo follow-up/ }))
     const agendar = await screen.findByRole("button", { name: "Agendar" })
@@ -52,7 +52,7 @@ describe("B47-06 — Agenda com editar, apagar e desfazer", () => {
     expect(criarFollowUp).not.toHaveBeenCalled()
   })
 
-  it("CA-B47-11: Editar abre o formulário preenchido e salva pela action de editar", async () => {
+  it("CA-B48-11: Editar abre o formulário preenchido e salva pela action de editar", async () => {
     render(<AgendaClient itensIniciais={[DA_ANA]} papel="atendente" />)
     await escolherNoMenu("Abrir menu de Ana", "Editar")
     expect(await screen.findByText("Editar follow-up")).toBeTruthy()
@@ -64,7 +64,7 @@ describe("B47-06 — Agenda com editar, apagar e desfazer", () => {
     expect(criarFollowUp).not.toHaveBeenCalled()
   })
 
-  it("CA-B47-12: Apagar pede confirmação com o nome e tira o item da lista", async () => {
+  it("CA-B48-12: Apagar pede confirmação com o nome e tira o item da lista", async () => {
     render(<AgendaClient itensIniciais={[DA_ANA]} papel="atendente" />)
     await escolherNoMenu("Abrir menu de Ana", "Apagar")
     const dialogo = await screen.findByRole("dialog")
@@ -74,7 +74,7 @@ describe("B47-06 — Agenda com editar, apagar e desfazer", () => {
     await waitFor(() => expect(screen.queryByText("Ligar")).toBeNull())
   })
 
-  it("CA-B47-13: Feito mostra Desfazer, e desfazer devolve o item à lista", async () => {
+  it("CA-B48-13: Feito mostra Desfazer, e desfazer devolve o item à lista", async () => {
     render(<AgendaClient itensIniciais={[DA_ANA]} papel="atendente" />)
     await act(async () => fireEvent.click(screen.getByRole("button", { name: /Feito/ })))
     expect(screen.queryByText("Ligar")).toBeNull()

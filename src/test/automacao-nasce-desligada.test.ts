@@ -1,4 +1,4 @@
-// B47-08: a automação nova nasce desligada, e editar uma ligada não a desliga.
+// B48-08: a automação nova nasce desligada, e editar uma ligada não a desliga.
 // A sessão e o banco são falsos: o banco guarda o que o servidor grava.
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
@@ -54,15 +54,15 @@ beforeEach(() => {
 
 const daRegra = () => banco.gravacoes.filter((g) => g.tabela === "automation_flows")
 
-describe("B47-08: automação nova nasce desligada", () => {
-  it("CA-B47-19: salvar uma automação nova grava com ativa falso", async () => {
+describe("B48-08: automação nova nasce desligada", () => {
+  it("CA-B48-19: salvar uma automação nova grava com ativa falso", async () => {
     expect(await salvarRegra({ id: null, nome: "Nova", fluxo: FLUXO, repeticao: { modo: "uma_vez_por_contato" } })).toEqual({ id: "regra-nova" })
     const [gravada] = daRegra()
     expect(gravada.tipo).toBe("insert")
     expect(gravada.linha.ativa).toBe(false)
   })
 
-  it("CA-B47-21: salvar uma automação que já existe não mexe no ligada/desligada", async () => {
+  it("CA-B48-21: salvar uma automação que já existe não mexe no ligada/desligada", async () => {
     expect(await salvarRegra({ id: "regra-1", nome: "Nome novo", fluxo: FLUXO, repeticao: { modo: "uma_vez_por_contato" } })).toEqual({ id: "regra-1" })
     const [gravada] = daRegra()
     expect(gravada.tipo).toBe("update")

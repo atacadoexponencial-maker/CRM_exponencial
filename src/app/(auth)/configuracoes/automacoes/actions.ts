@@ -66,7 +66,7 @@ export interface RegraDoEditor {
   nome: string
   fluxo: Fluxo
   repeticao: Repeticao
-  /** B47-08: a regra nova nasce desligada; o editor oferece "Salvar e ativar". */
+  /** B48-08: a regra nova nasce desligada; o editor oferece "Salvar e ativar". */
   ativa: boolean
 }
 
@@ -435,7 +435,7 @@ export async function salvarRegra(dados: {
   if (await chegouAoLimiteDeAutomacoes(admin)) return { erro: LIMITE_DE_AUTOMACOES }
   const { data, error } = await supabase
     .from("automation_flows")
-    // B47-08: nasce desligada, para não agir sobre contatos antes de a pessoa ligar
+    // B48-08: nasce desligada, para não agir sobre contatos antes de a pessoa ligar
     .insert({ workspace_id: workspaceId, nome, fluxo: paraJson(fluxo), repeticao: repeticaoJson, ativa: false })
     .select("id")
     .single()

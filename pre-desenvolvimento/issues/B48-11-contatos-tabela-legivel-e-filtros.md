@@ -1,4 +1,4 @@
-# B47-11: Tabela de Contatos legível e filtros recolhidos
+# B48-11: Tabela de Contatos legível e filtros recolhidos
 
 **Tipo:** Correção
 **Página:** Contatos
@@ -17,9 +17,9 @@ As células mostram palavras inteiras, a tabela rola de lado quando precisa, e s
 
 ## Critérios de aceite
 
-- **CA-B47-26** (automática) — Palavra inteira nas células. Dado a lista de Contatos com "Médio" e "Malha" nas células, quando a tabela é desenhada, então nenhuma célula quebra palavra no meio, e a tabela rola de lado quando não cabe, com todas as colunas inteiras
-- **CA-B47-27** (automática) — Tipo e atendente recolhidos. Dado a tela Contatos, quando ela abre, então ficam à vista a busca, os filtros salvos da empresa e a faixa de classificação; tipo e atendente ficam atrás de "Mais filtros", com o número dos ligados no botão
-- **CA-B47-28** (manual) — Contatos no celular. Dado o celular a 390 px, quando se abre Contatos, então a primeira linha da tabela aparece na primeira tela
+- **CA-B48-26** (automática) — Palavra inteira nas células. Dado a lista de Contatos com "Médio" e "Malha" nas células, quando a tabela é desenhada, então nenhuma célula quebra palavra no meio, e a tabela rola de lado quando não cabe, com todas as colunas inteiras
+- **CA-B48-27** (automática) — Tipo e atendente recolhidos. Dado a tela Contatos, quando ela abre, então ficam à vista a busca, os filtros salvos da empresa e a faixa de classificação; tipo e atendente ficam atrás de "Mais filtros", com o número dos ligados no botão
+- **CA-B48-28** (manual) — Contatos no celular. Dado o celular a 390 px, quando se abre Contatos, então a primeira linha da tabela aparece na primeira tela
 
 ## Suposições
 
@@ -48,11 +48,11 @@ Nenhuma.
 
 | Critério | Prova | Onde | O que confere |
 |---|---|---|---|
-| CA-B47-26 | automática | `src/test/contatos-tabela-legivel.test.tsx` | Nenhuma célula com quebra em qualquer ponto, atendente sem quebra, e a tabela dentro de um contêiner que rola de lado |
-| CA-B47-27 | automática | `src/test/contatos-tabela-legivel.test.tsx` | Salvos e classificação à vista; tipo e atendente só depois de "Mais filtros", que passa a "Mais filtros · 2" |
-| CA-B47-28 | manual | roteiro abaixo | No celular, a primeira linha da tabela aparece na primeira tela |
+| CA-B48-26 | automática | `src/test/contatos-tabela-legivel.test.tsx` | Nenhuma célula com quebra em qualquer ponto, atendente sem quebra, e a tabela dentro de um contêiner que rola de lado |
+| CA-B48-27 | automática | `src/test/contatos-tabela-legivel.test.tsx` | Salvos e classificação à vista; tipo e atendente só depois de "Mais filtros", que passa a "Mais filtros · 2" |
+| CA-B48-28 | manual | roteiro abaixo | No celular, a primeira linha da tabela aparece na primeira tela |
 
-### Roteiro manual — CA-B47-28
+### Roteiro manual — CA-B48-28
 1. No preview do branch, abra Contatos no celular (ou no navegador a 390 px de largura).
 2. Sem rolar, a primeira linha da tabela de contatos deve aparecer.
 
@@ -61,10 +61,10 @@ Nenhuma.
 - **Modificar:** `src/app/(auth)/contatos/components/lista-contatos.tsx` — células sem quebra no meio da palavra; tipo e atendente atrás de "Mais filtros".
 - **Modificar:** `src/test/filtros-salvos-tela.test.tsx` — abre "Mais filtros" para ver o tipo (CA-B37-34).
 - **Modificar:** `src/test/remover-nicho-contato.test.tsx` — abre "Mais filtros" para ver o tipo (CA-B40-07).
-- **Criar:** `src/test/contatos-tabela-legivel.test.tsx` — testes do CA-B47-26 e do CA-B47-27.
+- **Criar:** `src/test/contatos-tabela-legivel.test.tsx` — testes do CA-B48-26 e do CA-B48-27.
 
 ## Checklist
 
 - [x] Células sem quebra no meio da palavra
 - [x] Tipo e atendente atrás de "Mais filtros", com a contagem
-- [x] Testes do CA-B47-26 e do CA-B47-27 e os da lista de Contatos passando, tsc e lint
+- [x] Testes do CA-B48-26 e do CA-B48-27 e os da lista de Contatos passando, tsc e lint

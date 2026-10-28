@@ -1,4 +1,4 @@
-# B47-03: O menu de cada linha diz de quem é, e apagar mostra o nome
+# B48-03: O menu de cada linha diz de quem é, e apagar mostra o nome
 
 **Tipo:** Correção
 **Página:** Configurações (Etiquetas e demais listas com menu ⋯)
@@ -17,8 +17,8 @@ Cada botão de menu diz de qual linha é, e a confirmação de apagar mostra o n
 
 ## Critérios de aceite
 
-- **CA-B47-06** (automática) — Botão de menu com o nome da linha. Dado as etiquetas "Interessado" e "Cliente" na lista de Etiquetas, quando a lista é desenhada, então os botões de menu se chamam "Abrir menu de Interessado" e "Abrir menu de Cliente", e não só "Abrir menu"
-- **CA-B47-07** (automática) — Confirmação de apagar com o nome em destaque. Dado a etiqueta "Interessado", quando se escolhe Apagar no menu dela, então a confirmação mostra "Interessado" em negrito, antes do botão de confirmar
+- **CA-B48-06** (automática) — Botão de menu com o nome da linha. Dado as etiquetas "Interessado" e "Cliente" na lista de Etiquetas, quando a lista é desenhada, então os botões de menu se chamam "Abrir menu de Interessado" e "Abrir menu de Cliente", e não só "Abrir menu"
+- **CA-B48-07** (automática) — Confirmação de apagar com o nome em destaque. Dado a etiqueta "Interessado", quando se escolhe Apagar no menu dela, então a confirmação mostra "Interessado" em negrito, antes do botão de confirmar
 
 ## Suposições
 
@@ -45,8 +45,8 @@ Nenhuma.
 
 | Critério | Prova | Onde | O que confere |
 |---|---|---|---|
-| CA-B47-06 | automática | `src/test/menu-da-linha-com-o-nome.test.tsx` | Os botões se chamam "Abrir menu de Interessado" e "Abrir menu de Cliente", nenhum só "Abrir menu"; mensagens rápidas, times e usuários levam o nome |
-| CA-B47-07 | automática | `src/test/menu-da-linha-com-o-nome.test.tsx` | Pelo menu de "Interessado", Excluir abre a confirmação com "Interessado" em `<strong>` e o botão Excluir |
+| CA-B48-06 | automática | `src/test/menu-da-linha-com-o-nome.test.tsx` | Os botões se chamam "Abrir menu de Interessado" e "Abrir menu de Cliente", nenhum só "Abrir menu"; mensagens rápidas, times e usuários levam o nome |
+| CA-B48-07 | automática | `src/test/menu-da-linha-com-o-nome.test.tsx` | Pelo menu de "Interessado", Excluir abre a confirmação com "Interessado" em `<strong>` e o botão Excluir |
 
 ## Arquivos
 
@@ -54,12 +54,12 @@ Nenhuma.
 - **Modificar:** `src/app/(auth)/configuracoes/mensagens-rapidas/mensagens-rapidas-client.tsx` — título da mensagem no botão de menu.
 - **Modificar:** `src/app/(auth)/configuracoes/times/acoes-time.tsx` — nome do time no botão de menu.
 - **Modificar:** `src/app/(auth)/configuracoes/usuarios/acoes-usuario.tsx` — nome do usuário no botão de menu.
-- **Criar:** `src/test/menu-da-linha-com-o-nome.test.tsx` — testes do CA-B47-06 e do CA-B47-07.
+- **Criar:** `src/test/menu-da-linha-com-o-nome.test.tsx` — testes do CA-B48-06 e do CA-B48-07.
 
 Reuso: o padrão "Abrir menu de {nome}" já usado em `automacoes/components/lista-regras.tsx`.
 
 ## Checklist
 
 - [x] Nome da linha no botão de menu das quatro listas
-- [x] Testes do CA-B47-06 e do CA-B47-07 passando
+- [x] Testes do CA-B48-06 e do CA-B48-07 passando
 - [x] Testes que renderizam essas telas passando (L-05), tsc (L-07), lint

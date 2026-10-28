@@ -152,7 +152,7 @@ describe("B37-03 — filtros salvos na lista de contatos", () => {
   it("CA-B37-34: should valer o filtro salvo junto com os botões fixos, que continuam", async () => {
     renderizar()
     expect(screen.getByRole("button", { name: "Todas" })).toBeTruthy()
-    // B47-11: tipo e atendente ficam atrás de "Mais filtros"
+    // B48-11: tipo e atendente ficam atrás de "Mais filtros"
     fireEvent.click(screen.getByRole("button", { name: "Mais filtros" }))
     expect(screen.getByRole("button", { name: "Lojista" })).toBeTruthy()
 

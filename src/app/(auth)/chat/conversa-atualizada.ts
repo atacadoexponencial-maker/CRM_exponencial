@@ -1,4 +1,4 @@
-// Conversa atualizada pelo tempo real na lista do chat (B47-02).
+// Conversa atualizada pelo tempo real na lista do chat (B48-02).
 //
 // Abrir uma conversa zera as não lidas, e o Realtime manda o UPDATE dela. A
 // lista punha no topo toda conversa que recebia UPDATE, então ela pulava embaixo

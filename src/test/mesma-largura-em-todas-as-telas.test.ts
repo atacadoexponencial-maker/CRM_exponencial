@@ -1,4 +1,4 @@
-// B47-12: todas as telas logadas usam o mesmo contêiner de página. Antes, cada
+// B48-12: todas as telas logadas usam o mesmo contêiner de página. Antes, cada
 // uma tinha a sua largura centralizada, e o título mudava de lugar ao navegar.
 
 import { readdirSync, readFileSync, statSync } from "node:fs"
@@ -16,8 +16,8 @@ function arquivos(pasta: string): string[] {
   })
 }
 
-describe("B47-12 — mesma margem e largura em todas as telas", () => {
-  it("CA-B47-29: nenhuma tela monta o próprio contêiner centralizado; todas usam o da página", () => {
+describe("B48-12 — mesma margem e largura em todas as telas", () => {
+  it("CA-B48-29: nenhuma tela monta o próprio contêiner centralizado; todas usam o da página", () => {
     const comLarguraPropria: string[] = []
     const usamOContainer: string[] = []
     for (const arquivo of arquivos(PASTA)) {

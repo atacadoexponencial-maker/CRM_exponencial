@@ -88,7 +88,7 @@ describe("\"+\" na etapa", { timeout: 60_000 }, () => {
       },
     })
     expect(regra.erro).toBeUndefined()
-    // B47-08: a regra nova nasce desligada
+    // B48-08: a regra nova nasce desligada
     expect(await alternarRegra(regra.id!, true)).toEqual({})
     expect(await criarCardNaEtapa("entrada", "sondagem", { telefone: `+${telefone}`, nome: "Loja Nova" })).toEqual({})
     const { data: contato } = await service.from("contacts").select("id, name").eq("workspace_id", ws).eq("phone_number", telefone).single()

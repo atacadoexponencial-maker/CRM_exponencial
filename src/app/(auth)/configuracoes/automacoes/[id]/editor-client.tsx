@@ -8,7 +8,7 @@
 // endereço novo leva `?salva=1` (ou `?salva=ativa`), e o editor remontado já
 // abre com o aviso.
 //
-// B47-08: a regra nova nasce desligada. "Salvar e ativar" salva e liga pela
+// B48-08: a regra nova nasce desligada. "Salvar e ativar" salva e liga pela
 // mesma action do botão da lista, que confere as escolhas antes de ligar.
 
 import { useRef, useState } from "react"

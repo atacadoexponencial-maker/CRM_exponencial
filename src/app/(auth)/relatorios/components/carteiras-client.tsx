@@ -14,14 +14,14 @@ import { DistribuirDialog, ReprocessarDialog } from "./acoes-sem-vendedor"
 import type { FiltroPorCampo } from "@/lib/filtro-por-campo"
 
 const NUMEROS: Array<{ id: keyof NumerosDaCarteira; titulo: string; cor: string }> = [
-  // B47-10 (PER-B47-02): "Sem compra", para não confundir com os leads do Pipeline
+  // B48-10 (PER-B48-02): "Sem compra", para não confundir com os leads do Pipeline
   { id: "leads", titulo: "Sem compra", cor: "text-violet-700 dark:text-violet-300" },
   { id: "base", titulo: "Base de clientes", cor: "text-orange-700 dark:text-orange-300" },
   { id: "ativos", titulo: "Ativos", cor: "text-sucesso" },
   { id: "inativos", titulo: "Inativos", cor: "text-erro" },
 ]
 
-// B47-13: uma tabela só, com os quatro nomes uma vez, no cabeçalho
+// B48-13: uma tabela só, com os quatro nomes uma vez, no cabeçalho
 function TabelaDeNumeros({ linhas }: { linhas: Array<{ titulo: string; numeros: NumerosDaCarteira; testid: string }> }) {
   return (
     <div className="overflow-x-auto">

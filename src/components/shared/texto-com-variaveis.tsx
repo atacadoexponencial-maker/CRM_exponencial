@@ -12,13 +12,13 @@ import { avisoDeSemReserva, inserirNoCursor } from "@/lib/variaveis-mensagem"
 // está o cursor; sem reserva, não insere. Variável escrita à mão sem reserva fica
 // apontada embaixo do texto.
 //
-// B47-07: quem clica no botão e sai da caixa do reserva sem "Inserir" (por exemplo,
+// B48-07: quem clica no botão e sai da caixa do reserva sem "Inserir" (por exemplo,
 // direto no Salvar) não perde a variável: ela entra com o reserva digitado, ou
 // "cliente". Só o Cancelar e o Esc desistem.
 
 export type VariavelDoBotao = { chave: string; rotulo: string }
 
-/** Reserva de quem saiu da caixa sem escrever um (B47-07). */
+/** Reserva de quem saiu da caixa sem escrever um (B48-07). */
 export const RESERVA_PADRAO = "cliente"
 
 const CLASSE_TEXTO =
@@ -64,7 +64,7 @@ export function TextoComVariaveis({ id, valor, placeholder, variaveis, onMudar, 
     })
   }
 
-  // B47-07: o foco saiu da caixa do reserva para fora dela (Salvar, outro campo)
+  // B48-07: o foco saiu da caixa do reserva para fora dela (Salvar, outro campo)
   function aoSairDaCaixa(e: React.FocusEvent<HTMLDivElement>) {
     if (e.currentTarget.contains(e.relatedTarget as Node | null)) return
     inserir(RESERVA_PADRAO, false)

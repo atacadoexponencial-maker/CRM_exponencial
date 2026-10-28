@@ -1,6 +1,6 @@
 "use client"
 
-// B47-04: janela ou painel por cima da tela fecha com Esc, sem salvar. As janelas
+// B48-04: janela ou painel por cima da tela fecha com Esc, sem salvar. As janelas
 // do Base UI já fazem isso; este gancho serve às que o CRM monta à mão.
 
 import { useEffect, useRef } from "react"

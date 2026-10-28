@@ -112,7 +112,7 @@ export function DashboardClient({ painelInicial, atendentes, papel, cabecalho, p
       <FaixaDeNumeros
         destaque
         itens={[
-          // B47-10: o período escrito, para não confundir com o mês dos Relatórios
+          // B48-10: o período escrito, para não confundir com o mês dos Relatórios
           { rotulo: `Faturado ${metricas.periodo ? `de ${formatarIntervalo(metricas.periodo.inicio, metricas.periodo.fim)}` : "no período"} (${metricas.receita.quantidadeCompras} compras)`, valor: formatarMoeda(metricas.receita.totalCompras), variacao: variacoes.totalCompras },
           { rotulo: "Ticket médio", valor: formatarMoeda(metricas.receita.ticketMedioGeral), variacao: variacoes.ticketMedioGeral },
           { rotulo: "Novos leads", valor: metricas.entrada.novosLeads, variacao: variacoes.novosLeads },

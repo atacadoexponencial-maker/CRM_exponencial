@@ -34,7 +34,7 @@ const LOGICA = {
 export function MenuNovoBloco({ aberto, saida, onFechar, onEscolher }: MenuNovoBlocoProps) {
   return (
     <Dialog open={aberto} onOpenChange={(open) => !open && onFechar()}>
-      {/* B47-13: mais largo, com os grupos em duas colunas, para todos caberem sem rolar */}
+      {/* B48-13: mais largo, com os grupos em duas colunas, para todos caberem sem rolar */}
       <DialogPopup className="max-h-[85dvh] max-w-md overflow-y-auto sm:max-w-2xl">
         <DialogTitle>{saida ? TITULO_POR_SAIDA[saida] : "Adicionar bloco"}</DialogTitle>
         <DialogDescription className="mb-4">

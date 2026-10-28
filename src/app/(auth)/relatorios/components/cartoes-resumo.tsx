@@ -30,7 +30,7 @@ function LinhaComparativo({ rotulo, comparativo, formato }: { rotulo: string; co
   )
 }
 
-/** B47-10: os cartões de faturamento dizem de quando são (`01/10 a 27/10`). */
+/** B48-10: os cartões de faturamento dizem de quando são (`01/10 a 27/10`). */
 const CARTOES_DE_FATURAMENTO = ["faturamentoBruto", "faturamentoLiquido"]
 
 export function CartoesResumo({ cartoes, periodo }: { cartoes: Cartao[]; periodo?: string }) {

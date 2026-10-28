@@ -162,7 +162,7 @@ export async function reatribuirLembrete(id: string, atendenteId: string): Promi
 /**
  * Vencimento do follow-up a partir da data e da hora do formulário, no horário de
  * Brasília (QA M12, 06/10: a Vercel roda em UTC, e 09:00 viraria 06:00). Serve ao
- * criar e ao editar (B47-06).
+ * criar e ao editar (B48-06).
  */
 function lerVencimento(data: string, hora?: string): { dueAt: Date } | { erro: string } {
   if (!data) return { erro: "Escolha a data" }
@@ -223,7 +223,7 @@ export async function criarFollowUp(params: {
 }
 
 /**
- * B47-06: edita contato, data, hora e nota de um lembrete pendente. Quem pode é
+ * B48-06: edita contato, data, hora e nota de um lembrete pendente. Quem pode é
  * quem já pode adiar (o RLS: Admin e Gerente na empresa toda, o atendente nos dele).
  */
 export async function editarLembrete(
@@ -251,7 +251,7 @@ export async function editarLembrete(
   return {}
 }
 
-/** B47-06: apaga o lembrete. O RLS decide quem pode (migration 20261027000020). */
+/** B48-06: apaga o lembrete. O RLS decide quem pode (migration 20261027000020). */
 export async function apagarLembrete(id: string): Promise<{ erro?: string }> {
   const { supabase, perfil } = await perfilAtual()
   if (!perfil) return { erro: "Não autenticado" }
@@ -268,7 +268,7 @@ export async function apagarLembrete(id: string): Promise<{ erro?: string }> {
   return {}
 }
 
-/** B47-06: o "Desfazer" do Feito volta o lembrete para pendente, com a mesma data. */
+/** B48-06: o "Desfazer" do Feito volta o lembrete para pendente, com a mesma data. */
 export async function desfazerFeito(id: string): Promise<{ erro?: string }> {
   const { supabase, perfil } = await perfilAtual()
   if (!perfil) return { erro: "Não autenticado" }

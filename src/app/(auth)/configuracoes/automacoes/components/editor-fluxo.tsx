@@ -82,7 +82,7 @@ interface EditorFluxoProps {
   opcoes: OpcoesEditor
   /** Busca por nome ou telefone; texto vazio traz os contatos que conversaram por último. */
   buscarContatos: (texto: string) => Promise<ContatoTeste[]>
-  /** `ativar`: o "Salvar e ativar" (B47-08), que também liga a regra. */
+  /** `ativar`: o "Salvar e ativar" (B48-08), que também liga a regra. */
   salvar: (regra: RegraEditada, ativar?: boolean) => Promise<{ erro?: string; aviso?: string }>
   simular: (contatoId: string, fluxo: Fluxo) => Promise<{ erro?: string; resultado?: ResultadoSimulacao }>
   /** Sobe o arquivo da ação "enviar imagem ou documento" (B11-07). */
@@ -96,7 +96,7 @@ interface EditorFluxoProps {
   avisoInicial?: string
   /** Quantos contatos esperam num bloco que este fluxo não tem mais, para o aviso antes de salvar (B28-04). */
   contarEsperasQueSaem?: (fluxo: Fluxo) => Promise<number>
-  /** A regra já está ligada. Desligada (como a nova, B47-08), o editor oferece "Salvar e ativar". */
+  /** A regra já está ligada. Desligada (como a nova, B48-08), o editor oferece "Salvar e ativar". */
   ativa?: boolean
 }
 
@@ -218,13 +218,13 @@ function EditorFluxoInterno({
   const [esperasQueSaem, setEsperasQueSaem] = useState(0)
   const [destacarErros, setDestacarErros] = useState(false)
   const [erroNome, setErroNome] = useState(false)
-  // B47-07: `itens`, os problemas do Salvar, um por linha
+  // B48-07: `itens`, os problemas do Salvar, um por linha
   const [mensagem, setMensagem] = useState<{ tipo: "erro" | "ok"; texto: string; itens?: string[] } | null>(
     avisoInicial ? { tipo: "ok", texto: avisoInicial } : null
   )
   const [salvando, setSalvando] = useState(false)
   const salvandoAgora = useRef(false)
-  // B47-08: o botão escolhido vale também quando o Salvar passa pelos avisos de confirmação
+  // B48-08: o botão escolhido vale também quando o Salvar passa pelos avisos de confirmação
   const ativarAoSalvar = useRef(false)
   const [confirmarSaida, setConfirmarSaida] = useState(false)
   // B22-36: apagar 2 ou mais blocos de uma vez espera a resposta da pessoa
@@ -633,7 +633,7 @@ function EditorFluxoInterno({
             <Background gap={20} />
             <Controls showInteractive={false} />
             {(aviso || simulacao || rascunhoAchado) && (
-              // B47-07: à esquerda, longe do painel do bloco, que abre à direita
+              // B48-07: à esquerda, longe do painel do bloco, que abre à direita
               <Panel position="top-left" className="flex max-w-[min(90vw,32rem)] flex-col items-start gap-2">
                 {rascunhoAchado && (
                   <div
@@ -710,7 +710,7 @@ function EditorFluxoInterno({
                 )}
               </Panel>
             )}
-            {/* B47-13: automação só com o gatilho ganha a dica de por onde seguir */}
+            {/* B48-13: automação só com o gatilho ganha a dica de por onde seguir */}
             {nos.length === 1 && nos[0].data.bloco.tipo === "gatilho" && (
               <Panel position="bottom-center" className="rounded-lg border bg-background px-3 py-2 text-sm text-muted-foreground shadow-sm">
                 Clique no + embaixo do gatilho para escolher o próximo bloco
@@ -829,7 +829,7 @@ function EditorFluxoInterno({
   )
 }
 
-/** "13/10 às 14:32", no horário da operação (B47-01). */
+/** "13/10 às 14:32", no horário da operação (B48-01). */
 function quandoFoiGuardado(iso: string): string {
   return `${formatarDiaDoMes(iso)} às ${formatarHoraDoDia(iso)}`
 }

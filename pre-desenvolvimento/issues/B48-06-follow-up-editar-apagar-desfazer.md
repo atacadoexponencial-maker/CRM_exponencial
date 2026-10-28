@@ -1,4 +1,4 @@
-# B47-06: Follow-up com editar, apagar e desfazer o Feito
+# B48-06: Follow-up com editar, apagar e desfazer o Feito
 
 **Tipo:** Correção
 **Página:** Agenda
@@ -17,17 +17,17 @@ Dá para editar e apagar um follow-up, desfazer um Feito por alguns segundos, e 
 
 ## Critérios de aceite
 
-- **CA-B47-11** (automática) — Editar follow-up. Dado o follow-up de amanhã para a Ana com a nota "Ligar", quando o dono do follow-up muda a data para depois de amanhã e a nota para "Ligar às 10h", então o follow-up fica com a data e a nota novas, e a data no passado continua recusada
-- **CA-B47-12** (automática) — Apagar follow-up. Dado o follow-up da Ana, quando o dono confirma Apagar, então o follow-up sai da Agenda e do banco
-- **CA-B47-13** (automática) — Desfazer o Feito. Dado o follow-up da Ana marcado como Feito, quando se clica em Desfazer, então o follow-up volta para a Agenda como pendente, com a mesma data
-- **CA-B47-14** (automática) — Quem vê o follow-up mexe nele, e só da empresa. Dado o follow-up que a automação criou para a Ana, quando a Ana e o Gerente editam ou apagam, e o Admin de outra empresa tenta o mesmo, então a Ana e o Gerente conseguem, e o de outra empresa é recusado sem mudar nada
-- **CA-B47-15** (automática) — Agendar diz o que falta. Dado o formulário de Novo follow-up sem contato escolhido, quando se clica em Agendar, então aparece "Escolha o contato", e nada é criado
+- **CA-B48-11** (automática) — Editar follow-up. Dado o follow-up de amanhã para a Ana com a nota "Ligar", quando o dono do follow-up muda a data para depois de amanhã e a nota para "Ligar às 10h", então o follow-up fica com a data e a nota novas, e a data no passado continua recusada
+- **CA-B48-12** (automática) — Apagar follow-up. Dado o follow-up da Ana, quando o dono confirma Apagar, então o follow-up sai da Agenda e do banco
+- **CA-B48-13** (automática) — Desfazer o Feito. Dado o follow-up da Ana marcado como Feito, quando se clica em Desfazer, então o follow-up volta para a Agenda como pendente, com a mesma data
+- **CA-B48-14** (automática) — Quem vê o follow-up mexe nele, e só da empresa. Dado o follow-up que a automação criou para a Ana, quando a Ana e o Gerente editam ou apagam, e o Admin de outra empresa tenta o mesmo, então a Ana e o Gerente conseguem, e o de outra empresa é recusado sem mudar nada
+- **CA-B48-15** (automática) — Agendar diz o que falta. Dado o formulário de Novo follow-up sem contato escolhido, quando se clica em Agendar, então aparece "Escolha o contato", e nada é criado
 
 ## Suposições
 
 | ID | Suposição | Status | Resolução |
 |---|---|---|---|
-| SUP-B47-02 | O follow-up pode ser editado e apagado por quem o criou, pelo atendente dele e por Admin e Gerente, como já é no adiar | invalidada | Por enquanto, todo usuário da empresa edita e apaga qualquer follow-up da empresa (CA-B47-14 reescrito). Luan, 27/10/2026 |
+| SUP-B48-02 | O follow-up pode ser editado e apagado por quem o criou, pelo atendente dele e por Admin e Gerente, como já é no adiar | invalidada | Por enquanto, todo usuário da empresa edita e apaga qualquer follow-up da empresa (CA-B48-14 reescrito). Luan, 27/10/2026 |
 
 ## Perguntas em aberto
 
@@ -56,11 +56,11 @@ Nenhuma.
 
 | Critério | Prova | Onde | O que confere |
 |---|---|---|---|
-| CA-B47-11 | automática | `src/test/agenda-editar-apagar.integration.test.ts` | A nota e a data novas ficam gravadas; data no passado é recusada e nada muda |
-| CA-B47-12 | automática | `src/test/agenda-editar-apagar.integration.test.ts` | Depois de apagar, a linha não existe mais no banco |
-| CA-B47-13 | automática | `src/test/agenda-editar-apagar.integration.test.ts` | Desfazer volta o status para pendente, sem `done_at`, com o mesmo vencimento |
-| CA-B47-14 | automática | `src/test/agenda-editar-apagar.integration.test.ts` | A Ana edita o lembrete dela criado pela automação, o Gerente edita e apaga o da Ana, e o Admin de outra empresa é recusado sem mudar nada |
-| CA-B47-15 | automática | `src/test/agenda-editar-apagar.test.tsx` | Agendar sem contato mostra "Escolha o contato" e não chama `criarFollowUp` |
+| CA-B48-11 | automática | `src/test/agenda-editar-apagar.integration.test.ts` | A nota e a data novas ficam gravadas; data no passado é recusada e nada muda |
+| CA-B48-12 | automática | `src/test/agenda-editar-apagar.integration.test.ts` | Depois de apagar, a linha não existe mais no banco |
+| CA-B48-13 | automática | `src/test/agenda-editar-apagar.integration.test.ts` | Desfazer volta o status para pendente, sem `done_at`, com o mesmo vencimento |
+| CA-B48-14 | automática | `src/test/agenda-editar-apagar.integration.test.ts` | A Ana edita o lembrete dela criado pela automação, o Gerente edita e apaga o da Ana, e o Admin de outra empresa é recusado sem mudar nada |
+| CA-B48-15 | automática | `src/test/agenda-editar-apagar.test.tsx` | Agendar sem contato mostra "Escolha o contato" e não chama `criarFollowUp` |
 
 ## Banco de Dados
 
@@ -72,8 +72,8 @@ Nenhuma.
 - **Modificar:** `src/app/(auth)/agenda/actions.ts` — `editarLembrete`, `apagarLembrete`, `desfazerFeito`, e `lerVencimento` e `contatoDaEmpresa` usados também pelo `criarFollowUp`.
 - **Modificar:** `src/app/(auth)/agenda/agenda-client.tsx` — menu Editar/Apagar, formulário que edita, confirmação de apagar, "Feito. Desfazer", Agendar que diz o que falta, nome com link para a ficha.
 - **Modificar:** `src/lib/datas.ts` — `paraCamposDoFormulario`, data e hora de Brasília para o formulário.
-- **Criar:** `src/test/agenda-editar-apagar.integration.test.ts` — CA-B47-11 a CA-B47-14 no banco.
-- **Criar:** `src/test/agenda-editar-apagar.test.tsx` — CA-B47-15 e a tela de editar, apagar e desfazer.
+- **Criar:** `src/test/agenda-editar-apagar.integration.test.ts` — CA-B48-11 a CA-B48-14 no banco.
+- **Criar:** `src/test/agenda-editar-apagar.test.tsx` — CA-B48-15 e a tela de editar, apagar e desfazer.
 
 ## Checklist
 
@@ -81,5 +81,5 @@ Nenhuma.
 - [x] Actions de editar, apagar e desfazer
 - [x] Tela da Agenda com Editar, Apagar, Desfazer e o Agendar que diz o que falta
 - [ ] Migration aplicada no banco (`supabase db push`), com o ok do Luan
-- [ ] Testes do CA-B47-11 a CA-B47-15 passando
+- [ ] Testes do CA-B48-11 a CA-B48-15 passando
 - [x] Testes que renderizam a Agenda passando (L-05), tsc (L-07) e lint

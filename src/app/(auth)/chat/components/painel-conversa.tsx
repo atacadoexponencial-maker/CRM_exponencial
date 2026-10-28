@@ -132,7 +132,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
   const [texto, setTexto] = useState("")
   const [seletorMRAberto, setSeletorMRAberto] = useState(false)
   const [termoBuscaMR, setTermoBuscaMR] = useState("")
-  // B47-04: Esc fecha o seletor de mensagens rápidas
+  // B48-04: Esc fecha o seletor de mensagens rápidas
   useFecharComEsc(() => {
     setSeletorMRAberto(false)
     setTermoBuscaMR("")
@@ -764,7 +764,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
                       }}
                       className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors flex flex-col gap-0.5 border-b last:border-0"
                     >
-                      {/* B47-13: o nome inteiro em cima, o texto numa linha embaixo */}
+                      {/* B48-13: o nome inteiro em cima, o texto numa linha embaixo */}
                       <span className="font-mono text-xs text-muted-foreground break-words">{mr.titulo}</span>
                       <span className="w-full text-xs text-foreground truncate">{mr.conteudo}</span>
                     </button>

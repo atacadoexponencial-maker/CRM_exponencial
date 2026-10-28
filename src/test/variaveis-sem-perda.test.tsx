@@ -1,4 +1,4 @@
-// B47-07 — variáveis das automações: o exemplo do campo não ensina a digitar chaves,
+// B48-07 — variáveis das automações: o exemplo do campo não ensina a digitar chaves,
 // a variável escolhida não some quando a pessoa vai direto ao Salvar, e os erros do
 // Salvar aparecem um por linha, longe do painel do bloco.
 
@@ -77,8 +77,8 @@ function irParaOSalvar() {
   fireEvent.blur(document.getElementById("t-reserva")!, { relatedTarget: screen.getByRole("button", { name: "Salvar" }) })
 }
 
-describe("B47-07 — variáveis sem perda e em linguagem simples", () => {
-  it("CA-B47-16: o exemplo do lembrete e o da mensagem não têm chaves e dizem para clicar no botão", () => {
+describe("B48-07 — variáveis sem perda e em linguagem simples", () => {
+  it("CA-B48-16: o exemplo do lembrete e o da mensagem não têm chaves e dizem para clicar no botão", () => {
     for (const acao of ["criar_lembrete", "enviar_mensagem"] as const) {
       const { unmount } = { unmount: () => document.body.replaceChildren() }
       abrirAcao(acao)
@@ -89,7 +89,7 @@ describe("B47-07 — variáveis sem perda e em linguagem simples", () => {
     }
   })
 
-  it("CA-B47-17: ir direto ao Salvar com a caixa do reserva aberta e vazia insere a variável com 'cliente'", () => {
+  it("CA-B48-17: ir direto ao Salvar com a caixa do reserva aberta e vazia insere a variável com 'cliente'", () => {
     render(<TextoESalvar inicial="Ligar para " />)
     cursorNoFim()
     fireEvent.click(screen.getByRole("button", { name: /Primeiro nome/ }))
@@ -97,7 +97,7 @@ describe("B47-07 — variáveis sem perda e em linguagem simples", () => {
     expect(screen.getByTestId("valor").textContent).toBe(`Ligar para {{primeiro_nome|${RESERVA_PADRAO}}}`)
   })
 
-  it("CA-B47-17: com o reserva escrito e sem Inserir, entra o reserva escrito; Cancelar não insere", () => {
+  it("CA-B48-17: com o reserva escrito e sem Inserir, entra o reserva escrito; Cancelar não insere", () => {
     render(<TextoESalvar inicial="Ligar para " />)
     cursorNoFim()
     fireEvent.click(screen.getByRole("button", { name: /Primeiro nome/ }))
@@ -112,7 +112,7 @@ describe("B47-07 — variáveis sem perda e em linguagem simples", () => {
     expect(screen.getByTestId("valor").textContent).toBe("Ligar para {{primeiro_nome|amigo}}")
   })
 
-  it("CA-B47-18: sem nome, com bloco incompleto e sem ação ligada, os problemas saem um por linha, à esquerda", () => {
+  it("CA-B48-18: sem nome, com bloco incompleto e sem ação ligada, os problemas saem um por linha, à esquerda", () => {
     const fluxo: Fluxo = {
       blocos: [
         { id: "g", tipo: "gatilho", gatilho: "card_movido", parametros: {}, posicao },

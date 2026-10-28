@@ -39,7 +39,7 @@ interface RelatoriosClientProps {
   hoje: string
   /** B38-07: campos personalizados da empresa, para o filtro por campo. */
   campos?: CampoParaFiltro[]
-  /** B47-09: a aba que o endereço pediu. */
+  /** B48-09: a aba que o endereço pediu. */
   abaInicial?: Aba
 }
 
@@ -52,7 +52,7 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje, campos
   const campoAtivo = filtroPorCampoCompleto(campo) ? campo : null
   const [aba, setAba] = useState<Aba>(abaInicial)
 
-  // B47-09: a aba vai para o endereço sem recarregar a página (os filtros ficam), e o
+  // B48-09: a aba vai para o endereço sem recarregar a página (os filtros ficam), e o
   // Voltar do navegador volta de aba
   function trocarAba(nova: Aba) {
     if (nova === aba) return
@@ -71,7 +71,7 @@ export function RelatoriosClient({ visaoInicial, atendentes, papel, hoje, campos
   const [isPending, startTransition] = useTransition()
 
   const podeFiltrarAtendente = papel === "admin" || papel === "gerente"
-  // B47-10: as datas do período, nos cartões de faturamento
+  // B48-10: as datas do período, nos cartões de faturamento
   const intervaloDoFaturamento = intervaloDoPeriodo(periodo, hoje)
   const anoDeHoje = Number(hoje.slice(0, 4))
   const anos = [anoDeHoje, anoDeHoje - 1, anoDeHoje - 2]

@@ -1,4 +1,4 @@
-// B47-03: o botão de menu de cada linha diz de qual linha é, e a confirmação de
+// B48-03: o botão de menu de cada linha diz de qual linha é, e a confirmação de
 // apagar mostra o nome em destaque.
 
 import { describe, it, expect, vi } from "vitest"
@@ -37,15 +37,15 @@ const ETIQUETAS = [
   { id: "e2", nome: "Cliente", cor: "#3b82f6", conversas: 0 },
 ]
 
-describe("B47-03: menu de cada linha com o nome", () => {
-  it("CA-B47-06: os botões de menu das etiquetas dizem de qual etiqueta são", () => {
+describe("B48-03: menu de cada linha com o nome", () => {
+  it("CA-B48-06: os botões de menu das etiquetas dizem de qual etiqueta são", () => {
     render(<EtiquetasClient etiquetasIniciais={ETIQUETAS} />)
     expect(screen.getByRole("button", { name: "Abrir menu de Interessado" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Abrir menu de Cliente" })).toBeTruthy()
     expect(screen.queryByRole("button", { name: "Abrir menu" })).toBeNull()
   })
 
-  it("CA-B47-06: mensagens rápidas, times e usuários também levam o nome da linha", () => {
+  it("CA-B48-06: mensagens rápidas, times e usuários também levam o nome da linha", () => {
     render(
       <>
         <MensagensRapidasClient mensagensIniciais={[{ id: "m1", titulo: "/ola", conteudo: "Olá!" }]} />
@@ -58,7 +58,7 @@ describe("B47-03: menu de cada linha com o nome", () => {
     expect(screen.getByRole("button", { name: "Abrir menu de Ana Souza" })).toBeTruthy()
   })
 
-  it("CA-B47-07: a confirmação de apagar mostra o nome da etiqueta em negrito", async () => {
+  it("CA-B48-07: a confirmação de apagar mostra o nome da etiqueta em negrito", async () => {
     render(<EtiquetasClient etiquetasIniciais={ETIQUETAS} />)
     fireEvent.click(screen.getByRole("button", { name: "Abrir menu de Interessado" }))
     fireEvent.click(await screen.findByRole("menuitem", { name: /Excluir/ }))

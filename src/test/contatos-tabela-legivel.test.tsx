@@ -1,4 +1,4 @@
-// B47-11 — lista de Contatos: célula sem palavra quebrada no meio, tabela que rola
+// B48-11 — lista de Contatos: célula sem palavra quebrada no meio, tabela que rola
 // de lado, e tipo e atendente recolhidos atrás de "Mais filtros". As actions são
 // falsas.
 
@@ -43,8 +43,8 @@ function renderizar() {
   )
 }
 
-describe("B47-11 — tabela de Contatos legível e filtros recolhidos", () => {
-  it("CA-B47-26: nenhuma célula quebra palavra no meio, e a tabela rola de lado", () => {
+describe("B48-11 — tabela de Contatos legível e filtros recolhidos", () => {
+  it("CA-B48-26: nenhuma célula quebra palavra no meio, e a tabela rola de lado", () => {
     const { container } = renderizar()
     const celulas = Array.from(container.querySelectorAll("td"))
     expect(celulas.length).toBeGreaterThan(0)
@@ -53,7 +53,7 @@ describe("B47-11 — tabela de Contatos legível e filtros recolhidos", () => {
     expect(container.querySelector("table")!.parentElement!.className).toContain("overflow-x-auto")
   })
 
-  it("CA-B47-27: à vista, a busca, os salvos e a classificação; tipo e atendente atrás de 'Mais filtros', que conta os ligados", () => {
+  it("CA-B48-27: à vista, a busca, os salvos e a classificação; tipo e atendente atrás de 'Mais filtros', que conta os ligados", () => {
     renderizar()
     expect(screen.getByRole("button", { name: "Lojistas" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Todas" })).toBeTruthy()

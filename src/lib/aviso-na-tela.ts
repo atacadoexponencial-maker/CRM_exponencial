@@ -1,4 +1,4 @@
-// B47-04: confirmação curta de que algo foi salvo ("Produto salvo"), a mesma em
+// B48-04: confirmação curta de que algo foi salvo ("Produto salvo"), a mesma em
 // todas as telas. Quem salva chama `avisar`; o `AvisosNaTela`, no layout das telas
 // logadas, mostra. Fica no layout para sobreviver à troca de página depois de salvar.
 

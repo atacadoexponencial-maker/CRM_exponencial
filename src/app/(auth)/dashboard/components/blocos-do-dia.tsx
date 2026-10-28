@@ -58,7 +58,7 @@ export function BlocoFunilEntrada({
           </span>
         }
       />
-      {/* B47-13: funil sem nenhum card diz isso, em vez de mostrar barras zeradas */}
+      {/* B48-13: funil sem nenhum card diz isso, em vez de mostrar barras zeradas */}
       {vazio ? (
         <p className="border-t py-4 text-sm text-muted-foreground">Nenhum card neste funil ainda.</p>
       ) : (
