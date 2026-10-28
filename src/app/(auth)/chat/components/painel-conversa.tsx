@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect, KeyboardEvent } from "react"
 import {
-  Search, Paperclip, Mic, Zap, StickyNote, Send, X, MoreVertical, Phone, Reply, ChevronUp, ChevronDown, Check, ArrowLeft,
+  Search, Paperclip, Mic, Zap, StickyNote, Send, X, MoreVertical, Phone, Reply, ChevronUp, ChevronDown, Check, ArrowLeft, UserRound,
 } from "lucide-react"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import {
   DropdownMenu,
@@ -468,6 +469,18 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
             >
               {nomeExibido}
             </button>
+            {/* B48-17: o nome abre o painel ao lado, sem sair da conversa; o ícone vai
+                à ficha completa (SUP-B48-16). */}
+            {conversa.contato.contactId && (
+              <Link
+                href={`/contatos/${conversa.contato.contactId}`}
+                aria-label={`Abrir ficha completa de ${nomeExibido}`}
+                title="Abrir ficha completa"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <UserRound className="size-4" />
+              </Link>
+            )}
             {conversa.contato.nome && (
               <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-1">
                 <Phone className="size-3" />

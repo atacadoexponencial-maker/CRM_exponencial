@@ -351,7 +351,7 @@ aparece uma frase curta ou um "?" com a explicação. Decisão do Luan
 
 - **Dado** uma conversa aberta com contato cadastrado
 - **Quando** se olha o cabeçalho
-- **Então** o nome do contato é um link para `/contatos/<id>`
+- **Então** ao lado do nome há um link "Abrir ficha completa" para `/contatos/<id>`, e o nome continua abrindo o painel lateral (SUP-B48-16)
 
 #### CA-B48-44 — Do pedido para a conversa · prova: automática
 
@@ -418,6 +418,7 @@ aparece uma frase curta ou um "?" com a explicação. Decisão do Luan
 | SUP-B48-13 | Só os fusos do Brasil: Fernando de Noronha, Brasília, Cuiabá, Manaus e Rio Branco. Nenhum tem horário de verão hoje | confirmada | Luan, 28/10/2026 |
 | SUP-B48-14 | Dois erros que já existiam entram nesta issue: a estimativa da campanha lia a hora do servidor (UTC) e achava que 18h de Brasília eram 21h, fora da janela; e o período do Dashboard virava o dia às 21h de Brasília. A linha do tempo do contato também saía em UTC | confirmada | Luan, 28/10/2026 |
 | SUP-B48-15 | O fuso fica numa tela nova, Configurações → Empresa, só para o Admin. Gravado pela chave de serviço depois de conferir o papel, porque `workspaces` não tem política de update | confirmada | Luan, 28/10/2026; a issue já pedia o fuso "em Configurações" |
+| SUP-B48-16 | No cabeçalho do Chat, o nome do contato continua abrindo o painel lateral (o único jeito de abri-lo, sem sair da conversa); ao lado do nome entra um ícone "Abrir ficha completa" que leva a `/contatos/<id>`. O CA-B48-43 foi reescrito para isso | confirmada | Luan, 28/10/2026, ao ver que o nome era o único caminho para o painel |
 
 ## Perguntas em aberto
 
