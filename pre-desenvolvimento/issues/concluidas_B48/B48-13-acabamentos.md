@@ -123,3 +123,9 @@ No preview do branch, logado na "[TESTE] Automações B11", desktop a 1440 px:
 - [x] "empresa" no lugar de "workspace" nos textos visíveis
 - [x] Chat, produto, Aparência, Dashboard, Carteiras, follow-up, editor e seletor de blocos
 - [x] Testes do CA-B48-31, 32 e 33 e os das telas tocadas passando, tsc e lint
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B48-34 | Luan | 28/10/2026 |

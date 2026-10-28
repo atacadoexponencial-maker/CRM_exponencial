@@ -66,3 +66,9 @@ Nenhuma.
 - [x] Aba no endereço e aba inicial pelo endereço
 - [x] Voltar do navegador troca a aba
 - [x] Teste do CA-B48-22 e testes dos Relatórios passando (L-05), tsc e lint
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B48-23 | Luan | 28/10/2026 |

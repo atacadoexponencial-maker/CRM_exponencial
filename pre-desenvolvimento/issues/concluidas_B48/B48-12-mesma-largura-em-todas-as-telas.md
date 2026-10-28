@@ -100,3 +100,9 @@ Nenhuma.
 - [x] `CLASSE_DA_PAGINA` criada
 - [x] As 36 telas e carregamentos com o contêiner
 - [x] Teste do CA-B48-29 e a suíte unitária inteira (as 10 falhas que sobram já existem na master: tema, foto de perfil, miniatura de documento, planilha e esqueleto), tsc e lint
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B48-30 | Luan | 28/10/2026 |

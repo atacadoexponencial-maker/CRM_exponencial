@@ -1,7 +1,7 @@
 # Spec: Correções do teste de UI/UX de 27/10/2026
 
 > série: B48
-> estado: escrita em 27/10/2026 a partir de `analise-qa/qa-ux-2026-10-27.md`; o Luan pediu as issues e a correção no branch `b46-correcoes-qa-ux`, com merge só depois do ok dele
+> estado: escrita em 27/10/2026; B48-01 a B48-19 no ar e arquivada em 28/10/2026, com os testes manuais conferidos pelo Luan (relatório em `docs/relatorios/relatorio-b48-correcoes-qa-ux.md`)
 > renumerada: nasceu como B46, virou B47 e depois B48 em 28/10/2026. A série do banco de teste da Marcelle (`spec-banco-de-teste.md`) já tinha usado B46 na master, e a rodada 5 de segurança dela usou B47; a Marcelle reservou B48 para esta série. Os commits até cc8ebac dizem B46, e os de ced44b4 a 9293f99 dizem B47; o branch continua `b46-correcoes-qa-ux`. Decisão do Luan
 
 ## Visão Geral

@@ -68,3 +68,9 @@ Nenhuma.
 - [x] Células sem quebra no meio da palavra
 - [x] Tipo e atendente atrás de "Mais filtros", com a contagem
 - [x] Testes do CA-B48-26 e do CA-B48-27 e os da lista de Contatos passando, tsc e lint
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B48-28 | Luan | 28/10/2026 |

@@ -81,3 +81,9 @@ Reuso: `FUSO_DA_OPERACAO` e os formatadores de `src/lib/datas.ts`.
 - [x] Todas as datas das telas pelo fuso, e as de calendário sem fuso
 - [x] Testes do CA-B48-01 e do CA-B48-02 passando
 - [x] Testes que usam esses arquivos passando (as 5 falhas de tema e foto já existem na master), tsc e lint
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B48-03 | Luan | 28/10/2026 |
