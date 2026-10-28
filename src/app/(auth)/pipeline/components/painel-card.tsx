@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA, type CardLead, type CardCliente, type CardDoFunil, type EtapaDoFunil, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
 import { buscarDadosPainel, moverCard, atribuirAtendente, adicionarNota, removerCardDoFunil } from "../actions"
 import { Button } from "@/components/ui/button"
+import { MenuMaisAcoes } from "@/components/shared/menu-mais-acoes"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { DialogoExcluirContato } from "../../contatos/components/dialogo-excluir-contato"
 import { resumoExclusaoPorCard, excluirContatoPorCard, type ResumoExclusao } from "../../contatos/lixeira/actions"
 import { TagsDoContato } from "./tags-do-contato"
@@ -73,6 +75,30 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
         {/* Cabeçalho */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
           <h2 className="text-sm font-semibold truncate">{card.contato.nome}</h2>
+          <span className="flex items-center gap-1">
+          {/* B48-16: excluir fica no "⋯" do cabeçalho, longe do Abrir conversa */}
+          {!funilDaEmpresa && (
+            <MenuMaisAcoes rotulo="Mais ações do card">
+              <DropdownMenuItem
+                variant="destructive"
+                disabled={preparandoExclusao}
+                onClick={() => {
+                  setErroExclusao(null)
+                  setPreparandoExclusao(true)
+                  resumoExclusaoPorCard(card.id)
+                    .then((r) => {
+                      if ("erro" in r) setErroExclusao(r.erro)
+                      else setResumoExclusao(r.resumo)
+                    })
+                    .catch(() => setErroExclusao("Não foi possível excluir. Tente de novo."))
+                    .finally(() => setPreparandoExclusao(false))
+                }}
+              >
+                <Trash2 className="size-3.5" aria-hidden />
+                {preparandoExclusao ? "Carregando..." : "Excluir"}
+              </DropdownMenuItem>
+            </MenuMaisAcoes>
+          )}
           <button
             onClick={onFechar}
             aria-label="Fechar painel"
@@ -80,6 +106,7 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
           >
             <X className="size-4" />
           </button>
+          </span>
         </div>
 
         {/* Conteúdo com scroll */}
@@ -320,30 +347,9 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
               </div>
             )
           ) : (
-          <div className="px-4 py-3 border-b border-border">
-            <Button
-              variant="destructive"
-              size="sm"
-              disabled={preparandoExclusao}
-              onClick={() => {
-                setErroExclusao(null)
-                setPreparandoExclusao(true)
-                resumoExclusaoPorCard(card.id)
-                  .then((r) => {
-                    if ("erro" in r) setErroExclusao(r.erro)
-                    else setResumoExclusao(r.resumo)
-                  })
-                  .catch(() => setErroExclusao("Não foi possível excluir. Tente de novo."))
-                  .finally(() => setPreparandoExclusao(false))
-              }}
-            >
-              <Trash2 className="size-3.5" aria-hidden />
-              {preparandoExclusao ? "Carregando..." : "Excluir"}
-            </Button>
-            {erroExclusao && !resumoExclusao && (
-              <p className="mt-2 text-xs text-destructive">{erroExclusao}</p>
-            )}
-          </div>
+            erroExclusao && !resumoExclusao && (
+              <p className="px-4 py-3 border-b border-border text-xs text-destructive">{erroExclusao}</p>
+            )
           )}
 
           {resumoExclusao && (

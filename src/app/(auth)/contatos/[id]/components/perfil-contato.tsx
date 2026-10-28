@@ -7,6 +7,8 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { MessageSquare, ArrowLeft, Pencil, X, Trash2, Download } from "lucide-react"
+import { MenuMaisAcoes } from "@/components/shared/menu-mais-acoes"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { AvatarContato } from "@/components/shared/avatar-contato"
 import { Button } from "@/components/ui/button"
@@ -279,24 +281,27 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
             <MessageSquare className="size-3.5" />
             Abrir conversa
           </Link>
-          <Button
-            variant="destructive"
-            disabled={preparandoExclusao}
-            onClick={() => {
-              setErroExclusao(null)
-              setPreparandoExclusao(true)
-              resumoExclusaoContato(contato.id)
-                .then((r) => {
-                  if ("erro" in r) setErroExclusao(r.erro)
-                  else setResumoExclusao(r.resumo)
-                })
-                .catch(() => setErroExclusao("Não foi possível excluir. Tente de novo."))
-                .finally(() => setPreparandoExclusao(false))
-            }}
-          >
-            <Trash2 className="size-3.5" aria-hidden />
-            {preparandoExclusao ? "Carregando..." : "Excluir contato"}
-          </Button>
+          {/* B48-16: excluir fica no "⋯", longe do Abrir conversa */}
+          <MenuMaisAcoes rotulo="Mais ações do contato" className="border border-input">
+            <DropdownMenuItem
+              variant="destructive"
+              disabled={preparandoExclusao}
+              onClick={() => {
+                setErroExclusao(null)
+                setPreparandoExclusao(true)
+                resumoExclusaoContato(contato.id)
+                  .then((r) => {
+                    if ("erro" in r) setErroExclusao(r.erro)
+                    else setResumoExclusao(r.resumo)
+                  })
+                  .catch(() => setErroExclusao("Não foi possível excluir. Tente de novo."))
+                  .finally(() => setPreparandoExclusao(false))
+              }}
+            >
+              <Trash2 className="size-3.5" aria-hidden />
+              {preparandoExclusao ? "Carregando..." : "Excluir contato"}
+            </DropdownMenuItem>
+          </MenuMaisAcoes>
         </div>
       </div>
 

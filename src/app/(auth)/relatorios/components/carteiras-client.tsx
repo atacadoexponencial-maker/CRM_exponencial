@@ -238,8 +238,9 @@ export function CarteirasClient({ campo = null, inicial = null }: { campo?: Filt
         acoesDoVendedor={(id, total) => {
           const vendedor = resultado.painel.vendedores.find((v) => v.id === id)
           if (!vendedor) return null
+          // B48-16: Remover da carteira na outra ponta, longe do Transferir
           return (
-            <div className="flex flex-wrap gap-2" data-testid={`acoes-${id}`}>
+            <div className="flex flex-wrap justify-between gap-2" data-testid={`acoes-${id}`}>
               <TransferirCarteiraDialog vendedor={vendedor} total={total} vendedores={resultado.painel.vendedores} onFeito={carregar} />
               <RemoverCarteiraDialog vendedor={vendedor} total={total} onFeito={carregar} />
             </div>

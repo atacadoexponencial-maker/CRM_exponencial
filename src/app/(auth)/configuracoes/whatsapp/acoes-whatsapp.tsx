@@ -128,8 +128,12 @@ export function AcoesWhatsApp({
         >
           Reconectar
         </Button>
+      </div>
+
+      {/* B48-16: remover é diferente de desconectar; fica em vermelho, numa linha só dele */}
+      <div className="mt-4 border-t border-border pt-3">
         <Button
-          variant="outline"
+          variant="destructive"
           onClick={() => { setErroRemover(null); setDialogRemoverAberto(true) }}
         >
           Remover número
