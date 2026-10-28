@@ -157,51 +157,54 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
 
     // B21-01: a mensagem nova leva o texto, então chega por um tópico só de quem
     // pode lê-la — a gestão ouve a empresa toda; o atendente, só o que é dele.
+    const aoReceberMensagem = (payload: { payload: unknown }) => {
+      const row = payload.payload as {
+        id: string
+        conversation_id: string
+        workspace_id: string
+        type: string
+        direction: string
+        content: string
+        created_at: string
+        status: string | null
+        sent_from_phone?: boolean
+        media_mime_type?: string | null
+        media_filename?: string | null
+        media_thumbnail_url?: string | null
+      }
+      const novaMensagem: Mensagem = {
+        id: row.id,
+        conversaId: row.conversation_id,
+        tipo: row.type as Mensagem["tipo"],
+        direcao: row.direction as Mensagem["direcao"],
+        conteudo: row.content,
+        // Mesma formatação das mensagens carregadas pela página.
+        horario: formatarHoraDoDia(row.created_at),
+        status: row.status as Mensagem["status"] | undefined,
+        ...(row.sent_from_phone ? { enviadaPeloCelular: true } : {}),
+        ...(row.media_mime_type ? { tipoDoArquivo: row.media_mime_type } : {}),
+        ...(row.media_filename ? { nomeDoArquivo: row.media_filename } : {}),
+        ...(row.media_thumbnail_url ? { miniatura: row.media_thumbnail_url } : {}),
+      }
+      setMensagensLocais((prev) => {
+        const lista = prev[row.conversation_id]
+        if (lista === undefined) return prev
+        if (lista.some((m) => m.id === row.id)) return prev
+        return { ...prev, [row.conversation_id]: [...lista, novaMensagem] }
+      })
+    }
     const canalMensagens = supabase
       .channel(
         papel === "atendente" ? `usuario:${userId}` : `workspace:${workspaceId}:gestao`,
         { config: { private: true } }
       )
-      .on(
-        "broadcast",
-        { event: "nova_mensagem" },
-        (payload) => {
-          const row = payload.payload as {
-            id: string
-            conversation_id: string
-            workspace_id: string
-            type: string
-            direction: string
-            content: string
-            created_at: string
-            status: string | null
-            sent_from_phone?: boolean
-            media_mime_type?: string | null
-            media_filename?: string | null
-            media_thumbnail_url?: string | null
-          }
-          const novaMensagem: Mensagem = {
-            id: row.id,
-            conversaId: row.conversation_id,
-            tipo: row.type as Mensagem["tipo"],
-            direcao: row.direction as Mensagem["direcao"],
-            conteudo: row.content,
-            // Mesma formatação das mensagens carregadas pela página.
-            horario: formatarHoraDoDia(row.created_at),
-            status: row.status as Mensagem["status"] | undefined,
-            ...(row.sent_from_phone ? { enviadaPeloCelular: true } : {}),
-            ...(row.media_mime_type ? { tipoDoArquivo: row.media_mime_type } : {}),
-            ...(row.media_filename ? { nomeDoArquivo: row.media_filename } : {}),
-            ...(row.media_thumbnail_url ? { miniatura: row.media_thumbnail_url } : {}),
-          }
-          setMensagensLocais((prev) => {
-            const lista = prev[row.conversation_id]
-            if (lista === undefined) return prev
-            if (lista.some((m) => m.id === row.id)) return prev
-            return { ...prev, [row.conversation_id]: [...lista, novaMensagem] }
-          })
-        }
-      )
+      .on("broadcast", { event: "nova_mensagem" }, aoReceberMensagem)
+    // B45-03: fila aberta: o atendente ouve também as conversas sem responsável
+    const canalSemResponsavel = papel === "atendente"
+      ? supabase
+          .channel(`workspace:${workspaceId}:sem-responsavel`, { config: { private: true } })
+          .on("broadcast", { event: "nova_mensagem" }, aoReceberMensagem)
+      : null
 
     // O canal precisa entrar com a credencial do usuário. Sem ela, entra como
     // anônimo: o RLS esconde todo `postgres_changes` de conversas e mensagens,
@@ -214,6 +217,7 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
       if (!encerrado) {
         channel.subscribe()
         canalMensagens.subscribe()
+        canalSemResponsavel?.subscribe()
       }
     })
 
@@ -221,6 +225,7 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
       encerrado = true
       supabase.removeChannel(channel)
       supabase.removeChannel(canalMensagens)
+      if (canalSemResponsavel) supabase.removeChannel(canalSemResponsavel)
     }
   }, [workspaceId, papel, userId])
 

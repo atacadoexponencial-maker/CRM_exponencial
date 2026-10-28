@@ -1,7 +1,7 @@
 # Spec: Todo contato nasce com card e tem um dono só
 
 > série: B45
-> estado: aprovada em 27/10/2026
+> estado: aprovada em 27/10/2026; no ar e arquivada em 28/10/2026
 
 ## Visão Geral
 
@@ -234,3 +234,5 @@ A mudança deixa uma regra só, decidida pela Marcelle em 27/10/2026: **todo con
 | PER-B45-09 | Os cards criados de uma vez para os contatos antigos sem card (CA-B45-05) disparam automações? | respondida | Não disparam: é arrumação da base, não chegada de lead. Marcelle, 27/10/2026 |
 | PER-B45-10 | Na arrumação dos dados antigos, contato sem dono e sem conversa com ninguém, mas com card que tem atendente: quem vira o dono? | respondida | O atendente do card (com dois cards de atendentes diferentes, o card mais recente). Marcelle, 27/10/2026 |
 | PER-B45-11 | As trocas de dono feitas pela arrumação dos dados antigos entram no histórico de carteira? | respondida | Não entram: é arrumação da base. Marcelle, 27/10/2026 |
+| PER-B45-12 | Como quase toda conversa nova chega sem responsável, o atendente vê essas conversas ao vivo (fila aberta, quem responde primeiro vira o dono), só ao recarregar, ou não vê (Admin, Gerente e o rodízio distribuem)? | respondida | Fila aberta, ao vivo: a mensagem de conversa sem responsável chega na hora para todos os atendentes da empresa. Marcelle, 27/10/2026 |
+| PER-B45-13 | Os cards sem atendente aparecem também no Funil do atendente (necessário para o perfil do contato sem dono mostrar o card)? | respondida | Sim, aparecem no Funil; mover continua só para o dono, Admin e Gerente. Marcelle, 27/10/2026 |

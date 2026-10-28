@@ -199,8 +199,9 @@ describe("calcularPerformanceVendedores", () => {
     expect(bruno.ticketMedio).toBeNull()
   })
 
-  // B30-03: a compra é do atendente da venda; sem atendente, do atendente do card.
-  it("CA-B30-17: compra com atendente Bruno de contato cujo card é da Ana entra no ticket de Bruno, não no de Ana", () => {
+  // B45-04 (PER-B45-06) substituiu a regra da B30-03: a compra é de quem tem o cliente
+  // na carteira (o atendente do card), qualquer que seja o vendedor registrado.
+  it("CA-B30-17: compra com atendente Bruno de contato cujo card é da Ana entra no ticket da Ana, não no de Bruno", () => {
     const atendentes = [
       { id: "ana", nome: "Ana" },
       { id: "bruno", nome: "Bruno" },
@@ -212,8 +213,8 @@ describe("calcularPerformanceVendedores", () => {
 
     const [ana, bruno] = calcularPerformanceVendedores(atendentes, cards, [], purchases, range)
 
-    expect(bruno.ticketMedio).toBe(300)
-    expect(ana.ticketMedio).toBeNull()
+    expect(ana.ticketMedio).toBe(300)
+    expect(bruno.ticketMedio).toBeNull()
   })
 
   it("CA-B30-18: compra sem atendente de contato cujo card é da Ana conta para Ana", () => {

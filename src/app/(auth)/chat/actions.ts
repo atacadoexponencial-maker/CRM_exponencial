@@ -444,6 +444,38 @@ export type ResultadoDoEnvio = { erro?: string; mensagemId?: string; status?: St
 type MensagemGravada = { id: string; status: StatusMensagem }
 
 /**
+ * B45-03: fila aberta. O atendente que responde uma conversa sem responsável vira o
+ * dono dela, do contato, dos cards e das outras conversas. A tomada é uma gravação só,
+ * "se ainda estiver sem responsável": de dois que respondem juntos, um fica com ela e o
+ * outro não envia. Admin e Gerente que respondem não mudam o dono (SUP-B45-04).
+ */
+async function assumirSeSemResponsavel(conversaId: string): Promise<void> {
+  const { supabase, user, perfil } = await sessaoAtual()
+  if (!user || !perfil || perfil.role !== "atendente") return
+  const { data: conversa } = await supabase.from("conversations").select("assigned_to").eq("id", conversaId).maybeSingle()
+  if (!conversa || conversa.assigned_to) return
+
+  // O banco não deixa o atendente trocar o responsável (B21-01): grava o servidor
+  const svc = createServiceClient()
+  const { data: tomada, error } = await svc
+    .from("conversations")
+    .update({ assigned_to: user.id })
+    .eq("id", conversaId)
+    .eq("workspace_id", perfil.workspace_id)
+    .is("assigned_to", null)
+    .select("contact_id")
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!tomada) throw new AvisoDoEnvio("outro atendente já está atendendo esta conversa.")
+  if (tomada.contact_id) {
+    const { error: erroDono } = await passarContatosPara(svc, {
+      workspaceId: perfil.workspace_id, contactIds: [tomada.contact_id], para: user.id, motivo: "pelo_chat", por: user.id,
+    })
+    if (erroDono) throw new Error(erroDono.message)
+  }
+}
+
+/**
  * Envolve os envios do chat. Em produção o Next.js troca a mensagem de toda
  * exceção de Server Action por um texto genérico, e o atendente via só o
  * triângulo vermelho — sem saber que o número estava desconectado.
@@ -454,6 +486,7 @@ async function comMotivo(
   aoFalhar?: (motivo: string) => Promise<void>
 ): Promise<ResultadoDoEnvio> {
   try {
+    await assumirSeSemResponsavel(conversaId)
     const gravada = await enviar()
     return gravada ? { mensagemId: gravada.id, status: gravada.status } : {}
   } catch (erro) {

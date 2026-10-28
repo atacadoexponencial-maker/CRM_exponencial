@@ -76,8 +76,9 @@ describe("tempo real da caixa de entrada", () => {
 
   it("should ouvir mensagens novas só no tópico dele quando é atendente", async () => {
     renderizar("atendente")
-    await waitFor(() => expect(canal.subscribe).toHaveBeenCalledTimes(2))
+    // B45-03: fila aberta: o atendente ouve também as conversas sem responsável
+    await waitFor(() => expect(canal.subscribe).toHaveBeenCalledTimes(3))
     const topicos = supabaseFalso.channel.mock.calls.map((c) => (c as unknown as [string])[0])
-    expect(topicos).toEqual(["workspace:ws-1", "usuario:user-1"])
+    expect(topicos).toEqual(["workspace:ws-1", "usuario:user-1", "workspace:ws-1:sem-responsavel"])
   })
 })

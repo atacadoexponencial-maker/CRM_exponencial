@@ -78,15 +78,12 @@ export type PurchaseRow = {
 }
 
 /**
- * B30-03: a compra é do atendente da venda; sem atendente, do atendente do card do
- * contato (`contatosDoAtendente`). Mesma regra no dashboard filtrado e na performance.
+ * B45-04: a compra é do atendente quando o contato está na carteira dele
+ * (`contatosDoAtendente`: os contatos de que ele é o dono), qualquer que seja o
+ * vendedor registrado na venda (PER-B45-06). Mesma regra nos Relatórios, no
+ * dashboard filtrado e na performance. Antes (B30-03) valia o vendedor da venda.
  */
-export function compraEhDoAtendente(
-  p: PurchaseRow,
-  atendenteId: string,
-  contatosDoAtendente: Set<string | null>
-): boolean {
-  if (p.atendente_id) return p.atendente_id === atendenteId
+export function compraEhDoAtendente(p: PurchaseRow, contatosDoAtendente: Set<string | null>): boolean {
   return contatosDoAtendente.has(p.contact_id)
 }
 
@@ -343,10 +340,11 @@ export function calcularPerformanceVendedores(
       (h) => idsRecompra.has(h.card_id) && h.para_etapa === "ativos" && noPeriodo(h.created_at)
     ).length
 
+    // B45-04: as compras dos contatos da carteira dele. Desde a B45-02, o atendente
+    // dos cards é o dono do contato, então os contatos dos cards dele são a carteira.
     const contatos = new Set(cardsDoAtendente.map((c) => c.contact_id).filter(Boolean))
-    // B30-03: compra com atendente conta para ele; sem atendente, para o atendente do card.
     const comprasDoAtendente = purchases.filter(
-      (p) => compraEhDoAtendente(p, a.id, contatos) && dataCompra(p) >= inicio && dataCompra(p) <= fim
+      (p) => compraEhDoAtendente(p, contatos) && dataCompra(p) >= inicio && dataCompra(p) <= fim
     )
     const ticketMedio =
       comprasDoAtendente.length > 0
