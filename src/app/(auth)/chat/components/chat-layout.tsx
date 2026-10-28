@@ -135,20 +135,6 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
         }
       )
       .on(
-        "broadcast",
-        { event: "contato_foto" },
-        (payload) => {
-          // B29: a foto do contato acabou de ser guardada; troca o círculo
-          // de todas as conversas dele sem recarregar.
-          const { contact_id, photo_url } = payload.payload as { contact_id: string; photo_url: string }
-          setConversasState((prev) =>
-            prev.some((c) => c.contato.contactId === contact_id)
-              ? prev.map((c) => (c.contato.contactId === contact_id ? { ...c, contato: { ...c.contato, fotoUrl: photo_url } } : c))
-              : prev
-          )
-        }
-      )
-      .on(
         "postgres_changes",
         {
           event: "UPDATE",

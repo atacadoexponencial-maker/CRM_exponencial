@@ -197,7 +197,7 @@ const ETAPA_ENTRADA_LABEL: Record<string, string> = {
 }
 
 
-const PERFIL_SELECT = "id, name, phone_number, tipo, cidade, uf, icp, observacoes, created_at, atendente_id, photo_path"
+const PERFIL_SELECT = "id, workspace_id, name, phone_number, tipo, cidade, uf, icp, observacoes, created_at, atendente_id, photo_path"
 
 function formatarDataEvento(iso: string): string {
   const d = new Date(iso)
@@ -409,7 +409,8 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
   // B29: endereço assinado (1 h) da cópia da foto, no bucket privado.
   // B43-01: e o perfil RFV da hora.
   const [fotoUrl, perfis] = await Promise.all([
-    c.photo_path ? urlAssinadaDaFoto(createServiceClient(), c.photo_path).catch(() => null) : null,
+    // B47-02: só o caminho da foto do próprio contato vira link
+    urlAssinadaDaFoto(createServiceClient(), c.workspace_id, c.id, c.photo_path).catch(() => null),
     perfisRfvDosContatos(supabase, [c.id]),
   ])
 

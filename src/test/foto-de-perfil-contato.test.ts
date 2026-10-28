@@ -5,9 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
 vi.mock("@/integrations/supabase/service", () => ({ createServiceClient: vi.fn() }))
-vi.mock("@/lib/whatsapp/realtime", () => ({ transmitirContatoFoto: vi.fn().mockResolvedValue(undefined) }))
 
-import { transmitirContatoFoto } from "@/lib/whatsapp/realtime"
 import { buscarEGuardarFotoDoContato, caminhoDaFoto, BUCKET_FOTOS } from "@/lib/whatsapp/foto-de-perfil"
 import type { createServiceClient } from "@/integrations/supabase/service"
 
@@ -73,7 +71,6 @@ function gatewayFalso(resposta: () => Response | Promise<Response>) {
 const comFoto = () => new Response(FOTO, { status: 200, headers: { "content-type": "image/jpeg" } })
 const semFoto = () => new Response(null, { status: 204 })
 
-beforeEach(() => vi.mocked(transmitirContatoFoto).mockClear())
 
 describe("B29-02 — busca e guarda da foto de perfil", () => {
   it("CA-B29-05: pede a foto ao número do canal direto da mensagem, guarda a cópia e aponta o contato para ela", async () => {
@@ -86,8 +83,6 @@ describe("B29-02 — busca e guarda da foto de perfil", () => {
     expect(g.pedidos).toEqual([{ url: `${BASE}/instances/inst_1/contacts/5511999998888/photo`, token: "tok-1" }])
     expect(b.uploads).toEqual([{ bucket: BUCKET_FOTOS, caminho: caminhoDaFoto(WS, CONTATO), tamanho: 4, opcoes: { contentType: "image/jpeg", upsert: true } }])
     expect(b.updates).toEqual([{ photo_path: `${WS}/${CONTATO}.jpg`, photo_checked_at: expect.any(String) }])
-    // O chat aberto fica sabendo, com um endereço assinado.
-    expect(transmitirContatoFoto).toHaveBeenCalledWith(WS, CONTATO, expect.stringContaining("https://assinada/"))
   })
 
   it("CA-B29-06: contato que chegou pela Meta ganha a foto pelo número do canal direto da empresa", async () => {
@@ -108,7 +103,6 @@ describe("B29-02 — busca e guarda da foto de perfil", () => {
     expect(await buscarEGuardarFotoDoContato({ svc: b.svc, workspaceId: WS, contactId: CONTATO, telefone: "5511999998888", buscar: g.buscar, baseUrl: BASE })).toBe("sem_foto")
     expect(b.uploads).toEqual([])
     expect(b.updates).toEqual([{ photo_path: null, photo_checked_at: expect.any(String) }])
-    expect(transmitirContatoFoto).not.toHaveBeenCalled()
 
     // A segunda mensagem do mesmo contato: já conferido, nenhuma consulta.
     const b2 = bancoFalso({ checkedAt: "2026-10-20T10:00:00Z" })
@@ -140,7 +134,6 @@ describe("B29-02 — busca e guarda da foto de perfil", () => {
       const r = await buscarEGuardarFotoDoContato({ svc: c.banco.svc, workspaceId: WS, contactId: CONTATO, telefone: "5511999998888", buscar: c.gateway.buscar, baseUrl: BASE })
       expect(r, c.nome).toBe("falhou")
       expect(c.banco.updates, c.nome).toEqual([])
-      expect(transmitirContatoFoto).not.toHaveBeenCalled()
     }
 
     // Tenta de novo: o contato continua sem `photo_checked_at`, então consulta outra vez.
@@ -156,5 +149,27 @@ describe("B29-02 — busca e guarda da foto de perfil", () => {
     expect(await buscarEGuardarFotoDoContato({ svc: b.svc, workspaceId: WS, contactId: CONTATO, telefone: "lid:123456789012345", buscar: g.buscar, baseUrl: BASE })).toBe("sem_telefone")
     expect(g.pedidos).toEqual([])
     expect(b.updates).toEqual([])
+  })
+})
+
+describe("B47-02 — foto nova não é transmitida para a empresa", () => {
+  const fetchGlobal = vi.fn()
+  beforeEach(() => {
+    fetchGlobal.mockReset()
+    vi.stubGlobal("fetch", fetchGlobal)
+  })
+
+  it("CA-B47-06: should guardar a foto sem transmitir nada em tempo real, no caminho do próprio contato", async () => {
+    const b = bancoFalso()
+    const g = gatewayFalso(comFoto)
+
+    const r = await buscarEGuardarFotoDoContato({ svc: b.svc, workspaceId: WS, contactId: CONTATO, telefone: "5511999998888", connectionId: "cx-gw", buscar: g.buscar, baseUrl: BASE })
+
+    expect(r).toBe("guardada")
+    // Nada sai para o tempo real (o broadcast é um fetch ao /realtime do Supabase)
+    expect(fetchGlobal).not.toHaveBeenCalled()
+    // O caminho guardado é o do próprio contato: o próximo carregamento da lista o assina
+    expect(b.updates).toEqual([{ photo_path: caminhoDaFoto(WS, CONTATO), photo_checked_at: expect.any(String) }])
+    vi.unstubAllGlobals()
   })
 })

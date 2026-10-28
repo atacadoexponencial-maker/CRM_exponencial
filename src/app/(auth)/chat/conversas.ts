@@ -83,10 +83,13 @@ export async function listarConversas(
 
   const linhas = (rows ?? []) as unknown as ConversationRow[]
   // B29: a cópia da foto fica num bucket privado; a tela recebe um endereço
-  // assinado de 1 h, gerado aqui de uma vez para a página toda.
+  // assinado de 1 h, gerado aqui de uma vez para a página toda. B47-02: só o da
+  // foto do próprio contato, na pasta da empresa.
   const fotos = await urlsAssinadasDasFotos(
     createServiceClient(),
-    linhas.map((c) => c.contact?.photo_path ?? "").filter(Boolean)
+    linhas
+      .filter((c) => c.contact_id && c.contact?.photo_path)
+      .map((c) => ({ workspaceId, contactId: c.contact_id!, caminho: c.contact!.photo_path }))
   ).catch(() => new Map<string, string>())
 
   return linhas.map((c) => ({
@@ -95,7 +98,7 @@ export async function listarConversas(
       nome: c.contact?.name ?? null,
       telefone: c.contact?.phone_number ?? "",
       contactId: c.contact_id ?? null,
-      fotoUrl: (c.contact?.photo_path && fotos.get(c.contact.photo_path)) || null,
+      fotoUrl: (c.contact_id && fotos.get(c.contact_id)) || null,
     },
     ultimaMensagem: {
       texto: c.last_message_text,

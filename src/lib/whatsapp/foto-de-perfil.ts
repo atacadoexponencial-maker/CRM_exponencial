@@ -11,7 +11,6 @@
 // **Só backend.** Lê `instance_token` e grava no storage com a chave de serviço.
 
 import { createServiceClient } from "@/integrations/supabase/service"
-import { transmitirContatoFoto } from "./realtime"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -136,8 +135,7 @@ export async function buscarEGuardarFotoDoContato({
     const { error } = await svc.from("contacts").update({ photo_path: caminho, photo_checked_at: agora }).eq("id", contactId)
     if (error) return "falhou"
 
-    const url = await urlAssinadaDaFoto(svc, caminho)
-    if (url) await transmitirContatoFoto(workspaceId, contactId, url).catch(() => undefined)
+    // B47-02: sem aviso em tempo real; a foto aparece no próximo carregamento da lista
     return "guardada"
   } catch (erro) {
     console.error("[foto-de-perfil] busca falhou; tenta de novo na próxima mensagem", erro instanceof Error ? erro.message : erro)
@@ -145,20 +143,44 @@ export async function buscarEGuardarFotoDoContato({
   }
 }
 
-/** Endereço temporário de uma foto guardada, para a tela. Null se falhar. */
-export async function urlAssinadaDaFoto(svc: ServiceClient, caminho: string): Promise<string | null> {
-  const { data } = await svc.storage.from(BUCKET_FOTOS).createSignedUrl(caminho, VALIDADE_URL_FOTO_SEGUNDOS)
+/**
+ * B47-02: o caminho gravado no contato só vale se for o da foto dele, na pasta da
+ * empresa dele. A coluna pode ser gravada pelo usuário, e a assinatura usa a chave de
+ * serviço: sem esta conferência, um caminho de outra empresa viraria link.
+ */
+function caminhoDoProprioContato(workspaceId: string, contactId: string, caminho: string | null): string | null {
+  return caminho && caminho === caminhoDaFoto(workspaceId, contactId) ? caminho : null
+}
+
+/** Endereço temporário da foto guardada do contato, para a tela. Null se falhar. */
+export async function urlAssinadaDaFoto(
+  svc: ServiceClient,
+  workspaceId: string,
+  contactId: string,
+  caminho: string | null
+): Promise<string | null> {
+  const proprio = caminhoDoProprioContato(workspaceId, contactId, caminho)
+  if (!proprio) return null
+  const { data } = await svc.storage.from(BUCKET_FOTOS).createSignedUrl(proprio, VALIDADE_URL_FOTO_SEGUNDOS)
   return data?.signedUrl ?? null
 }
 
-/** Endereços temporários de várias fotos de uma vez (a lista do chat). */
-export async function urlsAssinadasDasFotos(svc: ServiceClient, caminhos: string[]): Promise<Map<string, string>> {
-  const unicos = Array.from(new Set(caminhos.filter(Boolean)))
-  if (unicos.length === 0) return new Map()
-  const { data } = await svc.storage.from(BUCKET_FOTOS).createSignedUrls(unicos, VALIDADE_URL_FOTO_SEGUNDOS)
+/** Endereços temporários das fotos de vários contatos de uma vez (a lista do chat), por contato. */
+export async function urlsAssinadasDasFotos(
+  svc: ServiceClient,
+  fotos: Array<{ workspaceId: string; contactId: string; caminho: string | null }>
+): Promise<Map<string, string>> {
+  const contatoDoCaminho = new Map<string, string>()
+  for (const f of fotos) {
+    const proprio = caminhoDoProprioContato(f.workspaceId, f.contactId, f.caminho)
+    if (proprio) contatoDoCaminho.set(proprio, f.contactId)
+  }
+  if (contatoDoCaminho.size === 0) return new Map()
+  const { data } = await svc.storage.from(BUCKET_FOTOS).createSignedUrls([...contatoDoCaminho.keys()], VALIDADE_URL_FOTO_SEGUNDOS)
   const mapa = new Map<string, string>()
   for (const item of data ?? []) {
-    if (item.path && item.signedUrl) mapa.set(item.path, item.signedUrl)
+    const contato = item.path ? contatoDoCaminho.get(item.path) : undefined
+    if (contato && item.signedUrl) mapa.set(contato, item.signedUrl)
   }
   return mapa
 }
