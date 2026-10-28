@@ -10,7 +10,10 @@ B11 (automações), em 07/10/2026.
 > endereço (`lerEnv`, em `comum.cjs`): o da produção
 > (`https://crm-exponencial.vercel.app`) usa o `.env.local`; qualquer outro
 > endereço, ou nenhum, usa o `.env.teste.local`. Os roteiros continuam mexendo
-> só na empresa cujo nome começa com `[TESTE]`, que existe nos dois bancos.
+> só na empresa cujo nome começa com `[TESTE]`, que existe nos dois bancos. Os
+> testes com chip e os roteiros de envio (B11-05 e B11-07) usam a produção.
+> Branch com migration nova: rode `npm run db:teste:push` antes de testar no
+> preview, para o banco de teste ter as tabelas do branch.
 
 ## O que precisa estar configurado
 

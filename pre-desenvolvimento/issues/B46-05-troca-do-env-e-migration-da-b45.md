@@ -77,13 +77,14 @@ No banco de teste, as migrations da B45 (`20261027000010` a `20261027000013`). N
 ## Arquivos
 
 - **Modificar:** `CLAUDE.md` — seção "Bancos de dados" e a empresa de teste nos dois bancos
+- **Modificar:** `e2e/preview/README.md` — chip e roteiros de envio na produção, e migration do branch no banco de teste
 
 Fora do git: o `.env.teste.local` copiado para a pasta principal.
 
 ## Checklist
 
-- [ ] Trazer o `master` para o branch
-- [ ] Aplicar as migrations da B45 no banco de teste e rodar os testes da B46 e da B45 nele
-- [ ] Atualizar o `CLAUDE.md`
-- [ ] Copiar o `.env.teste.local` para a pasta principal
-- [ ] Rodar o `tsc` no projeto inteiro
+- [x] Trazer o `master` para o branch
+- [x] Aplicar as migrations da B45 no banco de teste e rodar os testes da B46 e da B45 nele
+- [x] Atualizar o `CLAUDE.md`
+- [x] Copiar o `.env.teste.local` para a pasta principal
+- [x] Rodar o `tsc` no projeto inteiro
