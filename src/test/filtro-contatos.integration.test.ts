@@ -146,6 +146,9 @@ beforeAll(async () => {
     .select()
     .single()
   if (card) criados.cardIds.push(card.id)
+  // B45-02: o dono é o do contato. Sem ele, o contato fica sem dono e todo atendente o vê (fila aberta).
+  await serviceClient.from("contacts").update({ atendente_id: atendente1 }).eq("id", A["Maria Loj"])
+  await serviceClient.from("contacts").update({ atendente_id: atendente2 }).eq("id", A["Ana Recife"])
 }, 60_000)
 
 afterAll(async () => {

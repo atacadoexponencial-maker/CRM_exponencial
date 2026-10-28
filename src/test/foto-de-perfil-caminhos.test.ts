@@ -9,11 +9,14 @@ const buscar = vi.fn<(...a: unknown[]) => Promise<string>>(async () => "guardada
 vi.mock("@/lib/whatsapp/foto-de-perfil", () => ({ buscarEGuardarFotoDoContato: (...a: unknown[]) => buscar(...a) }))
 vi.mock("@/lib/automacoes/fila", () => ({ dispararAutomacoes: vi.fn() }))
 vi.mock("@/lib/lixeira", () => ({ tirarDaLixeira: vi.fn(async () => false) }))
+// B45-01: todo contato nasce com card na Entrada; o card em si é de outro teste
+vi.mock("@/lib/card-de-entrada", () => ({ criarCardDeEntrada: vi.fn(async () => true) }))
 vi.mock("@/lib/automacoes/gatilhos-do-crm", () => ({
   cardsDepoisDoMovimento: vi.fn(),
   prepararGatilhoDeClassificacao: vi.fn(async () => async () => {}),
   dispararDadosAlterados: vi.fn(),
   dispararTagAdicionada: vi.fn(),
+  dispararCamposAlterados: vi.fn(),
 }))
 vi.mock("@/integrations/supabase/server", () => ({ createClient: vi.fn() }))
 vi.mock("@/integrations/supabase/service", () => ({ createServiceClient: vi.fn(() => ({})) }))
@@ -31,7 +34,7 @@ function banco() {
     from: vi.fn((tabela: string) => {
       const obj: Record<string, unknown> = {}
       let inserindo = false
-      for (const m of ["select", "eq", "not", "limit", "upsert"]) obj[m] = vi.fn(() => obj)
+      for (const m of ["select", "eq", "not", "limit", "upsert", "order"]) obj[m] = vi.fn(() => obj)
       obj.insert = vi.fn(() => {
         inserindo = true
         ordem.push(`insert ${tabela}`)
