@@ -12,9 +12,10 @@ import { criarNovoLead } from "../actions"
 import { avisar } from "@/lib/aviso-na-tela"
 import { useFecharComEsc } from "@/hooks/use-fechar-com-esc"
 
+// B48-18: mesma ordem e regra do Novo contato: nome (obrigatório) e depois o WhatsApp
 const schema = z.object({
+  nome: z.string().trim().min(1, "Nome é obrigatório"),
   telefone: z.string().min(1, "Número de WhatsApp é obrigatório"),
-  nome: z.string().optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -37,7 +38,7 @@ export function ModalNovoLead({ onSucesso, onFechar }: ModalNovoLeadProps) {
   async function onSubmit(data: FormData) {
     setErroGeral(null)
     try {
-      const { erro } = await criarNovoLead(data.telefone, data.nome ?? null)
+      const { erro } = await criarNovoLead(data.telefone, data.nome)
       if (erro) {
         setErroGeral(erro)
         return
@@ -70,7 +71,19 @@ export function ModalNovoLead({ onSucesso, onFechar }: ModalNovoLeadProps) {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="telefone">Número de WhatsApp *</Label>
+            <Label htmlFor="nome">Nome</Label>
+            <Input
+              id="nome"
+              placeholder="Ex: Padaria do Centro"
+              {...register("nome")}
+            />
+            {errors.nome && (
+              <p className="text-xs text-destructive">{errors.nome.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="telefone">WhatsApp</Label>
             <Input
               id="telefone"
               placeholder="+55 11 99999-9999"
@@ -79,15 +92,6 @@ export function ModalNovoLead({ onSucesso, onFechar }: ModalNovoLeadProps) {
             {errors.telefone && (
               <p className="text-xs text-destructive">{errors.telefone.message}</p>
             )}
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="nome">Nome do contato (opcional)</Label>
-            <Input
-              id="nome"
-              placeholder="Ex: Padaria do Centro"
-              {...register("nome")}
-            />
           </div>
 
           {erroGeral && (

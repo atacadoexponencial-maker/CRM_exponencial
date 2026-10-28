@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
  * B36-05: cabeçalho do Pipeline no estilo Caderno — título, abas Entrada/Recompra com
  * sublinhado na ativa e quantos cards a aba ativa tem; à direita, busca e ações.
  * B41-01: depois de Entrada e Recompra vêm os funis da empresa, por ordem de criação;
- * com muitas abas, a linha rola para o lado. Admin e Gerente veem "Gerenciar funis".
+ * com muitas abas, a linha rola para o lado. Admin e Gerente veem "Funis", o mesmo nome do menu (B48-18).
  */
 export function CabecalhoDoPipeline({
   atual,
@@ -58,7 +58,7 @@ export function CabecalhoDoPipeline({
               className="flex shrink-0 items-center gap-1 whitespace-nowrap pb-2.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               <Settings2 className="size-3.5" aria-hidden />
-              Gerenciar funis
+              Funis
             </Link>
           )}
         </div>

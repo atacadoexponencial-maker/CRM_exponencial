@@ -97,7 +97,9 @@ describe("B48-04 — Esc fecha as janelas", () => {
 describe("B48-04 — salvar confirma", () => {
   it("CA-B48-09: criar lead mostra 'Lead criado'", async () => {
     render(<><AvisosNaTela /><ModalNovoLead onSucesso={vi.fn()} onFechar={vi.fn()} /></>)
-    fireEvent.change(screen.getByLabelText(/Número de WhatsApp/), { target: { value: "11999990000" } })
+    // B48-18: o Novo lead pede o nome (obrigatório) e depois o WhatsApp
+    fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Ana" } })
+    fireEvent.change(screen.getByLabelText("WhatsApp"), { target: { value: "11999990000" } })
     await act(async () => fireEvent.click(screen.getByRole("button", { name: /Criar lead/ })))
     expect(await screen.findByRole("status")).toHaveTextContent("Lead criado")
   })

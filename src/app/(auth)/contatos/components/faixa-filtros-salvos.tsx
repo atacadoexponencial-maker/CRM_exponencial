@@ -57,7 +57,7 @@ export function FaixaFiltrosSalvos({ filtros, ativoId, podeGerir, onAlternar, on
 
   return (
     <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Filtros salvos">
-      <span className="mr-1 text-xs font-medium text-muted-foreground">Salvos</span>
+      <span className="mr-1 text-xs font-medium text-muted-foreground">Filtros salvos</span>
       {filtros.map((f, i) => (
         <div key={f.id} className="relative flex items-center">
           <button
@@ -91,7 +91,7 @@ export function FaixaFiltrosSalvos({ filtros, ativoId, podeGerir, onAlternar, on
           {menuAberto === f.id && (
             <div role="menu" className="absolute left-0 top-8 z-10 w-48 rounded-lg border bg-card py-1 text-sm shadow-md">
               <ItemMenu onClick={() => { setMenuAberto(null); setNovoNome(f.nome); setErro(null); setRenomeando(f) }}>
-                Renomear
+                Editar
               </ItemMenu>
               {i > 0 && (
                 <ItemMenu onClick={() => { setMenuAberto(null); executar(() => moverFiltroSalvo(f.id, "esquerda")) }}>

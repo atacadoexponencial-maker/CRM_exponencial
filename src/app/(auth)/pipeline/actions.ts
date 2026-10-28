@@ -154,6 +154,8 @@ export async function criarNovoLead(telefoneDigitado: string, nome: string | nul
   // QA M13 (06/10): telefone normalizado no servidor; "abcdef" e "1" não entram.
   const telefone = normalizarWhatsapp(telefoneDigitado)
   if (!telefone) return { erro: TELEFONE_INVALIDO }
+  // B48-18: o nome é obrigatório, como no Novo contato; o servidor confere, não só a tela
+  if (!nome?.trim()) return { erro: "Informe o nome do contato." }
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) throw new Error("Usuário não autenticado")

@@ -136,7 +136,8 @@ async function buscarDestinatariosSegmento(
 
 const PAGINA_DO_FILTRO = 200
 
-export async function contarDestinatarios(segmento: Segmento): Promise<{
+// B48-18: `todos` devolve a lista inteira, para o "Ver todos os N" do editor.
+export async function contarDestinatarios(segmento: Segmento, todos = false): Promise<{
   total: number
   amostra: DestinatarioPreview[]
 }> {
@@ -144,7 +145,7 @@ export async function contarDestinatarios(segmento: Segmento): Promise<{
   if (!perfil) return { total: 0, amostra: [] }
 
   const lista = await buscarDestinatariosSegmento(supabase, segmento)
-  return { total: lista.length, amostra: lista.slice(0, 50) }
+  return { total: lista.length, amostra: todos ? lista : lista.slice(0, 50) }
 }
 
 // ── CRUD ─────────────────────────────────────────────────────────────

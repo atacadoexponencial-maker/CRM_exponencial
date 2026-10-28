@@ -47,6 +47,8 @@ async function executar(acao: () => Promise<{ erro?: string }>, setErro: (e: str
   }
 }
 
+const EXEMPLOS_DE_OPCAO = ["Varejo", "Atacado"]
+
 function NovoCampo({ onFechar, onCriado }: { onFechar: () => void; onCriado: () => void }) {
   const [nome, setNome] = useState("")
   const [tipo, setTipo] = useState("")
@@ -95,7 +97,8 @@ function NovoCampo({ onFechar, onCriado }: { onFechar: () => void; onCriado: () 
                 value={opcao}
                 maxLength={NOME_MAXIMO}
                 onChange={(e) => setOpcoes((lista) => lista.map((o, j) => (j === i ? e.target.value : o)))}
-                placeholder={`Opção ${i + 1}`}
+                // B48-18: "Opção 1" parecia já preenchido; o exemplo diz que é exemplo
+                placeholder={`Ex.: ${EXEMPLOS_DE_OPCAO[i] ?? "outra opção"}`}
                 className="sm:max-w-72"
               />
               {opcoes.length > 1 && (

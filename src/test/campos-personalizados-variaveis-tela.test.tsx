@@ -136,7 +136,7 @@ describe("B38-05 — variáveis com texto reserva nas telas", () => {
     expect(screen.getByText("Precisa de ajuste: {{nome_contato}} sem texto reserva")).toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "Nova mensagem" }))
     const dialogo = screen.getByRole("dialog")
-    fireEvent.change(within(dialogo).getByLabelText("Título (atalho)"), { target: { value: "/oi" } })
+    fireEvent.change(within(dialogo).getByLabelText("Atalho (digite / no chat)"), { target: { value: "/oi" } })
     fireEvent.change(within(dialogo).getByLabelText("Conteúdo"), { target: { value: "Olá {{nome_contato}}" } })
     expect(within(dialogo).getByRole("button", { name: "Salvar" })).toBeDisabled()
     fireEvent.click(within(dialogo).getByRole("button", { name: "Nome do contato" }))

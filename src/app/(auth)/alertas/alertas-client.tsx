@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Activity, AlertTriangle, Check, MessageSquare, Settings2, X } from "lucide-react"
+import { Activity, AlertTriangle, Check, MessageSquare, Settings2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -213,13 +213,13 @@ export function AlertasClient({
                     Conversa
                   </Link>
                 )}
+                {/* B48-18: escrito, não um X que não diz se fecha ou dispensa */}
                 <button
                   type="button"
                   onClick={() => handleDispensar(alerta)}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                  title="Dispensar alerta"
+                  className="inline-flex h-7 items-center justify-center rounded-md border px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 >
-                  <X className="size-3.5" />
+                  Dispensar
                 </button>
               </div>
             </div>

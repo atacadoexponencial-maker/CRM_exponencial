@@ -33,8 +33,9 @@ export const TIPOS_DE_CAMPO: Array<{ id: TipoDeCampo; rotulo: string }> = [
   { id: "numero", rotulo: "Número" },
   { id: "dinheiro", rotulo: "Dinheiro" },
   { id: "data", rotulo: "Data" },
-  { id: "lista", rotulo: "Lista de opções" },
-  { id: "multipla", rotulo: "Múltipla escolha" },
+  // B48-18: nomes que dizem quantas se escolhe
+  { id: "lista", rotulo: "Uma opção" },
+  { id: "multipla", rotulo: "Várias opções" },
   { id: "sim_nao", rotulo: "Sim/não" },
   { id: "link", rotulo: "Link" },
   { id: "email", rotulo: "E-mail" },
