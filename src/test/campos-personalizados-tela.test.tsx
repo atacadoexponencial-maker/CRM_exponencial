@@ -186,7 +186,8 @@ describe("B38-01 — campos personalizados na tela", () => {
       { id: "l", nome: "Site", tipo: "link", opcoes: [], valor: null },
       { id: "t", nome: "Telefone do financeiro", tipo: "telefone", opcoes: [], valor: null },
     ])
-    fireEvent.click(screen.getByRole("button", { name: "Editar campos personalizados" }))
+    // B48-19: um Editar só abre os dados e os campos personalizados
+    fireEvent.click(within(screen.getByText("Dados do contato").closest("section") as HTMLElement).getByRole("button", { name: "Editar" }))
     fireEvent.change(screen.getByLabelText("Lojas"), { target: { value: "abc" } })
     fireEvent.change(screen.getByLabelText("Limite"), { target: { value: "12,345" } })
     fireEvent.change(screen.getByLabelText("E-mail do financeiro"), { target: { value: "fulano@" } })
@@ -203,11 +204,12 @@ describe("B38-01 — campos personalizados na tela", () => {
     expect(salvarCamposDoContato).not.toHaveBeenCalled()
   })
 
-  it("CA-B38-19: should deixar o Atendente editar os campos personalizados, sem o Editar dos dados fixos", () => {
+  it("CA-B38-19: should deixar o Atendente editar os campos personalizados, sem mexer nos dados fixos", () => {
     abrirPerfil([{ id: "c", nome: "CNPJ", tipo: "texto", opcoes: [], valor: null }], "atendente")
-    expect(screen.getByRole("button", { name: "Editar campos personalizados" })).toBeInTheDocument()
-    const dados = screen.getByText("Dados do contato").closest("section") as HTMLElement
-    expect(within(dados).queryByRole("button", { name: /Editar/ })).toBeNull()
+    // B48-19: o Editar é um só; para o Atendente ele abre só os campos personalizados
+    fireEvent.click(within(screen.getByText("Dados do contato").closest("section") as HTMLElement).getByRole("button", { name: "Editar" }))
+    expect(screen.getByLabelText("CNPJ")).toBeInTheDocument()
+    expect(screen.queryByLabelText("Cidade")).toBeNull()
   })
 
   it("CA-B38-24: should esconder o bloco quando a empresa não tem campos", () => {

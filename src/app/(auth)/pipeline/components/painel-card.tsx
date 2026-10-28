@@ -44,6 +44,9 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
   // Montado com key={card.id} nos funis — cada card abre uma instância nova,
   // então o estado começa como "carregando" e não precisa de reset em effect.
   const [carregando, setCarregando] = useState(true)
+  // B48-19: mover pela lista deixa o painel aberto; a etapa nova fica aqui até o
+  // funil recarregar o card (o card que o funil passou é o de quando o painel abriu).
+  const [etapaMovida, setEtapaMovida] = useState<string | null>(null)
   const router = useRouter()
   const cardId = card?.id
 
@@ -59,7 +62,8 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
 
   const semAtendente = card.atendente === null
   const etapas: Array<{ id: string; label: string }> = funilDaEmpresa ? funilDaEmpresa.etapas : funil === "recompra" ? ETAPAS_RECOMPRA : ETAPAS_ENTRADA
-  const etapaLabel = etapas.find((e) => e.id === card.etapa)?.label ?? card.etapa
+  const etapaAtual = etapaMovida ?? card.etapa
+  const etapaLabel = etapas.find((e) => e.id === etapaAtual)?.label ?? etapaAtual
   const funilLabel = funilDaEmpresa ? funilDaEmpresa.nome : funil === "recompra" ? "Recompra" : "Entrada"
 
   return (
@@ -132,12 +136,12 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
             <div className="flex items-center gap-2 text-sm">
               <Clock className="size-3.5 shrink-0 text-muted-foreground" />
               <span className="text-muted-foreground">Tempo na etapa:</span>
-              <span>{card.tempoNaEtapa}</span>
+              <span>{etapaMovida ? "agora" : card.tempoNaEtapa}</span>
             </div>
 
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">Entrada na etapa:</span>
-              <span>{card.dataEntradaEtapa}</span>
+              <span>{etapaMovida ? "hoje" : card.dataEntradaEtapa}</span>
             </div>
 
             <div className="flex items-center gap-2 text-sm">
@@ -262,14 +266,19 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
 
               {etapaDropdownAberto && (
                 <div className="absolute left-0 right-0 top-9 z-10 bg-card border border-border rounded-lg shadow-md py-1 text-sm">
-                  {etapas.filter((e) => e.id !== card.etapa).map((e) => (
+                  {etapas.filter((e) => e.id !== etapaAtual).map((e) => (
                     <button
                       key={e.id}
                       disabled={movendo}
                       onClick={() => {
                         setMovendo(true)
                         moverCard(card.id, e.id)
-                          .then(() => { setEtapaDropdownAberto(false); onFechar(); onMover?.() })
+                          .then(async () => {
+                            setEtapaDropdownAberto(false)
+                            setEtapaMovida(e.id)
+                            onMover?.()
+                            setPainelData(await buscarDadosPainel(card.id))
+                          })
                           .catch(() => {})
                           .finally(() => setMovendo(false))
                       }}

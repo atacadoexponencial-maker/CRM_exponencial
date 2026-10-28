@@ -40,6 +40,7 @@ export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, pape
     papel === "atendente" ? "minhas" : "todas"
   )
   const [etiqueta, setEtiqueta] = useState<string | null>(null)
+  const [etiquetasAbertas, setEtiquetasAbertas] = useState(false)
   const [numero, setNumero] = useState<string | null>(null)
   const [busca, setBusca] = useState("")
   const sentinelaRef = useRef<HTMLDivElement | null>(null)
@@ -70,6 +71,8 @@ export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, pape
         .map((c) => [c.canal.id as string, { id: c.canal.id as string, rotulo: c.canal.numero ? formatarNumero(c.canal.numero) : c.canal.nome ?? "Número não identificado" }])
     ).values()
   ).sort((a, b) => a.rotulo.localeCompare(b.rotulo))
+
+  const etiquetaEscolhida = etiquetasDisponiveis.find((e) => e.id === etiqueta)
 
   const conversasFiltradas = conversas.filter((c) => {
     if (visibilidade === "minhas" && c.atribuidaA !== nomeUsuario) return false
@@ -102,38 +105,44 @@ export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, pape
           />
         </div>
 
-        <div className="flex gap-1 flex-wrap">
-          {FILTROS_STATUS.map((f) => (
+        {/* B48-19: de quem e o status num seletor só, e as etiquetas atrás de um botão;
+            eram quatro fileiras de botões. */}
+        <div className="flex items-center gap-1.5">
+          <select
+            aria-label="Mostrar"
+            value={`${visibilidade}:${status}`}
+            onChange={(e) => {
+              const [v, s] = e.target.value.split(":")
+              setVisibilidade(v as FiltroVisibilidade)
+              setStatus(s as FiltroStatus)
+            }}
+            className="h-7 min-w-0 flex-1 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            {FILTROS_VISIBILIDADE.filter((f) => !(papel === "atendente" && f.valor === "todas")).map((v) => (
+              <optgroup key={v.valor} label={v.label}>
+                {FILTROS_STATUS.map((s) => (
+                  <option key={s.valor} value={`${v.valor}:${s.valor}`}>
+                    {v.label} · {s.valor === "todas" ? "Todos os status" : s.label}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          {etiquetasDisponiveis.length > 0 && (
             <button
-              key={f.valor}
-              onClick={() => setStatus(f.valor)}
+              type="button"
+              aria-expanded={etiquetasAbertas}
+              onClick={() => setEtiquetasAbertas((a) => !a)}
               className={cn(
-                "px-2.5 py-1 text-xs rounded-md border transition-colors",
-                status === f.valor
-                  ? "bg-primary text-primary-foreground border-primary"
+                "h-7 shrink-0 rounded-md border px-2.5 text-xs transition-colors",
+                etiqueta || etiquetasAbertas
+                  ? "bg-muted text-foreground border-border font-medium"
                   : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
               )}
             >
-              {f.label}
+              {etiquetaEscolhida ? `Etiquetas · ${etiquetaEscolhida.nome}` : "Etiquetas"}
             </button>
-          ))}
-        </div>
-
-        <div className="flex gap-1 flex-wrap">
-          {FILTROS_VISIBILIDADE.filter((f) => !(papel === "atendente" && f.valor === "todas")).map((f) => (
-            <button
-              key={f.valor}
-              onClick={() => setVisibilidade(f.valor)}
-              className={cn(
-                "px-2.5 py-1 text-xs rounded-md border transition-colors",
-                visibilidade === f.valor
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
+          )}
         </div>
 
         {numerosNaCaixa.length > 1 && (
@@ -166,7 +175,8 @@ export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, pape
           </div>
         )}
 
-        <div className="flex gap-1 flex-wrap">
+        {etiquetasAbertas && (
+        <div className="flex gap-1 flex-wrap" role="group" aria-label="Etiquetas">
           <button
             onClick={() => setEtiqueta(null)}
             className={cn(
@@ -193,6 +203,7 @@ export function FiltrosCaixa({ conversas, conversaAtivaId, onConversaClick, pape
             </button>
           ))}
         </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto">
