@@ -6,6 +6,7 @@
 import { useEffect, useState, useTransition } from "react"
 import { ChevronLeft, ChevronRight, Loader2, RefreshCw } from "lucide-react"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import { HISTORICO_POR_PAGINA, type NumerosDaCarteira } from "@/lib/relatorios/carteiras"
 import { ROTULO_MOTIVO } from "@/lib/carteira"
 import { buscarCarteiras, buscarHistoricoDeCarteira, type LinhaDoHistoricoDeCarteira, type ResultadoCarteiras } from "../actions"
@@ -118,6 +119,7 @@ export function PainelDeCarteiras({ resultado, acoesDoVendedor, acoesDosSemVende
 
 /** Histórico de alterações, 10 por página; a primeira página chega com o painel. */
 function HistoricoDeCarteira({ inicial, totalInicial }: { inicial: LinhaDoHistoricoDeCarteira[]; totalInicial: number }) {
+  const fuso = useFuso()
   const [pagina, setPagina] = useState(0)
   const [historico, setHistorico] = useState(inicial)
   const [total, setTotal] = useState(totalInicial)
@@ -168,7 +170,7 @@ function HistoricoDeCarteira({ inicial, totalInicial }: { inicial: LinhaDoHistor
             <tbody>
               {historico.map((h) => (
                 <tr key={h.id} className="border-b last:border-0">
-                  <td className="py-2 pr-3 whitespace-nowrap numero">{formatarDataCurta(h.quando)} {formatarHoraDoDia(h.quando)}</td>
+                  <td className="py-2 pr-3 whitespace-nowrap numero">{formatarDataCurta(h.quando, fuso)} {formatarHoraDoDia(h.quando, fuso)}</td>
                   <td className="py-2 pr-3">{h.contato}</td>
                   <td className="py-2 pr-3">{h.de ?? "ninguém"}</td>
                   <td className="py-2 pr-3">{h.para ?? "ninguém"}</td>

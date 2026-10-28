@@ -15,7 +15,7 @@ export interface LinhaDaConversa {
   status: string
 }
 
-export function aplicarAtualizacaoDaConversa(lista: Conversa[], linha: LinhaDaConversa): Conversa[] {
+export function aplicarAtualizacaoDaConversa(lista: Conversa[], linha: LinhaDaConversa, fuso: string): Conversa[] {
   const idx = lista.findIndex((c) => c.id === linha.id)
   if (idx === -1) return lista
   const atual = lista[idx]
@@ -25,7 +25,7 @@ export function aplicarAtualizacaoDaConversa(lista: Conversa[], linha: LinhaDaCo
     ...atual,
     ultimaMensagem: {
       texto: linha.last_message_text,
-      horario: atividadeEm ? formatarHorarioDaLista(atividadeEm) : atual.ultimaMensagem.horario,
+      horario: atividadeEm ? formatarHorarioDaLista(atividadeEm, fuso) : atual.ultimaMensagem.horario,
     },
     naoLidas: linha.unread_count,
     status: linha.status as StatusConversa,

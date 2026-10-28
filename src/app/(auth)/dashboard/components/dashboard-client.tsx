@@ -18,6 +18,7 @@ import { FiltroPorCampoControle } from "@/components/shared/filtro-por-campo"
 import { filtroPorCampoCompleto, type FiltroPorCampo } from "@/lib/filtro-por-campo"
 import type { CampoParaFiltro } from "@/lib/filtro-contatos"
 import { formatarIntervalo } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 
 interface DashboardClientProps {
   painelInicial: PainelDashboard
@@ -31,6 +32,7 @@ interface DashboardClientProps {
 }
 
 export function DashboardClient({ painelInicial, atendentes, papel, cabecalho, paraHoje, esperando, campos = [] }: DashboardClientProps) {
+  const fuso = useFuso()
   const [painel, setPainel] = useState<PainelDashboard>(painelInicial)
   const [filtros, setFiltros] = useState<FiltrosState>({
     periodo: "30d",
@@ -113,7 +115,7 @@ export function DashboardClient({ painelInicial, atendentes, papel, cabecalho, p
         destaque
         itens={[
           // B48-10: o período escrito, para não confundir com o mês dos Relatórios
-          { rotulo: `Faturado ${metricas.periodo ? `de ${formatarIntervalo(metricas.periodo.inicio, metricas.periodo.fim)}` : "no período"} (${metricas.receita.quantidadeCompras} compras)`, valor: formatarMoeda(metricas.receita.totalCompras), variacao: variacoes.totalCompras },
+          { rotulo: `Faturado ${metricas.periodo ? `de ${formatarIntervalo(metricas.periodo.inicio, metricas.periodo.fim, fuso)}` : "no período"} (${metricas.receita.quantidadeCompras} compras)`, valor: formatarMoeda(metricas.receita.totalCompras), variacao: variacoes.totalCompras },
           { rotulo: "Ticket médio", valor: formatarMoeda(metricas.receita.ticketMedioGeral), variacao: variacoes.ticketMedioGeral },
           { rotulo: "Novos leads", valor: metricas.entrada.novosLeads, variacao: variacoes.novosLeads },
           { rotulo: "Taxa de recompra", valor: metricas.recompra.taxaRecompra, sufixo: "%", variacao: variacoes.taxaRecompra },

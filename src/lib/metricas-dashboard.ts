@@ -1,6 +1,8 @@
 // Cálculo puro das métricas do Dashboard — sem acesso a banco, para ser
 // testável. O carregamento dos dados fica em src/app/(auth)/dashboard/actions.ts.
 
+import { diaNoFuso, instanteNoFuso } from "@/lib/datas"
+
 export type PeriodoKey = "7d" | "30d" | "90d" | "mes" | "trimestre" | "custom"
 
 export type FiltroDashboard = {
@@ -101,59 +103,52 @@ const ETAPA_GANHO_IDX = ETAPAS_FUNIL.length - 1
 
 const ETAPAS_RECOMPRA_ATIVAS = ["onboarding", "reposicao", "ativos"]
 
-export function rangeDoPeriodo(filtro: FiltroDashboard, agora = new Date()): RangePeriodo {
+/** Meia-noite e último instante de um dia de calendário (aaaa-mm-dd) no fuso. */
+const comecoDoDia = (dia: string, fuso: string) => instanteNoFuso(dia, "00:00", fuso)
+const fimDoDia = (dia: string, fuso: string) => new Date(instanteNoFuso(dia, "23:59:59", fuso).getTime() + 999)
+
+/** O dia de calendário N dias antes (negativo: depois), sem passar por fuso. */
+function diasAntesDe(dia: string, n: number): string {
+  return new Date(Date.parse(`${dia}T00:00:00Z`) - n * 86_400_000).toISOString().slice(0, 10)
+}
+
+export function rangeDoPeriodo(filtro: FiltroDashboard, fuso: string, agora = new Date()): RangePeriodo {
   // B32-01: o período vai até o FIM do dia de hoje, não até a hora atual. A compra
   // guarda só a data e é comparada como meio-dia; de manhã ela ficava de fora.
-  const fim = new Date(agora)
-  fim.setHours(23, 59, 59, 999)
-  const inicio = new Date(agora)
+  // B48-14: "hoje" é o dia no fuso da empresa; antes era o do servidor, que é UTC
+  // na Vercel, e o dia virava às 21h de Brasília.
+  const hoje = diaNoFuso(agora, fuso)
+  const fim = fimDoDia(hoje, fuso)
+  // "Últimos N dias" começa à meia-noite, como o fim acaba à meia-noite: o período
+  // não muda entre duas leituras do mesmo dia.
+  const ultimosDias = (dias: number) => ({ inicio: comecoDoDia(diasAntesDe(hoje, dias), fuso), fim })
 
   switch (filtro.periodo) {
     case "7d":
-      inicio.setDate(fim.getDate() - 7)
-      break
+      return ultimosDias(7)
     case "30d":
-      inicio.setDate(fim.getDate() - 30)
-      break
+      return ultimosDias(30)
     case "90d":
-      inicio.setDate(fim.getDate() - 90)
-      break
+      return ultimosDias(90)
     case "mes":
-      inicio.setDate(1)
-      inicio.setHours(0, 0, 0, 0)
-      break
+      return { inicio: comecoDoDia(`${hoje.slice(0, 8)}01`, fuso), fim }
     case "trimestre": {
-      const mesInicioTrimestre = Math.floor(fim.getMonth() / 3) * 3
-      inicio.setMonth(mesInicioTrimestre, 1)
-      inicio.setHours(0, 0, 0, 0)
-      break
+      const mesInicioTrimestre = Math.floor((Number(hoje.slice(5, 7)) - 1) / 3) * 3 + 1
+      return { inicio: comecoDoDia(`${hoje.slice(0, 5)}${String(mesInicioTrimestre).padStart(2, "0")}-01`, fuso), fim }
     }
     case "custom": {
       // QA M17 (06/10): só a data final valia nada, e inicial depois da final zerava
       // tudo em silêncio. Só a final: 30 dias até ela. Trocadas: vale a ordem certa.
       if (filtro.inicio || filtro.fim) {
-        let de = filtro.inicio ? new Date(filtro.inicio + "T00:00:00") : null
-        let ate = filtro.fim ? new Date(filtro.fim + "T23:59:59") : fim
-        if (!de) {
-          de = new Date(ate)
-          de.setDate(ate.getDate() - 30)
-          de.setHours(0, 0, 0, 0)
-        }
-        if (de > ate) {
-          const comeco = new Date(ate)
-          comeco.setHours(0, 0, 0, 0)
-          const final = new Date(de)
-          final.setHours(23, 59, 59, 0)
-          de = comeco
-          ate = final
-        }
-        return { inicio: de, fim: ate }
+        const ateDia = filtro.fim || hoje
+        const deDia = filtro.inicio || diasAntesDe(ateDia, 30)
+        const [primeiro, ultimo] = deDia > ateDia ? [ateDia, deDia] : [deDia, ateDia]
+        return { inicio: comecoDoDia(primeiro, fuso), fim: instanteNoFuso(ultimo, "23:59:59", fuso) }
       }
-      inicio.setDate(fim.getDate() - 30)
-      break
+      return ultimosDias(30)
     }
   }
-  return { inicio, fim }
+  return { inicio: agora, fim }
 }
 
 export function calcularMetricas(

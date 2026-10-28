@@ -6,6 +6,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 
 vi.mock("@/lib/sessao", () => ({ sessaoAtual: vi.fn() }))
 vi.mock("@/integrations/supabase/server", () => ({ createClient: vi.fn() }))
+// B48-14: a empresa do teste está no horário de Brasília
+vi.mock("@/lib/fuso-da-empresa", () => ({ fusoDaEmpresa: async () => "America/Sao_Paulo" }))
 
 import { destinoSeguro } from "@/app/login/destino"
 import { calcularMetricas, calcularPerformanceVendedores, SEM_ATENDENTE, type CardRow } from "@/lib/metricas-dashboard"

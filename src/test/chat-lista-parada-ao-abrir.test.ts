@@ -4,6 +4,7 @@
 import { describe, it, expect } from "vitest"
 import { aplicarAtualizacaoDaConversa } from "@/app/(auth)/chat/conversa-atualizada"
 import type { Conversa } from "@/app/(auth)/chat/mock-conversas"
+import { FUSO_DA_OPERACAO } from "@/lib/datas"
 
 function conversa(id: string, atividadeEm: string, naoLidas = 0): Conversa {
   return {
@@ -32,7 +33,7 @@ describe("B48-02: lista do chat ao receber atualização da conversa", () => {
       last_message_at: "2026-10-27T16:00:00.000Z",
       unread_count: 0,
       status: "em_atendimento",
-    })
+    }, FUSO_DA_OPERACAO)
     expect(lista.map((c) => c.id)).toEqual(["A", "B", "C"])
     expect(lista[2].naoLidas).toBe(0)
   })
@@ -44,7 +45,7 @@ describe("B48-02: lista do chat ao receber atualização da conversa", () => {
       last_message_at: null,
       unread_count: 0,
       status: "resolvida",
-    })
+    }, FUSO_DA_OPERACAO)
     expect(lista.map((c) => c.id)).toEqual(["A", "B", "C"])
     expect(lista[2].status).toBe("resolvida")
   })
@@ -56,7 +57,7 @@ describe("B48-02: lista do chat ao receber atualização da conversa", () => {
       last_message_at: "2026-10-27T19:00:00.000Z",
       unread_count: 4,
       status: "em_atendimento",
-    })
+    }, FUSO_DA_OPERACAO)
     expect(lista.map((c) => c.id)).toEqual(["C", "A", "B"])
     expect(lista[0].ultimaMensagem.texto).toBe("Mensagem nova")
     expect(lista[0].atividadeEm).toBe("2026-10-27T19:00:00.000Z")
@@ -65,6 +66,6 @@ describe("B48-02: lista do chat ao receber atualização da conversa", () => {
 
   it("conversa fora da lista não muda nada", () => {
     const antes = [A, B]
-    expect(aplicarAtualizacaoDaConversa(antes, { id: "Z", last_message_text: "x", last_message_at: "2026-10-27T20:00:00.000Z", unread_count: 1, status: "em_atendimento" })).toBe(antes)
+    expect(aplicarAtualizacaoDaConversa(antes, { id: "Z", last_message_text: "x", last_message_at: "2026-10-27T20:00:00.000Z", unread_count: 1, status: "em_atendimento" }, FUSO_DA_OPERACAO)).toBe(antes)
   })
 })

@@ -1,6 +1,7 @@
 "use client"
 
 import { formatarDataEHora } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -46,6 +47,7 @@ const STATUS_CLASS: Record<string, string> = {
 }
 
 export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCampanha }) {
+  const fuso = useFuso()
   const router = useRouter()
   const [filtroStatus, setFiltroStatus] = useState("")
   const [criandoReenvio, setCriandoReenvio] = useState(false)
@@ -154,7 +156,7 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
       </div>
       <p className="text-sm text-muted-foreground mb-6">
         {relatorio.enviadaEm
-          ? `Enviada em ${formatarDataEHora(relatorio.enviadaEm)}`
+          ? `Enviada em ${formatarDataEHora(relatorio.enviadaEm, fuso)}`
           : relatorio.status === "cancelada"
             ? "Campanha cancelada"
             : relatorio.status === "rascunho"
@@ -292,7 +294,7 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
                 </td>
                 <td className="px-4 py-2.5 text-muted-foreground">
                   {d.atualizadoEm
-                    ? formatarDataEHora(d.atualizadoEm)
+                    ? formatarDataEHora(d.atualizadoEm, fuso)
                     : "—"}
                 </td>
               </tr>

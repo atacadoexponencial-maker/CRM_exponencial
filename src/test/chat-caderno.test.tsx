@@ -22,7 +22,7 @@ vi.mock("@/app/(auth)/contatos/actions", () => ({
 vi.mock("@/app/(auth)/chat/actions", () => ({
   buscarInfoContato: vi.fn(async () => ({
     dataPrimeiroContato: "20 de out. de 2026",
-    compras: resumoDeCompras(COMPRAS, AGORA),
+    compras: resumoDeCompras(COMPRAS, FUSO_DA_OPERACAO, AGORA),
     cadastro: {
       contactId: "c-1", classificacao: "ativo", tipo: "lojista", cidade: "Uberlândia", uf: "MG",
       icp: null, atendente: "Ana", tags: ["vip", "feira"], funis: [{ funil: "recompra", etapa: "Ativos" }],
@@ -32,6 +32,7 @@ vi.mock("@/app/(auth)/chat/actions", () => ({
 }))
 
 import { PainelContato } from "@/app/(auth)/chat/components/painel-contato"
+import { FUSO_DA_OPERACAO } from "@/lib/datas"
 
 const CONVERSA: Conversa = {
   id: "conv-1",
@@ -47,7 +48,7 @@ const CONVERSA: Conversa = {
 
 describe("B36-06 — Chat no estilo Caderno", () => {
   it("CA-B36-26: should mostrar na ficha ao lado da conversa o total comprado, os pedidos, o ticket médio, a última compra, a etapa e as etiquetas", async () => {
-    expect(resumoDeCompras(COMPRAS, AGORA)).toEqual({ total: 6000, quantidade: 3, ticketMedio: 2000, diasDesdeUltima: 10 })
+    expect(resumoDeCompras(COMPRAS, FUSO_DA_OPERACAO, AGORA)).toEqual({ total: 6000, quantidade: 3, ticketMedio: 2000, diasDesdeUltima: 10 })
 
     render(<PainelContato conversa={CONVERSA} conversaId="conv-1" onFechar={vi.fn()} onConversaAtualizada={vi.fn()} />)
     const ficha = screen.getByRole("complementary", { name: "Ficha do cliente" })

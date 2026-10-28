@@ -28,6 +28,7 @@ import {
   Zap,
   Columns3,
   ListPlus,
+  Building2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { COOKIE_MENU_RECOLHIDO, gravarPreferencia } from "@/lib/preferencias-layout"
@@ -104,6 +105,7 @@ function montarSecoes(atrasados: number, pedidosNovos: number): SecaoNav[] {
         { href: "/configuracoes/usuarios", label: "Usuários", icone: Users, papeis: ["admin"] },
         { href: "/configuracoes/times", label: "Times", icone: UsersRound, papeis: ["admin"] },
         { href: "/configuracoes/whatsapp", label: "WhatsApp", icone: Plug, papeis: ["admin"] },
+        { href: "/configuracoes/empresa", label: "Empresa", icone: Building2, papeis: ["admin"] },
       ],
     },
   ]

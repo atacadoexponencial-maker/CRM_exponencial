@@ -6,6 +6,7 @@ import { RelatoriosClient } from "./components/relatorios-client"
 import { abaDoEndereco } from "@/lib/relatorios/abas"
 import { listarCamposDaEmpresa } from "../contatos/campos-personalizados"
 import { CLASSE_DA_PAGINA } from "@/lib/pagina"
+import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 
 export const metadata = { title: "Relatórios" }
 
@@ -14,7 +15,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
   if (!user || !perfil) redirect("/login")
 
   const { aba } = await searchParams
-  const hoje = hojeNoFuso()
+  const hoje = hojeNoFuso(await fusoDaEmpresa())
   // B38-07: e os campos personalizados, para o filtro por campo
   const [visao, { data: atendentesData }, campos] = await Promise.all([
     buscarVisaoGeral({ periodo: periodoPadrao(hoje), atendenteId: null }),

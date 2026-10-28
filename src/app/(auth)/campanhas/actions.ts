@@ -21,6 +21,7 @@ import { filtrarContatos, valoresDoFiltro } from "../contatos/actions"
 import { condicoesComFunilApagado, esquemaFiltro } from "@/lib/filtro-contatos"
 import { filtroDoSegmento, type Segmento } from "@/lib/segmento-campanha"
 import { avisoDeSemReserva, variaveisSemReserva } from "@/lib/variaveis-mensagem"
+import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 
 export type { Segmento } from "@/lib/segmento-campanha"
 
@@ -289,7 +290,7 @@ export async function avaliarDisparo(
     if (saude?.ok) aquecimento = fraseDoAquecimento(saude.saude)
   }
 
-  const estimativa = estimarDuracaoDoDisparo({ destinatarios: totalDestinatarios, ritmo })
+  const estimativa = estimarDuracaoDoDisparo({ destinatarios: totalDestinatarios, ritmo, fuso: await fusoDaEmpresa() })
 
   return {
     aviso:

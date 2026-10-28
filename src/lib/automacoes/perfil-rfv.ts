@@ -15,6 +15,7 @@ import { gatilhoDoFluxo, horaDoGatilho } from "@/lib/fluxo-automacao"
 import { hojeNoFuso } from "@/lib/relatorios/visao-geral"
 import { lerFluxo } from "./fluxo-recebido"
 import { processarAutomacoes } from "./index"
+import { FUSO_DA_OPERACAO } from "@/lib/datas"
 
 /** A partir desta hora (Brasília) a conferência do dia pode rodar. */
 export const HORA_DA_CONFERENCIA = 3
@@ -36,7 +37,7 @@ export function horaNoFuso(agora: Date): number {
 export async function conferirPerfisRfv(agora = new Date(), workspaceId?: string): Promise<number | null> {
   if (horaNoFuso(agora) < HORA_DA_CONFERENCIA) return null
   const { data, error } = await createServiceClient().rpc("conferir_perfis_rfv", {
-    p_dia: hojeNoFuso(agora),
+    p_dia: hojeNoFuso(FUSO_DA_OPERACAO, agora),
     ...(workspaceId ? { p_workspace: workspaceId } : {}),
   })
   if (error) throw error

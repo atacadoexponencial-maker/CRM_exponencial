@@ -414,6 +414,10 @@ aparece uma frase curta ou um "?" com a explicação. Decisão do Luan
 | SUP-B48-09 | O seletor de blocos fica mais largo, com os grupos em duas colunas, para "Agenda" aparecer sem rolar | confirmada | Luan, 28/10/2026 |
 | SUP-B48-10 | Automação nova: enquanto só existe o gatilho, aparece "Clique no + embaixo do gatilho para escolher o próximo bloco" | confirmada | Luan, 28/10/2026 |
 | SUP-B48-11 | Mensagens rápidas no Chat: nome inteiro em cima, texto embaixo cortado em uma linha | confirmada | Luan, 28/10/2026 |
+| SUP-B48-12 | O fuso vale para as telas, para o que se digita na Agenda e para o horário comercial das automações. Os filtros de data do banco ("comprou há X dias", o dia do pedido que vira compra, a conferência do RFV), a planilha de pedidos e a janela de envio das campanhas (aplicada pelo gateway, em hora de São Paulo) ficam em Brasília; a tela do fuso diz isso | confirmada | Luan, 28/10/2026, depois do levantamento do que usa hora no CRM |
+| SUP-B48-13 | Só os fusos do Brasil: Fernando de Noronha, Brasília, Cuiabá, Manaus e Rio Branco. Nenhum tem horário de verão hoje | confirmada | Luan, 28/10/2026 |
+| SUP-B48-14 | Dois erros que já existiam entram nesta issue: a estimativa da campanha lia a hora do servidor (UTC) e achava que 18h de Brasília eram 21h, fora da janela; e o período do Dashboard virava o dia às 21h de Brasília. A linha do tempo do contato também saía em UTC | confirmada | Luan, 28/10/2026 |
+| SUP-B48-15 | O fuso fica numa tela nova, Configurações → Empresa, só para o Admin. Gravado pela chave de serviço depois de conferir o papel, porque `workspaces` não tem política de update | confirmada | Luan, 28/10/2026; a issue já pedia o fuso "em Configurações" |
 
 ## Perguntas em aberto
 

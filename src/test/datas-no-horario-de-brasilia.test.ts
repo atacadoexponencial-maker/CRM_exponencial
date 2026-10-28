@@ -12,13 +12,18 @@ import { createClient } from "@/integrations/supabase/server"
 import { buscarDadosPainel } from "@/app/(auth)/pipeline/actions"
 import { formatarDataDoCalendario } from "@/lib/datas"
 
-/** Banco falso: cada tabela devolve as linhas dela, com qualquer filtro. */
+/**
+ * Banco falso: cada tabela devolve as linhas dela, com qualquer filtro. B48-14: a
+ * sessão também passa por ele, porque a tela lê o fuso da empresa de quem está logado.
+ */
 function banco(linhas: Record<string, unknown[]>) {
   return {
+    auth: { getUser: async () => ({ data: { user: { id: "u-1" } }, error: null }) },
     from: (tabela: string) => {
       const obj: Record<string, unknown> = {}
       for (const m of ["select", "eq", "in", "order"]) obj[m] = () => obj
       obj.maybeSingle = () => Promise.resolve({ data: (linhas[tabela] ?? [])[0] ?? null, error: null })
+      obj.single = obj.maybeSingle
       obj.then = (resolve: (v: unknown) => void) => Promise.resolve({ data: linhas[tabela] ?? [], error: null }).then(resolve)
       return obj
     },

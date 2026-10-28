@@ -1,7 +1,7 @@
 // B36-06: resumo das compras de um cliente para a ficha do Chat — total, quantidade de
 // pedidos, ticket médio e há quantos dias foi a última compra. Cálculo puro.
 
-import { FUSO_DA_OPERACAO } from "@/lib/datas"
+import { diaNoFuso } from "@/lib/datas"
 
 export type ResumoDeCompras = {
   total: number
@@ -11,14 +11,12 @@ export type ResumoDeCompras = {
   diasDesdeUltima: number | null
 }
 
-const hojeNoFuso = (agora: Date) => agora.toLocaleDateString("sv-SE", { timeZone: FUSO_DA_OPERACAO })
-
-export function resumoDeCompras(compras: Array<{ valor: number | string; data: string }>, agora: Date = new Date()): ResumoDeCompras {
+export function resumoDeCompras(compras: Array<{ valor: number | string; data: string }>, fuso: string, agora: Date = new Date()): ResumoDeCompras {
   const total = compras.reduce((s, c) => s + Number(c.valor), 0)
   const quantidade = compras.length
   const ultima = compras.map((c) => c.data.slice(0, 10)).sort().at(-1)
   const diasDesdeUltima = ultima
-    ? Math.round((Date.parse(hojeNoFuso(agora) + "T00:00:00Z") - Date.parse(ultima + "T00:00:00Z")) / 86400000)
+    ? Math.round((Date.parse(diaNoFuso(agora, fuso) + "T00:00:00Z") - Date.parse(ultima + "T00:00:00Z")) / 86400000)
     : null
   return { total, quantidade, ticketMedio: quantidade > 0 ? total / quantidade : null, diasDesdeUltima }
 }

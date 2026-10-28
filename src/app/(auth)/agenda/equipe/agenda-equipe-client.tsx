@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { formatarDiaEHora } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import { cn } from "@/lib/utils"
 import { listarAgendaEquipe, reatribuirLembrete } from "../actions"
 import type { ItemAgenda } from "../actions"
@@ -25,6 +26,7 @@ export function AgendaEquipeClient({
   itensIniciais: ItemAgenda[]
   atendentes: Array<{ id: string; nome: string }>
 }) {
+  const fuso = useFuso()
   const [itens, setItens] = useState<ItemAgenda[]>(itensIniciais)
   const [filtroAtendente, setFiltroAtendente] = useState("")
   const [erro, setErro] = useState<string | null>(null)
@@ -129,7 +131,7 @@ export function AgendaEquipeClient({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-sm">{item.contatoNome}</span>
-                      <span className="text-xs text-muted-foreground">{formatarDiaEHora(item.dueAt)}</span>
+                      <span className="text-xs text-muted-foreground">{formatarDiaEHora(item.dueAt, fuso)}</span>
                       <span className="text-xs rounded-full bg-muted px-2 py-0.5">{item.atendenteNome}</span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-0.5">{item.instrucao}</p>

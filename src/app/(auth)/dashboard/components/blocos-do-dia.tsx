@@ -6,7 +6,8 @@
 import { useState, useTransition } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { formatarHoraDoDia, formatarDataCurta } from "@/lib/datas"
+import { diaNoFuso, formatarHoraDoDia, formatarDataCurta } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import { textoDaEspera } from "@/lib/painel-dashboard"
 import { marcarLembreteFeito } from "@/app/(auth)/agenda/actions"
 import type { ConversaEsperando, EtapaComQuantidade, TarefaDeHoje } from "../actions"
@@ -82,13 +83,14 @@ export function BlocoFunilEntrada({
   )
 }
 
-function horaDaTarefa(t: TarefaDeHoje): string {
-  const hoje = new Date().toDateString() === new Date(t.dueAt).toDateString()
-  if (t.atrasado && !hoje) return `Atrasada · ${formatarDataCurta(t.dueAt)} ${formatarHoraDoDia(t.dueAt)}`
-  return `${t.atrasado ? "Atrasada · " : "Hoje · "}${formatarHoraDoDia(t.dueAt)}`
+function horaDaTarefa(t: TarefaDeHoje, fuso: string): string {
+  const hoje = diaNoFuso(new Date(), fuso) === diaNoFuso(new Date(t.dueAt), fuso)
+  if (t.atrasado && !hoje) return `Atrasada · ${formatarDataCurta(t.dueAt, fuso)} ${formatarHoraDoDia(t.dueAt, fuso)}`
+  return `${t.atrasado ? "Atrasada · " : "Hoje · "}${formatarHoraDoDia(t.dueAt, fuso)}`
 }
 
 export function BlocoParaHoje({ tarefasIniciais }: { tarefasIniciais: TarefaDeHoje[] }) {
+  const fuso = useFuso()
   const [tarefas, setTarefas] = useState(tarefasIniciais)
   const [erro, setErro] = useState("")
   const [, startTransition] = useTransition()
@@ -138,7 +140,7 @@ export function BlocoParaHoje({ tarefasIniciais }: { tarefasIniciais: TarefaDeHo
                   {t.instrucao ? <span className="text-muted-foreground"> — {t.instrucao}</span> : null}
                 </span>
                 <span data-atrasada={t.atrasado || undefined} className={cn("numero text-xs", t.atrasado ? "text-queda" : "text-muted-foreground")}>
-                  {horaDaTarefa(t)}
+                  {horaDaTarefa(t, fuso)}
                 </span>
               </span>
             </li>

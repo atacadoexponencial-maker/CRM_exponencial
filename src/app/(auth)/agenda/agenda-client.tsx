@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { diasAte, formatarDiaEHora, paraCamposDoFormulario } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import { cn } from "@/lib/utils"
 import {
   adiarLembrete,
@@ -46,14 +47,14 @@ const GRUPO_LABEL: Record<Grupo, string> = {
   depois: "Mais tarde",
 }
 
-export function grupoDoItem(item: ItemAgenda, agora: Date = new Date()): Grupo {
+export function grupoDoItem(item: ItemAgenda, fuso: string, agora: Date = new Date()): Grupo {
   // QA M5 (06/10): "atrasado" é a mesma regra do selo do menu e da agenda da equipe:
   // a hora já passou. Antes, aqui contava por dia, e as três telas discordavam.
   if (new Date(item.dueAt) < agora) return "atrasados"
   // B28 (20/10): o dia é contado no fuso da operação. Com o fuso da máquina, o
   // servidor (UTC) e o navegador discordavam entre 21h e meia-noite, e o React
   // descartava a página do servidor (erro #418).
-  const diffDias = diasAte(item.dueAt, agora)
+  const diffDias = diasAte(item.dueAt, fuso, agora)
   if (diffDias < 0) return "atrasados"
   if (diffDias === 0) return "hoje"
   if (diffDias === 1) return "amanha"
@@ -62,6 +63,7 @@ export function grupoDoItem(item: ItemAgenda, agora: Date = new Date()): Grupo {
 }
 
 export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgenda[]; papel: string }) {
+  const fuso = useFuso()
   const router = useRouter()
   const [itens, setItens] = useState<ItemAgenda[]>(itensIniciais)
   const [erro, setErro] = useState<string | null>(null)
@@ -90,7 +92,7 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
   const [feitoRecente, setFeitoRecente] = useState<ItemAgenda | null>(null)
   const relogioDoDesfazer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const atrasados = itens.filter((i) => grupoDoItem(i) === "atrasados").length
+  const atrasados = itens.filter((i) => grupoDoItem(i, fuso) === "atrasados").length
 
   async function handleFeito(id: string) {
     const anterior = itens
@@ -172,7 +174,7 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
   }
 
   function abrirEditar(item: ItemAgenda) {
-    const { data, hora } = paraCamposDoFormulario(item.dueAt)
+    const { data, hora } = paraCamposDoFormulario(item.dueAt, fuso)
     setEditando(item)
     setTermoBusca("")
     setResultados([])
@@ -254,7 +256,7 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
       ) : (
         <div className="flex flex-col gap-6">
           {grupos.map((grupo) => {
-            const doGrupo = itens.filter((i) => grupoDoItem(i) === grupo)
+            const doGrupo = itens.filter((i) => grupoDoItem(i, fuso) === grupo)
             if (doGrupo.length === 0) return null
             return (
               <section key={grupo}>
@@ -281,7 +283,7 @@ export function AgendaClient({ itensIniciais, papel }: { itensIniciais: ItemAgen
                           <Link href={`/contatos/${item.contatoId}`} className="font-medium text-sm hover:underline">
                             {item.contatoNome}
                           </Link>
-                          <span className="text-xs text-muted-foreground">{formatarDiaEHora(item.dueAt)}</span>
+                          <span className="text-xs text-muted-foreground">{formatarDiaEHora(item.dueAt, fuso)}</span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-0.5">{item.instrucao}</p>
                         <RegraDoLembrete item={item} />

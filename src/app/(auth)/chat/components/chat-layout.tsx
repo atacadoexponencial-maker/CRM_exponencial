@@ -4,6 +4,7 @@ import { useState, useTransition, useEffect, useRef } from "react"
 import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import { createClient } from "@/integrations/supabase/client"
 import { formatarHoraDoDia } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import { FiltrosCaixa } from "./filtros-caixa"
 import { PainelConversa } from "./painel-conversa"
 import { PainelContato } from "./painel-contato"
@@ -33,6 +34,7 @@ interface ChatLayoutProps {
 }
 
 export function ChatLayout({ conversas, temMaisConversas = false, papel, userId, nomeUsuario, workspaceId, atendentes, atendentesTransferir, etiquetasDisponiveis, mensagensRapidas, conversaInicialId, caixaRecolhidaInicial = false }: ChatLayoutProps) {
+  const fuso = useFuso()
   const [conversasState, setConversasState] = useState<Conversa[]>(conversas)
   const [temMais, setTemMais] = useState(temMaisConversas)
   const [carregandoMais, setCarregandoMais] = useState(false)
@@ -68,7 +70,7 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
         },
         (payload) => {
           const row = payload.new as LinhaDaConversa
-          setConversasState((prev) => aplicarAtualizacaoDaConversa(prev, row))
+          setConversasState((prev) => aplicarAtualizacaoDaConversa(prev, row, fuso))
         }
       )
       .on(
@@ -165,7 +167,7 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
         direcao: row.direction as Mensagem["direcao"],
         conteudo: row.content,
         // Mesma formatação das mensagens carregadas pela página.
-        horario: formatarHoraDoDia(row.created_at),
+        horario: formatarHoraDoDia(row.created_at, fuso),
         status: row.status as Mensagem["status"] | undefined,
         ...(row.sent_from_phone ? { enviadaPeloCelular: true } : {}),
         ...(row.media_mime_type ? { tipoDoArquivo: row.media_mime_type } : {}),

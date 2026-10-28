@@ -9,6 +9,7 @@
 // e o teste só roda com o fluxo completo, como o Salvar (B22-11).
 
 import { formatarDiaDoMes, formatarHoraDoDia } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Background,
@@ -197,6 +198,7 @@ function EditorFluxoInterno({
   contarEsperasQueSaem,
   ativa = true,
 }: EditorFluxoProps) {
+  const fuso = useFuso()
   // B36-12: o canvas segue o tema da tela (era sempre escuro).
   const modoDeCor = useTemaDaTela()
   const [nos, setNos, onNodesChange] = useNodesState<NoFluxo>(paraNos(regraInicial.fluxo))
@@ -641,7 +643,7 @@ function EditorFluxoInterno({
                     className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-aviso/40 bg-background px-3 py-2 text-sm text-aviso shadow-sm"
                   >
                     <span>
-                      Há alterações não salvas de {quandoFoiGuardado(rascunhoAchado.guardadoEm)}.
+                      Há alterações não salvas de {quandoFoiGuardado(rascunhoAchado.guardadoEm, fuso)}.
                       {rascunhoAchado.base !== salvo &&
                         " A automação foi salva depois disso: recuperar troca o que está salvo pelo rascunho."}
                     </span>
@@ -830,8 +832,8 @@ function EditorFluxoInterno({
 }
 
 /** "13/10 às 14:32", no horário da operação (B48-01). */
-function quandoFoiGuardado(iso: string): string {
-  return `${formatarDiaDoMes(iso)} às ${formatarHoraDoDia(iso)}`
+function quandoFoiGuardado(iso: string, fuso: string): string {
+  return `${formatarDiaDoMes(iso, fuso)} às ${formatarHoraDoDia(iso, fuso)}`
 }
 
 /** Busca e lista de contatos do "Testar com um contato". */

@@ -5,6 +5,7 @@ import { buscarPainelDashboard, listarEsperandoResposta, listarParaHoje } from "
 import { DashboardClient } from "./components/dashboard-client"
 import { listarCamposDaEmpresa } from "../contatos/campos-personalizados"
 import { CLASSE_DA_PAGINA } from "@/lib/pagina"
+import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 
 export const metadata = { title: "Dashboard" }
 
@@ -39,7 +40,7 @@ export default async function DashboardPage() {
         painelInicial={painel}
         atendentes={atendentes}
         papel={perfil.role}
-        cabecalho={cabecalhoDoDia(perfil.name)}
+        cabecalho={cabecalhoDoDia(perfil.name, await fusoDaEmpresa())}
         paraHoje={paraHoje}
         esperando={esperando}
         campos={campos}

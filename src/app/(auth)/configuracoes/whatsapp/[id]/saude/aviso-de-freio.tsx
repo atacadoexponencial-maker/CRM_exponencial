@@ -10,6 +10,7 @@
 // forma ser aprovada. Banimento nunca oferece retomada.
 
 import { formatarDataEHora } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import { Ban, OctagonPause } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { MotivoDoFreio, SaudeDoNumero } from "./tipos"
@@ -35,6 +36,7 @@ export function AvisoDeFreio({
   retomando?: boolean
   erro?: string | null
 }) {
+  const fuso = useFuso()
   if (!freio.freado) return null
 
   const banido = freio.motivo === "banned"
@@ -57,7 +59,7 @@ export function AvisoDeFreio({
         {freio.desde && (
           <span className="text-muted-foreground">
             {" "}
-            · desde {formatarDataEHora(freio.desde)}
+            · desde {formatarDataEHora(freio.desde, fuso)}
           </span>
         )}
       </p>

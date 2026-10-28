@@ -2,11 +2,12 @@
 // condição "dentro do horário comercial" das automações. Puro: usado pelo motor,
 // pela action que grava e pelo diálogo da tela.
 //
-// A hora é lida no fuso da operação, e não no do servidor: a Vercel roda em UTC,
-// e 20h em São Paulo seria 23h lá (ver src/lib/datas.ts). Uma faixa só para
+// A hora é lida no fuso da empresa, e não no do servidor: a Vercel roda em UTC,
+// e 20h em São Paulo seria 23h lá (ver src/lib/datas.ts). Empresa em Manaus que
+// marca 08:00–18:00 quer dizer 08:00–18:00 de Manaus (B48-14). Uma faixa só para
 // todos os dias marcados, como a spec pede, e sem atravessar a meia-noite.
 
-import { FUSO_DA_OPERACAO } from "@/lib/datas"
+import { relogioNoFuso } from "@/lib/datas"
 
 export interface HorarioComercial {
   /** 0 = domingo … 6 = sábado, como o `getDay()`. */
@@ -49,22 +50,10 @@ export function horarioDoBanco(linha: { dias: number[]; inicio: string; fim: str
   return { dias: [...linha.dias].sort((a, b) => a - b), inicio: linha.inicio.slice(0, 5), fim: linha.fim.slice(0, 5) }
 }
 
-const PARTES_NO_FUSO = new Intl.DateTimeFormat("en-US", {
-  timeZone: FUSO_DA_OPERACAO,
-  weekday: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-  hourCycle: "h23",
-})
-
-const DIA_EM_INGLES: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
-
 /** Dia marcado e hora entre o início (incluído) e o fim (excluído): às 18:00 em ponto, já está fora. */
-export function dentroDoHorario(horario: HorarioComercial, agora: Date): boolean {
-  const partes = Object.fromEntries(PARTES_NO_FUSO.formatToParts(agora).map((p) => [p.type, p.value]))
-  const dia = DIA_EM_INGLES[partes.weekday]
-  const agoraEmMinutos = Number(partes.hour) * 60 + Number(partes.minute)
-  return horario.dias.includes(dia) && agoraEmMinutos >= minutos(horario.inicio) && agoraEmMinutos < minutos(horario.fim)
+export function dentroDoHorario(horario: HorarioComercial, agora: Date, fuso: string): boolean {
+  const { diaDaSemana, minutos: agoraEmMinutos } = relogioNoFuso(agora, fuso)
+  return horario.dias.includes(diaDaSemana) && agoraEmMinutos >= minutos(horario.inicio) && agoraEmMinutos < minutos(horario.fim)
 }
 
 /** "Seg a Sex, das 08:00 às 18:00". Três ou mais dias seguidos viram "de … a …". */

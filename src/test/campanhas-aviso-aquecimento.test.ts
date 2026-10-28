@@ -9,6 +9,8 @@ vi.mock("@/integrations/supabase/service", () => ({ createServiceClient: vi.fn()
 vi.mock("@/integrations/supabase/server", () => ({ createClient: vi.fn() }))
 vi.mock("@/lib/campanhas", () => ({ processarCampanhasPendentes: vi.fn() }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+// B48-14: a empresa do teste está no horário de Brasília
+vi.mock("@/lib/fuso-da-empresa", () => ({ fusoDaEmpresa: async () => "America/Sao_Paulo" }))
 vi.mock("@/lib/whatsapp/gateway/cliente", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/whatsapp/gateway/cliente")>()),
   clienteGatewayDoAmbiente: vi.fn(),

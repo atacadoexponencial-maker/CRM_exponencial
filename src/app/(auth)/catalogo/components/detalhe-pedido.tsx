@@ -6,6 +6,7 @@ import { AlertTriangle, ImageOff, MessageSquare, User, X } from "lucide-react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import { formatarPreco } from "./lista-produtos"
 import { SeloSituacao, formatarWhatsapp, type PedidoResumo } from "./lista-pedidos"
 import { PROXIMAS_SITUACOES, ROTULO_SITUACAO, type SituacaoPedido } from "./situacao-pedido"
@@ -54,6 +55,7 @@ interface DetalhePedidoProps {
 }
 
 export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedidoProps) {
+  const fuso = useFuso()
   const [confirmar, setConfirmar] = useState<SituacaoPedido | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [mudando, setMudando] = useState(false)
@@ -80,7 +82,7 @@ export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedi
       <header className="flex items-start justify-between gap-2 px-4 py-3 border-b">
         <div>
           <h2 className="text-base font-semibold">Pedido #{pedido.numero}</h2>
-          <p className="text-xs text-muted-foreground">{formatarDataCurta(pedido.criadoEm)}, {formatarHoraDoDia(pedido.criadoEm)}</p>
+          <p className="text-xs text-muted-foreground">{formatarDataCurta(pedido.criadoEm, fuso)}, {formatarHoraDoDia(pedido.criadoEm, fuso)}</p>
         </div>
         <div className="flex items-center gap-2">
           <SeloSituacao situacao={pedido.situacao} />
@@ -160,7 +162,7 @@ export function DetalhePedido({ pedido, onFechar, onMudarSituacao }: DetalhePedi
             {pedido.historico.map((h, n) => (
               <li key={n}>
                 <span className="text-foreground">{h.de ? `${ROTULO_SITUACAO[h.de]} → ${ROTULO_SITUACAO[h.para]}` : "Pedido recebido pela loja"}</span>
-                {" · "}{h.por} · {formatarDataCurta(h.em)}, {formatarHoraDoDia(h.em)}
+                {" · "}{h.por} · {formatarDataCurta(h.em, fuso)}, {formatarHoraDoDia(h.em, fuso)}
               </li>
             ))}
           </ol>

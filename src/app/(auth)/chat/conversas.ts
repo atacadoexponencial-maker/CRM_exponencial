@@ -8,6 +8,7 @@ import type { createClient } from "@/integrations/supabase/server"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { urlsAssinadasDasFotos } from "@/lib/whatsapp/foto-de-perfil"
 import { formatarDataCurta, formatarHorarioDaLista } from "@/lib/datas"
+import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 import { nomeDoCanal, recursosDoCanal } from "@/lib/whatsapp"
 import type { CanalWhatsApp } from "@/lib/whatsapp"
 import type { Conversa, StatusConversa } from "./mock-conversas"
@@ -91,6 +92,7 @@ export async function listarConversas(
       .filter((c) => c.contact_id && c.contact?.photo_path)
       .map((c) => ({ workspaceId, contactId: c.contact_id!, caminho: c.contact!.photo_path }))
   ).catch(() => new Map<string, string>())
+  const fuso = await fusoDaEmpresa()
 
   return linhas.map((c) => ({
     id: c.id,
@@ -102,7 +104,7 @@ export async function listarConversas(
     },
     ultimaMensagem: {
       texto: c.last_message_text,
-      horario: formatarHorarioDaLista(c.last_message_at),
+      horario: formatarHorarioDaLista(c.last_message_at, fuso),
     },
     naoLidas: c.unread_count,
     status: c.status as StatusConversa,
@@ -110,7 +112,7 @@ export async function listarConversas(
       .filter((cl) => cl.labels)
       .map((cl) => ({ id: cl.labels!.id, nome: cl.labels!.name, cor: cl.labels!.color })),
     atribuidaA: c.assignee?.name ?? null,
-    dataPrimeiroContato: formatarDataCurta(c.created_at),
+    dataPrimeiroContato: formatarDataCurta(c.created_at, fuso),
     atividadeEm: c.last_message_at,
     // B7-02: o que o canal faz é decidido aqui, no servidor. A tela exibe.
     canal: {

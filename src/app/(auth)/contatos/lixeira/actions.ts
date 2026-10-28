@@ -14,6 +14,7 @@ import { sessaoAtual, type PerfilDaSessao } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { transmitirContatoExcluido } from "@/lib/whatsapp/realtime"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
+import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 import { apagarDaLixeira, PRAZO_LIXEIRA_DIAS, tirarDaLixeira } from "@/lib/lixeira"
 import { CONTATO_NA_LIXEIRA, cancelarEsperasDoContato } from "@/lib/automacoes/esperas"
 import type { FunilDoCard } from "../components/dialogo-excluir-contato"
@@ -270,8 +271,8 @@ function diasRestantes(excluidoEm: string): number {
   return Math.max(0, PRAZO_LIXEIRA_DIAS - passados)
 }
 
-function quando(iso: string): string {
-  return `${formatarDataCurta(iso)} às ${formatarHoraDoDia(iso)}`
+function quando(iso: string, fuso: string): string {
+  return `${formatarDataCurta(iso, fuso)} às ${formatarHoraDoDia(iso, fuso)}`
 }
 
 const EXCLUIDOR_DESCONHECIDO = "alguém que saiu da equipe"
@@ -300,6 +301,7 @@ export async function listarLixeira(): Promise<ItemLixeira[]> {
     funisPorContato.set(c.contact_id, atual)
   }
 
+  const fuso = await fusoDaEmpresa()
   return (contatos ?? []).map((c) => {
     const excluidor = c.excluidor as unknown as { name: string } | null
     const excluidoEm = c.excluido_em as string
@@ -310,7 +312,7 @@ export async function listarLixeira(): Promise<ItemLixeira[]> {
       funis: ordenarFunis([...(funisPorContato.get(c.id) ?? [])]),
       nomesDosFunis: nomes.funis,
       excluidoPor: excluidor?.name ?? EXCLUIDOR_DESCONHECIDO,
-      excluidoEm: quando(excluidoEm),
+      excluidoEm: quando(excluidoEm, fuso),
       diasRestantes: diasRestantes(excluidoEm),
     }
   })
@@ -332,7 +334,7 @@ export async function estadoNaLixeira(
   if (!contato || contato === "nao_esta") return null
   return {
     excluidoPor: contato.excluidoPor ?? EXCLUIDOR_DESCONHECIDO,
-    excluidoEm: quando(contato.excluido_em),
+    excluidoEm: quando(contato.excluido_em, await fusoDaEmpresa()),
     diasRestantes: diasRestantes(contato.excluido_em),
   }
 }

@@ -1,6 +1,7 @@
 "use server"
 
 import { formatarData, formatarDataEHora } from "@/lib/datas"
+import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import { dispararAutomacoes } from "@/lib/automacoes/fila"
@@ -396,10 +397,11 @@ export async function buscarDadosPainel(cardId: string): Promise<{ historico: Hi
   const nomesDasEtapasNovas = (await lerNomesDosFunis(supabase, [doCard?.funil])).etapas
   const rotulo = (etapa: string | null | undefined) => (etapa && nomesDasEtapasNovas[etapa]) || rotuloDaEtapa(etapa)
 
+  const fuso = await fusoDaEmpresa()
   const historico: HistoricoEtapa[] = (historicoResult.data ?? []).map((row) => ({
     deEtapa: rotulo(row.de_etapa),
     etapa: rotulo(row.para_etapa),
-    data: formatarDataEHora(row.created_at),
+    data: formatarDataEHora(row.created_at, fuso),
     responsavel: (row.alterado_por as unknown as { name: string } | null)?.name,
   }))
 
@@ -407,7 +409,7 @@ export async function buscarDadosPainel(cardId: string): Promise<{ historico: Hi
     id: row.id,
     autor: (row.autor as unknown as { name: string } | null)?.name ?? "Desconhecido",
     texto: row.texto,
-    data: formatarData(row.created_at),
+    data: formatarData(row.created_at, fuso),
   }))
 
   return { historico, notas }
@@ -484,12 +486,13 @@ async function lerCardsDoFunil(funil: string): Promise<CardBase[]> {
     for (const e of etapas ?? []) prazoDaEtapa[e.id] = e.parado_dias
   }
 
+  const fuso = await fusoDaEmpresa()
   return (data ?? []).map((row) => ({
     id: row.id,
     contactId: row.contact_id,
     etapa: row.etapa,
     tempoNaEtapa: calcularTempoNaEtapa(row.etapa_changed_at),
-    dataEntradaEtapa: formatarData(row.etapa_changed_at),
+    dataEntradaEtapa: formatarData(row.etapa_changed_at, fuso),
     tempoNoFunil: calcularTempoNaEtapa(row.created_at),
     atendente: (row.atendente as unknown as { name: string } | null)?.name ?? null,
     contato: {

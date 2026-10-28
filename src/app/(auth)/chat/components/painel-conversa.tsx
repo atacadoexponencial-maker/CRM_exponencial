@@ -19,6 +19,7 @@ import { enviarMensagem, enviarImagem, enviarDocumento, enviarVideo, enviarAudio
 import type { Conversa } from "../mock-conversas"
 import type { Mensagem, StatusMensagem } from "../mock-mensagens"
 import { formatarHoraDoDia } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import { useFecharComEsc } from "@/hooks/use-fechar-com-esc"
 
 async function converterParaMp3(blob: Blob): Promise<Blob> {
@@ -89,10 +90,10 @@ const ACOES_POR_STATUS: Record<string, string[]> = {
   resolvida: ["Reabrir"],
 }
 
-function horaAtual(): string {
+function horaAtual(fuso: string): string {
   // Mesmo fuso do resto do chat: o balão otimista não pode marcar uma hora e a
   // mensagem confirmada pelo servidor marcar outra.
-  return formatarHoraDoDia(new Date().toISOString())
+  return formatarHoraDoDia(new Date().toISOString(), fuso)
 }
 
 interface PainelConversaProps {
@@ -118,6 +119,7 @@ interface PainelConversaProps {
 }
 
 export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensagemConfirmada, podeAtribuir, atendentes, atendentesTransferir, onConversaAtualizada, nomeUsuario, etiquetasDisponiveis, mensagensRapidas, onAbrirFicha, onVoltar }: PainelConversaProps) {
+  const fuso = useFuso()
   /**
    * B7-02: por que a mídia não está disponível neste canal, se for o caso.
    * `null` significa disponível. Vem pronto do servidor, via `conversa.canal`.
@@ -198,7 +200,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
       tipo: modoNota ? "nota_interna" : "texto",
       direcao: "enviada",
       conteudo,
-      horario: horaAtual(),
+      horario: horaAtual(fuso),
       ...(replyPara && !modoNota ? { replyDe: { id: replyPara.id, texto: replyPara.conteudo } } : {}),
     }
     onMensagemEnviada(nova)
@@ -244,7 +246,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
       tipo: "imagem",
       direcao: "enviada",
       conteudo: blobUrl,
-      horario: horaAtual(),
+      horario: horaAtual(fuso),
     }
     onMensagemEnviada(nova)
 
@@ -280,7 +282,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
       direcao: "enviada",
       conteudo: arquivo.name,
       nomeDoArquivo: arquivo.name,
-      horario: horaAtual(),
+      horario: horaAtual(fuso),
     }
     onMensagemEnviada(nova)
 
@@ -316,7 +318,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
       tipo: "video",
       direcao: "enviada",
       conteudo: blobUrl,
-      horario: horaAtual(),
+      horario: horaAtual(fuso),
     }
     onMensagemEnviada(nova)
 
@@ -402,7 +404,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
         tipo: "audio",
         direcao: "enviada",
         conteudo: blobUrl,
-        horario: horaAtual(),
+        horario: horaAtual(fuso),
       }
       onMensagemEnviada(nova)
 
