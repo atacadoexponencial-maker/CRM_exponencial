@@ -84,3 +84,4 @@ Nenhuma.
 | Critério | Conferido por | Dia |
 |---|---|---|
 | CA-B49-08 | Claude, a pedido da Marcelle (roteiro Playwright no preview b49-anexos-privados, 29/10/2026) | 29/10/2026 |
+| CA-B49-13 | Marcelle (29/10/2026) | 29/10/2026 |
