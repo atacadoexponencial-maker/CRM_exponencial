@@ -78,3 +78,9 @@ Nenhuma.
 
 - [x] Migration criada e aplicada no banco de teste
 - [x] Testes CA-B49-01 e CA-B49-02 passando, e os da B49-01 e da B49-02 ainda passando com o bucket fechado
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B49-08 | Claude, a pedido da Marcelle (roteiro Playwright no preview b49-anexos-privados, 29/10/2026) | 29/10/2026 |
