@@ -4,6 +4,7 @@ import { createClient } from "@/integrations/supabase/server"
 import { lerNomesDosFunis } from "@/lib/funis"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
+import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 import { resumoDeCompras, type ResumoDeCompras } from "@/lib/resumo-de-compras"
 import { perfilDoMapa, perfisRfvDosContatos } from "@/lib/perfil-rfv-do-contato"
 import type { PerfilRfv } from "@/lib/relatorios/rfv"
@@ -827,7 +828,7 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
 
   if (!contact) throw new Error("Contato não encontrado")
 
-  const dataPrimeiroContato = formatarDataCurta(contact.created_at)
+  const dataPrimeiroContato = formatarDataCurta(contact.created_at, await fusoDaEmpresa())
 
   // Mesmas regras de acesso das outras telas: a RLS filtra cards e tags.
   // B36-06: as compras vêm pelo servidor; a conversa acima já passou pela RLS de quem
@@ -862,7 +863,7 @@ export async function buscarInfoContato(conversaId: string): Promise<InfoContato
       ),
   }
 
-  return { dataPrimeiroContato, cadastro, compras: resumoDeCompras(compras ?? []) }
+  return { dataPrimeiroContato, cadastro, compras: resumoDeCompras(compras ?? [], await fusoDaEmpresa()) }
 }
 
 export async function atualizarNomeContato(contactId: string, nome: string): Promise<void> {
@@ -995,8 +996,9 @@ export async function buscarMensagens(conversaId: string): Promise<Mensagem[]> {
   // B49-01: as mídias vão com link assinado de 1 hora, só da própria empresa
   const linhas = data && data.length > 0 ? await comLinksDosAnexos(createServiceClient(), data[0].workspace_id, data) : []
 
+  const fuso = await fusoDaEmpresa()
   return linhas.map((row) => {
-    const horario = formatarHoraDoDia(row.created_at)
+    const horario = formatarHoraDoDia(row.created_at, fuso)
 
     const mensagem: Mensagem = {
       id: row.id,

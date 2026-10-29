@@ -8,11 +8,14 @@ import { useEffect, useState } from "react"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { DICA_TAG_SEM_ESPACO, useCampoDeTag } from "@/hooks/use-campo-de-tag"
+import { Ajuda } from "@/components/shared/ajuda"
 import { adicionarTagContato, listarTagsContato, removerTagContato } from "../../contatos/actions"
 
 export function TagsDoContato({ contactId }: { contactId: string }) {
   const [tags, setTags] = useState<string[] | null>(null)
-  const [nova, setNova] = useState("")
+  const campo = useCampoDeTag()
+  const nova = campo.valor
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
@@ -37,7 +40,7 @@ export function TagsDoContato({ contactId }: { contactId: string }) {
       setErro(resultado.erro)
       return
     }
-    setNova("")
+    campo.limpar()
     setTags(await listarTagsContato(contactId))
   }
 
@@ -53,7 +56,12 @@ export function TagsDoContato({ contactId }: { contactId: string }) {
 
   return (
     <div className="space-y-1.5">
-      <p className="text-xs font-medium text-muted-foreground">Tags</p>
+      <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+        Tags
+        <Ajuda termo="Tag">
+          A tag fica no contato e aparece em todos os cards e conversas dele; serve para filtrar os contatos. É diferente da etiqueta, que marca só a conversa no Chat.
+        </Ajuda>
+      </p>
       {tags === null ? (
         <p className="text-xs text-muted-foreground">Carregando…</p>
       ) : tags.length === 0 ? (
@@ -87,7 +95,7 @@ export function TagsDoContato({ contactId }: { contactId: string }) {
           disabled={salvando}
           className="h-7 text-xs"
           onChange={(e) => {
-            setNova(e.target.value)
+            campo.mudar(e.target.value)
             setErro(null)
           }}
           onKeyDown={(e) => {
@@ -101,6 +109,7 @@ export function TagsDoContato({ contactId }: { contactId: string }) {
           Adicionar
         </Button>
       </div>
+      {campo.comEspaco && !erro && <p className="text-xs text-muted-foreground">{DICA_TAG_SEM_ESPACO}</p>}
       {erro && <p className="text-xs text-destructive">{erro}</p>}
     </div>
   )

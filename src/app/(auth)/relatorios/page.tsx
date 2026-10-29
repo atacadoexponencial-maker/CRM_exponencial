@@ -3,15 +3,19 @@ import { sessaoAtual } from "@/lib/sessao"
 import { hojeNoFuso, periodoPadrao } from "@/lib/relatorios/visao-geral"
 import { buscarVisaoGeral } from "./actions"
 import { RelatoriosClient } from "./components/relatorios-client"
+import { abaDoEndereco } from "@/lib/relatorios/abas"
 import { listarCamposDaEmpresa } from "../contatos/campos-personalizados"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
+import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 
 export const metadata = { title: "Relatórios" }
 
-export default async function RelatoriosPage() {
+export default async function RelatoriosPage({ searchParams }: { searchParams: Promise<{ aba?: string }> }) {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user || !perfil) redirect("/login")
 
-  const hoje = hojeNoFuso()
+  const { aba } = await searchParams
+  const hoje = hojeNoFuso(await fusoDaEmpresa())
   // B38-07: e os campos personalizados, para o filtro por campo
   const [visao, { data: atendentesData }, campos] = await Promise.all([
     buscarVisaoGeral({ periodo: periodoPadrao(hoje), atendenteId: null }),
@@ -28,8 +32,8 @@ export default async function RelatoriosPage() {
   const atendentes = (atendentesData ?? []).map((a) => ({ id: a.id, nome: a.name }))
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-8 lg:px-10">
-      <RelatoriosClient visaoInicial={visao} atendentes={atendentes} papel={perfil.role} hoje={hoje} campos={campos} />
+    <div className={CLASSE_DA_PAGINA}>
+      <RelatoriosClient visaoInicial={visao} atendentes={atendentes} papel={perfil.role} hoje={hoje} campos={campos} abaInicial={abaDoEndereco(aba)} />
     </div>
   )
 }

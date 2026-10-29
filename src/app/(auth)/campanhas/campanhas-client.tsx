@@ -1,5 +1,7 @@
 "use client"
 
+import { formatarDataEHora } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -53,6 +55,7 @@ function destinoDaCampanha(c: CampanhaListada): string {
 }
 
 export function CampanhasClient({ campanhasIniciais }: { campanhasIniciais: CampanhaListada[] }) {
+  const fuso = useFuso()
   const router = useRouter()
   const [campanhas, setCampanhas] = useState<CampanhaListada[]>(campanhasIniciais)
   const [filtroStatus, setFiltroStatus] = useState("")
@@ -176,7 +179,7 @@ export function CampanhasClient({ campanhasIniciais }: { campanhasIniciais: Camp
                   <td className="px-4 py-3 text-muted-foreground">{c.status === "rascunho" ? "—" : c.totalDestinatarios}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {c.dataEnvio
-                      ? new Date(c.dataEnvio).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
+                      ? formatarDataEHora(c.dataEnvio, fuso)
                       : "—"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{c.criador ?? "—"}</td>

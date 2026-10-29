@@ -10,6 +10,7 @@
 // mais de onze horas, e passam da janela. Sem ver isso antes de confirmar, o
 // cliente acha que a campanha travou e dispara de novo.
 
+import { formatarNoFuso, FUSO_DA_OPERACAO, relogioNoFuso } from "@/lib/datas"
 import { GatewayRecusou, type ClienteGateway } from "./cliente"
 import type { SaudeDoNumero } from "./saude"
 import type { RitmoDoNumero } from "./tipos"
@@ -129,13 +130,8 @@ function formatarDuracao(minutos: number): string {
   return `${dias} dias`
 }
 
-function formatarQuando(data: Date): string {
-  return data.toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
+function formatarQuando(data: Date, fuso: string): string {
+  return formatarNoFuso(data, fuso, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
 }
 
 /**
@@ -149,10 +145,13 @@ export function estimarDuracaoDoDisparo({
   destinatarios,
   ritmo = RITMO_PADRAO,
   agora = new Date(),
+  fuso = FUSO_DA_OPERACAO,
 }: {
   destinatarios: number
   ritmo?: RitmoParaEstimativa
   agora?: Date
+  /** Em que fuso mostrar o "termina em" (B48-14). A janela é sempre a do gateway, em Brasília. */
+  fuso?: string
 }): EstimativaDoDisparo {
   const inicio = new Date(agora)
 
@@ -172,7 +171,9 @@ export function estimarDuracaoDoDisparo({
     }
   }
 
-  const minutoAtual = inicio.getHours() * 60 + inicio.getMinutes()
+  // A janela de envio é em hora de São Paulo (contrato do gateway). B48-14: antes lia
+  // a hora do servidor, UTC na Vercel, e às 18h de Brasília achava que eram 21h.
+  const minutoAtual = relogioNoFuso(inicio, FUSO_DA_OPERACAO).minutos
 
   // Cursor em minutos desde a meia-noite de hoje; passa de 1440 ao virar o dia.
   // Fora da janela, o disparo só começa na próxima abertura.
@@ -223,8 +224,8 @@ export function estimarDuracaoDoDisparo({
 
   const texto =
     dias > 1
-      ? `Cerca de ${formatarDuracao(minutosDecorridos)} — termina em ${formatarQuando(terminaEm)}. O envio para todo dia no fim da janela e recomeça no dia seguinte.`
-      : `Cerca de ${formatarDuracao(minutosDecorridos)} — termina em ${formatarQuando(terminaEm)}.`
+      ? `Cerca de ${formatarDuracao(minutosDecorridos)} — termina em ${formatarQuando(terminaEm, fuso)}. O envio para todo dia no fim da janela e recomeça no dia seguinte.`
+      : `Cerca de ${formatarDuracao(minutosDecorridos)} — termina em ${formatarQuando(terminaEm, fuso)}.`
 
   return { terminaEm, minutosTotais: minutosDecorridos, diasDeJanela: dias, texto }
 }

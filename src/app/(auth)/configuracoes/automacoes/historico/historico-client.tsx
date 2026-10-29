@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import type { PassoGravado, ResultadoExecucao } from "@/lib/automacoes/execucoes"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import { cn } from "@/lib/utils"
 import type { ExecucaoListada, FiltrosDoHistorico } from "../actions"
 import { CampoSelecao } from "../components/campo-selecao"
@@ -34,14 +35,14 @@ const RESULTADO: Record<ResultadoExecucao, { rotulo: string; classe: string }> =
 }
 
 /** "Esperando: 2 dias, desde 14:03", do bloco "esperar" onde a execução parou. */
-function fraseDaEsperaAtual(caminho: PassoGravado[]): string | null {
+function fraseDaEsperaAtual(caminho: PassoGravado[], fuso: string): string | null {
   const ultimo = caminho[caminho.length - 1]
   if (ultimo?.bloco.tipo !== "espera" || ultimo.saida) return null
-  const desde = ultimo.desde ? `, desde ${formatarHoraDoDia(ultimo.desde)}` : ""
+  const desde = ultimo.desde ? `, desde ${formatarHoraDoDia(ultimo.desde, fuso)}` : ""
   return `Esperando: ${oQueEspera(ultimo.bloco)}${desde}`
 }
 
-const quando = (iso: string) => `${formatarDataCurta(iso)}, ${formatarHoraDoDia(iso)}`
+const quando = (iso: string, fuso: string) => `${formatarDataCurta(iso, fuso)}, ${formatarHoraDoDia(iso, fuso)}`
 
 /** "2 de 3": ações que deram certo sobre as ações percorridas. */
 function acoesFeitas(caminho: PassoGravado[]): string {
@@ -79,6 +80,7 @@ interface HistoricoClientProps {
 }
 
 export function HistoricoClient({ execucoes, regras, filtros, opcoes, aviso }: HistoricoClientProps) {
+  const fuso = useFuso()
   const router = useRouter()
   const [aberta, setAberta] = useState<ExecucaoListada | null>(null)
 
@@ -178,9 +180,9 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes, aviso }: H
                   className="cursor-pointer border-b transition-colors last:border-0 hover:bg-muted/30"
                 >
                   <td className="px-3 py-3 numero text-muted-foreground sm:px-4">
-                    <span className="block whitespace-nowrap sm:inline">{formatarDataCurta(e.quando)}</span>
+                    <span className="block whitespace-nowrap sm:inline">{formatarDataCurta(e.quando, fuso)}</span>
                     <span className="hidden sm:inline">, </span>
-                    <span className="block whitespace-nowrap sm:inline">{formatarHoraDoDia(e.quando)}</span>
+                    <span className="block whitespace-nowrap sm:inline">{formatarHoraDoDia(e.quando, fuso)}</span>
                   </td>
                   <td className="min-w-0 px-3 py-3 sm:px-4">
                     <button type="button" className="text-left font-medium [overflow-wrap:anywhere] hover:underline">
@@ -225,6 +227,7 @@ export function HistoricoClient({ execucoes, regras, filtros, opcoes, aviso }: H
 }
 
 function DetalheDaExecucao({ execucao, opcoes }: { execucao: ExecucaoListada; opcoes: OpcoesEditor }) {
+  const fuso = useFuso()
   return (
     <>
       <DialogTitle className="flex flex-wrap items-center gap-2 pr-8">
@@ -232,7 +235,7 @@ function DetalheDaExecucao({ execucao, opcoes }: { execucao: ExecucaoListada; op
         <SeloResultado resultado={execucao.resultado} />
       </DialogTitle>
       <DialogDescription className="mb-4">
-        {quando(execucao.quando)} · {fraseDoEvento(execucao.evento, opcoes)}
+        {quando(execucao.quando, fuso)} · {fraseDoEvento(execucao.evento, opcoes)}
       </DialogDescription>
 
       <p className="mb-3 text-sm">
@@ -260,9 +263,9 @@ function DetalheDaExecucao({ execucao, opcoes }: { execucao: ExecucaoListada; op
         </p>
       )}
 
-      {execucao.resultado === "esperando" && fraseDaEsperaAtual(execucao.caminho) && (
+      {execucao.resultado === "esperando" && fraseDaEsperaAtual(execucao.caminho, fuso) && (
         <p className="mb-3 rounded-lg bg-accent px-3 py-2 text-sm text-accent-foreground">
-          {fraseDaEsperaAtual(execucao.caminho)}
+          {fraseDaEsperaAtual(execucao.caminho, fuso)}
         </p>
       )}
 
@@ -280,6 +283,7 @@ function DetalheDaExecucao({ execucao, opcoes }: { execucao: ExecucaoListada; op
 const TIPO_DO_BLOCO = { gatilho: "Gatilho", condicao: "Condição", acao: "Ação", espera: "Esperar" } as const
 
 function PassoDoCaminho({ passo, opcoes }: { passo: PassoGravado; opcoes: OpcoesEditor }) {
+  const fuso = useFuso()
   const falhou = passo.ok === false
   const { bloco } = passo
   if (bloco.tipo === "espera") {
@@ -295,11 +299,11 @@ function PassoDoCaminho({ passo, opcoes }: { passo: PassoGravado; opcoes: Opcoes
         </div>
         <p className="mt-1 pl-[4.5rem] text-xs text-muted-foreground">
           {saida
-            ? `Saiu por: ${rotuloDaSaidaDaEspera(bloco, saida).toLowerCase()}${passo.em ? `, às ${formatarHoraDoDia(passo.em)}` : ""}`
+            ? `Saiu por: ${rotuloDaSaidaDaEspera(bloco, saida).toLowerCase()}${passo.em ? `, às ${formatarHoraDoDia(passo.em, fuso)}` : ""}`
             : passo.em
-              ? `A espera expirou, às ${formatarHoraDoDia(passo.em)}`
+              ? `A espera expirou, às ${formatarHoraDoDia(passo.em, fuso)}`
               : passo.desde
-                ? `Esperando desde ${formatarHoraDoDia(passo.desde)}`
+                ? `Esperando desde ${formatarHoraDoDia(passo.desde, fuso)}`
                 : "Esperando"}
         </p>
       </li>

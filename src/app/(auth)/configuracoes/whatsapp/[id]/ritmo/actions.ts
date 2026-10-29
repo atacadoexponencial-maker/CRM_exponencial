@@ -51,7 +51,7 @@ async function conexaoComRitmo(
     .eq("workspace_id", workspaceId)
     .maybeSingle()
 
-  if (!data) return { erro: "Número não encontrado neste workspace." }
+  if (!data) return { erro: "Número não encontrado nesta empresa." }
   if (data.canal !== "gateway") {
     return { erro: "A API Oficial da Meta não tem ritmo configurável: ele é da Meta, não nosso." }
   }

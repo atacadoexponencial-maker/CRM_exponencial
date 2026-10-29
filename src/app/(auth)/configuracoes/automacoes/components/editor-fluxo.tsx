@@ -8,6 +8,8 @@
 // O resultado do "Testar com um contato" deixa de valer quando o fluxo muda (B22-10),
 // e o teste só roda com o fluxo completo, como o Salvar (B22-11).
 
+import { formatarDiaDoMes, formatarHoraDoDia } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Background,
@@ -81,7 +83,8 @@ interface EditorFluxoProps {
   opcoes: OpcoesEditor
   /** Busca por nome ou telefone; texto vazio traz os contatos que conversaram por último. */
   buscarContatos: (texto: string) => Promise<ContatoTeste[]>
-  salvar: (regra: RegraEditada) => Promise<{ erro?: string; aviso?: string }>
+  /** `ativar`: o "Salvar e ativar" (B48-08), que também liga a regra. */
+  salvar: (regra: RegraEditada, ativar?: boolean) => Promise<{ erro?: string; aviso?: string }>
   simular: (contatoId: string, fluxo: Fluxo) => Promise<{ erro?: string; resultado?: ResultadoSimulacao }>
   /** Sobe o arquivo da ação "enviar imagem ou documento" (B11-07). */
   guardarArquivo: GuardarArquivo
@@ -94,6 +97,8 @@ interface EditorFluxoProps {
   avisoInicial?: string
   /** Quantos contatos esperam num bloco que este fluxo não tem mais, para o aviso antes de salvar (B28-04). */
   contarEsperasQueSaem?: (fluxo: Fluxo) => Promise<number>
+  /** A regra já está ligada. Desligada (como a nova, B48-08), o editor oferece "Salvar e ativar". */
+  ativa?: boolean
 }
 
 // Distância do bloco novo até o bloco de onde ele sai
@@ -191,7 +196,9 @@ function EditorFluxoInterno({
   regraNova,
   avisoInicial,
   contarEsperasQueSaem,
+  ativa = true,
 }: EditorFluxoProps) {
+  const fuso = useFuso()
   // B36-12: o canvas segue o tema da tela (era sempre escuro).
   const modoDeCor = useTemaDaTela()
   const [nos, setNos, onNodesChange] = useNodesState<NoFluxo>(paraNos(regraInicial.fluxo))
@@ -213,11 +220,14 @@ function EditorFluxoInterno({
   const [esperasQueSaem, setEsperasQueSaem] = useState(0)
   const [destacarErros, setDestacarErros] = useState(false)
   const [erroNome, setErroNome] = useState(false)
-  const [mensagem, setMensagem] = useState<{ tipo: "erro" | "ok"; texto: string } | null>(
+  // B48-07: `itens`, os problemas do Salvar, um por linha
+  const [mensagem, setMensagem] = useState<{ tipo: "erro" | "ok"; texto: string; itens?: string[] } | null>(
     avisoInicial ? { tipo: "ok", texto: avisoInicial } : null
   )
   const [salvando, setSalvando] = useState(false)
   const salvandoAgora = useRef(false)
+  // B48-08: o botão escolhido vale também quando o Salvar passa pelos avisos de confirmação
+  const ativarAoSalvar = useRef(false)
   const [confirmarSaida, setConfirmarSaida] = useState(false)
   // B22-36: apagar 2 ou mais blocos de uma vez espera a resposta da pessoa
   const [confirmarApagar, setConfirmarApagar] = useState<{ quantos: number; responder: (sim: boolean) => void } | null>(
@@ -501,7 +511,7 @@ function EditorFluxoInterno({
 
     if (partes.length > 0) {
       setDestacarErros(true)
-      setMensagem({ tipo: "erro", texto: partes.join(". ") })
+      setMensagem({ tipo: "erro", texto: partes.join(". "), itens: partes.length > 1 ? partes : undefined })
       return
     }
 
@@ -527,7 +537,7 @@ function EditorFluxoInterno({
     salvandoAgora.current = true
     setSalvando(true)
     const enviada = { nome: nome.trim(), repeticao, fluxo }
-    const resultado = await salvar(enviada).finally(() => {
+    const resultado = await salvar(enviada, ativarAoSalvar.current).finally(() => {
       salvandoAgora.current = false
     })
     setSalvando(false)
@@ -578,9 +588,29 @@ function EditorFluxoInterno({
             <span className="hidden md:inline">Testar com um contato</span>
             <span className="md:hidden">Testar</span>
           </Button>
-          <Button size="sm" onClick={() => tentarSalvar()} disabled={salvando}>
+          <Button
+            size="sm"
+            variant={ativa ? "default" : "outline"}
+            onClick={() => {
+              ativarAoSalvar.current = false
+              tentarSalvar()
+            }}
+            disabled={salvando}
+          >
             Salvar
           </Button>
+          {!ativa && (
+            <Button
+              size="sm"
+              onClick={() => {
+                ativarAoSalvar.current = true
+                tentarSalvar()
+              }}
+              disabled={salvando}
+            >
+              Salvar e ativar
+            </Button>
+          )}
         </div>
       </div>
 
@@ -605,14 +635,15 @@ function EditorFluxoInterno({
             <Background gap={20} />
             <Controls showInteractive={false} />
             {(aviso || simulacao || rascunhoAchado) && (
-              <Panel position="top-center" className="flex max-w-[90vw] flex-col items-center gap-2">
+              // B48-07: à esquerda, longe do painel do bloco, que abre à direita
+              <Panel position="top-left" className="flex max-w-[min(90vw,32rem)] flex-col items-start gap-2">
                 {rascunhoAchado && (
                   <div
                     role="status"
                     className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-aviso/40 bg-background px-3 py-2 text-sm text-aviso shadow-sm"
                   >
                     <span>
-                      Há alterações não salvas de {quandoFoiGuardado(rascunhoAchado.guardadoEm)}.
+                      Há alterações não salvas de {quandoFoiGuardado(rascunhoAchado.guardadoEm, fuso)}.
                       {rascunhoAchado.base !== salvo &&
                         " A automação foi salva depois disso: recuperar troca o que está salvo pelo rascunho."}
                     </span>
@@ -636,7 +667,15 @@ function EditorFluxoInterno({
                         : "border-sucesso/40 bg-background text-sucesso"
                     )}
                   >
-                    <span>{aviso.texto}</span>
+                    {aviso.itens ? (
+                      <ul className="list-disc pl-4">
+                        {aviso.itens.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <span>{aviso.texto}</span>
+                    )}
                     <Button variant="ghost" size="icon-xs" aria-label="Fechar aviso" onClick={() => setMensagem(null)}>
                       <X />
                     </Button>
@@ -671,6 +710,12 @@ function EditorFluxoInterno({
                     </Button>
                   </div>
                 )}
+              </Panel>
+            )}
+            {/* B48-13: automação só com o gatilho ganha a dica de por onde seguir */}
+            {nos.length === 1 && nos[0].data.bloco.tipo === "gatilho" && (
+              <Panel position="bottom-center" className="rounded-lg border bg-background px-3 py-2 text-sm text-muted-foreground shadow-sm">
+                Clique no + embaixo do gatilho para escolher o próximo bloco
               </Panel>
             )}
           </ReactFlow>
@@ -786,12 +831,9 @@ function EditorFluxoInterno({
   )
 }
 
-/** "13/10 às 14:32", no horário de quem está vendo. */
-function quandoFoiGuardado(iso: string): string {
-  const data = new Date(iso)
-  const dia = data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
-  const hora = data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-  return `${dia} às ${hora}`
+/** "13/10 às 14:32", no horário da operação (B48-01). */
+function quandoFoiGuardado(iso: string, fuso: string): string {
+  return `${formatarDiaDoMes(iso, fuso)} às ${formatarHoraDoDia(iso, fuso)}`
 }
 
 /** Busca e lista de contatos do "Testar com um contato". */

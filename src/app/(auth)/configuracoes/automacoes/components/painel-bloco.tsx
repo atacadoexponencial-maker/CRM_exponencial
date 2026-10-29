@@ -520,7 +520,7 @@ function CampoVencimento({
         />
       </div>
       {valido ? (
-        <p className="text-xs text-muted-foreground">Vazio ou 0: vence na hora em que a regra roda.</p>
+        <p className="text-xs text-muted-foreground">Vazio ou 0: vence na hora em que a automação roda.</p>
       ) : (
         <p className="text-xs text-destructive">Use um número inteiro, até 365 dias ou 8760 horas.</p>
       )}

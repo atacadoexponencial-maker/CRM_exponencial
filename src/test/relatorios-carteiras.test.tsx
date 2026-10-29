@@ -29,7 +29,7 @@ const CONTATOS = [
 ]
 const VENDEDORES = [{ id: ANA, nome: "Ana" }, { id: BRUNO, nome: "Bruno" }]
 
-const numeros = (testid: string) => Array.from(screen.getByTestId(testid).querySelectorAll("p.text-2xl")).map((p) => p.textContent)
+const numeros = (testid: string) => Array.from(screen.getByTestId(testid).querySelectorAll("[data-numero]")).map((p) => p.textContent)
 
 beforeEach(() => buscarCarteiras.mockReset())
 
@@ -45,7 +45,7 @@ describe("B35-01 — painel de carteiras", () => {
     expect(numeros("numeros-total")).toEqual(["3", "4", "1", "3"])
     expect(numeros("numeros-com")).toEqual(["2", "3", "1", "2"])
     expect(numeros("numeros-sem")).toEqual(["1", "1", "0", "1"])
-    expect(screen.getByTestId("sem-vendedor")).toHaveTextContent("2contatos sem vendedor1 com compra · 1 leads")
+    expect(screen.getByTestId("sem-vendedor")).toHaveTextContent("2contatos sem vendedor1 com compra · 1 sem compra")
   })
 
   it("CA-B35-03: Ana '5 na carteira' com 2/3/1/2 e Bruno '0 na carteira' com zeros", () => {

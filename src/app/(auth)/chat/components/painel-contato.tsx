@@ -14,6 +14,7 @@ import { CLASSIFICACAO_LABEL, ICP_LABEL, TIPO_LABEL, type ClassificacaoContato, 
 import { UFS } from "@/lib/uf"
 import { textoDaUltimaCompra, type ResumoDeCompras } from "@/lib/resumo-de-compras"
 import { CamposPersonalizadosChat } from "./campos-personalizados-chat"
+import { DICA_TAG_SEM_ESPACO, useCampoDeTag } from "@/hooks/use-campo-de-tag"
 
 const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
 
@@ -174,7 +175,8 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
   const [dataPrimeiroContato, setDataPrimeiroContato] = useState<string | null>(null)
   const [cadastro, setCadastro] = useState<CadastroDoContato | null>(null)
   const [compras, setCompras] = useState<ResumoDeCompras | null>(null)
-  const [novaTag, setNovaTag] = useState("")
+  const campoDaTag = useCampoDeTag()
+  const novaTag = campoDaTag.valor
   const [erroTag, setErroTag] = useState<string | null>(null)
 
   /** Grava um campo do cadastro mandando os outros como estão (a action regrava todos). */
@@ -204,7 +206,7 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
       return
     }
     setCadastro({ ...cadastro, tags: cadastro.tags.includes(tag) ? cadastro.tags : [...cadastro.tags, tag] })
-    setNovaTag("")
+    campoDaTag.limpar()
   }
 
   async function removerTag(tag: string) {
@@ -428,7 +430,7 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
                     <input
                       type="text"
                       value={novaTag}
-                      onChange={(e) => setNovaTag(e.target.value)}
+                      onChange={(e) => campoDaTag.mudar(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void adicionarTag() } }}
                       placeholder="+ tag"
                       aria-label="Nova tag"
@@ -437,6 +439,7 @@ export function PainelContato({ conversa, conversaId, onFechar, onConversaAtuali
                   )}
                 </div>
               )}
+              {campoDaTag.comEspaco && !erroTag && <p className="text-xs text-muted-foreground">{DICA_TAG_SEM_ESPACO}</p>}
               {erroTag && <p className="text-xs text-destructive">{erroTag}</p>}
               {/* B38-02: campos da empresa; quem vê o contato edita aqui mesmo. */}
               <CamposPersonalizadosChat contactId={cadastro.contactId} />

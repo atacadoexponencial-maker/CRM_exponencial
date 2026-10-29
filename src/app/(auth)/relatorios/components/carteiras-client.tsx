@@ -6,6 +6,7 @@
 import { useEffect, useState, useTransition } from "react"
 import { ChevronLeft, ChevronRight, Loader2, RefreshCw } from "lucide-react"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import { HISTORICO_POR_PAGINA, type NumerosDaCarteira } from "@/lib/relatorios/carteiras"
 import { ROTULO_MOTIVO } from "@/lib/carteira"
 import { buscarCarteiras, buscarHistoricoDeCarteira, type LinhaDoHistoricoDeCarteira, type ResultadoCarteiras } from "../actions"
@@ -14,24 +15,35 @@ import { DistribuirDialog, ReprocessarDialog } from "./acoes-sem-vendedor"
 import type { FiltroPorCampo } from "@/lib/filtro-por-campo"
 
 const NUMEROS: Array<{ id: keyof NumerosDaCarteira; titulo: string; cor: string }> = [
-  { id: "leads", titulo: "Leads", cor: "text-violet-700 dark:text-violet-300" },
+  // B48-10 (PER-B48-02): "Sem compra", para não confundir com os leads do Pipeline
+  { id: "leads", titulo: "Sem compra", cor: "text-violet-700 dark:text-violet-300" },
   { id: "base", titulo: "Base de clientes", cor: "text-orange-700 dark:text-orange-300" },
   { id: "ativos", titulo: "Ativos", cor: "text-sucesso" },
   { id: "inativos", titulo: "Inativos", cor: "text-erro" },
 ]
 
-function LinhaDeNumeros({ titulo, numeros, testid }: { titulo: string; numeros: NumerosDaCarteira; testid: string }) {
+// B48-13: uma tabela só, com os quatro nomes uma vez, no cabeçalho
+function TabelaDeNumeros({ linhas }: { linhas: Array<{ titulo: string; numeros: NumerosDaCarteira; testid: string }> }) {
   return (
-    <div data-testid={testid}>
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">{titulo}</p>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {NUMEROS.map((n) => (
-          <div key={n.id} className="border-t pt-3">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{n.titulo}</p>
-            <p className={`text-2xl font-semibold numero ${n.cor}`}>{numeros[n.id]}</p>
-          </div>
-        ))}
-      </div>
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+            <th className="py-2 pr-3 font-medium"><span className="sr-only">Contatos</span></th>
+            {NUMEROS.map((n) => <th key={n.id} className="py-2 pr-3 text-right font-medium whitespace-nowrap">{n.titulo}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {linhas.map((l) => (
+            <tr key={l.testid} data-testid={l.testid} className="border-b last:border-0">
+              <th scope="row" className="py-2.5 pr-3 text-left font-medium whitespace-nowrap">{l.titulo}</th>
+              {NUMEROS.map((n) => (
+                <td key={n.id} data-numero className={`py-2.5 pr-3 text-right text-xl font-semibold numero ${n.cor}`}>{l.numeros[n.id]}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -50,9 +62,13 @@ export function PainelDeCarteiras({ resultado, acoesDoVendedor, acoesDosSemVende
       {gestor && (
         <section className="rounded-md border bg-card p-5 flex flex-col gap-4">
           <h2 className="text-sm font-semibold">Visão geral da empresa</h2>
-          <LinhaDeNumeros titulo="Total" numeros={painel.total} testid="numeros-total" />
-          <LinhaDeNumeros titulo="Com carteira atribuída" numeros={painel.comCarteira} testid="numeros-com" />
-          <LinhaDeNumeros titulo="Sem carteira atribuída" numeros={painel.semCarteira} testid="numeros-sem" />
+          <TabelaDeNumeros
+            linhas={[
+              { titulo: "Total", numeros: painel.total, testid: "numeros-total" },
+              { titulo: "Com carteira atribuída", numeros: painel.comCarteira, testid: "numeros-com" },
+              { titulo: "Sem carteira atribuída", numeros: painel.semCarteira, testid: "numeros-sem" },
+            ]}
+          />
         </section>
       )}
 
@@ -89,7 +105,7 @@ export function PainelDeCarteiras({ resultado, acoesDoVendedor, acoesDosSemVende
             <p data-testid="sem-vendedor">
               <span className="text-3xl font-semibold text-erro numero mr-2">{painel.semVendedor.total}</span>
               <span className="text-sm">contatos sem vendedor</span>
-              <span className="block text-xs text-muted-foreground">{painel.semVendedor.comCompra} com compra · {painel.semVendedor.leads} leads</span>
+              <span className="block text-xs text-muted-foreground">{painel.semVendedor.comCompra} com compra · {painel.semVendedor.leads} sem compra</span>
             </p>
             {acoesDosSemVendedor}
           </div>
@@ -103,6 +119,7 @@ export function PainelDeCarteiras({ resultado, acoesDoVendedor, acoesDosSemVende
 
 /** Histórico de alterações, 10 por página; a primeira página chega com o painel. */
 function HistoricoDeCarteira({ inicial, totalInicial }: { inicial: LinhaDoHistoricoDeCarteira[]; totalInicial: number }) {
+  const fuso = useFuso()
   const [pagina, setPagina] = useState(0)
   const [historico, setHistorico] = useState(inicial)
   const [total, setTotal] = useState(totalInicial)
@@ -153,7 +170,7 @@ function HistoricoDeCarteira({ inicial, totalInicial }: { inicial: LinhaDoHistor
             <tbody>
               {historico.map((h) => (
                 <tr key={h.id} className="border-b last:border-0">
-                  <td className="py-2 pr-3 whitespace-nowrap numero">{formatarDataCurta(h.quando)} {formatarHoraDoDia(h.quando)}</td>
+                  <td className="py-2 pr-3 whitespace-nowrap numero">{formatarDataCurta(h.quando, fuso)} {formatarHoraDoDia(h.quando, fuso)}</td>
                   <td className="py-2 pr-3">{h.contato}</td>
                   <td className="py-2 pr-3">{h.de ?? "ninguém"}</td>
                   <td className="py-2 pr-3">{h.para ?? "ninguém"}</td>
@@ -221,8 +238,9 @@ export function CarteirasClient({ campo = null, inicial = null }: { campo?: Filt
         acoesDoVendedor={(id, total) => {
           const vendedor = resultado.painel.vendedores.find((v) => v.id === id)
           if (!vendedor) return null
+          // B48-16: Remover da carteira na outra ponta, longe do Transferir
           return (
-            <div className="flex flex-wrap gap-2" data-testid={`acoes-${id}`}>
+            <div className="flex flex-wrap justify-between gap-2" data-testid={`acoes-${id}`}>
               <TransferirCarteiraDialog vendedor={vendedor} total={total} vendedores={resultado.painel.vendedores} onFeito={carregar} />
               <RemoverCarteiraDialog vendedor={vendedor} total={total} onFeito={carregar} />
             </div>

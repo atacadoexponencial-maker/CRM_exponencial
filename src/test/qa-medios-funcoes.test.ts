@@ -8,6 +8,7 @@ import { contemTermo, semAcento, soDigitos } from "@/lib/normalizar-busca"
 import { normalizarWhatsapp } from "@/lib/telefone"
 import { paraNumero } from "@/app/(auth)/catalogo/components/editor-produto"
 import { rangeDoPeriodo } from "@/lib/metricas-dashboard"
+import { FUSO_DA_OPERACAO } from "@/lib/datas"
 
 describe("QA M18 — texto digitado dentro de um ilike", () => {
   it("escapa %, _ e \\ para não virarem curinga", () => {
@@ -56,19 +57,19 @@ describe("QA M17 — período personalizado do dashboard", () => {
   const agora = new Date("2026-10-20T15:00:00")
 
   it("só a data final: 30 dias até ela", () => {
-    const r = rangeDoPeriodo({ periodo: "custom", inicio: "", fim: "2026-10-10" } as never, agora)
+    const r = rangeDoPeriodo({ periodo: "custom", inicio: "", fim: "2026-10-10" } as never, FUSO_DA_OPERACAO, agora)
     expect(r.fim.toISOString()).toBe(new Date("2026-10-10T23:59:59").toISOString())
     expect(r.inicio.toISOString()).toBe(new Date("2026-09-10T00:00:00").toISOString())
   })
 
   it("inicial depois da final: vale a ordem certa, em vez de zerar tudo", () => {
-    const r = rangeDoPeriodo({ periodo: "custom", inicio: "2026-10-15", fim: "2026-10-01" } as never, agora)
+    const r = rangeDoPeriodo({ periodo: "custom", inicio: "2026-10-15", fim: "2026-10-01" } as never, FUSO_DA_OPERACAO, agora)
     expect(r.inicio.toISOString()).toBe(new Date("2026-10-01T00:00:00").toISOString())
     expect(r.fim.toISOString()).toBe(new Date("2026-10-15T23:59:59").toISOString())
   })
 
   it("inicial e final em ordem: como antes", () => {
-    const r = rangeDoPeriodo({ periodo: "custom", inicio: "2026-10-01", fim: "2026-10-15" } as never, agora)
+    const r = rangeDoPeriodo({ periodo: "custom", inicio: "2026-10-01", fim: "2026-10-15" } as never, FUSO_DA_OPERACAO, agora)
     expect(r.inicio.toISOString()).toBe(new Date("2026-10-01T00:00:00").toISOString())
     expect(r.fim.toISOString()).toBe(new Date("2026-10-15T23:59:59").toISOString())
   })

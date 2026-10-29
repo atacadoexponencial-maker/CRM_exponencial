@@ -129,7 +129,7 @@ describe("B38-01 — campos personalizados", { timeout: 60_000 }, () => {
 
   it("CA-B38-04: should oferecer os onze tipos na ordem da spec e criar um campo de cada", async () => {
     expect(TIPOS_DE_CAMPO.map((t) => t.rotulo)).toEqual([
-      "Texto", "Texto longo", "Número", "Dinheiro", "Data", "Lista de opções", "Múltipla escolha", "Sim/não", "Link", "E-mail", "Telefone",
+      "Texto", "Texto longo", "Número", "Dinheiro", "Data", "Uma opção", "Várias opções", "Sim/não", "Link", "E-mail", "Telefone",
     ])
     como("admin")
     for (const t of TIPOS_DE_CAMPO) {

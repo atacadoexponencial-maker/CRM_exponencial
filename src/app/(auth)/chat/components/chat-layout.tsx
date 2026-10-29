@@ -3,13 +3,15 @@
 import { useState, useTransition, useEffect, useRef } from "react"
 import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import { createClient } from "@/integrations/supabase/client"
-import { formatarHoraDoDia, formatarHorarioDaLista } from "@/lib/datas"
+import { formatarHoraDoDia } from "@/lib/datas"
+import { useFuso } from "@/components/shared/fuso-da-empresa"
 import { FiltrosCaixa } from "./filtros-caixa"
 import { PainelConversa } from "./painel-conversa"
 import { PainelContato } from "./painel-contato"
 import { COOKIE_CAIXA_RECOLHIDA, gravarPreferencia } from "@/lib/preferencias-layout"
 import { buscarConversa, buscarMensagens, carregarMaisConversas, marcarComoLidas } from "../actions"
-import type { Conversa, StatusConversa } from "../mock-conversas"
+import type { Conversa } from "../mock-conversas"
+import { aplicarAtualizacaoDaConversa, type LinhaDaConversa } from "../conversa-atualizada"
 import type { Mensagem } from "../mock-mensagens"
 import { aplicarStatus, confirmarEnvio } from "../mensagens-locais"
 
@@ -32,6 +34,13 @@ interface ChatLayoutProps {
 }
 
 export function ChatLayout({ conversas, temMaisConversas = false, papel, userId, nomeUsuario, workspaceId, atendentes, atendentesTransferir, etiquetasDisponiveis, mensagensRapidas, conversaInicialId, caixaRecolhidaInicial = false }: ChatLayoutProps) {
+  const fuso = useFuso()
+  // Os canais do tempo real vivem enquanto a empresa e o papel não mudam; o fuso que
+  // eles usam é sempre o atual, sem reabrir os canais quando o Admin troca o fuso.
+  const fusoAtual = useRef(fuso)
+  useEffect(() => {
+    fusoAtual.current = fuso
+  })
   const [conversasState, setConversasState] = useState<Conversa[]>(conversas)
   const [temMais, setTemMais] = useState(temMaisConversas)
   const [carregandoMais, setCarregandoMais] = useState(false)
@@ -66,28 +75,8 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
           filter: `workspace_id=eq.${workspaceId}`,
         },
         (payload) => {
-          const row = payload.new as {
-            id: string
-            last_message_text: string
-            last_message_at: string
-            unread_count: number
-            status: string
-          }
-
-          setConversasState((prev) => {
-            const idx = prev.findIndex((c) => c.id === row.id)
-            if (idx === -1) return prev
-            const atualizada: Conversa = {
-              ...prev[idx],
-              ultimaMensagem: {
-                texto: row.last_message_text,
-                horario: formatarHorarioDaLista(row.last_message_at),
-              },
-              naoLidas: row.unread_count,
-              status: row.status as StatusConversa,
-            }
-            return [atualizada, ...prev.filter((c) => c.id !== row.id)]
-          })
+          const row = payload.new as LinhaDaConversa
+          setConversasState((prev) => aplicarAtualizacaoDaConversa(prev, row, fusoAtual.current))
         }
       )
       .on(
@@ -184,7 +173,7 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
         direcao: row.direction as Mensagem["direcao"],
         conteudo: row.content,
         // Mesma formatação das mensagens carregadas pela página.
-        horario: formatarHoraDoDia(row.created_at),
+        horario: formatarHoraDoDia(row.created_at, fusoAtual.current),
         status: row.status as Mensagem["status"] | undefined,
         ...(row.sent_from_phone ? { enviadaPeloCelular: true } : {}),
         ...(row.media_mime_type ? { tipoDoArquivo: row.media_mime_type } : {}),

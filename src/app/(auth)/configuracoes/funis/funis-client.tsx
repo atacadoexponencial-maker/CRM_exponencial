@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { CORES_PRONTAS, LIMITE_DE_ETAPAS, NOME_MAXIMO, ehCorPropria } from "@/lib/funis"
 import { adicionarEtapa, apagarEtapa, apagarFunil, automacoesQueUsam, criarFunil, editarEtapa, moverEtapa, renomearFunil, type FunilParaGerenciar, type FunisParaGerenciar } from "./actions"
+import { avisar } from "@/lib/aviso-na-tela"
+import { Ajuda } from "@/components/shared/ajuda"
 
 // Amostra das cores prontas com as mesmas cores das colunas do quadro (B15-02).
 const AMOSTRA: Record<string, string> = {
@@ -96,17 +98,22 @@ function NovoFunil({ onFechar, onCriado }: { onFechar: () => void; onCriado: () 
   const [etapas, setEtapas] = useState<EtapaNova[]>([{ nome: "", cor: null }])
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [erroNome, setErroNome] = useState<string | null>(null)
 
   function mudarEtapa(i: number, mudanca: Partial<EtapaNova>) {
     setEtapas((lista) => lista.map((e, j) => (j === i ? { ...e, ...mudanca } : e)))
   }
 
   async function salvar() {
+    // B48-13: o nome vazio é barrado aqui, na hora; o servidor continua validando
+    if (!nome.trim()) { setErroNome("Informe o nome do funil."); return }
+    setErroNome(null)
     setErro(null)
     setSalvando(true)
     try {
       const r = await criarFunil(nome, etapas)
       if (r.erro) { setErro(r.erro); return }
+      avisar("Funil salvo")
       onCriado()
     } catch {
       setErro("Não foi possível criar o funil. Tente de novo.")
@@ -125,7 +132,8 @@ function NovoFunil({ onFechar, onCriado }: { onFechar: () => void; onCriado: () 
       </div>
       <label className="block space-y-1.5 text-sm">
         <span>Nome do funil</span>
-        <Input value={nome} maxLength={NOME_MAXIMO} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Feira de Março" />
+        <Input value={nome} maxLength={NOME_MAXIMO} onChange={(e) => { setNome(e.target.value); setErroNome(null) }} placeholder="Ex.: Feira de Março" aria-invalid={!!erroNome} />
+        {erroNome && <span role="alert" className="block text-xs text-destructive">{erroNome}</span>}
       </label>
       <div className="space-y-2">
         <span className="text-sm">Etapas, na ordem das colunas</span>
@@ -220,7 +228,7 @@ function EtapaEditavel({ etapa, posicao, outras, onSalvo }: { etapa: EtapaDoEdit
           className="sm:max-w-56"
         />
         <SeletorDeCor rotulo={etapa.nome} cor={etapa.cor} onChange={(cor) => void salvar({ cor })} />
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <label className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground">
           Avisar parado depois de
           <Input
             aria-label={`Prazo de parado de ${etapa.nome}`}
@@ -233,7 +241,7 @@ function EtapaEditavel({ etapa, posicao, outras, onSalvo }: { etapa: EtapaDoEdit
           />
           dias
         </label>
-        <span className="numero text-xs text-muted-foreground">{etapa.cards} {etapa.cards === 1 ? "card" : "cards"}</span>
+        <span className="numero shrink-0 whitespace-nowrap text-xs text-muted-foreground">{etapa.cards} {etapa.cards === 1 ? "card" : "cards"}</span>
         <span className="flex items-center gap-1 sm:ml-auto">
           <Button type="button" size="icon-sm" variant="ghost" aria-label={`Subir ${etapa.nome}`} disabled={salvando || posicao === 0} onClick={() => executar(() => moverEtapa(etapa.id, "subir"))}>
             <ArrowUp className="size-3.5" />
@@ -426,7 +434,6 @@ export function FunisClient({ dados }: { dados: FunisParaGerenciar }) {
       </div>
 
       {criando && <NovoFunil onFechar={() => setCriando(false)} onCriado={() => { setCriando(false); router.refresh() }} />}
-      {editando && <EditorDoFunil key={editando.id} funil={editando} onFechar={() => setEditandoId(null)} onSalvo={() => router.refresh()} />}
 
       <ul aria-label="Lista de funis" className="divide-y divide-border rounded-lg border border-border bg-card">
         {dados.fixos.map((f) => (
@@ -434,6 +441,9 @@ export function FunisClient({ dados }: { dados: FunisParaGerenciar }) {
             <span className="flex items-center gap-2">
               <Link href={f.id === "entrada" ? "/pipeline" : "/pipeline/recompra"} className="font-medium hover:underline">{f.nome}</Link>
               <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">fixo</span>
+              <Ajuda termo="funil fixo">
+                As etapas de Entrada e Recompra são as do método de vendas e não mudam. Para outras etapas, crie um funil novo.
+              </Ajuda>
             </span>
             <span className="numero text-xs text-muted-foreground">{f.etapas} etapas</span>
           </li>
@@ -442,7 +452,7 @@ export function FunisClient({ dados }: { dados: FunisParaGerenciar }) {
           <li key={f.id} data-funil={f.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
             <Link href={`/pipeline/funil/${f.id}`} className="font-medium hover:underline">{f.nome}</Link>
             <span className="flex items-center gap-4">
-              <span className="numero text-xs text-muted-foreground">
+              <span className="numero whitespace-nowrap text-xs text-muted-foreground">
                 {f.etapas.length} {f.etapas.length === 1 ? "etapa" : "etapas"} · {f.cards} {f.cards === 1 ? "card" : "cards"}
               </span>
               <Button size="sm" variant="ghost" onClick={() => { setEditandoId(f.id); setCriando(false) }}>Editar</Button>
@@ -450,6 +460,12 @@ export function FunisClient({ dados }: { dados: FunisParaGerenciar }) {
                 <Trash2 className="size-3.5" />
               </Button>
             </span>
+            {/* B48-13: o editor abre logo abaixo do funil, perto do botão */}
+            {editando?.id === f.id && (
+              <div className="w-full pt-2">
+                <EditorDoFunil key={f.id} funil={f} onFechar={() => setEditandoId(null)} onSalvo={() => router.refresh()} />
+              </div>
+            )}
             {apagandoId === f.id && (
               <ApagarFunil
                 funil={f}

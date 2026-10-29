@@ -76,6 +76,7 @@ As issues da parte A (gateway) ficam no repositório `whatsapp-gateway`.
 | `referencia/sessao-2026-06-02-whatsapp-api-e-meta-review.md` | Ata da sessão sobre API Oficial e revisão da Meta. |
 | `referencia/sessao-2026-09-30-b11-automacoes.md` | Ata da sessão da B11 de 30/09: decisões, preview na Vercel e próximos passos. |
 | `referencia/sessao-2026-10-07-b11-automacoes.md` | Ata da sessão da B11 de 07/10: onde retomar, o que muda com o merge e a limpeza depois dele. |
+| `referencia/sessao-2026-10-27-b48-qa-ux.md` | Ata da B48 de 27/10. A série terminou em 28/10: o resumo final está em `docs/relatorios/relatorio-b48-correcoes-qa-ux.md`. |
 | `../e2e/preview/README.md` | **Empresa de teste** "[TESTE] Automações B11", que fica no banco de produção e não deve ser apagada. Credenciais no `.env.local`; roteiros que testam pela tela no preview e na produção. |
 | `decisoes/` | Decisões de arquitetura registradas (hoje: B1-01, camada de provider; B11, automações em fluxo). |
 | `testes/` | Planos de teste por módulo e série; o skill `testes` lê daqui. |

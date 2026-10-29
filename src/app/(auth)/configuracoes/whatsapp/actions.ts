@@ -78,7 +78,7 @@ export async function listarConexoesWhatsApp(): Promise<ConexaoListada[]> {
 }
 
 /**
- * O termo vigente já foi aceito neste workspace? (B3-01)
+ * O termo vigente já foi aceito nesta empresa? (B3-01)
  *
  * Aceite de versão anterior não conta: o texto mudou, e o que o cliente leu não
  * é o que está valendo.
@@ -249,7 +249,7 @@ export async function pedirQrCodeCanalDireto(
   const instancia = conexaoId
     ? await conexaoDoCanalDiretoPorId(autorizacao.workspaceId, conexaoId)
     : await instanciaDoCanalDireto(autorizacao.workspaceId)
-  if (!instancia) return { erro: "Nenhum número do canal direto para parear neste workspace." }
+  if (!instancia) return { erro: "Nenhum número do canal direto para parear nesta empresa." }
 
   let cliente
   try {
@@ -272,7 +272,7 @@ export async function pedirCodigoDePareamento(
   if ("erro" in autorizacao) return { erro: autorizacao.erro }
 
   const instancia = await instanciaDoCanalDireto(autorizacao.workspaceId)
-  if (!instancia) return { erro: "Nenhum número do canal direto para parear neste workspace." }
+  if (!instancia) return { erro: "Nenhum número do canal direto para parear nesta empresa." }
 
   let cliente
   try {
@@ -316,7 +316,7 @@ export async function sincronizarEstadoCanalDireto(
   const instancia = conexaoId
     ? await conexaoDoCanalDiretoPorId(autorizacao.workspaceId, conexaoId).then((c) => (c ? { ...c, conexaoId } : null))
     : await instanciaDoCanalDireto(autorizacao.workspaceId)
-  if (!instancia) return { erro: "Nenhum número do canal direto neste workspace." }
+  if (!instancia) return { erro: "Nenhum número do canal direto nesta empresa." }
 
   let cliente
   try {
@@ -389,7 +389,7 @@ export async function operarNumeroCanalDireto(
   if ("erro" in autorizacao) return { erro: autorizacao.erro }
 
   const conexao = await conexaoDoCanalDiretoPorId(autorizacao.workspaceId, conexaoId)
-  if (!conexao) return { erro: "Conexão não encontrada neste workspace." }
+  if (!conexao) return { erro: "Conexão não encontrada nesta empresa." }
 
   let cliente
   try {
@@ -451,7 +451,7 @@ export async function reconectarNumeroCanalDireto(
   if ("erro" in autorizacao) return { erro: autorizacao.erro }
 
   const conexao = await conexaoDoCanalDiretoPorId(autorizacao.workspaceId, conexaoId)
-  if (!conexao) return { erro: "Conexão não encontrada neste workspace." }
+  if (!conexao) return { erro: "Conexão não encontrada nesta empresa." }
 
   let cliente
   try {
@@ -491,7 +491,7 @@ export async function sincronizarEstadoDoNumero(
   if ("erro" in autorizacao) return { erro: autorizacao.erro }
 
   const conexao = await conexaoDoCanalDiretoPorId(autorizacao.workspaceId, conexaoId)
-  if (!conexao) return { erro: "Conexão não encontrada neste workspace." }
+  if (!conexao) return { erro: "Conexão não encontrada nesta empresa." }
 
   let cliente
   try {

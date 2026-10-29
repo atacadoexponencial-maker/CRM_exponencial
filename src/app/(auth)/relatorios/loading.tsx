@@ -1,8 +1,9 @@
 import { Esqueleto } from "@/components/shared/esqueleto"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export default function Loading() {
   return (
-    <div className="max-w-6xl mx-auto w-full px-4 py-8" role="status" aria-label="Carregando relatórios">
+    <div className={CLASSE_DA_PAGINA} role="status" aria-label="Carregando relatórios">
       <h1 className="text-xl font-semibold mb-4">Relatórios</h1>
       <div className="flex gap-2 border-b mb-6">
         {Array.from({ length: 5 }, (_, i) => (

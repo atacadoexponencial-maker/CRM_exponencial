@@ -4,6 +4,7 @@ import { ArrowLeft, TriangleAlert } from "lucide-react"
 import { sessaoAtual } from "@/lib/sessao"
 import { lerSaude } from "./actions"
 import { SaudeClient } from "./saude-client"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Saúde do número" }
 
@@ -31,7 +32,7 @@ export default async function SaudeDoNumeroPage({
   const resultado = await lerSaude(id)
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <Link
         href="/configuracoes/whatsapp"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"

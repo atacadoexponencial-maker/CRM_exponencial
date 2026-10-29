@@ -3,6 +3,7 @@ import { sessaoAtual } from "@/lib/sessao"
 import { buscarRegraParaEditor } from "../actions"
 import { carregarOpcoesEditor } from "../opcoes-editor"
 import { EditorClient } from "./editor-client"
+import { avisoDoPrimeiroSalvamento } from "./avisos-do-salvar"
 
 export const metadata = { title: "Automação" }
 
@@ -33,7 +34,7 @@ export default async function EditorAutomacaoPage({
       regra={resultado.regra}
       opcoes={opcoes}
       usuarioId={user.id}
-      acabouDeSalvar={salva === "1"}
+      avisoInicial={avisoDoPrimeiroSalvamento(salva)}
     />
   )
 }

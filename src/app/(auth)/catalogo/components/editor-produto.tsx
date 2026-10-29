@@ -204,7 +204,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
     else if (resultado.aviso) setMensagem({ tipo: "aviso", texto: resultado.aviso })
   }
 
-  const campoTexto = "w-full min-h-24 rounded-lg border border-input bg-input/30 px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 resize-y"
+  const campoTexto = "w-full min-h-24 rounded-lg border border-input bg-transparent dark:bg-input/30 px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 resize-y"
 
   return (
     <div className="space-y-6">
@@ -388,7 +388,7 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
                 id="categoria"
                 value={produto.categoriaId ?? ""}
                 onChange={(e) => mudar("categoriaId", e.target.value || null)}
-                className="h-8 w-full rounded-lg border border-input bg-input/30 px-2 text-sm"
+                className="h-8 w-full rounded-lg border border-input bg-transparent dark:bg-input/30 px-2 text-sm"
               >
                 <option value="">Sem categoria</option>
                 {categorias.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}

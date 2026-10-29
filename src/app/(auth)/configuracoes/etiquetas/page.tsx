@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { sessaoAtual } from "@/lib/sessao"
 import { listarEtiquetas } from "./actions"
 import { EtiquetasClient } from "./etiquetas-client"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Etiquetas" }
 
@@ -14,7 +15,7 @@ export default async function EtiquetasPage() {
   const etiquetas = await listarEtiquetas()
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={CLASSE_DA_PAGINA}>
       <EtiquetasClient etiquetasIniciais={etiquetas} />
     </div>
   )

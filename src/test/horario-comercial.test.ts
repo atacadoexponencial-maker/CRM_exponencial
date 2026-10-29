@@ -11,6 +11,7 @@ import {
   horarioDoBanco,
   problemaDoHorario,
 } from "@/lib/horario-comercial"
+import { FUSO_DA_OPERACAO } from "@/lib/datas"
 
 const SEG_A_SEX = { dias: [1, 2, 3, 4, 5], inicio: "08:00", fim: "18:00" }
 
@@ -50,31 +51,31 @@ describe("horarioDoBanco", () => {
 
 describe("dentroDoHorario", () => {
   it("quarta às 9h de Brasília está dentro; às 7h59, fora", () => {
-    expect(dentroDoHorario(SEG_A_SEX, new Date("2026-10-07T12:00:00Z"))).toBe(true)
-    expect(dentroDoHorario(SEG_A_SEX, new Date("2026-10-07T10:59:00Z"))).toBe(false)
+    expect(dentroDoHorario(SEG_A_SEX, new Date("2026-10-07T12:00:00Z"), FUSO_DA_OPERACAO)).toBe(true)
+    expect(dentroDoHorario(SEG_A_SEX, new Date("2026-10-07T10:59:00Z"), FUSO_DA_OPERACAO)).toBe(false)
   })
 
   it("o início conta como dentro e o fim, como fora", () => {
-    expect(dentroDoHorario(SEG_A_SEX, new Date("2026-10-07T11:00:00Z"))).toBe(true)
-    expect(dentroDoHorario(SEG_A_SEX, new Date("2026-10-07T21:00:00Z"))).toBe(false)
-    expect(dentroDoHorario(SEG_A_SEX, new Date("2026-10-07T20:59:00Z"))).toBe(true)
+    expect(dentroDoHorario(SEG_A_SEX, new Date("2026-10-07T11:00:00Z"), FUSO_DA_OPERACAO)).toBe(true)
+    expect(dentroDoHorario(SEG_A_SEX, new Date("2026-10-07T21:00:00Z"), FUSO_DA_OPERACAO)).toBe(false)
+    expect(dentroDoHorario(SEG_A_SEX, new Date("2026-10-07T20:59:00Z"), FUSO_DA_OPERACAO)).toBe(true)
   })
 
   it("sábado não marcado está fora em qualquer hora", () => {
-    expect(dentroDoHorario(SEG_A_SEX, new Date("2026-10-10T13:00:00Z"))).toBe(false)
+    expect(dentroDoHorario(SEG_A_SEX, new Date("2026-10-10T13:00:00Z"), FUSO_DA_OPERACAO)).toBe(false)
   })
 
   it("usa o dia e a hora de Brasília, e não os do servidor em UTC", () => {
     // Sábado 01:00 em UTC é sexta 22:00 em Brasília
     const ateAs23 = { dias: [1, 2, 3, 4, 5], inicio: "08:00", fim: "23:00" }
-    expect(dentroDoHorario(ateAs23, new Date("2026-10-10T01:00:00Z"))).toBe(true)
+    expect(dentroDoHorario(ateAs23, new Date("2026-10-10T01:00:00Z"), FUSO_DA_OPERACAO)).toBe(true)
     // Quarta 22:30 em UTC é 19:30 em Brasília: fora das 08:00 às 18:00
-    expect(dentroDoHorario(SEG_A_SEX, new Date("2026-10-07T22:30:00Z"))).toBe(false)
+    expect(dentroDoHorario(SEG_A_SEX, new Date("2026-10-07T22:30:00Z"), FUSO_DA_OPERACAO)).toBe(false)
   })
 
   it("meia-noite em ponto é 00:00, não 24:00", () => {
     const madrugada = { dias: [3], inicio: "00:00", fim: "06:00" }
-    expect(dentroDoHorario(madrugada, new Date("2026-10-07T03:00:00Z"))).toBe(true)
+    expect(dentroDoHorario(madrugada, new Date("2026-10-07T03:00:00Z"), FUSO_DA_OPERACAO)).toBe(true)
   })
 })
 

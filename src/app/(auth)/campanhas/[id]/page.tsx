@@ -4,6 +4,8 @@ import { buscarCampanha, numerosParaCampanha } from "../actions"
 import { valoresDoFiltro } from "../../contatos/actions"
 import { listarFiltrosSalvos } from "../../contatos/filtros-salvos"
 import { EditorCampanhaClient } from "./editor-campanha-client"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
+import { cn } from "@/lib/utils"
 
 export const metadata = { title: "Campanha" }
 
@@ -28,7 +30,7 @@ export default async function EditorCampanhaPage({ params }: { params: Promise<{
   const [opcoes, numeros, filtrosSalvos] = await Promise.all([valoresDoFiltro(), numerosParaCampanha(), listarFiltrosSalvos("campanhas")])
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-7 sm:px-8 lg:px-10">
+    <div className={cn(CLASSE_DA_PAGINA, "*:max-w-3xl")}>
       <EditorCampanhaClient campanha={campanha} opcoes={opcoes} numeros={numeros} filtrosSalvos={filtrosSalvos} />
     </div>
   )

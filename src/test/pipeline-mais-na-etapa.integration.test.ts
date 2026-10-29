@@ -11,7 +11,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { criarFunil } from "@/app/(auth)/configuracoes/funis/actions"
-import { salvarRegra } from "@/app/(auth)/configuracoes/automacoes/actions"
+import { alternarRegra, salvarRegra } from "@/app/(auth)/configuracoes/automacoes/actions"
 import { criarCardNaEtapa } from "@/app/(auth)/pipeline/actions"
 import { TELEFONE_INVALIDO } from "@/lib/telefone"
 
@@ -88,6 +88,8 @@ describe("\"+\" na etapa", { timeout: 60_000 }, () => {
       },
     })
     expect(regra.erro).toBeUndefined()
+    // B48-08: a regra nova nasce desligada
+    expect(await alternarRegra(regra.id!, true)).toEqual({})
     expect(await criarCardNaEtapa("entrada", "sondagem", { telefone: `+${telefone}`, nome: "Loja Nova" })).toEqual({})
     const { data: contato } = await service.from("contacts").select("id, name").eq("workspace_id", ws).eq("phone_number", telefone).single()
     expect(contato!.name).toBe("Loja Nova")

@@ -124,7 +124,7 @@ describe("criar conexão pelo canal direto", () => {
 
     expect(resultado).toEqual({
       ok: false,
-      erro: "Este workspace já atingiu o limite de números conectados pelo canal direto.",
+      erro: "Esta empresa já atingiu o limite de números conectados pelo canal direto.",
     })
     expect(inseridas).toEqual([])
   })

@@ -3,6 +3,7 @@ import { sessaoAtual } from "@/lib/sessao"
 import { listarRegras } from "./actions"
 import { ListaClient } from "./lista-client"
 import { carregarOpcoesEditor } from "./opcoes-editor"
+import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "Automações" }
 
@@ -15,7 +16,7 @@ export default async function AutomacoesPage() {
   const [regras, opcoes] = await Promise.all([listarRegras(), carregarOpcoesEditor(supabase, perfil.workspace_id)])
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8">
+    <div className={CLASSE_DA_PAGINA}>
       <ListaClient regras={regras} opcoes={opcoes} />
     </div>
   )

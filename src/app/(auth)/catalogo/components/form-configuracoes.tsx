@@ -268,10 +268,10 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
             <p className="text-xs text-aviso mt-1">{config.publicado ? "Salve para abrir a loja." : "Salve para fechar a loja."}</p>
           ) : null}
         </div>
-        <label className="flex items-center gap-2 text-sm cursor-pointer shrink-0">
-          <input type="checkbox" checked={config.publicado} onChange={(e) => mudar("publicado", e.target.checked)} className="accent-primary size-4" />
-          Publicar a loja
-        </label>
+        {/* B48-18: o botão diz o que o clique faz; vale ao salvar, como antes */}
+        <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => mudar("publicado", !config.publicado)}>
+          {config.publicado ? "Tirar a loja do ar" : "Publicar a loja"}
+        </Button>
       </section>
 
       <div className="flex items-center justify-end gap-3">

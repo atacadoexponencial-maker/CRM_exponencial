@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Activity, AlertTriangle, Check, MessageSquare, Settings2, X } from "lucide-react"
+import { Activity, AlertTriangle, Check, MessageSquare, Settings2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -45,6 +45,9 @@ const TIPOS: Array<{ id: TipoAlerta | ""; label: string }> = [
   { id: "card_parado", label: "Card parado" },
 ]
 
+/** B48-19: quantos alertas cada grupo mostra antes do "Ver mais". */
+const ALERTAS_POR_GRUPO = 5
+
 const COR_TIPO: Record<TipoAlerta, string> = {
   lead_sem_resposta: "text-aviso bg-aviso-fundo",
   sem_recompra: "text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-500/15",
@@ -77,6 +80,11 @@ export function AlertasClient({
 
 
   const filtrados = filtroTipo ? alertas.filter((a) => a.tipo === filtroTipo) : alertas
+  const [gruposAbertos, setGruposAbertos] = useState<TipoAlerta[]>([])
+  const grupos = TIPOS.flatMap((t) => {
+    const itens = t.id ? filtrados.filter((a) => a.tipo === t.id) : []
+    return t.id && itens.length > 0 ? [{ tipo: t.id, label: t.label, itens }] : []
+  })
 
   async function handleDispensar(alerta: AlertaComConversa) {
     const anterior = alertas
@@ -184,8 +192,17 @@ export function AlertasClient({
           <p className="text-sm">Nenhum alerta ativo</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
-          {filtrados.map((alerta) => (
+        // B48-19: um grupo por tipo, com os primeiros e "Ver mais"; eram dezenas soltos
+        <div className="flex flex-col gap-6">
+          {grupos.map(({ tipo, label, itens }) => {
+            const aberto = gruposAbertos.includes(tipo)
+            const visiveis = aberto ? itens : itens.slice(0, ALERTAS_POR_GRUPO)
+            return (
+              <section key={tipo} aria-label={label} className="flex flex-col gap-2">
+                <h2 className="text-sm font-semibold">
+                  {label} <span className="numero font-normal text-muted-foreground">{itens.length}</span>
+                </h2>
+          {visiveis.map((alerta) => (
             <div key={`${alerta.cardId}-${alerta.tipo}`} className="rounded-lg border p-3 flex items-start gap-3">
               <span className={cn("mt-0.5 shrink-0 rounded-full p-1.5", COR_TIPO[alerta.tipo])}>
                 <AlertTriangle className="size-3.5" />
@@ -213,17 +230,29 @@ export function AlertasClient({
                     Conversa
                   </Link>
                 )}
+                {/* B48-18: escrito, não um X que não diz se fecha ou dispensa */}
                 <button
                   type="button"
                   onClick={() => handleDispensar(alerta)}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                  title="Dispensar alerta"
+                  className="inline-flex h-7 items-center justify-center rounded-md border px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 >
-                  <X className="size-3.5" />
+                  Dispensar
                 </button>
               </div>
             </div>
           ))}
+                {!aberto && itens.length > ALERTAS_POR_GRUPO && (
+                  <button
+                    type="button"
+                    onClick={() => setGruposAbertos((g) => [...g, tipo])}
+                    className="self-start text-xs text-primary hover:underline"
+                  >
+                    Ver mais {itens.length - ALERTAS_POR_GRUPO}
+                  </button>
+                )}
+              </section>
+            )
+          })}
         </div>
       )}
 

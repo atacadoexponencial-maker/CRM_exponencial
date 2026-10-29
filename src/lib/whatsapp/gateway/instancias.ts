@@ -61,7 +61,7 @@ export type ResultadoDaCriacao = { ok: true; instanceId: string } | { ok: false;
 /** Mensagens por código do contrato. Fora da lista, a do próprio gateway serve. */
 const MENSAGEM_POR_CODIGO: Record<string, string> = {
   workspace_instance_limit_reached:
-    "Este workspace já atingiu o limite de números conectados pelo canal direto.",
+    "Esta empresa já atingiu o limite de números conectados pelo canal direto.",
   invalid_credentials:
     "O CRM não conseguiu se autenticar no gateway. Confira a configuração do servidor.",
 }

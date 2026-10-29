@@ -73,12 +73,17 @@ export function FiltroPorCampoControle({ campos, valor, onChange }: Props) {
         value={valor?.campo ?? ""}
         onChange={(e) => onChange(e.target.value ? { campo: e.target.value, valores: [] } : null)}
       >
-        <option value="">Todos os contatos</option>
-        {campos.map((c) => (
-          <option key={c.id} value={campoPersonalizado(c)}>
-            {c.nome}
-          </option>
-        ))}
+        {/* B48-19: o grupo de contatos separado dos campos, que antes vinham na mesma lista */}
+        <optgroup label="Contatos">
+          <option value="">Todos os contatos</option>
+        </optgroup>
+        <optgroup label="Por campo personalizado">
+          {campos.map((c) => (
+            <option key={c.id} value={campoPersonalizado(c)}>
+              {c.nome}
+            </option>
+          ))}
+        </optgroup>
       </select>
       {controle}
     </div>

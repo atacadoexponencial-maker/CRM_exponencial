@@ -55,7 +55,7 @@ export function EscolhaCanal({
     <div>
       <h2 className="text-base font-semibold mb-1">Conectar um número</h2>
       <p className="text-sm text-muted-foreground mb-4">
-        Escolha por onde este número vai enviar e receber. Cada número do workspace pode usar um
+        Escolha por onde este número vai enviar e receber. Cada número da empresa pode usar um
         canal diferente.
       </p>
 

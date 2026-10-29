@@ -2,7 +2,7 @@
 // funil de Entrada em barras, "Para hoje" e "Esperando resposta"). Sem banco: o
 // carregamento fica em src/app/(auth)/dashboard/actions.ts.
 
-import { FUSO_DA_OPERACAO } from "@/lib/datas"
+import { diaNoFuso, formatarNoFuso, instanteNoFuso, relogioNoFuso } from "@/lib/datas"
 import type { CardRow, MetricasDashboard, RangePeriodo } from "@/lib/metricas-dashboard"
 
 /** O período de mesmo tamanho logo antes do escolhido, para comparar. */
@@ -56,23 +56,18 @@ export function contarCardsPorEtapa(
   return etapas.map((e) => ({ id: e.id, label: e.label, quantidade: contagem.get(e.id) ?? 0 }))
 }
 
-/** Último instante de hoje no fuso da operação (Brasília). */
-export function fimDeHoje(agora: Date = new Date()): Date {
-  const partes = Object.fromEntries(
-    new Intl.DateTimeFormat("en-CA", { timeZone: FUSO_DA_OPERACAO, year: "numeric", month: "2-digit", day: "2-digit" })
-      .formatToParts(agora)
-      .map((p) => [p.type, p.value])
-  )
-  // Brasília não tem horário de verão desde 2019: UTC-3 o ano todo.
-  return new Date(`${partes.year}-${partes.month}-${partes.day}T23:59:59.999-03:00`)
+/** Último instante de hoje no fuso da empresa. */
+export function fimDeHoje(fuso: string, agora: Date = new Date()): Date {
+  return new Date(instanteNoFuso(diaNoFuso(agora, fuso), "23:59:59", fuso).getTime() + 999)
 }
 
 /** Tarefas atrasadas e de hoje, as atrasadas primeiro. As de amanhã em diante ficam de fora. */
 export function filtrarParaHoje<T extends { dueAt: string }>(
   itens: T[],
+  fuso: string,
   agora: Date = new Date()
 ): Array<T & { atrasado: boolean }> {
-  const limite = fimDeHoje(agora).getTime()
+  const limite = fimDeHoje(fuso, agora).getTime()
   return itens
     .filter((i) => new Date(i.dueAt).getTime() <= limite)
     .map((i) => ({ ...i, atrasado: new Date(i.dueAt).getTime() < agora.getTime() }))
@@ -99,9 +94,9 @@ export function textoDaEspera(minutos: number): string {
 }
 
 /** Cabeçalho do Dashboard: "Terça, 21 de outubro" e "Bom dia, Ana". */
-export function cabecalhoDoDia(nome: string, agora: Date = new Date()): { data: string; saudacao: string } {
-  const data = new Intl.DateTimeFormat("pt-BR", { timeZone: FUSO_DA_OPERACAO, weekday: "long", day: "numeric", month: "long" }).format(agora)
-  const hora = Number(new Intl.DateTimeFormat("pt-BR", { timeZone: FUSO_DA_OPERACAO, hour: "numeric", hourCycle: "h23" }).format(agora))
+export function cabecalhoDoDia(nome: string, fuso: string, agora: Date = new Date()): { data: string; saudacao: string } {
+  const data = formatarNoFuso(agora, fuso, { weekday: "long", day: "numeric", month: "long" })
+  const hora = Math.floor(relogioNoFuso(agora, fuso).minutos / 60)
   const cumprimento = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite"
   const primeiroNome = nome.trim().split(/\s+/)[0]
   return {
