@@ -31,7 +31,7 @@ async function criarLoja(nome: string) {
 }
 
 const pedir = (loja: string, endereco: string, telefone: string) =>
-  fazerPedido(endereco, { nome: "Cliente", whatsapp: telefone }, [{ produtoId: lojas[loja].produto, combinacao: "", quantidade: 1 }])
+  fazerPedido(endereco, { nome: "Cliente", whatsapp: telefone }, [{ produtoId: lojas[loja].produto, combinacao: "", quantidade: 1 }], "XXXX.DUMMY.TOKEN.XXXX") // B50-02: conferência de teste
 const pedidosDa = async (loja: string) =>
   (await service.from("catalog_orders").select("id", { count: "exact", head: true }).eq("workspace_id", lojas[loja].ws)).count ?? 0
 const telefone = (n: number) => `(21) 9${String(8000_0000 + n)}`

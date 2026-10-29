@@ -4,13 +4,14 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { schema } from "./schema"
 import { chaveDoIp, ipDaRequisicao, passouDoLimite, registrarTentativa } from "@/lib/limite-de-tentativas"
+import { passouNaConferenciaHumana } from "@/lib/conferencia-humana"
 
 // B20-05: até 5 cadastros por hora por endereço de internet.
 const LIMITE_CADASTROS_POR_HORA = 5
 
 export type ResultadoCadastro =
   | { ok: true }
-  | { erro: "email_em_uso" | "dados_invalidos" | "falha" | "falha_login" | "limite" }
+  | { erro: "email_em_uso" | "dados_invalidos" | "falha" | "falha_login" | "limite" | "conferencia" }
 
 // B19-01: o cadastro é uma operação só. Esta é a única action pública da tela — não
 // recebe código de empresa de fora: a empresa nasce aqui, junto com o Admin dela.
@@ -24,7 +25,12 @@ export async function cadastrarEmpresa(dados: unknown): Promise<ResultadoCadastr
   const { senha } = validacao.data
   if (!nomeEmpresa || !nomeResponsavel) return { erro: "dados_invalidos" }
 
-  const chaveIp = chaveDoIp(await ipDaRequisicao())
+  // B50-02: só pessoa cadastra empresa (Cloudflare Turnstile)
+  const ip = await ipDaRequisicao()
+  const conferencia = (dados as { conferencia?: unknown }).conferencia
+  if (!(await passouNaConferenciaHumana(conferencia, ip))) return { erro: "conferencia" }
+
+  const chaveIp = chaveDoIp(ip)
   if (await passouDoLimite("cadastro", [{ chave: chaveIp, limite: LIMITE_CADASTROS_POR_HORA }], 60)) {
     return { erro: "limite" }
   }

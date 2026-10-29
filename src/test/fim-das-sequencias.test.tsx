@@ -206,6 +206,7 @@ describe("B28-06 — empresa nova", () => {
       email: "bia@empresa-nova.com",
       senha: "senha-forte-123",
       confirmarSenha: "senha-forte-123",
+      conferencia: "XXXX.DUMMY.TOKEN.XXXX", // B50-02: conferência de teste do Turnstile
     })
 
     expect(resultado).toEqual({ ok: true })

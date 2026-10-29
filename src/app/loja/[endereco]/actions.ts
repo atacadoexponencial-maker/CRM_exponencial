@@ -6,6 +6,7 @@
 import { registrarPedido, type ItemSolicitado, type ResultadoPedido } from "@/lib/catalogo/pedidos"
 import { prepararRepeticao, type PecaGuardada, type ResultadoRepeticao } from "@/lib/catalogo/repetir-pedido"
 import { chaveDoPedidoNaLoja, ipDaRequisicao, liberarTentativa, reservarTentativa } from "@/lib/limite-de-tentativas"
+import { AVISO_CONFERENCIA_HUMANA, passouNaConferenciaHumana } from "@/lib/conferencia-humana"
 
 // B21-07: um robô não cria pedidos (e contatos) em massa — no máximo 10 por hora por
 // endereço de internet, em cada loja. Conta só pedido que entrou.
@@ -21,11 +22,20 @@ export async function repetirPedido(endereco: string, pecas: PecaGuardada[]): Pr
   }
 }
 
-export async function fazerPedido(endereco: string, cliente: { nome: string; whatsapp: string }, itens: ItemSolicitado[]): Promise<ResultadoPedido> {
+export async function fazerPedido(
+  endereco: string,
+  cliente: { nome: string; whatsapp: string },
+  itens: ItemSolicitado[],
+  conferencia: string | null = null
+): Promise<ResultadoPedido> {
   try {
+    // B50-02: só pessoa fecha pedido (Cloudflare Turnstile)
+    const ip = await ipDaRequisicao()
+    if (!(await passouNaConferenciaHumana(conferencia, ip))) return { ok: false, erro: AVISO_CONFERENCIA_HUMANA }
+
     // B44-09: a vaga é reservada antes (conta e grava de uma vez); pedidos ao mesmo
     // tempo não passam juntos do limite. Pedido que não entra devolve a vaga.
-    const chave = chaveDoPedidoNaLoja(await ipDaRequisicao(), endereco)
+    const chave = chaveDoPedidoNaLoja(ip, endereco)
     const vaga = await reservarTentativa("pedido_loja", chave, PEDIDOS_POR_HORA, 60)
     if (!vaga.reservada) return { ok: false, erro: AVISO_MUITOS_PEDIDOS }
 

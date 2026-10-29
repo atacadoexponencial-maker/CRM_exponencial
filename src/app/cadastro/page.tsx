@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -11,6 +12,7 @@ import { schema, type DadosCadastro } from "./schema"
 import { AVISO_MUITAS_TENTATIVAS } from "../login/avisos"
 import { TemaClaro } from "@/components/shared/tema-claro"
 import { LogoDaMarca } from "@/components/shared/logo-da-marca"
+import { ConferenciaHumana } from "@/components/shared/conferencia-humana"
 
 export { schema }
 
@@ -24,20 +26,26 @@ export default function CadastroPage() {
     setError,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
+  // B50-02: a conferência do Turnstile vale para um envio só
+  const [conferencia, setConferencia] = useState<string | null>(null)
+  const [reinicio, setReinicio] = useState(0)
 
   async function onSubmit(data: FormData) {
     let resultado
     try {
-      resultado = await cadastrarEmpresa(data)
+      resultado = await cadastrarEmpresa({ ...data, conferencia })
     } catch {
       resultado = { erro: "falha" as const }
     }
 
     if ("erro" in resultado) {
+      setReinicio((r) => r + 1)
       if (resultado.erro === "email_em_uso") {
         setError("email", { type: "manual", message: "E-mail já está em uso" })
       } else if (resultado.erro === "limite") {
         setError("nomeEmpresa", { type: "manual", message: AVISO_MUITAS_TENTATIVAS })
+      } else if (resultado.erro === "conferencia") {
+        setError("nomeEmpresa", { type: "manual", message: "Não foi possível confirmar que você é uma pessoa. Tente de novo." })
       } else if (resultado.erro === "falha_login") {
         router.push("/login")
       } else {
@@ -132,6 +140,8 @@ export default function CadastroPage() {
               <p className="text-sm text-erro">{errors.confirmarSenha.message}</p>
             )}
           </div>
+
+          <ConferenciaHumana aoMudar={setConferencia} reinicio={reinicio} />
 
           <Button type="submit" className="mt-2 w-full">
             Criar conta

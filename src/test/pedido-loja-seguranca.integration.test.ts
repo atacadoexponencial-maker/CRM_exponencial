@@ -40,7 +40,7 @@ afterAll(async () => {
 }, 60_000)
 
 const pedir = (nome: string, whatsapp: string) =>
-  fazerPedido(slug, { nome, whatsapp }, [{ produtoId: camisa, combinacao: "", quantidade: 1 }])
+  fazerPedido(slug, { nome, whatsapp }, [{ produtoId: camisa, combinacao: "", quantidade: 1 }], "XXXX.DUMMY.TOKEN.XXXX") // B50-02: conferência de teste
 
 describe("B21-07 — Pedido da loja não mexe no contato e tem limite", { timeout: 30_000 }, () => {
   it("should ligar o pedido ao contato existente sem trocar o nome nem tirar da lixeira", async () => {

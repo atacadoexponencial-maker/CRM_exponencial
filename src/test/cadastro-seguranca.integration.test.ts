@@ -96,6 +96,7 @@ describe("B19-01 — Ataques ao cadastro são recusados", { timeout: 30_000 }, (
       confirmarSenha: SENHA,
       workspaceId: vitima,
       workspace_id: vitima,
+      conferencia: "XXXX.DUMMY.TOKEN.XXXX", // B50-02: conferência de teste do Turnstile
     })
     expect(r).toEqual({ ok: true })
 

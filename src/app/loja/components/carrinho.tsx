@@ -9,6 +9,7 @@ import { CheckCircle2, ImageOff, Minus, Plus, RotateCcw, ShoppingBag, Trash2, X 
 import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { coresDaVitrine, type TemaLoja } from "./tema"
 import { familiaDaFonte } from "./fontes"
+import { ConferenciaHumana } from "@/components/shared/conferencia-humana"
 import { faltaParaMinimo, normalizarWhatsapp, totaisDoPedido, type MinimoPedido } from "./pedido"
 import { aplicarDesconto, avisoMinimoProduto, avisoProximaFaixa, avisoProximoDesconto, blocoDaCombinacao, descontoAlcancado, opcaoDaCombinacao, pacotesDoBloco, pecasDaGrade, precoPorQuantidade, unitarioDaGrade, type DescontoPedido, type FaixaPreco, type GradeFechada } from "@/lib/catalogo/regras-de-venda"
 
@@ -98,7 +99,8 @@ interface CarrinhoProps {
   /** B31-03: o bloco da grade muda e sai inteiro. Sem estas, o carrinho chama as de uma linha várias vezes. */
   onMudarQuantidades?: (mudancas: { produtoId: string; combinacao: string; quantidade: number }[]) => void
   onRemoverVarios?: (itens: { produtoId: string; combinacao: string }[]) => void
-  onFazerPedido: (cliente: { nome: string; whatsapp: string }) => Promise<ResultadoPedido>
+  /** B50-02: `conferencia` é a do Turnstile, que o servidor confirma. */
+  onFazerPedido: (cliente: { nome: string; whatsapp: string }, conferencia: string | null) => Promise<ResultadoPedido>
   /** Chamado depois que o pedido deu certo (para esvaziar o carrinho). */
   onPedidoFeito: (pedido: { numero: number | string }) => void
   /** B31-05: número do último pedido guardado no aparelho; com ele, o carrinho vazio oferece repetir. */
@@ -115,6 +117,9 @@ export function Carrinho({ tema, aberto, linhas, minimo, descontos = [], onFecha
   const [erros, setErros] = useState<{ nome?: string; whatsapp?: string; geral?: string; minimo?: boolean; minimoProduto?: boolean }>({})
   const [enviando, setEnviando] = useState(false)
   const [feito, setFeito] = useState<{ numero: number | string; mensagem: string; link: string } | null>(null)
+  // B50-02: a conferência do Turnstile vale para um envio só
+  const [conferencia, setConferencia] = useState<string | null>(null)
+  const [reinicio, setReinicio] = useState(0)
 
   const porProduto = pecasPorProduto(linhas)
   const itens = linhas.map((l) => ({ nome: l.nome, variacao: l.combinacao, quantidade: l.quantidade, precoUnitario: unitarioDaLinha(l, porProduto) }))
@@ -163,8 +168,9 @@ export function Carrinho({ tema, aberto, linhas, minimo, descontos = [], onFecha
     const aba = window.open("", "_blank")
     if (aba) aba.opener = null
     setEnviando(true)
-    const r = await onFazerPedido({ nome: nome.trim(), whatsapp: numero! })
+    const r = await onFazerPedido({ nome: nome.trim(), whatsapp: numero! }, conferencia)
     setEnviando(false)
+    setReinicio((n) => n + 1)
     if ("erro" in r) {
       aba?.close()
       setErros({ geral: r.erro })
@@ -386,6 +392,7 @@ export function Carrinho({ tema, aberto, linhas, minimo, descontos = [], onFecha
                 </div>
               </div>
               {erros.geral && <p className="text-sm text-red-600" role="alert">{erros.geral}</p>}
+              <ConferenciaHumana aoMudar={setConferencia} reinicio={reinicio} />
               <button
                 type="button"
                 onClick={fazerPedido}

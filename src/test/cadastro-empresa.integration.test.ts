@@ -62,6 +62,8 @@ function dados(sufixo: string, extra: Record<string, unknown> = {}) {
     email: `b19-01-${sufixo}-${ts}@teste.com`,
     senha: "senha-segura-123",
     confirmarSenha: "senha-segura-123",
+    // B50-02: a conferência de teste, aceita pela chave de teste do Turnstile
+    conferencia: "XXXX.DUMMY.TOKEN.XXXX",
     ...extra,
   }
 }

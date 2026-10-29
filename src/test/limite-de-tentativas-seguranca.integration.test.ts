@@ -63,6 +63,7 @@ describe("B20-05 — Freio de tentativas no cadastro e no login", { timeout: 30_
     const nomeEmpresa = `Robô B20 ${ts}`
     const r = await cadastrarEmpresa({
       nomeEmpresa, nomeResponsavel: "Robô", email: `b20-05-robo-${ts}@teste.com`, senha: SENHA, confirmarSenha: SENHA,
+      conferencia: "XXXX.DUMMY.TOKEN.XXXX", // B50-02: conferência de teste do Turnstile
     })
     expect(r).toEqual({ erro: "limite" })
     const { count } = await service.from("workspaces").select("id", { count: "exact", head: true }).eq("name", nomeEmpresa)

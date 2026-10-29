@@ -21,7 +21,14 @@ export default defineConfig(async ({ mode }) => {
   const doProcesso = Object.fromEntries(
     VARIAVEIS_DO_BANCO.filter((k) => process.env[k]).map((k) => [k, process.env[k] as string]),
   )
-  const env = { ...loadEnv(mode, process.cwd(), ''), ...variaveisDoBancoDeTeste(), ...doProcesso }
+  const env: Record<string, string> = {
+    ...loadEnv(mode, process.cwd(), ''),
+    ...variaveisDoBancoDeTeste(),
+    ...doProcesso,
+    // B50-02: a chave secreta de teste pública da Cloudflare, que aceita a conferência
+    // de teste ("XXXX.DUMMY.TOKEN.XXXX"); a da empresa nunca roda nos testes
+    TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA',
+  }
   await conferirBancoDosTestes(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
   return {
     plugins: [react()],

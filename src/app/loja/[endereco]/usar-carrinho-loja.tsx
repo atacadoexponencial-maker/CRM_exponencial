@@ -49,13 +49,14 @@ export function useCarrinhoLoja(endereco: string, tema: TemaLoja, minimo: Minimo
   }))
   const pecas = linhas.reduce((s, l) => s + l.quantidade, 0)
 
-  async function enviar(cliente: { nome: string; whatsapp: string }): Promise<ResultadoPedido> {
+  async function enviar(cliente: { nome: string; whatsapp: string }, conferencia: string | null): Promise<ResultadoPedido> {
     // B31-01: vai o unitário que a cliente viu (já pela faixa); o servidor recalcula e compara.
     const porProduto = pecasPorProduto(carrinho.itens)
     const r = await fazerPedido(
       endereco,
       cliente,
-      carrinho.itens.map((i) => ({ produtoId: i.produtoId, combinacao: i.combinacao, quantidade: i.quantidade, preco: unitarioDaLinha(i, porProduto) }))
+      carrinho.itens.map((i) => ({ produtoId: i.produtoId, combinacao: i.combinacao, quantidade: i.quantidade, preco: unitarioDaLinha(i, porProduto) })),
+      conferencia
     )
     if (!r.ok) {
       if (r.semEstoque?.length) carrinho.ajustarLimites(r.semEstoque)
