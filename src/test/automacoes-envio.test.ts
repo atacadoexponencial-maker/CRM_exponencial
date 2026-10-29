@@ -230,8 +230,9 @@ describe("enviar imagem ou documento", () => {
 
     expect(await executarAcao(b.contexto(mensagemRecebida), acao("enviar_midia", pdf))).toEqual({ ok: true })
 
+    // B49-02: sai o link assinado (provider sem canal: validade da Meta); fica gravado o endereço
     expect(provider.enviarMidia).toHaveBeenCalledWith("5511999998888", {
-      url: pdf.arquivo,
+      url: `${SUPABASE}/storage/v1/object/sign/chat-attachments/ws-1/automacoes/1760000000-tabela.pdf?validade=3600`,
       tipo: "documento",
       nomeArquivo: "Tabela de preços.pdf",
     })

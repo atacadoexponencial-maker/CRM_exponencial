@@ -6,6 +6,7 @@
 
 import { createServiceClient } from "@/integrations/supabase/service"
 import { anexoDaEmpresa } from "@/lib/anexo-da-campanha"
+import { linkParaEnvio } from "@/lib/anexos-do-chat"
 import { chaveDaVariavel, preencherVariaveis, variaveisSemReserva } from "@/lib/variaveis-mensagem"
 import { formatarValor } from "@/lib/campos-personalizados"
 import { camposDaEmpresa, valoresDosContatos } from "@/lib/campos-personalizados-servidor"
@@ -39,6 +40,8 @@ export const MOTIVO_TEXTO_SEM_RESERVA =
   "A mensagem tem variável sem texto reserva. Ajuste o texto e retome a campanha."
 /** B47-01: motivos de quem o envio barra ao conferir de novo o que está gravado. */
 export const MOTIVO_ANEXO_DE_FORA = "O anexo da campanha não é um arquivo da empresa"
+/** B49-02: o arquivo existe na pasta da empresa, mas o link de envio não pôde ser gerado. */
+export const MOTIVO_ANEXO_SEM_LINK = "Não foi possível preparar o anexo para envio"
 export const MOTIVO_FORA_DA_EMPRESA = "Não é contato da empresa"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
@@ -130,7 +133,8 @@ async function enviarParaDestinatario(
   campanha: CampaignRow,
   destinatario: RecipientRow,
   nomeVendedor: string,
-  campos: Record<string, string> = {}
+  campos: Record<string, string> = {},
+  linkDoAnexo: string | null = null
 ): Promise<{ ok: boolean; wamid: string | null; motivo: string | null }> {
   const texto = substituirVariaveis(campanha.conteudo ?? "", {
     nomeContato: destinatario.nome_snapshot ?? "",
@@ -144,17 +148,17 @@ async function enviarParaDestinatario(
   try {
     let resultado: ResultadoEnvio
 
-    if (campanha.tipo_mensagem === "imagem" && campanha.arquivo_url) {
+    if (campanha.tipo_mensagem === "imagem" && linkDoAnexo) {
       resultado = await provider.enviarMidia(
         destinatario.telefone_snapshot,
-        { url: campanha.arquivo_url, tipo: "imagem", legenda: texto },
+        { url: linkDoAnexo, tipo: "imagem", legenda: texto },
         COMO_CAMPANHA
       )
-    } else if (campanha.tipo_mensagem === "documento" && campanha.arquivo_url) {
+    } else if (campanha.tipo_mensagem === "documento" && linkDoAnexo) {
       resultado = await provider.enviarMidia(
         destinatario.telefone_snapshot,
         {
-          url: campanha.arquivo_url,
+          url: linkDoAnexo,
           tipo: "documento",
           legenda: texto,
           nomeArquivo: campanha.arquivo_nome ?? "documento",
@@ -314,7 +318,14 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
       ? (vendedorPorContato[destinatario.contact_id] ?? "")
       : ""
     const campos = destinatario.contact_id ? (camposPorContato.get(destinatario.contact_id) ?? {}) : {}
-    const resultado = await enviarParaDestinatario(provider, campanha, { ...destinatario, telefone_snapshot: telefone }, nomeVendedor, campos)
+    // B49-02: o link do anexo nasce na hora de cada envio, e não o da criação da campanha
+    const linkDoAnexo = campanha.arquivo_url
+      ? await linkParaEnvio(supabase, campanha.workspace_id, campanha.arquivo_url, provider.canal)
+      : null
+    const resultado =
+      campanha.arquivo_url && !linkDoAnexo
+        ? { ok: false, wamid: null, motivo: MOTIVO_ANEXO_SEM_LINK }
+        : await enviarParaDestinatario(provider, campanha, { ...destinatario, telefone_snapshot: telefone }, nomeVendedor, campos, linkDoAnexo)
     await supabase
       .from("campaign_recipients")
       .update({

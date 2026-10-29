@@ -50,7 +50,11 @@ function consulta(tabela: string) {
 }
 
 vi.mock("@/integrations/supabase/service", () => ({
-  createServiceClient: () => ({ from: (t: string) => consulta(t) }),
+  createServiceClient: () => ({
+    from: (t: string) => consulta(t),
+    // B49-02: o anexo sai com link assinado na hora do envio
+    storage: { from: () => ({ createSignedUrl: async (c: string, s: number) => ({ data: { signedUrl: `https://assinado/${c}?validade=${s}` } }) }) },
+  }),
 }))
 vi.mock("@/lib/campos-personalizados-servidor", () => ({
   camposDaEmpresa: vi.fn().mockResolvedValue([]),
@@ -164,9 +168,10 @@ describe("B47-01 — envio de campanha confere anexo e destinatários", () => {
 
     await processarCampanhasPendentes()
 
+    const link = "https://assinado/ws_a/campanhas/1793190000000-catalogo.png?validade=3600"
     expect(midias).toEqual([
-      { telefone: "5511900000001", url: anexo },
-      { telefone: "5511900000002", url: anexo },
+      { telefone: "5511900000001", url: link },
+      { telefone: "5511900000002", url: link },
     ])
     expect(tabelas.campaign_recipients.every((r) => r.status === "enviado")).toBe(true)
     expect(tabelas.campaigns[0]).toMatchObject({ status: "enviada" })

@@ -26,7 +26,7 @@ continuam funcionando, no preview e na produção.
 
 | ID | Suposição | Status | Resolução |
 |---|---|---|---|
-| SUP-B49-01 | A Meta e o gateway baixam o arquivo logo depois de receber o pedido de envio, dentro de 1 hora; um link de 1 hora basta para eles | aberta | — |
+| SUP-B49-01 | A Meta e o gateway baixam o arquivo logo depois de receber o pedido de envio, dentro de 1 hora; um link de 1 hora basta para eles | invalidada | O gateway guarda o pedido na fila e só baixa o arquivo quando a mensagem sai (whatsapp-gateway, src/envio/enviador.ts); campanha grande leva dias. Virou a PER-B49-03 (Claude, conferido no código em 29/10/2026) |
 
 ## Perguntas em aberto
 

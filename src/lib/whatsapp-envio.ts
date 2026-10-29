@@ -5,6 +5,7 @@
 
 import type { createServiceClient } from "@/integrations/supabase/service"
 import { resolverProviderDaConversa, resolverProviderDoContato, statusInicialDoEnvio } from "@/lib/whatsapp"
+import { linkParaEnvio } from "@/lib/anexos-do-chat"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -55,6 +56,8 @@ export type ConteudoDoEnvio =
 
 export type ResultadoDoEnvio = { ok: true } | { ok: false; motivo: string }
 
+export const MOTIVO_ARQUIVO_SEM_LINK = "O arquivo não é da empresa ou não pôde ser preparado para envio"
+
 /** O que aparece na lista de conversas depois do envio. */
 const PREVIA_DA_MIDIA = { imagem: "📷 Imagem", documento: "📄 Documento" } as const
 
@@ -86,11 +89,15 @@ export async function enviarWhatsAppComMotivo(
     return { ok: false, motivo: "O número desta conversa não envia imagem nem documento" }
   }
 
+  // B49-02: a Meta e o gateway baixam de um link assinado gerado agora
+  const link = conteudo.tipo === "texto" ? null : await linkParaEnvio(supabase, workspaceId, conteudo.url, provider.canal)
+  if (conteudo.tipo !== "texto" && !link) return { ok: false, motivo: MOTIVO_ARQUIVO_SEM_LINK }
+
   const resultado =
     conteudo.tipo === "texto"
       ? await provider.enviarTexto(contato.phone_number, conteudo.texto)
       : await provider.enviarMidia(contato.phone_number, {
-          url: conteudo.url,
+          url: link!,
           tipo: conteudo.tipo,
           nomeArquivo: conteudo.nomeArquivo,
         })

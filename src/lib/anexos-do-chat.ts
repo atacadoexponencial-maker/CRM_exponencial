@@ -8,12 +8,21 @@
 // **Só backend.** Assina com a chave de serviço.
 
 import { createServiceClient } from "@/integrations/supabase/service"
+import type { CanalWhatsApp } from "@/lib/whatsapp/tipos"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
 export const BUCKET_ANEXOS = "chat-attachments"
 /** Link assinado vale 1 hora, como a foto de perfil (decisão dela em 28/10/2026). */
 export const VALIDADE_LINK_ANEXO_SEGUNDOS = 60 * 60
+/**
+ * O gateway guarda o pedido na fila e só baixa o arquivo quando a mensagem sai: uma
+ * campanha grande, com o número em aquecimento, leva dias (decisão dela em 29/10/2026).
+ * A Meta baixa na hora do pedido, e fica com 1 hora.
+ */
+export const VALIDADE_LINK_GATEWAY_SEGUNDOS = 30 * 24 * 60 * 60
+
+export const AVISO_ARQUIVO_SEM_LINK = "Não foi possível preparar o arquivo para envio. Tente de novo."
 
 const PREFIXO_PUBLICO = `/storage/v1/object/public/${BUCKET_ANEXOS}/`
 const TIPOS_COM_ARQUIVO = new Set(["imagem", "audio", "video", "documento", "figurinha"])
@@ -31,7 +40,28 @@ function daEmpresa(caminho: string | null, workspaceId: string): caminho is stri
   return caminho !== null && caminho.startsWith(`${workspaceId}/`)
 }
 
-type LinhaComAnexo = { type: string; content: string; media_thumbnail_url?: string | null }
+/**
+ * Link que a Meta ou o gateway baixam na hora do envio. Null se o arquivo não for da
+ * empresa ou não puder ser assinado: quem chama não manda.
+ */
+export async function linkParaEnvio(
+  svc: ServiceClient,
+  workspaceId: string,
+  referencia: string,
+  canal: CanalWhatsApp
+): Promise<string | null> {
+  const caminho = caminhoDoAnexo(referencia)
+  if (!daEmpresa(caminho, workspaceId)) return null
+  const validade = canal === "gateway" ? VALIDADE_LINK_GATEWAY_SEGUNDOS : VALIDADE_LINK_ANEXO_SEGUNDOS
+  try {
+    const { data } = await svc.storage.from(BUCKET_ANEXOS).createSignedUrl(caminho, validade)
+    return data?.signedUrl ?? null
+  } catch {
+    return null
+  }
+}
+
+type LinhaComAnexo ={ type: string; content: string; media_thumbnail_url?: string | null }
 
 /**
  * Troca o conteúdo e a miniatura das mensagens com arquivo pelo link assinado.

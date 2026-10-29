@@ -8,8 +8,31 @@ import { describe, it, expect, vi, beforeAll, afterAll } from "vitest"
 let clienteDaVez: SupabaseClient
 vi.mock("@/integrations/supabase/server", () => ({ createClient: async () => clienteDaVez }))
 
-import { buscarMensagens } from "@/app/(auth)/chat/actions"
+/** B49-02: canal de envio falso, que guarda o link que a Meta ou o gateway baixariam. */
+const linksEnviados: string[] = []
+const canalFalso = {
+  canal: "meta" as "meta" | "gateway",
+  suporta: () => true,
+  enviarTexto: vi.fn(async () => ({ ok: true, mensagemId: "wamid-texto" })),
+  enviarMidia: vi.fn(async (_destino: string, midia: { url: string }) => {
+    linksEnviados.push(midia.url)
+    return { ok: true, mensagemId: `wamid-b49-${linksEnviados.length}-${Date.now()}` }
+  }),
+}
+vi.mock("@/lib/whatsapp", async (original) => ({
+  ...(await original<typeof import("@/lib/whatsapp")>()),
+  resolverProviderDaConversa: vi.fn(async () => canalFalso),
+  resolverProviderDoContato: vi.fn(async () => canalFalso),
+}))
+vi.mock("@/lib/automacoes/gatilhos-do-crm", () => ({
+  dispararEtiquetaAplicada: vi.fn(),
+  dispararMensagemEnviadaPeloTime: vi.fn(),
+}))
+
+import { buscarMensagens, enviarAudio, enviarDocumento, enviarImagem, enviarVideo } from "@/app/(auth)/chat/actions"
 import { transmitirMensagem } from "@/lib/whatsapp/realtime"
+import { enviarWhatsAppComMotivo } from "@/lib/whatsapp-envio"
+import { apagarDaLixeira } from "@/lib/lixeira"
 import { BUCKET_ANEXOS } from "@/lib/anexos-do-chat"
 
 const URL_BANCO = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -167,5 +190,77 @@ describe("B49-01 — o chat mostra as mídias por link com prazo", { timeout: 60
       expect(await baixar(payload.content)).toBe("foto na hora")
       expect(await baixar(payload.media_thumbnail_url)).toBe("miniatura na hora")
     }
+  })
+})
+
+function payloadDoToken(link: string): { iat: number; exp: number } {
+  const token = new URL(link).searchParams.get("token")!
+  return JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString())
+}
+
+describe("B49-02 — envio e limpeza não dependem mais do link aberto", { timeout: 90_000 }, () => {
+  it("CA-B49-09: should passar à Meta e ao gateway um link que baixa o arquivo, pelos quatro envios do chat", async () => {
+    const envios = [
+      { enviar: enviarImagem, arquivo: new File(["foto pelo chat"], "foto.jpg", { type: "image/jpeg" }) },
+      { enviar: enviarDocumento, arquivo: new File(["tabela pelo chat"], "tabela.pdf", { type: "application/pdf" }) },
+      { enviar: enviarVideo, arquivo: new File(["video pelo chat"], "video.mp4", { type: "video/mp4" }) },
+      { enviar: enviarAudio, arquivo: new File(["audio pelo chat"], "audio.ogg", { type: "audio/ogg" }) },
+    ]
+    for (const canal of ["meta", "gateway"] as const) {
+      canalFalso.canal = canal
+      for (const { enviar, arquivo } of envios) {
+        linksEnviados.length = 0
+        const formData = new FormData()
+        formData.append("arquivo", arquivo)
+        expect((await enviar(conversa, formData)).erro).toBeUndefined()
+
+        const [link] = linksEnviados
+        expect(link).toContain(`/object/sign/${BUCKET_ANEXOS}/`)
+        caminhos.push(decodeURIComponent(new URL(link).pathname.split(`/object/sign/${BUCKET_ANEXOS}/`)[1]))
+        // Sem login, como a Meta e o gateway baixam
+        expect(await baixar(link)).toBe(await arquivo.text())
+        // A Meta baixa na hora; o gateway, quando a mensagem sai da fila
+        const { iat, exp } = payloadDoToken(link)
+        expect(exp - iat).toBe(canal === "meta" ? 3600 : 30 * 24 * 3600)
+      }
+    }
+    canalFalso.canal = "meta"
+  })
+
+  it("CA-B49-11: should passar ao executar a automação um link gerado agora, que baixa o arquivo", async () => {
+    // O endereço guardado no fluxo quando a automação foi configurada
+    const doFluxo = await guardar(`${wsA}/automacoes/${ts}-tabela.pdf`, "tabela da automacao", "application/pdf")
+    linksEnviados.length = 0
+    const antes = Math.floor(Date.now() / 1000) - 5
+
+    const resultado = await enviarWhatsAppComMotivo(servico as never, wsA, contato, { tipo: "documento", url: doFluxo, nomeArquivo: "tabela.pdf" }, conversa)
+
+    expect(resultado).toEqual({ ok: true })
+    const [link] = linksEnviados
+    expect(link).not.toBe(doFluxo)
+    expect(payloadDoToken(link).iat).toBeGreaterThanOrEqual(antes)
+    expect(await baixar(link)).toBe("tabela da automacao")
+  })
+
+  it("CA-B49-14: should apagar da lixeira os arquivos das mensagens, recebidas e enviadas, e deixar os de campanha", async () => {
+    const naLixeira = (await servico.from("contacts").insert({ workspace_id: wsA, name: "Cliente da lixeira", phone_number: `55218${String(ts).slice(-8)}` }).select("id").single()).data!.id
+    const conversaDaLixeira = (await servico.from("conversations").insert({ workspace_id: wsA, contact_id: naLixeira, status: "em_atendimento" }).select("id").single()).data!.id
+    const recebida = `${wsA}/recebidas/${ts}-lixeira.jpg`
+    const enviada = `${wsA}/${conversaDaLixeira}/${ts}-lixeira.pdf`
+    const daCampanha = `${wsA}/campanhas/${ts}-lixeira.png`
+    await servico.from("messages").insert([
+      { workspace_id: wsA, conversation_id: conversaDaLixeira, direction: "recebida", type: "imagem", content: await guardar(recebida, "recebida", "image/jpeg") },
+      { workspace_id: wsA, conversation_id: conversaDaLixeira, direction: "enviada", type: "imagem", content: await guardar(daCampanha, "campanha", "image/png") },
+    ])
+    // A enviada passa pelo envio de agora (B49-02), que grava o endereço do arquivo
+    expect(await enviarWhatsAppComMotivo(servico as never, wsA, naLixeira, { tipo: "documento", url: await guardar(enviada, "enviada", "application/pdf"), nomeArquivo: "x.pdf" }, conversaDaLixeira)).toEqual({ ok: true })
+    await servico.from("contacts").update({ excluido_em: new Date().toISOString() }).eq("id", naLixeira)
+
+    expect(await apagarDaLixeira(servico as never, wsA, naLixeira)).toBe(true)
+
+    const existe = async (caminho: string) => !(await servico.storage.from(BUCKET_ANEXOS).download(caminho)).error
+    expect(await existe(recebida)).toBe(false)
+    expect(await existe(enviada)).toBe(false)
+    expect(await existe(daCampanha)).toBe(true)
   })
 })

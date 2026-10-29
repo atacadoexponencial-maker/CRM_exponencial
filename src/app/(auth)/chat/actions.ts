@@ -15,7 +15,7 @@ import { listarConversas, TAMANHO_PAGINA_CONVERSAS } from "./conversas"
 /** Mesmo teto do painel: limite da requisição no Vercel, não do WhatsApp. */
 const LIMITE_ANEXO_BYTES = 4 * 1024 * 1024
 import { sessaoAtual } from "@/lib/sessao"
-import { comLinksDosAnexos } from "@/lib/anexos-do-chat"
+import { AVISO_ARQUIVO_SEM_LINK, comLinksDosAnexos, linkParaEnvio } from "@/lib/anexos-do-chat"
 import { passarContatosPara } from "@/lib/carteira"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
 import { dispararEtiquetaAplicada, dispararMensagemEnviadaPeloTime } from "@/lib/automacoes/gatilhos-do-crm"
@@ -152,8 +152,12 @@ async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Pr
     .from("chat-attachments")
     .getPublicUrl(path)
 
+  // B49-02: a Meta e o gateway baixam de um link assinado; o endereço gravado só acha o arquivo
+  const link = await linkParaEnvio(serviceClient, workspace_id, publicUrl, provider.canal)
+  if (!link) throw new AvisoDoEnvio(AVISO_ARQUIVO_SEM_LINK)
+
   const resultado = await provider.enviarMidia(contact.phone_number, {
-    url: publicUrl,
+    url: link,
     tipo: "imagem",
   })
 
@@ -242,8 +246,12 @@ async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData):
     .from("chat-attachments")
     .getPublicUrl(path)
 
+  // B49-02: a Meta e o gateway baixam de um link assinado; o endereço gravado só acha o arquivo
+  const link = await linkParaEnvio(serviceClient, workspace_id, publicUrl, provider.canal)
+  if (!link) throw new AvisoDoEnvio(AVISO_ARQUIVO_SEM_LINK)
+
   const resultado = await provider.enviarMidia(contact.phone_number, {
-    url: publicUrl,
+    url: link,
     tipo: "documento",
     nomeArquivo: arquivo.name,
   })
@@ -322,8 +330,12 @@ async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Pro
     .from("chat-attachments")
     .getPublicUrl(path)
 
+  // B49-02: a Meta e o gateway baixam de um link assinado; o endereço gravado só acha o arquivo
+  const link = await linkParaEnvio(serviceClient, workspace_id, publicUrl, provider.canal)
+  if (!link) throw new AvisoDoEnvio(AVISO_ARQUIVO_SEM_LINK)
+
   const resultado = await provider.enviarMidia(contact.phone_number, {
-    url: publicUrl,
+    url: link,
     tipo: "video",
   })
 
@@ -398,8 +410,12 @@ async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Pro
     .from("chat-attachments")
     .getPublicUrl(path)
 
+  // B49-02: a Meta e o gateway baixam de um link assinado; o endereço gravado só acha o arquivo
+  const link = await linkParaEnvio(serviceClient, workspace_id, publicUrl, provider.canal)
+  if (!link) throw new AvisoDoEnvio(AVISO_ARQUIVO_SEM_LINK)
+
   const resultado = await provider.enviarMidia(contact.phone_number, {
-    url: publicUrl,
+    url: link,
     tipo: "audio",
   })
 

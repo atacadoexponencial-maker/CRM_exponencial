@@ -43,8 +43,16 @@ export function banco(tabelas: Record<string, Tabela>, funcoes: Record<string, F
     chamadas.push({ tabela: `rpc:${nome}`, metodo: "rpc", args: [args] })
     return Promise.resolve({ data: funcoes[nome]?.data ?? null, error: funcoes[nome]?.erro ?? null })
   })
+  // B49-02: o arquivo sai com link assinado, gerado na hora do envio
+  const storage = {
+    from: () => ({
+      createSignedUrl: async (caminho: string, validade: number) => ({
+        data: { signedUrl: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/sign/chat-attachments/${caminho}?validade=${validade}` },
+      }),
+    }),
+  }
   const contexto = (gatilho: GatilhoAutomacao): ContextoDaExecucao => ({
-    supabase: { from, rpc } as unknown as ServiceClient,
+    supabase: { from, rpc, storage } as unknown as ServiceClient,
     gatilho,
   })
   const gravacoes = (tabela: string) =>

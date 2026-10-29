@@ -16,7 +16,7 @@ Esta mudança fecha esses arquivos:
 - **No CRM:** só um usuário logado da própria empresa abre o arquivo. O link que a tela
   usa vale 1 hora. Copiado para fora, ele para de abrir depois desse prazo.
 - **No WhatsApp:** a Meta e o gateway continuam recebendo o arquivo para entregar ao
-  cliente. O link deles também é gerado na hora do envio.
+  cliente. O link deles também é gerado na hora do envio. O da Meta vale 1 hora. O do gateway vale 30 dias, porque ele só baixa o arquivo quando a mensagem sai da fila (PER-B49-03).
 
 Ficou de fora da B47 (rodada 2 da auditoria de segurança Cloudflare). A spec dela está
 arquivada em `docs/specs-arquivadas/spec-seguranca-rodada-5.md`.
@@ -141,7 +141,7 @@ direto.
 #### CA-B49-12 — Anexo de campanha continua preso à empresa · prova: automática
 
 - **Dado** uma campanha cujo anexo aponta para um arquivo de outra empresa, ou de fora
-  da pasta de campanhas, no formato antigo ou no novo
+  da pasta de campanhas, no endereço gravado ou num link assinado (o que a tela passou a receber)
 - **Quando** ela é salva ou chega a hora do envio
 - **Então** salvar é recusado e o envio é interrompido, como na B47
 
@@ -164,14 +164,14 @@ direto.
 
 #### CA-B49-14 — Apagar da lixeira leva os arquivos junto · prova: automática
 
-- **Dado** um contato na lixeira com mídias gravadas no formato antigo e no novo
+- **Dado** um contato na lixeira com mídias recebidas e enviadas, inclusive enviadas depois da mudança
 - **Quando** ele é apagado de vez
 - **Então** os arquivos das mensagens dele somem do armazenamento, e os de campanha
   ficam
 
 #### CA-B49-15 — A limpeza das automações não apaga arquivo em uso · prova: automática
 
-- **Dado** uma automação que usa um arquivo, gravado no formato novo, e um arquivo que
+- **Dado** uma automação que usa um arquivo subido pelo editor depois da mudança, e um arquivo que
   nenhuma automação usa
 - **Quando** a limpeza roda
 - **Então** só o arquivo sem uso some
@@ -189,7 +189,7 @@ direto.
 
 | ID | Suposição | Status | Resolução |
 |---|---|---|---|
-| SUP-B49-01 | A Meta e o gateway baixam o arquivo logo depois de receber o pedido de envio, dentro de 1 hora; um link de 1 hora basta para eles | aberta | — |
+| SUP-B49-01 | A Meta e o gateway baixam o arquivo logo depois de receber o pedido de envio, dentro de 1 hora; um link de 1 hora basta para eles | invalidada | O gateway guarda o pedido na fila e só baixa o arquivo quando a mensagem sai (whatsapp-gateway, src/envio/enviador.ts); campanha grande leva dias. Virou a PER-B49-03 (Claude, conferido no código em 29/10/2026) |
 | SUP-B49-02 | Mensagens já gravadas com o endereço público não precisam ser regravadas: o CRM tira do endereço antigo o caminho do arquivo e gera o link novo (não há clientes reais ainda) | confirmada | Marcelle aprovou a spec em 28/10/2026 com esta suposição exposta; vale a regra dela de não tratar dado antigo enquanto não há clientes reais. O CA-B49-06 prova que as mensagens antigas abrem |
 | SUP-B49-03 | Reenviar uma mensagem de mídia que falhou, se existir, usa o mesmo caminho do envio do chat e ganha link novo na hora | invalidada | O chat não tem reenvio de mensagem com falha; não há o que cobrir (Claude, conferido no código em 28/10/2026) |
 
@@ -199,3 +199,4 @@ direto.
 |---|---|---|---|
 | PER-B49-01 | Por quanto tempo o link de um anexo copiado para fora do CRM continua abrindo? | respondida | 1 hora, igual à foto de perfil (Marcelle, 28/10/2026) |
 | PER-B49-02 | A B49 espera o merge da B48 do Luan, que mexe em 4 dos mesmos arquivos? | respondida | Não: é feita agora, no master; o Luan é avisado dos trechos mudados (Marcelle, 28/10/2026) |
+| PER-B49-03 | Quanto vale o link entregue à fila do gateway, que só baixa o arquivo quando a mensagem sai? | respondida | 30 dias, só para o gateway; a tela e a Meta continuam com 1 hora (Marcelle, 29/10/2026) |

@@ -47,7 +47,9 @@ function prepararChat({ erroAoGravar = null as string | null, statusDaConexao = 
           uploads.push({ caminho, contentType: opcoes?.contentType })
           return { error: null }
         }),
-        getPublicUrl: vi.fn((caminho: string) => ({ data: { publicUrl: `https://storage.exemplo/${caminho}` } })),
+        getPublicUrl: vi.fn((caminho: string) => ({ data: { publicUrl: `https://storage.exemplo/storage/v1/object/public/chat-attachments/${caminho}` } })),
+        // B49-02: a Meta e o gateway recebem link assinado
+        createSignedUrl: vi.fn(async (caminho: string) => ({ data: { signedUrl: `https://storage.exemplo/assinado/${caminho}` } })),
       })),
     },
   }
