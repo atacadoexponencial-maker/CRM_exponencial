@@ -4,7 +4,7 @@
 
 import { readFileSync, readdirSync, statSync } from "node:fs"
 import path from "node:path"
-import { Suspense } from "react"
+import { Fragment, Suspense } from "react"
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { afterEach, describe, expect, it, vi } from "vitest"
@@ -95,7 +95,8 @@ describe("B36-01 — Tema claro e escuro por usuário", () => {
   it("CA-B36-06: should deixar login, cadastro, páginas legais e não-encontrado no claro, com a logo grafite", async () => {
     const telas = [
       <Suspense key="login"><LoginPage searchParams={Promise.resolve({})} /></Suspense>,
-      <CadastroPage key="cadastro" />,
+      // B51-02: a página do cadastro é do servidor; sem convite, mostra o aviso
+      <Fragment key="cadastro">{await CadastroPage({ searchParams: Promise.resolve({}) })}</Fragment>,
     ]
     for (const tela of telas) {
       let resultado!: ReturnType<typeof render>

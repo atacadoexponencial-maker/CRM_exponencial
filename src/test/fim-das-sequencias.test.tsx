@@ -181,10 +181,11 @@ describe("B28-06 — regra antiga com 'iniciar sequência'", () => {
 
 describe("B28-06 — empresa nova", () => {
   it("CA-B28-35: o cadastro cria a empresa sem tocar nas sequências", async () => {
-    const from = vi.fn<(tabela: string) => unknown>(() => {
+    const from = vi.fn<(tabela: string) => unknown>((tabela) => {
       const obj: Record<string, unknown> = {}
-      for (const m of ["select", "eq", "insert", "upsert", "update", "in", "limit", "order"]) obj[m] = vi.fn(() => obj)
-      obj.maybeSingle = vi.fn(async () => ({ data: null, error: null }))
+      for (const m of ["select", "eq", "insert", "upsert", "update", "in", "limit", "order", "is", "gt"]) obj[m] = vi.fn(() => obj)
+      // B51-02: o convite do link vale
+      obj.maybeSingle = vi.fn(async () => ({ data: tabela === "convites" ? { email: null } : null, error: null }))
       obj.single = obj.maybeSingle
       obj.then = (resolve: (v: unknown) => void) => Promise.resolve({ data: [], error: null }).then(resolve)
       return obj
@@ -207,10 +208,11 @@ describe("B28-06 — empresa nova", () => {
       senha: "senha-forte-123",
       confirmarSenha: "senha-forte-123",
       conferencia: "XXXX.DUMMY.TOKEN.XXXX", // B50-02: conferência de teste do Turnstile
+      convite: "convite-de-teste", // B51-02
     })
 
     expect(resultado).toEqual({ ok: true })
-    expect(rpc).toHaveBeenCalledWith("cadastrar_empresa", expect.anything())
+    expect(rpc).toHaveBeenCalledWith("cadastrar_empresa_com_convite", expect.anything())
     expect(from.mock.calls.map(([tabela]) => String(tabela)).filter((t) => t.startsWith("sequence"))).toEqual([])
   })
 })

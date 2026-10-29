@@ -38,7 +38,7 @@ vi.mock("@/integrations/supabase/service", async () => {
       })
       const rpcOriginal = client.rpc.bind(client)
       client.rpc = ((fn: string, args?: Record<string, unknown>) => {
-        if (fn === "cadastrar_empresa" && args?.p_nome_empresa === NOME_QUE_FALHA) {
+        if (fn === "cadastrar_empresa_com_convite" && args?.p_nome_empresa === NOME_QUE_FALHA) {
           return Promise.resolve({ data: null, error: { message: "falha forçada" } })
         }
         return rpcOriginal(fn, args)
@@ -49,14 +49,17 @@ vi.mock("@/integrations/supabase/service", async () => {
 })
 
 import { cadastrarEmpresa } from "@/app/cadastro/actions"
+import { apagarConvitesDeTeste, conviteDeTeste } from "./convite-de-teste"
 
 const service = createClient(URL, SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } })
 const ts = Date.now()
 const usuariosCriados: string[] = []
 const empresasCriadas: string[] = []
 
-function dados(sufixo: string, extra: Record<string, unknown> = {}) {
+// B51-02: cada cadastro leva um convite próprio
+async function dados(sufixo: string, extra: Record<string, unknown> = {}) {
   return {
+    convite: await conviteDeTeste(service),
     nomeEmpresa: `Empresa B19 ${sufixo} ${ts}`,
     nomeResponsavel: "Responsável Teste",
     email: `b19-01-${sufixo}-${ts}@teste.com`,
@@ -81,6 +84,7 @@ async function perfilPorEmail(email: string) {
 }
 
 afterAll(async () => {
+  await apagarConvitesDeTeste(service)
   for (const ws of empresasCriadas) {
     await service.from("sequences").delete().eq("workspace_id", ws)
     await service.from("teams").delete().eq("workspace_id", ws)
@@ -92,7 +96,7 @@ afterAll(async () => {
 
 describe("B19-01 — Cadastro de empresa numa operação só", { timeout: 30_000 }, () => {
   it("should criar empresa, Admin e times Entrada e Recompra numa chamada só", async () => {
-    const d = dados("ok")
+    const d = await dados("ok")
     const r = await cadastrarEmpresa(d)
     expect(r).toEqual({ ok: true })
 
@@ -108,7 +112,7 @@ describe("B19-01 — Cadastro de empresa numa operação só", { timeout: 30_000
   })
 
   it("should gravar nomes sem espaços nas pontas", async () => {
-    const d = dados("trim", { nomeEmpresa: `  Empresa Trim ${ts}  `, nomeResponsavel: "  Maria  " })
+    const d = await dados("trim", { nomeEmpresa: `  Empresa Trim ${ts}  `, nomeResponsavel: "  Maria  " })
     expect(await cadastrarEmpresa(d)).toEqual({ ok: true })
     const perfil = await perfilPorEmail(d.email)
     expect(perfil!.name).toBe("Maria")
@@ -117,12 +121,12 @@ describe("B19-01 — Cadastro de empresa numa operação só", { timeout: 30_000
   })
 
   it("should reject e-mail já cadastrado sem criar nada", async () => {
-    const d = dados("repetido")
+    const d = await dados("repetido")
     expect(await cadastrarEmpresa(d)).toEqual({ ok: true })
     await perfilPorEmail(d.email)
 
     const outraEmpresa = `Outra Empresa Repetida ${ts}`
-    const r = await cadastrarEmpresa({ ...d, nomeEmpresa: outraEmpresa })
+    const r = await cadastrarEmpresa({ ...d, nomeEmpresa: outraEmpresa, convite: await conviteDeTeste(service) })
     expect(r).toEqual({ erro: "email_em_uso" })
 
     const { count } = await service.from("workspaces").select("id", { count: "exact", head: true }).eq("name", outraEmpresa)
@@ -130,10 +134,10 @@ describe("B19-01 — Cadastro de empresa numa operação só", { timeout: 30_000
   })
 
   it("should reject dados inválidos mandados direto ao servidor", async () => {
-    expect(await cadastrarEmpresa({ ...dados("inv1"), email: "nao-e-email" })).toEqual({ erro: "dados_invalidos" })
-    expect(await cadastrarEmpresa({ ...dados("inv2"), senha: "curta", confirmarSenha: "curta" })).toEqual({ erro: "dados_invalidos" })
-    expect(await cadastrarEmpresa({ ...dados("inv3"), confirmarSenha: "outra-senha-123" })).toEqual({ erro: "dados_invalidos" })
-    expect(await cadastrarEmpresa({ ...dados("inv4"), nomeEmpresa: "   " })).toEqual({ erro: "dados_invalidos" })
+    expect(await cadastrarEmpresa({ ...(await dados("inv1")), email: "nao-e-email" })).toEqual({ erro: "dados_invalidos" })
+    expect(await cadastrarEmpresa({ ...(await dados("inv2")), senha: "curta", confirmarSenha: "curta" })).toEqual({ erro: "dados_invalidos" })
+    expect(await cadastrarEmpresa({ ...(await dados("inv3")), confirmarSenha: "outra-senha-123" })).toEqual({ erro: "dados_invalidos" })
+    expect(await cadastrarEmpresa({ ...(await dados("inv4")), nomeEmpresa: "   " })).toEqual({ erro: "dados_invalidos" })
     expect(await cadastrarEmpresa(null)).toEqual({ erro: "dados_invalidos" })
 
     const { count } = await service.from("workspaces").select("id", { count: "exact", head: true }).like("name", `Empresa B19 inv% ${ts}`)
@@ -141,10 +145,11 @@ describe("B19-01 — Cadastro de empresa numa operação só", { timeout: 30_000
   })
 
   it("should not deixar usuário nem empresa pela metade quando a função do banco falha", async () => {
-    const d = dados("falha", { nomeEmpresa: NOME_QUE_FALHA })
+    const d = await dados("falha", { nomeEmpresa: NOME_QUE_FALHA })
     expect(await cadastrarEmpresa(d)).toEqual({ erro: "falha" })
 
     // O usuário do Auth foi desfeito: o mesmo e-mail cadastra de novo sem "em uso".
+    // (B51-02: a falha forçada nem chega ao banco, então o convite continua valendo.)
     const r = await cadastrarEmpresa({ ...d, nomeEmpresa: `Empresa B19 refeita ${ts}` })
     expect(r).toEqual({ ok: true })
     await perfilPorEmail(d.email)

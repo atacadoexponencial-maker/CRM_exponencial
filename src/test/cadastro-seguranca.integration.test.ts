@@ -22,6 +22,7 @@ vi.mock("@/integrations/supabase/server", async () => {
 })
 
 import * as acoesDoCadastro from "@/app/cadastro/actions"
+import { apagarConvitesDeTeste, conviteDeTeste } from "./convite-de-teste"
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -43,6 +44,7 @@ beforeAll(async () => {
 }, 30_000)
 
 afterAll(async () => {
+  await apagarConvitesDeTeste(service)
   for (const ws of empresasExtras) {
     await service.from("sequences").delete().eq("workspace_id", ws)
     await service.from("teams").delete().eq("workspace_id", ws)
@@ -97,6 +99,7 @@ describe("B19-01 — Ataques ao cadastro são recusados", { timeout: 30_000 }, (
       workspaceId: vitima,
       workspace_id: vitima,
       conferencia: "XXXX.DUMMY.TOKEN.XXXX", // B50-02: conferência de teste do Turnstile
+      convite: await conviteDeTeste(service), // B51-02
     })
     expect(r).toEqual({ ok: true })
 

@@ -5,13 +5,14 @@ import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { schema } from "./schema"
 import { chaveDoIp, ipDaRequisicao, passouDoLimite, registrarTentativa } from "@/lib/limite-de-tentativas"
 import { passouNaConferenciaHumana } from "@/lib/conferencia-humana"
+import { conviteParaCadastro, hashDoCodigo } from "@/lib/convites"
 
 // B20-05: até 5 cadastros por hora por endereço de internet.
 const LIMITE_CADASTROS_POR_HORA = 5
 
 export type ResultadoCadastro =
   | { ok: true }
-  | { erro: "email_em_uso" | "dados_invalidos" | "falha" | "falha_login" | "limite" | "conferencia" }
+  | { erro: "email_em_uso" | "dados_invalidos" | "falha" | "falha_login" | "limite" | "conferencia" | "convite_invalido" }
 
 // B19-01: o cadastro é uma operação só. Esta é a única action pública da tela — não
 // recebe código de empresa de fora: a empresa nasce aqui, junto com o Admin dela.
@@ -36,6 +37,12 @@ export async function cadastrarEmpresa(dados: unknown): Promise<ResultadoCadastr
   }
   await registrarTentativa("cadastro", [chaveIp])
 
+  // B51-02: só com convite que ainda vale, e no e-mail dele quando ele tem um.
+  // A função do banco confere de novo e gasta o convite junto com a empresa.
+  const codigo = (dados as { convite?: unknown }).convite
+  const convite = await conviteParaCadastro(codigo)
+  if (!convite || (convite.email && convite.email !== email.toLowerCase())) return { erro: "convite_invalido" }
+
   const adminClient = createServiceClient()
 
   const { data: userData, error: userError } = await adminClient.auth.admin.createUser({
@@ -50,15 +57,18 @@ export async function cadastrarEmpresa(dados: unknown): Promise<ResultadoCadastr
 
   const userId = userData.user.id
 
-  const { data: workspaceId, error: cadastroError } = await adminClient.rpc("cadastrar_empresa", {
+  const { data: workspaceId, error: cadastroError } = await adminClient.rpc("cadastrar_empresa_com_convite", {
     p_user_id: userId,
     p_nome_empresa: nomeEmpresa,
     p_nome_responsavel: nomeResponsavel,
+    p_convite_hash: hashDoCodigo(codigo as string),
+    p_email: email,
   })
   if (cadastroError || !workspaceId) {
-    // A transação do banco já desfez empresa, perfil e times; falta o usuário do Auth.
+    // A transação do banco já desfez empresa, perfil, times e o uso do convite; falta o
+    // usuário do Auth. Convite gasto por outro cadastro no meio do caminho: convite_invalido.
     await adminClient.auth.admin.deleteUser(userId)
-    return { erro: "falha" }
+    return { erro: cadastroError?.message === "convite_invalido" ? "convite_invalido" : "falha" }
   }
 
   // B28-06: a empresa nova não ganha mais as quatro sequências prontas (B10-08):
