@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 // Mostra o endereço do preview da Vercel do commit atual (HEAD), esperando o
-// build terminar. Usa a credencial que o git já guarda para o GitHub, sem mostrá-la.
+// build terminar. Commit que só foi publicado na produção (o master) não tem
+// preview: sai com código 2. Usa a credencial que o git já guarda para o GitHub, sem mostrá-la.
 // Uso: node e2e/preview/endereco-preview.cjs [sha]
 
 const { execSync } = require("child_process")
@@ -28,7 +29,15 @@ async function api(caminho, token) {
   const sha = execSync(`git rev-parse ${process.argv[2] || "HEAD"}`, { cwd: PROJETO }).toString().trim()
   const token = tokenDoGit()
   for (let tentativa = 0; tentativa < 40; tentativa++) {
-    const [deploy] = await api(`/deployments?sha=${sha}`, token)
+    const deploys = await api(`/deployments?sha=${sha}`, token)
+    // O deploy da produção usa o banco da produção: não serve de preview
+    const deploy = deploys.find((d) => d.environment !== "Production")
+    if (!deploy && deploys.length) {
+      console.error("este commit está na produção, não tem preview: rode num branch")
+      // exitCode em vez de exit(): no Windows, sair com o fetch ainda fechando derruba o Node
+      process.exitCode = 2
+      return
+    }
     if (deploy) {
       const [estado] = await api(`/deployments/${deploy.id}/statuses`, token)
       if (estado && ["success", "failure", "error"].includes(estado.state)) {

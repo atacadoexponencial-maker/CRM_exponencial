@@ -32,10 +32,14 @@ function rodar(script: string, argumentos: string[] = [], env: Record<string, st
 }
 
 // O preview do último commit enviado deste branch, publicado depois da troca na Vercel.
+// Commit da produção (o master) não tem preview: os critérios que precisam dele pulam.
+const SEM_PREVIEW = "este commit está na produção, não tem preview: rode num branch"
 let preview = ""
+let commitDaProducao = false
 beforeAll(() => {
   const r = rodar("endereco-preview.cjs", ["@{upstream}"], {}, 480_000)
   preview = r.saida.match(/^success (\S+)/m)?.[1] ?? ""
+  commitDaProducao = r.status === 2 && r.saida.includes(SEM_PREVIEW)
 }, 500_000)
 
 describe("B46-03 — preview e roteiros no banco de teste", () => {
@@ -45,7 +49,8 @@ describe("B46-03 — preview e roteiros no banco de teste", () => {
       await teste.from("labels").delete().eq("workspace_id", WS_TESTE).eq("name", nome)
     })
 
-    it("CA-B46-09: should gravar no banco de teste, e não na produção, o que se faz no preview", async () => {
+    it("CA-B46-09: should gravar no banco de teste, e não na produção, o que se faz no preview", async ({ skip }) => {
+      skip(commitDaProducao, SEM_PREVIEW)
       expect(preview).toMatch(/^https:\/\//)
       const { browser, page } = await comum.abrirPreview(preview)
       try {
@@ -66,7 +71,8 @@ describe("B46-03 — preview e roteiros no banco de teste", () => {
     }, 180_000)
   })
 
-  it("CA-B46-11: should passar o roteiro dos menus no preview com o banco de teste", () => {
+  it("CA-B46-11: should passar o roteiro dos menus no preview com o banco de teste", ({ skip }) => {
+    skip(commitDaProducao, SEM_PREVIEW)
     expect(preview).toMatch(/^https:\/\//)
     expect(rodar("resetar-empresa-teste.cjs").status).toBe(0)
     const r = rodar("roteiro-menus.cjs", [preview])
