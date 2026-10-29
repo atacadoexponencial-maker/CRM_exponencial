@@ -2,7 +2,7 @@
 
 **Tipo:** Implementação
 **Página:** Configurações › Etiquetas e Mensagens rápidas (banco)
-**Spec:** `pre-desenvolvimento/spec-seguranca-rodada-6.md`
+**Spec:** `docs/specs-arquivadas/spec-seguranca-rodada-6.md`
 
 ## Descrição
 

@@ -2,7 +2,7 @@
 
 **Tipo:** Implementação
 **Página:** Gateway do canal direto (repositório whatsapp-gateway)
-**Spec:** `pre-desenvolvimento/spec-seguranca-rodada-6.md`
+**Spec:** `docs/specs-arquivadas/spec-seguranca-rodada-6.md`
 
 ## Descrição
 
@@ -86,3 +86,9 @@ Implementada em 29/10/2026 no `whatsapp-gateway`, commit `74ff552` (ainda não p
 | CRITERIO_SEM_TESTE | CA-B50-01 | Teste no repo whatsapp-gateway, que o auditor não lê; resultado na seção Resultado (mesmo motivo da B29-01) | Marcelle | 29/10/2026 |
 | CRITERIO_SEM_TESTE | CA-B50-02 | Teste no repo whatsapp-gateway, que o auditor não lê; resultado na seção Resultado (mesmo motivo da B29-01) | Marcelle | 29/10/2026 |
 | CRITERIO_SEM_TESTE | CA-B50-03 | Teste no repo whatsapp-gateway, que o auditor não lê; resultado na seção Resultado (mesmo motivo da B29-01) | Marcelle | 29/10/2026 |
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B50-04 | Marcelle | 29/10/2026 |

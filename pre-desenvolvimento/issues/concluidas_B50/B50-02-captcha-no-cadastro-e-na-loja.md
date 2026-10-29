@@ -2,7 +2,7 @@
 
 **Tipo:** Implementação
 **Página:** /cadastro e /loja/[endereco]
-**Spec:** `pre-desenvolvimento/spec-seguranca-rodada-6.md`
+**Spec:** `docs/specs-arquivadas/spec-seguranca-rodada-6.md`
 
 ## Descrição
 
@@ -91,3 +91,9 @@ Robô sem conferência válida não cria empresa nem pedido; a pessoa passa sem 
 - [x] Turnstile no cadastro e no carrinho, gerado de novo a cada envio
 - [x] Testes antigos do cadastro e da loja mandando a conferência de teste
 - [x] Testes da tabela Prova passando; tsc e lint limpos; testes vizinhos rodados (L-05)
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B50-11 | Claude, a pedido da Marcelle | 29/10/2026 |
