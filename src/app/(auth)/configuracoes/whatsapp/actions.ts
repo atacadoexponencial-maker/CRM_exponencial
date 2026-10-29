@@ -44,6 +44,8 @@ export async function listarConexaoWhatsApp(): Promise<ConexaoWhatsApp | null> {
     .from("whatsapp_connections")
     .select("id, phone_number, display_name, status")
     .eq("workspace_id", perfil.workspace_id)
+    // Só a API Oficial (canal nulo é da Meta): número do canal direto não fecha o fluxo da Meta
+    .or("canal.eq.meta,canal.is.null")
     .maybeSingle()
 
   if (!data) return null
