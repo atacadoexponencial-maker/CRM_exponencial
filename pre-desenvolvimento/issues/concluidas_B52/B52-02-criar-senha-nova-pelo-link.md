@@ -3,7 +3,7 @@
 **Tipo:** Implementação
 **Página:** `/redefinir-senha`
 **Repositório:** `crm-exponencial`
-**Spec:** `pre-desenvolvimento/spec-esqueci-minha-senha.md`
+**Spec:** `docs/specs-arquivadas/spec-esqueci-minha-senha.md`
 
 ## Descrição
 
