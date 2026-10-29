@@ -8,7 +8,8 @@ B11 (automações), em 07/10/2026.
 > Desde a B46-03 (28/10/2026), o preview grava no **banco de teste**, um
 > projeto Supabase separado do da produção. Os roteiros escolhem o banco pelo
 > endereço (`lerEnv`, em `comum.cjs`): o da produção
-> (`https://crm-exponencial.vercel.app`) usa o `.env.local`; qualquer outro
+> (`https://crmatacadoexp.com`, ou o antigo `https://crm-exponencial.vercel.app`,
+> que continua no ar) usa o `.env.local`; qualquer outro
 > endereço, ou nenhum, usa o `.env.teste.local`. Os roteiros continuam mexendo
 > só na empresa cujo nome começa com `[TESTE]`, que existe nos dois bancos. Os
 > testes com chip e os roteiros de envio (B11-05 e B11-07) usam a produção.
@@ -78,8 +79,8 @@ node e2e/preview/roteiro-b22-resto.cjs https://crm-exponencial-xxxx.vercel.app
 # Estes enviam mensagens de verdade: só na produção, com o chip conectado e
 # combinado com quem recebe (veja "Envio de mensagem" abaixo). Com endereço de
 # preview, param antes de tudo.
-node e2e/preview/roteiro-b11-05.cjs https://crm-exponencial.vercel.app
-node e2e/preview/roteiro-b11-07.cjs https://crm-exponencial.vercel.app
+node e2e/preview/roteiro-b11-05.cjs https://crmatacadoexp.com
+node e2e/preview/roteiro-b11-07.cjs https://crmatacadoexp.com
 ```
 
 Desde a B11-09, as automações rodam depois da resposta da ação. Os roteiros
@@ -152,7 +153,7 @@ com status `removed`, que não aparece na tela e não é consultada. No fim, ele
 apaga.
 
 **Envio de mensagem (B11-05 e B11-07):** rodam contra a produção
-(`https://crm-exponencial.vercel.app`), na empresa de teste de lá; com endereço
+(`https://crmatacadoexp.com`), na empresa de teste de lá; com endereço
 de preview, param com "este roteiro envia mensagem de verdade: rode contra a
 produção". Precisam de um chip de teste conectado na empresa e de `B11_TESTE_TELEFONE_REAL` no `.env.local`. O roteiro cria, na
 primeira vez, o contato "Teste B11 Número real" com esse número, um card em Lead

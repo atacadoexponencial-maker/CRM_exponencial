@@ -37,7 +37,7 @@ export function normalizarEndereco(texto: string): string {
 
 interface FormConfiguracoesProps {
   inicial: ConfigCatalogo
-  /** Ex.: "https://crm-exponencial.vercel.app/loja/" */
+  /** Ex.: "https://crmatacadoexp.com/loja/" */
   prefixoLink: string
   onVerificarEndereco: (endereco: string) => Promise<"disponivel" | "em_uso" | "reservado" | "invalido">
   onSalvar: (config: ConfigCatalogo) => Promise<{ erro?: string; aviso?: string }>

@@ -176,7 +176,9 @@ describe("B46-03 — preview e roteiros no banco de teste", () => {
       expect(r.saida).toContain("este roteiro envia mensagem de verdade: rode contra a produção")
     }
 
-    const env = comum.lerEnv("https://crm-exponencial.vercel.app")
+    // O domínio próprio e o endereço antigo da Vercel são, os dois, a produção
+    expect(comum.lerEnv("https://crm-exponencial.vercel.app").NEXT_PUBLIC_SUPABASE_URL).toBe(envProducao.NEXT_PUBLIC_SUPABASE_URL)
+    const env = comum.lerEnv("https://crmatacadoexp.com")
     expect(env.NEXT_PUBLIC_SUPABASE_URL).toBe(envProducao.NEXT_PUBLIC_SUPABASE_URL)
     const { data: empresa } = await producao.from("workspaces").select("name").eq("id", env.B11_TESTE_WORKSPACE_ID).single()
     expect(empresa?.name).toMatch(/^\[TESTE\]/)

@@ -20,7 +20,9 @@ function lerArquivoEnv(arquivo) {
 }
 
 // B46-03 — o preview grava no banco de teste; a produção, no da produção.
-const URL_PRODUCAO = "https://crm-exponencial.vercel.app"
+const URL_PRODUCAO = "https://crmatacadoexp.com"
+// O endereço antigo da Vercel continua no ar e também é a produção.
+const URLS_PRODUCAO = [URL_PRODUCAO, "https://crm-exponencial.vercel.app"]
 const DO_BANCO_DE_TESTE = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
@@ -31,7 +33,7 @@ const DO_BANCO_DE_TESTE = [
 ]
 
 function ehProducao(endereco) {
-  return (endereco ?? "").replace(/\/+$/, "") === URL_PRODUCAO
+  return URLS_PRODUCAO.includes((endereco ?? "").replace(/\/+$/, ""))
 }
 
 /** O arquivo do banco de teste; `ARQUIVO_ENV_TESTE` troca por outro (os testes usam uma cópia). */

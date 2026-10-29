@@ -15,7 +15,7 @@ export default async function ConfiguracoesCatalogoPage() {
   if (!dados) redirect("/perfil")
 
   const h = await headers()
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "crm-exponencial.vercel.app"
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "crmatacadoexp.com"
   const protocolo = h.get("x-forwarded-proto") ?? "https"
   return <ConfiguracoesClient inicial={dados.config} prefixoLink={`${protocolo}://${host}/loja/`} />
 }

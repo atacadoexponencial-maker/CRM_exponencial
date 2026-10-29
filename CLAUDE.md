@@ -20,7 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Status atual
 
-O app está em **produção no Vercel** em `https://crm-exponencial.vercel.app`. O schema Supabase está criado e todas as queries/mutations são reais. Os módulos 0, 1 e 2 estão completamente implementados com backend real.
+O app está em **produção no Vercel** em `https://crmatacadoexp.com` (domínio próprio desde 29/10/2026; o DNS fica na HostGator e o `www` redireciona para ele). O endereço antigo, `https://crm-exponencial.vercel.app`, continua no ar: a análise do app da Meta e os números já conectados ao gateway ainda usam ele. O schema Supabase está criado e todas as queries/mutations são reais. Os módulos 0, 1 e 2 estão completamente implementados com backend real.
 
 ### Deploy e variáveis de ambiente
 

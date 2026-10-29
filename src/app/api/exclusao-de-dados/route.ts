@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       if (error) console.error("[exclusao-de-dados] erro ao salvar:", error.message)
     })
 
-  const statusUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://crm-exponencial.vercel.app"}/exclusao-de-dados/${confirmationCode}`
+  const statusUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://crmatacadoexp.com"}/exclusao-de-dados/${confirmationCode}`
 
   return NextResponse.json({ url: statusUrl, confirmation_code: confirmationCode })
 }

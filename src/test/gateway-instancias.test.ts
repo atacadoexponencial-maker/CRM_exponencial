@@ -10,7 +10,7 @@ import {
 } from "@/lib/whatsapp/gateway/instancias"
 
 const WORKSPACE = "ws_abc"
-const WEBHOOK = "https://crm-exponencial.vercel.app/api/webhooks/gateway"
+const WEBHOOK = "https://crmatacadoexp.com/api/webhooks/gateway"
 
 const CRIADA = {
   instance_id: "inst_01HZX8P7A3",

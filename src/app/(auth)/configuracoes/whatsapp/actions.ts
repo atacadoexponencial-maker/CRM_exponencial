@@ -176,7 +176,7 @@ export async function criarConexaoCanalDireto(): Promise<{ erro?: string; instan
     cliente,
     supabase: createServiceClient() as unknown as BancoDeConexoes,
     workspaceId: perfil.workspace_id as string,
-    webhookUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://crm-exponencial.vercel.app"}/api/webhooks/gateway`,
+    webhookUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://crmatacadoexp.com"}/api/webhooks/gateway`,
   })
 
   if (!resultado.ok) return { erro: resultado.erro }
