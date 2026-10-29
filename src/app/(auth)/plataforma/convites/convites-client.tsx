@@ -14,6 +14,7 @@ import {
   gerarLinkNovo,
   listarConvites,
   type ConviteListado,
+  type ResultadoDoLink,
   type Validade,
 } from "./actions"
 
@@ -35,9 +36,12 @@ const SITUACAO: Record<ConviteListado["situacao"], { rotulo: string; classe: str
 
 const TH = "px-4 py-2.5 text-left text-xs font-medium text-muted-foreground"
 
+const AVISO_EMAIL_NAO_SAIU = "O convite foi criado, mas o e-mail não saiu. Copie o link abaixo e mande por outro meio."
+
 export function ConvitesClient({ convitesIniciais }: { convitesIniciais: ConviteListado[] }) {
   const fuso = useFuso()
   const [convites, setConvites] = useState(convitesIniciais)
+  const [email, setEmail] = useState("")
   const [prazo, setPrazo] = useState<Prazo>("7")
   const [dia, setDia] = useState("")
   const [hora, setHora] = useState("23:59")
@@ -45,9 +49,17 @@ export function ConvitesClient({ convitesIniciais }: { convitesIniciais: Convite
   const [erro, setErro] = useState<string | null>(null)
   // O link só existe aqui, logo depois de criado (SUP-B51-02)
   const [link, setLink] = useState<string | null>(null)
+  // B51-03: o e-mail do convite não saiu; o link fica para mandar por outro meio
+  const [emailNaoSaiu, setEmailNaoSaiu] = useState(false)
 
   async function recarregar() {
     setConvites(await listarConvites())
+  }
+
+  function mostrarLink(res: Extract<ResultadoDoLink, { link: string }>, para: string | null) {
+    setLink(res.link)
+    setEmailNaoSaiu(res.emailEnviado === false)
+    if (res.emailEnviado && para) avisar(`Convite enviado para ${para}`)
   }
 
   async function criar(e: React.FormEvent) {
@@ -55,24 +67,27 @@ export function ConvitesClient({ convitesIniciais }: { convitesIniciais: Convite
     setCriando(true)
     setErro(null)
     setLink(null)
+    setEmailNaoSaiu(false)
     const validade: Validade = prazo === "personalizado" ? { dia, hora } : { dias: Number(prazo) }
-    const res = await criarConvite({ validade })
+    const para = email.trim()
+    const res = await criarConvite(para ? { email: para, validade } : { validade })
     setCriando(false)
     if ("erro" in res) {
       setErro(res.erro)
       return
     }
-    setLink(res.link)
+    mostrarLink(res, para)
+    setEmail("")
     await recarregar()
   }
 
-  async function linkNovo(id: string) {
-    const res = await gerarLinkNovo(id)
+  async function linkNovo(c: ConviteListado) {
+    const res = await gerarLinkNovo(c.id)
     if ("erro" in res) {
       avisar(res.erro)
       return
     }
-    setLink(res.link)
+    mostrarLink(res, c.email)
     await recarregar()
   }
 
@@ -104,6 +119,12 @@ export function ConvitesClient({ convitesIniciais }: { convitesIniciais: Convite
       </p>
 
       <form onSubmit={criar} className="space-y-4 max-w-xl mb-6">
+        <div className="space-y-1">
+          <Label htmlFor="convite-email">E-mail (opcional)</Label>
+          <Input id="convite-email" type="email" placeholder="pessoa@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <p className="text-xs text-muted-foreground">Com e-mail, o convite chega por e-mail e só vale para ele. Sem, vira um link avulso.</p>
+        </div>
+
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium mb-1">Validade</legend>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
@@ -142,6 +163,11 @@ export function ConvitesClient({ convitesIniciais }: { convitesIniciais: Convite
       {link && (
         <section aria-label="Link do convite" className="max-w-xl mb-8 rounded-lg border p-4 space-y-2">
           <p className="text-sm font-medium">Link do convite</p>
+          {emailNaoSaiu && (
+            <p role="alert" className="text-sm text-erro">
+              {AVISO_EMAIL_NAO_SAIU}
+            </p>
+          )}
           <div className="flex gap-2">
             <Input readOnly value={link} aria-label="Link do convite" onFocus={(e) => e.currentTarget.select()} />
             <Button type="button" size="sm" variant="outline" onClick={copiar}>
@@ -192,7 +218,7 @@ export function ConvitesClient({ convitesIniciais }: { convitesIniciais: Convite
                 <td className="px-4 py-3">
                   {c.situacao === "pendente" && (
                     <div className="flex gap-2">
-                      <Button type="button" size="sm" variant="outline" onClick={() => linkNovo(c.id)}>
+                      <Button type="button" size="sm" variant="outline" onClick={() => linkNovo(c)}>
                         Gerar link novo
                       </Button>
                       <Button type="button" size="sm" variant="ghost" onClick={() => cancelar(c.id)}>

@@ -28,6 +28,9 @@ export default defineConfig(async ({ mode }) => {
     // B50-02: a chave secreta de teste pública da Cloudflare, que aceita a conferência
     // de teste ("XXXX.DUMMY.TOKEN.XXXX"); a da empresa nunca roda nos testes
     TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA',
+    // B51-03: chave falsa do Resend. Os testes interceptam a chamada; se algum esquecer,
+    // o Resend recusa a chave e nenhum e-mail de verdade sai (a do .env.local nunca roda aqui)
+    RESEND_API_KEY: 're_teste_nao_envia',
   }
   await conferirBancoDosTestes(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
   return {

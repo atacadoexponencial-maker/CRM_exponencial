@@ -10,6 +10,7 @@ import { ehDaPlataforma } from "@/lib/plataforma"
 import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 import { instanteNoFuso } from "@/lib/datas"
 import { createServiceClient } from "@/integrations/supabase/service"
+import { enviarEmailDoConvite } from "@/lib/email-do-convite"
 import {
   AVISO_VALIDADE,
   PRAZOS_PRONTOS_DIAS,
@@ -23,6 +24,12 @@ import {
 
 const SEM_PERMISSAO = "Sem permissão"
 const NAO_PENDENTE = "Este convite não está mais pendente."
+const EMAIL_INVALIDO = "Digite um e-mail válido ou deixe em branco."
+const EMAIL_COM_CONTA = "Este e-mail já tem conta no CRM."
+const EMAIL_SIMPLES = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** `emailEnviado` só vem quando o convite tem e-mail (B51-03). */
+export type ResultadoDoLink = { link: string; emailEnviado?: boolean } | { erro: string }
 
 /** 1, 7 ou 30 dias, ou um dia e hora no fuso da empresa de quem cria. */
 export type Validade = { dias: number } | { dia: string; hora: string }
@@ -96,26 +103,45 @@ export async function listarConvites(): Promise<ConviteListado[]> {
   }))
 }
 
-export async function criarConvite(dados: { validade: Validade }): Promise<{ link: string } | { erro: string }> {
+/** B51-03: manda (ou manda de novo) o e-mail do convite, no fuso da empresa de quem criou. */
+async function enviar(email: string, link: string, expiraEm: string): Promise<boolean> {
+  return enviarEmailDoConvite(email, link, expiraEm, await fusoDaEmpresa())
+}
+
+export async function criarConvite(dados: { email?: string; validade: Validade }): Promise<ResultadoDoLink> {
   const userId = await quemDaPlataforma()
   if (!userId) return { erro: SEM_PERMISSAO }
 
   const expiraEm = dados?.validade ? await vencimento(dados.validade) : null
   if (!expiraEm || !validadeAceita(expiraEm)) return { erro: AVISO_VALIDADE }
 
+  // B51-03: com e-mail, o convite só vale para ele; sem, é link avulso
+  const email = typeof dados.email === "string" ? dados.email.trim().toLowerCase() : ""
+  if (email && !EMAIL_SIMPLES.test(email)) return { erro: EMAIL_INVALIDO }
+
+  const service = createServiceClient()
+  if (email) {
+    const { data: temConta, error } = await service.rpc("email_ja_tem_conta", { p_email: email })
+    if (error) return { erro: "Não foi possível criar o convite. Tente novamente." }
+    if (temConta) return { erro: EMAIL_COM_CONTA }
+  }
+
   const codigo = novoCodigoDeConvite()
-  const { error } = await createServiceClient().from("convites").insert({
+  const { error } = await service.from("convites").insert({
     token_hash: hashDoCodigo(codigo),
+    email: email || null,
     criado_por: userId,
     expira_em: expiraEm.toISOString(),
   })
   if (error) return { erro: "Não foi possível criar o convite. Tente novamente." }
 
-  return { link: await linkDoConvite(codigo) }
+  const link = await linkDoConvite(codigo)
+  if (!email) return { link }
+  return { link, emailEnviado: await enviar(email, link, expiraEm.toISOString()) }
 }
 
 /** Troca o código do convite pendente; o link anterior para de valer e a validade fica (SUP-B51-05). */
-export async function gerarLinkNovo(id: string): Promise<{ link: string } | { erro: string }> {
+export async function gerarLinkNovo(id: string): Promise<ResultadoDoLink> {
   if (!(await quemDaPlataforma())) return { erro: SEM_PERMISSAO }
 
   const codigo = novoCodigoDeConvite()
@@ -126,11 +152,14 @@ export async function gerarLinkNovo(id: string): Promise<{ link: string } | { er
     .is("usado_em", null)
     .is("cancelado_em", null)
     .gt("expira_em", new Date().toISOString())
-    .select("id")
+    .select("email, expira_em")
   if (error) return { erro: "Não foi possível gerar o link. Tente novamente." }
   if (!data?.length) return { erro: NAO_PENDENTE }
 
-  return { link: await linkDoConvite(codigo) }
+  const link = await linkDoConvite(codigo)
+  const { email, expira_em } = data[0] as { email: string | null; expira_em: string }
+  if (!email) return { link }
+  return { link, emailEnviado: await enviar(email, link, expira_em) }
 }
 
 export async function cancelarConvite(id: string): Promise<{ erro?: string }> {
