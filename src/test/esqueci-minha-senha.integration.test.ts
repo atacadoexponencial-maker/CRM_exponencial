@@ -98,10 +98,15 @@ describe("B52-01 — Pedir o link de senha nova", { timeout: 60_000 }, () => {
   })
 
   it("CA-B52-03: should responder igual ao e-mail sem conta, sem gravar nem mandar nada", async () => {
-    const antes = (await service.from("redefinicoes_de_senha").select("id", { count: "exact", head: true })).count
-    expect(await pedir(`b52-01-ninguem-${ts}@teste.com`)).toEqual({ ok: true })
+    // Só os links das contas deste arquivo: os outros testes gravam na mesma tabela em paralelo
+    const deste = async () =>
+      (await service.from("redefinicoes_de_senha").select("id", { count: "exact", head: true }).in("user_id", [ativoId, desativadoId])).count
+    const ninguem = `b52-01-ninguem-${ts}@teste.com`
+    const antes = await deste()
+    expect(await pedir(ninguem)).toEqual({ ok: true })
     expect(envios).toEqual([])
-    expect((await service.from("redefinicoes_de_senha").select("id", { count: "exact", head: true })).count).toBe(antes)
+    expect(await deste()).toBe(antes)
+    expect((await service.rpc("conta_ativa_por_email", { p_email: ninguem })).data).toBeNull()
   })
 
   it("CA-B52-04: should responder igual à conta desativada, sem gravar nem mandar nada", async () => {
