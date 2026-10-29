@@ -8,6 +8,7 @@ const PREFIXOS_PUBLICOS = [
   '/login',
   '/cadastro',
   '/esqueci-minha-senha', // B52-01
+  '/redefinir-senha', // B52-02: abre mesmo logado (SUP-B52-04)
   '/politica-de-privacidade',
   '/termos-de-servico',
   '/exclusao-de-dados',
