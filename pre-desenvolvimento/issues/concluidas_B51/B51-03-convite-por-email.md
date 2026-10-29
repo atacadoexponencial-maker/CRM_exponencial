@@ -100,3 +100,9 @@ Marcelle cria um convite para um e-mail, o e-mail chega com o botão que abre `/
 - [x] Tela com campo de e-mail e avisos
 - [x] Chave falsa do Resend nos testes e `RESEND_API_KEY` no `.env.example`
 - [x] Testes do CA-B51-13, 17, 18 e 20
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B51-22 | Luan | 29/10/2026 |
