@@ -131,3 +131,9 @@ Reuso: `perfis_rfv_do_workspace` (B43-02), `CampoVarias` e `opcoesDaFonte("perfi
 - [x] Conferência ao salvar
 - [x] Editor: campos, horário 9h, pendência sem destino, frase
 - [x] Testes da tabela Prova passando; tsc e lint limpos; testes de automações rodados
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B43-24 | Marcelle | 28/10/2026 |

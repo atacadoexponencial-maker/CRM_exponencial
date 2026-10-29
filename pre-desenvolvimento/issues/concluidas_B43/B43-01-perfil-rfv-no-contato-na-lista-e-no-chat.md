@@ -103,3 +103,9 @@ Reuso: `PERFIL_POR_ID`/`PerfilRfv` de `src/lib/relatorios/rfv.ts`; padrão de se
 - [x] Selo no perfil do contato
 - [x] `perfilRfv` no cadastro do chat e linha no painel do contato
 - [x] Testes da tabela Prova passando; tsc e lint limpos; testes que renderizam as três telas rodados
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B43-07 | Marcelle | 29/10/2026 |
