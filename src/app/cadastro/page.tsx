@@ -24,11 +24,13 @@ export default function CadastroPage() {
     register,
     handleSubmit,
     setError,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
   // B50-02: a conferência do Turnstile vale para um envio só
   const [conferencia, setConferencia] = useState<string | null>(null)
   const [reinicio, setReinicio] = useState(0)
+  // Enquanto a Cloudflare confere, o botão espera em vez de mandar sem a conferência
+  const [conferindo, setConferindo] = useState(true)
 
   async function onSubmit(data: FormData) {
     let resultado
@@ -141,10 +143,10 @@ export default function CadastroPage() {
             )}
           </div>
 
-          <ConferenciaHumana aoMudar={setConferencia} reinicio={reinicio} />
+          <ConferenciaHumana aoMudar={setConferencia} aoAguardar={setConferindo} reinicio={reinicio} />
 
-          <Button type="submit" className="mt-2 w-full">
-            Criar conta
+          <Button type="submit" className="mt-2 w-full" disabled={conferindo || isSubmitting}>
+            {conferindo ? "Conferindo…" : "Criar conta"}
           </Button>
         </form>
 

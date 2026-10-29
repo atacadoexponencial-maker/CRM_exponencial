@@ -28,6 +28,8 @@ export default defineConfig(async ({ mode }) => {
     // B50-02: a chave secreta de teste pública da Cloudflare, que aceita a conferência
     // de teste ("XXXX.DUMMY.TOKEN.XXXX"); a da empresa nunca roda nos testes
     TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA',
+    // O script da Cloudflare não carrega no jsdom: sem a chave do site, a tela não espera por ele
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: '',
   }
   await conferirBancoDosTestes(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
   return {

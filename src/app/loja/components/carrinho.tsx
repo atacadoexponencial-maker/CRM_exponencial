@@ -120,6 +120,8 @@ export function Carrinho({ tema, aberto, linhas, minimo, descontos = [], onFecha
   // B50-02: a conferência do Turnstile vale para um envio só
   const [conferencia, setConferencia] = useState<string | null>(null)
   const [reinicio, setReinicio] = useState(0)
+  // Enquanto a Cloudflare confere, o botão espera em vez de mandar sem a conferência
+  const [conferindo, setConferindo] = useState(true)
 
   const porProduto = pecasPorProduto(linhas)
   const itens = linhas.map((l) => ({ nome: l.nome, variacao: l.combinacao, quantidade: l.quantidade, precoUnitario: unitarioDaLinha(l, porProduto) }))
@@ -392,15 +394,15 @@ export function Carrinho({ tema, aberto, linhas, minimo, descontos = [], onFecha
                 </div>
               </div>
               {erros.geral && <p className="text-sm text-red-600" role="alert">{erros.geral}</p>}
-              <ConferenciaHumana aoMudar={setConferencia} reinicio={reinicio} />
+              <ConferenciaHumana aoMudar={setConferencia} aoAguardar={setConferindo} reinicio={reinicio} />
               <button
                 type="button"
                 onClick={fazerPedido}
-                disabled={enviando}
+                disabled={enviando || conferindo}
                 className="w-full h-12 rounded-full font-semibold disabled:opacity-40"
                 style={{ background: cores.principal, color: cores.sobrePrincipal }}
               >
-                {enviando ? "Enviando..." : "Fazer pedido pelo WhatsApp"}
+                {enviando ? "Enviando..." : conferindo ? "Conferindo…" : "Fazer pedido pelo WhatsApp"}
               </button>
             </div>
           </>
