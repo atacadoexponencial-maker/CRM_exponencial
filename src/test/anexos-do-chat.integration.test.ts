@@ -264,3 +264,39 @@ describe("B49-02 — envio e limpeza não dependem mais do link aberto", { timeo
     expect(await existe(daCampanha)).toBe(true)
   })
 })
+
+describe("B49-03 — anexos fechados para quem é de fora", { timeout: 60_000 }, () => {
+  it("CA-B49-01: should not abrir, sem login, o endereço público de um anexo", async () => {
+    const caminho = `${wsA}/recebidas/${ts}-fechado.jpg`
+    const endereco = await guardar(caminho, "foto fechada", "image/jpeg")
+    // O arquivo existe: o servidor ainda o lê com a chave de serviço
+    expect(await (await servico.storage.from(BUCKET_ANEXOS).download(caminho)).data!.text()).toBe("foto fechada")
+
+    const resposta = await fetch(endereco)
+    expect(resposta.ok).toBe(false)
+    expect(await resposta.text()).not.toBe("foto fechada")
+  })
+
+  it("CA-B49-02: should recusar o usuário logado de outra empresa que tenta baixar o anexo", async () => {
+    const caminho = `${wsA}/recebidas/${ts}-da-empresa-a.jpg`
+    await guardar(caminho, "foto da empresa A", "image/jpeg")
+    expect(await (await servico.storage.from(BUCKET_ANEXOS).download(caminho)).data!.text()).toBe("foto da empresa A")
+
+    const email = `b49-outra-${ts}@teste.com`
+    const deB = (await servico.auth.admin.createUser({ email, password: SENHA, email_confirm: true })).data.user!.id
+    try {
+      await servico.from("profiles").insert({ id: deB, workspace_id: wsB, name: "Gerente B", role: "gerente" })
+      const navegadorB = createClient(URL_BANCO, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { autoRefreshToken: false, persistSession: false } })
+      await navegadorB.auth.signInWithPassword({ email, password: SENHA })
+
+      const { data, error } = await navegadorB.storage.from(BUCKET_ANEXOS).download(caminho)
+      expect(data).toBeNull()
+      expect(error).not.toBeNull()
+      const { data: assinado } = await navegadorB.storage.from(BUCKET_ANEXOS).createSignedUrl(caminho, 60)
+      expect(assinado).toBeNull()
+    } finally {
+      await servico.from("profiles").delete().eq("id", deB)
+      await servico.auth.admin.deleteUser(deB)
+    }
+  })
+})

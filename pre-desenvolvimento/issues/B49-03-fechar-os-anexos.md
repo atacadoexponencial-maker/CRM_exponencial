@@ -31,3 +31,50 @@ continuam funcionando, no preview e na produção.
 ## Perguntas em aberto
 
 Nenhuma.
+
+## Cenários
+
+### Happy Path
+1. A migration marca o bucket `chat-attachments` como privado.
+2. Quem abre o endereço público de um anexo recebe erro.
+3. A tela e o envio seguem pelo link assinado (B49-01 e B49-02), que continua abrindo.
+
+### Edge Cases
+- Usuário logado de qualquer empresa, com a própria sessão: não baixa nem assina link. O bucket não tem política de leitura desde a B19 (`20261006000006_storage_sem_listagem.sql`).
+- Fotos dos produtos do catálogo ficam em outro bucket, que continua público.
+
+### Cenário de Erro
+- A migration roda antes de o código da B49-01 e da B49-02 estar no ar: o chat ficaria sem mídia e o envio falharia. Ordem de publicação: push do código, deploy pronto na Vercel e só então `db push` na produção.
+
+## Prova
+
+| Critério | Prova | Onde | O que confere |
+|---|---|---|---|
+| CA-B49-01 | automática | `src/test/anexos-do-chat.integration.test.ts` | com o arquivo conferido no bucket, o endereço público sem login responde erro e não devolve o arquivo |
+| CA-B49-02 | automática | `src/test/anexos-do-chat.integration.test.ts` | com o arquivo conferido no bucket, o gerente da empresa B não baixa nem assina link dele pela própria sessão |
+| CA-B49-08 | manual | roteiro abaixo | no preview, foto, figurinha, áudio, vídeo e documento abrem, tocam e baixam |
+| CA-B49-13 | manual | roteiro abaixo | foto, documento e campanha com anexo chegam no celular dela |
+
+### Roteiro manual — CA-B49-08
+1. No preview do branch `b49-anexos-privados`, que usa o banco de teste com o bucket já fechado, entrar com a empresa "[TESTE] Automações B11".
+2. Abrir a conversa preparada com foto, figurinha, áudio, vídeo e documento recebidos.
+3. Conferir: a foto e a figurinha aparecem, o áudio e o vídeo carregam, e o documento mostra a miniatura e baixa. Nenhum link da tela é o endereço público.
+
+### Roteiro manual — CA-B49-13
+1. Com a B49 no ar e a migration aplicada na produção, abrir no CRM uma conversa com o seu próprio celular.
+2. Mandar uma foto e um documento (PDF): os dois chegam no celular e abrem.
+3. Criar uma campanha de teste com imagem para um contato seu e disparar: a imagem chega no celular.
+
+## Banco de Dados
+
+- Bucket `chat-attachments`: `public` passa a `false`. As políticas não mudam: o bucket não tem nenhuma desde a B19.
+
+## Arquivos
+
+- **Criar:** `supabase/migrations/20261029000001_anexos_do_chat_privados.sql` — fecha o bucket
+- **Modificar:** `src/test/anexos-do-chat.integration.test.ts` — testes CA-B49-01 e CA-B49-02
+
+## Checklist
+
+- [x] Migration criada e aplicada no banco de teste
+- [x] Testes CA-B49-01 e CA-B49-02 passando, e os da B49-01 e da B49-02 ainda passando com o bucket fechado
