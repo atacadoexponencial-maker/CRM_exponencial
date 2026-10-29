@@ -80,7 +80,13 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<{ mo
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="senha">Senha</Label>
+            {/* B52-01 */}
+            <div className="flex items-center justify-between">
+              <Label htmlFor="senha">Senha</Label>
+              <a href="/esqueci-minha-senha" className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">
+                Esqueci minha senha
+              </a>
+            </div>
             <Input
               id="senha"
               type="password"

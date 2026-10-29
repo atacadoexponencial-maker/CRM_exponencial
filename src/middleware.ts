@@ -7,6 +7,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 const PREFIXOS_PUBLICOS = [
   '/login',
   '/cadastro',
+  '/esqueci-minha-senha', // B52-01
   '/politica-de-privacidade',
   '/termos-de-servico',
   '/exclusao-de-dados',
@@ -18,7 +19,7 @@ function rotaPublica(pathname: string): boolean {
   return PREFIXOS_PUBLICOS.some((p) => pathname.startsWith(p))
 }
 
-const ROTAS_DE_ENTRADA = ['/login', '/cadastro']
+const ROTAS_DE_ENTRADA = ['/login', '/cadastro', '/esqueci-minha-senha']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl

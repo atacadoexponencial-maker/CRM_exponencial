@@ -13,7 +13,7 @@ import { createHash } from "node:crypto"
 import { headers } from "next/headers"
 import { createServiceClient } from "@/integrations/supabase/service"
 
-export type TipoDeTentativa = "cadastro" | "login" | "pedido_loja" | "teste_automacao" | "pedido_telefone"
+export type TipoDeTentativa = "cadastro" | "login" | "pedido_loja" | "teste_automacao" | "pedido_telefone" | "senha_nova"
 export type RegraDeLimite = { chave: string; limite: number }
 
 /** Endereço de quem chamou. Na Vercel, `x-forwarded-for` é escrito pela própria plataforma. */
