@@ -99,3 +99,9 @@ Reuso: `hashDoCodigo` (`src/lib/convites.ts`), `createServiceClient`, o cliente 
 - [x] Página `/redefinir-senha` com o formulário ou o aviso
 - [x] Middleware com a rota nova
 - [x] Testes do CA-B52-08 a 13
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B52-14 | Luan | 29/10/2026 |
