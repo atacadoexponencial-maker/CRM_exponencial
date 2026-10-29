@@ -3,7 +3,7 @@
 **Tipo:** Implementação
 **Página:** `/cadastro`
 **Repositório:** `crm-exponencial`
-**Spec:** `pre-desenvolvimento/spec-cadastro-por-convite.md`
+**Spec:** `docs/specs-arquivadas/spec-cadastro-por-convite.md`
 
 ## Descrição
 
