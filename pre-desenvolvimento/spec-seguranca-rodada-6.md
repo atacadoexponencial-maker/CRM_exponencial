@@ -169,7 +169,7 @@ pública (`/loja/...`) só são aceitos com a conferência do Turnstile.
 
 | ID | Suposição | Status | Resolução |
 |---|---|---|---|
-| SUP-B50-01 | O gateway publicado na VPS só atende o CRM de produção; o armazenamento permitido é o do Supabase de produção, configurado por variável de ambiente (o de teste entra só se algum preview usar o gateway) | aberta | — |
+| SUP-B50-01 | O gateway publicado na VPS só atende o CRM de produção; o armazenamento permitido é o do Supabase de produção, configurado por variável de ambiente (o de teste entra só se algum preview usar o gateway) | confirmada | Conferido em 29/10/2026 (Claude): na produção há 1 número do canal direto conectado; no banco de teste, só a sobra de um teste da B42 (instância `inst_b42`, telefone falso), que não existe no gateway. Nenhum preview manda mídia pelo gateway |
 | SUP-B50-02 | As outras tabelas da empresa já exigem conta ativa (pela função da B19 ou por `status = 'active'`); só etiquetas e mensagens rápidas ficaram com a regra antiga | invalidada | Nem essas duas ficaram abertas: as regras delas leem o próprio perfil, e conta inativa não lê o próprio perfil desde a B20-02 (20261006000007). Conferido no banco de teste em 29/10/2026 (Claude): desativado lê 0 e não grava. A B50-01 só fixa isso em teste |
 | SUP-B50-03 | A Marcelle cria a conta gratuita na Cloudflare e o site do Turnstile e passa as duas chaves; a chave pública entra na Vercel como variável `NEXT_PUBLIC_`, e a secreta só no servidor | confirmada | Marcelle criou as chaves em 29/10/2026; Claude as pôs na Vercel (Production, a secreta como sensível) e, nos previews, as chaves de teste públicas da Cloudflare, que sempre passam |
 
