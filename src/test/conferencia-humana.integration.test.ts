@@ -22,6 +22,7 @@ vi.mock("@/integrations/supabase/server", async () => {
 })
 
 import { cadastrarEmpresa } from "@/app/cadastro/actions"
+import { apagarConvitesDeTeste, conviteDeTeste } from "./convite-de-teste"
 import { fazerPedido } from "@/app/loja/[endereco]/actions"
 import { AVISO_CONFERENCIA_HUMANA } from "@/lib/conferencia-humana"
 
@@ -51,6 +52,7 @@ afterEach(() => {
 })
 
 afterAll(async () => {
+  await apagarConvitesDeTeste(service)
   await service.from("catalog_orders").delete().eq("workspace_id", ws)
   await service.from("catalog_stock").delete().eq("workspace_id", ws)
   await service.from("catalog_products").delete().eq("workspace_id", ws)
@@ -135,7 +137,8 @@ describe("B50-02 — CAPTCHA no cadastro e na loja", { timeout: 60_000 }, () => 
   it("CA-B50-10: should aceitar o cadastro e o pedido com a conferência aceita, como antes", async () => {
     vi.stubEnv("TURNSTILE_SECRET_KEY", ACEITA)
     const ok = cadastro("ok", CONFERENCIA_DE_TESTE)
-    expect(await cadastrarEmpresa(ok.dados)).toEqual({ ok: true })
+    // B51-02: o cadastro aceito leva convite
+    expect(await cadastrarEmpresa({ ...ok.dados, convite: await conviteDeTeste(service) })).toEqual({ ok: true })
     expect(await empresaExiste(ok.nomeEmpresa)).toBe(true)
     const { data: times } = await service.from("teams").select("name").eq("workspace_id", (await service.from("workspaces").select("id").eq("name", ok.nomeEmpresa).single()).data!.id)
     expect((times ?? []).map((t) => t.name).sort()).toEqual(["Entrada", "Recompra"])
@@ -149,7 +152,7 @@ describe("B50-02 — CAPTCHA no cadastro e na loja", { timeout: 60_000 }, () => 
   it("CA-B50-12: should aceitar o cadastro e o pedido quando a Cloudflare não responde, e recusar quando ela responde", async () => {
     cloudflareForaDoAr()
     const semConferencia = cadastro("fora-do-ar")
-    expect(await cadastrarEmpresa(semConferencia.dados)).toEqual({ ok: true })
+    expect(await cadastrarEmpresa({ ...semConferencia.dados, convite: await conviteDeTeste(service) })).toEqual({ ok: true })
     expect(await empresaExiste(semConferencia.nomeEmpresa)).toBe(true)
     const antes = await pedidosEContatos()
     expect((await pedir("(21) 98888-0004", null)).ok).toBe(true)

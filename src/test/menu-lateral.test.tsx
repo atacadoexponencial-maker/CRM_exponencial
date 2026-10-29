@@ -60,3 +60,17 @@ describe("B36-03 — Menu lateral no estilo Caderno", () => {
     })
   }
 })
+
+describe("B51-01 — Convites no menu só para a plataforma", () => {
+  it("CA-B51-23: should mostrar \"Convites\" a quem cuida da plataforma e esconder do Admin de empresa", () => {
+    const { unmount } = render(<SidebarNav papel="admin" nomeUsuario="Marcelle" email="marcelle@seteads.com" atrasados={0} plataforma />)
+    expect(gruposDoMenu().Plataforma).toEqual(["Convites"])
+    const nav = screen.getByRole("navigation", { name: "Menu principal" })
+    expect(within(nav).getByRole("link", { name: "Convites" })).toHaveAttribute("href", "/plataforma/convites")
+    unmount()
+
+    render(<SidebarNav papel="admin" nomeUsuario="Ana Mendes" email="ana@exemplo.com" atrasados={0} />)
+    expect(gruposDoMenu().Plataforma).toBeUndefined()
+    expect(screen.queryByRole("link", { name: "Convites" })).not.toBeInTheDocument()
+  })
+})

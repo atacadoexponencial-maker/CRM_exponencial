@@ -29,6 +29,7 @@ import {
   Columns3,
   ListPlus,
   Building2,
+  Ticket,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { COOKIE_MENU_RECOLHIDO, gravarPreferencia } from "@/lib/preferencias-layout"
@@ -43,6 +44,7 @@ interface ItemNav {
   label: string
   icone: React.ComponentType<{ className?: string }>
   papeis?: Papel[] // ausente = todos
+  soPlataforma?: boolean // B51-01: só quem cuida da plataforma
   badge?: number
 }
 
@@ -61,6 +63,8 @@ interface SidebarNavProps {
   pedidosNovos?: number
   /** Tema escolhido no perfil, para o menu do usuário (B36-01). */
   tema?: Tema
+  /** B51-01: quem cuida da plataforma vê "Convites". */
+  plataforma?: boolean
 }
 
 function montarSecoes(atrasados: number, pedidosNovos: number): SecaoNav[] {
@@ -107,6 +111,10 @@ function montarSecoes(atrasados: number, pedidosNovos: number): SecaoNav[] {
         { href: "/configuracoes/whatsapp", label: "WhatsApp", icone: Plug, papeis: ["admin"] },
         { href: "/configuracoes/empresa", label: "Empresa", icone: Building2, papeis: ["admin"] },
       ],
+    },
+    {
+      titulo: "Plataforma",
+      itens: [{ href: "/plataforma/convites", label: "Convites", icone: Ticket, soPlataforma: true }],
     },
   ]
 }
@@ -159,6 +167,7 @@ function ConteudoNav({
   papel,
   atrasados,
   pedidosNovos = 0,
+  plataforma = false,
   pathname,
   recolhido = false,
   onAlternar,
@@ -174,6 +183,7 @@ function ConteudoNav({
   const secoes = montarSecoes(atrasados, pedidosNovos)
 
   function visivel(item: ItemNav) {
+    if (item.soPlataforma) return plataforma
     return !item.papeis || item.papeis.includes(papel)
   }
 

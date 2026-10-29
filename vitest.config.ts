@@ -30,6 +30,9 @@ export default defineConfig(async ({ mode }) => {
     TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA',
     // O script da Cloudflare não carrega no jsdom: sem a chave do site, a tela não espera por ele
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: '',
+    // B51-03: chave falsa do Resend. Os testes interceptam a chamada; se algum esquecer,
+    // o Resend recusa a chave e nenhum e-mail de verdade sai (a do .env.local nunca roda aqui)
+    RESEND_API_KEY: 're_teste_nao_envia',
   }
   await conferirBancoDosTestes(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
   return {
