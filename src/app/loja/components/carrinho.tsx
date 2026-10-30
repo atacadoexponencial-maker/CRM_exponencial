@@ -101,19 +101,30 @@ interface CarrinhoProps {
   onRemoverVarios?: (itens: { produtoId: string; combinacao: string }[]) => void
   /** B50-02: `conferencia` é a do Turnstile, que o servidor confirma. */
   onFazerPedido: (cliente: { nome: string; whatsapp: string }, conferencia: string | null) => Promise<ResultadoPedido>
-  /** Chamado depois que o pedido deu certo (para esvaziar o carrinho). */
-  onPedidoFeito: (pedido: { numero: number | string }) => void
+  /** Chamado depois que o pedido deu certo (para esvaziar o carrinho). B53-13: com o nome e o WhatsApp como a cliente digitou. */
+  onPedidoFeito: (pedido: { numero: number | string; cliente: { nome: string; whatsapp: string } }) => void
   /** B31-05: número do último pedido guardado no aparelho; com ele, o carrinho vazio oferece repetir. */
   ultimoPedido?: { numero: number | string } | null
   onRepetirPedido?: () => void
   /** B31-05: o que ficou de fora ao repetir (ou o erro), mostrado no topo. */
   avisoRepeticao?: string | null
+  /** B53-13: nome e WhatsApp do pedido repetido; a cada novo valor, os campos são preenchidos com ele. */
+  clienteParaPreencher?: { nome: string; whatsapp: string } | null
 }
 
-export function Carrinho({ tema, aberto, linhas, minimo, descontos = [], onFechar, onMudarQuantidade, onRemover, onMudarQuantidades, onRemoverVarios, onFazerPedido, onPedidoFeito, ultimoPedido = null, onRepetirPedido, avisoRepeticao = null }: CarrinhoProps) {
+export function Carrinho({ tema, aberto, linhas, minimo, descontos = [], onFechar, onMudarQuantidade, onRemover, onMudarQuantidades, onRemoverVarios, onFazerPedido, onPedidoFeito, ultimoPedido = null, onRepetirPedido, avisoRepeticao = null, clienteParaPreencher = null }: CarrinhoProps) {
   const cores = coresDaVitrine(tema)
-  const [nome, setNome] = useState("")
-  const [whatsapp, setWhatsapp] = useState("")
+  const [nome, setNome] = useState(clienteParaPreencher?.nome ?? "")
+  const [whatsapp, setWhatsapp] = useState(clienteParaPreencher?.whatsapp ?? "")
+  // B53-13: repetir o pedido traz os campos preenchidos; a cliente pode apagar e digitar outros.
+  const [preenchidoCom, setPreenchidoCom] = useState(clienteParaPreencher)
+  if (clienteParaPreencher !== preenchidoCom) {
+    setPreenchidoCom(clienteParaPreencher)
+    if (clienteParaPreencher) {
+      setNome(clienteParaPreencher.nome)
+      setWhatsapp(clienteParaPreencher.whatsapp)
+    }
+  }
   const [erros, setErros] = useState<{ nome?: string; whatsapp?: string; geral?: string; minimo?: boolean; minimoProduto?: boolean }>({})
   const [enviando, setEnviando] = useState(false)
   const [feito, setFeito] = useState<{ numero: number | string; mensagem: string; link: string } | null>(null)
@@ -179,7 +190,7 @@ export function Carrinho({ tema, aberto, linhas, minimo, descontos = [], onFecha
       return
     }
     setFeito(r)
-    onPedidoFeito({ numero: r.numero })
+    onPedidoFeito({ numero: r.numero, cliente: { nome: nome.trim(), whatsapp } })
     if (aba) aba.location.href = r.link
   }
 
