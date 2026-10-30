@@ -102,7 +102,8 @@ export function criarProviderMeta(
       // igual à de antes: link, caption, filename.
       const objeto: Record<string, unknown> = { link: midia.url }
       if (midia.legenda !== undefined) objeto.caption = midia.legenda
-      if (midia.nomeArquivo !== undefined) objeto.filename = midia.nomeArquivo
+      // B53-01: a Meta só aceita `filename` em `document`; em `image` ela recusa o envio
+      if (midia.nomeArquivo !== undefined && tipo === "document") objeto.filename = midia.nomeArquivo
 
       return postar({
         messaging_product: "whatsapp",
