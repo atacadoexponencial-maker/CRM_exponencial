@@ -26,3 +26,54 @@ Nenhuma.
 ## Perguntas em aberto
 
 Nenhuma.
+
+## Cenários
+
+### Happy Path
+1. A Meta avisa uma mensagem recebida do tipo `image`, `video`, `audio`, `document` ou `sticker`, com o `id` da mídia (e `mime_type`, `caption`, `filename` quando houver).
+2. O webhook pede o endereço da mídia à Meta (`GET https://graph.facebook.com/v21.0/<media_id>`, `Authorization: Bearer <access_token da conexão>`), que devolve `url` (vale 5 minutos) e `mime_type`.
+3. Baixa o arquivo nesse endereço com o mesmo cabeçalho, com o mesmo limite de tamanho e de tempo do canal direto, e guarda no bucket `chat-attachments`, em `{workspace}/recebidas/<agora>-<uuid>.<extensão>` (o mesmo caminho do canal direto, para o link assinado da B49 valer).
+4. Grava a mensagem com o tipo do CRM (`imagem`, `video`, `audio`, `documento`, `figurinha`), o endereço do arquivo em `content`, o tipo do arquivo em `media_mime_type`, o nome do documento em `media_filename` e a legenda em `media_caption`, como o canal direto.
+5. A prévia da conversa segue a do canal direto (legenda da foto e do vídeo; "📄 nome" do documento; "🎤 Áudio", "🏷️ Figurinha"...). A transmissão ao vivo leva os mesmos campos de mídia.
+
+### Edge Cases
+- Webhook que já traz `url` na mídia e não traz `id`: baixa direto dessa `url`, com o token.
+- Mídia sem `mime_type`: usa o `Content-Type` da resposta; tipo fora da lista do canal direto vira download genérico (`.bin`), como lá.
+- As automações continuam vendo o tipo e a legenda, como hoje.
+
+### Cenário de Erro
+- Conexão sem `access_token`, Meta respondendo erro no endereço ou no download, arquivo acima de 100 MB, tempo esgotado ou falha ao subir no Storage: a mensagem é gravada com o tipo da mídia e `content` = "Mídia não pôde ser carregada", que o balão do Chat mostra no lugar do arquivo. A legenda e o nome do documento ficam gravados igual.
+
+## Prova
+
+| Critério | Prova | Onde | O que confere |
+|---|---|---|---|
+| CA-B53-12 | automática | `src/test/webhook-whatsapp-midia.integration.test.ts` | imagem com legenda vira mensagem `imagem`, com `content` apontando para o arquivo em `chat-attachments/{workspace}/recebidas/` (que existe e tem os bytes baixados) e `media_caption` = legenda; áudio, vídeo, documento (com `media_filename`) e figurinha também |
+| CA-B53-13 | automática | `src/test/webhook-whatsapp-midia.integration.test.ts` e `src/test/balao-midia-nao-carregada.test.tsx` | com a Meta respondendo erro, a mensagem é gravada com o tipo da mídia e `content` = "Mídia não pôde ser carregada"; e o balão do Chat mostra esse texto |
+| CA-B53-14 | manual | roteiro abaixo | os quatro tipos aparecem no Chat e abrem |
+
+### Roteiro manual — CA-B53-14
+1. Com a B53-07 no ar, de um celular, mande ao número +55 11 95504-6911 (API Oficial) uma imagem com legenda, um áudio gravado, um PDF e um vídeo.
+2. Abra a conversa no Chat do CRM.
+3. A imagem aparece e amplia ao clicar; o áudio toca; o PDF aparece com o nome do arquivo e baixa; o vídeo toca.
+
+## Banco de Dados
+
+Nenhuma mudança. Usa as colunas que o canal direto já grava em `messages` (`type`, `content`, `media_mime_type`, `media_filename`, `media_caption`) e o bucket `chat-attachments`.
+
+## Arquivos
+
+- **Modificar:** `src/lib/whatsapp/midia-recebida.ts` — separa a parte que guarda no Storage e acrescenta `guardarMidiaDaMeta` (pede o endereço à Meta, baixa com o token e guarda no mesmo caminho)
+- **Modificar:** `src/lib/whatsapp/mensagem-meta.ts` — o tipo `MensagemMeta` ganha os campos de mídia (`id`, `mime_type`, `url`, áudio e figurinha) e `midiaDaMensagemMeta` devolve o que baixar
+- **Modificar:** `src/app/api/webhooks/whatsapp/route.ts` — mídia recebida é baixada e gravada com o tipo e os campos de mídia; falha grava "Mídia não pôde ser carregada"
+- **Criar:** `src/test/webhook-whatsapp-midia.integration.test.ts` — CA-B53-12 e CA-B53-13 no banco de teste, com o `fetch` da Meta simulado
+- **Criar:** `src/test/balao-midia-nao-carregada.test.tsx` — CA-B53-13 na tela: o balão de cada tipo de mídia mostra o aviso
+
+Reuso: `tipoGuardado`, `lerComLimite`, `mimeComCodec`, `LIMITE_DA_MIDIA_EM_BYTES` e `TEMPO_LIMITE_DA_MIDIA_MS` (`midia-recebida.ts`); `traduzirConteudo` e `TIPOS_COM_ARQUIVO` (`recebimento.ts`) para tipo e prévia; `BalaoMensagem` já mostra o texto do `content` quando ele não é endereço.
+
+## Checklist
+
+- [x] `guardarMidiaDaMeta` em `midia-recebida.ts`, reaproveitando o caminho do Storage do canal direto
+- [x] `midiaDaMensagemMeta` e os campos de mídia em `mensagem-meta.ts`
+- [x] Webhook grava a mídia com tipo, arquivo, nome e legenda; falha grava o aviso
+- [x] Testes do CA-B53-12 e CA-B53-13

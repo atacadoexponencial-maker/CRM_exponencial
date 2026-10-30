@@ -28,3 +28,52 @@ O relatório da campanha pela API Oficial mostra "Lido" depois que a mensagem é
 ## Perguntas em aberto
 
 Nenhuma.
+
+## Cenários
+
+### Happy Path
+1. A Meta manda um pacote de avisos (`entry[]` → `changes[]` → `value.statuses[]`).
+2. O webhook percorre **todas** as entradas e todas as mudanças do pacote, não só `entry[0].changes[0]`.
+3. Para cada aviso (`delivered`, `read`, `failed`), atualiza a mensagem do Chat (`messages`) e o destinatário da campanha (`campaign_recipients`) pelo `wamid`, só se o status novo for à frente do gravado.
+
+### Edge Cases
+- "Entregue" atrasado chegando depois de "lido": nada muda (nem na mensagem nem no destinatário).
+- "Falhou" chegando depois de "entregue" ou "lido": nada muda (SUP-B53-01). Depois de "enviado", grava "falhou".
+- Status ainda vazio (`null`) na mensagem: o aviso grava normalmente.
+- Pacote com mensagens recebidas em mais de uma mudança: todas são gravadas, cada uma com o número (`phone_number_id`) e os contatos da sua mudança.
+- Mudança sem `phone_number_id`: pulada, as outras seguem.
+
+### Cenário de Erro
+- Status desconhecido (ex.: `sent`, que o mapa da Meta não traduz): ignorado, como hoje.
+- Erro de banco ao gravar mensagem recebida: responde 500, como hoje.
+
+## Prova
+
+| Critério | Prova | Onde | O que confere |
+|---|---|---|---|
+| CA-B53-08 | automática | `src/test/webhook-whatsapp-status.integration.test.ts` | destinatário e mensagem marcados "lido" continuam "lido" depois de um aviso "delivered" atrasado; "failed" depois de "lido" também não muda |
+| CA-B53-09 | automática | `src/test/webhook-whatsapp-status.integration.test.ts` | pacote com destinatários em blocos diferentes (duas `changes` e duas `entry`) atualiza todos |
+| CA-B53-10 | manual | roteiro abaixo | o relatório mostra "Lido" e Lidos 1 |
+
+### Roteiro manual — CA-B53-10
+1. Na empresa "[TESTE] Automações B11" de produção, crie uma campanha com o número da API Oficial (+55 11 95504-6911) para um contato cujo celular tem a confirmação de leitura ligada.
+2. Envie a campanha e abra a mensagem no celular.
+3. Em até 1 minuto, o relatório de entrega da campanha mostra o destinatário como "Lido" e o contador Lidos 1 (e não volta para "Entregue" ao recarregar).
+
+## Banco de Dados
+
+Nenhuma mudança de schema. Usa `messages.status` e `campaign_recipients.status` como hoje.
+
+## Arquivos
+
+- **Modificar:** `src/app/api/webhooks/whatsapp/route.ts` — percorre todas as `entry`/`changes`; grava o status só quando é à frente do atual (filtro `status is null or status not in (...)`)
+- **Criar:** `src/test/webhook-whatsapp-status.integration.test.ts` — CA-B53-08 e CA-B53-09 no banco de teste, chamando o `POST` do webhook com assinatura válida
+- **Modificar:** `src/test/mensagens.integration.test.ts` — o banco simulado dos testes da Issue 28 (status de entrega) ganha o `or` do filtro novo; o que eles conferem não muda
+
+Reuso: `assinaturaHmacValida` (o teste assina como `webhook-whatsapp-automacoes.test.ts`), `createServiceClient`.
+
+## Checklist
+
+- [x] Percorrer todas as `entry` e `changes` do pacote, para status e para mensagens recebidas
+- [x] Gravar o status só quando ele é à frente do atual (entregue não sobrescreve lido; falhou não sobrescreve entregue nem lido)
+- [x] Teste de integração dos CA-B53-08 e CA-B53-09

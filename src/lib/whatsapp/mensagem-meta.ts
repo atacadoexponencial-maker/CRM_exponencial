@@ -19,9 +19,49 @@ export interface MensagemMeta {
   }
   contacts?: Array<{ name?: { formatted_name?: string }; phones?: Array<{ phone?: string }> }>
   location?: { latitude?: number; longitude?: number; name?: string; address?: string }
-  image?: { caption?: string }
-  video?: { caption?: string }
-  document?: { caption?: string; filename?: string }
+  // B53-07: os campos de mídia que o CRM usa para baixar o arquivo.
+  image?: MidiaMeta & { caption?: string }
+  video?: MidiaMeta & { caption?: string }
+  document?: MidiaMeta & { caption?: string; filename?: string }
+  audio?: MidiaMeta
+  sticker?: MidiaMeta
+}
+
+/** O objeto de mídia de uma mensagem da Meta. */
+interface MidiaMeta {
+  id?: string
+  mime_type?: string
+  url?: string
+}
+
+/** B53-07: tipos da Meta que trazem arquivo. */
+const TIPOS_COM_MIDIA = ["image", "video", "audio", "document", "sticker"] as const
+
+export interface MidiaDaMensagemMeta {
+  /** Tipo da Meta (`image`, `video`, `audio`, `document`, `sticker`). */
+  tipoDaMeta: (typeof TIPOS_COM_MIDIA)[number]
+  id: string | null
+  url: string | null
+  mimeType: string | null
+  /** Nome original do documento. */
+  filename: string | null
+  /** Legenda da foto, do vídeo ou do documento. */
+  legenda: string | null
+}
+
+/** B53-07: a mídia a baixar, ou null quando a mensagem não traz arquivo. */
+export function midiaDaMensagemMeta(mensagem: MensagemMeta): MidiaDaMensagemMeta | null {
+  const tipoDaMeta = TIPOS_COM_MIDIA.find((t) => t === mensagem.type)
+  if (!tipoDaMeta) return null
+  const midia = (mensagem[tipoDaMeta] ?? {}) as MidiaMeta & { caption?: string; filename?: string }
+  return {
+    tipoDaMeta,
+    id: midia.id ?? null,
+    url: midia.url ?? null,
+    mimeType: midia.mime_type ?? null,
+    filename: midia.filename ?? null,
+    legenda: midia.caption ?? null,
+  }
 }
 
 export interface MensagemMetaLida {
