@@ -112,6 +112,29 @@ Nada muda no CRM; esta série acompanha a publicação.
 - **Quando** o gatilho dispara
 - **Então** a segunda mensagem sai entre 1 minuto e 1 minuto e 30 segundos depois da primeira e o Histórico deixa de mostrar "Esperando"
 
+### Automações — mensagem em tempo real
+
+**Descrição:** achado no reteste de 30/10/2026: a mensagem enviada por automação aparece na
+prévia da lista de conversas, mas na conversa aberta só depois de recarregar. O envio das
+automações gravava a mensagem sem avisar a tela aberta, como o chat e o webhook avisam.
+
+**Comportamentos:**
+- A mensagem que a automação envia aparece na conversa aberta na hora, sem recarregar.
+
+**Critérios de aceite:**
+
+#### CA-B53-32 — Mensagem da automação vai à conversa aberta · prova: automática
+
+- **Dado** uma automação que envia uma mensagem a um contato
+- **Quando** a mensagem é gravada na conversa
+- **Então** a conversa aberta no navegador recebe a mesma mensagem (mesmo id) pelo tempo real, e uma falha no tempo real não desfaz o envio
+
+#### CA-B53-33 — Mensagem da automação aparece sem F5 · prova: manual
+
+- **Dado** a conversa com o celular de teste aberta no Chat
+- **Quando** a automação "teste espera" manda "Primeira" e, 1 minuto depois, "Segunda"
+- **Então** as duas aparecem na conversa sem recarregar a página
+
 ### Campanhas — leitura e aviso das 24h
 
 **Descrição:** o relatório da campanha conta enviados, entregues e lidos pelos avisos da Meta.

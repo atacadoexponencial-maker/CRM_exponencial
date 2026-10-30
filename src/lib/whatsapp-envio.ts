@@ -6,6 +6,7 @@
 import type { createServiceClient } from "@/integrations/supabase/service"
 import { resolverProviderDaConversa, resolverProviderDoContato, statusInicialDoEnvio } from "@/lib/whatsapp"
 import { linkParaEnvio } from "@/lib/anexos-do-chat"
+import { transmitirMensagem } from "@/lib/whatsapp/realtime"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -140,7 +141,9 @@ export async function enviarWhatsAppComMotivo(
 
   if (!conversaDoEnvio) return { ok: true } // mensagem saiu, só não foi registrada em conversa
 
-  await supabase.from("messages").insert({
+  // B53-16: o id nasce aqui para a mesma mensagem ir à conversa aberta no navegador
+  const mensagem = {
+    id: crypto.randomUUID(),
     conversation_id: conversaDoEnvio,
     workspace_id: workspaceId,
     direction: "enviada",
@@ -152,12 +155,33 @@ export async function enviarWhatsAppComMotivo(
     status: statusInicialDoEnvio(provider.canal),
     wamid,
     created_at: agora,
-  })
+  }
+  const { error: erroAoGravar } = await supabase.from("messages").insert(mensagem)
 
   await supabase
     .from("conversations")
     .update({ last_message_text: previa, last_message_at: agora })
     .eq("id", conversaDoEnvio)
+
+  // B53-16: a conversa aberta mostra a mensagem sem recarregar, como no chat e no
+  // webhook. Falhar aqui não desfaz o envio: ela aparece no próximo carregamento.
+  if (!erroAoGravar) {
+    try {
+      await transmitirMensagem({
+        id: mensagem.id,
+        conversation_id: mensagem.conversation_id,
+        workspace_id: mensagem.workspace_id,
+        direction: mensagem.direction,
+        type: mensagem.type,
+        content: mensagem.content,
+        created_at: mensagem.created_at,
+        status: mensagem.status,
+        media_filename: mensagem.media_filename,
+      })
+    } catch {
+      // sem tempo real desta vez
+    }
+  }
 
   return { ok: true }
 }

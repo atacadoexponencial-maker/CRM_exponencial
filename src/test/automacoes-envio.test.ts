@@ -9,6 +9,8 @@ vi.mock("@/lib/whatsapp", async (importOriginal) => ({
   resolverProviderDaConversa: vi.fn(),
   resolverProviderDoContato: vi.fn(),
 }))
+// B53-16: o envio avisa a conversa aberta; aqui o tempo real é simulado
+vi.mock("@/lib/whatsapp/realtime", () => ({ transmitirMensagem: vi.fn().mockResolvedValue(undefined) }))
 
 import { resolverProviderDaConversa, resolverProviderDoContato } from "@/lib/whatsapp"
 import { executarAcao } from "@/lib/automacoes/acoes"
