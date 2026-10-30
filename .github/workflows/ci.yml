@@ -1,0 +1,60 @@
+# CI — a cada push e pull request, o GitHub confere o que a pessoa conferiria à mão
+# antes de publicar: lint, tipos (lição L-07: o Vitest não confere tipos) e os testes
+# que não precisam do banco. Os testes de integração (*.integration.test.ts) ficam de
+# fora por enquanto: precisam da chave de serviço do banco de teste como segredo.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+# Push novo no mesmo branch cancela a rodada anterior, para não gastar minutos à toa.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-e-tipos:
+    name: Lint e tipos
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+
+  testes:
+    name: Testes sem banco
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # O vitest.config.ts exige um banco de teste que responda antes de rodar qualquer
+      # teste (trava da B46-02). Os segredos abaixo já existem no repositório, usados
+      # pela rotina "Banco de teste acordado"; aqui servem só para passar pela trava.
+      # anexos-do-envio.test.ts grava no Storage de verdade e precisa da chave de serviço:
+      # fica com os de integração até esse segredo existir no GitHub. O tempo por teste
+      # sobe para 20 s porque o runner do GitHub tem menos núcleos que a máquina local.
+      - run: >-
+          npx vitest run
+          --exclude "**/*.integration.test.*"
+          --exclude "**/anexos-do-envio.test.ts"
+          --testTimeout=20000
+          --reporter=dot
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.BANCO_TESTE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.BANCO_TESTE_ANON_KEY }}
+          TZ: America/Sao_Paulo
