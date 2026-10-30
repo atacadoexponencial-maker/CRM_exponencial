@@ -1,13 +1,11 @@
 import { redirect } from "next/navigation"
 import { sessaoAtual } from "@/lib/sessao"
 import {
-  lerPerfilComercialMeta,
   listarConexaoWhatsApp,
   listarConexoesWhatsApp,
   termoDoCanalDiretoAceito,
 } from "./actions"
 import { AcoesWhatsApp } from "./acoes-whatsapp"
-import { PerfilComercial } from "./perfil-comercial"
 import { WizardConexao } from "./wizard-conexao"
 import { ListaNumeros } from "./canal-direto/lista-numeros"
 import type { NumeroConectado } from "./canal-direto/cartao-numero"
@@ -46,9 +44,6 @@ export default async function WhatsAppPage() {
     termoDoCanalDiretoAceito(),
   ])
 
-  // Perfil comercial do número da Meta: só quando há um, e só se ele está ativo.
-  const perfilMeta = conexao && conexao.status === "connected" ? await lerPerfilComercialMeta() : null
-
   const numeros: NumeroConectado[] = conexoes.map((c) => ({
     id: c.id,
     canal: c.canal,
@@ -77,16 +72,6 @@ export default async function WhatsAppPage() {
       {conexao && (
         <div className="mt-10 border-t pt-8">
           <h2 className="text-base font-semibold mb-5">API Oficial da Meta</h2>
-          {perfilMeta && (
-            <div className="rounded-lg border p-6 max-w-2xl mb-6">
-              <h3 className="text-sm font-semibold mb-4">Perfil comercial</h3>
-              <PerfilComercial
-                perfil={"perfil" in perfilMeta ? perfilMeta.perfil : null}
-                nomeExibido={conexao.displayName || conexao.phoneNumber}
-                erroCarregar={"erro" in perfilMeta ? perfilMeta.erro : undefined}
-              />
-            </div>
-          )}
           <div className="rounded-lg border p-6 max-w-md">
             <AcoesWhatsApp conexaoId={conexao.id} status={conexao.status} />
           </div>

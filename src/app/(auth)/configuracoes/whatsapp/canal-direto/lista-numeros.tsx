@@ -31,8 +31,10 @@ import { PareamentoPorCodigo } from "./pareamento-por-codigo"
 import { TelaQrCode, type Pareamento } from "./tela-qr-code"
 import type { EstadoConexao, MotivoDeTransicao } from "./estado-badge"
 import { pareamentoEmAndamento } from "@/lib/whatsapp/gateway/estado"
+import { formatarNumero } from "@/lib/whatsapp"
 import { TEXTO_DE_QUEDA, textoDePausaLonga } from "@/lib/whatsapp/gateway/pausa"
 import { TermoResponsabilidade } from "./termo-responsabilidade"
+import { BotaoPerfilComercial } from "../perfil-comercial"
 
 /** Enquanto o pareamento não termina, a tela pergunta de novo a cada 3s. */
 const INTERVALO_DE_ACOMPANHAMENTO_MS = 3000
@@ -325,9 +327,16 @@ export function ListaNumeros({
                   desdeQuando={emReconexao ? undefined : numero.pausa?.desdeQuando ?? undefined}
                   /* B2-05 e B4/B5: o canal direto tem ciclo de vida, saúde e
                      ritmo; a Meta não expõe nenhum dos três e mantém as ações
-                     dela no fluxo próprio, mais abaixo na página. */
+                     dela no fluxo próprio, mais abaixo na página. O que a Meta
+                     tem é o perfil comercial (foto, recado, endereço…), editado
+                     daqui. */
                   acoes={
-                    numero.canal === "gateway" ? (
+                    numero.canal === "meta" ? (
+                      <BotaoPerfilComercial
+                        nomeExibido={numero.display_name ?? formatarNumero(numero.phone_number)}
+                        habilitado={numero.state === "connected"}
+                      />
+                    ) : numero.canal === "gateway" ? (
                       <div className="space-y-3">
                         <div className="flex flex-wrap gap-3 text-sm">
                           <Link

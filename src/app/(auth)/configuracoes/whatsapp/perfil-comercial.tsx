@@ -1,13 +1,15 @@
 "use client"
 
 // Perfil comercial do número da API Oficial: o que o cliente vê ao abrir o
-// contato da empresa no WhatsApp. Só captura e exibe; limites, formato e a
-// conversa com a Meta ficam nas actions.
+// contato da empresa no WhatsApp. É um botão no cartão do número que abre o
+// formulário em diálogo. Só captura e exibe; limites, formato e a conversa com
+// a Meta ficam nas actions.
 
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ImagePlus, Loader2 } from "lucide-react"
+import { ImagePlus, Loader2, UserPen } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogClose, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CampoSelecao } from "@/app/(auth)/configuracoes/automacoes/components/campo-selecao"
@@ -18,43 +20,93 @@ import {
   LIMITES_PERFIL,
   type PerfilComercial,
 } from "@/lib/whatsapp/perfil-comercial-meta"
-import { salvarPerfilComercialMeta, trocarFotoPerfilMeta } from "./actions"
+import { lerPerfilComercialMeta, salvarPerfilComercialMeta, trocarFotoPerfilMeta } from "./actions"
 
 const campoTexto =
   "w-full min-h-20 rounded-lg border border-input bg-input/30 px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 resize-y"
 
 type Mensagem = { tipo: "erro" | "sucesso"; texto: string }
 
-export function PerfilComercial({
+/** Botão "Editar perfil" do cartão do número da Meta. Carrega o perfil ao abrir. */
+export function BotaoPerfilComercial({
+  nomeExibido,
+  habilitado,
+}: {
+  nomeExibido: string
+  /** Só com o número conectado: desconectado, a Meta recusa a leitura. */
+  habilitado: boolean
+}) {
+  const [aberto, setAberto] = useState(false)
+  const [perfil, setPerfil] = useState<PerfilComercial | null>(null)
+  const [erroCarregar, setErroCarregar] = useState<string | null>(null)
+  const [carregando, setCarregando] = useState(false)
+
+  async function abrir() {
+    setAberto(true)
+    setPerfil(null)
+    setErroCarregar(null)
+    setCarregando(true)
+    const r = await lerPerfilComercialMeta()
+    setCarregando(false)
+    if ("erro" in r) setErroCarregar(r.erro)
+    else setPerfil(r.perfil)
+  }
+
+  return (
+    <>
+      <Button size="sm" variant="outline" disabled={!habilitado} onClick={abrir}>
+        <UserPen className="size-3.5" aria-hidden />
+        Editar perfil
+      </Button>
+
+      <Dialog open={aberto} onOpenChange={setAberto}>
+        <DialogPopup className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogTitle className="mb-4">Perfil comercial</DialogTitle>
+          {carregando && (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Carregando o perfil…
+            </p>
+          )}
+          {erroCarregar && <p className="text-sm text-erro">{erroCarregar}</p>}
+          {perfil && (
+            <FormularioPerfilComercial
+              perfil={perfil}
+              nomeExibido={nomeExibido}
+              onFotoTrocada={abrir}
+            />
+          )}
+        </DialogPopup>
+      </Dialog>
+    </>
+  )
+}
+
+function FormularioPerfilComercial({
   perfil,
   nomeExibido,
-  erroCarregar,
+  onFotoTrocada,
 }: {
-  perfil: PerfilComercial | null
+  perfil: PerfilComercial
   nomeExibido: string
-  erroCarregar?: string
+  /** Recarrega o perfil para a prévia mostrar a foto nova. */
+  onFotoTrocada: () => void
 }) {
   const router = useRouter()
   const entradaFoto = useRef<HTMLInputElement>(null)
 
-  const [about, setAbout] = useState(perfil?.about ?? "")
-  const [description, setDescription] = useState(perfil?.description ?? "")
-  const [address, setAddress] = useState(perfil?.address ?? "")
-  const [email, setEmail] = useState(perfil?.email ?? "")
-  const [site1, setSite1] = useState(perfil?.websites[0] ?? "")
-  const [site2, setSite2] = useState(perfil?.websites[1] ?? "")
-  const [vertical, setVertical] = useState(perfil?.vertical ?? "UNDEFINED")
+  const [about, setAbout] = useState(perfil.about)
+  const [description, setDescription] = useState(perfil.description)
+  const [address, setAddress] = useState(perfil.address)
+  const [email, setEmail] = useState(perfil.email)
+  const [site1, setSite1] = useState(perfil.websites[0] ?? "")
+  const [site2, setSite2] = useState(perfil.websites[1] ?? "")
+  const [vertical, setVertical] = useState(perfil.vertical)
 
   const [salvando, setSalvando] = useState(false)
   const [mensagem, setMensagem] = useState<Mensagem | null>(null)
   const [enviandoFoto, setEnviandoFoto] = useState(false)
   const [erroFoto, setErroFoto] = useState<string | null>(null)
-
-  if (!perfil) {
-    return (
-      <p className="text-sm text-erro">{erroCarregar ?? "Não foi possível carregar o perfil."}</p>
-    )
-  }
 
   async function salvar() {
     setMensagem(null)
@@ -96,7 +148,7 @@ export function PerfilComercial({
       setErroFoto(r.erro)
       return
     }
-    router.refresh()
+    onFotoTrocada()
   }
 
   function contador(valor: string, max: number) {
@@ -208,16 +260,18 @@ export function PerfilComercial({
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      {mensagem && (
+        <p className={`text-sm ${mensagem.tipo === "erro" ? "text-erro" : "text-sucesso"}`} role="status">
+          {mensagem.texto}
+        </p>
+      )}
+
+      <div className="flex justify-end gap-2 pt-2">
+        <DialogClose render={<Button type="button" variant="outline" />}>Fechar</DialogClose>
         <Button onClick={salvar} disabled={salvando}>
           {salvando && <Loader2 className="animate-spin" />}
           Salvar perfil
         </Button>
-        {mensagem && (
-          <p className={`text-xs ${mensagem.tipo === "erro" ? "text-erro" : "text-sucesso"}`} role="status">
-            {mensagem.texto}
-          </p>
-        )}
       </div>
     </div>
   )
