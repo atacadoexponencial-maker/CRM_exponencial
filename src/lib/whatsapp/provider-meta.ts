@@ -113,6 +113,44 @@ export function criarProviderMeta(
       })
     },
 
+    // B54-06: template com os parâmetros de cada destinatário.
+    async enviarTemplate(destino, template) {
+      const components: Array<Record<string, unknown>> = []
+      if (template.cabecalho) {
+        if (template.cabecalho.tipo === "texto") {
+          if (template.cabecalho.valores.length > 0) {
+            components.push({ type: "header", parameters: template.cabecalho.valores.map((text) => ({ type: "text", text })) })
+          }
+        } else {
+          const tipo = TIPO_META[template.cabecalho.tipo]
+          const objeto: Record<string, unknown> = { link: template.cabecalho.link }
+          if (tipo === "document" && template.cabecalho.nomeArquivo !== undefined) objeto.filename = template.cabecalho.nomeArquivo
+          components.push({ type: "header", parameters: [{ type: tipo, [tipo]: objeto }] })
+        }
+      }
+      if (template.corpo.length > 0) {
+        components.push({ type: "body", parameters: template.corpo.map((text) => ({ type: "text", text })) })
+      }
+      for (const botao of template.botoes ?? []) {
+        components.push({
+          type: "button",
+          sub_type: "url",
+          index: String(botao.indice),
+          parameters: botao.valores.map((text) => ({ type: "text", text })),
+        })
+      }
+      return postar({
+        messaging_product: "whatsapp",
+        to: destino,
+        type: "template",
+        template: {
+          name: template.nome,
+          language: { code: template.idioma },
+          ...(components.length > 0 ? { components } : {}),
+        },
+      })
+    },
+
     async marcarComoLida({ mensagemId }) {
       // Nasce sem chamador: nenhum ponto do CRM marca mensagem como lida na
       // Meta hoje. Existe porque o contrato pede e a issue do gateway vai usar.

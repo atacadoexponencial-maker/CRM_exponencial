@@ -27,6 +27,7 @@ import type {
   RecursoWhatsApp,
   ResultadoEnvio,
 } from "./tipos"
+import { MOTIVO_TEMPLATE_SEM_API_OFICIAL } from "./motivo-da-falha"
 
 /**
  * Prioridade na fila do gateway (A6-06): conversa passa na frente de campanha.
@@ -123,6 +124,11 @@ export function criarProviderGateway(
           priority: prioridadeNoContrato(opcoes),
         },
       })
+    },
+
+    // B54-06: template só existe na API Oficial. A recusa é honesta, sem chamar o gateway.
+    async enviarTemplate() {
+      return { ok: false, motivo: MOTIVO_TEMPLATE_SEM_API_OFICIAL }
     },
 
     async marcarComoLida({ destino }) {

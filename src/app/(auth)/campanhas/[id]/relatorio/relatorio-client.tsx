@@ -154,6 +154,10 @@ export function RelatorioCampanhaClient({ relatorio }: { relatorio: RelatorioCam
           </Button>
         )}
       </div>
+      {/* B54-06 (CA-B54-28): o template usado */}
+      {relatorio.templateNome && (
+        <p className="text-sm text-muted-foreground mb-1">Template: <span className="font-mono text-foreground">{relatorio.templateNome}</span></p>
+      )}
       <p className="text-sm text-muted-foreground mb-6">
         {relatorio.enviadaEm
           ? `Enviada em ${formatarDataEHora(relatorio.enviadaEm, fuso)}`

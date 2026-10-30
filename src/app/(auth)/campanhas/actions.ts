@@ -44,6 +44,8 @@ export type CampanhaListada = {
   criador: string | null
   /** B38-05: não enviada, com variável sem texto reserva (SUP-B38-18). */
   precisaDeAjuste: boolean
+  /** B54-06 (CA-B54-28): "Template: nome" na campanha por template; senão o começo do texto. */
+  mensagem: string
 }
 
 export type CampanhaDetalhe = {
@@ -198,7 +200,7 @@ export async function listarCampanhas(): Promise<CampanhaListada[]> {
 
   const { data } = await supabase
     .from("campaigns")
-    .select("id, nome, status, conteudo, agendada_para, enviada_em, criador:profiles!criado_por(name), campaign_recipients(id)")
+    .select("id, nome, status, conteudo, tipo_mensagem, template, agendada_para, enviada_em, criador:profiles!criado_por(name), campaign_recipients(id)")
     .eq("workspace_id", perfil.workspace_id)
     .order("created_at", { ascending: false })
 
@@ -207,6 +209,8 @@ export async function listarCampanhas(): Promise<CampanhaListada[]> {
     nome: string
     status: string
     conteudo: string | null
+    tipo_mensagem: string
+    template: { name?: string } | null
     agendada_para: string | null
     enviada_em: string | null
     criador: { name: string } | null
@@ -221,7 +225,18 @@ export async function listarCampanhas(): Promise<CampanhaListada[]> {
     dataEnvio: c.enviada_em ?? c.agendada_para,
     criador: c.criador?.name ?? null,
     precisaDeAjuste: ["rascunho", "agendada", "enviando"].includes(c.status) && variaveisSemReserva(c.conteudo ?? "").length > 0,
+    mensagem: resumoDaMensagem(c.tipo_mensagem, c.conteudo, c.template),
   }))
+}
+
+/** B54-06 (CA-B54-28): o que a lista mostra na coluna Mensagem. */
+function resumoDaMensagem(tipo: string, conteudo: string | null, template: { name?: string } | null): string {
+  if (tipo === "template") return `Template: ${template?.name ?? "—"}`
+  const texto = (conteudo ?? "").replace(/\s+/g, " ").trim()
+  const curto = texto.length > 60 ? `${texto.slice(0, 57)}…` : texto
+  if (tipo === "imagem") return curto ? `Imagem · ${curto}` : "Imagem"
+  if (tipo === "documento") return curto ? `Documento · ${curto}` : "Documento"
+  return curto || "—"
 }
 
 export async function buscarCampanha(id: string): Promise<CampanhaDetalhe | null> {
@@ -448,7 +463,8 @@ function validarDados(dados: DadosCampanha, paraEnvio: boolean, workspaceId: str
     if (dados.tipoMensagem === "template") {
       // B54-05: cabeçalho de mídia leva o arquivo da campanha (CA-B54-18).
       if (cabecalhoEhMidia(dados.template?.cabecalho) && !dados.arquivoUrl) return avisoDoArquivoDoCabecalho(dados.template!.cabecalho as "imagem" | "video" | "documento")
-      return AVISO_ENVIO_DE_TEMPLATE_AINDA_NAO
+      // B54-06: o template não tem texto livre nem anexo obrigatório fora do cabeçalho.
+      return null
     }
     if (!dados.conteudo.trim()) return "Escreva a mensagem da campanha"
     if (dados.tipoMensagem !== "texto" && !dados.arquivoUrl) return "Anexe o arquivo da campanha"
@@ -461,8 +477,8 @@ function validarDados(dados: DadosCampanha, paraEnvio: boolean, workspaceId: str
 const AVISO_ESCOLHA_O_TEMPLATE = "Escolha o template da campanha"
 const AVISO_TEMPLATE_SEM_NUMERO = "Escolha o número da API Oficial que vai enviar o template"
 const AVISO_TEMPLATE_NO_CANAL_DIRETO = "Template só existe na API Oficial. Escolha um número da API Oficial ou troque o tipo de mensagem."
-/** B54-04: o envio em si chega na B54-06; até lá a campanha por template só fica salva. */
-const AVISO_ENVIO_DE_TEMPLATE_AINDA_NAO = "O envio de campanha por template ainda não está disponível. A campanha fica salva como rascunho."
+/** B54-06 (CA-B54-23): o template deixou de estar aprovado entre a escolha e a confirmação. */
+export const AVISO_TEMPLATE_NAO_APROVADO = "O template não está mais aprovado na Meta. Escolha outro ou corrija-o em Configurações > Templates"
 
 export async function salvarRascunho(
   id: string | null,
@@ -551,6 +567,13 @@ export async function confirmarCampanha(
   const { count: conectados } = await numeros
   if (!conectados) {
     return { erro: dados.whatsappConnectionId ? "O número escolhido não está conectado. Conecte-o ou escolha outro." : "Conecte um número de WhatsApp antes de enviar a campanha." }
+  }
+
+  // B54-06 (CA-B54-23): o template tem de continuar aprovado no número da campanha.
+  if (dados.tipoMensagem === "template" && dados.whatsappConnectionId && dados.template) {
+    const { templates, erro: erroDaMeta } = await templatesParaCampanha(dados.whatsappConnectionId)
+    if (erroDaMeta) return { erro: erroDaMeta }
+    if (!templates.some((t) => t.id === dados.template!.id)) return { erro: AVISO_TEMPLATE_NAO_APROVADO }
   }
 
   // B42-03: funil ou etapa apagada não confirma; ignorar a condição mandaria para mais gente.
@@ -778,6 +801,8 @@ export type RelatorioCampanha = {
   pendentes: number
   /** B8-02: aceitas pelo gateway, esperando a vez de sair. */
   naFila: number
+  /** B54-06 (CA-B54-28): o template usado; nulo fora da campanha por template. */
+  templateNome: string | null
   destinatarios: Array<{
     nome: string
     telefone: string
@@ -794,7 +819,7 @@ export async function relatorioCampanha(id: string): Promise<RelatorioCampanha |
 
   const { data } = await supabase
     .from("campaigns")
-    .select("id, nome, status, enviada_em, interrompida_motivo, campaign_recipients(nome_snapshot, telefone_snapshot, status, atualizado_em, motivo)")
+    .select("id, nome, status, enviada_em, interrompida_motivo, tipo_mensagem, template, campaign_recipients(nome_snapshot, telefone_snapshot, status, atualizado_em, motivo)")
     .eq("id", id)
     .eq("workspace_id", perfil.workspace_id)
     .single()
@@ -812,9 +837,11 @@ export async function relatorioCampanha(id: string): Promise<RelatorioCampanha |
 
   const porStatus = (s: string) => recipients.filter((r) => r.status === s).length
 
+  const template = data.template as { name?: string } | null
   return {
     id: data.id,
     nome: data.nome,
+    templateNome: data.tipo_mensagem === "template" ? (template?.name ?? "—") : null,
     status: data.status,
     enviadaEm: data.enviada_em,
     interrompidaMotivo: data.interrompida_motivo ?? null,

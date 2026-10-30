@@ -2,7 +2,7 @@
 // o motor real processaria as campanhas "enviando" de produção.
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { MOTIVO_SEM_NUMERO } from "@/lib/whatsapp/motivo-da-falha"
+import { MOTIVO_NUMERO_DESCONECTADO } from "@/lib/whatsapp/motivo-da-falha"
 
 type Linha = Record<string, unknown>
 let tabelas: Record<string, Linha[]>
@@ -58,6 +58,7 @@ describe("B20-03 — Motor de campanhas e o número de outra empresa", () => {
 
     expect(enviados).toBe(0)
     expect(fetchFalso).not.toHaveBeenCalled()
-    expect(tabelas.campaign_recipients[0]).toMatchObject({ status: "falhou", motivo: MOTIVO_SEM_NUMERO })
+    // B54-06: com número escolhido e indisponível, o motivo diz que ele não está conectado
+    expect(tabelas.campaign_recipients[0]).toMatchObject({ status: "falhou", motivo: MOTIVO_NUMERO_DESCONECTADO })
   })
 })

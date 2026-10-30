@@ -85,11 +85,30 @@ export type OpcoesDeEnvio = {
   prioridade?: "conversa" | "campanha"
 }
 
+/**
+ * B54-06: um template da Meta pronto para sair, já com os valores de cada variável.
+ *
+ * `corpo` tem um valor por `{{n}}` do corpo, na ordem. O cabeçalho de texto leva os
+ * valores dele; o de mídia leva o link do arquivo (assinado na hora do envio). Cada botão
+ * de link com variável leva o índice do botão e os valores.
+ */
+export type TemplateEnvio = {
+  nome: string
+  idioma: string
+  corpo: string[]
+  cabecalho?:
+    | { tipo: "texto"; valores: string[] }
+    | { tipo: "imagem" | "video" | "documento"; link: string; nomeArquivo?: string }
+  botoes?: Array<{ indice: number; valores: string[] }>
+}
+
 export type ProviderWhatsApp = {
   canal: CanalWhatsApp
 
   enviarTexto(destino: string, texto: string, opcoes?: OpcoesDeEnvio): Promise<ResultadoEnvio>
   enviarMidia(destino: string, midia: MidiaEnvio, opcoes?: OpcoesDeEnvio): Promise<ResultadoEnvio>
+  /** B54-06: só a API Oficial tem template; o canal direto recusa com motivo. */
+  enviarTemplate(destino: string, template: TemplateEnvio, opcoes?: OpcoesDeEnvio): Promise<ResultadoEnvio>
   marcarComoLida(alvo: AlvoDeLeitura): Promise<ResultadoEnvio>
 
   /** Recursos que este canal suporta. */

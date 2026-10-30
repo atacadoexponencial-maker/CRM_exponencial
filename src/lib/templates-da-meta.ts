@@ -316,6 +316,28 @@ export function partesComOrigens(
   }
 }
 
+/**
+ * B54-06 (CA-B54-24): o valor de cada variável para um destinatário. Nome vazio ou campo
+ * vazio caem no texto reserva; texto fixo vai como está. A Meta não aceita quebra de
+ * linha, tabulação nem 4+ espaços seguidos num parâmetro: a limpeza fica aqui.
+ */
+export function valoresDasVariaveis(
+  lista: OrigemDaVariavel[],
+  contexto: { nomeContato: string; nomeVendedor: string; campos: Record<string, string> }
+): string[] {
+  return lista.map((v) => {
+    let valor: string
+    if (v.origem === ORIGEM_FIXO) valor = v.fixo ?? ""
+    else if (v.origem === "nome_contato") valor = contexto.nomeContato
+    else if (v.origem === "primeiro_nome") valor = contexto.nomeContato.trim().split(/\s+/)[0] ?? ""
+    else if (v.origem === "nome_vendedor") valor = contexto.nomeVendedor
+    else if (v.origem.startsWith("campo:")) valor = contexto.campos[v.origem.slice("campo:".length)] ?? ""
+    else valor = ""
+    const limpo = valor.replace(/[\r\n\t]+/g, " ").replace(/ {4,}/g, "   ").trim()
+    return limpo || (v.reserva ?? "").trim()
+  })
+}
+
 // ── B54-02: avisos e motivos da Meta em português ─────────────────────
 
 export const AVISO_SEM_EXEMPLO_DO_CABECALHO = "Anexe um exemplo do arquivo do cabeçalho para a análise da Meta"
