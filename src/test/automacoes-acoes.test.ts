@@ -155,10 +155,10 @@ describe("atribuir a um time (B22-04: escolha e conversa gravadas pela função 
     expect(b.gravacoes("pipeline_cards")[0].args[0]).toEqual({ atendente_id: "carla" })
   })
 
-  it("conversa já com um membro ativo do time: não mexe em nada e conta como feita", async () => {
+  it("conversa já com um membro ativo do time: fica com ele, e o card vai junto (B53-02)", async () => {
     const b = banco({ pipeline_cards: { lista: [{ id: "card-entrada", funil: "entrada" }] } }, escolheu("ana", true))
     expect(await executarAcao(b.contexto(conversaCriada), acao("atribuir_time", { time_id: "time-1" }))).toEqual({ ok: true })
-    expect(b.gravacoes("pipeline_cards")).toEqual([])
+    expect(b.gravacoes("pipeline_cards")[0].args[0]).toEqual({ atendente_id: "ana" })
   })
 
   it("contato sem conversa aberta: pede a escolha sem conversa e passa só o card", async () => {

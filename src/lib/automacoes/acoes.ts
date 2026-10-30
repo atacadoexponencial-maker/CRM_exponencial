@@ -315,10 +315,12 @@ async function atribuir(contexto: ContextoDaExecucao, atendenteId: string): Prom
 
 /**
  * Escolhe e grava a conversa no banco, numa operação travada por time (B22-04):
- * a função `atribuir_conversa_ao_time` mantém a conversa com quem já é do time
- * e ativo; senão, passa para o membro ativo com menos conversas abertas. Leads
- * que chegam juntos esperam um pelo outro e saem distribuídos. O card vem depois,
- * só quando a conversa mudou de mãos.
+ * a função `atribuir_conversa_ao_time` mantém a conversa com o Atendente do time
+ * que já está com ela; senão, passa para o Atendente ativo com menos conversas
+ * abertas (B53-02: Gerente e Admin nunca são escolhidos). Leads que chegam
+ * juntos esperam um pelo outro e saem distribuídos. O card e o dono do contato
+ * vêm depois e acompanham a pessoa escolhida, também quando ela já estava com a
+ * conversa (B53-02).
  */
 async function atribuirAoTime(contexto: ContextoDaExecucao, timeId: string): Promise<ResultadoAcao> {
   const { supabase, gatilho } = contexto
@@ -341,9 +343,9 @@ async function atribuirAoTime(contexto: ContextoDaExecucao, timeId: string): Pro
       .maybeSingle()
     return falhou(time ? "O time não tem atendente ativo" : "O time não existe mais")
   }
-  // Conversa que já está com alguém do time fica com ele. No Ganho, o card da
-  // Recompra, que acabou de nascer, ainda precisa receber essa pessoa.
-  if (escolha.manteve && !ehGanhoNaEntrada(gatilho)) return FEITO
+  // B53-02: conversa que já está com um Atendente do time fica com ele, e o card
+  // e o contato passam para ele mesmo assim (no Ganho, o card da Recompra que
+  // acabou de nascer também)
   return passarCardEConcluir(contexto, escolha.atendente_id, conversaId, [])
 }
 
