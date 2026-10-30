@@ -184,12 +184,13 @@ describe("Issue 28 — Status de entrega", () => {
 
   it("status atualiza de 'enviado' para 'entregue' ao receber webhook", async () => {
     const updateMessages = vi.fn().mockReturnThis()
-    const eqMessages = vi.fn().mockResolvedValue({ error: null })
+    const eqMessages = vi.fn().mockReturnThis()
 
     mockCreateServiceClient.mockReturnValue({
       from: vi.fn().mockReturnValue({
         update: updateMessages,
         eq: eqMessages,
+        or: vi.fn().mockResolvedValue({ error: null }),
       }),
     } as unknown as ReturnType<typeof createServiceClient>)
 
@@ -202,12 +203,13 @@ describe("Issue 28 — Status de entrega", () => {
 
   it("status atualiza de 'entregue' para 'lido' ao receber webhook", async () => {
     const updateMessages = vi.fn().mockReturnThis()
-    const eqMessages = vi.fn().mockResolvedValue({ error: null })
+    const eqMessages = vi.fn().mockReturnThis()
 
     mockCreateServiceClient.mockReturnValue({
       from: vi.fn().mockReturnValue({
         update: updateMessages,
         eq: eqMessages,
+        or: vi.fn().mockResolvedValue({ error: null }),
       }),
     } as unknown as ReturnType<typeof createServiceClient>)
 
@@ -220,12 +222,13 @@ describe("Issue 28 — Status de entrega", () => {
 
   it("status muda para 'falhou' em caso de erro na entrega", async () => {
     const updateMessages = vi.fn().mockReturnThis()
-    const eqMessages = vi.fn().mockResolvedValue({ error: null })
+    const eqMessages = vi.fn().mockReturnThis()
 
     mockCreateServiceClient.mockReturnValue({
       from: vi.fn().mockReturnValue({
         update: updateMessages,
         eq: eqMessages,
+        or: vi.fn().mockResolvedValue({ error: null }),
       }),
     } as unknown as ReturnType<typeof createServiceClient>)
 
