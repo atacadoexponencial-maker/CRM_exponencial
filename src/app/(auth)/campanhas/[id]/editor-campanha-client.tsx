@@ -44,6 +44,18 @@ import type {
   TemplateParaCampanha,
   TipoDeMensagemDaCampanha,
 } from "../actions"
+import { OrigensDoTemplate } from "./origens-do-template"
+import { PreviaDoTemplate } from "@/components/shared/previa-do-template"
+import {
+  ORIGENS_FIXAS,
+  ROTULO_DO_CABECALHO,
+  ajustarVariaveis,
+  avisoDasVariaveisDoTemplate,
+  avisoDoArquivoDoCabecalho,
+  cabecalhoEhMidia,
+  partesComOrigens,
+  variaveisVazias,
+} from "@/lib/templates-da-meta"
 
 /** B54-04 (CA-B54-15): o template escolhido não existe no número novo. */
 export const AVISO_TEMPLATE_NAO_EXISTE_NO_NUMERO = "O template escolhido não existe neste número"
@@ -172,7 +184,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
 
   function escolherTemplate(id: string) {
     const t = templates.find((x) => x.id === id)
-    setTemplate(t ? { id: t.id, name: t.name, language: t.language, cabecalho: t.partes?.cabecalho?.tipo ?? null } : null)
+    setTemplate(t ? { id: t.id, name: t.name, language: t.language, cabecalho: t.partes?.cabecalho?.tipo ?? null, variaveis: variaveisVazias(t.partes) } : null)
   }
 
   // Campanha reaberta já no tipo template: a lista do número vem ao abrir a etapa 2.
@@ -308,6 +320,16 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
         setErro("Escolha o template da campanha")
         return
       }
+      // B54-05: variáveis com origem e reserva (CA-B54-17) e arquivo do cabeçalho (CA-B54-18)
+      const avisoDasVariaveis = avisoDasVariaveisDoTemplate(variaveisDoTemplate)
+      if (avisoDasVariaveis) {
+        setErro(avisoDasVariaveis)
+        return
+      }
+      if (cabecalhoEhMidia(template.cabecalho) && !arquivoUrl) {
+        setErro(avisoDoArquivoDoCabecalho(template.cabecalho))
+        return
+      }
       setErro(null)
       setEtapa(3)
       return
@@ -386,6 +408,13 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
 
   // B38-05: a prévia usa o primeiro contato da amostra; os campos mostram o texto reserva
   const previewMensagem = preencherVariaveis(conteudo, { nome_contato: amostra[0]?.nome ?? "Maria", nome_vendedor: "Vendedor(a)" })
+  // B54-05: o template escolhido como a Meta o devolveu, e de onde vem cada variável.
+  const partesDoTemplateEscolhido = templates.find((t) => t.id === template?.id)?.partes ?? null
+  const variaveisDoTemplate = ajustarVariaveis(partesDoTemplateEscolhido, template?.variaveis)
+  const rotuloDaOrigem = (origem: string) =>
+    ORIGENS_FIXAS.find((o) => o.valor === origem)?.rotulo ??
+    (opcoes.campos ?? []).find((c) => `campo:${chaveDaVariavel(c.nome)}` === origem)?.nome ??
+    origem
   const variaveis: VariavelDoBotao[] = [
     { chave: "nome_contato", rotulo: "Nome do contato" },
     { chave: "nome_vendedor", rotulo: "Nome do vendedor" },
@@ -625,13 +654,24 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
             </div>
           )}
 
-          {tipoMensagem !== "texto" && tipoMensagem !== "template" && (
+          {/* B54-05: o template com variáveis e, se o cabeçalho é mídia, o arquivo */}
+          {tipoMensagem === "template" && template && partesDoTemplateEscolhido && (
+            <OrigensDoTemplate
+              partes={partesDoTemplateEscolhido}
+              variaveis={variaveisDoTemplate}
+              campos={(opcoes.campos ?? []).map((c) => ({ valor: `campo:${chaveDaVariavel(c.nome)}`, rotulo: c.nome }))}
+              onMudar={(variaveis) => setTemplate({ ...template, variaveis })}
+            />
+          )}
+
+          {((tipoMensagem !== "texto" && tipoMensagem !== "template") || (tipoMensagem === "template" && cabecalhoEhMidia(template?.cabecalho))) && (
             <div className="flex flex-col gap-1.5">
-              <Label>Arquivo</Label>
+              <Label>{tipoMensagem === "template" ? `Arquivo do cabeçalho (${ROTULO_DO_CABECALHO[template!.cabecalho as "imagem" | "video" | "documento"].toLowerCase()})` : "Arquivo"}</Label>
               <input
                 ref={arquivoRef}
                 type="file"
-                accept={tipoMensagem === "imagem" ? "image/*" : undefined}
+                data-testid="arquivo-da-campanha"
+                accept={tipoMensagem === "imagem" || template?.cabecalho === "imagem" ? "image/*" : template?.cabecalho === "video" ? "video/mp4" : undefined}
                 className="hidden"
                 onChange={handleUpload}
               />
@@ -644,6 +684,13 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
                 {enviandoArquivo ? <Loader2 className="size-4 animate-spin" /> : <Paperclip className="size-4" />}
                 {arquivoNome ?? "Escolher arquivo…"}
               </button>
+            </div>
+          )}
+
+          {tipoMensagem === "template" && template && partesDoTemplateEscolhido && (
+            <div className="rounded-lg border p-3">
+              <span className="text-xs text-muted-foreground block mb-1.5">Preview</span>
+              <PreviaDoTemplate partes={partesComOrigens(partesDoTemplateEscolhido, variaveisDoTemplate, rotuloDaOrigem)} />
             </div>
           )}
 

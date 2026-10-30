@@ -206,6 +206,116 @@ export function componentsParaMeta(
   return components
 }
 
+// ── B54-05: de onde vem cada variável do template na campanha ────────────
+
+/**
+ * A origem de uma variável `{{n}}` na campanha: um dado do contato (ou do vendedor), um
+ * campo personalizado (`campo:<chave>`) ou um texto fixo. Quem vem do contato leva o
+ * texto reserva, usado quando o dado está vazio (SUP-B54-07); o fixo não tem reserva.
+ */
+export type OrigemDaVariavel = {
+  origem: string
+  reserva?: string
+  fixo?: string
+}
+
+export type VariaveisDoTemplate = {
+  corpo: OrigemDaVariavel[]
+  cabecalho: OrigemDaVariavel[]
+  /** Pelo índice do botão de link cuja URL tem variável. */
+  botoes: Record<number, OrigemDaVariavel[]>
+}
+
+export const ORIGEM_FIXO = "fixo"
+export const ORIGENS_FIXAS: Array<{ valor: string; rotulo: string }> = [
+  { valor: "nome_contato", rotulo: "Nome do contato" },
+  { valor: "primeiro_nome", rotulo: "Primeiro nome" },
+  { valor: "nome_vendedor", rotulo: "Nome do vendedor" },
+]
+
+/** B54-05 (CA-B54-18): o pedido do arquivo do cabeçalho, pelo tipo; tela e servidor usam o mesmo texto. */
+export function avisoDoArquivoDoCabecalho(tipo: "imagem" | "video" | "documento"): string {
+  return tipo === "video" ? "Anexe o vídeo do cabeçalho" : tipo === "documento" ? "Anexe o documento do cabeçalho" : "Anexe a imagem do cabeçalho"
+}
+
+export function cabecalhoEhMidia(tipo: TipoDeCabecalho | null | undefined): tipo is "imagem" | "video" | "documento" {
+  return tipo === "imagem" || tipo === "video" || tipo === "documento"
+}
+
+/** As variáveis de um template, todas vindas de Nome do contato e sem reserva: o ponto de partida da tela. */
+export function variaveisVazias(partes: PartesDoTemplate | null): VariaveisDoTemplate {
+  const nova = (): OrigemDaVariavel => ({ origem: "nome_contato", reserva: "" })
+  const lista = (texto: string) => Array.from({ length: quantidadeDeVariaveis(texto) }, nova)
+  const botoes: Record<number, OrigemDaVariavel[]> = {}
+  partes?.botoes.forEach((b, i) => {
+    if (b.tipo === "link" && quantidadeDeVariaveis(b.url ?? "") > 0) botoes[i] = lista(b.url ?? "")
+  })
+  return {
+    corpo: lista(partes?.corpo ?? ""),
+    cabecalho: partes?.cabecalho?.tipo === "texto" ? lista(partes.cabecalho.texto ?? "") : [],
+    botoes,
+  }
+}
+
+/** Ajusta variáveis gravadas a um template (acrescenta as que faltam, corta as que sobram). */
+export function ajustarVariaveis(partes: PartesDoTemplate | null, atuais: VariaveisDoTemplate | undefined): VariaveisDoTemplate {
+  const base = variaveisVazias(partes)
+  const casar = (b: OrigemDaVariavel[], a: OrigemDaVariavel[] | undefined) => b.map((v, i) => a?.[i] ?? v)
+  const botoes: Record<number, OrigemDaVariavel[]> = {}
+  for (const [i, lista] of Object.entries(base.botoes)) botoes[Number(i)] = casar(lista, atuais?.botoes?.[Number(i)])
+  return { corpo: casar(base.corpo, atuais?.corpo), cabecalho: casar(base.cabecalho, atuais?.cabecalho), botoes }
+}
+
+/**
+ * O primeiro problema das variáveis, para a tela e para o servidor (CA-B54-17): variável
+ * que vem do contato sem texto reserva, ou texto fixo em branco.
+ */
+export function avisoDasVariaveisDoTemplate(variaveis: VariaveisDoTemplate): string | null {
+  const conferir = (lista: OrigemDaVariavel[], onde: string) => {
+    for (const [i, v] of lista.entries()) {
+      const n = i + 1
+      if (v.origem === ORIGEM_FIXO) {
+        if (!v.fixo?.trim()) return `Preencha o texto fixo da variável ${n}${onde}`
+      } else if (!v.reserva?.trim()) {
+        return `Preencha o texto reserva da variável ${n}${onde}`
+      }
+    }
+    return null
+  }
+  return (
+    conferir(variaveis.corpo, "") ??
+    conferir(variaveis.cabecalho, " do cabeçalho") ??
+    Object.entries(variaveis.botoes).map(([i, l]) => conferir(l, ` do botão ${Number(i) + 1}`)).find(Boolean) ??
+    null
+  )
+}
+
+/**
+ * O template com cada variável trocada: pelo texto fixo, ou pelo rótulo da origem entre
+ * colchetes ("Olá [Nome do contato]"). É a prévia da campanha (CA-B54-19).
+ */
+export function partesComOrigens(
+  partes: PartesDoTemplate,
+  variaveis: VariaveisDoTemplate,
+  rotuloDaOrigem: (origem: string) => string
+): PartesDoTemplate {
+  const trocar = (texto: string, lista: OrigemDaVariavel[]) =>
+    texto.replace(/\{\{(\d+)\}\}/g, (todo, n: string) => {
+      const v = lista[Number(n) - 1]
+      if (!v) return todo
+      return v.origem === ORIGEM_FIXO ? (v.fixo ?? "") : `[${rotuloDaOrigem(v.origem)}]`
+    })
+  return {
+    cabecalho:
+      partes.cabecalho?.tipo === "texto"
+        ? { tipo: "texto", texto: trocar(partes.cabecalho.texto ?? "", variaveis.cabecalho) }
+        : partes.cabecalho,
+    corpo: trocar(partes.corpo, variaveis.corpo),
+    rodape: partes.rodape,
+    botoes: partes.botoes.map((b, i) => (b.url && variaveis.botoes[i] ? { ...b, url: trocar(b.url, variaveis.botoes[i]) } : b)),
+  }
+}
+
 // ── B54-02: avisos e motivos da Meta em português ─────────────────────
 
 export const AVISO_SEM_EXEMPLO_DO_CABECALHO = "Anexe um exemplo do arquivo do cabeçalho para a análise da Meta"

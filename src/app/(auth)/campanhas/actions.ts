@@ -4,7 +4,15 @@ import { revalidatePath } from "next/cache"
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
-import { aprovadosParaCampanha, type PartesDoTemplate, type TipoDeCabecalho } from "@/lib/templates-da-meta"
+import {
+  aprovadosParaCampanha,
+  avisoDasVariaveisDoTemplate,
+  avisoDoArquivoDoCabecalho,
+  cabecalhoEhMidia,
+  type PartesDoTemplate,
+  type TipoDeCabecalho,
+  type VariaveisDoTemplate,
+} from "@/lib/templates-da-meta"
 import { buscarTemplatesDaMeta } from "@/lib/templates-da-meta-graph"
 import { anexoDaEmpresa } from "@/lib/anexo-da-campanha"
 import { processarCampanhasPendentes } from "@/lib/campanhas"
@@ -66,6 +74,8 @@ export type TemplateDaCampanha = {
   name: string
   language: string
   cabecalho: TipoDeCabecalho | null
+  /** B54-05: de onde vem cada variável. Ausente nas campanhas gravadas pela B54-04. */
+  variaveis?: VariaveisDoTemplate
 }
 
 /** B54-04: um template que a campanha pode escolher, já filtrado no servidor. */
@@ -409,9 +419,11 @@ const EXTENSAO_DO_ANEXO: Record<string, string> = {
   "application/vnd.ms-powerpoint": "ppt",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
   "text/plain": "txt",
+  // B54-05 (SUP-B54-11): vídeo MP4, para o cabeçalho de vídeo do template.
+  "video/mp4": "mp4",
 }
 const AVISO_TIPO_DO_ANEXO =
-  "Tipo de arquivo não aceito. Envie imagem JPG, PNG ou WebP, ou documento PDF, Word, Excel, PowerPoint ou TXT."
+  "Tipo de arquivo não aceito. Envie imagem JPG, PNG ou WebP, vídeo MP4, ou documento PDF, Word, Excel, PowerPoint ou TXT."
 const AVISO_ANEXO_DE_FORA = "Anexe o arquivo pela própria campanha"
 
 function validarDados(dados: DadosCampanha, paraEnvio: boolean, workspaceId: string): string | null {
@@ -426,14 +438,25 @@ function validarDados(dados: DadosCampanha, paraEnvio: boolean, workspaceId: str
   if (dados.tipoMensagem === "template") {
     if (!dados.template?.id || !dados.template.name || !dados.template.language) return AVISO_ESCOLHA_O_TEMPLATE
     if (!dados.whatsappConnectionId) return AVISO_TEMPLATE_SEM_NUMERO
+    // B54-05: toda variável do contato tem reserva e todo texto fixo está preenchido (CA-B54-17).
+    if (dados.template.variaveis) {
+      const avisoDasVariaveis = avisoDasVariaveisDoTemplate(dados.template.variaveis)
+      if (avisoDasVariaveis) return avisoDasVariaveis
+    }
   }
   if (paraEnvio) {
-    if (dados.tipoMensagem === "template") return AVISO_ENVIO_DE_TEMPLATE_AINDA_NAO
+    if (dados.tipoMensagem === "template") {
+      // B54-05: cabeçalho de mídia leva o arquivo da campanha (CA-B54-18).
+      if (cabecalhoEhMidia(dados.template?.cabecalho) && !dados.arquivoUrl) return avisoDoArquivoDoCabecalho(dados.template!.cabecalho as "imagem" | "video" | "documento")
+      return AVISO_ENVIO_DE_TEMPLATE_AINDA_NAO
+    }
     if (!dados.conteudo.trim()) return "Escreva a mensagem da campanha"
     if (dados.tipoMensagem !== "texto" && !dados.arquivoUrl) return "Anexe o arquivo da campanha"
   }
   return null
 }
+
+
 
 const AVISO_ESCOLHA_O_TEMPLATE = "Escolha o template da campanha"
 const AVISO_TEMPLATE_SEM_NUMERO = "Escolha o número da API Oficial que vai enviar o template"

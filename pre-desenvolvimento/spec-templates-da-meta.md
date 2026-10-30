@@ -371,6 +371,8 @@ cada destinatário, e o relatório mostra o resultado.
 | SUP-B54-08 | Apagar remove o template em todos os idiomas daquele nome, como a Meta faz por padrão; a tela não oferece apagar só um idioma. | confirmada | Marcelle, 30/10/2026 (incluiu apagar no escopo) |
 | SUP-B54-09 | Variável no corpo, no cabeçalho de texto ou no link de botão vai à Meta com um exemplo gerado pela tela ("Exemplo 1", "Exemplo 2"…), porque a Meta exige exemplo para analisar e o formulário não pede mais um campo por variável. | invalidada | Marcelle, 30/10/2026: o formulário pede um campo de exemplo por variável (corpo, cabeçalho de texto e link de botão), obrigatório |
 | SUP-B54-10 | O arquivo de exemplo do cabeçalho de mídia vai direto do navegador à Meta pelo servidor do CRM, sem ficar guardado, e aceita até 4 MB (limite do servidor); o arquivo real da campanha segue as regras dela. | confirmada | Marcelle, 30/10/2026 |
+| SUP-B54-11 | O anexo da campanha passa a aceitar vídeo MP4 (até os mesmos 10 MB), para o cabeçalho de vídeo do template; imagem e documento seguem iguais. | confirmada | Marcelle, 30/10/2026 |
+| SUP-B54-12 | "Duplicar" a campanha, no critério CA-B54-21, vale pelo único caminho de cópia que existe: "Reenviar para os que falharam" no relatório, que copia template, origens, arquivo e número. Não nasce botão Duplicar. | confirmada | Marcelle, 30/10/2026 |
 
 ## Perguntas em aberto
 
