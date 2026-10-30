@@ -25,4 +25,4 @@ Nenhuma.
 
 | ID | Pergunta | Status | Resposta |
 |---|---|---|---|
-| PER-B53-03 | Quando o Luan publica a A11-01 (relógio das automações) no gateway? O commit 2a71e2d não está no repositório do gateway, e a VPS não tem nem o código nem a variável (conferido em 30/10/2026). | aberta | — |
+| PER-B53-03 | Quando o Luan publica a A11-01 (relógio das automações) no gateway? O commit 2a71e2d não está no repositório do gateway, e a VPS não tem nem o código nem a variável (conferido em 30/10/2026). | respondida | Publicada em 30/10/2026: merge no `master` do gateway (b21564b), imagem nova na VPS e `CRM_RELOGIO_URL` configurada. Falta o teste manual do CA-B53-07. |
