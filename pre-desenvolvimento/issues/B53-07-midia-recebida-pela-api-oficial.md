@@ -75,7 +75,7 @@ Nenhuma mudança. Usa as colunas que o canal direto já grava em `messages` (`ty
 - **Modificar:** `src/lib/whatsapp/midia-recebida.ts` — `MidiaGuardada` passa a levar o `caminho` no Storage
 - **Modificar:** `src/app/api/webhooks/whatsapp/route.ts` — vídeo HEVC gravado agenda a conversão com `after()`, depois da resposta à Meta
 - **Modificar:** `next.config.ts` — `ffmpeg-static` fora do bundle e o binário incluído na função do webhook
-- **Modificar:** `package.json` — dependência `ffmpeg-static` (5.3.0, exata)
+- **Modificar:** `package.json` — dependência `ffmpeg-static` (5.3.0, exata) e `allowScripts` liberando o script dela, que baixa o binário (o npm 11 da Vercel pula script de dependência sem essa liberação)
 - **Modificar:** `package-lock.json` — a mesma dependência travada
 - **Criar:** `src/test/conversao-de-video-recebido.test.ts` — CA-B53-31
 
