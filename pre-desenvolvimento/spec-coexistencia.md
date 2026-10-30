@@ -347,6 +347,9 @@ dele, um número que está em uso no celular.
 | SUP-B23-10 | Na CA-B23-22, "sequência" é lida como as automações em fluxo: as sequências automáticas saíram na B28-06 e o que elas faziam hoje é a automação (gatilho de resposta do time). | aberta | — |
 | SUP-B23-11 | A recusa de número que já está no canal direto vale para toda conexão pela API Oficial, em uso no celular ou não (decisão B1-01: um número não fica nos dois canais). | confirmada | Marcelle, 30/10/2026. |
 | SUP-B23-12 | O Embedded Signup v3 (o que o CRM usa hoje, `sessionInfoVersion: "3"`) ainda aceita o `featureType` da coexistência; a documentação diz que v2 e v3 são descontinuados a partir de 15/10/2026, e a migração para o v4 fica fora desta issue. | invalidada | Marcelle pediu a migração agora (30/10/2026). Pela documentação "Versions" da Meta, desde 15/10/2026 toda chamada v3 (ou sem versão) é servida como v4, com os mesmos eventos e o mesmo `featureType`; a v4 ignora `sessionInfoVersion`. A migração foi só tirar esse parâmetro, na B23-01. |
+| SUP-B23-13 | Mensagem antiga que a empresa mandou pelo celular entra no chat com a marca "Enviada pelo celular" (como as da B23-04) e com o status que a Meta informa (lida, entregue ou enviada). | confirmada | Marcelle, 30/10/2026. |
+| SUP-B23-14 | Conversa criada pela importação nasce "em espera", sem não lidas, e a prévia da lista (`last_message`) só avança: mensagem antiga nunca faz a conversa parecer mais recente do que ela é. | confirmada | Marcelle, 30/10/2026. |
+| SUP-B23-15 | Mídia antiga que a Meta entrega depois do marcador substitui o marcador; se chegar antes dele (sem como saber de qual contato é), é ignorada e o marcador fica. | confirmada | Marcelle, 30/10/2026. |
 
 ## Perguntas em aberto
 

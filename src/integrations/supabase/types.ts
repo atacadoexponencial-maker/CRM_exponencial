@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      agenda_do_celular: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string | null
+          phone_number: string
+          whatsapp_connection_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome?: string | null
+          phone_number: string
+          whatsapp_connection_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string | null
+          phone_number?: string
+          whatsapp_connection_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_do_celular_whatsapp_connection_id_fkey"
+            columns: ["whatsapp_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_do_celular_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alert_config: {
         Row: {
           em_risco_dias: number
@@ -2441,6 +2483,9 @@ export type Database = {
           disconnected_at: string | null
           display_name: string | null
           em_uso_no_celular: boolean
+          historico_pedido_em: string | null
+          historico_progresso: number
+          historico_situacao: string | null
           id: string
           instance_id: string | null
           instance_token: string | null
@@ -2459,6 +2504,9 @@ export type Database = {
           disconnected_at?: string | null
           display_name?: string | null
           em_uso_no_celular?: boolean
+          historico_pedido_em?: string | null
+          historico_progresso?: number
+          historico_situacao?: string | null
           id?: string
           instance_id?: string | null
           instance_token?: string | null
@@ -2477,6 +2525,9 @@ export type Database = {
           disconnected_at?: string | null
           display_name?: string | null
           em_uso_no_celular?: boolean
+          historico_pedido_em?: string | null
+          historico_progresso?: number
+          historico_situacao?: string | null
           id?: string
           instance_id?: string | null
           instance_token?: string | null

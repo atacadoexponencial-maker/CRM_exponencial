@@ -23,6 +23,9 @@ export type ConexaoListada = {
   disconnectedAt: string | null
   /** B23-01: número da Meta que continua em uso no WhatsApp Business do celular. */
   emUsoNoCelular: boolean
+  /** B23-02: andamento da importação das conversas antigas (nulo sem importação). */
+  historicoSituacao: string | null
+  historicoProgresso: number
 }
 
 /** O mínimo que estas funções precisam de um cliente Supabase. */
@@ -57,6 +60,8 @@ type RegistroDeConexao = {
   state_reason: string | null
   disconnected_at?: string | null
   em_uso_no_celular?: boolean | null
+  historico_situacao?: string | null
+  historico_progresso?: number | null
 }
 
 export type ResultadoDaCriacao = { ok: true; instanceId: string } | { ok: false; erro: string }
@@ -81,7 +86,7 @@ export async function listarConexoes(
 ): Promise<ConexaoListada[]> {
   const { data } = await supabase
     .from("whatsapp_connections")
-    .select("id, canal, phone_number, display_name, status, state_reason, disconnected_at, em_uso_no_celular")
+    .select("id, canal, phone_number, display_name, status, state_reason, disconnected_at, em_uso_no_celular, historico_situacao, historico_progresso")
     .eq("workspace_id", workspaceId)
     // Removida fica arquivada para o histórico das conversas, fora da lista.
     .neq("status", "removed")
@@ -97,6 +102,8 @@ export async function listarConexoes(
     stateReason: linha.state_reason,
     disconnectedAt: linha.disconnected_at ?? null,
     emUsoNoCelular: linha.em_uso_no_celular === true,
+    historicoSituacao: linha.historico_situacao ?? null,
+    historicoProgresso: linha.historico_progresso ?? 0,
   }))
 }
 

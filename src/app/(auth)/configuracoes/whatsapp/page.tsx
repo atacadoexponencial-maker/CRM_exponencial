@@ -11,6 +11,7 @@ import { ListaNumeros } from "./canal-direto/lista-numeros"
 import type { NumeroConectado } from "./canal-direto/cartao-numero"
 import type { EstadoConexao } from "./canal-direto/estado-badge"
 import { situacaoDaPausa } from "@/lib/whatsapp/gateway/pausa"
+import { textoDaImportacao } from "@/lib/whatsapp/historico-do-celular"
 import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "WhatsApp" }
@@ -57,6 +58,8 @@ export default async function WhatsAppPage() {
     pausa: situacaoDaPausa({ status: c.status, stateReason: c.stateReason ?? null, disconnectedAt: c.disconnectedAt }),
     // B23-01: selo "Em uso também no celular" no cartão do número da Meta.
     em_uso_no_celular: c.emUsoNoCelular,
+    // B23-02: andamento das conversas antigas, em texto decidido aqui.
+    importacao: textoDaImportacao(c.historicoSituacao, c.historicoProgresso),
   }))
 
   return (

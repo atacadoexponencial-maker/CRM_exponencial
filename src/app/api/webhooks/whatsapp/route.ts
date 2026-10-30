@@ -9,6 +9,7 @@ import { lerMensagemMeta, midiaDaMensagemMeta, type MensagemMeta } from "@/lib/w
 import { guardarMidiaDaMeta } from "@/lib/whatsapp/midia-recebida"
 import { converterVideoRecebido, eVideoHevc } from "@/lib/whatsapp/conversao-de-video"
 import { escolherConversaDoNumero, nomeDoPerfil, statusAoReabrir, traduzirConteudo } from "@/lib/whatsapp/recebimento"
+import { processarAgenda, processarHistorico, type ValorDaAgenda, type ValorDoHistorico } from "@/lib/whatsapp/historico-do-celular"
 import { tirarDaLixeira } from "@/lib/lixeira"
 import { criarCardDeEntrada } from "@/lib/card-de-entrada"
 
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
     messages?: Array<MensagemMeta & { from: string; id: string; timestamp: string }>
     contacts?: Array<{ wa_id?: string; profile?: { name?: string } }>
   }
-  type WebhookBody = { entry?: Array<{ changes?: Array<{ value?: WebhookValue }> }> }
+  type WebhookBody = { entry?: Array<{ changes?: Array<{ field?: string; value?: WebhookValue }> }> }
 
   let body: WebhookBody
   try {
@@ -95,15 +96,35 @@ export async function POST(request: NextRequest) {
 
   // B53-05: um pacote da Meta pode trazer várias entradas e várias mudanças;
   // antes só a primeira era lida e os outros avisos se perdiam.
+  // B23-02: o `field` diz o que a mudança é (mensagens, histórico, agenda…).
   const mudancas = (Array.isArray(body?.entry) ? body.entry : []).flatMap((e) =>
-    (Array.isArray(e?.changes) ? e.changes : []).map((c) => c?.value)
+    (Array.isArray(e?.changes) ? e.changes : []).map((c) => ({ field: c?.field, value: c?.value }))
   )
 
   const supabase = createServiceClient()
 
-  for (const change of mudancas) {
+  for (const { field, value: change } of mudancas) {
     const phoneNumberId = change?.metadata?.phone_number_id
     if (!phoneNumberId) continue
+
+    // B23-02: conversas antigas e agenda do celular (coexistência) têm caminho
+    // próprio: não disparam automação, não somam não lidas, não transmitem.
+    if (field === "history" || field === "smb_app_state_sync") {
+      const { data: conexao } = await supabase
+        .from("whatsapp_connections")
+        .select("id, workspace_id, phone_number, access_token, em_uso_no_celular")
+        .eq("phone_number_id", phoneNumberId)
+        .maybeSingle()
+      if (!conexao) continue
+      try {
+        if (field === "history") await processarHistorico({ supabase, conexao, valor: change as unknown as ValorDoHistorico })
+        else await processarAgenda({ supabase, conexao, valor: change as unknown as ValorDaAgenda })
+      } catch (erro) {
+        console.error("[whatsapp] erro no histórico do celular:", erro)
+        return NextResponse.json({ error: "db error" }, { status: 500 })
+      }
+      continue
+    }
 
     const statuses = change?.statuses
     if (Array.isArray(statuses) && statuses.length > 0) {

@@ -25,6 +25,7 @@ import {
   type OperacaoDeCicloDeVida,
 } from "@/lib/whatsapp/gateway/ciclo-de-vida"
 import { aplicarEstadoDaInstancia } from "@/lib/whatsapp/eventos-de-operacao"
+import { pedirHistoricoDoCelular } from "@/lib/whatsapp/historico-do-celular"
 import {
   esquemaPerfilComercial,
   FOTO_PERFIL,
@@ -706,7 +707,7 @@ export async function completarConexaoWhatsApp(params: {
   }
 
   // B44-01: criar conexão é só do servidor; o navegador não grava mais nesta tabela.
-  const { error } = await service
+  const { data: criada, error } = await service
     .from("whatsapp_connections")
     .insert({
       workspace_id: workspaceId,
@@ -720,10 +721,18 @@ export async function completarConexaoWhatsApp(params: {
       em_uso_no_celular: emUsoNoCelular,
       criar_cards_do_historico: params.criarCardsDoHistorico === true,
     })
+    .select("id")
+    .single()
 
   // Outra empresa gravou o mesmo número entre a conferência e aqui: o índice único recusa.
   if (error?.code === "23505") return { erro: NUMERO_EM_OUTRA_EMPRESA }
-  if (error) return { erro: ERRO_GENERICO }
+  if (error || !criada) return { erro: ERRO_GENERICO }
+
+  // B23-02: número em uso no celular tem conversas antigas; o pedido à Meta sai
+  // agora, sem ação do Admin, e o cartão passa a mostrar o andamento.
+  if (emUsoNoCelular) {
+    await pedirHistoricoDoCelular({ supabase: service, connectionId: criada.id, phoneNumberId, accessToken })
+  }
 
   revalidatePath("/configuracoes/whatsapp")
   return {}

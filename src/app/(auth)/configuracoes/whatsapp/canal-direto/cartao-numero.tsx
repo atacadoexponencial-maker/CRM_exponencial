@@ -24,6 +24,8 @@ export type NumeroConectado = {
   pausa?: SituacaoDaPausa
   /** B23-01: número da Meta que continua em uso no WhatsApp Business do celular. */
   em_uso_no_celular?: boolean
+  /** B23-02: andamento da importação das conversas antigas, já em texto; decidido no servidor. */
+  importacao?: string | null
 }
 
 export function CartaoNumero({
@@ -49,6 +51,9 @@ export function CartaoNumero({
           </p>
           {desdeQuando && (
             <p className="text-xs text-muted-foreground mt-1">{desdeQuando}</p>
+          )}
+          {numero.importacao && (
+            <p className="text-xs text-muted-foreground mt-1">{numero.importacao}</p>
           )}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">

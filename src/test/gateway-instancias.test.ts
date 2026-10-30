@@ -221,6 +221,9 @@ describe("listar conexões do workspace", () => {
       disconnectedAt: null,
       // B23-01: linha sem a coluna (ou com false) não está em uso no celular.
       emUsoNoCelular: false,
+      // B23-02: sem importação de conversas antigas.
+      historicoSituacao: null,
+      historicoProgresso: 0,
     })
   })
 
