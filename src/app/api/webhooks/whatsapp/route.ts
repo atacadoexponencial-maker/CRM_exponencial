@@ -10,6 +10,7 @@ import { guardarMidiaDaMeta } from "@/lib/whatsapp/midia-recebida"
 import { converterVideoRecebido, eVideoHevc } from "@/lib/whatsapp/conversao-de-video"
 import { escolherConversaDoNumero, nomeDoPerfil, statusAoReabrir, traduzirConteudo } from "@/lib/whatsapp/recebimento"
 import { processarAgenda, processarHistorico, type ValorDaAgenda, type ValorDoHistorico } from "@/lib/whatsapp/historico-do-celular"
+import { processarEcos, type ValorDosEcos } from "@/lib/whatsapp/eco-do-celular"
 import { tirarDaLixeira } from "@/lib/lixeira"
 import { criarCardDeEntrada } from "@/lib/card-de-entrada"
 
@@ -109,7 +110,8 @@ export async function POST(request: NextRequest) {
 
     // B23-02: conversas antigas e agenda do celular (coexistência) têm caminho
     // próprio: não disparam automação, não somam não lidas, não transmitem.
-    if (field === "history" || field === "smb_app_state_sync") {
+    // B23-04: o eco do que o vendedor mandou pelo celular entra como no canal direto.
+    if (field === "history" || field === "smb_app_state_sync" || field === "smb_message_echoes") {
       const { data: conexao } = await supabase
         .from("whatsapp_connections")
         .select("id, workspace_id, phone_number, access_token, em_uso_no_celular, criar_cards_do_historico")
@@ -118,6 +120,7 @@ export async function POST(request: NextRequest) {
       if (!conexao) continue
       try {
         if (field === "history") await processarHistorico({ supabase, conexao, valor: change as unknown as ValorDoHistorico })
+        else if (field === "smb_message_echoes") await processarEcos({ supabase, conexao, valor: change as unknown as ValorDosEcos })
         else await processarAgenda({ supabase, conexao, valor: change as unknown as ValorDaAgenda })
       } catch (erro) {
         console.error("[whatsapp] erro no histórico do celular:", erro)
