@@ -32,6 +32,7 @@ import { condicoesComFunilApagado, esquemaFiltro } from "@/lib/filtro-contatos"
 import { filtroDoSegmento, type Segmento } from "@/lib/segmento-campanha"
 import { avisoDeSemReserva, variaveisSemReserva } from "@/lib/variaveis-mensagem"
 import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
+import { AVISO_TEMPLATE_NAO_APROVADO } from "@/lib/avisos-da-campanha"
 
 export type { Segmento } from "@/lib/segmento-campanha"
 
@@ -477,8 +478,6 @@ function validarDados(dados: DadosCampanha, paraEnvio: boolean, workspaceId: str
 const AVISO_ESCOLHA_O_TEMPLATE = "Escolha o template da campanha"
 const AVISO_TEMPLATE_SEM_NUMERO = "Escolha o número da API Oficial que vai enviar o template"
 const AVISO_TEMPLATE_NO_CANAL_DIRETO = "Template só existe na API Oficial. Escolha um número da API Oficial ou troque o tipo de mensagem."
-/** B54-06 (CA-B54-23): o template deixou de estar aprovado entre a escolha e a confirmação. */
-export const AVISO_TEMPLATE_NAO_APROVADO = "O template não está mais aprovado na Meta. Escolha outro ou corrija-o em Configurações > Templates"
 
 export async function salvarRascunho(
   id: string | null,

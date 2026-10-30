@@ -37,7 +37,8 @@ vi.mock("@/app/(auth)/contatos/actions", () => ({
   filtrarContatos: vi.fn(async () => ({ contatos: [], total: 0 })),
 }))
 
-import { AVISO_TEMPLATE_NAO_APROVADO, confirmarCampanha, type DadosCampanha } from "@/app/(auth)/campanhas/actions"
+import { confirmarCampanha, type DadosCampanha } from "@/app/(auth)/campanhas/actions"
+import { AVISO_TEMPLATE_NAO_APROVADO } from "@/lib/avisos-da-campanha"
 
 let statusNaMeta = "APPROVED"
 
