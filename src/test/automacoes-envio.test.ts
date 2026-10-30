@@ -15,6 +15,7 @@ import { executarAcao } from "@/lib/automacoes/acoes"
 import type { GatilhoAutomacao } from "@/lib/automacoes/contexto"
 import { MOTIVO_FALHA_DE_REDE, textoComVariaveis } from "@/lib/automacoes/envio"
 import { GatewayIndisponivel } from "@/lib/whatsapp/gateway/cliente"
+import { criarProviderMeta } from "@/lib/whatsapp/provider-meta"
 import { arquivoDaAutomacaoValido } from "@/lib/automacoes/referencias"
 import type { AcaoTipo, BlocoAcao } from "@/lib/fluxo-automacao"
 import { banco } from "./automacoes-banco-falso"
@@ -242,6 +243,37 @@ describe("enviar imagem ou documento", () => {
       media_filename: "Tabela de preços.pdf",
     })
     expect(b.gravacoes("conversations")[0].args[0]).toMatchObject({ last_message_text: "📄 Documento" })
+  })
+
+  it("CA-B53-01: pela API Oficial, imagem sai sem filename e documento sai com o nome", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ messages: [{ id: "wamid.B53" }] }),
+      text: async () => "",
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    try {
+      const meta = criarProviderMeta("phone-id-1", "token-1")
+      vi.mocked(resolverProviderDaConversa).mockResolvedValue(meta)
+      const foto = { arquivo: `${PASTA}1760000000-foto.jpg`, arquivo_nome: "foto.jpg", arquivo_tipo: "imagem" }
+
+      expect(
+        await executarAcao(banco({ contacts: { um: { phone_number: "5511999998888" } } }).contexto(mensagemRecebida), acao("enviar_midia", foto))
+      ).toEqual({ ok: true })
+      expect(
+        await executarAcao(banco({ contacts: { um: { phone_number: "5511999998888" } } }).contexto(mensagemRecebida), acao("enviar_midia", pdf))
+      ).toEqual({ ok: true })
+
+      const corpos = fetchMock.mock.calls.map(([, opcoes]) => JSON.parse(opcoes.body as string))
+      expect(corpos[0].type).toBe("image")
+      expect(corpos[0].image.link).toContain("1760000000-foto.jpg")
+      expect(corpos[0].image).not.toHaveProperty("filename")
+      expect(corpos[1].type).toBe("document")
+      expect(corpos[1].document.filename).toBe("Tabela de preços.pdf")
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it("arquivo de outra empresa: falha, e nada sai", async () => {

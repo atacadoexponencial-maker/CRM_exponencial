@@ -670,6 +670,11 @@ export interface CaminhoPercorrido extends ResultadoSimulacao {
   motivos: Record<string, string>
   /** O que encerrou o caminho no meio: uma condição que não conseguiu consultar o banco. */
   erro?: { bloco: string; motivo: string }
+  /**
+   * B53-03: a condição que deu "não" sem nada ligado na saída "não", e a primeira
+   * verificação dela que não valeu. É onde o caminho terminou.
+   */
+  naoAtendida?: { bloco: string; verificacao: Verificacao }
 }
 
 /** Quem avalia e quem executa: o motor consulta e grava no banco; a simulação só consulta. */
@@ -721,11 +726,11 @@ export async function percorrerFluxo(
 
     let saida: Saida = "proximo"
     if (bloco.tipo === "condicao") {
-      let valem = true
+      let naoValeu: Verificacao | undefined
       try {
         for (const verificacao of bloco.verificacoes) {
           if (!(await executores.avaliarVerificacao(verificacao))) {
-            valem = false
+            naoValeu = verificacao
             break
           }
         }
@@ -733,8 +738,11 @@ export async function percorrerFluxo(
         caminho.erro = { bloco: id, motivo: ERRO_NA_CONDICAO }
         break
       }
-      saida = valem ? "sim" : "nao"
+      saida = naoValeu ? "nao" : "sim"
       caminho.saidas[id] = saida
+      if (naoValeu && !fluxo.ligacoes.some((l) => l.de === id && l.saida === "nao")) {
+        caminho.naoAtendida = { bloco: id, verificacao: naoValeu }
+      }
     } else if (bloco.tipo === "acao") {
       const resultado = await executores
         .executarAcao(bloco)

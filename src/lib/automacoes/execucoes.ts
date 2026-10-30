@@ -9,6 +9,7 @@
 import type { Json } from "@/integrations/supabase/types"
 import type { Bloco, CaminhoPercorrido, Fluxo, Repeticao, SaidaDaEspera } from "@/lib/fluxo-automacao"
 import type { GatilhoAutomacao, ServiceClient } from "./contexto"
+import { VERIFICACOES } from "@/app/(auth)/configuracoes/automacoes/components/catalogo"
 
 /**
  * `esperando`: parada num bloco "esperar", com a mesma linha seguindo depois;
@@ -79,6 +80,18 @@ export function resultadoDoCaminho(caminho: CaminhoPercorrido): "concluida" | "f
 /** O mesmo, sobre o caminho gravado, que junta o que veio antes e depois de uma espera (B28-02). */
 export function resultadoDosPassos(passos: PassoGravado[]): "concluida" | "falhou" {
   return passos.some((p) => p.ok === false) ? "falhou" : "concluida"
+}
+
+/**
+ * B53-03: o motivo da execução que termina numa condição falsa sem nada ligado
+ * na saída "não", ou `null`. Só quando nenhuma ação rodou no caminho (também antes
+ * de uma espera): a que já fez alguma coisa continua concluída ou com falha, e
+ * segue contando para a proteção de repetição, que não olha as ignoradas.
+ */
+export function motivoDaCondicaoNaoAtendida(caminho: CaminhoPercorrido, passos: PassoGravado[]): string | null {
+  if (!caminho.naoAtendida || caminho.erro || caminho.espera) return null
+  if (passos.some((p) => p.bloco.tipo === "acao")) return null
+  return `Condição não atendida: ${VERIFICACOES[caminho.naoAtendida.verificacao.tipo].rotulo}`
 }
 
 /** Trecho da mensagem guardado no histórico: o bastante para reconhecer qual foi. */

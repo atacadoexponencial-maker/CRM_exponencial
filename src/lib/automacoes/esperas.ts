@@ -28,7 +28,7 @@ import {
   type SaidaDaEspera,
 } from "@/lib/fluxo-automacao"
 import type { ContextoDaExecucao, GatilhoAutomacao, MensagemDoEvento, ServiceClient } from "./contexto"
-import { passosDoCaminho, resultadoDosPassos, type PassoGravado } from "./execucoes"
+import { motivoDaCondicaoNaoAtendida, passosDoCaminho, resultadoDosPassos, type PassoGravado } from "./execucoes"
 import { lerFluxo } from "./fluxo-recebido"
 import { executoresDaRegra } from "./index"
 
@@ -236,11 +236,13 @@ export async function seguirPelaSaida(
   const agora = new Date()
   const anteriores = passos.map((p, i) => (i === passos.length - 1 ? { ...p, saida, em: agora.toISOString() } : p))
   const todos = [...anteriores, ...passosDoCaminho(fluxo, caminho, agora)]
+  // B53-03: depois da espera, parou numa condição falsa sem saída "não" e sem ação nenhuma
+  const naoAtendida = motivoDaCondicaoNaoAtendida(caminho, todos)
   await supabase
     .from("automation_runs")
     .update({
-      resultado: caminho.espera ? "esperando" : resultadoDosPassos(todos),
-      motivo: caminho.erro?.motivo ?? null,
+      resultado: caminho.espera ? "esperando" : naoAtendida ? "ignorada" : resultadoDosPassos(todos),
+      motivo: caminho.erro?.motivo ?? naoAtendida,
       caminho: todos as unknown as Json,
       retomar_em: caminho.espera ? retomarEm(fluxo, caminho.espera, agora) : null,
       retomada_em: null,
