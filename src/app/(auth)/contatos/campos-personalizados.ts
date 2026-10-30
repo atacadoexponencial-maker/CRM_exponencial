@@ -7,6 +7,7 @@ import { camposDaEmpresa, conferirEntradas, gravarValores, valoresDosContatos } 
 import { canonicoDoValor } from "@/lib/campos-personalizados"
 import { campoPersonalizado } from "@/lib/filtro-contatos"
 import { dispararCamposAlterados } from "@/lib/automacoes/gatilhos-do-crm"
+import { registrarEdicao } from "./edicoes"
 
 // B38-01: os campos personalizados no contato. Tudo roda com a sessão: o RLS de
 // `contato_campos` deixa ler e gravar só quem vê o contato (Admin e Gerente, a
@@ -72,11 +73,13 @@ export async function salvarCamposDoContato(
   if (gravado.erro) return gravado
 
   const novos = new Map(conferidas.gravar.map((g) => [g.campoId, g.valor]))
-  const mudancas = campos
+  const mudados = campos
     .filter((c) => tocados.includes(c.id))
-    .map((c) => ({ campo: campoPersonalizado(c), antes: canonicoDoValor(c.tipo, antes[c.id] ?? null), valor: canonicoDoValor(c.tipo, novos.get(c.id) ?? null) }))
+    .map((c) => ({ nome: c.nome, campo: campoPersonalizado(c), antes: canonicoDoValor(c.tipo, antes[c.id] ?? null), valor: canonicoDoValor(c.tipo, novos.get(c.id) ?? null) }))
     .filter((m) => m.antes !== m.valor)
-  await dispararCamposAlterados(perfil.workspace_id, contactId, mudancas)
+  await dispararCamposAlterados(perfil.workspace_id, contactId, mudados.map(({ campo, antes, valor }) => ({ campo, antes, valor })))
+  // B53-10: "Dados editados" na timeline, com o nome dos campos que mudaram
+  await registrarEdicao(supabase, { workspaceId: perfil.workspace_id, contactId, autorId: perfil.id, campos: mudados.map((m) => m.nome) })
 
   revalidatePath(`/contatos/${contactId}`)
   revalidatePath("/configuracoes/campos")

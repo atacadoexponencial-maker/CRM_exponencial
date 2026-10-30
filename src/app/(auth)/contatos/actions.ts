@@ -34,6 +34,7 @@ import { normalizarUf, UF_INVALIDA } from "@/lib/uf"
 import { canonicoDoValor, type EntradaDoCampo, type ValorGuardado } from "@/lib/campos-personalizados"
 import { camposDaEmpresa, conferirEntradas, gravarValores, valoresDosContatos } from "@/lib/campos-personalizados-servidor"
 import { conferirColunasOcultas } from "./colunas"
+import { camposQueMudaram, registrarEdicao } from "./edicoes"
 
 const CONTACT_SELECT = "id, name, phone_number, classificacao, tipo, cidade, uf, created_at, profiles!contacts_atendente_id_fkey(name)"
 
@@ -230,7 +231,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const [{ data }, { data: cardsData }, { data: tagsData }, { data: comprasData }, { data: conversacoesData }, { data: pedidosData }] = await Promise.all([
+  const [{ data }, { data: cardsData }, { data: tagsData }, { data: comprasData }, { data: conversacoesData }, { data: pedidosData }, { data: edicoesData }] = await Promise.all([
     supabase
       .from("contacts")
       .select(PERFIL_SELECT)
@@ -263,6 +264,11 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
       .select("id, number, created_at, customer_name, customer_whatsapp, pieces, total, status")
       .eq("contact_id", id)
       .order("created_at", { ascending: false }),
+    // B53-10: "Dados editados", com quem editou
+    supabase
+      .from("contato_edicoes")
+      .select("id, created_at, campos, autor:profiles!contato_edicoes_autor_id_fkey(name)")
+      .eq("contact_id", id),
   ])
 
   if (!data) return null
@@ -393,6 +399,16 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
     })
   }
 
+  for (const e of (edicoesData ?? []) as unknown as Array<{ id: string; created_at: string; campos: string[]; autor: { name: string } | null }>) {
+    eventos.push({
+      id: `edicao-${e.id}`,
+      created_at: e.created_at,
+      tipo: "dados_editados",
+      descricao: e.campos.join(", "),
+      responsavel: e.autor?.name ?? "",
+    })
+  }
+
   eventos.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   const fuso = await fusoDaEmpresa()
@@ -482,7 +498,7 @@ export async function atualizarDadosContato(
   if (uf === undefined) return { erro: UF_INVALIDA }
 
   // B11-06: o antes, para o gatilho "dado do contato alterado" só disparar no que mudou
-  const { data: antes } = await supabase.from("contacts").select("workspace_id, tipo, cidade").eq("id", id).maybeSingle()
+  const { data: antes } = await supabase.from("contacts").select("workspace_id, name, tipo, cidade, uf, icp").eq("id", id).maybeSingle()
 
   const depois = { tipo: dados.tipo ?? null, cidade: dados.cidade ?? null }
   const { error } = await supabase
@@ -492,7 +508,20 @@ export async function atualizarDadosContato(
 
   if (error) return { erro: "Erro ao salvar. Tente novamente." }
 
-  if (antes) await dispararDadosAlterados(antes.workspace_id, id, antes, depois)
+  if (antes) {
+    await dispararDadosAlterados(antes.workspace_id, id, antes, depois)
+    // B53-10: "Dados editados" na timeline, só com o que mudou
+    await registrarEdicao(supabase, {
+      workspaceId: antes.workspace_id,
+      contactId: id,
+      autorId: user.id,
+      campos: camposQueMudaram(
+        { name: "Nome", tipo: "Tipo", cidade: "Cidade", uf: "UF", icp: "ICP" },
+        antes,
+        { name: nome, ...depois, uf, icp: dados.icp ?? null }
+      ),
+    })
+  }
 
   return {}
 }
@@ -772,7 +801,7 @@ export async function atualizarObservacoesContato(
   // A leitura passa pela RLS: admin e gerente veem todos; o atendente, só os dele (B21).
   const { data: contato } = await supabase
     .from("contacts")
-    .select("workspace_id")
+    .select("workspace_id, observacoes")
     .eq("id", contactId)
     .is("excluido_em", null)
     .single()
@@ -782,6 +811,8 @@ export async function atualizarObservacoesContato(
   }
 
   if (observacoes.length > 5000) return { erro: "As observações passam de 5.000 caracteres." }
+  // B53-10: salvar sem mudar não grava nada, nem o evento
+  if ((contato.observacoes ?? "") === observacoes) return {}
 
   // QA M7 (06/10): a RLS só deixa admin e gerente atualizarem contatos; o atendente
   // não conseguia salvar observações nem no próprio contato. Quem chegou aqui
@@ -794,6 +825,7 @@ export async function atualizarObservacoesContato(
 
   if (error) return { erro: "Erro ao salvar. Tente novamente." }
 
+  await registrarEdicao(supabase, { workspaceId: profile.workspace_id, contactId, autorId: user.id, campos: ["Observações"] })
   return {}
 }
 

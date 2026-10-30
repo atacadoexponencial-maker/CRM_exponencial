@@ -1222,6 +1222,55 @@ export type Database = {
           },
         ]
       }
+      contato_edicoes: {
+        Row: {
+          autor_id: string | null
+          campos: string[]
+          contact_id: string
+          created_at: string
+          id: string
+          workspace_id: string
+        }
+        Insert: {
+          autor_id?: string | null
+          campos: string[]
+          contact_id: string
+          created_at?: string
+          id?: string
+          workspace_id: string
+        }
+        Update: {
+          autor_id?: string | null
+          campos?: string[]
+          contact_id?: string
+          created_at?: string
+          id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contato_edicoes_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contato_edicoes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contato_edicoes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_labels: {
         Row: {
           conversation_id: string
