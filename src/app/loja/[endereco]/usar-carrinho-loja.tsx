@@ -18,6 +18,8 @@ export function useCarrinhoLoja(endereco: string, tema: TemaLoja, minimo: Minimo
   const ultimoPedido = useUltimoPedido(endereco)
   const [avisoRepeticao, setAvisoRepeticao] = useState<string | null>(null)
   const [repetindo, setRepetindo] = useState(false)
+  // B53-13: nome e WhatsApp do pedido repetido, para o carrinho preencher os campos.
+  const [clienteRepetido, setClienteRepetido] = useState<{ nome: string; whatsapp: string } | null>(null)
 
   async function repetir() {
     if (!ultimoPedido || repetindo) return
@@ -31,6 +33,8 @@ export function useCarrinhoLoja(endereco: string, tema: TemaLoja, minimo: Minimo
       return
     }
     carrinho.substituir(r.itens.map((i) => ({ produtoId: i.produtoId, combinacao: i.combinacao, quantidade: i.quantidade, nome: i.nome, preco: i.preco, fotoUrl: i.fotoUrl, maximo: i.maximo, faixas: i.faixas, minimo: i.minimo, grade: i.grade })))
+    // Um objeto novo a cada repetição: o carrinho preenche de novo mesmo que ela tenha apagado.
+    if (ultimoPedido.cliente) setClienteRepetido({ ...ultimoPedido.cliente })
     const fora = textoDoQueFicouFora(r.fora)
     setAvisoRepeticao(fora ? `Pedido #${ultimoPedido.numero} repetido. ${fora}.` : `Pedido #${ultimoPedido.numero} repetido com as peças de hoje.`)
   }
@@ -78,14 +82,15 @@ export function useCarrinhoLoja(endereco: string, tema: TemaLoja, minimo: Minimo
       onRemover={carrinho.remover}
       onMudarQuantidades={carrinho.mudarQuantidades}
       onRemoverVarios={carrinho.removerVarios}
-      onPedidoFeito={({ numero }) => {
-        guardarUltimoPedido(endereco, numero, carrinho.itens)
+      onPedidoFeito={({ numero, cliente }) => {
+        guardarUltimoPedido(endereco, numero, carrinho.itens, cliente)
         setAvisoRepeticao(null)
         carrinho.esvaziar()
       }}
       ultimoPedido={ultimoPedido}
       onRepetirPedido={repetir}
       avisoRepeticao={avisoRepeticao}
+      clienteParaPreencher={clienteRepetido}
       onFazerPedido={enviar}
     />
   )

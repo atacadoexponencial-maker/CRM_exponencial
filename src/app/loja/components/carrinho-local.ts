@@ -150,16 +150,23 @@ export interface UltimoPedidoGuardado {
   numero: number | string
   /** Só o que identifica as peças; nome, preço e estoque vêm do servidor na hora de repetir. */
   pecas: { produtoId: string; combinacao: string; quantidade: number }[]
+  /** B53-13: nome e WhatsApp como a cliente digitou, para preencher ao repetir. Só neste aparelho. */
+  cliente?: ClienteGuardado
+}
+
+export interface ClienteGuardado {
+  nome: string
+  whatsapp: string
 }
 
 const chaveUltimo = (endereco: string) => `ultimo-pedido:${endereco}`
 const memoriaUltimo = new Map<string, UltimoPedidoGuardado | null>()
 const ouvintesUltimo = new Set<() => void>()
 
-export function guardarUltimoPedido(endereco: string, numero: number | string, itens: ItemCarrinho[]) {
+export function guardarUltimoPedido(endereco: string, numero: number | string, itens: ItemCarrinho[], cliente?: ClienteGuardado) {
   const pecas = itens.filter((i) => i.quantidade > 0).map((i) => ({ produtoId: i.produtoId, combinacao: i.combinacao, quantidade: i.quantidade }))
   if (pecas.length === 0) return
-  const guardado: UltimoPedidoGuardado = { numero, pecas }
+  const guardado: UltimoPedidoGuardado = cliente ? { numero, pecas, cliente: { nome: cliente.nome, whatsapp: cliente.whatsapp } } : { numero, pecas }
   memoriaUltimo.set(chaveUltimo(endereco), guardado)
   try {
     localStorage.setItem(chaveUltimo(endereco), JSON.stringify(guardado))
@@ -177,7 +184,12 @@ export function lerUltimoPedido(endereco: string): UltimoPedidoGuardado | null {
     const bruto = localStorage.getItem(chave)
     if (bruto) {
       const dados = JSON.parse(bruto) as UltimoPedidoGuardado
-      if (Array.isArray(dados.pecas) && dados.pecas.length > 0) lido = dados
+      if (Array.isArray(dados.pecas) && dados.pecas.length > 0) {
+        // B53-13: pedido guardado antes (sem cliente) ou cliente fora do formato: repete só as peças.
+        const c = dados.cliente
+        const clienteValido = !!c && typeof c.nome === "string" && typeof c.whatsapp === "string"
+        lido = clienteValido ? dados : { numero: dados.numero, pecas: dados.pecas }
+      }
     }
   } catch {
     lido = null

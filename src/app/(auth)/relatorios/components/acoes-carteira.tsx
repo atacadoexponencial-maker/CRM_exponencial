@@ -83,7 +83,8 @@ export function RemoverCarteiraDialog({ vendedor, total, onFeito }: { vendedor: 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setErro(null) }}>
       {/* B48-16: secundário vermelho; a confirmação é este diálogo */}
-      <DialogTrigger render={<Button size="sm" variant="destructive" />}>
+      {/* B53-14: sem contatos na carteira, não há o que remover */}
+      <DialogTrigger render={<Button size="sm" variant="destructive" disabled={total === 0} />}>
         <UserMinus className="size-3.5" /> Remover da carteira
       </DialogTrigger>
       <DialogPopup>

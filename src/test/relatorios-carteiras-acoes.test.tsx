@@ -1,7 +1,7 @@
 // B35-02 — diálogos de transferir e remover carteira: confirmação e papel.
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { calcularPainelDeCarteiras, type ContatoDaCarteira } from "@/lib/relatorios/carteiras"
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }))
@@ -64,5 +64,42 @@ describe("B35-02 — transferir e remover carteira (tela)", () => {
     expect(screen.getByText("Minha carteira")).toBeTruthy()
     expect(screen.queryByRole("button", { name: /Transferir carteira/ })).toBeNull()
     expect(screen.queryByRole("button", { name: /Remover da carteira/ })).toBeNull()
+  })
+})
+
+describe("B53-14 — carteiras: total do atendente e remover sem diálogo preso", () => {
+  it("CA-B53-27: o atendente com 2 contatos vê \"2 na carteira\" e nenhum selo \"Minha carteira 1\"", () => {
+    const doAtendente: ResultadoCarteiras = { papel: "atendente", painel: calcularPainelDeCarteiras([contato("c1", ANA), contato("c2", ANA)], [VENDEDORES[0]]), historico: null }
+    render(<CarteirasClient inicial={doAtendente} />)
+    const titulo = screen.getByRole("heading", { name: /Minha carteira/ })
+    expect(titulo.textContent?.trim()).toBe("Minha carteira")
+    expect(screen.queryByTestId("selo-vendedores")).toBeNull()
+    expect(screen.getByTestId(`vendedor-${ANA}`)).toHaveTextContent("2 na carteira")
+  })
+
+  it("CA-B53-28: na linha do vendedor com 0 contatos, \"Remover da carteira\" não está disponível", async () => {
+    render(<CarteirasClient inicial={resultado("admin")} />)
+    // Bruno não tem contato; Ana tem 3 e segue com o botão disponível.
+    expect(screen.getByTestId(`vendedor-${BRUNO}`)).toHaveTextContent("0 na carteira")
+    const doBruno = within(screen.getByTestId(`acoes-${BRUNO}`)).getByRole("button", { name: /Remover da carteira/ })
+    expect(doBruno).toBeDisabled()
+    fireEvent.click(doBruno)
+    await new Promise((r) => setTimeout(r, 50))
+    expect(screen.queryByTestId("confirmacao-remover")).toBeNull()
+    expect(within(screen.getByTestId(`acoes-${ANA}`)).getByRole("button", { name: /Remover da carteira/ })).not.toBeDisabled()
+  })
+
+  it("CA-B53-29: confirmar \"Remover da carteira\" de quem tem 3 contatos fecha o diálogo e a linha mostra 0", async () => {
+    removerCarteira.mockResolvedValue({ quantidade: 3 })
+    // Depois de remover, o painel recarrega com os 3 contatos sem vendedor.
+    buscarCarteiras.mockResolvedValue({ ...resultado("admin"), painel: calcularPainelDeCarteiras([contato("c1", null), contato("c2", null), contato("c3", null)], VENDEDORES) })
+    render(<CarteirasClient inicial={resultado("admin")} />)
+    expect(screen.getByTestId(`vendedor-${ANA}`)).toHaveTextContent("3 na carteira")
+    fireEvent.click(within(screen.getByTestId(`acoes-${ANA}`)).getByRole("button", { name: /Remover da carteira/ }))
+    expect(await screen.findByTestId("confirmacao-remover")).toHaveTextContent("Deixar 3 contatos de Ana sem vendedor?")
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }))
+    await waitFor(() => expect(removerCarteira).toHaveBeenCalledWith(ANA))
+    await waitFor(() => expect(screen.queryByTestId("confirmacao-remover")).toBeNull())
+    await waitFor(() => expect(screen.getByTestId(`vendedor-${ANA}`)).toHaveTextContent("0 na carteira"))
   })
 })
