@@ -441,6 +441,34 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
       {/* ─── Etapa 2: Mensagem ─── */}
       {etapa === 2 && (
         <div className="flex flex-col gap-5">
+          {/* B7-03: por qual número a campanha dispara. B54-03: escolhido antes da mensagem,
+              porque o tipo de mensagem depende do canal do número. */}
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="camp-numero">Enviar pelo número</Label>
+            {numeros.length === 0 ? (
+              <p className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
+                Nenhum número conectado. Conecte um número em Configurações &gt; WhatsApp antes de
+                disparar.
+              </p>
+            ) : (
+              <select
+                id="camp-numero"
+                className={selectClass}
+                value={numeroOrigem}
+                onChange={(e) => setNumeroOrigem(e.target.value)}
+              >
+                <option value="">Usar o número conectado da empresa</option>
+                {numeros.map((n) => (
+                  <option key={n.id} value={n.id}>
+                    {[n.numero ?? "número não confirmado", n.nomeExibicao, n.canalNome]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
           <div className="flex flex-col gap-2">
             <Label>Tipo de mensagem</Label>
             <div className="flex gap-2">
@@ -532,60 +560,35 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
       {/* ─── Etapa 3: Agendamento ─── */}
       {etapa === 3 && (
         <div className="flex flex-col gap-5">
-          {/* B7-03: por qual número a campanha dispara. */}
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="camp-numero">Enviar pelo número</Label>
-            {numeros.length === 0 ? (
-              <p className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
-                Nenhum número conectado. Conecte um número em Configurações &gt; WhatsApp antes de
-                disparar.
-              </p>
-            ) : (
-              <>
-                <select
-                  id="camp-numero"
-                  className={selectClass}
-                  value={numeroOrigem}
-                  onChange={(e) => setNumeroOrigem(e.target.value)}
-                >
-                  <option value="">Usar o número conectado da empresa</option>
-                  {numeros.map((n) => (
-                    <option key={n.id} value={n.id}>
-                      {[n.numero ?? "número não confirmado", n.nomeExibicao, n.canalNome]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </option>
-                  ))}
-                </select>
-                {/* B8-01: o aviso e a estimativa vêm prontos do servidor. */}
-                {avaliacao?.aviso && (
-                  <p className="flex gap-2 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-3 text-xs ">
-                    <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
-                    <span>{avaliacao.aviso}</span>
-                  </p>
-                )}
-                {/* B26-03: número em aquecimento, com o dia e os limites que a fila usa */}
-                {avaliacao?.aquecimento && (
-                  <p className="flex gap-2 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-3 text-xs">
-                    <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
-                    <span>{avaliacao.aquecimento}</span>
-                  </p>
-                )}
-                {avaliacao?.estimativa && (
-                  <p className="rounded-lg border bg-muted/40 p-3 text-xs">
-                    <strong className="font-medium">Duração estimada:</strong> {avaliacao.estimativa}
-                    {!avaliacao.ritmoConfirmado && (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        Estimativa aproximada: o ritmo atual do número não pôde ser consultado, e o
-                        padrão do sistema foi usado.
-                      </span>
-                    )}
-                  </p>
-                )}
-              </>
-            )}
-          </div>
+          {/* B8-01/B26-03: a avaliação do disparo pelo número escolhido na etapa 2 (B54-03). */}
+          {numeros.length > 0 && (avaliacao?.aviso || avaliacao?.aquecimento || avaliacao?.estimativa) && (
+            <div className="flex flex-col gap-2">
+              {avaliacao?.aviso && (
+                <p className="flex gap-2 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-3 text-xs ">
+                  <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
+                  <span>{avaliacao.aviso}</span>
+                </p>
+              )}
+              {avaliacao?.aquecimento && (
+                <p className="flex gap-2 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-3 text-xs">
+                  <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
+                  <span>{avaliacao.aquecimento}</span>
+                </p>
+              )}
+              {avaliacao?.estimativa && (
+                <p className="rounded-lg border bg-muted/40 p-3 text-xs">
+                  <strong className="font-medium">Duração estimada:</strong> {avaliacao.estimativa}
+                  {!avaliacao.ritmoConfirmado && (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      Estimativa aproximada: o ritmo atual do número não pôde ser consultado, e o
+                      padrão do sistema foi usado.
+                    </span>
+                  )}
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex flex-col gap-2">
             <Label>Quando enviar</Label>
