@@ -3,8 +3,8 @@
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import { escaparLike } from "@/lib/escapar-like"
-import { instanteNoFuso } from "@/lib/datas"
 import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
+import { lerVencimento, vencimentoAoAdiar } from "./vencimento"
 
 export type ItemAgenda = {
   id: string
@@ -134,8 +134,15 @@ export async function adiarLembrete(id: string, dias: number): Promise<{ erro?: 
   const { supabase, perfil } = await perfilAtual()
   if (!perfil) return { erro: "Não autenticado" }
 
-  const novaData = new Date()
-  novaData.setDate(novaData.getDate() + dias)
+  // B53-09: soma ao horário original do lembrete, no fuso da empresa
+  const { data: atual } = await supabase
+    .from("reminders")
+    .select("due_at")
+    .eq("id", id)
+    .eq("status", "pendente")
+    .maybeSingle()
+  if (!atual) return { erro: "Não foi possível adiar o lembrete" }
+  const novaData = vencimentoAoAdiar(atual.due_at, dias, await fusoDaEmpresa())
 
   const { error } = await supabase
     .from("reminders")
@@ -159,22 +166,6 @@ export async function reatribuirLembrete(id: string, atendenteId: string): Promi
 
   if (error) return { erro: "Não foi possível reatribuir" }
   return {}
-}
-
-/**
- * Vencimento do follow-up a partir da data e da hora do formulário, no fuso da
- * empresa (QA M12, 06/10: a Vercel roda em UTC, e 09:00 viraria 06:00; B48-14: o
- * fuso deixou de ser sempre Brasília). Serve ao criar e ao editar (B48-06).
- */
-function lerVencimento(data: string, hora: string | undefined, fuso: string): { dueAt: Date } | { erro: string } {
-  if (!data) return { erro: "Escolha a data" }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return { erro: "Data inválida" }
-  if (hora && !/^\d{2}:\d{2}$/.test(hora)) return { erro: "Hora inválida" }
-  const dueAt = instanteNoFuso(data, hora || "09:00", fuso)
-  if (Number.isNaN(dueAt.getTime())) return { erro: "Data inválida" }
-  // QA baixos (06/10): follow-up no passado nasceria atrasado.
-  if (dueAt.getTime() < Date.now() - 60_000) return { erro: "A data do follow-up já passou." }
-  return { dueAt }
 }
 
 /** O contato existe, é da empresa e não está na lixeira (B13-03). */
