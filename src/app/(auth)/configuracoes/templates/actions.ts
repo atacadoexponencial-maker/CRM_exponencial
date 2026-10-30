@@ -7,10 +7,10 @@ import {
   AVISO_SEM_EXEMPLO_DO_CABECALHO,
   componentsParaMeta,
   motivoDaRecusaDaMeta,
-  partesDoTemplate,
   type ExemplosDoTemplate,
   type PartesDoTemplate,
 } from "@/lib/templates-da-meta"
+import { buscarTemplatesDaMeta } from "@/lib/templates-da-meta-graph"
 
 export type Template = {
   id: string
@@ -45,7 +45,8 @@ async function obterConexao() {
   const { user, perfil } = await sessaoAtual()
   if (!user) return null
 
-  if (perfil?.role !== "admin") return null
+  // B54-04 (CA-B54-22): o Gerente vê e mexe em templates como o Admin.
+  if (!perfil || !["admin", "gerente"].includes(perfil.role)) return null
 
   // B19-03: `access_token` só é legível pela chave de serviço; o filtro de empresa fica.
   // B53-08: template só existe na API Oficial; com chip na mesma empresa, o filtro só
@@ -61,32 +62,20 @@ async function obterConexao() {
   return conexao
 }
 
-const ERRO_AO_CARREGAR_TEMPLATES = "Não foi possível carregar os templates da Meta"
-
 export async function listarTemplates(): Promise<{ templates: Template[]; erro?: string }> {
   const conexao = await obterConexao()
   if (!conexao) return { templates: [] }
 
   // B53-08: erro da Meta vira aviso na tela, não lista vazia.
-  let data: { data?: unknown[] }
-  try {
-    const res = await fetch(
-      `https://graph.facebook.com/v21.0/${conexao.waba_id}/message_templates?fields=id,name,status,category,language,rejected_reason,components&limit=50&access_token=${conexao.access_token}`
-    )
-    if (!res.ok) return { templates: [], erro: ERRO_AO_CARREGAR_TEMPLATES }
-    data = await res.json()
-  } catch {
-    return { templates: [], erro: ERRO_AO_CARREGAR_TEMPLATES }
-  }
+  // B54-04: a consulta é a mesma da campanha (`buscarTemplatesDaMeta`).
+  const { templates, erro } = await buscarTemplatesDaMeta(conexao.waba_id, conexao.access_token)
+  if (erro) return { templates: [], erro }
 
   return {
-    templates: ((data.data ?? []) as Array<Omit<Template, "partes"> & { rejected_reason?: unknown; components?: unknown }>).map(
-      ({ rejected_reason, components, ...t }) => ({
-        ...t,
-        partes: partesDoTemplate(components),
-        ...(t.status === "REJECTED" ? { motivo: motivoDaRejeicao(rejected_reason) } : {}),
-      })
-    ),
+    templates: templates.map(({ rejectedReason, ...t }) => ({
+      ...t,
+      ...(t.status === "REJECTED" ? { motivo: motivoDaRejeicao(rejectedReason) } : {}),
+    })),
   }
 }
 

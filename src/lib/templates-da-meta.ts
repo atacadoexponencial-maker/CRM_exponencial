@@ -31,6 +31,14 @@ export const ROTULO_DO_CABECALHO: Record<Exclude<TipoDeCabecalho, "texto">, stri
   localizacao: "Localização",
 }
 
+/**
+ * B54-04: os templates que uma campanha pode escolher: só aprovados e nunca os de
+ * autenticação, cujo conteúdo a Meta fixa (SUP-B54-02).
+ */
+export function aprovadosParaCampanha<T extends { status: string; category: string }>(templates: T[]): T[] {
+  return templates.filter((t) => t.status === "APPROVED" && t.category !== "AUTHENTICATION")
+}
+
 /** B54-02: a Meta só deixa editar template aprovado, rejeitado ou pausado. */
 export const PODE_EDITAR = new Set(["APPROVED", "REJECTED", "PAUSED"])
 

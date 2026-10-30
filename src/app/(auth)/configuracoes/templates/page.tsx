@@ -13,7 +13,8 @@ export default async function TemplatesPage() {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
 
-  if (perfil?.role !== "admin") redirect("/perfil?motivo=sem-permissao")
+  // B54-04 (CA-B54-22): Admin e Gerente; o Atendente continua fora.
+  if (!perfil || !["admin", "gerente"].includes(perfil.role)) redirect("/perfil?motivo=sem-permissao")
 
   // B7-02: template de mensagem só existe na API Oficial. Quem tem apenas
   // número do canal direto não deve ver uma gestão que não se aplica a ele — e

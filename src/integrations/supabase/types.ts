@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.18"
   }
   public: {
     Tables: {
@@ -280,6 +280,7 @@ export type Database = {
           id: string
           motivo: string | null
           nome_snapshot: string | null
+          reservado_em: string | null
           status: string
           telefone_snapshot: string
           wamid: string | null
@@ -293,6 +294,7 @@ export type Database = {
           id?: string
           motivo?: string | null
           nome_snapshot?: string | null
+          reservado_em?: string | null
           status?: string
           telefone_snapshot: string
           wamid?: string | null
@@ -306,6 +308,7 @@ export type Database = {
           id?: string
           motivo?: string | null
           nome_snapshot?: string | null
+          reservado_em?: string | null
           status?: string
           telefone_snapshot?: string
           wamid?: string | null
@@ -350,6 +353,7 @@ export type Database = {
           nome: string
           segmento: Json
           status: string
+          template: Json | null
           tipo_mensagem: string
           whatsapp_connection_id: string | null
           workspace_id: string
@@ -368,6 +372,7 @@ export type Database = {
           nome: string
           segmento?: Json
           status?: string
+          template?: Json | null
           tipo_mensagem?: string
           whatsapp_connection_id?: string | null
           workspace_id: string
@@ -386,6 +391,7 @@ export type Database = {
           nome?: string
           segmento?: Json
           status?: string
+          template?: Json | null
           tipo_mensagem?: string
           whatsapp_connection_id?: string | null
           workspace_id?: string
@@ -1369,6 +1375,50 @@ export type Database = {
           },
         ]
       }
+      convites: {
+        Row: {
+          cancelado_em: string | null
+          criado_em: string
+          criado_por: string | null
+          email: string | null
+          expira_em: string
+          id: string
+          token_hash: string
+          usado_em: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          cancelado_em?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          email?: string | null
+          expira_em: string
+          id?: string
+          token_hash: string
+          usado_em?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          cancelado_em?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          email?: string | null
+          expira_em?: string
+          id?: string
+          token_hash?: string
+          usado_em?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convites_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_deletion_requests: {
         Row: {
           confirmation_code: string
@@ -2055,6 +2105,21 @@ export type Database = {
           },
         ]
       }
+      plataforma_admins: {
+        Row: {
+          criado_em: string
+          email: string
+        }
+        Insert: {
+          criado_em?: string
+          email: string
+        }
+        Update: {
+          criado_em?: string
+          email?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           colunas_ocultas_contatos: string[]
@@ -2127,6 +2192,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      redefinicoes_de_senha: {
+        Row: {
+          cancelado_em: string | null
+          criado_em: string
+          expira_em: string
+          id: string
+          token_hash: string
+          usado_em: string | null
+          user_id: string
+        }
+        Insert: {
+          cancelado_em?: string | null
+          criado_em?: string
+          expira_em: string
+          id?: string
+          token_hash: string
+          usado_em?: string | null
+          user_id: string
+        }
+        Update: {
+          cancelado_em?: string | null
+          criado_em?: string
+          expira_em?: string
+          id?: string
+          token_hash?: string
+          usado_em?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       reminders: {
         Row: {
@@ -2494,29 +2589,44 @@ export type Database = {
       workspaces: {
         Row: {
           created_at: string
+          dono_id: string | null
           fuso: string
           id: string
           name: string
         }
         Insert: {
           created_at?: string
+          dono_id?: string | null
           fuso?: string
           id?: string
           name: string
         }
         Update: {
           created_at?: string
+          dono_id?: string | null
           fuso?: string
           id?: string
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "workspaces_dono_id_fkey"
+            columns: ["dono_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      alinhar_donos_dos_contatos: {
+        Args: { p_workspace_id: string }
+        Returns: number
+      }
       apagar_contato_de_vez: {
         Args: { p_contact_id: string }
         Returns: boolean
@@ -2545,11 +2655,22 @@ export type Database = {
         }
         Returns: string
       }
+      cadastrar_empresa_com_convite: {
+        Args: {
+          p_convite_hash: string
+          p_email: string
+          p_nome_empresa: string
+          p_nome_responsavel: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       condicao_de_contato_sql: { Args: { p_cond: Json }; Returns: string }
       conferir_perfis_rfv: {
         Args: { p_dia: string; p_workspace?: string }
         Returns: number
       }
+      conta_ativa_por_email: { Args: { p_email: string }; Returns: string }
       contato_na_lixeira: { Args: { p_contact_id: string }; Returns: boolean }
       conversa_na_lixeira: {
         Args: { p_conversation_id: string }
@@ -2568,7 +2689,12 @@ export type Database = {
           trecho: string
         }[]
       }
+      criar_cards_de_entrada_que_faltam: {
+        Args: { p_workspace_id: string }
+        Returns: number
+      }
       criar_funil: { Args: { p_etapas: Json; p_nome: string }; Returns: string }
+      email_ja_tem_conta: { Args: { p_email: string }; Returns: boolean }
       filtrar_contatos: {
         Args: {
           p_busca?: string
@@ -2707,6 +2833,15 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      reservar_tentativa: {
+        Args: {
+          p_chave: string
+          p_janela_minutos: number
+          p_limite: number
+          p_tipo: string
+        }
+        Returns: number
+      }
       salvar_estoque_produto:
         | {
             Args: { p_estoque: Json; p_produto: string; p_tipos: Json }
@@ -2728,6 +2863,10 @@ export type Database = {
           p_id: string
           p_nome: string
         }
+        Returns: string
+      }
+      usar_redefinicao_de_senha: {
+        Args: { p_token_hash: string }
         Returns: string
       }
     }

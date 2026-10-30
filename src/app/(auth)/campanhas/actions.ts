@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache"
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
+import { aprovadosParaCampanha, type PartesDoTemplate, type TipoDeCabecalho } from "@/lib/templates-da-meta"
+import { buscarTemplatesDaMeta } from "@/lib/templates-da-meta-graph"
 import { anexoDaEmpresa } from "@/lib/anexo-da-campanha"
 import { processarCampanhasPendentes } from "@/lib/campanhas"
 import { nomeDoCanal } from "@/lib/whatsapp"
@@ -41,13 +43,38 @@ export type CampanhaDetalhe = {
   nome: string
   status: string
   segmento: Segmento
-  tipoMensagem: "texto" | "imagem" | "documento"
+  tipoMensagem: TipoDeMensagemDaCampanha
   conteudo: string
   arquivoUrl: string | null
   arquivoNome: string | null
   agendadaPara: string | null
   /** B7-03: número de origem escolhido. Nulo: cai no número do workspace. */
   whatsappConnectionId: string | null
+  /** B54-04: o template escolhido, só no tipo `template`. Ausente nas campanhas antigas. */
+  template?: TemplateDaCampanha | null
+}
+
+/** B54-04: a campanha por template da API Oficial entra como quarto tipo. */
+export type TipoDeMensagemDaCampanha = "texto" | "imagem" | "documento" | "template"
+
+/**
+ * B54-04: o que a campanha guarda do template escolhido: a identificação na Meta e o
+ * tipo do cabeçalho (para a B54-05 pedir o arquivo quando é mídia).
+ */
+export type TemplateDaCampanha = {
+  id: string
+  name: string
+  language: string
+  cabecalho: TipoDeCabecalho | null
+}
+
+/** B54-04: um template que a campanha pode escolher, já filtrado no servidor. */
+export type TemplateParaCampanha = {
+  id: string
+  name: string
+  language: string
+  category: string
+  partes: PartesDoTemplate | null
 }
 
 /**
@@ -70,12 +97,14 @@ export type DestinatarioPreview = { id: string; nome: string; telefone: string }
 export type DadosCampanha = {
   nome: string
   segmento: Segmento
-  tipoMensagem: "texto" | "imagem" | "documento"
+  tipoMensagem: TipoDeMensagemDaCampanha
   conteudo: string
   arquivoUrl: string | null
   arquivoNome: string | null
   /** B7-03: número de origem. Nulo mantém o comportamento antigo. */
   whatsappConnectionId?: string | null
+  /** B54-04: só no tipo `template`. */
+  template?: TemplateDaCampanha | null
 }
 
 async function perfilGestor() {
@@ -191,7 +220,7 @@ export async function buscarCampanha(id: string): Promise<CampanhaDetalhe | null
 
   const { data } = await supabase
     .from("campaigns")
-    .select("id, nome, status, segmento, tipo_mensagem, conteudo, arquivo_url, arquivo_nome, agendada_para, whatsapp_connection_id")
+    .select("id, nome, status, segmento, tipo_mensagem, conteudo, arquivo_url, arquivo_nome, agendada_para, whatsapp_connection_id, template")
     .eq("id", id)
     .eq("workspace_id", perfil.workspace_id)
     .single()
@@ -204,12 +233,40 @@ export async function buscarCampanha(id: string): Promise<CampanhaDetalhe | null
     status: data.status,
     // B42-02: campanha antiga abre com o filtro equivalente; reenvio segue sem filtro.
     segmento: paraATela((data.segmento ?? {}) as Segmento),
-    tipoMensagem: data.tipo_mensagem,
+    tipoMensagem: data.tipo_mensagem as TipoDeMensagemDaCampanha,
     conteudo: data.conteudo ?? "",
     arquivoUrl: data.arquivo_url,
     arquivoNome: data.arquivo_nome,
     agendadaPara: data.agendada_para,
     whatsappConnectionId: data.whatsapp_connection_id ?? null,
+    template: (data.template as TemplateDaCampanha | null) ?? null,
+  }
+}
+
+/**
+ * B54-04: os templates que a campanha pode usar no número escolhido: só os aprovados
+ * da API Oficial, sem os de autenticação (SUP-B54-02). O número tem de ser da empresa
+ * e da API Oficial; no canal direto não há template, e a lista volta vazia.
+ */
+export async function templatesParaCampanha(
+  connectionId: string
+): Promise<{ templates: TemplateParaCampanha[]; erro?: string }> {
+  const { perfil } = await perfilGestor()
+  if (!perfil) return { templates: [] }
+
+  // B19-03: `access_token` só pela chave de serviço, com o filtro de empresa.
+  const { data: conexao } = await createServiceClient()
+    .from("whatsapp_connections")
+    .select("waba_id, access_token, canal")
+    .eq("id", connectionId)
+    .eq("workspace_id", perfil.workspace_id)
+    .maybeSingle()
+  if (!conexao || (conexao.canal ?? "meta") !== "meta" || !conexao.waba_id || !conexao.access_token) return { templates: [] }
+
+  const { templates, erro } = await buscarTemplatesDaMeta(conexao.waba_id, conexao.access_token)
+  if (erro) return { templates: [], erro }
+  return {
+    templates: aprovadosParaCampanha(templates).map(({ id, name, language, category, partes }) => ({ id, name, language, category, partes })),
   }
 }
 
@@ -364,12 +421,25 @@ function validarDados(dados: DadosCampanha, paraEnvio: boolean, workspaceId: str
   // B38-05: toda variável tem texto reserva (CA-B38-48)
   const semReserva = avisoDeSemReserva(dados.conteudo ?? "")
   if (semReserva) return semReserva
+  // B54-04: template só com número da API Oficial escolhido (SUP-B54-04); o canal é
+  // conferido em `numeroEhDaApiOficial`, junto da conferência de empresa.
+  if (dados.tipoMensagem === "template") {
+    if (!dados.template?.id || !dados.template.name || !dados.template.language) return AVISO_ESCOLHA_O_TEMPLATE
+    if (!dados.whatsappConnectionId) return AVISO_TEMPLATE_SEM_NUMERO
+  }
   if (paraEnvio) {
+    if (dados.tipoMensagem === "template") return AVISO_ENVIO_DE_TEMPLATE_AINDA_NAO
     if (!dados.conteudo.trim()) return "Escreva a mensagem da campanha"
     if (dados.tipoMensagem !== "texto" && !dados.arquivoUrl) return "Anexe o arquivo da campanha"
   }
   return null
 }
+
+const AVISO_ESCOLHA_O_TEMPLATE = "Escolha o template da campanha"
+const AVISO_TEMPLATE_SEM_NUMERO = "Escolha o número da API Oficial que vai enviar o template"
+const AVISO_TEMPLATE_NO_CANAL_DIRETO = "Template só existe na API Oficial. Escolha um número da API Oficial ou troque o tipo de mensagem."
+/** B54-04: o envio em si chega na B54-06; até lá a campanha por template só fica salva. */
+const AVISO_ENVIO_DE_TEMPLATE_AINDA_NAO = "O envio de campanha por template ainda não está disponível. A campanha fica salva como rascunho."
 
 export async function salvarRascunho(
   id: string | null,
@@ -385,11 +455,13 @@ export async function salvarRascunho(
   if (dados.whatsappConnectionId) {
     const { data: conexao } = await supabase
       .from("whatsapp_connections")
-      .select("id")
+      .select("id, canal")
       .eq("id", dados.whatsappConnectionId)
       .eq("workspace_id", perfil.workspace_id)
       .maybeSingle()
     if (!conexao) return { erro: "Número de WhatsApp inválido para esta campanha" }
+    // B54-04: template é da API Oficial; no canal direto não existe.
+    if (dados.tipoMensagem === "template" && (conexao.canal ?? "meta") !== "meta") return { erro: AVISO_TEMPLATE_NO_CANAL_DIRETO }
   }
 
   const payload = {
@@ -401,6 +473,8 @@ export async function salvarRascunho(
     arquivo_nome: dados.arquivoNome,
     // B7-03: nulo é válido e significa "o número do workspace", como antes.
     whatsapp_connection_id: dados.whatsappConnectionId ?? null,
+    // B54-04: o template escolhido; nulo fora do tipo template.
+    template: dados.tipoMensagem === "template" ? (dados.template ?? null) : null,
   }
 
   if (id) {
@@ -814,7 +888,7 @@ export async function criarReenvioParaFalhos(campanhaId: string): Promise<{ id?:
 
   const { data: origem } = await supabase
     .from("campaigns")
-    .select("nome, tipo_mensagem, conteudo, arquivo_url, arquivo_nome")
+    .select("nome, tipo_mensagem, conteudo, arquivo_url, arquivo_nome, whatsapp_connection_id, template")
     .eq("id", campanhaId)
     .eq("workspace_id", perfil.workspace_id)
     .single()
@@ -839,6 +913,9 @@ export async function criarReenvioParaFalhos(campanhaId: string): Promise<{ id?:
       conteudo: origem.conteudo,
       arquivo_url: origem.arquivo_url,
       arquivo_nome: origem.arquivo_nome,
+      // B54-04: o reenvio sai pelo mesmo número e com o mesmo template.
+      whatsapp_connection_id: origem.whatsapp_connection_id,
+      template: origem.template,
       criado_por: user!.id,
     })
     .select("id")
