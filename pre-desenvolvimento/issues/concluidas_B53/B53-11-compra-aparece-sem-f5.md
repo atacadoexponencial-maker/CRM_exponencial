@@ -25,4 +25,10 @@ Nenhuma.
 
 | ID | Pergunta | Status | Resposta |
 |---|---|---|---|
-| PER-B53-01 | Por onde o Luan registrou a compra que só apareceu com F5 (botão do perfil, pedido do catálogo fechado ou Chat)? O código do botão do perfil já recarrega a lista. | aberta | — |
+| PER-B53-01 | Por onde o Luan registrou a compra que só apareceu com F5 (botão do perfil, pedido do catálogo fechado ou Chat)? O código do botão do perfil já recarrega a lista. | respondida | Marcelle, 30/10/2026: refez no ar e a compra apareceu sem F5, pelo botão do perfil e pelo pedido do catálogo; não se reproduz mais. |
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B53-24 | Marcelle | 30/10/2026 |

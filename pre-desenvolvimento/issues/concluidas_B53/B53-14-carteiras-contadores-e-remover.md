@@ -27,7 +27,7 @@ Nenhuma.
 
 | ID | Pergunta | Status | Resposta |
 |---|---|---|---|
-| PER-B53-02 | O "Remover da carteira" que ficou aberto mostrando 0 era a segunda abertura do diálogo, já com 0 contatos? O código atual fecha o diálogo depois de remover. | aberta | — |
+| PER-B53-02 | O "Remover da carteira" que ficou aberto mostrando 0 era a segunda abertura do diálogo, já com 0 contatos? O código atual fecha o diálogo depois de remover. | respondida | Marcelle, 30/10/2026: refez no ar; o diálogo fecha e a linha vai para 0, e com 0 contatos o "Remover" fica desabilitado. |
 
 > Os critérios cobrem as duas respostas possíveis: com 0 contatos o botão fica indisponível (não há segunda abertura com 0) e, ao confirmar, o diálogo fecha e a linha mostra 0. Implementado antes da resposta do Luan, por pedido da Marcelle (urgência, 30/10/2026).
 
