@@ -43,6 +43,7 @@ import {
   motivoParaIgnorar,
   passosDoCaminho,
   registrarExecucao,
+  motivoDaCondicaoNaoAtendida,
   resultadoDoCaminho,
   type RegraDaExecucao,
 } from "./execucoes"
@@ -205,13 +206,16 @@ async function executarRegra(contexto: ContextoDaExecucao, regra: RegraCarregada
     const daRegra: ContextoDaExecucao = { ...contexto, regra: { id: regra.id, nome: regra.nome } }
     const caminho = await percorrerFluxo(regra.fluxo, executoresDaRegra(daRegra))
     const agora = new Date()
+    const passos = passosDoCaminho(regra.fluxo, caminho, agora)
+    // B53-03: parou numa condição falsa sem saída "não" e sem ação nenhuma: ignorada, com o motivo
+    const naoAtendida = motivoDaCondicaoNaoAtendida(caminho, passos)
     // B28-02: parado num bloco "esperar", fica esperando; o relógio segue depois (`esperas.ts`)
     await registrarExecucao(supabase, {
       gatilho,
       regra,
-      resultado: caminho.espera ? "esperando" : resultadoDoCaminho(caminho),
-      motivo: caminho.erro?.motivo,
-      passos: passosDoCaminho(regra.fluxo, caminho, agora),
+      resultado: caminho.espera ? "esperando" : naoAtendida ? "ignorada" : resultadoDoCaminho(caminho),
+      motivo: caminho.erro?.motivo ?? naoAtendida,
+      passos,
       retomarEm: caminho.espera ? retomarEm(regra.fluxo, caminho.espera, agora) : null,
     })
   } catch {

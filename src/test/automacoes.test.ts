@@ -483,6 +483,57 @@ describe("histórico e proteção de repetição (B11-03)", () => {
     ])
   })
 
+  describe("B53-03 — condição não atendida sem saída 'não'", () => {
+    // Gatilho → [ação] → condição "tag do contato tem vip" → (sim) mensagem; o "não" fica sem ligação
+    const comCondicao = (acaoAntes: boolean): Fluxo => ({
+      blocos: [
+        { id: "g", tipo: "gatilho", gatilho: "conversa_criada", parametros: {}, posicao },
+        ...(acaoAntes ? [{ id: "etiqueta", tipo: "acao" as const, acao: "aplicar_etiqueta" as const, parametros: { label_id: "label-1" }, posicao }] : []),
+        { id: "c", tipo: "condicao", verificacoes: [{ id: "v", tipo: "tag_contato", operador: "tem", valor: "vip" }], posicao },
+        { id: "msg", tipo: "acao", acao: "enviar_mensagem", parametros: { texto: "Oi" }, posicao },
+      ],
+      ligacoes: [
+        ...(acaoAntes
+          ? [{ de: "g", saida: "proximo" as const, para: "etiqueta" }, { de: "etiqueta", saida: "proximo" as const, para: "c" }]
+          : [{ de: "g", saida: "proximo" as const, para: "c" }]),
+        { de: "c", saida: "sim", para: "msg" },
+      ],
+    })
+    const regraCom = (f: Fluxo) =>
+      chain({ data: [{ id: "regra-1", nome: "Só VIP", created_at: "2026-10-07T10:00:00Z", fluxo: f, repeticao: { modo: "sempre" } }] })
+
+    it("CA-B53-06: should gravar 'Ignorada' com o motivo 'Condição não atendida: <nome da condição>'", async () => {
+      const h = historico()
+      // contact_tags vazio: o contato não tem a tag, a condição dá "não"
+      banco({ automation_flows: regraCom(comCondicao(false)), automation_runs: h.obj })
+
+      await processarAutomacoes(conversaCriada)
+
+      expect(mockEnviar).not.toHaveBeenCalled()
+      expect(h.gravadas).toHaveLength(1)
+      expect(h.gravadas[0]).toMatchObject({ resultado: "ignorada", motivo: "Condição não atendida: Tag do contato" })
+      const caminho = h.gravadas[0].caminho as Array<Record<string, unknown>>
+      expect(caminho.map((p) => [(p.bloco as { id: string }).id, p.saida])).toEqual([
+        ["g", undefined],
+        ["c", "nao"],
+      ])
+    })
+
+    it("CA-B53-06: should continuar 'Concluída' quando uma ação já rodou antes da condição", async () => {
+      const h = historico()
+      banco({
+        automation_flows: regraCom(comCondicao(true)),
+        automation_runs: h.obj,
+        conversation_labels: { upsert: vi.fn().mockResolvedValue({ error: null }) },
+      })
+
+      await processarAutomacoes(conversaCriada)
+
+      expect(h.gravadas[0]).toMatchObject({ resultado: "concluida" })
+      expect(h.gravadas[0].motivo ?? null).toBeNull()
+    })
+  })
+
   it("ação que falha fica com o motivo, a seguinte roda, e a execução fica 'falhou'", async () => {
     const h = historico()
     banco({

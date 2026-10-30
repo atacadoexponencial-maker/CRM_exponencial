@@ -360,6 +360,7 @@ Nada muda no CRM; esta série acompanha a publicação.
 | SUP-B53-03 | Follow-up de hoje sem horário depois das 23h vai para 23:59 de hoje. | confirmada | Marcelle aprovou a spec sem mudança, 30/10/2026. |
 | SUP-B53-04 | Os campos que contam como "Dados editados" são os do formulário de edição do contato (nome, telefone, tipo, cidade, UF, ICP, observações e campos personalizados); etiquetas e dono do contato já têm registro próprio ou ficam fora. | confirmada | Marcelle aprovou a spec sem mudança, 30/10/2026. |
 | SUP-B53-05 | A loja guarda nome e WhatsApp só no navegador da cliente, nunca no servidor além do pedido que já grava. | confirmada | Marcelle aprovou a spec sem mudança, 30/10/2026. |
+| SUP-B53-06 | O bloco de condição não tem nome; o "<nome da condição>" do motivo (CA-B53-06) é o rótulo da primeira verificação que não valeu, como no editor (ex.: "Condição não atendida: Tag do contato"). E a execução só vira "Ignorada" quando nenhuma ação rodou no caminho: a que já fez alguma ação antes da condição continua "Concluída" (ou "Falhou"), porque a proteção de repetição não conta as ignoradas e a regra mandaria a mesma ação de novo. | aberta | — |
 
 ## Perguntas em aberto
 
