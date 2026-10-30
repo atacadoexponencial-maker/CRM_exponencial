@@ -105,3 +105,10 @@ Reuso: `tipoGuardado`, `lerComLimite`, `mimeComCodec`, `LIMITE_DA_MIDIA_EM_BYTES
 - [x] Teste do CA-B53-31
 - [x] CA-B53-34: capa primeiro, conversão rápida até 720p, troca sozinha na conversa aberta, original direto no navegador que toca HEVC
 - [x] Testes do CA-B53-34
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B53-35 | Marcelle | 30/10/2026 |
+| CA-B53-14 | Marcelle | 30/10/2026 |
