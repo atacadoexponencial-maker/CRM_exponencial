@@ -65,3 +65,9 @@ Nenhuma.
 - [x] `filename` só entra no corpo da Meta para documento
 - [x] Teste do CA-B53-01 (imagem sem `filename`, documento com `filename`)
 - [x] Testes do provider (`whatsapp-provider-corpo.test.ts`) continuam passando
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B53-02 | Marcelle | 30/10/2026 |

@@ -27,3 +27,8 @@ Pendências que encontrei ao longo do caminho e quero que sejam trabalhadas:
 
 - `src/lib/metricas-dashboard.ts` (B30-03): a receita filtra `new Date(p.data + "T12:00:00") <= fim`, e `fim` é o agora. De manhã, a compra registrada hoje (data = hoje) fica fora até 12h. Os testes CA-B30-16/17/18 e CA-B30-02 falham quando rodam de manhã e passam à tarde.
 - Correção provável: `fim` no fim do dia (23:59:59) no `rangeDoPeriodo`, ou comparar só a data. Fora do escopo da B31; precisa de decisão para entrar como issue.
+
+## 30/10/2026 — campanha não aparece na conversa do Chat
+
+- No reteste da B53 (roteiro do Luan), a Marcelle mandou uma campanha com imagem: chegou no celular, mas não aparece na conversa do contato no CRM. Não é defeito: a campanha nunca gravou a mensagem na conversa, só o destinatário (`src/lib/campanhas.ts`; já conferido na B26, SUP-B26-03 invalidada).
+- Ela quer isso depois, como funcionalidade nova (começar por /triagem): a mensagem da campanha aparecer na conversa, com o mesmo tique de entregue e lido.
