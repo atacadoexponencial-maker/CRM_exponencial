@@ -145,6 +145,120 @@ async function baixarDoGateway(
 }
 
 /**
+ * Sobe o arquivo recebido para o Storage do CRM, em `{workspace}/recebidas/`.
+ * B53-07: o mesmo caminho para o canal direto e para a API Oficial, para o link
+ * assinado da B49 valer igual. Null quando o Storage recusou.
+ */
+async function subirParaOStorage(
+  supabase: ServiceClient,
+  workspaceId: string,
+  conteudo: ArrayBuffer,
+  mimeDeclarado: string | null
+): Promise<{ caminho: string; publicUrl: string; mimeType: string | null } | null> {
+  const { contentType, extensao } = tipoGuardado(mimeDeclarado)
+  // B44-03: o codec só vale para vídeo aceito; tipo recusado fica genérico.
+  const mimeType = contentType === TIPO_GENERICO ? TIPO_GENERICO : mimeComCodec(contentType, new Uint8Array(conteudo))
+
+  // Nome próprio, não o do remetente: nome de arquivo de fora não define
+  // caminho nem extensão no nosso Storage. O original fica em `messages.media_filename`.
+  const caminho = `${workspaceId}/recebidas/${Date.now()}-${crypto.randomUUID()}.${extensao}`
+
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(caminho, conteudo, { contentType })
+
+  if (error) return null
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(BUCKET).getPublicUrl(caminho)
+
+  return { caminho, publicUrl, mimeType }
+}
+
+/** Versão da Graph API usada no resto do CRM. */
+const VERSAO_DA_GRAPH = "v21.0"
+
+/** B53-07: a mídia de uma mensagem recebida pela API Oficial, como o webhook da Meta manda. */
+export type MidiaDaMeta = {
+  /** Id da mídia na Meta (vale 7 dias). */
+  id?: string | null
+  /** Alguns webhooks já mandam o endereço; sem `id`, é por ele que se baixa. */
+  url?: string | null
+  mime_type?: string | null
+  filename?: string | null
+}
+
+/** Busca com o token da conexão, tempo e tamanho limitados. Null quando não deu. */
+async function baixarDaMeta(
+  url: string,
+  accessToken: string,
+  buscar: typeof fetch
+): Promise<{ conteudo: ArrayBuffer; tipo: string | null } | null> {
+  // O token só viaja por https.
+  if (!url.startsWith("https://")) return null
+  const resposta = await buscar(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(TEMPO_LIMITE_DA_MIDIA_MS),
+  })
+  if (!resposta.ok) return null
+  const conteudo = await lerComLimite(resposta)
+  return conteudo ? { conteudo, tipo: resposta.headers.get("content-type") } : null
+}
+
+/**
+ * B53-07: baixa a mídia recebida pela API Oficial e sobe para o Storage do CRM.
+ *
+ * Como manda a Meta (Cloud API, "Retrieve Media URL" e "Download Media"): pede o
+ * endereço pelo id (`GET /<versão>/<media_id>`, vale 5 minutos) e baixa nele, os
+ * dois com `Authorization: Bearer <access_token>`. Null quando não conseguiu, e
+ * quem chama grava a mensagem mesmo assim.
+ *
+ * O `access_token` é segredo de backend e nunca chega ao navegador.
+ */
+export async function guardarMidiaDaMeta({
+  supabase,
+  workspaceId,
+  midia,
+  accessToken,
+  buscar = fetch,
+}: {
+  supabase: ServiceClient
+  workspaceId: string
+  midia: MidiaDaMeta
+  accessToken: string | null | undefined
+  buscar?: typeof fetch
+}): Promise<MidiaGuardada | null> {
+  if (!accessToken) return null
+  try {
+    let endereco = midia.url ?? null
+    let mimeDaMeta: string | null = null
+    if (midia.id) {
+      const resposta = await buscar(`https://graph.facebook.com/${VERSAO_DA_GRAPH}/${encodeURIComponent(midia.id)}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        signal: AbortSignal.timeout(TEMPO_LIMITE_DA_MIDIA_MS),
+      })
+      if (!resposta.ok) return null
+      const dados = (await resposta.json()) as { url?: string; mime_type?: string }
+      endereco = dados.url ?? null
+      mimeDaMeta = dados.mime_type ?? null
+    }
+    if (!endereco) return null
+
+    const baixada = await baixarDaMeta(endereco, accessToken, buscar)
+    if (!baixada) return null
+
+    const guardado = await subirParaOStorage(supabase, workspaceId, baixada.conteudo, midia.mime_type ?? mimeDaMeta ?? baixada.tipo)
+    if (!guardado) return null
+
+    return { url: guardado.publicUrl, mimeType: guardado.mimeType, filename: midia.filename ?? null, thumbnailUrl: null }
+  } catch {
+    // Rede, tempo limite, id vencido: nada disso derruba a mensagem.
+    return null
+  }
+}
+
+/**
  * Baixa do gateway e sobe para o Storage do CRM. Devolve `null` quando não
  * conseguiu — e quem chama segue sem o arquivo, sem perder a mensagem.
  *
@@ -168,24 +282,9 @@ export async function guardarMidiaRecebida({
     const baixada = await baixarDoGateway(midia.url, instanceToken, buscar)
     if (!baixada) return null
 
-    const { conteudo } = baixada
-    const { contentType, extensao } = tipoGuardado(midia.mime_type ?? baixada.tipo ?? null)
-    // B44-03: o codec só vale para vídeo aceito; tipo recusado fica genérico.
-    const mimeType = contentType === TIPO_GENERICO ? TIPO_GENERICO : mimeComCodec(contentType, new Uint8Array(conteudo))
-
-    // Nome próprio, não o do remetente: nome de arquivo de fora não define
-    // caminho nem extensão no nosso Storage. O original fica em `messages.media_filename`.
-    const caminho = `${workspaceId}/recebidas/${Date.now()}-${crypto.randomUUID()}.${extensao}`
-
-    const { error } = await supabase.storage
-      .from(BUCKET)
-      .upload(caminho, conteudo, { contentType })
-
-    if (error) return null
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from(BUCKET).getPublicUrl(caminho)
+    const guardado = await subirParaOStorage(supabase, workspaceId, baixada.conteudo, midia.mime_type ?? baixada.tipo ?? null)
+    if (!guardado) return null
+    const { caminho, publicUrl, mimeType } = guardado
 
     // Prévia (20/10/2026): a miniatura que o WhatsApp manda, guardada ao lado do
     // arquivo. Falhar aqui só deixa a mensagem sem prévia.

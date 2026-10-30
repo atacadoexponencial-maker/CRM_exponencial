@@ -5,8 +5,9 @@ import { dispararAutomacoes } from "@/lib/automacoes/fila"
 import { assinaturaHmacValida } from "@/lib/webhooks/assinatura"
 import { transmitirMensagem } from "@/lib/whatsapp/realtime"
 import { buscarEGuardarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
-import { lerMensagemMeta } from "@/lib/whatsapp/mensagem-meta"
-import { escolherConversaDoNumero, nomeDoPerfil, statusAoReabrir } from "@/lib/whatsapp/recebimento"
+import { lerMensagemMeta, midiaDaMensagemMeta, type MensagemMeta } from "@/lib/whatsapp/mensagem-meta"
+import { guardarMidiaDaMeta } from "@/lib/whatsapp/midia-recebida"
+import { escolherConversaDoNumero, nomeDoPerfil, statusAoReabrir, traduzirConteudo } from "@/lib/whatsapp/recebimento"
 import { tirarDaLixeira } from "@/lib/lixeira"
 import { criarCardDeEntrada } from "@/lib/card-de-entrada"
 
@@ -25,6 +26,9 @@ function assinaturaValida(rawBody: string, signature: string | null): boolean {
 
 /** Tipos da Meta que não são o cliente escrevendo: reação e aviso de sistema (troca de número). */
 const TIPOS_QUE_NAO_DISPARAM = ["reaction", "system"]
+
+/** B53-07: o que o balão mostra quando a mídia recebida não pôde ser baixada. */
+const MIDIA_NAO_CARREGADA = "Mídia não pôde ser carregada"
 
 /** Avisos de status da Meta que o CRM grava, já no termo do CRM. */
 const STATUS_DA_META: Record<string, string> = {
@@ -76,7 +80,7 @@ export async function POST(request: NextRequest) {
   type WebhookValue = {
     metadata?: { phone_number_id?: string }
     statuses?: Array<{ status: string; id?: string }>
-    messages?: Array<{ from: string; id: string; timestamp: string; type?: string; text?: { body?: string } }>
+    messages?: Array<MensagemMeta & { from: string; id: string; timestamp: string }>
     contacts?: Array<{ wa_id?: string; profile?: { name?: string } }>
   }
   type WebhookBody = { entry?: Array<{ changes?: Array<{ value?: WebhookValue }> }> }
@@ -126,7 +130,8 @@ export async function POST(request: NextRequest) {
       .from("whatsapp_connections")
       // B7-01: o `id` entrou junto do workspace para a conversa nascer sabendo
       // por qual número ela chegou. Nada mais mudou neste arquivo.
-      .select("id, workspace_id")
+      // B53-07: e o token, que baixa a mídia recebida. Fica no servidor.
+      .select("id, workspace_id, access_token")
       .eq("phone_number_id", phoneNumberId)
       .single()
 
@@ -146,7 +151,41 @@ export async function POST(request: NextRequest) {
       const phoneNumber: string = message.from
       // B22-23: botão, lista, cartão de contato e localização também têm texto
       const lida = lerMensagemMeta(message)
-      const messageText = lida.conteudo
+      // B53-07: foto, áudio, vídeo, documento e figurinha são baixados da Meta e
+      // gravados como no canal direto: o arquivo no Storage, a legenda e o nome à parte.
+      const midiaDaMeta = midiaDaMensagemMeta(message)
+      const guardada = midiaDaMeta
+        ? await guardarMidiaDaMeta({
+            supabase,
+            workspaceId: workspace_id,
+            midia: { id: midiaDaMeta.id, url: midiaDaMeta.url, mime_type: midiaDaMeta.mimeType, filename: midiaDaMeta.filename },
+            accessToken: connection.access_token,
+          })
+        : null
+      // Tipo e prévia da conversa pela mesma tradução do canal direto
+      const traduzido = midiaDaMeta
+        ? traduzirConteudo(
+            {
+              message_id: message.id,
+              from: message.from,
+              type: midiaDaMeta.tipoDaMeta,
+              text: midiaDaMeta.legenda,
+              media: midiaDaMeta.filename ? { url: "", filename: midiaDaMeta.filename } : null,
+            },
+            guardada
+          )
+        : null
+      const tipoGravado = traduzido?.tipo ?? "texto"
+      // Sem o arquivo, o balão diz que a mídia não pôde ser carregada em vez de ficar vazio
+      const conteudoGravado = midiaDaMeta ? guardada?.url ?? MIDIA_NAO_CARREGADA : lida.conteudo
+      const messageText = traduzido?.previa ?? lida.conteudo
+      const camposDeMidia = midiaDaMeta
+        ? {
+            media_mime_type: guardada?.mimeType ?? null,
+            media_filename: midiaDaMeta.filename,
+            media_caption: midiaDaMeta.legenda,
+          }
+        : {}
       const messageAt = new Date(Number(message.timestamp) * 1000).toISOString()
       // Nome de perfil do remetente: a Meta manda em `contacts`, ao lado das mensagens
       const nome = nomeDoPerfil(
@@ -248,10 +287,11 @@ export async function POST(request: NextRequest) {
         conversation_id: conversaId,
         workspace_id,
         direction: "recebida",
-        type: "texto",
-        content: messageText,
+        type: tipoGravado,
+        content: conteudoGravado,
         wamid: message.id,
         created_at: messageAt,
+        ...camposDeMidia,
       }).select("id").single()
 
       if (msgInserida) {
@@ -263,10 +303,13 @@ export async function POST(request: NextRequest) {
           conversation_id: conversaId,
           workspace_id,
           direction: "recebida",
-          type: "texto",
-          content: messageText,
+          type: tipoGravado,
+          content: conteudoGravado,
           created_at: messageAt,
           status: null,
+          ...(midiaDaMeta
+            ? { media_mime_type: guardada?.mimeType ?? null, media_filename: midiaDaMeta.filename, media_thumbnail_url: null }
+            : {}),
         })
 
         // B11-04: depois de gravada, como no canal direto. A reação a uma mensagem
@@ -278,7 +321,7 @@ export async function POST(request: NextRequest) {
             contactId: contact.id,
             conversationId: conversaId,
             messageId: msgInserida.id,
-            // Este webhook grava tudo como texto, mas as regras veem o tipo que a Meta mandou
+            // As regras veem o tipo que a Meta mandou e o texto ou a legenda
             tipoMensagem: tipoDaMensagemParaRegras(lida.tipo, lida.textoDoCliente),
             texto: lida.textoDoCliente,
           })
