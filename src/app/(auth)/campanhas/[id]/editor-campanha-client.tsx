@@ -98,6 +98,13 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
   const arquivoRef = useRef<HTMLInputElement>(null)
 
   const ehReenvio = Boolean(segmento.reenvioDe)
+
+  // B53-06: o aviso das 24h só vale para número da API Oficial. Sem número
+  // escolhido, a campanha sai pelo da empresa: só some se todos são do canal direto.
+  const numeroDaCampanha = numeros.find((n) => n.id === numeroOrigem)
+  const avisoDas24h = numeroDaCampanha
+    ? !numeroDaCampanha.ehCanalDireto
+    : !(numeros.length > 0 && numeros.every((n) => n.ehCanalDireto))
   // B42-02: quem recebe é o filtro de Contatos; o painel monta, o servidor conta.
   const [painelAberto, setPainelAberto] = useState(false)
   const filtro = segmento.filtro ?? FILTRO_VAZIO
@@ -508,14 +515,17 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
             </div>
           )}
 
-          <div className="rounded-lg border p-3 text-xs text-muted-foreground flex items-start gap-2">
-            <Info className="size-3.5 shrink-0 mt-0.5" />
-            <span>
-              A Meta só entrega mensagens livres para contatos que interagiram nas últimas 24
-              horas. Para os demais, o envio pode falhar — acompanhe o relatório e considere
-              usar um template aprovado para listas frias.
-            </span>
-          </div>
+          {/* B53-06: a janela de 24h é regra da Meta; no canal direto não vale */}
+          {avisoDas24h && (
+            <div className="rounded-lg border p-3 text-xs text-muted-foreground flex items-start gap-2">
+              <Info className="size-3.5 shrink-0 mt-0.5" />
+              <span>
+                A Meta só entrega mensagens livres para contatos que interagiram nas últimas 24
+                horas. Para os demais, o envio pode falhar — acompanhe o relatório e considere
+                usar um template aprovado para listas frias.
+              </span>
+            </div>
+          )}
         </div>
       )}
 
