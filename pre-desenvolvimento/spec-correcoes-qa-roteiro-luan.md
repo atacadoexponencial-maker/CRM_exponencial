@@ -260,8 +260,8 @@ Nada muda no CRM; esta série acompanha a publicação.
 #### CA-B53-22 — Edição aparece na timeline · prova: automática
 
 - **Dado** um contato com cidade "Santos"
-- **Quando** a Marcelle muda a cidade e o telefone e salva
-- **Então** a timeline mostra "Dados editados" por Marcelle, com "Cidade, Telefone"
+- **Quando** a Marcelle muda a cidade e o tipo e salva
+- **Então** a timeline mostra "Dados editados" por Marcelle, com "Cidade, Tipo"
 
 #### CA-B53-23 — Salvar sem mudança não grava evento · prova: automática
 
@@ -346,6 +346,8 @@ Nada muda no CRM; esta série acompanha a publicação.
 
 - Classificação do contato e Carteiras ("Inativo" ou "Sem histórico" para quem o RFV chama de "Campeão"): vai para série própria, porque a regra também alimenta a segmentação das campanhas e as automações (Marcelle, 30/10/2026).
 - Tela de Saúde para o número da API Oficial: é funcionalidade nova (Marcelle, 30/10/2026).
+- Legenda visível no balão do Chat (a legenda da mídia recebida fica gravada, mas o balão não a mostra em nenhum dos dois canais) (Marcelle, 30/10/2026).
+- Editar o telefone do contato (Marcelle, 30/10/2026).
 - Cartão ou mapa para localização recebida (hoje é texto com link, nos dois canais).
 - Gatilho e limite de "card parado N dias"; desconto em R$; ritmo do chip 08–20h; confirmação ao pausar ou ativar automação; apagar campanha enviada ou template rejeitado; prévia da imagem na campanha; horário exato da regra RFV.
 - A duração estimada da campanha continuar contando a espera até a janela abrir (está certo).
@@ -358,9 +360,9 @@ Nada muda no CRM; esta série acompanha a publicação.
 | SUP-B53-01 | Na ordem dos status, só se avança (enviado → entregue → lido); "falhou" pode chegar depois de "enviado", mas nunca depois de "entregue" ou "lido". | confirmada | Marcelle aprovou a spec sem mudança, 30/10/2026. |
 | SUP-B53-02 | O card e o dono do contato acompanham a pessoa escolhida por "Atribuir ao time" (hoje só acompanham quando a conversa muda de dono). | confirmada | Marcelle aprovou a spec sem mudança, 30/10/2026. |
 | SUP-B53-03 | Follow-up de hoje sem horário depois das 23h vai para 23:59 de hoje. | confirmada | Marcelle aprovou a spec sem mudança, 30/10/2026. |
-| SUP-B53-04 | Os campos que contam como "Dados editados" são os do formulário de edição do contato (nome, telefone, tipo, cidade, UF, ICP, observações e campos personalizados); etiquetas e dono do contato já têm registro próprio ou ficam fora. | confirmada | Marcelle aprovou a spec sem mudança, 30/10/2026. |
+| SUP-B53-04 | Os campos que contam como "Dados editados" são os do formulário de edição do contato (nome, tipo, cidade, UF, ICP, observações e campos personalizados); etiquetas e dono do contato já têm registro próprio ou ficam fora. O telefone não entra: não é editável em nenhuma tela. | confirmada | Marcelle aprovou a spec sem mudança, 30/10/2026; telefone tirado (não é editável) com o ok dela no mesmo dia. |
 | SUP-B53-05 | A loja guarda nome e WhatsApp só no navegador da cliente, nunca no servidor além do pedido que já grava. | confirmada | Marcelle aprovou a spec sem mudança, 30/10/2026. |
-| SUP-B53-06 | O bloco de condição não tem nome; o "<nome da condição>" do motivo (CA-B53-06) é o rótulo da primeira verificação que não valeu, como no editor (ex.: "Condição não atendida: Tag do contato"). E a execução só vira "Ignorada" quando nenhuma ação rodou no caminho: a que já fez alguma ação antes da condição continua "Concluída" (ou "Falhou"), porque a proteção de repetição não conta as ignoradas e a regra mandaria a mesma ação de novo. | aberta | — |
+| SUP-B53-06 | O bloco de condição não tem nome; o "<nome da condição>" do motivo (CA-B53-06) é o rótulo da primeira verificação que não valeu, como no editor (ex.: "Condição não atendida: Tag do contato"). E a execução só vira "Ignorada" quando nenhuma ação rodou no caminho: a que já fez alguma ação antes da condição continua "Concluída" (ou "Falhou"), porque a proteção de repetição não conta as ignoradas e a regra mandaria a mesma ação de novo. | confirmada | Marcelle confirmou, 30/10/2026. |
 
 ## Perguntas em aberto
 

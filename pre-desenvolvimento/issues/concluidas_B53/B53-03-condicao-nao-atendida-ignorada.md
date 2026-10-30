@@ -21,7 +21,7 @@ O Histórico mostra "Ignorada — Condição não atendida: <nome>" nesses casos
 
 | ID | Suposição | Status | Resolução |
 |---|---|---|---|
-| SUP-B53-06 | O bloco de condição não tem nome; o "<nome da condição>" do motivo é o rótulo da primeira verificação que não valeu, como no editor (ex.: "Condição não atendida: Tag do contato"). E a execução só vira "Ignorada" quando nenhuma ação rodou no caminho: a que já fez alguma ação antes da condição continua "Concluída" (ou "Falhou"), porque a proteção de repetição não conta as ignoradas e a regra mandaria a mesma ação de novo. | aberta | — |
+| SUP-B53-06 | O bloco de condição não tem nome; o "<nome da condição>" do motivo é o rótulo da primeira verificação que não valeu, como no editor (ex.: "Condição não atendida: Tag do contato"). E a execução só vira "Ignorada" quando nenhuma ação rodou no caminho: a que já fez alguma ação antes da condição continua "Concluída" (ou "Falhou"), porque a proteção de repetição não conta as ignoradas e a regra mandaria a mesma ação de novo. | confirmada | Marcelle confirmou, 30/10/2026. |
 
 ## Perguntas em aberto
 
