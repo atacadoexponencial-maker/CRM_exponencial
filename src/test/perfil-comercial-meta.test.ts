@@ -5,11 +5,14 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   esquemaPerfilComercial,
   lerPerfilComercial,
+  montarAlteracoes,
   salvarPerfilComercial,
+  type PerfilComercial,
   trocarFotoDoPerfil,
 } from "@/lib/whatsapp/perfil-comercial-meta"
 
 const cred = { phoneNumberId: "123", accessToken: "tok" }
+const vazio: PerfilComercial = { about: "", description: "", address: "", email: "", websites: [], vertical: "UNDEFINED", fotoUrl: null }
 
 function responde(corpo: unknown, status = 200) {
   return new Response(JSON.stringify(corpo), { status, headers: { "Content-Type": "application/json" } })
@@ -44,14 +47,14 @@ describe("perfil comercial da Meta", () => {
     expect(await lerPerfilComercial(cred)).toEqual({ erro: "Invalid OAuth" })
   })
 
-  it("salvar manda todos os campos com messaging_product whatsapp", async () => {
+  it("salvar manda só o que tem valor, com messaging_product whatsapp (131000 em 30/10)", async () => {
     const fetchMock = vi.fn().mockResolvedValue(responde({ success: true }))
     vi.stubGlobal("fetch", fetchMock)
 
     const dados = esquemaPerfilComercial.parse({
-      about: " Oi ", description: "", address: "Rua 1", email: "a@b.com", websites: ["https://a.com", ""], vertical: "RETAIL",
+      about: " Oi ", description: "", address: "Rua 1", email: "", websites: ["https://a.com", ""], vertical: "RETAIL",
     })
-    expect(await salvarPerfilComercial(cred, dados)).toEqual({})
+    expect(await salvarPerfilComercial(cred, vazio, dados)).toEqual({})
 
     const [url, init] = fetchMock.mock.calls[0]
     expect(url).toBe("https://graph.facebook.com/v21.0/123/whatsapp_business_profile")
@@ -59,12 +62,24 @@ describe("perfil comercial da Meta", () => {
     expect(JSON.parse(init.body)).toEqual({
       messaging_product: "whatsapp",
       about: "Oi",
-      description: "",
       address: "Rua 1",
-      email: "a@b.com",
       websites: ["https://a.com"],
       vertical: "RETAIL",
     })
+  })
+
+  it("campo que tinha valor e foi apagado vai vazio, para limpar", () => {
+    const atual: PerfilComercial = { ...vazio, email: "a@b.com", websites: ["https://a.com"], vertical: "RETAIL" }
+    const dados = esquemaPerfilComercial.parse({ ...vazio, vertical: "UNDEFINED" })
+    expect(montarAlteracoes(atual, dados)).toEqual({ messaging_product: "whatsapp", email: "", websites: [], vertical: "UNDEFINED" })
+  })
+
+  it("sem nada para mandar, não chama a Meta", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+    const dados = esquemaPerfilComercial.parse({ ...vazio })
+    expect(await salvarPerfilComercial(cred, vazio, dados)).toEqual({})
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it("a foto faz os três passos: sessão no app, bytes com o OAuth e handle no perfil", async () => {

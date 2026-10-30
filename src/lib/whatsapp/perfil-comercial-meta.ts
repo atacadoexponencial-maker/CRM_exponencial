@@ -134,24 +134,40 @@ export async function lerPerfilComercial(
   }
 }
 
-/** Grava os campos de texto e a categoria. Manda todos: a Meta trata o campo
- * ausente como "não mexer", e um campo apagado precisa chegar vazio. */
+/**
+ * Monta o corpo do POST. A Meta devolve o erro genérico 131000 quando recebe
+ * campo vazio ou a categoria UNDEFINED (visto em 30/10/2026), então só vai o
+ * que tem valor; um campo vazio só vai quando estava preenchido antes, para
+ * conseguir limpá-lo. Exportada para o teste.
+ */
+export function montarAlteracoes(
+  atual: PerfilComercial,
+  dados: z.output<typeof esquemaPerfilComercial>
+): Record<string, unknown> {
+  const corpo: Record<string, unknown> = { messaging_product: "whatsapp" }
+  const textos = ["about", "description", "address", "email"] as const
+  for (const campo of textos) {
+    if (dados[campo] !== "" || atual[campo] !== "") corpo[campo] = dados[campo]
+  }
+  if (dados.websites.length > 0 || atual.websites.length > 0) corpo.websites = dados.websites
+  if (dados.vertical !== "UNDEFINED" || atual.vertical !== "UNDEFINED") corpo.vertical = dados.vertical
+  return corpo
+}
+
+/** Grava os campos de texto e a categoria, a partir do perfil atual. */
 export async function salvarPerfilComercial(
   cred: Credenciais,
+  atual: PerfilComercial,
   dados: z.output<typeof esquemaPerfilComercial>
 ): Promise<{ erro?: string }> {
+  const corpo = montarAlteracoes(atual, dados)
+  // Nada além do messaging_product: não há o que mandar.
+  if (Object.keys(corpo).length === 1) return {}
+
   const res = await fetch(`${GRAPH}/${cred.phoneNumberId}/whatsapp_business_profile`, {
     method: "POST",
     headers: { Authorization: `Bearer ${cred.accessToken}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      about: dados.about,
-      description: dados.description,
-      address: dados.address,
-      email: dados.email,
-      websites: dados.websites,
-      vertical: dados.vertical,
-    }),
+    body: JSON.stringify(corpo),
   })
   if (!res.ok) return { erro: await lerErro(res) }
   return {}

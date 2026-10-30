@@ -842,7 +842,14 @@ export async function salvarPerfilComercialMeta(
   const dados = esquemaPerfilComercial.safeParse(entrada)
   if (!dados.success) return { erro: dados.error.issues[0]?.message ?? "Dados inválidos." }
 
-  const r = await salvarPerfilComercial(acesso.cred, dados.data)
+  // O perfil atual decide o que vai no POST: campo vazio só quando havia valor.
+  const atual = await lerPerfilComercial(acesso.cred)
+  if ("erro" in atual) {
+    console.error("[whatsapp] erro ao ler perfil comercial antes de salvar:", atual.erro)
+    return { erro: "Não foi possível carregar o perfil. Tente novamente." }
+  }
+
+  const r = await salvarPerfilComercial(acesso.cred, atual.perfil, dados.data)
   if (r.erro) {
     console.error("[whatsapp] erro ao salvar perfil comercial:", r.erro)
     return { erro: "A Meta não aceitou as alterações. Confira os campos e tente novamente." }
