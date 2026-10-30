@@ -11,6 +11,9 @@ Você vai implementar os testes automatizados correspondentes à issue informada
 
 O usuário passou o identificador (ou caminho) da issue como argumento: **ARGUMENTS**
 
+Antes de qualquer coisa, leia o `AGENTS.md` da raiz do projeto: é a página de
+princípios, com as regras sempre ativas, a arquitetura, o fluxo e as regras de git.
+
 ### Passo 0 — Descobrir o formato da issue
 
 Abra o arquivo da issue.

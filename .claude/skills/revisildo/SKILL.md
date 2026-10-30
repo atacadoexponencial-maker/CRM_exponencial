@@ -8,9 +8,12 @@ description: Revisa se a implementação de uma issue seguiu corretamente o proc
 Você é um auditor de processo. Sua função é verificar se uma implementação executou
 fielmente o que foi planejado — nada a mais, nada a menos.
 
+Antes de qualquer coisa, leia o `AGENTS.md` da raiz do projeto: é a página de princípios.
+
 A revisão tem duas partes, nesta ordem: **o auditor**, que é um script e não depende do
-seu julgamento, e **a leitura**, só para o que o script não enxerga. Quem libera o commit
-é o auditor; a leitura só pode barrar, nunca liberar no lugar dele.
+seu julgamento, e **a leitura**, só para o que o script não enxerga, feita por um
+**revisor independente**: um agente limpo, que não participou da implementação. Quem
+libera o commit é o auditor; a leitura só pode barrar, nunca liberar no lugar dele.
 
 ## Passos
 
@@ -35,9 +38,28 @@ node .claude/skills/auditor/scripts/auditor.mjs issue <id ou caminho da issue>
 
 O significado de cada problema e de cada veredito está na skill `auditor`.
 
-### 3. Leia o que o script não enxerga
+### 3. Revisor independente: o que o script não enxerga
 
-Leia os arquivos que a issue mexeu e procure **somente**:
+Quem implementou não revisa o próprio código: a sessão que escreveu tende a confirmar o
+que já acredita. Por isso esta leitura é feita por um **subagente limpo**, despachado com
+a ferramenta de agentes (tipo `Explore` ou outro só de leitura), que recebe apenas:
+
+1. o caminho do arquivo da issue;
+2. o `git diff HEAD` dos arquivos listados na seção Arquivos da issue (gere com
+   `git diff HEAD -- <arquivos>`; para arquivo novo, o conteúdo inteiro);
+3. a instrução de ler o `AGENTS.md` da raiz;
+4. a lista dos quatro problemas abaixo e o formato de resposta em blocos (seção "Formato
+   da resposta", parte "Se houver problemas").
+
+**Não passe** ao subagente o seu raciocínio, o que você acha que está certo nem o
+histórico da conversa. Ele responde só com os problemas encontrados, um bloco por
+problema, ou com a frase "Nenhum problema por leitura". Você copia a resposta dele na
+revisão, sem suavizar.
+
+Se a ferramenta de agentes não estiver disponível, faça a leitura você mesmo e escreva
+no resultado: "Leitura feita na mesma sessão que implementou, sem revisor independente."
+
+O revisor procura **somente**:
 
 - **Lógica de negócio no frontend**: validações complexas, cálculos, regras de negócio em
   componentes React ou páginas → problema
@@ -85,7 +107,7 @@ exceção nem desligue regra por conta própria. Exceção é decisão de quem a
 [uma ou duas frases traduzindo a saída]
 
 Conferido por script: prova dos critérios, suposições e perguntas, escopo, checklist e regras.
-Conferido por leitura: lógica de negócio no frontend, autorização no cliente e se cada teste confere o critério.
+Conferido por revisor independente: lógica de negócio no frontend, autorização no cliente e se cada teste confere o critério.
 
 ✅ Tudo certo. Pode commitar.
 ````

@@ -159,68 +159,15 @@ Rotas existentes:
 
 Componentes usam **Base UI** (`@base-ui/react`) — não Radix UI — com **Tailwind CSS 4** e **CVA** (class-variance-authority) para variantes. Ícones: **Lucide React**. Formulários: **React Hook Form + Zod**. A UI é em **português (pt-BR)**.
 
-## Regras Sempre Ativas
+## Regras e fluxo
 
-1. Nunca mexa em arquivos que não foram explicitamente listados na tarefa atual
-2. Nunca adicione funcionalidades além do que foi pedido
-3. Reutilize código existente — pesquise antes de criar algo novo
-4. Lógica de negócio sempre no backend, nunca no frontend
-5. Nunca exponha chaves de API ou secrets no frontend
+As regras sempre ativas, a arquitetura, o fluxo (`/triagem` → `/spec` → `/break` → `/plan`
+→ `/execute` → testes → `/revisildo`), a regra "pronto é veredito do auditor" e as regras
+de git ficam em `AGENTS.md`, a página de princípios lida por qualquer agente e por
+qualquer pessoa. O conteúdo dele é importado aqui:
 
-### Thin Client, Fat Server
-O frontend apenas captura intenções do usuário e exibe respostas. Toda lógica, validação e autorização ficam no backend.
+@AGENTS.md
 
-### Isolamento por Comportamento
-Organize o código por comportamento, não por tipo de arquivo. Cada funcionalidade em sua própria pasta — mexer em uma não afeta outra.
-
-### Segurança
-- Nunca coloque API keys, secrets ou tokens no frontend
-- Nunca coloque regras de autorização no frontend
-- Secrets ficam em variáveis de ambiente no backend (`.env.local` nunca commitado)
-
-### Reuso de Código
-Antes de criar algo novo: pesquise na base de código com grep por nomes similares, verifique componentes e utilitários existentes, importe o que já existe.
-
-### Padrões Documentados
-Para dependências externas: verifique a documentação oficial antes de implementar, siga o padrão documentado, não reinvente a roda.
-
-## Workflow (Anti-Vibe Coding)
-
-Comece sempre por `/triagem`. Ela classifica a tarefa em **sonda** (pergunta de viabilidade), **delimitada** (mudança em fluxo que já existe: desenha no chat, aprova, implementa, sem spec nem issue) ou **arquitetural**. Só a arquitetural segue o fluxo completo:
-
-`/spec` → `/break` → `/plan` → `/execute` → testes → `/revisildo`
-
-Os comandos e skills do fluxo são versionados no repo, em `.claude/commands/` e `.claude/skills/` — quem clona o projeto já os tem.
-
-| Etapa | O que faz | Onde grava |
-|-------|-----------|------------|
-| `/spec <descrição>` | Reserva a série e escreve a spec da mudança: comportamentos, **critérios de aceite com código** (`CA-<série>-<nn>`, de prova automática ou manual), suposições e perguntas em aberto (o QUE, não o COMO) | `pre-desenvolvimento/spec-*.md` |
-| `/break <spec>` | Divide a spec em issues, uma por **entrega que dá para ver funcionando**; cada issue leva os critérios que entrega | `pre-desenvolvimento/issues/` |
-| `/plan <issue>` | Pesquisa código reutilizável e enriquece a issue com cenários, a **tabela Prova** (qual teste prova cada critério), banco, arquivos exatos e checklist | o próprio arquivo da issue |
-| `/execute <issue>` | Implementa **só** o que a issue lista, marcando o checklist | código |
-| `testes <issue>` | Escreve os testes da tabela Prova, com o código do critério no nome de cada teste | `src/test/` |
-| `/revisildo <issue>` | Roda o **auditor** e depois lê o código para o que script não enxerga | — |
-
-### Pronto é veredito do auditor
-
-O auditor (`.claude/skills/auditor/`) é um script: confere se cada critério de aceite tem teste com o código dele e se o teste passou, se não há suposição ou pergunta em aberto, se só os arquivos da issue foram mexidos e se as regras por script foram respeitadas. Ninguém declara uma issue pronta por leitura.
-
-```bash
-node .claude/skills/auditor/scripts/auditor.mjs issue <id>     # esta issue está alinhada?
-node .claude/skills/auditor/scripts/auditor.mjs serie <série>  # a série pode ser arquivada?
-node .claude/skills/auditor/scripts/auditor.mjs suposicoes     # o que estamos assumindo?
-node .claude/skills/auditor/scripts/auditor.mjs regras         # o que cada regra acha hoje?
-```
-
-- **Teste manual** (chip real, aprovação visual) é critério de prova `manual`. Pendente, ele não trava commit nem deploy, mas a issue fica aberta e a spec não é arquivada até alguém confirmar.
-- **Exceção** ao auditor só escrita na issue, com motivo, quem aprovou (Marcelle ou Luan) e o dia.
-- **Issue no formato antigo** (sem critérios com código) nunca trava: o auditor avisa e a revisão é por leitura.
-- **Lições** (`pre-desenvolvimento/licoes.md`) só nascem de falha real e são lidas pelo `/spec` e pelo `/plan`.
-
-### Uma issue por vez
-
-No dia a dia, use `/issue <identificador>` — ex.: `/issue 08` ou `/issue B1-01`. Ele roda `/plan` → `/execute` → testes → `/revisildo` em sequência e, se o auditor disser "alinhada", move a issue para `pre-desenvolvimento/issues/concluidas_*/`.
-
-- Se o `/execute` encontrar algo fora do que a issue lista, ele **para e pergunta** — não expanda o escopo por conta própria.
-- Só commite depois do `/revisildo` responder "✅ Tudo certo".
-- A atualização de card no ClickUp é opcional: só roda se existir `scripts/clickup-issue-status.ps1` e `CLICKUP_API_KEY` no `.env.local`.
+Os comandos e skills do fluxo são versionados em `.claude/commands/` e `.claude/skills/`;
+quem clona o projeto já os tem. A atualização de card no ClickUp é opcional: só roda se
+existir `scripts/clickup-issue-status.ps1` e `CLICKUP_API_KEY` no `.env.local`.

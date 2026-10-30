@@ -9,6 +9,9 @@ description: Executa o fluxo completo de uma issue — /plan → /execute → te
 
 O usuário passou o identificador da issue como argumento: **ARGUMENTS**
 
+Antes de qualquer coisa, leia o `AGENTS.md` da raiz do projeto: é a página de
+princípios, com as regras sempre ativas, a arquitetura, o fluxo e as regras de git.
+
 ### Passo 1 — Resolver o caminho
 
 Use o Glob para localizar o arquivo da issue dentro de `pre-desenvolvimento/issues/`, a partir da raiz do repositório.

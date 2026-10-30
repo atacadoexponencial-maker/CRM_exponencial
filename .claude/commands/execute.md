@@ -2,6 +2,9 @@ Você vai implementar exatamente o que está descrito na issue fornecida.
 
 **Issue:** $ARGUMENTS
 
+Antes de qualquer coisa, leia o `AGENTS.md` da raiz do projeto: é a página de
+princípios, com as regras sempre ativas, a arquitetura, o fluxo e as regras de git.
+
 ## O que você deve fazer
 
 1. Leia a issue completamente antes de escrever uma linha de código
@@ -14,7 +17,7 @@ Você vai implementar exatamente o que está descrito na issue fornecida.
 - **Não mexa em arquivos não listados na issue** — se precisar de algo que não está listado, pare e informe o usuário
 - **Não adicione funcionalidades não descritas** — sem "melhorias" não pedidas
 - **Não expanda o escopo** — se perceber que falta algo, sinalize para a próxima issue
-- **Siga as regras de arquitetura do `CLAUDE.md` em tudo** — thin client, isolamento, segurança
+- **Siga as regras de arquitetura do `AGENTS.md` em tudo** — thin client, isolamento, segurança
 - **Reutilize código existente** — não duplique o que já existe no projeto
 - **Lógica de negócio sempre no backend** — nunca no frontend
 

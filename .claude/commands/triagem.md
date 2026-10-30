@@ -2,6 +2,9 @@ Você vai classificar a tarefa e mandá-la para a marcha certa. Nada mais.
 
 **Tarefa:** $ARGUMENTS
 
+Antes de qualquer coisa, leia o `AGENTS.md` da raiz do projeto: é a página de
+princípios, com as regras sempre ativas, a arquitetura, o fluxo e as regras de git.
+
 ## Por que este passo existe
 
 O fluxo completo (`/spec` → `/break` → `/plan` → `/execute`) foi feito para

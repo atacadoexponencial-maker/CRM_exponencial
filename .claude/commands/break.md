@@ -2,6 +2,9 @@ Você vai quebrar a spec fornecida em issues pequenas e gerenciáveis.
 
 **Spec:** $ARGUMENTS
 
+Antes de qualquer coisa, leia o `AGENTS.md` da raiz do projeto: é a página de
+princípios, com as regras sempre ativas, a arquitetura, o fluxo e as regras de git.
+
 ## O critério de quebra
 
 Cada issue é **uma entrega que dá para ver funcionando** — algo que, pronto,
