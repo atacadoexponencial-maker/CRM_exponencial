@@ -38,7 +38,7 @@ vi.mock("@/app/(auth)/catalogo/importar/actions", () => ({ importarLote: vi.fn()
 vi.mock("@/lib/sessao", () => ({ sessaoAtual: vi.fn(async () => ({ user: { id: "u-1" }, perfil: { role: "admin", workspace_id: "w-1" } })) }))
 vi.mock("@/integrations/supabase/service", () => ({
   createServiceClient: () => ({
-    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { waba_id: "waba-1", access_token: "tk" } }) }) }) }),
+    from: () => ({ select: () => ({ eq: () => ({ eq: () => ({ limit: () => ({ maybeSingle: async () => ({ data: { waba_id: "waba-1", access_token: "tk" } }) }) }) }) }) }),
   }),
 }))
 
@@ -198,7 +198,7 @@ describe("B48-15 — Ajuda onde falta explicação", () => {
     })))
     vi.stubGlobal("fetch", fetchFalso)
     try {
-      const lista = await listarTemplates()
+      const { templates: lista } = await listarTemplates()
       expect(String((fetchFalso.mock.calls[0] as unknown[])[0])).toContain("rejected_reason")
       expect(lista.map((t) => t.motivo)).toEqual([
         "Formato inválido: confira as variáveis e os exemplos",

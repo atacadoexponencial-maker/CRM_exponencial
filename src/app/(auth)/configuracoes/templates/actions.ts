@@ -2,6 +2,7 @@
 
 import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
+import { conferirNomeDoTemplate } from "./nome-do-template"
 
 export type Template = {
   id: string
@@ -37,29 +38,42 @@ async function obterConexao() {
   if (perfil?.role !== "admin") return null
 
   // B19-03: `access_token` só é legível pela chave de serviço; o filtro de empresa fica.
+  // B53-08: template só existe na API Oficial; com chip na mesma empresa, o filtro só
+  // por empresa achava duas conexões e o `maybeSingle` falhava.
   const { data: conexao } = await createServiceClient()
     .from("whatsapp_connections")
     .select("waba_id, access_token")
     .eq("workspace_id", perfil.workspace_id)
+    .eq("canal", "meta")
+    .limit(1)
     .maybeSingle()
 
   return conexao
 }
 
-export async function listarTemplates(): Promise<Template[]> {
+const ERRO_AO_CARREGAR_TEMPLATES = "Não foi possível carregar os templates da Meta"
+
+export async function listarTemplates(): Promise<{ templates: Template[]; erro?: string }> {
   const conexao = await obterConexao()
-  if (!conexao) return []
+  if (!conexao) return { templates: [] }
 
-  const res = await fetch(
-    `https://graph.facebook.com/v21.0/${conexao.waba_id}/message_templates?fields=id,name,status,category,language,rejected_reason&limit=50&access_token=${conexao.access_token}`
-  )
+  // B53-08: erro da Meta vira aviso na tela, não lista vazia.
+  let data: { data?: unknown[] }
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/v21.0/${conexao.waba_id}/message_templates?fields=id,name,status,category,language,rejected_reason&limit=50&access_token=${conexao.access_token}`
+    )
+    if (!res.ok) return { templates: [], erro: ERRO_AO_CARREGAR_TEMPLATES }
+    data = await res.json()
+  } catch {
+    return { templates: [], erro: ERRO_AO_CARREGAR_TEMPLATES }
+  }
 
-  if (!res.ok) return []
-
-  const data = await res.json()
-  return ((data.data ?? []) as Array<Template & { rejected_reason?: unknown }>).map(({ rejected_reason, ...t }) =>
-    t.status === "REJECTED" ? { ...t, motivo: motivoDaRejeicao(rejected_reason) } : t
-  )
+  return {
+    templates: ((data.data ?? []) as Array<Template & { rejected_reason?: unknown }>).map(({ rejected_reason, ...t }) =>
+      t.status === "REJECTED" ? { ...t, motivo: motivoDaRejeicao(rejected_reason) } : t
+    ),
+  }
 }
 
 export async function criarTemplate(params: {
@@ -68,6 +82,10 @@ export async function criarTemplate(params: {
   language: string
   body: string
 }): Promise<{ erro?: string }> {
+  // B53-08: a mesma conversão da tela; nome que continua inválido nem chega à Meta.
+  const conferido = conferirNomeDoTemplate(params.name)
+  if ("erro" in conferido) return { erro: conferido.erro }
+
   const conexao = await obterConexao()
   if (!conexao) return { erro: "Sem permissão ou WhatsApp não conectado" }
 
@@ -77,7 +95,7 @@ export async function criarTemplate(params: {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: params.name,
+        name: conferido.nome,
         category: params.category,
         language: params.language,
         components: [{ type: "BODY", text: params.body }],

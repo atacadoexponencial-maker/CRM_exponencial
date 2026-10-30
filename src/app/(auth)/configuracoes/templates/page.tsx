@@ -54,7 +54,7 @@ export default async function TemplatesPage() {
     )
   }
 
-  const templates = await listarTemplates()
+  const { templates, erro } = await listarTemplates()
 
   return (
     <div className={CLASSE_DA_PAGINA}>
@@ -65,7 +65,7 @@ export default async function TemplatesPage() {
           qualquer texto pode ser enviado, sem template.
         </p>
       )}
-      <TemplatesClient templates={templates} />
+      <TemplatesClient templates={templates} erroAoCarregar={erro} />
     </div>
   )
 }
