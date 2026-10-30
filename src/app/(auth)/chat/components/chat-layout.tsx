@@ -13,7 +13,7 @@ import { buscarConversa, buscarMensagens, carregarMaisConversas, marcarComoLidas
 import type { Conversa } from "../mock-conversas"
 import { aplicarAtualizacaoDaConversa, type LinhaDaConversa } from "../conversa-atualizada"
 import type { Mensagem } from "../mock-mensagens"
-import { aplicarStatus, confirmarEnvio } from "../mensagens-locais"
+import { aplicarMensagemRecebida, aplicarStatus, confirmarEnvio } from "../mensagens-locais"
 
 interface ChatLayoutProps {
   conversas: Conversa[]
@@ -183,8 +183,8 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
       setMensagensLocais((prev) => {
         const lista = prev[row.conversation_id]
         if (lista === undefined) return prev
-        if (lista.some((m) => m.id === row.id)) return prev
-        return { ...prev, [row.conversation_id]: [...lista, novaMensagem] }
+        const proxima = aplicarMensagemRecebida(lista, novaMensagem)
+        return proxima === lista ? prev : { ...prev, [row.conversation_id]: proxima }
       })
     }
     const canalMensagens = supabase

@@ -18,6 +18,8 @@ Imagem, áudio, PDF e vídeo mandados ao número da API Oficial aparecem e abrem
 - **CA-B53-12** (automática) — Mídia da Meta vira mídia no Chat. Dado um aviso de mensagem recebida da Meta com imagem e legenda, quando o CRM o recebe, então a mensagem fica gravada como imagem, com o arquivo guardado no armazenamento da empresa e a legenda como texto (o mesmo vale para áudio, vídeo, documento com nome e figurinha).
 - **CA-B53-13** (automática) — Falha ao baixar não deixa balão vazio. Dado um aviso de mídia cujo download na Meta falha, quando o CRM o recebe, então a mensagem é gravada e o balão mostra "Mídia não pôde ser carregada".
 - **CA-B53-31** (automática) — Vídeo HEVC recebido vira H.264. Dado um vídeo HEVC (o padrão do iPhone) recebido pela API Oficial e já guardado, quando a conversão termina, logo depois de a mensagem aparecer, então o arquivo guardado passa a ser H.264 (que o Chrome toca), a mensagem deixa de ser marcada como HEVC, e se a conversão falhar o original continua no lugar.
+- **CA-B53-34** (automática) — Vídeo HEVC chega como no WhatsApp. Dado um vídeo HEVC recebido pela API Oficial, com a conversa aberta, quando o CRM o guarda, então o navegador que toca HEVC mostra o original na hora; o que não toca mostra a capa (o primeiro quadro) com "Preparando o vídeo…" e, quando a conversão termina (em até 720p, no preset mais rápido), o vídeo substitui a capa sozinho, sem recarregar.
+- **CA-B53-35** (manual) — Vídeo do iPhone toca sem recarregar no Chrome. Dado a conversa do celular de teste aberta no Chrome do Windows, quando o celular manda um vídeo do iPhone ao número da API Oficial, então a capa aparece em poucos segundos e o vídeo passa a tocar com imagem em até cerca de 15 segundos, sem recarregar.
 - **CA-B53-14** (manual) — Mídia recebida aparece no Chat pela API Oficial. Dado o número +55 11 95504-6911, quando o contato manda imagem, áudio, PDF e vídeo, então os quatro aparecem no Chat e abrem.
 
 ## Suposições
@@ -52,7 +54,14 @@ Nenhuma.
 | CA-B53-12 | automática | `src/test/webhook-whatsapp-midia.integration.test.ts` | imagem com legenda vira mensagem `imagem`, com `content` apontando para o arquivo em `chat-attachments/{workspace}/recebidas/` (que existe e tem os bytes baixados) e `media_caption` = legenda; áudio, vídeo, documento (com `media_filename`) e figurinha também |
 | CA-B53-13 | automática | `src/test/webhook-whatsapp-midia.integration.test.ts` e `src/test/balao-midia-nao-carregada.test.tsx` | com a Meta respondendo erro, a mensagem é gravada com o tipo da mídia e `content` = "Mídia não pôde ser carregada"; e o balão do Chat mostra esse texto |
 | CA-B53-31 | automática | `src/test/conversao-de-video-recebido.test.ts` | vídeo HEVC guardado é trocado pelo convertido no mesmo caminho, com tipo `video/mp4`, e a mensagem passa a `video/mp4`; vídeo que não é HEVC não é convertido; conversão que falha deixa o original e o tipo como estavam |
+| CA-B53-34 | automática | `src/test/conversao-de-video-recebido.test.ts` e `src/test/video-hevc-na-tela.test.tsx` | a capa sai e é transmitida antes do vídeo; 1080×1920 vira 720×1280 em H.264; o balão mostra a capa com "Preparando o vídeo…" ou o original quando o navegador toca HEVC; o aviso troca o balão no lugar |
+| CA-B53-35 | manual | roteiro abaixo | capa em segundos e vídeo tocando sem recarregar |
 | CA-B53-14 | manual | roteiro abaixo | os quatro tipos aparecem no Chat e abrem |
+
+### Roteiro manual — CA-B53-35
+1. Abra no Chrome do Windows a conversa do celular de teste com o número da API Oficial.
+2. Do iPhone, mande um vídeo gravado na câmera.
+3. Sem recarregar: a capa aparece com "Preparando o vídeo…" e, em até cerca de 15 segundos, o vídeo toca com imagem.
 
 ### Roteiro manual — CA-B53-14
 1. Com a B53-07 no ar, de um celular, mande ao número +55 11 95504-6911 (API Oficial) uma imagem com legenda, um áudio gravado, um PDF e um vídeo.
@@ -77,7 +86,12 @@ Nenhuma mudança. Usa as colunas que o canal direto já grava em `messages` (`ty
 - **Modificar:** `next.config.ts` — `ffmpeg-static` fora do bundle e o binário incluído na função do webhook
 - **Modificar:** `package.json` — dependência `ffmpeg-static` (5.3.0, exata) e `allowScripts` liberando o script dela, que baixa o binário (o npm 11 da Vercel pula script de dependência sem essa liberação); o `build` roda o mesmo instalador antes do `next build`, porque o cache da Vercel traz as dependências prontas e o script não roda de novo (o instalador pula quando o binário já existe)
 - **Modificar:** `package-lock.json` — a mesma dependência travada
-- **Criar:** `src/test/conversao-de-video-recebido.test.ts` — CA-B53-31
+- **Criar:** `src/test/conversao-de-video-recebido.test.ts` — CA-B53-31 e CA-B53-34 (servidor)
+- **Criar:** `src/test/video-hevc-na-tela.test.tsx` — CA-B53-34 (tela)
+- **Modificar:** `src/app/(auth)/chat/components/balao-mensagem.tsx` — vídeo HEVC: original se o navegador toca, senão a capa com "Preparando o vídeo…" e "Baixar original"
+- **Modificar:** `src/app/(auth)/chat/mensagens-locais.ts` — `aplicarMensagemRecebida`: mensagem repetida do tempo real atualiza o balão no lugar
+- **Modificar:** `src/app/(auth)/chat/components/chat-layout.tsx` — usa `aplicarMensagemRecebida`
+- **Modificar:** `src/test/chat-figurinha-e-video-hevc.test.tsx` — o balão HEVC agora mostra "Preparando o vídeo…" no lugar do aviso da B19-04
 
 Reuso: `tipoGuardado`, `lerComLimite`, `mimeComCodec`, `LIMITE_DA_MIDIA_EM_BYTES` e `TEMPO_LIMITE_DA_MIDIA_MS` (`midia-recebida.ts`); `traduzirConteudo` e `TIPOS_COM_ARQUIVO` (`recebimento.ts`) para tipo e prévia; `BalaoMensagem` já mostra o texto do `content` quando ele não é endereço.
 
@@ -89,3 +103,5 @@ Reuso: `tipoGuardado`, `lerComLimite`, `mimeComCodec`, `LIMITE_DA_MIDIA_EM_BYTES
 - [x] Testes do CA-B53-12 e CA-B53-13
 - [x] CA-B53-31: conversão do vídeo HEVC recebido para H.264 (`conversao-de-video.ts`, `after()` no webhook, `ffmpeg-static` na função)
 - [x] Teste do CA-B53-31
+- [x] CA-B53-34: capa primeiro, conversão rápida até 720p, troca sozinha na conversa aberta, original direto no navegador que toca HEVC
+- [x] Testes do CA-B53-34

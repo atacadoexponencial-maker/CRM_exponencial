@@ -299,8 +299,21 @@ export async function POST(request: NextRequest) {
         // B53-07: vídeo HEVC vira H.264 depois da resposta à Meta, no mesmo caminho
         if (guardada && eVideoHevc(guardada.mimeType)) {
           const caminho = guardada.caminho
+          const mensagem = {
+            id: msgInserida.id,
+            conversation_id: conversaId,
+            workspace_id,
+            direction: "recebida",
+            type: tipoGravado,
+            content: conteudoGravado,
+            created_at: messageAt,
+            status: null,
+            media_mime_type: guardada.mimeType,
+            media_filename: midiaDaMeta?.filename ?? null,
+            media_thumbnail_url: null,
+          }
           try {
-            after(() => converterVideoRecebido({ supabase, mensagemId: msgInserida.id, caminho }))
+            after(() => converterVideoRecebido({ supabase, mensagem, caminho }))
           } catch {
             // Fora de uma requisição (nunca na Vercel) não há como agendar: fica o original
           }

@@ -21,13 +21,14 @@ describe("figurinha e GIF no balão", () => {
 })
 
 describe("vídeo HEVC no balão", () => {
-  it("avisa e oferece o download em vez do player mudo; vídeo comum continua no player", () => {
+  // B53-07: no lugar do aviso, a capa com "Preparando o vídeo…" até o convertido chegar
+  it("mostra que está preparando e oferece o original em vez do player mudo; vídeo comum continua no player", () => {
     const url = "https://x.supabase.co/storage/v1/object/public/chat-attachments/ws/recebidas/1.mp4"
     const { container, unmount } = render(
       <BalaoMensagem mensagem={{ ...base, tipo: "video", conteudo: url, tipoDoArquivo: "video/mp4; codecs=hvc1" }} />
     )
-    expect(screen.getByText(/formato \(HEVC\)/)).toBeTruthy()
-    expect(screen.getByText("Baixar vídeo").closest("a")?.getAttribute("href")).toBe(url)
+    expect(screen.getByText("Preparando o vídeo…")).toBeTruthy()
+    expect(screen.getByText("Baixar original").closest("a")?.getAttribute("href")).toBe(url)
     expect(container.querySelector("video")).toBeNull()
     unmount()
 

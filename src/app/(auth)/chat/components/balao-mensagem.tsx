@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useRef } from "react"
-import { Check, CheckCheck, Clock, AlertTriangle, FileText, Play, Pause, Mic, Film, Download, X, Reply, Smartphone } from "lucide-react"
+import { useState, useRef, useSyncExternalStore } from "react"
+import { Check, CheckCheck, Clock, AlertTriangle, FileText, Play, Pause, Mic, Film, Download, X, Reply, Smartphone, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogTrigger, DialogPopup, DialogClose } from "@/components/ui/dialog"
 import type { Mensagem, StatusMensagem } from "../mock-mensagens"
@@ -123,6 +123,53 @@ function IconeStatus({ status }: { status?: StatusMensagem }) {
   return <Check className="size-3 opacity-60" />
 }
 
+/** HEVC tocado pelo próprio navegador (Mac, iPhone, Edge com a extensão do Windows). */
+const CODEC_HEVC = 'video/mp4; codecs="hvc1.1.6.L120.90"'
+const nadaAOuvir = () => () => {}
+const navegadorTocaHevc = () => document.createElement("video").canPlayType(CODEC_HEVC) !== ""
+
+/**
+ * B53-07: vídeo HEVC. O navegador que toca HEVC mostra o original na hora; o que
+ * não toca (Chrome no Windows tocava só o som) mostra a capa com "Preparando o
+ * vídeo…" até o convertido chegar pelo tempo real, que troca o balão sozinho.
+ */
+function VideoHevc({ mensagem }: { mensagem: Mensagem }) {
+  // No servidor não há navegador para perguntar: começa como "não toca"
+  const tocaHevc = useSyncExternalStore(nadaAOuvir, navegadorTocaHevc, () => false)
+
+  if (tocaHevc && (mensagem.conteudo.startsWith("http") || mensagem.conteudo.startsWith("blob:"))) {
+    return <video src={mensagem.conteudo} controls className="w-48 rounded-lg" />
+  }
+  return (
+    <div className="w-48 flex flex-col gap-1.5">
+      <div className="relative rounded-lg overflow-hidden border bg-muted">
+        {mensagem.miniatura ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={mensagem.miniatura} alt="Capa do vídeo" className="w-full object-cover max-h-64" />
+        ) : (
+          <div className="h-32 flex items-center justify-center">
+            <Film className="size-6 text-muted-foreground" />
+          </div>
+        )}
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-background/60">
+          <Loader2 className="size-5 animate-spin text-foreground" />
+          <span className="text-xs font-medium text-foreground">Preparando o vídeo…</span>
+        </div>
+      </div>
+      <a
+        href={mensagem.conteudo}
+        target="_blank"
+        rel="noopener noreferrer"
+        download
+        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:underline"
+      >
+        <Download className="size-3.5" />
+        Baixar original
+      </a>
+    </div>
+  )
+}
+
 function ConteudoMensagem({ mensagem, termoBusca, isEnviada }: { mensagem: Mensagem; termoBusca: string; isEnviada: boolean }) {
   switch (mensagem.tipo) {
     case "imagem":
@@ -169,24 +216,7 @@ function ConteudoMensagem({ mensagem, termoBusca, isEnviada }: { mensagem: Mensa
       return <>{textoComDestaque(mensagem.conteudo, termoBusca)}</>
     case "video":
       if (/codecs=(hvc1|hev1)/.test(mensagem.tipoDoArquivo ?? "")) {
-        // HEVC: o navegador toca só o áudio com a tela preta; melhor avisar e dar o arquivo.
-        return (
-          <div className="w-56 rounded-lg border bg-muted/40 p-3 flex flex-col gap-2">
-            <p className="text-xs text-muted-foreground">
-              Este vídeo veio num formato (HEVC) que o navegador não reproduz. Baixe para assistir.
-            </p>
-            <a
-              href={mensagem.conteudo}
-              target="_blank"
-              rel="noopener noreferrer"
-              download
-              className="inline-flex items-center gap-1.5 text-xs font-medium hover:underline"
-            >
-              <Download className="size-3.5" />
-              Baixar vídeo
-            </a>
-          </div>
-        )
+        return <VideoHevc mensagem={mensagem} />
       }
       if (mensagem.conteudo.startsWith("http") || mensagem.conteudo.startsWith("blob:")) {
         return (

@@ -32,3 +32,19 @@ export function confirmarEnvio(
     m.id === idProvisorio ? { ...m, id: idReal, ...(statusGuardado ? { status: statusGuardado } : {}) } : m
   )
 }
+
+/**
+ * B53-07: mensagem nova entra no fim; a que já está na lista é atualizada no
+ * lugar (o vídeo HEVC ganha a capa e depois o arquivo convertido). Devolve a
+ * mesma lista quando nada muda.
+ */
+export function aplicarMensagemRecebida(lista: Mensagem[], mensagem: Mensagem): Mensagem[] {
+  const i = lista.findIndex((m) => m.id === mensagem.id)
+  if (i === -1) return [...lista, mensagem]
+  const atual = lista[i]
+  if (atual.tipoDoArquivo === mensagem.tipoDoArquivo && atual.miniatura === mensagem.miniatura) return lista
+  const proxima = [...lista]
+  // Status e horário da tela ficam; o arquivo, a capa e o tipo vêm do aviso
+  proxima[i] = { ...atual, conteudo: mensagem.conteudo, tipoDoArquivo: mensagem.tipoDoArquivo, miniatura: mensagem.miniatura }
+  return proxima
+}

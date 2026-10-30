@@ -183,7 +183,7 @@ automações gravava a mensagem sem avisar a tela aberta, como o chat e o webhoo
 - Imagem, áudio, vídeo, documento e figurinha recebidos pela API Oficial aparecem no Chat como no canal direto, com a legenda quando houver.
 - O documento aparece com o nome do arquivo.
 - Se a mídia não puder ser baixada, o balão diz que a mídia não pôde ser carregada, em vez de ficar vazio.
-- Vídeo HEVC (padrão do iPhone), que o Chrome não mostra, é convertido para H.264 logo depois de chegar, como o gateway já faz no canal direto (Marcelle, 30/10/2026, depois do reteste em que o vídeo tocou só o som).
+- Vídeo HEVC (padrão do iPhone), que o Chrome não mostra, é convertido para H.264 logo depois de chegar, como o gateway já faz no canal direto (Marcelle, 30/10/2026, depois do reteste em que o vídeo tocou só o som). Para chegar perto do WhatsApp (ela, 30/10/2026, depois de esperar 51 s e recarregar): capa na hora, conversão até 720p no preset mais rápido, troca sozinha na conversa aberta; navegador que toca HEVC vê o original direto.
 
 **Critérios de aceite:**
 
@@ -204,6 +204,18 @@ automações gravava a mensagem sem avisar a tela aberta, como o chat e o webhoo
 - **Dado** um vídeo HEVC (o padrão do iPhone) recebido pela API Oficial e já guardado
 - **Quando** a conversão termina, logo depois de a mensagem aparecer
 - **Então** o arquivo guardado passa a ser H.264 (que o Chrome toca), a mensagem deixa de ser marcada como HEVC, e se a conversão falhar o original continua no lugar
+
+#### CA-B53-34 — Vídeo HEVC chega como no WhatsApp · prova: automática
+
+- **Dado** um vídeo HEVC recebido pela API Oficial, com a conversa aberta
+- **Quando** o CRM o guarda
+- **Então** o navegador que toca HEVC mostra o original na hora; o que não toca mostra a capa (o primeiro quadro) com "Preparando o vídeo…" e, quando a conversão termina (em até 720p, no preset mais rápido), o vídeo substitui a capa sozinho, sem recarregar
+
+#### CA-B53-35 — Vídeo do iPhone toca sem recarregar no Chrome · prova: manual
+
+- **Dado** a conversa do celular de teste aberta no Chrome do Windows
+- **Quando** o celular manda um vídeo do iPhone ao número da API Oficial
+- **Então** a capa aparece em poucos segundos e o vídeo passa a tocar com imagem em até cerca de 15 segundos, sem recarregar
 
 #### CA-B53-14 — Mídia recebida aparece no Chat pela API Oficial · prova: manual
 
