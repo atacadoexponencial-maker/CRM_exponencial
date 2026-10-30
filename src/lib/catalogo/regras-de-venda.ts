@@ -201,10 +201,14 @@ export function precoDaGrade(grade: GradeFechada, unitario: number): number {
   return grade.preco ?? Math.round(pecasDaGrade(grade) * unitario * 100) / 100
 }
 
-/** Unitário que vale com a grade: o próprio ÷ peças (centavos arredondados), ou o unitário normal. */
+/**
+ * Unitário que vale com a grade: o próprio ÷ peças, ou o unitário normal. B53-12: sem
+ * arredondar, para o pacote somar o preço dele (R$ 140 em 6 peças = R$ 140, não 6 × 23,33);
+ * a tela arredonda ao mostrar e o total do pedido arredonda em centavos.
+ */
 export function unitarioDaGrade(grade: GradeFechada, unitario: number): number {
   const pecas = pecasDaGrade(grade)
-  return grade.preco === null || pecas === 0 ? unitario : Math.round((grade.preco / pecas) * 100) / 100
+  return grade.preco === null || pecas === 0 ? unitario : grade.preco / pecas
 }
 
 /** "P 1 · M 2 · G 2 · GG 1" (só as opções com quantidade). */

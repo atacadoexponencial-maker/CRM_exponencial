@@ -41,10 +41,12 @@ export interface DescontoAplicado {
 }
 
 export function totaisDoPedido(itens: ItemPedido[]): { pecas: number; valor: number } {
-  return itens.reduce(
+  const soma = itens.reduce(
     (acc, i) => ({ pecas: acc.pecas + i.quantidade, valor: acc.valor + i.quantidade * i.precoUnitario }),
     { pecas: 0, valor: 0 }
   )
+  // B53-12: o unitário da grade vem sem arredondar; o total arredonda em centavos, como a função do banco.
+  return { pecas: soma.pecas, valor: Math.round(soma.valor * 100) / 100 }
 }
 
 function reais(valor: number): string {

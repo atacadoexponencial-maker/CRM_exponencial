@@ -226,3 +226,21 @@ describe("B31-05 — repetir o último pedido no carrinho", () => {
     expect(screen.queryByRole("button", { name: /Repetir último pedido/ })).toBeNull()
   })
 })
+
+describe("B53-12 — grade fechada cobrada pelo preço do pacote no carrinho", () => {
+  const grade = { quantidades: { P: 1, M: 2, G: 2, GG: 1 }, preco: 140 }
+  const linhaGrade = (combinacao: string, quantidade: number): LinhaCarrinho => ({ produtoId: "cam", combinacao, nome: "Camiseta", fotoUrl: null, preco: 29.9, quantidade, maximo: 100, faixas: [], grade })
+  const grades = (vezes: number) => [linhaGrade("P / Azul", vezes), linhaGrade("M / Azul", 2 * vezes), linhaGrade("G / Azul", 2 * vezes), linhaGrade("GG / Azul", vezes)]
+
+  it("CA-B53-25: grade de 6 peças por R$ 140 sai R$ 140,00 com 1 grade e R$ 280,00 com 2, no bloco e no total do carrinho", () => {
+    const { unmount } = renderCarrinho(grades(1))
+    // O bloco da grade e o total do pedido; antes saía 6 × 23,33 = R$ 139,98.
+    expect(screen.getAllByText("R$ 140,00")).toHaveLength(2)
+    expect(screen.queryByText("R$ 139,98")).toBeNull()
+    unmount()
+
+    renderCarrinho(grades(2))
+    expect(screen.getAllByText("R$ 280,00")).toHaveLength(2)
+    expect(screen.queryByText("R$ 279,96")).toBeNull()
+  })
+})

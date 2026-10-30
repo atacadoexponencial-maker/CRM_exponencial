@@ -294,3 +294,40 @@ describe("B31-03 — grade fechada no servidor", { timeout: 30_000 }, () => {
     expect(pedido?.catalog_order_items.every((i) => i.unit_price === 25)).toBe(true)
   })
 })
+
+describe("B53-12 — grade fechada cobrada pelo preço do pacote no pedido", { timeout: 30_000 }, () => {
+  const semNbsp = (t: string) => t.replace(/ /g, " ")
+  const grades = (vezes: number, produtoId: string, preco?: number) => [
+    { produtoId, combinacao: "P", quantidade: vezes, preco },
+    { produtoId, combinacao: "M", quantidade: 2 * vezes, preco },
+    { produtoId, combinacao: "G", quantidade: 2 * vezes, preco },
+    { produtoId, combinacao: "GG", quantidade: vezes, preco },
+  ]
+
+  it("CA-B53-25: grade de 6 peças por R$ 140 grava total 140,00 com 1 grade e 280,00 com 2, e a mensagem traz o mesmo", async () => {
+    const vestidoGrade = (await service.from("catalog_products").insert({
+      workspace_id: ws, name: "Vestido Grade", price: 30,
+      variant_types: [{ id: "t", nome: "Tamanho", opcoes: ["P", "M", "G", "GG"] }],
+      pack_quantities: { P: 1, M: 2, G: 2, GG: 1 },
+      pack_price: 140,
+    }).select("id").single()).data!.id
+    await service.from("catalog_stock").insert(["P", "M", "G", "GG"].map((t) => ({ workspace_id: ws, product_id: vestidoGrade, combination: t, quantity: 100 })))
+
+    // O carrinho manda o unitário que ele calculou (o mesmo do servidor): o pedido não volta como "o preço mudou".
+    const r1 = await registrarPedido(slug, { nome: "Grade 140", whatsapp: "(21) 94000-0140" }, grades(1, vestidoGrade, 140 / 6))
+    expect(r1.ok).toBe(true)
+    if (!r1.ok) return
+    expect(semNbsp(r1.mensagem)).toContain("1 grade (6 peças) — R$ 23,33 cada = R$ 140,00")
+    expect(semNbsp(r1.mensagem)).toContain("Total: 6 peças · *R$ 140,00*")
+    const { data: p1 } = await service.from("catalog_orders").select("total, pieces").eq("workspace_id", ws).eq("number", r1.numero).single()
+    expect(p1).toMatchObject({ total: 140, pieces: 6 })
+
+    const r2 = await registrarPedido(slug, { nome: "Grade 280", whatsapp: "(21) 94000-0280" }, grades(2, vestidoGrade))
+    expect(r2.ok).toBe(true)
+    if (!r2.ok) return
+    expect(semNbsp(r2.mensagem)).toContain("2 grades (12 peças) — R$ 23,33 cada = R$ 280,00")
+    expect(semNbsp(r2.mensagem)).toContain("Total: 12 peças · *R$ 280,00*")
+    const { data: p2 } = await service.from("catalog_orders").select("total, pieces").eq("workspace_id", ws).eq("number", r2.numero).single()
+    expect(p2).toMatchObject({ total: 280, pieces: 12 })
+  })
+})
