@@ -74,7 +74,9 @@ export function PainelDeCarteiras({ resultado, acoesDoVendedor, acoesDosSemVende
 
       <section className="rounded-md border bg-card p-5">
         <h2 className="text-sm font-semibold mb-3">
-          {gestor ? "Carteira por vendedor" : "Minha carteira"} <span className="ml-1 rounded-full border px-2 text-xs text-muted-foreground">{painel.vendedores.length}</span>
+          {/* B53-14: o atendente só vê a carteira dele; o selo de quantos vendedores é do gestor */}
+          {gestor ? "Carteira por vendedor" : "Minha carteira"}
+          {gestor && <span className="ml-2 rounded-full border px-2 text-xs text-muted-foreground" data-testid="selo-vendedores">{painel.vendedores.length}</span>}
         </h2>
         <div className="flex flex-col gap-3">
           {painel.vendedores.map((v) => (
