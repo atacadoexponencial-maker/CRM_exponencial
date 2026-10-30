@@ -1,7 +1,7 @@
 # Spec: Coexistência (WhatsApp Business no celular e CRM no mesmo número)
 
 > série: B23
-> estado: rascunho
+> estado: aprovada (Marcelle, 30/10/2026)
 
 ## Visão Geral
 
@@ -341,9 +341,10 @@ dele, um número que está em uso no celular.
 | SUP-B23-04 | Conversa antiga importada fica sem atendente responsável e segue a mesma regra de visibilidade de uma conversa nova sem responsável. | confirmada | Marcelle, 10/10/2026. |
 | SUP-B23-05 | Mensagens antigas importadas não entram em nenhum número do dashboard, nem os de períodos passados. | confirmada | Marcelle, 10/10/2026. |
 | SUP-B23-06 | Quando o contato já existe no CRM, o nome do CRM vale mais que o nome da agenda do celular. | confirmada | Marcelle, 10/10/2026. |
-| SUP-B23-07 | O ritmo atual de envio de campanhas fica abaixo do teto de 20 mensagens por segundo que a Meta impõe a número em uso no celular. | aberta | — |
+| SUP-B23-07 | O ritmo atual de envio de campanhas fica abaixo do teto de 20 mensagens por segundo que a Meta impõe a número em uso no celular. | confirmada | Conferido no código em 30/10/2026: `src/lib/campanhas.ts` envia um destinatário por vez, esperando a resposta da Meta e conferindo o status da campanha no banco antes de cada envio, em lotes de 40 e no máximo 3 campanhas por rodada. Fica em poucas mensagens por segundo, bem abaixo de 20. |
 | SUP-B23-08 | Remover o número no CRM continua só tirando-o do CRM; desligar de verdade é feito pelo dono, no celular. | confirmada | Marcelle, 10/10/2026. |
 | SUP-B23-09 | Edição e exclusão de mensagem pelo contato valem só para números em uso no celular; os outros números continuam como hoje. | confirmada | Marcelle, 10/10/2026. |
+| SUP-B23-10 | Na CA-B23-22, "sequência" é lida como as automações em fluxo: as sequências automáticas saíram na B28-06 e o que elas faziam hoje é a automação (gatilho de resposta do time). | aberta | — |
 
 ## Perguntas em aberto
 
