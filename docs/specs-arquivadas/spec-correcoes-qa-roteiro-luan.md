@@ -1,7 +1,7 @@
 # Spec: Correções do roteiro de QA do Luan (Partes A e B)
 
 > série: B53
-> estado: aprovada em 30/10/2026
+> estado: concluída em 30/10/2026
 
 ## Visão Geral
 

@@ -3,7 +3,7 @@
 **Tipo:** Implementação
 **Página:** Campanhas — leitura
 **Repositório:** `crm-exponencial`
-**Spec:** `pre-desenvolvimento/spec-correcoes-qa-roteiro-luan.md`
+**Spec:** `docs/specs-arquivadas/spec-correcoes-qa-roteiro-luan.md`
 
 ## Descrição
 
@@ -77,3 +77,9 @@ Reuso: `assinaturaHmacValida` (o teste assina como `webhook-whatsapp-automacoes.
 - [x] Percorrer todas as `entry` e `changes` do pacote, para status e para mensagens recebidas
 - [x] Gravar o status só quando ele é à frente do atual (entregue não sobrescreve lido; falhou não sobrescreve entregue nem lido)
 - [x] Teste de integração dos CA-B53-08 e CA-B53-09
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B53-10 | Marcelle | 30/10/2026 |

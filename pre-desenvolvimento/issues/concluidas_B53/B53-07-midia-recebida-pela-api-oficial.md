@@ -3,7 +3,7 @@
 **Tipo:** Implementação
 **Página:** Chat
 **Repositório:** `crm-exponencial`
-**Spec:** `pre-desenvolvimento/spec-correcoes-qa-roteiro-luan.md`
+**Spec:** `docs/specs-arquivadas/spec-correcoes-qa-roteiro-luan.md`
 
 ## Descrição
 
