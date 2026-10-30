@@ -987,7 +987,7 @@ export async function buscarMensagens(conversaId: string): Promise<Mensagem[]> {
 
   const { data, error } = await supabase
     .from("messages")
-    .select("id, workspace_id, conversation_id, direction, type, content, status, status_error, reply_to_id, reply_preview_text, created_at, sent_from_phone, media_mime_type, media_filename, media_thumbnail_url")
+    .select("id, workspace_id, conversation_id, direction, type, content, status, status_error, reply_to_id, reply_preview_text, created_at, sent_from_phone, media_mime_type, media_filename, media_thumbnail_url, edited_at, deleted_at")
     .eq("conversation_id", conversaId)
     .order("created_at", { ascending: true })
 
@@ -1013,6 +1013,9 @@ export async function buscarMensagens(conversaId: string): Promise<Mensagem[]> {
       ...(row.media_mime_type ? { tipoDoArquivo: row.media_mime_type } : {}),
       ...(row.media_filename ? { nomeDoArquivo: row.media_filename } : {}),
       ...(row.media_thumbnail_url ? { miniatura: row.media_thumbnail_url } : {}),
+      // B23-05: marcas de edição e exclusão pelo contato (o canal direto já as gravava, B6-03)
+      ...(row.edited_at ? { editada: true } : {}),
+      ...(row.deleted_at ? { apagada: true } : {}),
     }
 
     if (row.reply_to_id && row.reply_preview_text) {

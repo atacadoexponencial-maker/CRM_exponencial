@@ -11,6 +11,7 @@ import { converterVideoRecebido, eVideoHevc } from "@/lib/whatsapp/conversao-de-
 import { escolherConversaDoNumero, nomeDoPerfil, statusAoReabrir, traduzirConteudo } from "@/lib/whatsapp/recebimento"
 import { processarAgenda, processarHistorico, type ValorDaAgenda, type ValorDoHistorico } from "@/lib/whatsapp/historico-do-celular"
 import { processarEcos, type ValorDosEcos } from "@/lib/whatsapp/eco-do-celular"
+import { aplicarEdicaoOuExclusaoDaMeta, TIPOS_DE_EDICAO, type AvisoDeEdicaoDaMeta } from "@/lib/whatsapp/edicao-pelo-contato"
 import { tirarDaLixeira } from "@/lib/lixeira"
 import { criarCardDeEntrada } from "@/lib/card-de-entrada"
 
@@ -156,7 +157,8 @@ export async function POST(request: NextRequest) {
       // B7-01: o `id` entrou junto do workspace para a conversa nascer sabendo
       // por qual número ela chegou. Nada mais mudou neste arquivo.
       // B53-07: e o token, que baixa a mídia recebida. Fica no servidor.
-      .select("id, workspace_id, access_token")
+      // B23-05: e se o número está em uso no celular, onde edição e exclusão existem.
+      .select("id, workspace_id, access_token, em_uso_no_celular")
       .eq("phone_number_id", phoneNumberId)
       .single()
 
@@ -165,6 +167,22 @@ export async function POST(request: NextRequest) {
     const { id: connectionId, workspace_id } = connection
 
     for (const message of messages) {
+      // B23-05: o contato editou ou apagou uma mensagem (número em uso no celular,
+      // SUP-B23-09). Não é mensagem nova: a original é alterada, e nada dispara.
+      if (connection.em_uso_no_celular && TIPOS_DE_EDICAO.includes(message.type ?? "")) {
+        try {
+          await aplicarEdicaoOuExclusaoDaMeta({
+            supabase,
+            workspaceId: workspace_id,
+            aviso: message as unknown as AvisoDeEdicaoDaMeta,
+            quando: new Date(Number(message.timestamp) * 1000).toISOString(),
+          })
+        } catch (erro) {
+          console.error("[whatsapp] erro ao aplicar edição do contato:", erro)
+        }
+        continue
+      }
+
       // B22-45: a Meta reentrega o mesmo evento quando não recebe resposta a tempo. O
       // id dela já gravado é tentativa repetida: sem isso, a conversa somava "não lida"
       // de novo e, se tivesse sido resolvida no meio, nascia outra, com "conversa criada"
