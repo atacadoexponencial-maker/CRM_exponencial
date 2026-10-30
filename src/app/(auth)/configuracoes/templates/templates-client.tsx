@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { criarTemplate, type Template } from "./actions"
 import { conferirNomeDoTemplate, nomeFinalDoTemplate } from "./nome-do-template"
+import { PreviaDoTemplate } from "@/components/shared/previa-do-template"
 
 const CATEGORIAS = [
   { value: "MARKETING", label: "Marketing" },
@@ -48,6 +49,8 @@ export function TemplatesClient({
   const [dialogAberto, setDialogAberto] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
+  // B54-01: o template aberto no Ver.
+  const [templateAberto, setTemplateAberto] = useState<Template | null>(null)
 
   const [name, setName] = useState("")
   const [category, setCategory] = useState("MARKETING")
@@ -85,6 +88,7 @@ export function TemplatesClient({
       status: "PENDING",
       category,
       language,
+      partes: { cabecalho: null, corpo: body.trim(), rodape: null, botoes: [] },
     }])
     setDialogAberto(false)
   }
@@ -112,6 +116,7 @@ export function TemplatesClient({
                 <th className="text-left px-4 py-3 font-medium">Categoria</th>
                 <th className="text-left px-4 py-3 font-medium">Idioma</th>
                 <th className="text-left px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -128,12 +133,33 @@ export function TemplatesClient({
                     {statusBadge(t.status)}
                     {t.motivo && <p className="mt-1 text-xs text-muted-foreground">{t.motivo}</p>}
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    <Button variant="outline" size="sm" onClick={() => setTemplateAberto(t)} aria-label={`Ver ${t.name}`}>
+                      Ver
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      {/* B54-01: prévia do template como no WhatsApp */}
+      <Dialog open={templateAberto !== null} onOpenChange={(aberto) => { if (!aberto) setTemplateAberto(null) }}>
+        <DialogPopup>
+          <DialogTitle className="mb-1 font-mono">{templateAberto?.name}</DialogTitle>
+          <p className="mb-4 text-xs text-muted-foreground">
+            {CATEGORIAS.find(c => c.value === templateAberto?.category)?.label ?? templateAberto?.category}
+            {" · "}
+            {IDIOMAS.find(l => l.value === templateAberto?.language)?.label ?? templateAberto?.language}
+          </p>
+          <PreviaDoTemplate partes={templateAberto?.partes ?? null} />
+          <div className="flex justify-end pt-4">
+            <DialogClose render={<Button type="button" variant="outline" />}>Fechar</DialogClose>
+          </div>
+        </DialogPopup>
+      </Dialog>
 
       <Dialog open={dialogAberto} onOpenChange={setDialogAberto}>
         <DialogPopup>

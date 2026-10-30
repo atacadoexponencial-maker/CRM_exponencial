@@ -3,6 +3,7 @@
 import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { conferirNomeDoTemplate } from "./nome-do-template"
+import { partesDoTemplate, type PartesDoTemplate } from "@/lib/templates-da-meta"
 
 export type Template = {
   id: string
@@ -12,6 +13,8 @@ export type Template = {
   language: string
   /** B48-15: só no rejeitado; o motivo da Meta em português, ou o aviso de que ela não disse. */
   motivo?: string
+  /** B54-01: cabeçalho, corpo, rodapé e botões lidos do `components` da Meta; `null` quando ela não mandou. */
+  partes?: PartesDoTemplate | null
 }
 
 // B48-15: os valores de `rejected_reason` da Graph API (WhatsApp Message Template).
@@ -61,7 +64,7 @@ export async function listarTemplates(): Promise<{ templates: Template[]; erro?:
   let data: { data?: unknown[] }
   try {
     const res = await fetch(
-      `https://graph.facebook.com/v21.0/${conexao.waba_id}/message_templates?fields=id,name,status,category,language,rejected_reason&limit=50&access_token=${conexao.access_token}`
+      `https://graph.facebook.com/v21.0/${conexao.waba_id}/message_templates?fields=id,name,status,category,language,rejected_reason,components&limit=50&access_token=${conexao.access_token}`
     )
     if (!res.ok) return { templates: [], erro: ERRO_AO_CARREGAR_TEMPLATES }
     data = await res.json()
@@ -70,8 +73,12 @@ export async function listarTemplates(): Promise<{ templates: Template[]; erro?:
   }
 
   return {
-    templates: ((data.data ?? []) as Array<Template & { rejected_reason?: unknown }>).map(({ rejected_reason, ...t }) =>
-      t.status === "REJECTED" ? { ...t, motivo: motivoDaRejeicao(rejected_reason) } : t
+    templates: ((data.data ?? []) as Array<Omit<Template, "partes"> & { rejected_reason?: unknown; components?: unknown }>).map(
+      ({ rejected_reason, components, ...t }) => ({
+        ...t,
+        partes: partesDoTemplate(components),
+        ...(t.status === "REJECTED" ? { motivo: motivoDaRejeicao(rejected_reason) } : {}),
+      })
     ),
   }
 }
