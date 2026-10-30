@@ -64,3 +64,9 @@ Reuso: `transmitirMensagem` (tópicos por quem pode ver a conversa, link assinad
 
 - [x] Envio das automações transmite a mensagem gravada
 - [x] Teste do CA-B53-32
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B53-33 | Marcelle | 30/10/2026 |
