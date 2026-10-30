@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
     if (field === "history" || field === "smb_app_state_sync") {
       const { data: conexao } = await supabase
         .from("whatsapp_connections")
-        .select("id, workspace_id, phone_number, access_token, em_uso_no_celular")
+        .select("id, workspace_id, phone_number, access_token, em_uso_no_celular, criar_cards_do_historico")
         .eq("phone_number_id", phoneNumberId)
         .maybeSingle()
       if (!conexao) continue

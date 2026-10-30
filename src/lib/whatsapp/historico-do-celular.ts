@@ -22,6 +22,7 @@ import type { createServiceClient } from "@/integrations/supabase/service"
 import { lerMensagemMeta, midiaDaMensagemMeta, type MensagemMeta } from "./mensagem-meta"
 import { guardarMidiaDaMeta } from "./midia-recebida"
 import { escolherConversaDoNumero, nomeDoPerfil, previaDaMensagemGravada } from "./recebimento"
+import { criarCardDeEntrada } from "@/lib/card-de-entrada"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -44,6 +45,8 @@ export type ConexaoDoHistorico = {
   phone_number: string | null
   access_token: string | null
   em_uso_no_celular: boolean
+  /** B23-03: escolha do Admin na conexão; lida no fim da importação. */
+  criar_cards_do_historico?: boolean | null
 }
 
 /** O texto do cartão do número, ou nulo quando não há importação. */
@@ -278,7 +281,7 @@ function previaDaLinha(linha: Pick<LinhaDeMensagem, "type" | "content">): string
 async function contatoDoHistorico(supabase: ServiceClient, conexao: ConexaoDoHistorico, telefone: string): Promise<string | null> {
   const { data: existente } = await supabase
     .from("contacts")
-    .select("id, name")
+    .select("id, name, importado_do_celular_em")
     .eq("workspace_id", conexao.workspace_id)
     .eq("phone_number", telefone)
     .maybeSingle()
@@ -291,17 +294,24 @@ async function contatoDoHistorico(supabase: ServiceClient, conexao: ConexaoDoHis
     .maybeSingle()
   const nome = nomeDoPerfil(daAgenda?.nome)
 
+  // B23-03: marca de quem apareceu numa conversa antiga; é quem ganha card no fim.
+  const agora = new Date().toISOString()
+
   if (existente) {
     // SUP-B23-06: o nome do CRM vale mais; só o vazio ganha o da agenda.
-    if (nome && !existente.name?.trim()) {
-      await supabase.from("contacts").update({ name: nome }).eq("id", existente.id)
-    }
+    await supabase
+      .from("contacts")
+      .update({
+        ...(nome && !existente.name?.trim() ? { name: nome } : {}),
+        ...(existente.importado_do_celular_em ? {} : { importado_do_celular_em: agora }),
+      })
+      .eq("id", existente.id)
     return existente.id
   }
 
   const { data: criado, error } = await supabase
     .from("contacts")
-    .insert({ workspace_id: conexao.workspace_id, phone_number: telefone, name: nome })
+    .insert({ workspace_id: conexao.workspace_id, phone_number: telefone, name: nome, importado_do_celular_em: agora })
     .select("id")
     .single()
   if (error || !criado) {
@@ -452,6 +462,25 @@ async function aplicarMidiaEntregueDepois(supabase: ServiceClient, conexao: Cone
 }
 
 /**
+ * B23-03: no fim da importação, com a opção marcada na conexão, cada contato
+ * importado que ainda não tem card no Funil de Entrada ganha um, na primeira
+ * etapa, pela mesma regra do contato novo. Quem já tem card continua com ele
+ * (`criarCardDeEntrada` trata o índice único como "já existe").
+ */
+async function criarCardsDosImportados(supabase: ServiceClient, conexao: ConexaoDoHistorico): Promise<void> {
+  if (!conexao.criar_cards_do_historico) return
+  const { data: contatos } = await supabase
+    .from("contacts")
+    .select("id")
+    .eq("workspace_id", conexao.workspace_id)
+    .not("importado_do_celular_em", "is", null)
+    .is("excluido_em", null)
+  for (const contato of contatos ?? []) {
+    await criarCardDeEntrada(supabase, conexao.workspace_id, contato.id)
+  }
+}
+
+/**
  * Webhook `history`. Lança em falha de banco, para a Meta reentregar; o
  * `wamid` único absorve o que já tinha entrado.
  */
@@ -501,12 +530,15 @@ export async function processarHistorico({
       .eq("id", conexao.id)
       .maybeSingle()
     const progresso = Math.max(atual?.historico_progresso ?? 0, maiorProgresso)
+    const terminou = progresso >= 100
     await supabase
       .from("whatsapp_connections")
       .update({
         historico_progresso: progresso,
-        historico_situacao: progresso >= 100 ? "importado" : atual?.historico_situacao === "importado" ? "importado" : "importando",
+        historico_situacao: terminou ? "importado" : atual?.historico_situacao === "importado" ? "importado" : "importando",
       })
       .eq("id", conexao.id)
+    // B23-03: os cards são a última coisa, quando a Meta diz que acabou.
+    if (terminou) await criarCardsDosImportados(supabase, conexao)
   }
 }

@@ -1137,6 +1137,7 @@ export type Database = {
           excluido_por: string | null
           icp: string | null
           id: string
+          importado_do_celular_em: string | null
           name: string | null
           observacoes: string | null
           phone_number: string
@@ -1155,6 +1156,7 @@ export type Database = {
           excluido_por?: string | null
           icp?: string | null
           id?: string
+          importado_do_celular_em?: string | null
           name?: string | null
           observacoes?: string | null
           phone_number: string
@@ -1173,6 +1175,7 @@ export type Database = {
           excluido_por?: string | null
           icp?: string | null
           id?: string
+          importado_do_celular_em?: string | null
           name?: string | null
           observacoes?: string | null
           phone_number?: string

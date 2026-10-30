@@ -187,12 +187,12 @@ até 24 horas depois da conexão.
 - **Então** cada contato importado que ainda não tinha card ganha um card na primeira
   etapa do Funil de Entrada, e quem já tinha card continua com o mesmo, na mesma etapa
 
-#### CA-B23-18 — Conversa antiga não libera resposta livre · prova: automática
-
-- **Dado** um contato cuja última mensagem recebida veio só pelo histórico importado
-- **Quando** o atendente abre a conversa no CRM
-- **Então** o CRM exige mensagem de modelo (template) para escrever, como em conversa com
-  a janela de 24 horas fechada
+> **CA-B23-18 transferido** (PER-B23-06, Marcelle, 30/10/2026): "conversa antiga não libera
+> resposta livre" depende da regra da janela de 24 horas no Chat, que não existe hoje. Vai
+> para a série do template no Chat, com este texto:
+> *Dado um contato cuja última mensagem recebida veio só pelo histórico importado, quando o
+> atendente abre a conversa no CRM, então o CRM exige mensagem de modelo (template) para
+> escrever, como em conversa com a janela de 24 horas fechada.*
 
 ### Mensagens enviadas pelo celular
 
@@ -240,11 +240,11 @@ como resposta do time.
   calculado até essa mensagem e a sequência se comporta como se a resposta tivesse saído
   pelo CRM
 
-#### CA-B23-23 — Envio pelo celular não libera resposta livre · prova: automática
-
-- **Dado** um contato com a janela de 24 horas fechada
-- **Quando** o vendedor envia mensagem a ele pelo celular
-- **Então** o CRM continua exigindo mensagem de modelo para escrever por ele
+> **CA-B23-23 transferido** (PER-B23-06, Marcelle, 30/10/2026): "envio pelo celular não libera
+> resposta livre" depende da mesma regra da janela. Vai para a série do template no Chat, com
+> este texto: *Dado um contato com a janela de 24 horas fechada, quando o vendedor envia
+> mensagem a ele pelo celular, então o CRM continua exigindo mensagem de modelo para
+> escrever por ele.*
 
 #### CA-B23-24 — Mensagem editada pelo contato aparece editada · prova: automática
 
@@ -318,6 +318,9 @@ dele, um número que está em uso no celular.
 
 ## Fora de escopo
 
+- Exigir template no Chat quando a janela de 24 horas está fechada (CA-B23-18 e CA-B23-23,
+  transferidos em 30/10/2026 pela PER-B23-06): o Chat não tem essa regra hoje e a B54 a
+  deixou para a série do template no Chat.
 - Conectar o mesmo número ao canal direto e à API Oficial ao mesmo tempo (descartado em
   10/09/2026, `pre-desenvolvimento/decisoes/B1-01-camada-de-provider.md`).
 - Grupos, chamadas, status, listas de transmissão, catálogo e etiquetas do aplicativo do
@@ -350,6 +353,7 @@ dele, um número que está em uso no celular.
 | SUP-B23-13 | Mensagem antiga que a empresa mandou pelo celular entra no chat com a marca "Enviada pelo celular" (como as da B23-04) e com o status que a Meta informa (lida, entregue ou enviada). | confirmada | Marcelle, 30/10/2026. |
 | SUP-B23-14 | Conversa criada pela importação nasce "em espera", sem não lidas, e a prévia da lista (`last_message`) só avança: mensagem antiga nunca faz a conversa parecer mais recente do que ela é. | confirmada | Marcelle, 30/10/2026. |
 | SUP-B23-15 | Mídia antiga que a Meta entrega depois do marcador substitui o marcador; se chegar antes dele (sem como saber de qual contato é), é ignorada e o marcador fica. | confirmada | Marcelle, 30/10/2026. |
+| SUP-B23-16 | Os cards criados no fim da importação (opção marcada) valem como lead novo: entram no dashboard como entrada na etapa Lead e na central de alertas como qualquer card. | confirmada | Marcelle, 30/10/2026. |
 
 ## Perguntas em aberto
 
@@ -360,3 +364,4 @@ dele, um número que está em uso no celular.
 | PER-B23-03 | Mensagem enviada pelo celular vale como resposta do time? | respondida | Sim: vale para sequências, automações e métricas, marcada como "Enviada pelo celular". Marcelle, 10/10/2026. |
 | PER-B23-04 | Contato vindo só das conversas antigas ganha card no Funil de Entrada? | respondida | É escolha do cliente na conexão. Marcelle, 10/10/2026. |
 | PER-B23-05 | Qual número com WhatsApp Business no celular será usado nos três testes com chip real (conexão, envio pelo celular, desconexão)? | respondida | Marcelle ainda não tem o número (30/10/2026): o código segue, e os três testes com chip ficam pendentes no auditor até ela ter o número. |
+| PER-B23-06 | O CA-B23-18 (e o CA-B23-23, da B23-04) pedem que o CRM "exija template para escrever, como em conversa com a janela de 24 horas fechada". O Chat de hoje não tem essa regra: qualquer texto é enviado e é a Meta quem recusa fora da janela; a B54 deixa "template avulso pelo Chat" para uma série futura. O que fazer com esses dois critérios: tirá-los da B23 e levá-los para a série do template no Chat, ou criar a regra da janela agora, dentro da B23? | respondida | Tirar da B23 e levar para a série do template no Chat. Marcelle, 30/10/2026. |

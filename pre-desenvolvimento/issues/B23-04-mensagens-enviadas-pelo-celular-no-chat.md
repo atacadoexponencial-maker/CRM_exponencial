@@ -7,11 +7,11 @@
 
 ## Descrição
 
-Com o número em uso também no celular, a Meta avisa pelo webhook de cada mensagem que o vendedor envia pelo aplicativo. O CRM a coloca na conversa como enviada pela empresa, com a marca "Enviada pelo celular" e sem atendente, criando contato e conversa quando o telefone é desconhecido. Essa mensagem conta como resposta do time (deixa de aguardar resposta, entra no tempo de resposta do dashboard, vale para as automações), mas não abre a janela de 24 horas para escrever livremente pelo CRM.
+Com o número em uso também no celular, a Meta avisa pelo webhook de cada mensagem que o vendedor envia pelo aplicativo. O CRM a coloca na conversa como enviada pela empresa, com a marca "Enviada pelo celular" e sem atendente, criando contato e conversa quando o telefone é desconhecido. Essa mensagem conta como resposta do time (deixa de aguardar resposta, entra no tempo de resposta do dashboard, vale para as automações). (O critério do template fora da janela, CA-B23-23, foi transferido para a série do template no Chat: PER-B23-06.)
 
 ## Pronto quando
 
-O vendedor manda uma mensagem pelo celular e ela aparece na conversa do CRM em tempo real, marcada "Enviada pelo celular"; a conversa sai de "aguardando resposta" e o CRM continua pedindo template se a janela estava fechada.
+O vendedor manda uma mensagem pelo celular e ela aparece na conversa do CRM em tempo real, marcada "Enviada pelo celular"; a conversa sai de "aguardando resposta".
 
 ## Critérios de aceite
 
@@ -19,7 +19,6 @@ O vendedor manda uma mensagem pelo celular e ela aparece na conversa do CRM em t
 - **CA-B23-20** (manual) — O envio pelo celular aparece em tempo real, com chip real. Dado a conversa aberta no CRM, quando o vendedor envia texto, foto e áudio pelo celular, então os três aparecem no CRM em poucos segundos, sem recarregar a tela, e uma mensagem enviada pelo CRM aparece no aplicativo do celular.
 - **CA-B23-21** (automática) — Envio pelo celular a número desconhecido cria o contato. Dado um telefone que não é contato do CRM, quando chega o aviso de mensagem enviada pelo celular para ele, então o CRM cria o contato e a conversa, com a mensagem dentro.
 - **CA-B23-22** (automática) — Envio pelo celular vale como resposta do time. Dado uma conversa aguardando resposta, com sequência que para quando o time responde, quando chega o aviso de mensagem enviada pelo celular, então a conversa deixa de aguardar resposta, o tempo de resposta do dashboard é calculado até essa mensagem e a sequência se comporta como se a resposta tivesse saído pelo CRM.
-- **CA-B23-23** (automática) — Envio pelo celular não libera resposta livre. Dado um contato com a janela de 24 horas fechada, quando o vendedor envia mensagem a ele pelo celular, então o CRM continua exigindo mensagem de modelo para escrever por ele.
 
 ## Suposições
 
