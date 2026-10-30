@@ -12,6 +12,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import { criarTemplate, type Template } from "./actions"
+import { conferirNomeDoTemplate, nomeFinalDoTemplate } from "./nome-do-template"
 
 const CATEGORIAS = [
   { value: "MARKETING", label: "Marketing" },
@@ -35,7 +36,14 @@ function statusBadge(status: string) {
   return <Badge variant="outline">{status}</Badge>
 }
 
-export function TemplatesClient({ templates: initial }: { templates: Template[] }) {
+export function TemplatesClient({
+  templates: initial,
+  erroAoCarregar,
+}: {
+  templates: Template[]
+  /** B53-08: a Meta recusou a consulta; a tela diz isso em vez de mostrar lista vazia. */
+  erroAoCarregar?: string
+}) {
   const [templates, setTemplates] = useState(initial)
   const [dialogAberto, setDialogAberto] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -56,12 +64,9 @@ export function TemplatesClient({ templates: initial }: { templates: Template[] 
   }
 
   async function handleSalvar() {
-    const nomeLimpo = name.trim().toLowerCase().replace(/\s+/g, "_")
-    if (!nomeLimpo) { setErro("Nome é obrigatório"); return }
-    if (!/^[a-z0-9_]+$/.test(nomeLimpo)) {
-      setErro("Nome deve conter apenas letras minúsculas, números e underscores")
-      return
-    }
+    const conferido = conferirNomeDoTemplate(name)
+    if ("erro" in conferido) { setErro(conferido.erro); return }
+    const nomeLimpo = conferido.nome
     if (!body.trim()) { setErro("Corpo da mensagem é obrigatório"); return }
 
     setErro(null)
@@ -91,7 +96,9 @@ export function TemplatesClient({ templates: initial }: { templates: Template[] 
         <Button onClick={abrirDialog}>Novo template</Button>
       </div>
 
-      {templates.length === 0 ? (
+      {erroAoCarregar && templates.length === 0 ? (
+        <p className="rounded-md bg-erro-fundo px-4 py-3 text-sm text-erro">{erroAoCarregar}</p>
+      ) : templates.length === 0 ? (
         <div className="rounded-md border border-dashed bg-card/60 p-12 flex flex-col items-center gap-3 text-center">
           <p className="text-muted-foreground text-sm">Nenhum template criado ainda.</p>
           <Button variant="outline" onClick={abrirDialog}>Criar primeiro template</Button>
@@ -142,6 +149,11 @@ export function TemplatesClient({ templates: initial }: { templates: Template[] 
                 onChange={e => setName(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">Apenas letras minúsculas, números e underscores.</p>
+              {nomeFinalDoTemplate(name) && (
+                <p className="text-xs text-muted-foreground">
+                  Será enviado como <span className="font-mono text-foreground">{nomeFinalDoTemplate(name)}</span>
+                </p>
+              )}
             </div>
 
             <div className="flex gap-4">

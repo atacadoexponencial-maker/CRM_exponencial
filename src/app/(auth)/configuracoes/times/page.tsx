@@ -5,17 +5,14 @@ import { AcoesTime } from "./acoes-time"
 import { sessaoAtual } from "@/lib/sessao"
 import { listarTimes, listarUsuariosDoWorkspace } from "./actions"
 import { CLASSE_DA_PAGINA } from "@/lib/pagina"
+import { iniciaisDoNome } from "@/lib/iniciais"
 
 export const metadata = { title: "Times" }
 
 function Iniciais({ nome }: { nome: string }) {
-  const partes = nome.trim().split(" ")
-  const iniciais = partes.length >= 2
-    ? partes[0][0] + partes[partes.length - 1][0]
-    : partes[0][0]
   return (
     <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium">
-      {iniciais.toUpperCase()}
+      {iniciaisDoNome(nome)}
     </span>
   )
 }

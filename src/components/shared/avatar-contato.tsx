@@ -3,12 +3,7 @@
 import { useState } from "react"
 import { User } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-function iniciais(nome: string): string {
-  const partes = nome.trim().split(/\s+/)
-  if (partes.length >= 2) return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase()
-  return partes[0][0].toUpperCase()
-}
+import { iniciaisDoNome } from "@/lib/iniciais"
 
 const TAMANHOS = {
   md: { circulo: "h-10 w-10 text-sm", icone: "size-5" },
@@ -33,6 +28,7 @@ export function AvatarContato({
 }) {
   const t = TAMANHOS[tamanho]
   const nomeLimpo = nome?.trim()
+  const iniciais = nomeLimpo ? iniciaisDoNome(nomeLimpo) : ""
   const [urlQuebrada, setUrlQuebrada] = useState<string | null>(null)
   const mostrarFoto = Boolean(fotoUrl) && urlQuebrada !== fotoUrl
 
@@ -51,8 +47,8 @@ export function AvatarContato({
           className="h-full w-full object-cover"
           onError={() => setUrlQuebrada(fotoUrl)}
         />
-      ) : nomeLimpo ? (
-        iniciais(nomeLimpo)
+      ) : iniciais ? (
+        iniciais
       ) : (
         <User className={t.icone} aria-label="Contato sem nome" />
       )}

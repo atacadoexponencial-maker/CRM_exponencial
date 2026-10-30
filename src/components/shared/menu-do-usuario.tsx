@@ -18,13 +18,11 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { realizarLogout, trocarTema } from "@/app/(auth)/perfil/actions"
 import { aplicarTemaNoNavegador, temaValido, type Tema } from "@/lib/tema"
+import { iniciaisDoNome } from "@/lib/iniciais"
 
 /** Duas iniciais do nome; sem nome, a primeira letra do e-mail. */
 export function iniciaisDe(nome: string, email: string): string {
-  const partes = nome.trim().split(/\s+/).filter(Boolean)
-  if (partes.length >= 2) return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase()
-  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase()
-  return (email[0] ?? "?").toUpperCase()
+  return iniciaisDoNome(nome, 2) || (email[0] ?? "?").toUpperCase()
 }
 
 const NOME_DO_PAPEL = { admin: "Admin", gerente: "Gerente", atendente: "Atendente" } as const
