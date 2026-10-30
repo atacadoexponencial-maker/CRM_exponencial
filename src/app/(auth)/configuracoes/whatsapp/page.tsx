@@ -55,6 +55,8 @@ export default async function WhatsAppPage() {
     state_reason: (c.stateReason as NumeroConectado["state_reason"]) ?? null,
     // B9-03: "Desconectado há N dias", pausa longa e queda, decididos aqui.
     pausa: situacaoDaPausa({ status: c.status, stateReason: c.stateReason ?? null, disconnectedAt: c.disconnectedAt }),
+    // B23-01: selo "Em uso também no celular" no cartão do número da Meta.
+    em_uso_no_celular: c.emUsoNoCelular,
   }))
 
   return (

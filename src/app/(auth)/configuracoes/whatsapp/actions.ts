@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
+import { normalizarWhatsapp } from "@/lib/telefone"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { clienteGatewayDoAmbiente } from "@/lib/whatsapp/gateway/cliente"
 import {
@@ -546,11 +547,36 @@ export async function sincronizarEstadoDoNumero(
 }
 
 const NUMERO_EM_OUTRA_EMPRESA = "Este número já está conectado em outra empresa."
+// B23-01: um número não fica no canal direto e na API Oficial ao mesmo tempo (decisão B1-01).
+const NUMERO_NO_CANAL_DIRETO =
+  "Este número já está conectado pelo canal direto. Desconecte-o lá antes de conectá-lo pela API Oficial."
+const ERRO_GENERICO = "Não foi possível conectar o número. Tente novamente."
+
+/**
+ * B23-01: o número que a Meta acabou de ligar à WABA. Quando a janela da Meta termina
+ * pelo caminho do WhatsApp Business do celular, o evento pode vir só com o `waba_id`;
+ * aí o número é o da WABA que está em uso no aplicativo (`is_on_biz_app`), ou o único
+ * que ela tem.
+ */
+async function descobrirNumeroDaWaba(wabaId: string, accessToken: string): Promise<string | null> {
+  const res = await fetch(
+    `https://graph.facebook.com/v21.0/${wabaId}/phone_numbers?fields=id,is_on_biz_app&access_token=${accessToken}`
+  )
+  if (!res.ok) return null
+  const { data } = (await res.json()) as { data?: { id: string; is_on_biz_app?: boolean }[] }
+  const numeros = data ?? []
+  const noCelular = numeros.find((n) => n.is_on_biz_app === true)
+  if (noCelular) return noCelular.id
+  return numeros.length === 1 ? numeros[0].id : null
+}
 
 export async function completarConexaoWhatsApp(params: {
   code: string
-  phoneNumberId: string
+  /** Pode faltar quando a Meta conclui pelo caminho do WhatsApp Business do celular (B23-01). */
+  phoneNumberId?: string
   wabaId: string
+  /** B23-01: escolha do Admin antes de conectar; gravada uma vez, lida na B23-03. */
+  criarCardsDoHistorico?: boolean
 }): Promise<{ erro?: string }> {
   const ssrClient = await createSsrClient()
   const { data: { user } } = await ssrClient.auth.getUser()
@@ -577,14 +603,19 @@ export async function completarConexaoWhatsApp(params: {
   // B44-01: um número da Meta é de uma empresa só. Confere antes de falar com a Meta,
   // pela chave de serviço, porque o navegador só enxerga as conexões da própria empresa.
   const service = createServiceClient()
-  const { data: emOutraEmpresa } = await service
-    .from("whatsapp_connections")
-    .select("id")
-    .eq("phone_number_id", params.phoneNumberId)
-    .neq("workspace_id", workspaceId)
-    .limit(1)
+  async function emOutraEmpresa(phoneNumberId: string) {
+    const { data } = await service
+      .from("whatsapp_connections")
+      .select("id")
+      .eq("phone_number_id", phoneNumberId)
+      .neq("workspace_id", workspaceId)
+      .limit(1)
+    return Boolean(data?.length)
+  }
 
-  if (emOutraEmpresa?.length) return { erro: NUMERO_EM_OUTRA_EMPRESA }
+  if (params.phoneNumberId && (await emOutraEmpresa(params.phoneNumberId))) {
+    return { erro: NUMERO_EM_OUTRA_EMPRESA }
+  }
 
   const appId = process.env.NEXT_PUBLIC_META_APP_ID!
   const appSecret = process.env.META_APP_SECRET!
@@ -593,43 +624,71 @@ export async function completarConexaoWhatsApp(params: {
     `https://graph.facebook.com/v21.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&code=${params.code}`
   )
 
-  if (!tokenRes.ok) return { erro: "Não foi possível conectar o número. Tente novamente." }
+  if (!tokenRes.ok) return { erro: ERRO_GENERICO }
 
   const tokenData = await tokenRes.json()
   const accessToken: string = tokenData.access_token
-  if (!accessToken) return { erro: "Não foi possível conectar o número. Tente novamente." }
+  if (!accessToken) return { erro: ERRO_GENERICO }
+
+  // B23-01: sem o id do número no evento da Meta, ele é descoberto pela WABA.
+  let phoneNumberId = params.phoneNumberId
+  if (!phoneNumberId) {
+    phoneNumberId = (await descobrirNumeroDaWaba(params.wabaId, accessToken)) ?? undefined
+    if (!phoneNumberId) return { erro: ERRO_GENERICO }
+    if (await emOutraEmpresa(phoneNumberId)) return { erro: NUMERO_EM_OUTRA_EMPRESA }
+  }
 
   const phoneRes = await fetch(
-    `https://graph.facebook.com/v21.0/${params.phoneNumberId}?fields=display_phone_number,verified_name&access_token=${accessToken}`
+    `https://graph.facebook.com/v21.0/${phoneNumberId}?fields=display_phone_number,verified_name,is_on_biz_app&access_token=${accessToken}`
   )
 
-  if (!phoneRes.ok) return { erro: "Não foi possível conectar o número. Tente novamente." }
+  if (!phoneRes.ok) return { erro: ERRO_GENERICO }
 
   const phoneData = await phoneRes.json()
   const phoneNumber: string = phoneData.display_phone_number
   const displayName: string = phoneData.verified_name
+  // B23-01: a Meta diz se o número continua em uso no WhatsApp Business do celular.
+  // É o servidor que decide, não o que o navegador recebeu na janela.
+  const emUsoNoCelular = phoneData.is_on_biz_app === true
 
-  if (!phoneNumber || !displayName) return { erro: "Não foi possível conectar o número. Tente novamente." }
+  if (!phoneNumber || !displayName) return { erro: ERRO_GENERICO }
 
-  const registerRes = await fetch(
-    `https://graph.facebook.com/v21.0/${params.phoneNumberId}/register`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        pin: "000000",
-      }),
+  // B23-01: número que já está no canal direto, em qualquer empresa, não entra pela
+  // API Oficial (SUP-B23-11). A Meta devolve "+55 11 9…" e o canal direto guarda só dígitos.
+  const digitos = normalizarWhatsapp(phoneNumber)
+  if (digitos) {
+    const { data: noCanalDireto } = await service
+      .from("whatsapp_connections")
+      .select("id")
+      .eq("canal", "gateway")
+      .eq("phone_number", digitos)
+      .neq("status", "removed")
+      .limit(1)
+    if (noCanalDireto?.length) return { erro: NUMERO_NO_CANAL_DIRETO }
+  }
+
+  // B23-01: número em uso no celular já está registrado; a Meta manda pular este passo.
+  if (!emUsoNoCelular) {
+    const registerRes = await fetch(
+      `https://graph.facebook.com/v21.0/${phoneNumberId}/register`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          pin: "000000",
+        }),
+      }
+    )
+
+    if (!registerRes.ok) {
+      const registerError = await registerRes.text()
+      console.error("[whatsapp] erro ao registrar número:", registerError)
+      return { erro: "Número conectado à WABA mas não foi possível registrá-lo no WhatsApp. Tente novamente." }
     }
-  )
-
-  if (!registerRes.ok) {
-    const registerError = await registerRes.text()
-    console.error("[whatsapp] erro ao registrar número:", registerError)
-    return { erro: "Número conectado à WABA mas não foi possível registrá-lo no WhatsApp. Tente novamente." }
   }
 
   const subscribeRes = await fetch(
@@ -655,13 +714,16 @@ export async function completarConexaoWhatsApp(params: {
       display_name: displayName,
       status: "connected",
       waba_id: params.wabaId,
-      phone_number_id: params.phoneNumberId,
+      phone_number_id: phoneNumberId,
       access_token: accessToken,
+      // B23-01
+      em_uso_no_celular: emUsoNoCelular,
+      criar_cards_do_historico: params.criarCardsDoHistorico === true,
     })
 
   // Outra empresa gravou o mesmo número entre a conferência e aqui: o índice único recusa.
   if (error?.code === "23505") return { erro: NUMERO_EM_OUTRA_EMPRESA }
-  if (error) return { erro: "Não foi possível conectar o número. Tente novamente." }
+  if (error) return { erro: ERRO_GENERICO }
 
   revalidatePath("/configuracoes/whatsapp")
   return {}

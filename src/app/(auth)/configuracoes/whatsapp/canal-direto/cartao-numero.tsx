@@ -8,6 +8,7 @@
 // é do WhatsApp, e ler o QR de novo não desfaz.
 
 import { AlertTriangle, Ban } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { formatarNumero } from "@/lib/whatsapp"
 import { CanalBadge, EstadoBadge, TEXTO_DO_MOTIVO, type EstadoConexao, type MotivoDeTransicao } from "./estado-badge"
 import type { SituacaoDaPausa } from "@/lib/whatsapp/gateway/pausa"
@@ -21,6 +22,8 @@ export type NumeroConectado = {
   state_reason: MotivoDeTransicao | null
   /** B9-03: calculada no servidor; ausente na Meta e no protótipo. */
   pausa?: SituacaoDaPausa
+  /** B23-01: número da Meta que continua em uso no WhatsApp Business do celular. */
+  em_uso_no_celular?: boolean
 }
 
 export function CartaoNumero({
@@ -51,6 +54,9 @@ export function CartaoNumero({
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           <EstadoBadge estado={numero.state} />
           <CanalBadge canal={numero.canal} />
+          {numero.em_uso_no_celular && (
+            <Badge className="bg-info-fundo text-info border-info/30">Em uso também no celular</Badge>
+          )}
         </div>
       </div>
 

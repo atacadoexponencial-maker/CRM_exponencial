@@ -2437,8 +2437,10 @@ export type Database = {
           access_token: string | null
           canal: string
           created_at: string
+          criar_cards_do_historico: boolean
           disconnected_at: string | null
           display_name: string | null
+          em_uso_no_celular: boolean
           id: string
           instance_id: string | null
           instance_token: string | null
@@ -2453,8 +2455,10 @@ export type Database = {
           access_token?: string | null
           canal?: string
           created_at?: string
+          criar_cards_do_historico?: boolean
           disconnected_at?: string | null
           display_name?: string | null
+          em_uso_no_celular?: boolean
           id?: string
           instance_id?: string | null
           instance_token?: string | null
@@ -2469,8 +2473,10 @@ export type Database = {
           access_token?: string | null
           canal?: string
           created_at?: string
+          criar_cards_do_historico?: boolean
           disconnected_at?: string | null
           display_name?: string | null
+          em_uso_no_celular?: boolean
           id?: string
           instance_id?: string | null
           instance_token?: string | null

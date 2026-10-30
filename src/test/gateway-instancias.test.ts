@@ -219,6 +219,8 @@ describe("listar conexões do workspace", () => {
       status: "pairing",
       stateReason: null,
       disconnectedAt: null,
+      // B23-01: linha sem a coluna (ou com false) não está em uso no celular.
+      emUsoNoCelular: false,
     })
   })
 

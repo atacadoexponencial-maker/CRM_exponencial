@@ -335,7 +335,7 @@ dele, um número que está em uso no celular.
 
 | ID | Suposição | Status | Resolução |
 |---|---|---|---|
-| SUP-B23-01 | A configuração atual do Cadastro Incorporado do app "Atacado Exp" já oferece, na janela da Meta, a opção de conectar um número em uso no celular, sem nova aprovação. | aberta | — |
+| SUP-B23-01 | A configuração atual do Cadastro Incorporado do app "Atacado Exp" já oferece, na janela da Meta, a opção de conectar um número em uso no celular, sem nova aprovação. | confirmada | Marcelle, 30/10/2026: ela mesma vai abrir a janela da Meta e conferir se a opção aparece, no teste com chip (CA-B23-03). Se não aparecer, o CRM segue como hoje para número novo e a série espera a aprovação do app pela Meta. |
 | SUP-B23-02 | A opção de criar cards para os contatos das conversas antigas vem **desmarcada** por padrão. | confirmada | Marcelle, 10/10/2026. |
 | SUP-B23-03 | A opção de criar cards é escolhida uma vez, antes de conectar, e não pode ser mudada depois. | confirmada | Marcelle, 10/10/2026. |
 | SUP-B23-04 | Conversa antiga importada fica sem atendente responsável e segue a mesma regra de visibilidade de uma conversa nova sem responsável. | confirmada | Marcelle, 10/10/2026. |
@@ -345,6 +345,8 @@ dele, um número que está em uso no celular.
 | SUP-B23-08 | Remover o número no CRM continua só tirando-o do CRM; desligar de verdade é feito pelo dono, no celular. | confirmada | Marcelle, 10/10/2026. |
 | SUP-B23-09 | Edição e exclusão de mensagem pelo contato valem só para números em uso no celular; os outros números continuam como hoje. | confirmada | Marcelle, 10/10/2026. |
 | SUP-B23-10 | Na CA-B23-22, "sequência" é lida como as automações em fluxo: as sequências automáticas saíram na B28-06 e o que elas faziam hoje é a automação (gatilho de resposta do time). | aberta | — |
+| SUP-B23-11 | A recusa de número que já está no canal direto vale para toda conexão pela API Oficial, em uso no celular ou não (decisão B1-01: um número não fica nos dois canais). | confirmada | Marcelle, 30/10/2026. |
+| SUP-B23-12 | O Embedded Signup v3 (o que o CRM usa hoje, `sessionInfoVersion: "3"`) ainda aceita o `featureType` da coexistência; a documentação diz que v2 e v3 são descontinuados a partir de 15/10/2026, e a migração para o v4 fica fora desta issue. | invalidada | Marcelle pediu a migração agora (30/10/2026). Pela documentação "Versions" da Meta, desde 15/10/2026 toda chamada v3 (ou sem versão) é servida como v4, com os mesmos eventos e o mesmo `featureType`; a v4 ignora `sessionInfoVersion`. A migração foi só tirar esse parâmetro, na B23-01. |
 
 ## Perguntas em aberto
 
@@ -354,4 +356,4 @@ dele, um número que está em uso no celular.
 | PER-B23-02 | O que fazer com a agenda de contatos do celular? | respondida | Só vira contato quem tem conversa; usa o nome da agenda quando houver. Marcelle, 10/10/2026. |
 | PER-B23-03 | Mensagem enviada pelo celular vale como resposta do time? | respondida | Sim: vale para sequências, automações e métricas, marcada como "Enviada pelo celular". Marcelle, 10/10/2026. |
 | PER-B23-04 | Contato vindo só das conversas antigas ganha card no Funil de Entrada? | respondida | É escolha do cliente na conexão. Marcelle, 10/10/2026. |
-| PER-B23-05 | Qual número com WhatsApp Business no celular será usado nos três testes com chip real (conexão, envio pelo celular, desconexão)? | aberta | Marcelle ainda não tem o número (10/10/2026). Só trava os três testes com chip real. |
+| PER-B23-05 | Qual número com WhatsApp Business no celular será usado nos três testes com chip real (conexão, envio pelo celular, desconexão)? | respondida | Marcelle ainda não tem o número (30/10/2026): o código segue, e os três testes com chip ficam pendentes no auditor até ela ter o número. |
