@@ -27,6 +27,8 @@ export type MidiaDoEvento = {
 export type MidiaGuardada = {
   /** URL pública no Storage do CRM, para gravar em `messages.content`. */
   url: string
+  /** Caminho no bucket, para a conversão do vídeo HEVC trocar o arquivo (B53-07). */
+  caminho: string
   mimeType: string | null
   /** Nome original, quando o WhatsApp mandou. */
   filename: string | null
@@ -251,7 +253,7 @@ export async function guardarMidiaDaMeta({
     const guardado = await subirParaOStorage(supabase, workspaceId, baixada.conteudo, midia.mime_type ?? mimeDaMeta ?? baixada.tipo)
     if (!guardado) return null
 
-    return { url: guardado.publicUrl, mimeType: guardado.mimeType, filename: midia.filename ?? null, thumbnailUrl: null }
+    return { url: guardado.publicUrl, caminho: guardado.caminho, mimeType: guardado.mimeType, filename: midia.filename ?? null, thumbnailUrl: null }
   } catch {
     // Rede, tempo limite, id vencido: nada disso derruba a mensagem.
     return null
@@ -304,7 +306,7 @@ export async function guardarMidiaRecebida({
       }
     }
 
-    return { url: publicUrl, mimeType, filename: midia.filename ?? null, thumbnailUrl }
+    return { url: publicUrl, caminho, mimeType, filename: midia.filename ?? null, thumbnailUrl }
   } catch {
     // Rede, tempo limite, endereço já expirado: nada disso derruba a mensagem.
     return null

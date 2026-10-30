@@ -13,6 +13,12 @@ export const CABECALHOS_DE_SEGURANCA = [
 ];
 
 const nextConfig: NextConfig = {
+  // B53-07: o ffmpeg empacotado converte o vídeo HEVC recebido pela API Oficial.
+  // O binário fica fora do bundle e vai junto só na função do webhook da Meta.
+  serverExternalPackages: ["ffmpeg-static"],
+  outputFileTracingIncludes: {
+    "/api/webhooks/whatsapp": ["./node_modules/ffmpeg-static/ffmpeg*"],
+  },
   experimental: {
     serverActions: {
       // Anexos do chat viajam dentro da Server Action. O padrão do Next é 1 MB,

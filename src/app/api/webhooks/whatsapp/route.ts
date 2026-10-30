@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { after, NextRequest, NextResponse } from "next/server"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { tipoDaMensagemParaRegras } from "@/lib/automacoes/contexto"
 import { dispararAutomacoes } from "@/lib/automacoes/fila"
@@ -7,6 +7,7 @@ import { transmitirMensagem } from "@/lib/whatsapp/realtime"
 import { buscarEGuardarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
 import { lerMensagemMeta, midiaDaMensagemMeta, type MensagemMeta } from "@/lib/whatsapp/mensagem-meta"
 import { guardarMidiaDaMeta } from "@/lib/whatsapp/midia-recebida"
+import { converterVideoRecebido, eVideoHevc } from "@/lib/whatsapp/conversao-de-video"
 import { escolherConversaDoNumero, nomeDoPerfil, statusAoReabrir, traduzirConteudo } from "@/lib/whatsapp/recebimento"
 import { tirarDaLixeira } from "@/lib/lixeira"
 import { criarCardDeEntrada } from "@/lib/card-de-entrada"
@@ -295,6 +296,16 @@ export async function POST(request: NextRequest) {
       }).select("id").single()
 
       if (msgInserida) {
+        // B53-07: vídeo HEVC vira H.264 depois da resposta à Meta, no mesmo caminho
+        if (guardada && eVideoHevc(guardada.mimeType)) {
+          const caminho = guardada.caminho
+          try {
+            after(() => converterVideoRecebido({ supabase, mensagemId: msgInserida.id, caminho }))
+          } catch {
+            // Fora de uma requisição (nunca na Vercel) não há como agendar: fica o original
+          }
+        }
+
         // Mesma transmissão de sempre, agora em @/lib/whatsapp/realtime (B6-02),
         // compartilhada com o canal do gateway: mesmo tópico, mesmo evento, mesmo
         // corpo. É o que faz a caixa de entrada não distinguir a origem.

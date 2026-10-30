@@ -160,6 +160,7 @@ Nada muda no CRM; esta série acompanha a publicação.
 - Imagem, áudio, vídeo, documento e figurinha recebidos pela API Oficial aparecem no Chat como no canal direto, com a legenda quando houver.
 - O documento aparece com o nome do arquivo.
 - Se a mídia não puder ser baixada, o balão diz que a mídia não pôde ser carregada, em vez de ficar vazio.
+- Vídeo HEVC (padrão do iPhone), que o Chrome não mostra, é convertido para H.264 logo depois de chegar, como o gateway já faz no canal direto (Marcelle, 30/10/2026, depois do reteste em que o vídeo tocou só o som).
 
 **Critérios de aceite:**
 
@@ -174,6 +175,12 @@ Nada muda no CRM; esta série acompanha a publicação.
 - **Dado** um aviso de mídia cujo download na Meta falha
 - **Quando** o CRM o recebe
 - **Então** a mensagem é gravada e o balão mostra "Mídia não pôde ser carregada"
+
+#### CA-B53-31 — Vídeo HEVC recebido vira H.264 · prova: automática
+
+- **Dado** um vídeo HEVC (o padrão do iPhone) recebido pela API Oficial e já guardado
+- **Quando** a conversão termina, logo depois de a mensagem aparecer
+- **Então** o arquivo guardado passa a ser H.264 (que o Chrome toca), a mensagem deixa de ser marcada como HEVC, e se a conversão falhar o original continua no lugar
 
 #### CA-B53-14 — Mídia recebida aparece no Chat pela API Oficial · prova: manual
 
