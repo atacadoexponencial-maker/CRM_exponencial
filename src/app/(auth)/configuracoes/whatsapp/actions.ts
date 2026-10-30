@@ -24,6 +24,16 @@ import {
   type OperacaoDeCicloDeVida,
 } from "@/lib/whatsapp/gateway/ciclo-de-vida"
 import { aplicarEstadoDaInstancia } from "@/lib/whatsapp/eventos-de-operacao"
+import {
+  esquemaPerfilComercial,
+  FOTO_PERFIL,
+  lerPerfilComercial,
+  salvarPerfilComercial,
+  trocarFotoDoPerfil,
+  type Credenciais,
+  type EntradaPerfilComercial,
+  type PerfilComercial,
+} from "@/lib/whatsapp/perfil-comercial-meta"
 
 export type ConexaoWhatsApp = {
   id: string
@@ -775,6 +785,90 @@ export async function reconectarWhatsApp(
 
   if (error) return { erro: "Não foi possível atualizar o número. Tente novamente." }
 
+  revalidatePath("/configuracoes/whatsapp")
+  return {}
+}
+
+// ---------------------------------------------------------------------------
+// Perfil comercial do número da Meta (foto, recado, descrição, endereço,
+// e-mail, sites e categoria). O nome exibido não é editável pela API.
+// ---------------------------------------------------------------------------
+
+/** Admin da empresa + credenciais do número da Meta, lidas pela chave de serviço. */
+async function credenciaisDoNumeroMeta(): Promise<
+  { cred: Credenciais } | { erro: string }
+> {
+  const ssrClient = await createSsrClient()
+  const { data: { user } } = await ssrClient.auth.getUser()
+  if (!user) return { erro: "Não autorizado" }
+
+  const { data: perfil } = await ssrClient
+    .from("profiles")
+    .select("role, workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+
+  // B19-03: `access_token` só é legível pela chave de serviço; o filtro de empresa fica.
+  const { data: conexao } = await createServiceClient()
+    .from("whatsapp_connections")
+    .select("phone_number_id, access_token")
+    .eq("workspace_id", perfil.workspace_id)
+    .or("canal.eq.meta,canal.is.null")
+    .maybeSingle()
+
+  if (!conexao?.phone_number_id || !conexao.access_token) return { erro: "Nenhum número da API Oficial conectado" }
+  return { cred: { phoneNumberId: conexao.phone_number_id, accessToken: conexao.access_token } }
+}
+
+export async function lerPerfilComercialMeta(): Promise<{ perfil: PerfilComercial } | { erro: string }> {
+  const acesso = await credenciaisDoNumeroMeta()
+  if ("erro" in acesso) return acesso
+  const r = await lerPerfilComercial(acesso.cred)
+  if ("erro" in r) {
+    console.error("[whatsapp] erro ao ler perfil comercial:", r.erro)
+    return { erro: "Não foi possível carregar o perfil. Tente novamente." }
+  }
+  return r
+}
+
+export async function salvarPerfilComercialMeta(
+  entrada: EntradaPerfilComercial
+): Promise<{ erro?: string }> {
+  const acesso = await credenciaisDoNumeroMeta()
+  if ("erro" in acesso) return acesso
+
+  const dados = esquemaPerfilComercial.safeParse(entrada)
+  if (!dados.success) return { erro: dados.error.issues[0]?.message ?? "Dados inválidos." }
+
+  const r = await salvarPerfilComercial(acesso.cred, dados.data)
+  if (r.erro) {
+    console.error("[whatsapp] erro ao salvar perfil comercial:", r.erro)
+    return { erro: "A Meta não aceitou as alterações. Confira os campos e tente novamente." }
+  }
+  revalidatePath("/configuracoes/whatsapp")
+  return {}
+}
+
+/** Recebe a foto num FormData (campo `foto`) e a sobe para a Meta. */
+export async function trocarFotoPerfilMeta(form: FormData): Promise<{ erro?: string }> {
+  const acesso = await credenciaisDoNumeroMeta()
+  if ("erro" in acesso) return acesso
+
+  const foto = form.get("foto")
+  if (!(foto instanceof File)) return { erro: "Escolha uma imagem." }
+  if (!FOTO_PERFIL.formatos.includes(foto.type)) return { erro: "Use JPG ou PNG." }
+  if (foto.size > FOTO_PERFIL.limiteBytes) return { erro: "A imagem passa de 4 MB." }
+
+  const appId = process.env.NEXT_PUBLIC_META_APP_ID
+  if (!appId) return { erro: "App da Meta não configurado." }
+
+  const r = await trocarFotoDoPerfil(acesso.cred, appId, { bytes: await foto.arrayBuffer(), tipo: foto.type })
+  if (r.erro) {
+    console.error("[whatsapp] erro ao trocar foto do perfil:", r.erro)
+    return { erro: "A Meta não aceitou a foto. Tente outra imagem." }
+  }
   revalidatePath("/configuracoes/whatsapp")
   return {}
 }
