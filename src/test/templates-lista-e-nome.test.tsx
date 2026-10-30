@@ -85,7 +85,7 @@ describe("B53-08 — templates com chip e API Oficial", () => {
     const fetchFalso = vi.fn()
     vi.stubGlobal("fetch", fetchFalso)
 
-    const resultado = await criarTemplate({ name: "Promoção-Já", category: "MARKETING", language: "pt_BR", body: "Oi" })
+    const resultado = await criarTemplate({ name: "Promoção-Já", category: "MARKETING", language: "pt_BR", partes: { cabecalho: null, corpo: "Oi", rodape: null, botoes: [] } })
 
     expect(resultado.erro).toBe("Nome deve conter apenas letras minúsculas, números e underscores")
     expect(fetchFalso).not.toHaveBeenCalled()

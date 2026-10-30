@@ -369,6 +369,8 @@ cada destinatário, e o relatório mostra o resultado.
 | SUP-B54-06 | A prévia na tela de templates mostra `{{1}}`, `{{2}}` como estão, sem valores de exemplo; a prévia com origem só existe na campanha. | confirmada | Marcelle, 30/10/2026 |
 | SUP-B54-07 | A reserva da variável vale para Nome do contato, Primeiro nome, Nome do vendedor e campo personalizado; Texto fixo não tem reserva. | confirmada | Marcelle, 30/10/2026 |
 | SUP-B54-08 | Apagar remove o template em todos os idiomas daquele nome, como a Meta faz por padrão; a tela não oferece apagar só um idioma. | confirmada | Marcelle, 30/10/2026 (incluiu apagar no escopo) |
+| SUP-B54-09 | Variável no corpo, no cabeçalho de texto ou no link de botão vai à Meta com um exemplo gerado pela tela ("Exemplo 1", "Exemplo 2"…), porque a Meta exige exemplo para analisar e o formulário não pede mais um campo por variável. | invalidada | Marcelle, 30/10/2026: o formulário pede um campo de exemplo por variável (corpo, cabeçalho de texto e link de botão), obrigatório |
+| SUP-B54-10 | O arquivo de exemplo do cabeçalho de mídia vai direto do navegador à Meta pelo servidor do CRM, sem ficar guardado, e aceita até 4 MB (limite do servidor); o arquivo real da campanha segue as regras dela. | confirmada | Marcelle, 30/10/2026 |
 
 ## Perguntas em aberto
 
