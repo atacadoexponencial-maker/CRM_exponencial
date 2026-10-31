@@ -9,6 +9,8 @@ import { describe, expect, it } from "vitest"
 
 const RAIZ = path.resolve(__dirname, "../..")
 /** Arquivos de teste no master antes da B36 (commit e9de5a4). */
+// B56 (31/10/2026): foto-ao-vivo.test.tsx saiu da lista; o arquivo foi apagado na B47-02,
+// quando o tempo real e a foto do contato ficaram presos à empresa.
 const TESTES_DE_ANTES: string[] = JSON.parse(readFileSync(path.join(__dirname, "b36-testes-de-antes.json"), "utf-8"))
 
 function arquivosDeTeste(dir: string, lista: string[] = []): string[] {
