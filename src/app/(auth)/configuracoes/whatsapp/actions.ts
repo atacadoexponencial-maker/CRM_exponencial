@@ -34,6 +34,7 @@ import {
   type EntradaPerfilComercial,
   type PerfilComercial,
 } from "@/lib/whatsapp/perfil-comercial-meta"
+import { GRAPH } from "@/lib/whatsapp/versao-da-graph"
 
 export type ConexaoWhatsApp = {
   id: string
@@ -590,7 +591,7 @@ export async function completarConexaoWhatsApp(params: {
   const appSecret = process.env.META_APP_SECRET!
 
   const tokenRes = await fetch(
-    `https://graph.facebook.com/v21.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&code=${params.code}`
+    `${GRAPH}/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&code=${params.code}`
   )
 
   if (!tokenRes.ok) return { erro: "Não foi possível conectar o número. Tente novamente." }
@@ -600,7 +601,7 @@ export async function completarConexaoWhatsApp(params: {
   if (!accessToken) return { erro: "Não foi possível conectar o número. Tente novamente." }
 
   const phoneRes = await fetch(
-    `https://graph.facebook.com/v21.0/${params.phoneNumberId}?fields=display_phone_number,verified_name&access_token=${accessToken}`
+    `${GRAPH}/${params.phoneNumberId}?fields=display_phone_number,verified_name&access_token=${accessToken}`
   )
 
   if (!phoneRes.ok) return { erro: "Não foi possível conectar o número. Tente novamente." }
@@ -612,7 +613,7 @@ export async function completarConexaoWhatsApp(params: {
   if (!phoneNumber || !displayName) return { erro: "Não foi possível conectar o número. Tente novamente." }
 
   const registerRes = await fetch(
-    `https://graph.facebook.com/v21.0/${params.phoneNumberId}/register`,
+    `${GRAPH}/${params.phoneNumberId}/register`,
     {
       method: "POST",
       headers: {
@@ -633,7 +634,7 @@ export async function completarConexaoWhatsApp(params: {
   }
 
   const subscribeRes = await fetch(
-    `https://graph.facebook.com/v21.0/${params.wabaId}/subscribed_apps`,
+    `${GRAPH}/${params.wabaId}/subscribed_apps`,
     {
       method: "POST",
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -717,7 +718,7 @@ export async function reinscreverWebhookWhatsApp(): Promise<{ erro?: string }> {
   if (!conexao) return { erro: "Nenhum número conectado" }
 
   const res = await fetch(
-    `https://graph.facebook.com/v21.0/${conexao.waba_id}/subscribed_apps`,
+    `${GRAPH}/${conexao.waba_id}/subscribed_apps`,
     {
       method: "POST",
       headers: { Authorization: `Bearer ${conexao.access_token}` },

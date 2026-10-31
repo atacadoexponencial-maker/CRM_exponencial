@@ -11,6 +11,7 @@ import {
   type PartesDoTemplate,
 } from "@/lib/templates-da-meta"
 import { buscarTemplatesDaMeta } from "@/lib/templates-da-meta-graph"
+import { GRAPH } from "@/lib/whatsapp/versao-da-graph"
 
 export type Template = {
   id: string
@@ -111,7 +112,7 @@ export async function criarTemplate(params: DadosDoTemplate): Promise<{ erro?: s
   if (!conexao) return { erro: "Sem permissão ou WhatsApp não conectado" }
 
   const res = await fetch(
-    `https://graph.facebook.com/v21.0/${conexao.waba_id}/message_templates?access_token=${conexao.access_token}`,
+    `${GRAPH}/${conexao.waba_id}/message_templates?access_token=${conexao.access_token}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -146,7 +147,7 @@ export async function editarTemplate(params: {
   const conexao = await obterConexao()
   if (!conexao) return { erro: "Sem permissão ou WhatsApp não conectado" }
 
-  const res = await fetch(`https://graph.facebook.com/v21.0/${params.id}?access_token=${conexao.access_token}`, {
+  const res = await fetch(`${GRAPH}/${params.id}?access_token=${conexao.access_token}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -166,7 +167,7 @@ export async function apagarTemplate(name: string): Promise<{ erro?: string }> {
   if (!conexao) return { erro: "Sem permissão ou WhatsApp não conectado" }
 
   const res = await fetch(
-    `https://graph.facebook.com/v21.0/${conexao.waba_id}/message_templates?name=${encodeURIComponent(name)}&access_token=${conexao.access_token}`,
+    `${GRAPH}/${conexao.waba_id}/message_templates?name=${encodeURIComponent(name)}&access_token=${conexao.access_token}`,
     { method: "DELETE" }
   )
 
@@ -193,13 +194,13 @@ export async function enviarExemploDoCabecalho(formData: FormData): Promise<{ ha
 
   try {
     const sessao = await fetch(
-      `https://graph.facebook.com/v21.0/${appId}/uploads?file_name=${encodeURIComponent(arquivo.name)}&file_length=${arquivo.size}&file_type=${encodeURIComponent(arquivo.type)}&access_token=${conexao.access_token}`,
+      `${GRAPH}/${appId}/uploads?file_name=${encodeURIComponent(arquivo.name)}&file_length=${arquivo.size}&file_type=${encodeURIComponent(arquivo.type)}&access_token=${conexao.access_token}`,
       { method: "POST" }
     )
     const sessaoData = await sessao.json()
     if (!sessao.ok || typeof sessaoData?.id !== "string") return { erro: ERRO_NO_EXEMPLO }
 
-    const envio = await fetch(`https://graph.facebook.com/v21.0/${sessaoData.id}`, {
+    const envio = await fetch(`${GRAPH}/${sessaoData.id}`, {
       method: "POST",
       headers: { Authorization: `OAuth ${conexao.access_token}`, file_offset: "0", "Content-Type": arquivo.type || "application/octet-stream" },
       body: Buffer.from(await arquivo.arrayBuffer()),

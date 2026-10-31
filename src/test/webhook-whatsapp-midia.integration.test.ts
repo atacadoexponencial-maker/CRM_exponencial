@@ -29,7 +29,7 @@ const fetchOriginal = globalThis.fetch
 const ARQUIVOS: Record<string, { bytes: Uint8Array; mime: string }> = {}
 
 /**
- * A Meta de mentira: `GET graph.facebook.com/v21.0/<id>` devolve o endereço, e o
+ * A Meta de mentira: `GET graph.facebook.com/<versão>/<id>` devolve o endereço, e o
  * endereço devolve os bytes, os dois só com o token certo. `falhar` derruba tudo.
  */
 function simularMeta({ falhar = false } = {}) {
@@ -44,7 +44,7 @@ function simularMeta({ falhar = false } = {}) {
     if (falhar) return new Response(JSON.stringify({ error: { message: "erro" } }), { status: 500 })
     if (autorizacao !== `Bearer ${TOKEN}`) return new Response("sem token", { status: 401 })
 
-    const graph = url.match(/^https:\/\/graph\.facebook\.com\/v21\.0\/([^/?]+)$/)
+    const graph = url.match(/^https:\/\/graph\.facebook\.com\/v\d+\.\d+\/([^/?]+)$/)
     if (graph) {
       const arquivo = ARQUIVOS[graph[1]]
       if (!arquivo) return new Response("{}", { status: 404 })

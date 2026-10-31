@@ -3,6 +3,7 @@
 // chega ao navegador (B19-03). O que é conversão pura fica em `templates-da-meta.ts`.
 
 import { partesDoTemplate, type PartesDoTemplate } from "./templates-da-meta"
+import { GRAPH } from "@/lib/whatsapp/versao-da-graph"
 
 export type TemplateDaMeta = {
   id: string
@@ -26,7 +27,7 @@ export async function buscarTemplatesDaMeta(
   let data: { data?: unknown[] }
   try {
     const res = await fetch(
-      `https://graph.facebook.com/v21.0/${wabaId}/message_templates?fields=${CAMPOS}&limit=50&access_token=${accessToken}`
+      `${GRAPH}/${wabaId}/message_templates?fields=${CAMPOS}&limit=50&access_token=${accessToken}`
     )
     if (!res.ok) return { templates: [], erro: ERRO_AO_CARREGAR_TEMPLATES }
     data = await res.json()
