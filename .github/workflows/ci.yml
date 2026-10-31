@@ -2,6 +2,7 @@
 # antes de publicar: lint, tipos (lição L-07: o Vitest não confere tipos) e os testes
 # que não precisam do banco. Os testes de integração (*.integration.test.ts) ficam de
 # fora por enquanto: precisam da chave de serviço do banco de teste como segredo.
+# O build roda num terceiro job, com o banco de teste, para pegar regra que só o Next vê.
 name: CI
 
 on:
@@ -57,4 +58,27 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.BANCO_TESTE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.BANCO_TESTE_ANON_KEY }}
+          TZ: America/Sao_Paulo
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # O `next build` pega o que lint e tsc não pegam: regra de arquivo "use server",
+      # importação de módulo de servidor no cliente, página que não compila. Aponta
+      # para o banco de teste; a chave de serviço e o token do Sentry não existem aqui
+      # (sem o token, o Sentry só avisa que não subiu os source maps).
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.BANCO_TESTE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.BANCO_TESTE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: chave-falsa-do-ci
+          NEXT_PUBLIC_APP_URL: https://ci.invalid
           TZ: America/Sao_Paulo
