@@ -31,6 +31,14 @@ const EXCECOES: { arquivo: string; padrao: RegExp; motivo: string }[] = [
   { arquivo: "app/(auth)/catalogo/components/editor-aparencia.tsx", padrao: /#[0-9a-f]{3,6}/i, motivo: "cores da loja pública, que é sempre clara" },
   { arquivo: "app/(auth)/chat/mock-conversas.ts", padrao: /#[0-9a-f]{6}/i, motivo: "dados de exemplo" },
   { arquivo: "app/(auth)/pipeline/mock-pipeline.ts", padrao: /#[0-9a-f]{6}/i, motivo: "dados de exemplo" },
+  // Entradas depois da B36 (B56, 31/10/2026):
+  { arquivo: "app/(auth)/configuracoes/funis/funis-client.tsx", padrao: /#4f46e5/, motivo: "cor inicial do seletor de cor própria do funil (dado)" },
+  { arquivo: "app/(auth)/pipeline/components/coluna-kanban.tsx", padrao: /hover:bg-black\/10/, motivo: "hover sobre o cabeçalho na cor própria da coluna" },
+  { arquivo: "app/(auth)/pipeline/components/modal-adicionar-contato.tsx", padrao: /bg-black\/50/, motivo: "fundo escurecido atrás da janela" },
+  { arquivo: "app/_landing/landing.tsx", padrao: /rgba\(/, motivo: "sombra da landing pública, que é sempre clara" },
+  { arquivo: "components/shared/selo-perfil-rfv.tsx", padrao: /text-white/, motivo: "selo na cor do perfil RFV" },
+  { arquivo: "lib/funis.ts", padrao: /#000000|#ffffff/, motivo: "texto preto ou branco calculado sobre a cor própria da coluna (dado)" },
+  { arquivo: "lib/resend.ts", padrao: /#[0-9a-f]{6}/i, motivo: "e-mail em HTML não tem tema: vai nas cores do tema claro" },
 ]
 
 const SEMANTICAS = "amber|yellow|red|rose|emerald|green|teal|sky|blue|cyan|zinc|neutral|gray|stone|slate"
@@ -90,7 +98,8 @@ describe("B36-02 — Telas legíveis nos dois temas", () => {
   })
 
   it("CA-B36-11: should deixar aviso, erro e sucesso legíveis no próprio fundo, nos dois temas", () => {
-    const css = readFileSync(path.join(SRC, "app/globals.css"), "utf-8")
+    // No Windows o arquivo vem com \r\n; o seletor é procurado com \n.
+    const css = readFileSync(path.join(SRC, "app/globals.css"), "utf-8").replace(/\r\n/g, "\n")
     for (const [nome, tema] of [["claro", variaveis(css, ":root,\n.tema-claro")], ["escuro", variaveis(css, ".dark")]] as const) {
       for (const tipo of ["aviso", "erro", "sucesso", "info"]) {
         expect(contraste(tema[tipo], tema[`${tipo}-fundo`]), `${nome}: ${tipo}`).toBeGreaterThanOrEqual(4.5)
