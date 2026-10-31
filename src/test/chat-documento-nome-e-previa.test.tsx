@@ -3,7 +3,7 @@
 // miniatura que o WhatsApp manda; o recebimento guarda a miniatura no Storage.
 
 import { render, screen } from "@testing-library/react"
-import { describe, expect, it, vi } from "vitest"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { BalaoMensagem } from "@/app/(auth)/chat/components/balao-mensagem"
 import type { Mensagem } from "@/app/(auth)/chat/mock-mensagens"
 import { guardarMidiaRecebida } from "@/lib/whatsapp/midia-recebida"
@@ -30,6 +30,10 @@ describe("documento no balão", () => {
 })
 
 describe("miniatura guardada no recebimento", () => {
+  // B47-02: o recebimento só baixa de endereço do próprio gateway (GATEWAY_BASE_URL).
+  beforeAll(() => vi.stubEnv("GATEWAY_BASE_URL", "https://gw"))
+  afterAll(() => vi.unstubAllEnvs())
+
   function storageFalso() {
     const uploads: string[] = []
     const storage = {
