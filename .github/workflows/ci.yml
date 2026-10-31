@@ -5,8 +5,11 @@
 # O build roda num terceiro job, com o banco de teste, para pegar regra que só o Next vê.
 name: CI
 
+# Push só no master (depois do merge). Nos outros branches o PR já roda tudo; com
+# push e pull_request juntos, cada check rodava duas vezes.
 on:
   push:
+    branches: [master]
   pull_request:
 
 permissions:
