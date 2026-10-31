@@ -93,11 +93,22 @@ node .claude/skills/auditor/scripts/auditor.mjs licao listar   # lições a apli
 
 ## 5. Git e publicação
 
-- Nunca trabalhe direto no `master`. Cada série tem um branch `bNN-nome` (ou worktree).
-  O `master` é o que está no ar: push nele publica na Vercel.
+- O `master` é **protegido** (desde 31/10/2026): push direto é recusado, para todo
+  mundo. Cada série tem um branch `bNN-nome` (ou worktree) e entra por **pull request**.
+- O botão de merge só libera com os quatro checks verdes e o branch atualizado com o
+  master: **Lint e tipos**, **Testes sem banco** e **Build** (GitHub Actions,
+  `.github/workflows/ci.yml`) e **Vercel** (deploy de prévia). Merge no master publica
+  na produção. Não afrouxe o CI para ficar verde: corrija a causa.
+- O CI roda lint, `tsc`, os testes sem banco (`*.integration.test.*` ficam de fora) e o
+  `next build`. Os testes de integração continuam sendo rodados na máquina de quem
+  desenvolve, com o banco de teste.
 - Outra pessoa pode estar na mesma pasta: `git status` e `git fetch` antes de commitar;
-  `git add` arquivo por arquivo, nunca `-A`.
+  `git add` arquivo por arquivo, nunca `-A`. Antes de dar push, confira também o que
+  está à frente do remoto (`git log origin/master..HEAD`): não leve commit de outra
+  pessoa sem saber.
 - Só commite depois do `/revisildo` responder "✅ Tudo certo".
+- Erro em produção chega ao **Sentry** (projeto `crmatacado-exp`, organização
+  `atacado-exponencial`). Depois de um merge, olhe o painel no dia seguinte.
 - Migration nova: primeiro `npm run db:teste:push` (banco de teste) e os testes da
   série; só depois `npx supabase db push --linked` (produção).
 - Antes de dar uma issue por pronta, rode `npx tsc --noEmit`: o Vitest não confere tipos.

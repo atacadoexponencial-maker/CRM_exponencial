@@ -30,6 +30,7 @@ O app está deployado no Vercel. **Todas as variáveis de ambiente já estão co
 - `NEXT_PUBLIC_META_APP_ID` / `NEXT_PUBLIC_META_CONFIG_ID` / `META_APP_SECRET` — Meta WhatsApp API
 - `WHATSAPP_VERIFY_TOKEN` — validação do webhook Meta
 - `META_TEST_ACCESS_TOKEN` — token temporário do número de teste Meta (expira em 24h)
+- `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_AUTH_TOKEN` — Sentry (B55): erros e tracing; o token sobe os source maps no build
 
 ### Bancos de dados
 
