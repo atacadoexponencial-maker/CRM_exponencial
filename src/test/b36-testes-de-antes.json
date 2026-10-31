@@ -90,7 +90,6 @@
  "src/test/exportar-compras.integration.test.ts",
  "src/test/exportar-compras.test.ts",
  "src/test/fluxo-automacao.test.ts",
- "src/test/foto-ao-vivo.test.tsx",
  "src/test/foto-de-perfil-caminhos.test.ts",
  "src/test/foto-de-perfil-contato.test.ts",
  "src/test/foto-de-perfil-seguranca.integration.test.ts",

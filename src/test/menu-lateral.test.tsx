@@ -26,7 +26,8 @@ const ESPERADO: Record<Papel, Record<string, string[]>> = {
     "": ["Dashboard", "Pipeline", "Chat", "Contatos", "Catálogo", "Pedidos", "Relatórios"],
     Rotina: ["Agenda", "Alertas"],
     Automação: ["Campanhas"],
-    Configurações: ["Funis", "Campos personalizados"],
+    // B54-02: "Templates" também para o Gerente
+    Configurações: ["Funis", "Campos personalizados", "Templates"],
   },
   atendente: {
     "": ["Dashboard", "Pipeline", "Chat", "Contatos", "Pedidos", "Relatórios"],
