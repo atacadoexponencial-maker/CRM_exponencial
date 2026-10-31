@@ -25,6 +25,7 @@ vi.mock("@/lib/aviso-na-tela", () => ({ avisar: (t: string) => { avisos.push(t) 
 import { TemplatesClient } from "@/app/(auth)/configuracoes/templates/templates-client"
 import type { Template } from "@/app/(auth)/configuracoes/templates/actions"
 import { componentsParaMeta, motivoDaRecusaDaMeta, partesDoTemplate } from "@/lib/templates-da-meta"
+import { VERSAO_DA_GRAPH } from "@/lib/whatsapp/versao-da-graph"
 
 type Chamada = { url: string; method: string; body: unknown }
 let chamadas: Chamada[] = []
@@ -102,7 +103,7 @@ describe("B54-02 — criar, editar e apagar template", () => {
 
     await waitFor(() => expect(within(linha("tpl_approved")).getByText("Pendente")).toBeTruthy())
     const edicao = chamadas.find((c) => c.method === "POST")!
-    expect(edicao.url).toContain("/v21.0/id-APPROVED?access_token=tk-1")
+    expect(edicao.url).toContain(`/${VERSAO_DA_GRAPH}/id-APPROVED?access_token=tk-1`)
     const body = edicao.body as { category: string; components: Array<{ type: string; text?: string }> }
     expect(body.category).toBe("MARKETING")
     expect(body.components.find((c) => c.type === "BODY")).toEqual({ type: "BODY", text: "Olá {{1}}, texto novo.", example: { body_text: [["Maria"]] } })

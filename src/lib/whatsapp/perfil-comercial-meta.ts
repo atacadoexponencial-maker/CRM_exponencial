@@ -13,8 +13,7 @@
 
 import { z } from "zod"
 
-const VERSAO_API = "v21.0"
-const GRAPH = `https://graph.facebook.com/${VERSAO_API}`
+import { GRAPH } from "./versao-da-graph"
 
 /** Limites de caracteres da Meta para cada campo. */
 export const LIMITES_PERFIL = {

@@ -1,6 +1,6 @@
 // Implementação do contrato de WhatsApp para a API Oficial da Meta (Cloud API).
 //
-// Este é o único arquivo do CRM que sabe o que é `wamid`, `v21.0`,
+// Este é o único arquivo do CRM que sabe o que é `wamid`,
 // `messaging_product` ou `graph.facebook.com`. Nenhum arquivo de negócio deve
 // voltar a conhecer esses nomes.
 //
@@ -16,8 +16,8 @@ import type {
   ResultadoEnvio,
   RecursoWhatsApp,
 } from "./tipos"
+import { GRAPH } from "./versao-da-graph"
 
-const VERSAO_API = "v21.0"
 
 /**
  * Tradução do vocabulário do CRM para o da Meta. A chave do objeto de mídia no
@@ -54,7 +54,7 @@ export function criarProviderMeta(
   phoneNumberId: string,
   accessToken: string
 ): ProviderWhatsApp {
-  const url = `https://graph.facebook.com/${VERSAO_API}/${phoneNumberId}/messages`
+  const url = `${GRAPH}/${phoneNumberId}/messages`
 
   /**
    * Faz o POST e traduz a resposta.

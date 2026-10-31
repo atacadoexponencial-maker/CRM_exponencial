@@ -9,6 +9,7 @@
 // do cliente desaparecer é pior.
 
 import type { createServiceClient } from "@/integrations/supabase/service"
+import { GRAPH } from "./versao-da-graph"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -178,8 +179,6 @@ async function subirParaOStorage(
   return { caminho, publicUrl, mimeType }
 }
 
-/** Versão da Graph API usada no resto do CRM. */
-const VERSAO_DA_GRAPH = "v21.0"
 
 /** B53-07: a mídia de uma mensagem recebida pela API Oficial, como o webhook da Meta manda. */
 export type MidiaDaMeta = {
@@ -236,7 +235,7 @@ export async function guardarMidiaDaMeta({
     let endereco = midia.url ?? null
     let mimeDaMeta: string | null = null
     if (midia.id) {
-      const resposta = await buscar(`https://graph.facebook.com/${VERSAO_DA_GRAPH}/${encodeURIComponent(midia.id)}`, {
+      const resposta = await buscar(`${GRAPH}/${encodeURIComponent(midia.id)}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
         signal: AbortSignal.timeout(TEMPO_LIMITE_DA_MIDIA_MS),
       })
