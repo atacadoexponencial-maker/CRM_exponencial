@@ -29,8 +29,8 @@ const EXCECOES: { arquivo: string; padrao: RegExp; motivo: string }[] = [
   { arquivo: "lib/relatorios/visao-geral.ts", padrao: /#123/, motivo: "texto de exemplo, não é cor" },
   { arquivo: "app/(auth)/configuracoes/etiquetas/etiquetas-client.tsx", padrao: /#[0-9a-f]{6}/i, motivo: "cores que o usuário escolhe para as etiquetas (dado)" },
   { arquivo: "app/(auth)/catalogo/components/editor-aparencia.tsx", padrao: /#[0-9a-f]{3,6}/i, motivo: "cores da loja pública, que é sempre clara" },
-  { arquivo: "app/(auth)/chat/mock-conversas.ts", padrao: /#[0-9a-f]{6}/i, motivo: "dados de exemplo" },
-  { arquivo: "app/(auth)/pipeline/mock-pipeline.ts", padrao: /#[0-9a-f]{6}/i, motivo: "dados de exemplo" },
+  { arquivo: "app/(auth)/chat/tipos-conversa.ts", padrao: /#[0-9a-f]{6}/i, motivo: "dados de exemplo" },
+  { arquivo: "app/(auth)/pipeline/etapas-e-tipos.ts", padrao: /#[0-9a-f]{6}/i, motivo: "dados de exemplo" },
   // Entradas depois da B36 (B56, 31/10/2026):
   { arquivo: "app/(auth)/configuracoes/funis/funis-client.tsx", padrao: /#4f46e5/, motivo: "cor inicial do seletor de cor própria do funil (dado)" },
   { arquivo: "app/(auth)/pipeline/components/coluna-kanban.tsx", padrao: /hover:bg-black\/10/, motivo: "hover sobre o cabeçalho na cor própria da coluna" },

@@ -4,8 +4,8 @@
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { Conversa } from "@/app/(auth)/chat/mock-conversas"
-import type { ContatoPerfil } from "@/app/(auth)/contatos/mock-contatos"
+import type { Conversa } from "@/app/(auth)/chat/tipos-conversa"
+import type { ContatoPerfil } from "@/app/(auth)/contatos/tipos-contato"
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }) }))
 vi.mock("@/integrations/supabase/client", () => ({ createClient: () => ({ storage: { from: vi.fn() } }) }))

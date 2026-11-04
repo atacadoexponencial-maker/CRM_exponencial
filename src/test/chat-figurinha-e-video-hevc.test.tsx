@@ -6,7 +6,7 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { BalaoMensagem } from "@/app/(auth)/chat/components/balao-mensagem"
-import type { Mensagem } from "@/app/(auth)/chat/mock-mensagens"
+import type { Mensagem } from "@/app/(auth)/chat/tipos-mensagem"
 import { mimeComCodec } from "@/lib/whatsapp/midia-recebida"
 
 const base: Omit<Mensagem, "tipo" | "conteudo"> = { id: "m", conversaId: "c", direcao: "recebida", horario: "13:45" }

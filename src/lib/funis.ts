@@ -4,7 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "@/integrations/supabase/types"
 import { corValida, razaoContraste } from "@/app/loja/components/tema"
-import type { CorColuna } from "@/app/(auth)/pipeline/mock-pipeline"
+import type { CorColuna } from "@/app/(auth)/pipeline/etapas-e-tipos"
 
 /** SUP-B41-02 (confirmada em 23/10/2026). O banco segura os mesmos limites. */
 export const LIMITE_DE_FUNIS = 20

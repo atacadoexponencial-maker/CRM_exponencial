@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils"
 import { AvatarContato } from "@/components/shared/avatar-contato"
 import { formatarNumero } from "@/lib/whatsapp"
-import type { Conversa } from "../mock-conversas"
+import type { Conversa } from "../tipos-conversa"
 
 interface ItemConversaProps {
   conversa: Conversa

@@ -9,7 +9,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: 
 import { ColunaKanban } from "@/app/(auth)/pipeline/components/coluna-kanban"
 import { limiteDeParado, situacaoDoCard } from "@/lib/card-parado"
 import { CONFIG_ALERTAS_PADRAO } from "@/lib/alertas"
-import type { CardLead } from "@/app/(auth)/pipeline/mock-pipeline"
+import type { CardLead } from "@/app/(auth)/pipeline/etapas-e-tipos"
 
 const AGORA = new Date("2026-10-22T15:00:00-03:00")
 const horasAtras = (h: number) => new Date(Date.now() - h * 3600000).toISOString()

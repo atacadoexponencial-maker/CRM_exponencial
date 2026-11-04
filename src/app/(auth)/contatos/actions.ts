@@ -5,8 +5,8 @@ import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 import { enderecoDoFunil, lerNomesDosFunis } from "@/lib/funis"
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
-import type { Contato, ContatoPerfil, ClassificacaoContato, TipoContato, ICP } from "./mock-contatos"
-import { TAMANHO_PAGINA_CONTATOS } from "./mock-contatos"
+import type { Contato, ContatoPerfil, ClassificacaoContato, TipoContato, ICP } from "./tipos-contato"
+import { TAMANHO_PAGINA_CONTATOS } from "./tipos-contato"
 import type { Database, Json } from "@/integrations/supabase/types"
 import {
   esquemaFiltro,
@@ -415,7 +415,7 @@ export async function buscarDadosContato(id: string): Promise<ContatoPerfil | nu
   const timeline = eventos.map((e) => ({
     id: e.id,
     data: formatarDataEvento(e.created_at, fuso),
-    tipo: e.tipo as import("./mock-contatos").TipoEvento,
+    tipo: e.tipo as import("./tipos-contato").TipoEvento,
     descricao: e.descricao,
     responsavel: e.responsavel,
   }))

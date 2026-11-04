@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { ColunaKanban } from "./coluna-kanban"
 import { CabecalhoDoPipeline } from "./cabecalho-do-pipeline"
 import { PainelCard } from "./painel-card"
-import { ETAPAS_RECOMPRA, type CardCliente } from "../mock-pipeline"
+import { ETAPAS_RECOMPRA, type CardCliente } from "../etapas-e-tipos"
 import { moverCard } from "../actions"
 
 interface FunilRecompraProps {

@@ -10,7 +10,7 @@ import { ColunaKanban } from "./coluna-kanban"
 import { CabecalhoDoPipeline } from "./cabecalho-do-pipeline"
 import { PainelCard } from "./painel-card"
 import { ModalAdicionarContato } from "./modal-adicionar-contato"
-import type { CardDoFunil, FunilDaEmpresa } from "../mock-pipeline"
+import type { CardDoFunil, FunilDaEmpresa } from "../etapas-e-tipos"
 import { moverCard } from "../actions"
 
 interface FunilPersonalizadoProps {

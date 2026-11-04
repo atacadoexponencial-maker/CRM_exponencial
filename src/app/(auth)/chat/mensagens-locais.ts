@@ -4,7 +4,7 @@
 // (`local-…`), e o aviso de entregue e de lida chega pelo id real da linha em
 // `messages`. Sem trocar um pelo outro, o ✓ só virava ✓✓ depois de recarregar.
 
-import type { Mensagem } from "./mock-mensagens"
+import type { Mensagem } from "./tipos-mensagem"
 
 type Status = NonNullable<Mensagem["status"]>
 

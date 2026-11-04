@@ -5,8 +5,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { calcularPainelDeCarteiras } from "@/lib/relatorios/carteiras"
-import type { ContatoPerfil } from "@/app/(auth)/contatos/mock-contatos"
-import type { CardLead } from "@/app/(auth)/pipeline/mock-pipeline"
+import type { ContatoPerfil } from "@/app/(auth)/contatos/tipos-contato"
+import type { CardLead } from "@/app/(auth)/pipeline/etapas-e-tipos"
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }))
 vi.mock("@/app/(auth)/pipeline/actions", () => ({

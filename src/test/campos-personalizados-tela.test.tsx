@@ -5,7 +5,7 @@
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { ContatoPerfil } from "@/app/(auth)/contatos/mock-contatos"
+import type { ContatoPerfil } from "@/app/(auth)/contatos/tipos-contato"
 import type { CampoComValor } from "@/app/(auth)/contatos/campos-personalizados"
 import type { CampoParaGerenciar } from "@/app/(auth)/configuracoes/campos/actions"
 

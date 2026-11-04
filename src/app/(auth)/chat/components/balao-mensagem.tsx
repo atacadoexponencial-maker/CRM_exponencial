@@ -4,7 +4,7 @@ import { useState, useRef, useSyncExternalStore } from "react"
 import { Check, CheckCheck, Clock, AlertTriangle, FileText, Play, Pause, Mic, Film, Download, X, Reply, Smartphone, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogTrigger, DialogPopup, DialogClose } from "@/components/ui/dialog"
-import type { Mensagem, StatusMensagem } from "../mock-mensagens"
+import type { Mensagem, StatusMensagem } from "../tipos-mensagem"
 
 function formatarTempo(segundos: number): string {
   const m = Math.floor(segundos / 60)

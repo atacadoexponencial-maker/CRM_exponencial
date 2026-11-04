@@ -11,7 +11,7 @@ import { formatarDataCurta, formatarHorarioDaLista } from "@/lib/datas"
 import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 import { nomeDoCanal, recursosDoCanal } from "@/lib/whatsapp"
 import type { CanalWhatsApp } from "@/lib/whatsapp"
-import type { Conversa, StatusConversa } from "./mock-conversas"
+import type { Conversa, StatusConversa } from "./tipos-conversa"
 
 type Cliente = Awaited<ReturnType<typeof createClient>>
 

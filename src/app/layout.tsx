@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
-import { QueryProvider } from "@/components/shared/query-provider";
 import { COOKIE_TEMA, temaValido } from "@/lib/tema";
 
 // B36-01: fontes da linguagem Caderno, servidas pelo próprio app.
@@ -31,7 +30,7 @@ export default async function RootLayout({
   return (
     <html lang="pt-BR" className={classes.filter(Boolean).join(" ")} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
-        <QueryProvider>{children}</QueryProvider>
+        {children}
       </body>
     </html>
   );

@@ -5,7 +5,7 @@ import { X, MessageSquare, ChevronDown, Phone, Clock, Tag, FileText, History, Tr
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA, type CardLead, type CardCliente, type CardDoFunil, type EtapaDoFunil, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
+import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA, type CardLead, type CardCliente, type CardDoFunil, type EtapaDoFunil, type HistoricoEtapa, type NotaInterna } from "../etapas-e-tipos"
 import { buscarDadosPainel, moverCard, atribuirAtendente, adicionarNota, removerCardDoFunil } from "../actions"
 import { Button } from "@/components/ui/button"
 import { MenuMaisAcoes } from "@/components/shared/menu-mais-acoes"
