@@ -1,6 +1,6 @@
 # issues
 
-- **Arquivos soltos nesta pasta = issues abertas.** Hoje (29/10/2026): B28-05 (relógio das esperas no gateway, aguardando o teste manual), B28-07 (apagar as tabelas de sequência, aguardando o Luan) e B46-04 (banco de teste sempre acordado, teste manual a partir de 05/11).
+- **Arquivos soltos nesta pasta = issues abertas.** Hoje (29/10/2026): B28-05 (relógio das esperas no gateway, aguardando o teste manual), B28-07 (apagar as tabelas de sequência, aguardando o Luan) e B46-04 (banco de teste sempre acordado, teste manual a partir de 05/11). No branch `b59-modelos-de-automacao`: B59-02 (galeria com os cinco modelos).
 - `concluidas_<série>/` = entregues e no ar. Não se mexe mais nelas.
 - `bloqueadas_modulo6/` = escritas, mas sem como fazer (API da Meta não tem grupos).
 
@@ -49,4 +49,5 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B52 | `docs/specs-arquivadas/spec-esqueci-minha-senha.md` (concluída em 29/10/2026: "Esqueci minha senha" no login, link de 1 hora e uso único por e-mail (Resend), senha nova entra direto e encerra as outras sessões; conta desativada ou e-mail sem conta recebe a mesma resposta, sem envio) | `concluidas_B52/` |
 | B53 | `docs/specs-arquivadas/spec-correcoes-qa-roteiro-luan.md` (concluída em 30/10/2026: correções do roteiro de QA do Luan, Partes A e B — mídia e "Lido" da API Oficial, vídeo HEVC convertido com capa, "Atribuir ao time" só entre atendentes, follow-up e adiar, grade fechada, timeline com "Dados editados", carteiras, avatar, automação em tempo real no Chat) | `concluidas_B53/` |
 | B54 | `pre-desenvolvimento/spec-templates-da-meta.md` (reservada em 30/10/2026: templates da API Oficial com prévia e edição na tela de templates, e campanha por template: número escolhido na etapa da mensagem, variáveis mapeadas, cabeçalho de mídia, envio pela Meta e relatório) | `concluidas_B54/` (quando houver) |
+| B59 | `pre-desenvolvimento/spec-modelos-de-automacao.md` (reservada em 05/11/2026: bloco de anotação no editor de automações e galeria com cinco modelos prontos, explicados por anotações) | `concluidas_B59/` (quando houver) |
 | F1 | `docs/specs-arquivadas/spec-fluxo-com-prova.md` (melhoria do fluxo de desenvolvimento: critérios de aceite com código, auditor, lições) | `concluidas_F1/` |

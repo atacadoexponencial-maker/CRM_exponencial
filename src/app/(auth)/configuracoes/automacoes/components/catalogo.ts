@@ -527,8 +527,8 @@ export function referenciasQueSumiram(fluxo: Fluxo, opcoes: OpcoesEditor): Recor
         continue
       }
     }
-    // B28-02: o bloco "esperar" não escolhe nada da empresa
-    if (bloco.tipo === "espera") continue
+    // B28-02 e B59-01: o bloco "esperar" e a anotação não escolhem nada da empresa
+    if (bloco.tipo === "espera" || bloco.tipo === "anotacao") continue
     const campos = bloco.tipo === "gatilho" ? GATILHOS[bloco.gatilho]?.campos : ACOES[bloco.acao]?.campos
     for (const campo of campos ?? []) {
       if (campo.tipo === "opcoes" && sumiu(campo.fonte, bloco.parametros[campo.chave])) anotar(bloco.id, campo.rotulo)

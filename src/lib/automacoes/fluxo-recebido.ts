@@ -9,6 +9,7 @@ import { z } from "zod"
 import {
   PARAMETROS_OBRIGATORIOS_ACAO,
   PARAMETROS_OBRIGATORIOS_GATILHO,
+  TEXTO_MAXIMO_DA_ANOTACAO,
   type AcaoTipo,
   type Fluxo,
   type GatilhoTipo,
@@ -48,6 +49,8 @@ const bloco = z.discriminatedUnion("tipo", [
     limite: z.enum(["30_dias", "sem_limite"]),
     posicao,
   }),
+  // B59-01
+  z.object({ id, tipo: z.literal("anotacao"), texto: z.string().max(TEXTO_MAXIMO_DA_ANOTACAO), posicao }),
 ])
 
 const SAIDAS = ["proximo", "sim", "nao", "tempo", "recebeu_mensagem", "atendente_enviou"] as const

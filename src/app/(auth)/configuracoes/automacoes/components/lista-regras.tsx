@@ -1,7 +1,7 @@
 "use client"
 
 import { useOptimistic, useState, useTransition } from "react"
-import { Clock, History, MoreHorizontal, Plus, Zap } from "lucide-react"
+import { Clock, History, LayoutTemplate, MoreHorizontal, Plus, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -16,6 +16,7 @@ import type { Fluxo } from "@/lib/fluxo-automacao"
 import { cn } from "@/lib/utils"
 import { referenciasQueSumiram, type OpcoesEditor } from "./catalogo"
 import { resumoRegra } from "./frases-fluxo"
+import { GaleriaModelos } from "./galeria-modelos"
 
 export interface RegraListada {
   id: string
@@ -47,24 +48,14 @@ interface ListaRegrasProps {
   onExcluir: (id: string) => Promise<{ erro?: string }>
   /** Quantos contatos estão esperando na regra, para o aviso antes de pausar e de excluir (B28-04). */
   contarEsperas?: (id: string) => Promise<number>
+  /** B59-02: abre o editor com o modelo escolhido na galeria. */
+  onUsarModelo?: (modeloId: string) => void
 }
 
 /** "2 contatos estão esperando nesta regra" (CA-B28-18). */
 export function contatosEsperando(quantos: number): string {
   return quantos === 1 ? "1 contato está esperando nesta regra" : `${quantos} contatos estão esperando nesta regra`
 }
-
-const EXEMPLOS = [
-  { titulo: "Boas-vindas", texto: "Quando uma conversa for criada → enviar mensagem de boas-vindas" },
-  {
-    titulo: "Pedido de catálogo",
-    texto: "Quando o cliente escrever \"catálogo\" → aplicar a etiqueta Interessado e enviar o PDF",
-  },
-  {
-    titulo: "Fora do horário",
-    texto: "Quando o cliente enviar mensagem fora do horário comercial → avisar quando o time volta",
-  },
-]
 
 /** Escolha apagada (etiqueta, time, mensagem rápida…): a regra roda, mas aquela ação falha (B22-27). */
 function AvisoDeReferencia({ fluxo, opcoes }: { fluxo: Fluxo; opcoes: OpcoesEditor }) {
@@ -86,8 +77,10 @@ export function ListaRegras({
   onVerHistorico,
   onExcluir,
   contarEsperas,
+  onUsarModelo,
 }: ListaRegrasProps) {
   const fuso = useFuso()
+  const [galeriaAberta, setGaleriaAberta] = useState(false)
   // O interruptor muda na hora e fica "salvando" até a resposta do servidor (B22-21)
   const [regrasNaTela, marcarAlternando] = useOptimistic(
     regras as Array<RegraListada & { salvando?: boolean }>,
@@ -159,12 +152,19 @@ export function ListaRegras({
               Histórico
             </Button>
           )}
+          {onUsarModelo && (
+            <Button onClick={() => setGaleriaAberta(true)} size="sm" variant="outline">
+              <LayoutTemplate />
+              Modelos
+            </Button>
+          )}
           <Button onClick={onNova} size="sm">
             <Plus />
             Nova automação
           </Button>
         </div>
       </div>
+      {onUsarModelo && <GaleriaModelos aberta={galeriaAberta} onFechar={() => setGaleriaAberta(false)} onUsar={onUsarModelo} />}
       <p className="mb-6 text-sm text-muted-foreground">
         Cada automação começa num gatilho e segue por condições e ações que você liga como quiser.
       </p>
@@ -173,23 +173,25 @@ export function ListaRegras({
         <div className="flex flex-col items-center gap-4 rounded-md border border-dashed bg-card/60 px-4 py-12 text-center">
           <Zap className="size-8 text-muted-foreground/50" />
           <div>
-            <p className="font-medium">Nenhuma automação ainda</p>
+            <p className="font-medium">Você não tem nenhuma automação ainda</p>
             <p className="text-sm text-muted-foreground">
-              Automações respondem, organizam e distribuem as conversas sozinhas. Alguns exemplos comuns:
+              Automações respondem, organizam e distribuem as conversas sozinhas.
             </p>
           </div>
-          <ul className="grid w-full max-w-2xl gap-2 text-left sm:grid-cols-3">
-            {EXEMPLOS.map((e) => (
-              <li key={e.titulo} className="rounded-lg border bg-muted/30 p-3">
-                <p className="text-sm font-medium">{e.titulo}</p>
-                <p className="text-xs text-muted-foreground">{e.texto}</p>
-              </li>
-            ))}
-          </ul>
           <Button onClick={onNova}>
             <Plus />
             Criar a primeira automação
           </Button>
+          {/* B59-02: com a lista vazia, os modelos ficam à vista, sem tirar o foco do botão principal */}
+          {onUsarModelo && (
+            <section aria-label="Modelos prontos" className="mt-4 flex flex-col items-center gap-2">
+              <h2 className="text-sm text-muted-foreground">Comece por um modelo pronto</h2>
+              <Button variant="outline" onClick={() => setGaleriaAberta(true)}>
+                <LayoutTemplate />
+                Conferir modelos
+              </Button>
+            </section>
+          )}
         </div>
       ) : (
         <div className="overflow-x-auto border-t-2 border-t-foreground">

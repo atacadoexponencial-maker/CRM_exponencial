@@ -233,6 +233,7 @@ export function rotuloDaSaidaDaEspera(bloco: BlocoEspera, saida: SaidaDaEspera):
 }
 
 export function fraseBloco(bloco: Bloco, opcoes: OpcoesEditor): string {
+  if (bloco.tipo === "anotacao") return bloco.texto
   if (bloco.tipo === "gatilho") return fraseGatilho(bloco, opcoes)
   if (bloco.tipo === "acao") return fraseAcao(bloco, opcoes)
   if (bloco.tipo === "espera") return saidasDaEspera(bloco).length === 0 ? "Nenhuma opção ligada" : `Esperar ${oQueEspera(bloco)}`

@@ -108,7 +108,22 @@ export type BlocoEspera = {
   posicao: Posicao
 }
 
-export type Bloco = BlocoGatilho | BlocoCondicao | BlocoAcao | BlocoEspera
+/**
+ * Anotação (B59-01): texto solto no desenho, para explicar o fluxo. Fica fora do
+ * caminho: nada se liga a ela, e o motor nunca chega nela.
+ */
+export type BlocoAnotacao = {
+  id: string
+  tipo: "anotacao"
+  texto: string
+  posicao: Posicao
+}
+
+export type Bloco = BlocoGatilho | BlocoCondicao | BlocoAcao | BlocoEspera | BlocoAnotacao
+
+/** Até 2.000 caracteres por anotação e 30 anotações por automação (SUP-B59-02). */
+export const TEXTO_MAXIMO_DA_ANOTACAO = 2000
+export const ANOTACOES_POR_AUTOMACAO = 30
 
 /** Saídas do bloco "esperar": uma por opção ligada. */
 export type SaidaDaEspera = "tempo" | "recebeu_mensagem" | "atendente_enviou"
@@ -414,20 +429,23 @@ export function saidasDaEspera(bloco: BlocoEspera): SaidaDaEspera[] {
 }
 
 export function saidasDoBloco(bloco: Bloco): Saida[] {
+  // B59-01: a anotação não tem saída
+  if (bloco.tipo === "anotacao") return []
   if (bloco.tipo === "espera") return saidasDaEspera(bloco)
   return bloco.tipo === "condicao" ? ["sim", "nao"] : ["proximo"]
 }
 
 /**
- * Cópia de uma condição, ação ou espera, para o "Duplicar" do editor (B22-13): os
- * mesmos parâmetros e verificações, com id novo para o bloco e para cada verificação.
+ * Cópia de uma condição, ação, espera ou anotação, para o "Duplicar" do editor (B22-13):
+ * os mesmos parâmetros e verificações, com id novo para o bloco e para cada verificação.
  */
 export function copiaDoBloco(
-  bloco: BlocoCondicao | BlocoAcao | BlocoEspera,
+  bloco: BlocoCondicao | BlocoAcao | BlocoEspera | BlocoAnotacao,
   id: string,
   posicao: Posicao,
   novoId: () => string
-): BlocoCondicao | BlocoAcao | BlocoEspera {
+): BlocoCondicao | BlocoAcao | BlocoEspera | BlocoAnotacao {
+  if (bloco.tipo === "anotacao") return { ...bloco, id, posicao }
   if (bloco.tipo === "condicao") {
     return { ...bloco, id, posicao, verificacoes: bloco.verificacoes.map((v) => ({ ...v, id: novoId() })) }
   }
@@ -543,6 +561,7 @@ export function problemasDeEstrutura(fluxo: Fluxo): string[] {
       !origem ||
       !destino ||
       destino.tipo === "gatilho" ||
+      destino.tipo === "anotacao" ||
       !saidasDoBloco(origem).includes(l.saida) ||
       saidasUsadas.has(chave)
     ) {
@@ -565,9 +584,13 @@ export const BLOCOS_POR_AUTOMACAO = 100
 export function pendenciasDoFluxo(fluxo: Fluxo): PendenciasFluxo {
   const porBloco: Record<string, string[]> = {}
   const gerais = problemasDeEstrutura(fluxo)
-  if (fluxo.blocos.length > BLOCOS_POR_AUTOMACAO) {
-    gerais.push(`Uma automação pode ter até ${BLOCOS_POR_AUTOMACAO} blocos; esta tem ${fluxo.blocos.length}`)
+  // B59-01: as anotações têm limite próprio e não contam nos blocos
+  const anotacoes = fluxo.blocos.filter((b) => b.tipo === "anotacao").length
+  const blocosQueExecutam = fluxo.blocos.length - anotacoes
+  if (blocosQueExecutam > BLOCOS_POR_AUTOMACAO) {
+    gerais.push(`Uma automação pode ter até ${BLOCOS_POR_AUTOMACAO} blocos; esta tem ${blocosQueExecutam}`)
   }
+  if (anotacoes > ANOTACOES_POR_AUTOMACAO) gerais.push(`Uma automação pode ter até ${ANOTACOES_POR_AUTOMACAO} anotações`)
   const anotar = (id: string, motivo: string) => {
     ;(porBloco[id] ??= []).push(motivo)
   }
@@ -578,6 +601,7 @@ export function pendenciasDoFluxo(fluxo: Fluxo): PendenciasFluxo {
 
   const alcancaveis = blocosAlcancaveis(fluxo)
   for (const bloco of fluxo.blocos) {
+    if (bloco.tipo === "anotacao") continue
     if (bloco.tipo !== "gatilho" && !alcancaveis.has(bloco.id)) {
       anotar(bloco.id, "Bloco solto: ligue a um caminho")
     }

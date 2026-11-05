@@ -1,11 +1,11 @@
 "use client"
 
-import { Hourglass, Split } from "lucide-react"
+import { Hourglass, Split, StickyNote } from "lucide-react"
 import { Dialog, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import { ACOES_DISPONIVEIS, type AcaoTipo, type Saida } from "@/lib/fluxo-automacao"
 import { ACOES, GRUPOS_NOVO_BLOCO } from "./catalogo"
 
-export type ItemNovoBloco = "condicao" | "espera" | AcaoTipo
+export type ItemNovoBloco = "condicao" | "espera" | "anotacao" | AcaoTipo
 
 interface MenuNovoBlocoProps {
   aberto: boolean
@@ -38,7 +38,9 @@ export function MenuNovoBloco({ aberto, saida, onFechar, onEscolher }: MenuNovoB
       <DialogPopup className="max-h-[85dvh] max-w-md overflow-y-auto sm:max-w-2xl">
         <DialogTitle>{saida ? TITULO_POR_SAIDA[saida] : "Adicionar bloco"}</DialogTitle>
         <DialogDescription className="mb-4">
-          {saida ? "O bloco novo já nasce ligado." : "O bloco nasce solto; ligue-o a um caminho depois."}
+          {saida
+            ? "O bloco novo já nasce ligado."
+            : "O bloco nasce solto; ligue-o a um caminho depois. A anotação não se liga a nada: serve só para explicar."}
         </DialogDescription>
 
         <div className="flex flex-col gap-4 sm:block sm:columns-2 sm:gap-6">
@@ -71,6 +73,20 @@ export function MenuNovoBloco({ aberto, saida, onFechar, onEscolher }: MenuNovoB
               </div>
             </section>
           ))}
+          {/* B59-01: a anotação fica fora do caminho, então não nasce ligada a uma saída */}
+          {!saida && (
+            <section className="sm:mb-4 sm:break-inside-avoid">
+              <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Explicação</h3>
+              <button
+                type="button"
+                onClick={() => onEscolher("anotacao")}
+                className="flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm transition-colors hover:bg-muted"
+              >
+                <StickyNote className="size-4 shrink-0 text-muted-foreground" />
+                <span className="flex-1">Anotação</span>
+              </button>
+            </section>
+          )}
         </div>
       </DialogPopup>
     </Dialog>

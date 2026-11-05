@@ -43,6 +43,7 @@ export function ListaClient({ regras, opcoes }: { regras: RegraListada[]; opcoes
         onVerHistorico={(id) => router.push(`/configuracoes/automacoes/historico?regra=${id}`)}
         onExcluir={(id) => executar(excluirRegra(id))}
         contarEsperas={contarEsperasDaRegra}
+        onUsarModelo={(modeloId) => router.push(`/configuracoes/automacoes/nova?modelo=${encodeURIComponent(modeloId)}`)}
       />
       <DialogoHorarioComercial
         aberto={horarioAberto}
