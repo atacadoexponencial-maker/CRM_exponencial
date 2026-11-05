@@ -7,22 +7,22 @@ import { avisoDoPrimeiroSalvamento } from "./avisos-do-salvar"
 
 export const metadata = { title: "Automação" }
 
-// `nova` cria uma regra; o id abre uma regra salva.
+// `nova` cria uma regra, em branco ou a partir de um modelo (`?modelo=`); o id abre uma regra salva.
 export default async function EditorAutomacaoPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ salva?: string }>
+  searchParams: Promise<{ salva?: string; modelo?: string }>
 }) {
   const { supabase, user, perfil } = await sessaoAtual()
   if (!user) redirect("/login")
 
   if (perfil?.role !== "admin") redirect("/perfil?motivo=sem-permissao")
 
-  const [{ id }, { salva }] = await Promise.all([params, searchParams])
+  const [{ id }, { salva, modelo }] = await Promise.all([params, searchParams])
   const [resultado, opcoes] = await Promise.all([
-    buscarRegraParaEditor(id),
+    buscarRegraParaEditor(id, modelo),
     carregarOpcoesEditor(supabase, perfil.workspace_id),
   ])
   if ("redirecionar" in resultado) redirect(resultado.redirecionar)
@@ -30,7 +30,7 @@ export default async function EditorAutomacaoPage({
   // A chave recria o editor ao trocar de regra, para o desenho de uma não ficar na outra
   return (
     <EditorClient
-      key={resultado.regra.id ?? "nova"}
+      key={resultado.regra.id ?? resultado.regra.modelo ?? "nova"}
       regra={resultado.regra}
       opcoes={opcoes}
       usuarioId={user.id}

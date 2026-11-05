@@ -1,6 +1,6 @@
 # issues
 
-- **Arquivos soltos nesta pasta = issues abertas.** Hoje (29/10/2026): B28-05 (relógio das esperas no gateway, aguardando o teste manual), B28-07 (apagar as tabelas de sequência, aguardando o Luan) e B46-04 (banco de teste sempre acordado, teste manual a partir de 05/11). No branch `b59-modelos-de-automacao`: B59-01 a B59-03.
+- **Arquivos soltos nesta pasta = issues abertas.** Hoje (29/10/2026): B28-05 (relógio das esperas no gateway, aguardando o teste manual), B28-07 (apagar as tabelas de sequência, aguardando o Luan) e B46-04 (banco de teste sempre acordado, teste manual a partir de 05/11). No branch `b59-modelos-de-automacao`: B59-02 (galeria com os cinco modelos).
 - `concluidas_<série>/` = entregues e no ar. Não se mexe mais nelas.
 - `bloqueadas_modulo6/` = escritas, mas sem como fazer (API da Meta não tem grupos).
 

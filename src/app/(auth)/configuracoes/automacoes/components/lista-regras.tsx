@@ -1,7 +1,7 @@
 "use client"
 
 import { useOptimistic, useState, useTransition } from "react"
-import { Clock, History, MoreHorizontal, Plus, Zap } from "lucide-react"
+import { Clock, History, LayoutTemplate, MoreHorizontal, Plus, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -16,6 +16,7 @@ import type { Fluxo } from "@/lib/fluxo-automacao"
 import { cn } from "@/lib/utils"
 import { referenciasQueSumiram, type OpcoesEditor } from "./catalogo"
 import { resumoRegra } from "./frases-fluxo"
+import { GaleriaModelos } from "./galeria-modelos"
 
 export interface RegraListada {
   id: string
@@ -47,6 +48,8 @@ interface ListaRegrasProps {
   onExcluir: (id: string) => Promise<{ erro?: string }>
   /** Quantos contatos estão esperando na regra, para o aviso antes de pausar e de excluir (B28-04). */
   contarEsperas?: (id: string) => Promise<number>
+  /** B59-02: abre o editor com o modelo escolhido na galeria. */
+  onUsarModelo?: (modeloId: string) => void
 }
 
 /** "2 contatos estão esperando nesta regra" (CA-B28-18). */
@@ -86,8 +89,10 @@ export function ListaRegras({
   onVerHistorico,
   onExcluir,
   contarEsperas,
+  onUsarModelo,
 }: ListaRegrasProps) {
   const fuso = useFuso()
+  const [galeriaAberta, setGaleriaAberta] = useState(false)
   // O interruptor muda na hora e fica "salvando" até a resposta do servidor (B22-21)
   const [regrasNaTela, marcarAlternando] = useOptimistic(
     regras as Array<RegraListada & { salvando?: boolean }>,
@@ -159,12 +164,19 @@ export function ListaRegras({
               Histórico
             </Button>
           )}
+          {onUsarModelo && (
+            <Button onClick={() => setGaleriaAberta(true)} size="sm" variant="outline">
+              <LayoutTemplate />
+              Modelos
+            </Button>
+          )}
           <Button onClick={onNova} size="sm">
             <Plus />
             Nova automação
           </Button>
         </div>
       </div>
+      {onUsarModelo && <GaleriaModelos aberta={galeriaAberta} onFechar={() => setGaleriaAberta(false)} onUsar={onUsarModelo} />}
       <p className="mb-6 text-sm text-muted-foreground">
         Cada automação começa num gatilho e segue por condições e ações que você liga como quiser.
       </p>

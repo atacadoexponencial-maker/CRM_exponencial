@@ -86,7 +86,8 @@ export function EditorClient({
       simular={simularRegra}
       guardarArquivo={guardarArquivoDaAutomacao}
       onVoltar={() => router.push("/configuracoes/automacoes")}
-      chaveRascunho={chaveDoRascunho(usuarioId, regra.id)}
+      // B59-02: o modelo não divide o rascunho com a automação nova em branco
+      chaveRascunho={chaveDoRascunho(usuarioId, regra.id ?? (regra.modelo ? `modelo:${regra.modelo}` : null))}
       regraNova={regra.id === null}
       // B28-04: regra ainda não salva não tem ninguém esperando
       contarEsperasQueSaem={async (fluxo) => (idSalvo.current ? contarEsperasQueSaem(idSalvo.current, fluxo) : 0)}

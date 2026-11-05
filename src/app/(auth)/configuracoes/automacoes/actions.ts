@@ -15,6 +15,7 @@ import { z } from "zod"
 import { createServiceClient } from "@/integrations/supabase/service"
 import type { Json } from "@/integrations/supabase/types"
 import { lerFluxo } from "@/lib/automacoes/fluxo-recebido"
+import { modeloPorId } from "@/lib/automacoes/modelos"
 import {
   ARQUIVO_GRANDE_DEMAIS,
   BUCKET_DOS_ARQUIVOS,
@@ -68,6 +69,8 @@ export interface RegraDoEditor {
   repeticao: Repeticao
   /** B48-08: a regra nova nasce desligada; o editor oferece "Salvar e ativar". */
   ativa: boolean
+  /** B59-02: o modelo de onde a regra ainda não salva partiu; ela tem rascunho próprio. */
+  modelo?: string
 }
 
 /** Uma execução como a página de histórico mostra. */
@@ -203,11 +206,32 @@ async function execucoesPorRegra({ supabase, workspaceId }: Admin) {
   return porRegra
 }
 
-/** A regra que o editor abre. `id` "nova" abre uma regra em branco. */
-export async function buscarRegraParaEditor(id: string): Promise<{ regra: RegraDoEditor } | { redirecionar: string }> {
+/**
+ * A regra que o editor abre. `id` "nova" abre uma regra em branco ou, com `modelo`,
+ * uma cópia do modelo (B59-02). Nada é gravado até o Salvar.
+ */
+export async function buscarRegraParaEditor(
+  id: string,
+  modelo?: string
+): Promise<{ regra: RegraDoEditor } | { redirecionar: string }> {
   const admin = await adminDaSessao()
   if (!admin) return { redirecionar: "/perfil" }
   const { supabase, workspaceId } = admin
+
+  if (id === "nova" && modelo !== undefined) {
+    const escolhido = modeloPorId(modelo)
+    if (!escolhido) return { redirecionar: CAMINHO_LISTA }
+    return {
+      regra: {
+        id: null,
+        nome: escolhido.titulo,
+        fluxo: structuredClone(escolhido.fluxo),
+        repeticao: escolhido.repeticao,
+        ativa: false,
+        modelo: escolhido.id,
+      },
+    }
+  }
 
   if (id === "nova") {
     const gatilho: BlocoGatilho = { id: "gatilho", tipo: "gatilho", gatilho: "card_movido", parametros: {}, posicao: { x: 0, y: 0 } }
