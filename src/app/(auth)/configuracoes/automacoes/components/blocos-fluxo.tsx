@@ -4,7 +4,7 @@
 // O que cada bloco mostra além do próprio conteúdo (pendências, simulação,
 // o "+" das saídas livres) vem do contexto do editor.
 
-import { createContext, useContext } from "react"
+import { createContext, useContext, useLayoutEffect, useRef } from "react"
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -18,9 +18,18 @@ import {
   type Node,
   type NodeProps,
 } from "@xyflow/react"
-import { Hourglass, Plus, Split, X, Zap } from "lucide-react"
+import { Copy, Hourglass, Plus, Split, StickyNote, Trash2, X, Zap } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { saidasDaEspera, type Bloco, type Repeticao, type ResultadoSimulacao, type Saida, type SaidaDaEspera } from "@/lib/fluxo-automacao"
+import {
+  TEXTO_MAXIMO_DA_ANOTACAO,
+  saidasDaEspera,
+  type Bloco,
+  type Repeticao,
+  type ResultadoSimulacao,
+  type Saida,
+  type SaidaDaEspera,
+} from "@/lib/fluxo-automacao"
 import { ACOES, GATILHOS, type OpcoesEditor } from "./catalogo"
 import { fraseBloco, fraseRepeticao, rotuloDaSaidaDaEspera } from "./frases-fluxo"
 
@@ -37,6 +46,10 @@ interface ContextoEditor {
   /** Aparece no bloco do gatilho, onde ela é escolhida. */
   repeticao: Repeticao
   aoAdicionar: (de: string, saida: Saida) => void
+  /** B59-01: a anotação edita, duplica e apaga no próprio bloco, sem o painel lateral. */
+  aoMudarAnotacao: (id: string, texto: string) => void
+  aoDuplicar: (id: string) => void
+  aoApagar: (id: string) => void
 }
 
 export const ContextoEditorFluxo = createContext<ContextoEditor | null>(null)
@@ -57,6 +70,7 @@ const CABECALHO = {
   condicao: { rotulo: "Condição", classe: "bg-info-fundo text-info border-info/30" },
   acao: { rotulo: "Ação", classe: "bg-sucesso-fundo text-sucesso border-sucesso/30" },
   espera: { rotulo: "Esperar", classe: "bg-accent text-accent-foreground border-border" },
+  anotacao: { rotulo: "Anotação", classe: "bg-muted text-muted-foreground border-border" },
 } as const
 
 const classeAlca = "size-3! border-2! border-background! bg-muted-foreground!"
@@ -197,6 +211,63 @@ function BlocoDoFluxo({ id, data, selected }: NodeProps<NoFluxo>) {
   )
 }
 
+/**
+ * B59-01: texto solto no desenho, com borda tracejada para não parecer um passo do
+ * caminho. Sem alças, sem "+" e fora da simulação. Arrasta pelo cabeçalho, porque o
+ * campo de texto usa o clique para escrever.
+ */
+function BlocoDeAnotacao({ id, data, selected }: NodeProps<NoFluxo>) {
+  const { aoMudarAnotacao, aoDuplicar, aoApagar } = useEditor()
+  const texto = data.bloco.tipo === "anotacao" ? data.bloco.texto : ""
+  const campo = useRef<HTMLTextAreaElement>(null)
+
+  // O campo cresce com o texto (SUP-B59-01)
+  useLayoutEffect(() => {
+    if (!campo.current) return
+    campo.current.style.height = "auto"
+    campo.current.style.height = `${campo.current.scrollHeight}px`
+  }, [texto])
+
+  return (
+    <div
+      className={cn(
+        "w-64 rounded-xl border border-dashed border-muted-foreground/50 bg-card text-card-foreground shadow-sm",
+        selected && "ring-2 ring-primary"
+      )}
+    >
+      <div
+        className={cn(
+          "flex min-h-8 items-center gap-1.5 rounded-t-xl border-b px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-wide",
+          CABECALHO.anotacao.classe
+        )}
+      >
+        <StickyNote className="size-3.5" />
+        <span className="flex-1">{CABECALHO.anotacao.rotulo}</span>
+        {selected && (
+          <>
+            <Button type="button" variant="ghost" size="icon-xs" className="nodrag" aria-label="Duplicar" title="Duplicar" onClick={() => aoDuplicar(id)}>
+              <Copy />
+            </Button>
+            <Button type="button" variant="ghost" size="icon-xs" className="nodrag" aria-label="Apagar" title="Apagar" onClick={() => aoApagar(id)}>
+              <Trash2 />
+            </Button>
+          </>
+        )}
+      </div>
+      <textarea
+        ref={campo}
+        aria-label="Texto da anotação"
+        placeholder="Escreva aqui uma explicação…"
+        rows={2}
+        maxLength={TEXTO_MAXIMO_DA_ANOTACAO}
+        value={texto}
+        onChange={(e) => aoMudarAnotacao(id, e.target.value)}
+        className="nodrag nopan nowheel block w-full resize-none overflow-hidden rounded-b-xl bg-transparent px-3 py-2.5 text-sm leading-snug outline-none placeholder:text-muted-foreground"
+      />
+    </div>
+  )
+}
+
 function LigacaoComBotao({
   id,
   source,
@@ -256,6 +327,7 @@ export const TIPOS_DE_BLOCO = {
   condicao: BlocoDoFluxo,
   acao: BlocoDoFluxo,
   espera: BlocoDoFluxo,
+  anotacao: BlocoDeAnotacao,
 }
 
 export const TIPOS_DE_LIGACAO = { ligacao: LigacaoComBotao }

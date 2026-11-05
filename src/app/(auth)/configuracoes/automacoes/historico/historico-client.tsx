@@ -280,7 +280,7 @@ function DetalheDaExecucao({ execucao, opcoes }: { execucao: ExecucaoListada; op
   )
 }
 
-const TIPO_DO_BLOCO = { gatilho: "Gatilho", condicao: "Condição", acao: "Ação", espera: "Esperar" } as const
+const TIPO_DO_BLOCO = { gatilho: "Gatilho", condicao: "Condição", acao: "Ação", espera: "Esperar", anotacao: "Anotação" } as const
 
 function PassoDoCaminho({ passo, opcoes }: { passo: PassoGravado; opcoes: OpcoesEditor }) {
   const fuso = useFuso()
