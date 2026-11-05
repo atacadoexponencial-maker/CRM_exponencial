@@ -3,7 +3,7 @@
 // no servidor), M19/M20 (etiqueta repetida ou longa). O banco é falso e responde por
 // tabela; só a sessão é simulada.
 
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 
 vi.mock("@/lib/sessao", () => ({ sessaoAtual: vi.fn() }))
 vi.mock("@/integrations/supabase/server", () => ({ createClient: vi.fn() }))
@@ -53,6 +53,14 @@ function banco(respostas: Record<string, Resposta>) {
 beforeEach(() => vi.clearAllMocks())
 
 describe("QA M12 — follow-up no horário de Brasília", () => {
+  // A Agenda recusa follow-up no passado: o "agora" fica fixo antes de 05/11/2026, senão o
+  // teste passa até esse dia e quebra para sempre depois dele (quebrou em 05/11/2026, 9h).
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date("2026-11-01T12:00:00.000Z"))
+  })
+  afterEach(() => vi.useRealTimers())
+
   it("09:00 do dia vira 12:00Z, qualquer que seja o fuso do servidor", async () => {
     banco({ contacts: { data: { workspace_id: "ws-1" } }, reminders: {} })
     expect(await criarFollowUp({ contactId: "c-1", data: "2026-11-05", hora: "09:00", nota: "ligar" })).toEqual({})
