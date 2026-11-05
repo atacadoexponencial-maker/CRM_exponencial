@@ -6,7 +6,7 @@ import { describe, it, expect, afterEach, vi } from "vitest"
 import { render, screen, cleanup } from "@testing-library/react"
 import { BalaoMensagem } from "@/app/(auth)/chat/components/balao-mensagem"
 import { aplicarMensagemRecebida } from "@/app/(auth)/chat/mensagens-locais"
-import type { Mensagem } from "@/app/(auth)/chat/mock-mensagens"
+import type { Mensagem } from "@/app/(auth)/chat/tipos-mensagem"
 
 const URL_VIDEO = "https://x.supabase.co/storage/v1/object/sign/chat-attachments/ws/recebidas/1.mp4?token=a"
 const URL_CAPA = "https://x.supabase.co/storage/v1/object/sign/chat-attachments/ws/recebidas/1.mp4.thumb.jpg?token=a"

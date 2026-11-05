@@ -22,7 +22,7 @@ import {
   CLASSIFICACAO_LABEL,
   TIPO_LABEL,
   TAMANHO_PAGINA_CONTATOS,
-} from "../mock-contatos"
+} from "../tipos-contato"
 import { SeloPerfilRfv } from "@/components/shared/selo-perfil-rfv"
 import { formatarValor, type CampoDaEmpresa } from "@/lib/campos-personalizados"
 import { CLASSE_DA_PAGINA } from "@/lib/pagina"

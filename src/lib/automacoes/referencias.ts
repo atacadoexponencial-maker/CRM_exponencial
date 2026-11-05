@@ -4,8 +4,8 @@
 // passa por cima da RLS: uma etiqueta de outra empresa gravada no fluxo seria
 // aplicada sem ninguém barrar.
 
-import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "@/app/(auth)/contatos/mock-contatos"
-import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
+import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "@/app/(auth)/contatos/tipos-contato"
+import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/etapas-e-tipos"
 import { horaDoGatilho, itensDaLista, SEM_COMPRAS, SEM_PERFIL_DE_DESTINO, type Fluxo } from "@/lib/fluxo-automacao"
 import { PERFIL_POR_ID } from "@/lib/relatorios/rfv"
 import { conferirValor, entradaDoCanonico, type TipoDeCampo } from "@/lib/campos-personalizados"

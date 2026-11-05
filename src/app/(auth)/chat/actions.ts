@@ -9,8 +9,8 @@ import { resumoDeCompras, type ResumoDeCompras } from "@/lib/resumo-de-compras"
 import { perfilDoMapa, perfisRfvDosContatos } from "@/lib/perfil-rfv-do-contato"
 import type { PerfilRfv } from "@/lib/relatorios/rfv"
 import { resolverProviderDaConversa, statusInicialDoEnvio } from "@/lib/whatsapp"
-import type { Mensagem, TipoMensagem, DirecaoMensagem, StatusMensagem } from "./mock-mensagens"
-import type { Conversa } from "./mock-conversas"
+import type { Mensagem, TipoMensagem, DirecaoMensagem, StatusMensagem } from "./tipos-mensagem"
+import type { Conversa } from "./tipos-conversa"
 import { listarConversas, TAMANHO_PAGINA_CONVERSAS } from "./conversas"
 
 /** Mesmo teto do painel: limite da requisição no Vercel, não do WhatsApp. */
@@ -18,7 +18,7 @@ const LIMITE_ANEXO_BYTES = 4 * 1024 * 1024
 import { sessaoAtual } from "@/lib/sessao"
 import { AVISO_ARQUIVO_SEM_LINK, comLinksDosAnexos, linkParaEnvio } from "@/lib/anexos-do-chat"
 import { passarContatosPara } from "@/lib/carteira"
-import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
+import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/etapas-e-tipos"
 import { dispararEtiquetaAplicada, dispararMensagemEnviadaPeloTime } from "@/lib/automacoes/gatilhos-do-crm"
 
 /**

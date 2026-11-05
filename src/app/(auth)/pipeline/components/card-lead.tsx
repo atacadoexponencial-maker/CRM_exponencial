@@ -4,7 +4,7 @@ import { MessageSquare } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { situacaoDoCard } from "@/lib/card-parado"
-import { ETAPAS_RECOMPRA, type CardLead, type CardCliente, type CardDoFunil, type CorColuna } from "../mock-pipeline"
+import { ETAPAS_RECOMPRA, type CardLead, type CardCliente, type CardDoFunil, type CorColuna } from "../etapas-e-tipos"
 
 // Cards das colunas de risco da Recompra levam a cor da coluna (B15-02) num traço à
 // esquerda. Classes inteiras para o Tailwind.

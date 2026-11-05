@@ -22,7 +22,7 @@ vi.mock("@/app/(auth)/contatos/actions", () => ({ adicionarTagContato: vi.fn(), 
 
 import { FunilEntrada } from "@/app/(auth)/pipeline/components/funil-entrada"
 import { FunilPersonalizado } from "@/app/(auth)/pipeline/components/funil-personalizado"
-import type { CardLead, FunilDaEmpresa } from "@/app/(auth)/pipeline/mock-pipeline"
+import type { CardLead, FunilDaEmpresa } from "@/app/(auth)/pipeline/etapas-e-tipos"
 
 const FUNIL: FunilDaEmpresa = {
   id: "11111111-1111-4111-8111-111111111111",

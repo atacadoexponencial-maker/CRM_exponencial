@@ -4,7 +4,7 @@
 
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import type { Conversa } from "@/app/(auth)/chat/mock-conversas"
+import type { Conversa } from "@/app/(auth)/chat/tipos-conversa"
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }))
 vi.mock("@/integrations/supabase/client", () => ({ createClient: () => ({ storage: { from: vi.fn() } }) }))

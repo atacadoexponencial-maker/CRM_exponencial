@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from "vitest"
 import { aplicarStatus, confirmarEnvio } from "@/app/(auth)/chat/mensagens-locais"
-import type { Mensagem } from "@/app/(auth)/chat/mock-mensagens"
+import type { Mensagem } from "@/app/(auth)/chat/tipos-mensagem"
 
 const enviada = (id: string): Mensagem => ({
   id,

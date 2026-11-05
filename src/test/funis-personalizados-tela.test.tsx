@@ -22,7 +22,7 @@ import { FunilPersonalizado } from "@/app/(auth)/pipeline/components/funil-perso
 import { ColunaKanban } from "@/app/(auth)/pipeline/components/coluna-kanban"
 import { razaoContraste } from "@/app/loja/components/tema"
 import { estiloDaCorPropria } from "@/lib/funis"
-import type { CardDoFunil, FunilDaEmpresa } from "@/app/(auth)/pipeline/mock-pipeline"
+import type { CardDoFunil, FunilDaEmpresa } from "@/app/(auth)/pipeline/etapas-e-tipos"
 
 const FUNIL: FunilDaEmpresa = {
   id: "11111111-1111-4111-8111-111111111111",

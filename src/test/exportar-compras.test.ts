@@ -5,7 +5,7 @@ import { describe, it, expect } from "vitest"
 import * as XLSX from "xlsx"
 import { gerarPlanilha, nomeDeArquivo } from "@/lib/exportar-planilha"
 import { COLUNAS_EXPORTACAO_COMPRAS, TITULOS_EXPORTACAO_COMPRAS } from "@/lib/exportar-compras"
-import type { Compra } from "@/app/(auth)/contatos/mock-contatos"
+import type { Compra } from "@/app/(auth)/contatos/tipos-contato"
 
 const colunas = (l: unknown[]) => Array.from({ length: 8 }, (_, i) => l[i])
 const CABECALHO = ["Data", "Valor", "Peças", "Desconto", "Forma de pagamento", "Atendente", "Origem", "Pedido"]

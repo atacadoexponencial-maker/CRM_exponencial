@@ -23,7 +23,7 @@ import {
   type EtapaComQuantidade,
   type VariacoesDashboard,
 } from "@/lib/painel-dashboard"
-import { ETAPAS_ENTRADA } from "@/app/(auth)/pipeline/mock-pipeline"
+import { ETAPAS_ENTRADA } from "@/app/(auth)/pipeline/etapas-e-tipos"
 import { contatosDoFiltroPorCampo } from "@/lib/campos-personalizados-servidor"
 import { listarMinhaAgenda, type ItemAgenda } from "@/app/(auth)/agenda/actions"
 import { previaDaMensagemGravada } from "@/lib/whatsapp/recebimento"

@@ -135,7 +135,7 @@ Rotas existentes:
 
 ### State Management
 
-- **Server state**: TanStack React Query para fetching, cache e mutations.
+- **Server state**: os dados vêm de Server Components e de Server Actions (`actions.ts` ao lado da rota); depois de uma mutation, a tela recarrega com `router.refresh()` ou `revalidatePath`. Não há biblioteca de cache no cliente.
 - **UI state**: `useState` local — sem biblioteca global.
 
 ### Backend (Supabase)

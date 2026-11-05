@@ -1,4 +1,4 @@
-import type { ClassificacaoContato } from "./mock-contatos"
+import type { ClassificacaoContato } from "./tipos-contato"
 
 export function calcularClassificacao(
   cards: Array<{ funil: string; etapa: string }>

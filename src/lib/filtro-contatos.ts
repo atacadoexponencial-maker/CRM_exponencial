@@ -10,8 +10,8 @@
 // são colunas de `contacts` (ficam em `CAMPOS_LIGADOS`); o banco os calcula.
 
 import { z } from "zod"
-import { CLASSIFICACAO_LABEL, TIPO_LABEL, ICP_LABEL } from "@/app/(auth)/contatos/mock-contatos"
-import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
+import { CLASSIFICACAO_LABEL, TIPO_LABEL, ICP_LABEL } from "@/app/(auth)/contatos/tipos-contato"
+import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/etapas-e-tipos"
 import { UFS } from "@/lib/uf"
 import { PERFIS } from "@/lib/relatorios/rfv"
 import { normalizarTexto } from "@/lib/catalogo/planilha"

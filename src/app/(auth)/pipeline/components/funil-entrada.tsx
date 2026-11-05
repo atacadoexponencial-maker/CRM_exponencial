@@ -11,7 +11,7 @@ import { CabecalhoDoPipeline } from "./cabecalho-do-pipeline"
 import { PainelCard } from "./painel-card"
 import { ModalNovoLead } from "./modal-novo-lead"
 import { ModalAdicionarContato } from "./modal-adicionar-contato"
-import { ETAPAS_ENTRADA, type CardLead } from "../mock-pipeline"
+import { ETAPAS_ENTRADA, type CardLead } from "../etapas-e-tipos"
 import { moverCard } from "../actions"
 
 interface FunilEntradaProps {

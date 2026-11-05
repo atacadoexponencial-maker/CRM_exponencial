@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { MessageSquare, GitBranch, ArrowRight, FileText, ShoppingBag, Pencil, Store } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { type EventoTimeline, type TipoEvento, TIPOS_EVENTO } from "../../mock-contatos"
+import { type EventoTimeline, type TipoEvento, TIPOS_EVENTO } from "../../tipos-contato"
 
 const EVENTO_ICONE: Record<TipoEvento, React.ReactNode> = {
   conversa_iniciada: <MessageSquare className="size-3.5" />,

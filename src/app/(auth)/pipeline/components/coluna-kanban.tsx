@@ -6,7 +6,7 @@ import { CardLeadItem } from "./card-lead"
 import { cn } from "@/lib/utils"
 import { resumoDaColuna } from "@/lib/card-parado"
 import { ehCorPronta, ehCorPropria, estiloDaCorPropria } from "@/lib/funis"
-import type { CardLead, CardCliente, CardDoFunil } from "../mock-pipeline"
+import type { CardLead, CardCliente, CardDoFunil } from "../etapas-e-tipos"
 
 type CardQualquer = CardLead | CardCliente | CardDoFunil
 

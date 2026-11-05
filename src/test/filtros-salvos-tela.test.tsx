@@ -3,7 +3,7 @@
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { Contato } from "@/app/(auth)/contatos/mock-contatos"
+import type { Contato } from "@/app/(auth)/contatos/tipos-contato"
 import type { Filtro } from "@/lib/filtro-contatos"
 import type { FiltroSalvo } from "@/app/(auth)/contatos/filtros-salvos"
 

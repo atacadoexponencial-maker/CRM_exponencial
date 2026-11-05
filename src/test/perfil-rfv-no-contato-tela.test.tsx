@@ -4,8 +4,8 @@
 
 import { render, screen, waitFor, within } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import type { Conversa } from "@/app/(auth)/chat/mock-conversas"
-import type { Contato, ContatoPerfil } from "@/app/(auth)/contatos/mock-contatos"
+import type { Conversa } from "@/app/(auth)/chat/tipos-conversa"
+import type { Contato, ContatoPerfil } from "@/app/(auth)/contatos/tipos-contato"
 import type { PerfilRfv } from "@/lib/relatorios/rfv"
 
 const buscarInfoContato = vi.fn()
