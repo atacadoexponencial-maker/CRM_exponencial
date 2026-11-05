@@ -16,7 +16,7 @@ import type { Fluxo } from "@/lib/fluxo-automacao"
 import { cn } from "@/lib/utils"
 import { referenciasQueSumiram, type OpcoesEditor } from "./catalogo"
 import { resumoRegra } from "./frases-fluxo"
-import { GaleriaModelos } from "./galeria-modelos"
+import { CartoesDeModelos, GaleriaModelos } from "./galeria-modelos"
 
 export interface RegraListada {
   id: string
@@ -56,18 +56,6 @@ interface ListaRegrasProps {
 export function contatosEsperando(quantos: number): string {
   return quantos === 1 ? "1 contato está esperando nesta regra" : `${quantos} contatos estão esperando nesta regra`
 }
-
-const EXEMPLOS = [
-  { titulo: "Boas-vindas", texto: "Quando uma conversa for criada → enviar mensagem de boas-vindas" },
-  {
-    titulo: "Pedido de catálogo",
-    texto: "Quando o cliente escrever \"catálogo\" → aplicar a etiqueta Interessado e enviar o PDF",
-  },
-  {
-    titulo: "Fora do horário",
-    texto: "Quando o cliente enviar mensagem fora do horário comercial → avisar quando o time volta",
-  },
-]
 
 /** Escolha apagada (etiqueta, time, mensagem rápida…): a regra roda, mas aquela ação falha (B22-27). */
 function AvisoDeReferencia({ fluxo, opcoes }: { fluxo: Fluxo; opcoes: OpcoesEditor }) {
@@ -185,23 +173,25 @@ export function ListaRegras({
         <div className="flex flex-col items-center gap-4 rounded-md border border-dashed bg-card/60 px-4 py-12 text-center">
           <Zap className="size-8 text-muted-foreground/50" />
           <div>
-            <p className="font-medium">Nenhuma automação ainda</p>
+            <p className="font-medium">Você não tem nenhuma automação ainda</p>
             <p className="text-sm text-muted-foreground">
-              Automações respondem, organizam e distribuem as conversas sozinhas. Alguns exemplos comuns:
+              Automações respondem, organizam e distribuem as conversas sozinhas.
             </p>
           </div>
-          <ul className="grid w-full max-w-2xl gap-2 text-left sm:grid-cols-3">
-            {EXEMPLOS.map((e) => (
-              <li key={e.titulo} className="rounded-lg border bg-muted/30 p-3">
-                <p className="text-sm font-medium">{e.titulo}</p>
-                <p className="text-xs text-muted-foreground">{e.texto}</p>
-              </li>
-            ))}
-          </ul>
           <Button onClick={onNova}>
             <Plus />
             Criar a primeira automação
           </Button>
+          {/* B59-02: com a lista vazia, os modelos ficam à vista, e não só no botão do topo */}
+          {onUsarModelo && (
+            <section aria-label="Modelos prontos" className="mt-4 w-full max-w-3xl">
+              <h2 className="text-sm font-medium">Ou comece por um modelo pronto</h2>
+              <p className="mb-3 text-xs text-muted-foreground">
+                Abre como automação nova e desligada, com anotações explicando cada parte e o que mudar.
+              </p>
+              <CartoesDeModelos onUsar={onUsarModelo} />
+            </section>
+          )}
         </div>
       ) : (
         <div className="overflow-x-auto border-t-2 border-t-foreground">

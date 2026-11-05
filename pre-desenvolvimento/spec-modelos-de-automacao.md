@@ -176,6 +176,12 @@ mesmos para todas as empresas.
 - **Quando** o Admin o abre
 - **Então** volta para a lista de automações
 
+#### CA-B59-28 — Modelos à vista na lista vazia · prova: automática
+
+- **Dado** uma empresa sem nenhuma automação
+- **Quando** o Admin abre Automações
+- **Então** a tela diz "Você não tem nenhuma automação ainda", mostra o botão "Criar a primeira automação" e, embaixo dele, os cinco modelos em cartões, cada um com título, descrição, a prévia dos passos (ex.: "Mensagem recebida do cliente → Condição → Mover card para etapa") e "Usar modelo", que abre o modelo no editor; com automações na lista, os cartões não aparecem e os modelos ficam no botão "Modelos" (pedido do Luan, 05/11/2026, ao ver o preview)
+
 ### Os cinco modelos
 
 **Descrição:** o conteúdo de cada modelo. Em todos há uma anotação geral, com o que o
