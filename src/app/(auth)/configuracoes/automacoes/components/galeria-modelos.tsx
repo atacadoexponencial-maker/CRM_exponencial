@@ -1,7 +1,7 @@
 "use client"
 
-// B59-02: os modelos de automação, em cartões. Aparecem na galeria do botão "Modelos"
-// e, com a lista vazia, direto na tela, embaixo de "Criar a primeira automação".
+// B59-02: os modelos de automação, em cartões, na galeria aberta pelo botão "Modelos"
+// e, com a lista vazia, por "Conferir modelos".
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
@@ -33,7 +33,7 @@ export function passosDoModelo(modelo: ModeloDeAutomacao): string {
   return partes.join(" → ")
 }
 
-export function CartoesDeModelos({ onUsar, className }: { onUsar: (modeloId: string) => void; className?: string }) {
+function CartoesDeModelos({ onUsar, className }: { onUsar: (modeloId: string) => void; className?: string }) {
   return (
     <ul className={cn("grid gap-2 sm:grid-cols-2", className)}>
       {MODELOS.map((modelo) => (

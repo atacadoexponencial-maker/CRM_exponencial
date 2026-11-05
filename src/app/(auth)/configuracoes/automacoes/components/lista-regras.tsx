@@ -16,7 +16,7 @@ import type { Fluxo } from "@/lib/fluxo-automacao"
 import { cn } from "@/lib/utils"
 import { referenciasQueSumiram, type OpcoesEditor } from "./catalogo"
 import { resumoRegra } from "./frases-fluxo"
-import { CartoesDeModelos, GaleriaModelos } from "./galeria-modelos"
+import { GaleriaModelos } from "./galeria-modelos"
 
 export interface RegraListada {
   id: string
@@ -182,14 +182,14 @@ export function ListaRegras({
             <Plus />
             Criar a primeira automação
           </Button>
-          {/* B59-02: com a lista vazia, os modelos ficam à vista, e não só no botão do topo */}
+          {/* B59-02: com a lista vazia, os modelos ficam à vista, sem tirar o foco do botão principal */}
           {onUsarModelo && (
-            <section aria-label="Modelos prontos" className="mt-4 w-full max-w-3xl">
-              <h2 className="text-sm font-medium">Ou comece por um modelo pronto</h2>
-              <p className="mb-3 text-xs text-muted-foreground">
-                Abre como automação nova e desligada, com anotações explicando cada parte e o que mudar.
-              </p>
-              <CartoesDeModelos onUsar={onUsarModelo} />
+            <section aria-label="Modelos prontos" className="mt-4 flex flex-col items-center gap-2">
+              <h2 className="text-sm text-muted-foreground">Comece por um modelo pronto</h2>
+              <Button variant="outline" onClick={() => setGaleriaAberta(true)}>
+                <LayoutTemplate />
+                Conferir modelos
+              </Button>
             </section>
           )}
         </div>

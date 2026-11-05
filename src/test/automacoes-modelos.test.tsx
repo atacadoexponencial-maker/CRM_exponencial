@@ -166,35 +166,50 @@ describe("B59-02 — galeria", () => {
     await conferirGaleria()
   })
 
-  it("CA-B59-28: com a lista vazia, os cinco modelos aparecem embaixo de 'Criar a primeira automação'", () => {
-    const onUsar = lista([])
+  it("CA-B59-28: com a lista vazia, 'Conferir modelos' fica embaixo de 'Criar a primeira automação', sem os cartões na tela", () => {
+    lista([])
     expect(screen.getByText("Você não tem nenhuma automação ainda")).toBeTruthy()
     const criar = screen.getByRole("button", { name: "Criar a primeira automação" })
     const secao = screen.getByRole("region", { name: "Modelos prontos" })
-    // A seção vem depois do botão na tela
-    expect(criar.compareDocumentPosition(secao) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(secao).getByText("Comece por um modelo pronto")).toBeTruthy()
+    const conferir = within(secao).getByRole("button", { name: "Conferir modelos" })
+    // Vem depois do botão principal, e só com contorno: o destaque é de "Criar a primeira automação"
+    expect(criar.compareDocumentPosition(conferir) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(criar.className).toContain("bg-primary")
+    expect(conferir.className).not.toContain("bg-primary")
+    expect(conferir.className).toContain("bg-background")
+    // Os cartões não ficam na tela
+    expect(screen.queryByText("Usar modelo")).toBeNull()
+    expect(screen.queryByText(MODELOS[0].titulo)).toBeNull()
+  })
 
-    expect(within(secao).getAllByRole("listitem")).toHaveLength(5)
-    expect(within(secao).getByText("Mensagem recebida do cliente → Condição → Mover card para etapa")).toBeTruthy()
-    expect(
-      within(secao).getByText(
-        "Card movido para etapa → Enviar mensagem → Esperar → Criar lembrete na Agenda / Adicionar tag ao contato",
-      ),
-    ).toBeTruthy()
+  it("CA-B59-28: 'Conferir modelos' abre a galeria com a prévia dos passos de cada modelo", async () => {
+    const onUsar = lista([])
+    fireEvent.click(screen.getByRole("button", { name: "Conferir modelos" }))
+    const galeria = await screen.findByRole("dialog")
+    expect(within(galeria).getAllByRole("listitem")).toHaveLength(5)
+    const previa: Record<string, string> = {
+      "publico-para-campanha": "Entrou no perfil RFV → Adicionar tag ao contato",
+      "mover-lead-que-pediu-preco": "Mensagem recebida do cliente → Condição → Mover card para etapa",
+      "tag-por-interesse": "Mensagem recebida do cliente → Condição → Adicionar tag ao contato",
+      "follow-up-sem-resposta": "Card movido para etapa → Enviar mensagem → Esperar → Criar lembrete na Agenda / Adicionar tag ao contato",
+      "boas-vindas-por-horario": "Conversa criada → Condição → Enviar mensagem / Enviar mensagem",
+    }
     for (const m of MODELOS) {
-      const cartao = within(secao).getByText(m.titulo).closest("li")!
+      const cartao = within(galeria).getByText(m.titulo).closest("li")!
       expect(within(cartao).getByText(m.descricao)).toBeTruthy()
-      expect(cartao.textContent).toContain(" → ")
+      expect(within(cartao).getByText(previa[m.id])).toBeTruthy()
       fireEvent.click(within(cartao).getByRole("button", { name: `Usar modelo: ${m.titulo}` }))
       expect(onUsar).toHaveBeenLastCalledWith(m.id)
     }
   })
 
-  it("CA-B59-28: na tela de verdade, 'Usar modelo' da lista vazia abre o modelo no editor", async () => {
+  it("CA-B59-28: na tela de verdade, 'Conferir modelos' e 'Usar modelo' abrem o modelo no editor", async () => {
     render(<ListaClient regras={[]} opcoes={OPCOES} />)
-    const secao = screen.getByRole("region", { name: "Modelos prontos" })
+    fireEvent.click(screen.getByRole("button", { name: "Conferir modelos" }))
+    const galeria = await screen.findByRole("dialog")
     const m = modelo("mover-lead-que-pediu-preco")
-    fireEvent.click(within(secao).getByRole("button", { name: `Usar modelo: ${m.titulo}` }))
+    fireEvent.click(within(galeria).getByRole("button", { name: `Usar modelo: ${m.titulo}` }))
     expect(navegar).toHaveBeenCalledWith(`/configuracoes/automacoes/nova?modelo=${m.id}`)
 
     // O mesmo endereço, na página do editor, monta o modelo
@@ -205,9 +220,10 @@ describe("B59-02 — galeria", () => {
     expect(pagina.props.regra).toMatchObject({ id: null, nome: m.titulo, modelo: m.id, fluxo: m.fluxo })
   })
 
-  it("CA-B59-28: com automações na lista, os cartões não aparecem fora da galeria", () => {
+  it("CA-B59-28: com automações na lista, o convite não aparece, e os modelos ficam no botão 'Modelos'", () => {
     lista([{ id: "r1", nome: "Regra", ativa: false, fluxo: null, problema: null, execucoes7dias: 0, ultimaExecucao: null }])
     expect(screen.queryByRole("region", { name: "Modelos prontos" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Conferir modelos" })).toBeNull()
     expect(screen.queryByText("Usar modelo")).toBeNull()
     expect(screen.getByRole("button", { name: "Modelos" })).toBeTruthy()
   })
