@@ -525,6 +525,37 @@ export async function acharMensagemPorWamid(
 }
 
 /**
+ * Auditoria run-2 (pista 3): as conversas do remetente do evento, nesta empresa.
+ *
+ * A reação, a edição e a exclusão chegam do cliente: o gateway descarta as que saem
+ * do próprio celular da empresa (`enviada-pelo-celular` no gateway). O WhatsApp é
+ * cifrado de ponta a ponta, então o servidor dele não confere quem é o autor de uma
+ * edição; quem confere é quem recebe, aqui. Sem isso, um cliente com o WhatsApp
+ * modificado mudava qualquer mensagem da empresa pelo `wamid`. O contato é achado
+ * pelo mesmo identificador da mensagem normal e não é criado: sem ele, não há alvo.
+ */
+async function conversasDoRemetente(
+  supabase: ServiceClient,
+  workspaceId: string,
+  evento: EventoMensagemRecebida
+): Promise<string[]> {
+  const { data: contato } = await supabase
+    .from("contacts")
+    .select("id")
+    .eq("workspace_id", workspaceId)
+    .eq("phone_number", identificadorDoContato(evento))
+    .maybeSingle()
+  if (!contato) return []
+
+  const { data: conversas } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("workspace_id", workspaceId)
+    .eq("contact_id", contato.id)
+  return (conversas ?? []).map((c) => c.id)
+}
+
+/**
  * Reação recebida (B6-03). Não cria mensagem: altera a que foi reagida.
  *
  * `emoji` vazio é remoção da reação, e volta a coluna para `null` — "sem
@@ -532,22 +563,32 @@ export async function acharMensagemPorWamid(
  *
  * Alvo que o CRM não tem não é erro: a mensagem reagida pode ser anterior à
  * conexão do número. Nesse caso não há o que atualizar, e pronto.
+ *
+ * Auditoria run-2 (pista 3): só mensagem das conversas de quem reagiu, de
+ * qualquer lado (o cliente reage também ao que a empresa mandou).
  */
 export async function aplicarReacao({
   supabase,
   workspaceId,
+  evento,
   reacao,
 }: {
   supabase: ServiceClient
   /** B44-03: só mensagem da empresa do número por onde o evento chegou. */
   workspaceId: string
+  /** O evento inteiro, para saber quem reagiu. */
+  evento: EventoMensagemRecebida
   reacao: NonNullable<EventoMensagemRecebida["reaction"]>
 }): Promise<boolean> {
+  const conversas = await conversasDoRemetente(supabase, workspaceId, evento)
+  if (conversas.length === 0) return false
+
   const { data } = await supabase
     .from("messages")
     .update({ reaction_emoji: reacao.emoji === "" ? null : reacao.emoji })
     .eq("wamid", reacao.target_message_id)
     .eq("workspace_id", workspaceId)
+    .in("conversation_id", conversas)
     .select("id")
     .maybeSingle()
 
@@ -559,19 +600,28 @@ export async function aplicarReacao({
  *
  * Apagada é **marcada**, nunca removida: quem apaga no WhatsApp não apaga o
  * histórico do CRM, e o atendente precisa saber que havia algo ali.
+ *
+ * Auditoria run-2 (pista 3): só a mensagem que o próprio remetente mandou, numa
+ * conversa dele. Ninguém edita nem apaga mensagem alheia no WhatsApp.
  */
 export async function aplicarAvisoDeSistema({
   supabase,
   workspaceId,
+  evento,
   aviso,
   quando,
 }: {
   supabase: ServiceClient
   /** B44-03: só mensagem da empresa do número por onde o evento chegou. */
   workspaceId: string
+  /** O evento inteiro, para saber quem editou ou apagou. */
+  evento: EventoMensagemRecebida
   aviso: NonNullable<EventoMensagemRecebida["system"]>
   quando: string
 }): Promise<boolean> {
+  const conversas = await conversasDoRemetente(supabase, workspaceId, evento)
+  if (conversas.length === 0) return false
+
   const alteracao =
     aviso.action === "deleted"
       ? { deleted_at: quando }
@@ -582,6 +632,8 @@ export async function aplicarAvisoDeSistema({
     .update(alteracao)
     .eq("wamid", aviso.target_message_id)
     .eq("workspace_id", workspaceId)
+    .in("conversation_id", conversas)
+    .eq("direction", "recebida")
     .select("id")
     .maybeSingle()
 
@@ -616,7 +668,7 @@ export async function receberMensagem({
   connectionId?: string | null
 }): Promise<ResultadoDoEvento> {
   if (evento.reaction) {
-    const alvoEncontrado = await aplicarReacao({ supabase, workspaceId, reacao: evento.reaction })
+    const alvoEncontrado = await aplicarReacao({ supabase, workspaceId, evento, reacao: evento.reaction })
     return { tratamento: "reacao", alvoEncontrado }
   }
 
@@ -624,6 +676,7 @@ export async function receberMensagem({
     const alvoEncontrado = await aplicarAvisoDeSistema({
       supabase,
       workspaceId,
+      evento,
       aviso: evento.system,
       quando: recebidoEm,
     })

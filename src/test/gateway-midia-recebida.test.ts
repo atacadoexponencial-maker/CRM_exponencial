@@ -91,6 +91,8 @@ function supabaseFalso({
           limit: vi.fn().mockResolvedValue({
             data: [{ id: "conversa-1", unread_count: 0, whatsapp_connection_id: null }],
           }),
+          // Auditoria run-2 (pista 3): as conversas do remetente, para reação e aviso de sistema
+          then: (r: (v: unknown) => void) => Promise.resolve({ data: [{ id: "conversa-1" }] }).then(r),
           update: vi.fn((linha: unknown) => {
             escritas.push({ tabela, operacao: "update", linha })
             return { eq: vi.fn().mockResolvedValue({ error: null }) }
@@ -106,6 +108,7 @@ function supabaseFalso({
             escritas.push({ tabela, operacao: "update", linha })
             return {
               eq: vi.fn().mockReturnThis(),
+              in: vi.fn().mockReturnThis(),
               select: vi.fn().mockReturnThis(),
               maybeSingle: vi.fn().mockResolvedValue({ data: alvo }),
             }
@@ -399,7 +402,7 @@ describe("reação", () => {
   it("emoji vazio remove a reação em vez de gravar vazio", async () => {
     const { supabase, escritas } = supabaseFalso()
 
-    await aplicarReacao({ supabase, workspaceId: WORKSPACE, reacao: { emoji: "", target_message_id: "3EB0ALVO" } })
+    await aplicarReacao({ supabase, workspaceId: WORKSPACE, evento: eventoDe({ type: "reaction" }), reacao: { emoji: "", target_message_id: "3EB0ALVO" } })
 
     expect(escritas[0].linha).toEqual({ reaction_emoji: null })
   })
@@ -427,6 +430,7 @@ describe("mensagem editada e apagada", () => {
     await aplicarAvisoDeSistema({
       supabase,
       workspaceId: WORKSPACE,
+      evento: eventoDe({ type: "text" }),
       aviso: { action: "edited", target_message_id: "3EB0ALVO", new_text: "corrigido" },
       quando: RECEBIDO_EM,
     })
