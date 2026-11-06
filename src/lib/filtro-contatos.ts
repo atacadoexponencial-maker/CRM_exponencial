@@ -245,6 +245,8 @@ export const COLUNAS_FORA_DO_FILTRO = [
   "photo_checked_at",
   // B23 (coexistência): fora do filtro por decisão do Luan em 06/11/2026; a Marcelle não foi consultada
   "importado_do_celular_em",
+  // Auditoria run-2 (pista 7): só para a trava das automações
+  "origem",
 ] as const
 
 export const ROTULO_DA_COMPARACAO: Record<Comparacao, string> = {

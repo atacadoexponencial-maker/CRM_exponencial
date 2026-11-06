@@ -1146,6 +1146,7 @@ export type Database = {
           importado_do_celular_em: string | null
           name: string | null
           observacoes: string | null
+          origem: string | null
           phone_number: string
           photo_checked_at: string | null
           photo_path: string | null
@@ -1165,6 +1166,7 @@ export type Database = {
           importado_do_celular_em?: string | null
           name?: string | null
           observacoes?: string | null
+          origem?: string | null
           phone_number: string
           photo_checked_at?: string | null
           photo_path?: string | null
@@ -1184,6 +1186,7 @@ export type Database = {
           importado_do_celular_em?: string | null
           name?: string | null
           observacoes?: string | null
+          origem?: string | null
           phone_number?: string
           photo_checked_at?: string | null
           photo_path?: string | null

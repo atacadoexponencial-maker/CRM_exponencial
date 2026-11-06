@@ -148,6 +148,26 @@ describe("B45-01 — Todo contato nasce com card na Entrada", { timeout: 60_000 
     expect(await cardsDe(contato!.id)).toEqual([{ funil: "entrada", etapa: "lead", atendente_id: null }])
   })
 
+  it("Auditoria run-2, pista 7: só o contato que nasce do pedido da loja fica com origem 'loja'", async () => {
+    const origem = async (telefone: string) =>
+      (await service.from("contacts").select("origem").eq("workspace_id", ws).eq("phone_number", telefone).single()).data?.origem
+
+    const daLoja = `55419${fim}7`
+    expect((await registrarPedido(slug, { nome: "Cliente da Loja", whatsapp: daLoja }, [{ produtoId: camisa, combinacao: "", quantidade: 1 }])).ok).toBe(true)
+    expect(await origem(daLoja)).toBe("loja")
+
+    // quem já existia e faz pedido continua como estava
+    const antigo = `55419${fim}8`
+    await service.from("contacts").insert({ workspace_id: ws, phone_number: antigo, name: "Já cliente" })
+    expect((await registrarPedido(slug, { nome: "Já cliente", whatsapp: antigo }, [{ produtoId: camisa, combinacao: "", quantidade: 1 }])).ok).toBe(true)
+    expect(await origem(antigo)).toBeNull()
+
+    // quem nasce de mensagem recebida não é da loja
+    const pelaMensagem = `55319${fim}9`
+    await mensagemPeloCanalDireto(pelaMensagem, "Oi")
+    expect(await origem(pelaMensagem)).toBeNull()
+  })
+
   it("CA-B45-04: should manter um card só na Entrada quando a Ana manda mensagem, faz pedido e sai da lixeira", async () => {
     const telefone = `55519${fim}4`
     const ana = (await service.from("contacts").insert({ workspace_id: ws, phone_number: telefone, name: "Ana" }).select("id").single()).data!.id
