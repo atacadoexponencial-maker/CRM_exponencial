@@ -3,8 +3,8 @@
 // B52-01: pedir o link de criar senha nova. A resposta é a mesma para quem tem conta e
 // para quem não tem: quem pede não descobre se o e-mail está no CRM.
 
-import { headers } from "next/headers"
 import { createServiceClient } from "@/integrations/supabase/service"
+import { enderecoDoApp } from "@/lib/endereco-do-app"
 import { passouNaConferenciaHumana } from "@/lib/conferencia-humana"
 import { chaveDoEmail, chaveDoIp, ipDaRequisicao, passouDoLimite, registrarTentativa } from "@/lib/limite-de-tentativas"
 import { hashDoCodigo, novoCodigoDeConvite } from "@/lib/convites"
@@ -19,11 +19,9 @@ const EMAIL_SIMPLES = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export type ResultadoDoPedido = { ok: true } | { erro: "dados_invalidos" | "conferencia" | "limite" }
 
-async function linkDeSenhaNova(codigo: string): Promise<string> {
-  const h = await headers()
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "crmatacadoexp.com"
-  const protocolo = h.get("x-forwarded-proto") ?? "https"
-  return `${protocolo}://${host}/redefinir-senha?codigo=${codigo}`
+// Auditoria run-2 (pista 6): o domínio vem do deploy, não do cabeçalho de quem pede.
+function linkDeSenhaNova(codigo: string): string {
+  return `${enderecoDoApp()}/redefinir-senha?codigo=${codigo}`
 }
 
 export async function pedirLinkDeSenhaNova(dados: unknown): Promise<ResultadoDoPedido> {
@@ -65,6 +63,6 @@ export async function pedirLinkDeSenhaNova(dados: unknown): Promise<ResultadoDoP
   if (error) return { ok: true }
 
   // SUP-B52-03: se o e-mail não sair, a resposta é a mesma (avisar revelaria a conta)
-  await enviarEmailDeSenhaNova(email, await linkDeSenhaNova(codigo))
+  await enviarEmailDeSenhaNova(email, linkDeSenhaNova(codigo))
   return { ok: true }
 }

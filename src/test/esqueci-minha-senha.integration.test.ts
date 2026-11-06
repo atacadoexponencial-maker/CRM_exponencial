@@ -77,6 +77,9 @@ afterAll(async () => {
 
 describe("B52-01 — Pedir o link de senha nova", { timeout: 60_000 }, () => {
   it("CA-B52-02: should mandar à conta ativa o link de 1 hora, guardando só o hash", async () => {
+    // Auditoria run-2 (pista 6): o domínio do link vem do deploy, não do `host` de quem pede
+    vi.stubEnv("VERCEL_ENV", "production")
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://crm.deploy")
     expect(await pedir(`  ${emailAtivo.toUpperCase()} `)).toEqual({ ok: true })
 
     expect(envios).toHaveLength(1)
@@ -85,7 +88,8 @@ describe("B52-01 — Pedir o link de senha nova", { timeout: 60_000 }, () => {
     expect(envios[0].subject).toBe(ASSUNTO_DA_SENHA_NOVA)
     expect(envios[0].text).toContain("1 hora")
     const codigo = codigoDoEnvio(0)
-    expect(envios[0].html).toContain(`href="https://crm.teste/redefinir-senha?codigo=${codigo}"`)
+    expect(envios[0].html).toContain(`href="https://crm.deploy/redefinir-senha?codigo=${codigo}"`)
+    expect(envios[0].html).not.toContain("crm.teste")
 
     const { data } = await links(ativoId)
     const ultimo = data!.at(-1)!
