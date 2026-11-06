@@ -83,6 +83,7 @@ export async function listarTemplates(): Promise<{ templates: Template[]; erro?:
 // ── B54-02: criar, editar e apagar ───────────────────────────────────
 
 const ERRO_NO_EXEMPLO = "Não foi possível enviar o arquivo de exemplo à Meta"
+const TEMPLATE_NAO_ENCONTRADO = "Template não encontrado."
 const LIMITE_DO_EXEMPLO = 4 * 1024 * 1024
 
 export type DadosDoTemplate = {
@@ -147,7 +148,13 @@ export async function editarTemplate(params: {
   const conexao = await obterConexao()
   if (!conexao) return { erro: "Sem permissão ou WhatsApp não conectado" }
 
-  const res = await fetch(`${GRAPH}/${params.id}?access_token=${conexao.access_token}`, {
+  // Auditoria run-2 (pista 2): o id vem do navegador e a chamada leva o token da
+  // empresa. Só segue se for um template desta conta, pela mesma consulta da tela.
+  const { templates, erro } = await buscarTemplatesDaMeta(conexao.waba_id, conexao.access_token)
+  if (erro) return { erro }
+  if (!templates.some((t) => t.id === params.id)) return { erro: TEMPLATE_NAO_ENCONTRADO }
+
+  const res = await fetch(`${GRAPH}/${encodeURIComponent(params.id)}?access_token=${conexao.access_token}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

@@ -12,6 +12,7 @@
 import { createServiceClient } from "@/integrations/supabase/service"
 import { transmitirContatoRestaurado } from "@/lib/whatsapp/realtime"
 import { apagarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
+import { pastaDosArquivos } from "@/lib/automacoes/referencias"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -68,8 +69,13 @@ export async function arquivosDoContato(
     const i = conteudo.indexOf(PREFIXO_PUBLICO)
     if (i < 0) continue
     const caminho = decodeURIComponent(conteudo.slice(i + PREFIXO_PUBLICO.length).split("?")[0])
-    // Só arquivos da própria empresa, e nunca os de campanha (não são do contato).
-    if (caminho.startsWith(`${workspaceId}/`) && !caminho.startsWith(`${workspaceId}/campanhas/`)) {
+    // Só arquivos da própria empresa, e nunca os de campanha nem os de automação: são
+    // da empresa e vão para muitos contatos (auditoria run-2, pista 4).
+    if (
+      caminho.startsWith(`${workspaceId}/`) &&
+      !caminho.startsWith(`${workspaceId}/campanhas/`) &&
+      !caminho.startsWith(`${pastaDosArquivos(workspaceId)}/`)
+    ) {
       caminhos.push(caminho)
     }
   }

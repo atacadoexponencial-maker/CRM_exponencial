@@ -39,6 +39,10 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
     const chamada = { url: String(url), method: init?.method ?? "GET", body: typeof init?.body === "string" ? JSON.parse(init.body) : init?.body ?? null }
     chamadas.push(chamada)
+    // Auditoria run-2 (pista 2): a edição confere antes se o id é um template da conta
+    if (chamada.method === "GET" && chamada.url.includes("/waba-1/message_templates")) {
+      return new Response(JSON.stringify({ data: ["APPROVED", "REJECTED", "PAUSED", "PENDING"].map((s) => ({ id: `id-${s}`, name: `tpl_${s.toLowerCase()}`, status: s, category: "MARKETING", language: "pt_BR" })) }))
+    }
     return respostaDaMeta(chamada)
   }))
 })
