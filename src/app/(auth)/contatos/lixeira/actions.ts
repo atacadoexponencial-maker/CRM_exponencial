@@ -164,12 +164,9 @@ export async function resumoExclusaoPorCard(
   if (!user || !perfil) return { erro: SEM_PERMISSAO }
   const contactId = await contatoDoCard(supabase, cardId)
   if (!contactId) return { erro: SEM_PERMISSAO }
-  const { data: contato } = await supabase
-    .from("contacts")
-    .select("id, name, phone_number")
-    .eq("id", contactId)
-    .is("excluido_em", null)
-    .maybeSingle()
+  // Auditoria run-2 (pista 1): ver o card não basta (o atendente vê todo card sem
+  // responsável desde a B45-03); vale a mesma regra de excluir pelo contato.
+  const contato = await contatoExcluivel(supabase, user.id, perfil, contactId)
   if (!contato) return { erro: SEM_PERMISSAO }
   return { resumo: await montarResumo(perfil.workspace_id, contato) }
 }
@@ -202,7 +199,12 @@ export async function excluirContatoPorCard(cardId: string): Promise<{ ok: true 
   // Card invisível: ou não é dele, ou o contato já foi para a lixeira.
   if (!contactId) return { erro: SEM_PERMISSAO }
 
-  return (await mandarParaLixeira(perfil.workspace_id, user.id, contactId)) ? { ok: true } : { erro: FALHOU }
+  // Auditoria run-2 (pista 1): o card sem responsável aparece para todo atendente
+  // (B45-03), mas excluir exige a regra do topo: conversa ou card dele.
+  const contato = await contatoExcluivel(supabase, user.id, perfil, contactId)
+  if (!contato) return { erro: SEM_PERMISSAO }
+
+  return (await mandarParaLixeira(perfil.workspace_id, user.id, contato.id)) ? { ok: true } : { erro: FALHOU }
 }
 
 // ── B13-04: a lixeira ─────────────────────────────────────────────────
