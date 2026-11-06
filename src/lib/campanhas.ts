@@ -6,6 +6,7 @@
 
 import { createServiceClient } from "@/integrations/supabase/service"
 import { anexoDaEmpresa } from "@/lib/anexo-da-campanha"
+import { MOTIVO_CONTATO_DA_LOJA, telefoneJaEscreveu } from "@/lib/contato-da-loja"
 import { linkParaEnvio } from "@/lib/anexos-do-chat"
 import { chaveDaVariavel, preencherVariaveis, variaveisSemReserva } from "@/lib/variaveis-mensagem"
 import { cabecalhoEhMidia, valoresDasVariaveis, type TipoDeCabecalho, type VariaveisDoTemplate } from "@/lib/templates-da-meta"
@@ -309,16 +310,25 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
   const naLixeira = new Set<string>()
   // B47-01: só contato da empresa da campanha, e a mensagem vai para o telefone atual dele
   const telefoneAtual = new Map<string, string>()
+  // Auditoria run-2 (pista 7): contato que nasceu de um pedido da loja (telefone sem conferência)
+  const daLoja = new Set<string>()
   if (contactIds.length > 0) {
     const { data: contatos } = await supabase
       .from("contacts")
-      .select("id, phone_number, excluido_em, atendente:profiles!contacts_atendente_id_fkey(name)")
+      .select("id, phone_number, excluido_em, origem, atendente:profiles!contacts_atendente_id_fkey(name)")
       .in("id", contactIds)
       .eq("workspace_id", campanha.workspace_id)
-    for (const c of (contatos ?? []) as unknown as Array<{ id: string; phone_number: string; excluido_em: string | null; atendente: { name: string } | null }>) {
+    for (const c of (contatos ?? []) as unknown as Array<{
+      id: string
+      phone_number: string
+      excluido_em: string | null
+      origem: string | null
+      atendente: { name: string } | null
+    }>) {
       telefoneAtual.set(c.id, c.phone_number)
       if (c.atendente?.name) vendedorPorContato[c.id] = c.atendente.name
       if (c.excluido_em) naLixeira.add(c.id)
+      if (c.origem === "loja") daLoja.add(c.id)
     }
   }
 
@@ -366,6 +376,19 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
         .update({ status: "excluido", atualizado_em: new Date().toISOString() })
         .eq("id", destinatario.id)
       continue
+    }
+
+    // Auditoria run-2 (pista 7): o número da empresa só escreve para o contato da loja
+    // depois que ele escrever. Na dúvida (erro no banco), não sai.
+    if (daLoja.has(destinatario.contact_id)) {
+      const jaEscreveu = await telefoneJaEscreveu(supabase, campanha.workspace_id, telefone).catch(() => false)
+      if (!jaEscreveu) {
+        await supabase
+          .from("campaign_recipients")
+          .update({ status: "excluido", motivo: MOTIVO_CONTATO_DA_LOJA, atualizado_em: new Date().toISOString() })
+          .eq("id", destinatario.id)
+        continue
+      }
     }
 
     const nomeVendedor = destinatario.contact_id
