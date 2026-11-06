@@ -46,7 +46,10 @@ export type MidiaGuardada = {
 export function mimeComCodec(mimeType: string | null, inicio: Uint8Array): string | null {
   if (!mimeType?.startsWith("video/")) return mimeType
   const texto = new TextDecoder("latin1").decode(inicio.subarray(0, 64))
-  if (!texto.includes("ftyp")) return mimeType
+  // Auditoria run-2 (pista 8): a caixa `ftyp` abre o arquivo (bytes 4 a 7), como em todo
+  // MP4 e MOV. Antes valia em qualquer ponto: um arquivo que não é vídeo (uma playlist
+  // com essas letras num comentário) era marcado como HEVC e ia para o ffmpeg.
+  if (texto.slice(4, 8) !== "ftyp") return mimeType
   if (/hvc1|hev1/.test(texto)) return `${mimeType}; codecs=hvc1`
   return mimeType
 }

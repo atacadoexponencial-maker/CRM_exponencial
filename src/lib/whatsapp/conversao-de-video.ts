@@ -45,6 +45,15 @@ export function eVideoHevc(mimeType: string | null | undefined): boolean {
 
 export type Converter = (conteudo: Uint8Array) => Promise<Uint8Array | null>
 
+/**
+ * Auditoria run-2 (pista 8): o arquivo vem de quem mandou a mensagem. O ffmpeg lê só
+ * como MP4/MOV (`mov` é o leitor dos dois, inclusive do vídeo do iPhone), sem adivinhar
+ * o formato, e só abre arquivo local: nada de endereço de rede nem playlist. Sem
+ * `enable_drefs`, o MOV não aponta para outro arquivo (já é o padrão do ffmpeg; fica
+ * explícito para não depender da versão). Vai antes do `-i`, porque vale para a entrada.
+ */
+export const ENTRADA_FIXA = ["-protocol_whitelist", "file", "-f", "mov", "-enable_drefs", "0"] as const
+
 /** Roda o ffmpeg com `entrada.mp4` na pasta e devolve o arquivo `saida`. Null quando não deu. */
 async function comFfmpeg(conteudo: Uint8Array, saida: string, argumentos: (entrada: string, saida: string) => string[]): Promise<Uint8Array | null> {
   if (!ffmpegStatic || conteudo.byteLength > LIMITE_PARA_CONVERTER_EM_BYTES) return null
@@ -54,7 +63,7 @@ async function comFfmpeg(conteudo: Uint8Array, saida: string, argumentos: (entra
   try {
     await writeFile(entrada, conteudo)
     const ok = await new Promise<boolean>((resolve) => {
-      const processo = spawn(ffmpegStatic as string, ["-y", "-loglevel", "error", ...argumentos(entrada, destino)], { stdio: "ignore" })
+      const processo = spawn(ffmpegStatic as string, ["-y", "-loglevel", "error", ...ENTRADA_FIXA, ...argumentos(entrada, destino)], { stdio: "ignore" })
       const relogio = setTimeout(() => processo.kill("SIGKILL"), TEMPO_LIMITE_DA_CONVERSAO_MS)
       processo.on("error", () => {
         clearTimeout(relogio)
