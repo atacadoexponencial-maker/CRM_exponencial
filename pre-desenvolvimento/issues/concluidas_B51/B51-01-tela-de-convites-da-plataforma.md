@@ -71,7 +71,7 @@ Marcelle entra no CRM, clica em "Convites" no menu, cria um link avulso de 7 dia
 | CA-B51-15 | automática | `src/test/convites-plataforma.integration.test.ts` | o convite grava a data escolhida e aparece pendente; passada a data (gravada no passado pela chave de serviço), aparece vencido |
 | CA-B51-16 | automática | `src/test/convites-plataforma.integration.test.ts` e `src/test/convites-plataforma.test.tsx` | a ação recusa data passada e data além de 90 dias sem gravar nada; a tela mostra o aviso |
 | CA-B51-21 | automática | `src/test/convites-plataforma.integration.test.ts` e `src/test/convites-plataforma.test.tsx` | a listagem devolve pendente, usado (com o nome da empresa), vencido e cancelado; a tela mostra cada situação e a empresa |
-| CA-B51-23 | automática | `src/test/menu-lateral.test.tsx` e `src/test/convites-plataforma.integration.test.ts` | o menu com a marca da plataforma tem "Convites" levando a `/plataforma/convites`, sem ela não tem; a conferência da plataforma diz sim para o e-mail da lista e não para o Admin de empresa |
+| CA-B51-23 | automática | `src/test/menu-lateral.test.tsx` e `src/test/convites-plataforma.integration.test.ts` | o menu com a marca da plataforma tem "Convites" levando a `/plataforma/convites`, sem ela não tem; a conferência da plataforma diz sim para a conta (id) da lista e não para o Admin de empresa (era pelo e-mail; mudou na auditoria run-2, pista 5, com o ok do Luan em 06/11/2026) |
 
 ## Banco de Dados
 

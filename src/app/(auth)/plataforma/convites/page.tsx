@@ -11,7 +11,7 @@ export const metadata = { title: "Convites" }
 export default async function ConvitesPage() {
   const { user } = await sessaoAtual()
   if (!user) redirect("/login")
-  if (!(await ehDaPlataforma(user.email))) notFound()
+  if (!(await ehDaPlataforma(user.id))) notFound()
 
   return (
     <div className={CLASSE_DA_PAGINA}>

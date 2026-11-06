@@ -59,9 +59,10 @@ async function convite(codigo: string) {
 
 beforeAll(async () => {
   vi.mocked(createSsrClient).mockImplementation(async () => anonimo() as never)
-  await service.from("plataforma_admins").insert({ email: emailPlataforma })
   const { data } = await service.auth.admin.createUser({ email: emailPlataforma, password: SENHA, email_confirm: true })
   plataformaId = data.user!.id
+  // Auditoria run-2 (pista 5): a lista da plataforma vale pela conta
+  await service.from("plataforma_admins").insert({ email: emailPlataforma, user_id: plataformaId })
   plataforma = anonimo()
   await plataforma.auth.signInWithPassword({ email: emailPlataforma, password: SENHA })
 }, 60_000)

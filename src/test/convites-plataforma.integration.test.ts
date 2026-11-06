@@ -53,16 +53,22 @@ const conviteIds = () => service.from("convites").select("id, token_hash, expira
 
 async function codigoDoLink(link: string) {
   const url = new globalThis.URL(link)
-  expect(url.origin + url.pathname).toBe("https://crm.teste/cadastro")
+  expect(url.origin + url.pathname).toBe("https://crm.deploy/cadastro")
   return url.searchParams.get("convite")!
 }
 
 beforeAll(async () => {
   workspaceId = (await service.from("workspaces").insert({ name: `[TESTE] B51-01 ${ts}` }).select("id").single()).data!.id
   empresaUsadaId = (await service.from("workspaces").insert({ name: nomeEmpresaUsada }).select("id").single()).data!.id
-  await service.from("plataforma_admins").insert({ email: emailPlataforma })
+  // Auditoria run-2 (pista 6): o link do convite usa o endereço do deploy, não o cabeçalho (crm.teste)
+  vi.stubEnv("VERCEL_ENV", "")
+  vi.stubEnv("VERCEL_BRANCH_URL", "")
+  vi.stubEnv("VERCEL_URL", "")
+  vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://crm.deploy")
   await criarUsuario(emailPlataforma, "plataforma")
   await criarUsuario(emailAdmin, "admin")
+  // Auditoria run-2 (pista 5): a lista vale pela conta
+  await service.from("plataforma_admins").insert({ email: emailPlataforma, user_id: usuarios.plataforma })
 }, 60_000)
 
 afterAll(async () => {
@@ -85,11 +91,26 @@ describe("B51-01 — Tela de convites da plataforma", { timeout: 30_000 }, () =>
     await expect(ConvitesPage()).rejects.toMatchObject({ digest: expect.stringContaining("/login") })
   })
 
-  it("CA-B51-23: should reconhecer só o e-mail da lista da plataforma", async () => {
-    expect(await ehDaPlataforma(emailPlataforma)).toBe(true)
-    expect(await ehDaPlataforma(emailPlataforma.toUpperCase())).toBe(true)
-    expect(await ehDaPlataforma(emailAdmin)).toBe(false)
+  // Auditoria run-2 (pista 5): a lista da plataforma passou a valer pela conta (id), não
+  // pelo texto do e-mail.
+  it("CA-B51-23: should reconhecer só a conta da lista da plataforma", async () => {
+    expect(await ehDaPlataforma(usuarios.plataforma)).toBe(true)
+    expect(await ehDaPlataforma(usuarios.admin)).toBe(false)
     expect(await ehDaPlataforma(null)).toBe(false)
+  })
+
+  it("Auditoria run-2, pista 5: conta criada depois com um e-mail da lista não vira admin da plataforma", async () => {
+    // O e-mail está na lista, mas a linha não tem conta ligada (o dono ainda não tinha
+    // conta quando a lista foi gravada). Alguém cria a conta com esse e-mail depois.
+    const emailSemConta = `b51-01-sem-conta-${ts}@teste.com`
+    await service.from("plataforma_admins").insert({ email: emailSemConta })
+    const { data } = await service.auth.admin.createUser({ email: emailSemConta, password: SENHA, email_confirm: true })
+    try {
+      expect(await ehDaPlataforma(data.user!.id)).toBe(false)
+    } finally {
+      await service.from("plataforma_admins").delete().eq("email", emailSemConta)
+      await service.auth.admin.deleteUser(data.user!.id)
+    }
   })
 
   it("CA-B51-12: should recusar o Admin de empresa em criar, gerar link novo e cancelar, sem mudar o banco", async () => {
