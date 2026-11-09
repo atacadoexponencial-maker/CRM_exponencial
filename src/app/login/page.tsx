@@ -13,6 +13,7 @@ import { realizarLogin } from "./actions"
 import { AVISO_CONTA_DESATIVADA } from "./avisos"
 import { TemaClaro } from "@/components/shared/tema-claro"
 import { LogoDaMarca } from "@/components/shared/logo-da-marca"
+import { ConferenciaHumana } from "@/components/shared/conferencia-humana"
 
 const schema = z.object({
   email: z.string().min(1, "E-mail é obrigatório").email("E-mail inválido"),
@@ -28,6 +29,12 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<{ mo
   // Fica ligado do clique até a página seguinte abrir: o redirect da action
   // troca de tela sozinho, então só o erro desliga.
   const [entrando, setEntrando] = useState(false)
+  // Pista 10 da auditoria run-2: a conferência humana só aparece quando o servidor pede
+  // (e-mail com muitas senhas erradas). Ela vale para um envio só.
+  const [pedirConferencia, setPedirConferencia] = useState(false)
+  const [conferencia, setConferencia] = useState<string | null>(null)
+  const [conferindo, setConferindo] = useState(false)
+  const [reinicio, setReinicio] = useState(0)
   const {
     register,
     handleSubmit,
@@ -35,13 +42,25 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<{ mo
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
+  // Com o desafio na tela, cada envio leva uma conferência nova (vazia se o desafio
+  // falhou: o servidor é quem decide). Antes do pedido, vai `null`.
+  function novaConferencia() {
+    setConferencia(null)
+    setReinicio((r) => r + 1)
+  }
+
   async function onSubmit(data: FormData) {
     setEntrando(true)
     try {
-      const resultado = await realizarLogin(data.email, data.senha, voltar ?? null)
+      const resultado = await realizarLogin(data.email, data.senha, voltar ?? null, pedirConferencia ? (conferencia ?? "") : null)
       if (resultado?.erro) {
         setError("root", { type: "manual", message: resultado.erro })
         setEntrando(false)
+        if (pedirConferencia) novaConferencia()
+        else if (resultado.pedirConferencia) {
+          setConferindo(true)
+          setPedirConferencia(true)
+        }
       }
     } catch (erro) {
       // O redirect da action chega aqui como erro; devolvido, o Next faz a
@@ -49,6 +68,7 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<{ mo
       unstable_rethrow(erro)
       setError("root", { type: "manual", message: "Não foi possível entrar. Tente novamente." })
       setEntrando(false)
+      if (pedirConferencia) novaConferencia()
     }
   }
 
@@ -107,9 +127,13 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<{ mo
             <p className="text-sm text-erro text-center">{errors.root.message}</p>
           )}
 
-          <Button type="submit" className="mt-2 w-full" disabled={entrando}>
-            {entrando && <Loader2 className="size-4 animate-spin" />}
-            {entrando ? "Entrando…" : "Entrar"}
+          {pedirConferencia && (
+            <ConferenciaHumana aoMudar={setConferencia} aoAguardar={setConferindo} reinicio={reinicio} />
+          )}
+
+          <Button type="submit" className="mt-2 w-full" disabled={entrando || conferindo}>
+            {(entrando || conferindo) && <Loader2 className="size-4 animate-spin" />}
+            {entrando ? "Entrando…" : conferindo ? "Conferindo…" : "Entrar"}
           </Button>
         </form>
 
