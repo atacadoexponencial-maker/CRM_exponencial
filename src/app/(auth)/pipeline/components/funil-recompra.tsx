@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { ColunaKanban } from "./coluna-kanban"
 import { CabecalhoDoPipeline } from "./cabecalho-do-pipeline"
 import { PainelCard } from "./painel-card"
+import { ZonasDeAcaoRapida } from "./zonas-de-acao-rapida"
 import { ETAPAS_RECOMPRA, type CardCliente } from "../etapas-e-tipos"
 import { moverCard } from "../actions"
 
@@ -24,9 +25,18 @@ export function FunilRecompra({ cards, papel, atendentes, funis = [] }: FunilRec
   const [atendenteFiltro, setAtendenteFiltro] = useState<string | null>(null)
   const [filtroAberto, setFiltroAberto] = useState(false)
   const [cardSelecionado, setCardSelecionado] = useState<CardCliente | null>(null)
+  // B60: com um card no ar, o rodapé mostra Perdidos e Excluir lead
+  const [arrastando, setArrastando] = useState(false)
+  const [erroAcao, setErroAcao] = useState<string | null>(null)
 
   async function handleMoverCard(cardId: string, deEtapa: string, paraEtapa: string) {
-    await moverCard(cardId, paraEtapa).catch(() => {})
+    // B60: como na Entrada, a recusa do servidor aparece no aviso (antes era engolida)
+    setErroAcao(null)
+    try {
+      await moverCard(cardId, paraEtapa)
+    } catch (e) {
+      setErroAcao(e instanceof Error && e.message ? e.message : "Não foi possível mover o card. Tente de novo.")
+    }
     router.refresh()
   }
 
@@ -50,6 +60,19 @@ export function FunilRecompra({ cards, papel, atendentes, funis = [] }: FunilRec
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <PainelCard key={cardSelecionado?.id ?? "fechado"} card={cardSelecionado} funil="recompra" onFechar={() => setCardSelecionado(null)} onMover={() => router.refresh()} papel={papel} atendentes={atendentes} />
+      <ZonasDeAcaoRapida
+        arrastando={arrastando}
+        funil="recompra"
+        etapas={[{ etapaId: "perdidos", rotulo: "Perdidos", tom: "erro" }]}
+        onMover={(cardId, deEtapa, paraEtapa) => { setArrastando(false); handleMoverCard(cardId, deEtapa, paraEtapa) }}
+        onExcluido={() => router.refresh()}
+        onErro={(mensagem) => { setArrastando(false); setErroAcao(mensagem) }}
+      />
+      {erroAcao && (
+        <div role="alert" className="px-6 py-2 text-sm border-b border-border text-erro">
+          {erroAcao}
+        </div>
+      )}
       {/* Cabeçalho */}
       <CabecalhoDoPipeline atual="recompra" quantidade={cardsFiltrados.length} funis={funis} papel={papel}>
           {/* Busca */}
@@ -137,6 +160,7 @@ export function FunilRecompra({ cards, papel, atendentes, funis = [] }: FunilRec
                 mensagemVazia="Nenhum cliente nesta etapa"
                 onCardClick={(card) => setCardSelecionado(card as CardCliente)}
                 onCardDrop={handleMoverCard}
+                onArrastar={setArrastando}
               />
             )
           })}

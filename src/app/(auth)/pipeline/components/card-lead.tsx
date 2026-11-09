@@ -19,10 +19,34 @@ const moeda = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curr
 interface CardLeadProps {
   card: CardLead | CardCliente | CardDoFunil
   onPainelAbrir?: () => void
+  /** B60: avisa o funil quando o arraste começa (true) e termina (false). */
+  onArrastar?: (arrastando: boolean) => void
+}
+
+/**
+ * B60: o navegador fotografa o card como ele aparece na tela, e a parte escondida pela
+ * rolagem do quadro (ou da coluna) saía cortada. Uma cópia inteira, solta no body,
+ * vira a imagem do arraste e sai logo depois que o navegador tira a foto.
+ */
+function imagemInteiraDoArraste(e: React.DragEvent<HTMLDivElement>) {
+  const card = e.currentTarget
+  const caixa = card.getBoundingClientRect()
+  const copia = card.cloneNode(true) as HTMLElement
+  Object.assign(copia.style, {
+    position: "fixed",
+    top: "0px",
+    left: "0px",
+    width: `${caixa.width}px`,
+    zIndex: "-1",
+    pointerEvents: "none",
+  })
+  document.body.appendChild(copia)
+  e.dataTransfer.setDragImage(copia, e.clientX - caixa.left, e.clientY - caixa.top)
+  setTimeout(() => copia.remove(), 0)
 }
 
 /** B36-05: card do Caderno — nome, cidade, atendente, total já comprado e há quanto tempo está parado. */
-export function CardLeadItem({ card, onPainelAbrir }: CardLeadProps) {
+export function CardLeadItem({ card, onPainelAbrir, onArrastar }: CardLeadProps) {
   const semAtendente = card.atendente === null
   const emRisco = card.etapa === "ativos_ri" || card.etapa === "inativos" || card.etapa === "inativos_rp"
   const corRisco = emRisco ? ETAPAS_RECOMPRA.find((e) => e.id === card.etapa)?.cor : undefined
@@ -39,7 +63,11 @@ export function CardLeadItem({ card, onPainelAbrir }: CardLeadProps) {
         e.dataTransfer.setData("cardId", card.id)
         e.dataTransfer.setData("deEtapa", card.etapa)
         e.dataTransfer.effectAllowed = "move"
+        imagemInteiraDoArraste(e)
+        // Mexer na tela dentro do dragstart pode cancelar o arraste no Chrome
+        setTimeout(() => onArrastar?.(true), 0)
       }}
+      onDragEnd={() => onArrastar?.(false)}
       onClick={onPainelAbrir}
       className={cn(
         "flex cursor-pointer flex-col gap-1.5 rounded-md border bg-card px-3 py-2.5 transition-colors hover:border-muted-foreground/50",

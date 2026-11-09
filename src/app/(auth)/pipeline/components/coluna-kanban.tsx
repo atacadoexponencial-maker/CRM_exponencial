@@ -36,9 +36,11 @@ interface ColunaKanbanProps {
   onCardDrop?: (cardId: string, deEtapa: string, paraEtapa: string) => void
   /** "+" no topo da coluna: cria o card direto nesta etapa. Sem ele, a coluna não tem o botão. */
   onAdicionar?: () => void
+  /** B60: repassa o começo e o fim do arraste de um card desta coluna. */
+  onArrastar?: (arrastando: boolean) => void
 }
 
-export function ColunaKanban({ titulo, etapaId, cards, alertaVisual, cor, destaque, mensagemVazia = "Nenhum lead nesta etapa", onCardClick, onCardDrop, onAdicionar }: ColunaKanbanProps) {
+export function ColunaKanban({ titulo, etapaId, cards, alertaVisual, cor, destaque, mensagemVazia = "Nenhum lead nesta etapa", onCardClick, onCardDrop, onAdicionar, onArrastar }: ColunaKanbanProps) {
   const [isDragOver, setIsDragOver] = useState(false)
   const estilo = alertaVisual ? TRACO_COR.vermelho : cor && ehCorPronta(cor) ? TRACO_COR[cor] : null
   // B41-01: cor própria pinta o título da coluna; o texto fica preto ou branco, o que
@@ -55,6 +57,8 @@ export function ColunaKanban({ titulo, etapaId, cards, alertaVisual, cor, destaq
       onDrop={(e) => {
         e.preventDefault()
         setIsDragOver(false)
+        // B60: o card pode ser remontado em outra coluna antes do dragend
+        onArrastar?.(false)
         const cardId = e.dataTransfer.getData("cardId")
         const deEtapa = e.dataTransfer.getData("deEtapa")
         if (cardId && deEtapa !== etapaId) {
@@ -107,7 +111,7 @@ export function ColunaKanban({ titulo, etapaId, cards, alertaVisual, cor, destaq
           </div>
         ) : (
           cards.map((card) => (
-            <CardLeadItem key={card.id} card={card} onPainelAbrir={() => onCardClick?.(card)} />
+            <CardLeadItem key={card.id} card={card} onPainelAbrir={() => onCardClick?.(card)} onArrastar={onArrastar} />
           ))
         )}
       </div>
