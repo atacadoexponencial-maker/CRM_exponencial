@@ -2285,7 +2285,6 @@ export type Database = {
           id: string
           instrucao: string
           origem: string
-          sequence_run_id: string | null
           status: string
           workspace_id: string
         }
@@ -2299,7 +2298,6 @@ export type Database = {
           id?: string
           instrucao: string
           origem: string
-          sequence_run_id?: string | null
           status?: string
           workspace_id: string
         }
@@ -2313,7 +2311,6 @@ export type Database = {
           id?: string
           instrucao?: string
           origem?: string
-          sequence_run_id?: string | null
           status?: string
           workspace_id?: string
         }
@@ -2333,161 +2330,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reminders_sequence_run_id_fkey"
-            columns: ["sequence_run_id"]
-            isOneToOne: false
-            referencedRelation: "sequence_runs"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "reminders_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sequence_runs: {
-        Row: {
-          atendente_id: string | null
-          contact_id: string
-          created_at: string
-          etapa_atual: number
-          finished_at: string | null
-          id: string
-          proxima_execucao: string | null
-          sequence_id: string
-          status: string
-          workspace_id: string
-        }
-        Insert: {
-          atendente_id?: string | null
-          contact_id: string
-          created_at?: string
-          etapa_atual?: number
-          finished_at?: string | null
-          id?: string
-          proxima_execucao?: string | null
-          sequence_id: string
-          status?: string
-          workspace_id: string
-        }
-        Update: {
-          atendente_id?: string | null
-          contact_id?: string
-          created_at?: string
-          etapa_atual?: number
-          finished_at?: string | null
-          id?: string
-          proxima_execucao?: string | null
-          sequence_id?: string
-          status?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sequence_runs_atendente_id_fkey"
-            columns: ["atendente_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sequence_runs_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sequence_runs_sequence_id_fkey"
-            columns: ["sequence_id"]
-            isOneToOne: false
-            referencedRelation: "sequences"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sequence_runs_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sequence_steps: {
-        Row: {
-          conteudo: string | null
-          created_at: string
-          id: string
-          instrucao: string | null
-          ordem: number
-          prazo_dias: number
-          sequence_id: string
-          tipo: string
-        }
-        Insert: {
-          conteudo?: string | null
-          created_at?: string
-          id?: string
-          instrucao?: string | null
-          ordem: number
-          prazo_dias?: number
-          sequence_id: string
-          tipo: string
-        }
-        Update: {
-          conteudo?: string | null
-          created_at?: string
-          id?: string
-          instrucao?: string | null
-          ordem?: number
-          prazo_dias?: number
-          sequence_id?: string
-          tipo?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sequence_steps_sequence_id_fkey"
-            columns: ["sequence_id"]
-            isOneToOne: false
-            referencedRelation: "sequences"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sequences: {
-        Row: {
-          ativa: boolean
-          created_at: string
-          gatilho: string
-          id: string
-          nome: string
-          predefinida: boolean
-          workspace_id: string
-        }
-        Insert: {
-          ativa?: boolean
-          created_at?: string
-          gatilho?: string
-          id?: string
-          nome: string
-          predefinida?: boolean
-          workspace_id: string
-        }
-        Update: {
-          ativa?: boolean
-          created_at?: string
-          gatilho?: string
-          id?: string
-          nome?: string
-          predefinida?: boolean
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sequences_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -2922,15 +2765,6 @@ export type Database = {
             }
             Returns: undefined
           }
-      salvar_sequencia: {
-        Args: {
-          p_etapas: Json
-          p_gatilho: string
-          p_id: string
-          p_nome: string
-        }
-        Returns: string
-      }
       usar_redefinicao_de_senha: {
         Args: { p_token_hash: string }
         Returns: string

@@ -13,7 +13,7 @@ const { abrirPreview } = require("./comum.cjs")
 const ROTAS = [
   "/dashboard", "/dashboard/performance", "/relatorios", "/pipeline", "/pipeline/recompra", "/chat",
   "/contatos", "/contatos/lixeira", "/catalogo", "/catalogo/pedidos", "/catalogo/aparencia", "/catalogo/configuracoes", "/catalogo/importar",
-  "/agenda", "/agenda/equipe", "/alertas", "/sequencias", "/campanhas", "/configuracoes/automacoes", "/configuracoes/automacoes/historico",
+  "/agenda", "/agenda/equipe", "/alertas", "/campanhas", "/configuracoes/automacoes", "/configuracoes/automacoes/historico",
   "/configuracoes/usuarios", "/configuracoes/times", "/configuracoes/whatsapp", "/configuracoes/etiquetas", "/configuracoes/mensagens-rapidas",
   "/configuracoes/templates", "/perfil",
 ]

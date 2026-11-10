@@ -22,7 +22,7 @@ const OPCOES: OpcoesEditor = {
   atendentes: [{ id: "u-ana", nome: "Ana" }],
   tags: [],
   times: [{ id: "t-entrada", nome: "Entrada" }],
-  sequencias: [],
+ 
   mensagensRapidas: [],
   numeros: [],
   horarioComercial: HORARIO_PADRAO,

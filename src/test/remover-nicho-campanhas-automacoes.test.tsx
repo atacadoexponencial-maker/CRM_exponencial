@@ -30,7 +30,7 @@ import { GATILHOS, ACOES, opcoesDaFonte, type FonteOpcoes, type OpcoesEditor } f
 import { dadoDoContatoValido, gatilhoDeDadoValido } from "@/lib/automacoes/referencias"
 
 const OPCOES_EDITOR = {
-  etiquetas: [], atendentes: [], tags: [], times: [], sequencias: [], mensagensRapidas: [], numeros: [],
+  etiquetas: [], atendentes: [], tags: [], times: [], mensagensRapidas: [], numeros: [],
 } as unknown as OpcoesEditor
 
 /** Nomes que o seletor "Campo" do bloco mostra. */

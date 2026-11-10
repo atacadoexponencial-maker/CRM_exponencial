@@ -10,12 +10,11 @@ import { camposDaEmpresa } from "@/lib/campos-personalizados-servidor"
 type ClienteDaSessao = Awaited<ReturnType<typeof createClient>>
 
 export async function carregarOpcoesEditor(supabase: ClienteDaSessao, workspaceId: string): Promise<OpcoesEditor> {
-  const [etiquetas, perfis, tags, times, sequencias, rapidas, numeros, horario, funis, campos] = await Promise.all([
+  const [etiquetas, perfis, tags, times, rapidas, numeros, horario, funis, campos] = await Promise.all([
     supabase.from("labels").select("id, name, color").eq("workspace_id", workspaceId).order("name"),
     supabase.from("profiles").select("id, name").eq("workspace_id", workspaceId).eq("status", "active").order("name"),
     supabase.from("contact_tags").select("tag").eq("workspace_id", workspaceId),
     supabase.from("teams").select("id, name").eq("workspace_id", workspaceId).order("name"),
-    supabase.from("sequences").select("id, nome").eq("workspace_id", workspaceId).order("nome"),
     supabase.from("quick_replies").select("id, title").eq("workspace_id", workspaceId).order("title"),
     supabase.from("whatsapp_connections").select("id, display_name, phone_number").eq("workspace_id", workspaceId),
     supabase.from("business_hours").select("dias, inicio, fim").eq("workspace_id", workspaceId).maybeSingle(),
@@ -32,7 +31,6 @@ export async function carregarOpcoesEditor(supabase: ClienteDaSessao, workspaceI
     atendentes: (perfis.data ?? []).map((p) => ({ id: p.id, nome: p.name })),
     tags: nomesDeTag.map((tag) => ({ id: tag, nome: tag })),
     times: (times.data ?? []).map((t) => ({ id: t.id, nome: t.name })),
-    sequencias: (sequencias.data ?? []).map((s) => ({ id: s.id, nome: s.nome })),
     mensagensRapidas: (rapidas.data ?? []).map((q) => ({ id: q.id, nome: q.title })),
     numeros: (numeros.data ?? []).map((n) => ({ id: n.id, nome: n.display_name || n.phone_number || "sem nome" })),
     horarioComercial: horarioDoBanco(horario.data),

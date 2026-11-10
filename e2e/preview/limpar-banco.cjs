@@ -53,7 +53,6 @@ async function feito(consulta) {
     ["operational_alerts", (q) => q.eq("workspace_id", ws)],
     ["gateway_events", (q) => q.eq("workspace_id", ws)],
     ["reminders", (q) => q.in("contact_id", cids)],
-    ["sequence_runs", (q) => q.in("contact_id", cids)],
     ["pipeline_cards", (q) => q.eq("workspace_id", ws)],
     ["contact_tags", (q) => q.eq("workspace_id", ws)],
     ["conversations", (q) => q.eq("workspace_id", ws)],

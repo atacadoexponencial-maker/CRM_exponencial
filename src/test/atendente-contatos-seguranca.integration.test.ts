@@ -25,7 +25,7 @@ const service = createClient(URL, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
 })
 const ts = Date.now()
 const SENHA = "senha-segura-123"
-let empresa = "", outraEmpresa = "", sequencia = ""
+let empresa = "", outraEmpresa = ""
 let gerente = "", ana = "", bia = "", forasteiro = ""
 let contatoAna = "", contatoBia = "", cardAna = "", cardBia = ""
 const navegadores: Record<string, SupabaseClient> = {}
@@ -63,7 +63,6 @@ beforeAll(async () => {
   ana = await criarUsuario(empresa, "ana", "atendente")
   bia = await criarUsuario(empresa, "bia", "atendente")
   forasteiro = await criarUsuario(outraEmpresa, "forasteiro", "atendente")
-  sequencia = (await service.from("sequences").insert({ workspace_id: empresa, nome: "Seq B21" }).select("id").single()).data!.id
   ;({ contato: contatoAna, card: cardAna } = await criarContatoComCard("Cliente da Ana", "1", ana))
   ;({ contato: contatoBia, card: cardBia } = await criarContatoComCard("Cliente da Bia", "2", bia))
 }, 90_000)
@@ -71,8 +70,6 @@ beforeAll(async () => {
 afterAll(async () => {
   const contatos = [contatoAna, contatoBia]
   await service.from("reminders").delete().in("contact_id", contatos)
-  await service.from("sequence_runs").delete().in("contact_id", contatos)
-  await service.from("sequences").delete().eq("id", sequencia)
   await service.from("pipeline_card_notes").delete().in("card_id", [cardAna, cardBia])
   await service.from("pipeline_card_history").delete().in("card_id", [cardAna, cardBia])
   await service.from("pipeline_cards").delete().in("id", [cardAna, cardBia])
@@ -151,12 +148,10 @@ describe("B21-02 — Atendente só alcança os cards e contatos dele", { timeout
     expect(porId[cardAna]).toMatchObject({ atendente_id: ana, contact_id: contatoAna })
   })
 
-  it("should not deixar o atendente criar contato nem iniciar sequência para contato alheio pelo banco", async () => {
+  it("should not deixar o atendente criar contato pelo banco", async () => {
     const nav = navegadores[ana]
     const { error: contato } = await nav.from("contacts").insert({ workspace_id: empresa, name: "Novo", phone_number: `55217${String(ts).slice(-8)}` })
     expect(contato).not.toBeNull()
-    const { error: execucao } = await nav.from("sequence_runs").insert({ workspace_id: empresa, sequence_id: sequencia, contact_id: contatoBia, atendente_id: ana })
-    expect(execucao).not.toBeNull()
   })
 
   it("should deixar o atendente agir no que é dele", async () => {

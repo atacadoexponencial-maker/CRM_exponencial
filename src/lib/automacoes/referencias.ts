@@ -18,7 +18,6 @@ export interface ReferenciasDoFluxo {
   atendentesAtribuidos: string[]
   conexoes: string[]
   times: string[]
-  sequencias: string[]
   /** `bloco`: o nome do bloco que cita, para o aviso de "precisa de ajuste" (B41-04). */
   etapas: Array<{ funil: string; etapa: string; bloco?: string }>
   /** Campo e valor de cada "alterar dado do contato". */
@@ -50,7 +49,6 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
   const atendentesAtribuidos = new Set<string>()
   const conexoes = new Set<string>()
   const times = new Set<string>()
-  const sequencias = new Set<string>()
   const etapas: ReferenciasDoFluxo["etapas"] = []
   const dadosDoContato: ReferenciasDoFluxo["dadosDoContato"] = []
   const tiposDeContato: string[] = []
@@ -101,7 +99,6 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
       atendentesAtribuidos.add(p.responsavel_id)
     }
     if (p.time_id) times.add(p.time_id)
-    if (p.sequencia_id) sequencias.add(p.sequencia_id)
     // Funil sozinho também é conferido: o gatilho "card movido" aceita "qualquer etapa"
     if (p.funil) etapas.push({ funil: p.funil, etapa: p.etapa ?? "", bloco: bloco.tipo === "gatilho" ? "Card movido para etapa" : "Mover card para etapa" })
     if (bloco.tipo === "acao" && bloco.acao === "alterar_dado_contato") {
@@ -122,7 +119,6 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
     atendentesAtribuidos: [...atendentesAtribuidos],
     conexoes: [...conexoes],
     times: [...times],
-    sequencias: [...sequencias],
     etapas,
     dadosDoContato,
     tiposDeContato,

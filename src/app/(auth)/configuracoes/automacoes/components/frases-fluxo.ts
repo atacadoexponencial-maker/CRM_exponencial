@@ -182,7 +182,6 @@ export function fraseAcao(bloco: BlocoAcao, opcoes: OpcoesEditor): string {
       return `Mover card para "${nomeOuApagado(etapasDoFunil(p.funil, opcoes), p.etapa)}" (${nomeOuApagado(funisDoEditor(opcoes), p.funil)})`
     }
     case "iniciar_sequencia":
-      return p.sequencia_id ? `Iniciar a sequência "${nomeOuApagado(opcoes.sequencias, p.sequencia_id)}"` : rotulo
     case "resolver_conversa":
     case "reabrir_conversa":
       return rotulo
