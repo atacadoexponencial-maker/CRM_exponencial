@@ -341,6 +341,7 @@ export function valoresDasVariaveis(
 // ── B54-02: avisos e motivos da Meta em português ─────────────────────
 
 export const AVISO_SEM_EXEMPLO_DO_CABECALHO = "Anexe um exemplo do arquivo do cabeçalho para a análise da Meta"
+export const AVISO_CATEGORIA_DO_APROVADO = "A Meta não deixa mudar a categoria de um template aprovado"
 export const AVISO_LIMITE_DE_EDICOES = "A Meta não aceitou: limite de edições deste template atingido"
 export const AVISO_NOME_EM_USO = "Já existe um template com este nome; apagado há menos de 30 dias, o nome ainda está bloqueado"
 

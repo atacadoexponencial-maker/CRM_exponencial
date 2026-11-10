@@ -4,6 +4,7 @@ import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { conferirNomeDoTemplate } from "./nome-do-template"
 import {
+  AVISO_CATEGORIA_DO_APROVADO,
   AVISO_SEM_EXEMPLO_DO_CABECALHO,
   componentsParaMeta,
   motivoDaRecusaDaMeta,
@@ -132,8 +133,8 @@ export async function criarTemplate(params: DadosDoTemplate): Promise<{ erro?: s
 }
 
 /**
- * Edita o que a Meta deixa: as partes e a categoria. Nome e idioma não vão (a Meta não
- * aceita). Template aprovado editado volta a PENDING na Meta.
+ * Edita o que a Meta deixa: as partes e a categoria (esta só fora do aprovado). Nome e
+ * idioma não vão (a Meta não aceita). Template aprovado editado volta a PENDING na Meta.
  */
 export async function editarTemplate(params: {
   id: string
@@ -152,13 +153,19 @@ export async function editarTemplate(params: {
   // empresa. Só segue se for um template desta conta, pela mesma consulta da tela.
   const { templates, erro } = await buscarTemplatesDaMeta(conexao.waba_id, conexao.access_token)
   if (erro) return { erro }
-  if (!templates.some((t) => t.id === params.id)) return { erro: TEMPLATE_NAO_ENCONTRADO }
+  const atual = templates.find((t) => t.id === params.id)
+  if (!atual) return { erro: TEMPLATE_NAO_ENCONTRADO }
+
+  // A Meta não deixa mudar a categoria de um template aprovado e recusa a edição inteira.
+  // A categoria só vai quando mudou, e nunca num aprovado.
+  const mudouCategoria = params.category !== atual.category
+  if (mudouCategoria && atual.status === "APPROVED") return { erro: AVISO_CATEGORIA_DO_APROVADO }
 
   const res = await fetch(`${GRAPH}/${encodeURIComponent(params.id)}?access_token=${conexao.access_token}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      category: params.category,
+      ...(mudouCategoria ? { category: params.category } : {}),
       components: componentsParaMeta(params.partes, { headerHandle: params.headerHandle, exemplos: params.exemplos }),
     }),
   })

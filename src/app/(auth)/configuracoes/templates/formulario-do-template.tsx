@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { DialogClose } from "@/components/ui/dialog"
 import {
+  AVISO_CATEGORIA_DO_APROVADO,
   AVISO_SEM_EXEMPLO_DO_CABECALHO,
   MAXIMO_DE_BOTOES,
   quantidadeDeVariaveis,
@@ -81,6 +82,7 @@ function cabecalhoEhMidia(tipo: TipoDeCabecalho | "nenhum"): boolean {
 
 export function FormularioDoTemplate({ inicial, salvando, erro, onErro, onSalvar }: Props) {
   const editando = inicial !== undefined
+  const categoriaTravada = editando && inicial.status === "APPROVED"
   const partesIniciais = inicial?.partes
 
   const [name, setName] = useState(inicial?.name ?? "")
@@ -233,11 +235,12 @@ export function FormularioDoTemplate({ inicial, salvando, erro, onErro, onSalvar
       <div className="flex gap-4">
         <div className="flex flex-col gap-1.5 flex-1">
           <Label htmlFor="categoria">Categoria</Label>
-          <select id="categoria" value={category} onChange={(e) => setCategory(e.target.value)} className={selectClass}>
+          <select id="categoria" value={category} disabled={categoriaTravada} onChange={(e) => setCategory(e.target.value)} className={selectClass}>
             {CATEGORIAS.map((c) => (
               <option key={c.value} value={c.value}>{c.label}</option>
             ))}
           </select>
+          {categoriaTravada && <p className="text-xs text-muted-foreground">{AVISO_CATEGORIA_DO_APROVADO}</p>}
         </div>
 
         <div className="flex flex-col gap-1.5 flex-1">
