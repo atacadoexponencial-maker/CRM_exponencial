@@ -11,8 +11,9 @@ vi.mock("@/lib/limite-de-tentativas", () => ({
   chaveDoEmail: (e: string) => `email:${e}`,
   chaveDoIp: (ip: string) => `ip:${ip}`,
   ipDaRequisicao: vi.fn(async () => "203.0.113.7"),
-  passouDoLimite: vi.fn(async () => false),
-  registrarTentativa: vi.fn(async () => undefined),
+  reservarTentativa: vi.fn(async () => ({ reservada: true, id: null })),
+  liberarTentativa: vi.fn(async () => undefined),
+  limparTentativasAntigas: vi.fn(async () => undefined),
 }))
 const enviados: Array<{ email: string; link: string }> = []
 vi.mock("@/lib/email-de-senha-nova", () => ({

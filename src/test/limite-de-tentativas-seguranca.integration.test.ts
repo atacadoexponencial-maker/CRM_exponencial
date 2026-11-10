@@ -80,6 +80,26 @@ describe("B20-05 — Freio de tentativas no cadastro e no login", { timeout: 30_
     expect(count).toBe(0)
   })
 
+  // Limite no cadastro e na senha nova (10/11/2026): a vaga é reservada numa operação só,
+  // como no login. Antes, cinco cadastros disparados juntos liam a mesma contagem e passavam.
+  it("should deixar passar só um de vários cadastros disparados juntos no endereço com 4", async () => {
+    ipDaVez = `ip-cadastro-rajada-${ts}`
+    await passado("cadastro", chaveDoIp(ipDaVez), 4)
+
+    // Convite inválido: a tentativa é contada antes dele e nada é criado
+    const resultados = await Promise.all(
+      Array.from({ length: 5 }, (_, i) =>
+        cadastrarEmpresa({
+          nomeEmpresa: `Rajada B20 ${ts} ${i}`, nomeResponsavel: "Robô", email: `b20-05-rajada-cad-${ts}-${i}@teste.com`,
+          senha: SENHA, confirmarSenha: SENHA, conferencia: CONFERENCIA_DE_TESTE, convite: "convite-que-nao-existe",
+        })
+      )
+    )
+    expect(resultados.filter((r) => "erro" in r && r.erro === "limite")).toHaveLength(4)
+    expect(resultados.filter((r) => "erro" in r && r.erro === "convite_invalido")).toHaveLength(1)
+    expect(await contar("cadastro", chaveDoIp(ipDaVez))).toBe(5)
+  })
+
   // Pista 10 da auditoria run-2: o e-mail no limite pede a conferência humana em vez de
   // travar, para ninguém deixar o dono de fora errando a senha dele de propósito.
   describe("e-mail com 10 senhas erradas", () => {
