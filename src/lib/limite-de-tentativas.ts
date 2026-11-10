@@ -10,6 +10,7 @@
 // login de todos por causa do contador.
 
 import { createHash } from "node:crypto"
+import * as Sentry from "@sentry/nextjs"
 import { headers } from "next/headers"
 import { createServiceClient } from "@/integrations/supabase/service"
 
@@ -67,13 +68,17 @@ export async function passouDoLimite(
 /**
  * B44-09: reserva uma vaga no limite numa operação só (conta e grava sob trava no banco).
  * `reservada: false` é limite atingido. Contador fora do ar não bloqueia, como o resto.
+ *
+ * Detalhes da auditoria (10/11/2026): `contadorFora` avisa quem chama que a vaga não foi
+ * contada, para decidir outra proteção (o login pede a conferência humana). A falha vai
+ * ao Sentry: sem ela, o limite some calado.
  */
 export async function reservarTentativa(
   tipo: TipoDeTentativa,
   chave: string,
   limite: number,
   janelaMinutos: number
-): Promise<{ reservada: boolean; id: number | null }> {
+): Promise<{ reservada: boolean; id: number | null; contadorFora?: boolean }> {
   try {
     const { data, error } = await createServiceClient().rpc("reservar_tentativa", {
       p_tipo: tipo,
@@ -81,10 +86,27 @@ export async function reservarTentativa(
       p_limite: limite,
       p_janela_minutos: janelaMinutos,
     })
-    if (error) return { reservada: true, id: null }
+    if (error) return contadorForaDoAr(tipo, error)
     return { reservada: data !== null, id: data as number | null }
+  } catch (erro) {
+    return contadorForaDoAr(tipo, erro)
+  }
+}
+
+function contadorForaDoAr(tipo: TipoDeTentativa, erro: unknown) {
+  Sentry.captureException(erro, { tags: { contador_de_tentativas: tipo } })
+  return { reservada: true, id: null, contadorFora: true }
+}
+
+/** Mais de um dia não serve para nenhuma janela: limpa de passagem. */
+export async function limparTentativasAntigas(): Promise<void> {
+  try {
+    await createServiceClient()
+      .from("tentativas_de_acesso")
+      .delete()
+      .lt("criado_em", new Date(Date.now() - 86_400_000).toISOString())
   } catch {
-    return { reservada: true, id: null }
+    // fica para a próxima
   }
 }
 
@@ -102,9 +124,8 @@ export async function registrarTentativa(tipo: TipoDeTentativa, chaves: string[]
   try {
     const svc = createServiceClient()
     await svc.from("tentativas_de_acesso").insert(chaves.map((chave) => ({ tipo, chave })))
-    // Mais de um dia não serve para nenhuma janela: limpa de passagem.
-    await svc.from("tentativas_de_acesso").delete().lt("criado_em", new Date(Date.now() - 86_400_000).toISOString())
   } catch {
     // contador fora do ar não bloqueia o uso
   }
+  await limparTentativasAntigas()
 }

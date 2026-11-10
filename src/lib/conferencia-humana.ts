@@ -12,11 +12,20 @@ export const TEMPO_LIMITE_CONFERENCIA_MS = 5_000
 
 export const AVISO_CONFERENCIA_HUMANA = "Não foi possível confirmar que você é uma pessoa. Tente de novo."
 
+/**
+ * Detalhes da auditoria (09/11/2026): a Cloudflare documenta 2048 caracteres como o
+ * máximo da conferência. Maior que isso é recusada aqui, sem ir à Cloudflare: um texto
+ * enorme que a fizesse demorar mais que o tempo limite cairia na regra de "fora do ar"
+ * e passaria.
+ */
+export const TAMANHO_MAXIMO_CONFERENCIA = 2048
+
 /** A conferência vale? `true` também quando a Cloudflare não responde. */
 export async function passouNaConferenciaHumana(conferencia: unknown, ip: string | null): Promise<boolean> {
   const segredo = process.env.TURNSTILE_SECRET_KEY
   // Sem a chave, nada a confirmar: recusa, para a falta dela não desligar a proteção calada
   if (!segredo) return false
+  if (typeof conferencia === "string" && conferencia.length > TAMANHO_MAXIMO_CONFERENCIA) return false
 
   const corpo = new URLSearchParams({ secret: segredo, response: typeof conferencia === "string" ? conferencia : "" })
   if (ip && ip !== "desconhecido") corpo.set("remoteip", ip)

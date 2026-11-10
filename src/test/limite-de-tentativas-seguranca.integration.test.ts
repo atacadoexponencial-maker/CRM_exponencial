@@ -161,6 +161,42 @@ describe("B20-05 — Freio de tentativas no cadastro e no login", { timeout: 30_
     })
   })
 
+  // Detalhes da auditoria (09/11/2026): a vaga é reservada numa operação só, como na loja
+  it("should deixar passar só uma de várias senhas erradas disparadas juntas no e-mail com 9 erros", async () => {
+    const email = `b20-05-rajada-${ts}@teste.com`
+    await passado("login", chaveDoEmail(email), 9)
+
+    // Cada pedido de um endereço próprio: o freio do endereço não pesa
+    let n = 0
+    const enderecos = Array.from({ length: 5 }, () => `ip-rajada-${ts}-${n++}`)
+    chavesUsadas.push(...enderecos.map(chaveDoIp))
+    const resultados = await Promise.all(
+      enderecos.map(async (endereco) => {
+        ipDaVez = endereco
+        return realizarLogin(email, "senha-errada-rajada")
+      })
+    )
+
+    const passaram = resultados.filter((r) => !r.pedirConferencia)
+    expect(passaram).toEqual([{ erro: "E-mail ou senha incorretos" }])
+    expect(resultados.filter((r) => r.pedirConferencia)).toHaveLength(4)
+    expect(await contar("login", chaveDoEmail(email))).toBe(10)
+  })
+
+  it("should devolver a vaga do endereço e do e-mail no login certo e quando falta a conferência", async () => {
+    ipDaVez = `ip-login-devolve-${ts}`
+    chavesUsadas.push(chaveDoIp(ipDaVez), chaveDoEmail(emailUsuario))
+    const antesEmail = await contar("login", chaveDoEmail(emailUsuario))
+    await realizarLogin(emailUsuario, SENHA).catch(() => {}) // acerto termina em redirect
+    expect(await contar("login", chaveDoIp(ipDaVez))).toBe(0)
+    expect(await contar("login", chaveDoEmail(emailUsuario))).toBe(antesEmail)
+
+    const email = `b20-05-devolve-${ts}@teste.com`
+    await passado("login", chaveDoEmail(email), 10)
+    expect(await realizarLogin(email, SENHA)).toEqual({ erro: AVISO_CONFIRME_QUE_E_PESSOA, pedirConferencia: true })
+    expect(await contar("login", chaveDoIp(ipDaVez))).toBe(0)
+  })
+
   it("should travar o endereço com 30 erros mesmo com a conferência válida", async () => {
     ipDaVez = `ip-login-ip-conferencia-${ts}`
     await passado("login", chaveDoIp(ipDaVez), 30)
