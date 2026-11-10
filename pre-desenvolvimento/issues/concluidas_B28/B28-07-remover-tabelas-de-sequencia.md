@@ -138,3 +138,9 @@ em 10/11/2026: 44 sequências (as 4 prontas de 11 empresas, nenhuma criada por a
 - [x] Testes e roteiros sem as tabelas
 
 Fica para depois do merge, como teste manual: o `db push --linked` na produção, com o ok do Luan (CA-B28-36).
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B28-36 | Luan | 10/11/2026 |
