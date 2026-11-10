@@ -132,17 +132,18 @@ describe("referencias das ações da B11-11", () => {
   })
 })
 
+// B28-07: as sequências saíram do banco; a regra antiga com "iniciar sequência" não cita
+// mais nada para conferir (o bloco fica marcado como removido no editor)
 describe("referencias das ações da B11-08", () => {
-  it("junta as sequências citadas, sem repetir", () => {
+  it("não junta a sequência do bloco removido", () => {
     const fluxo: Fluxo = {
       blocos: [
         { id: "a1", tipo: "acao", acao: "iniciar_sequencia", parametros: { sequencia_id: "seq-1" }, posicao },
-        { id: "a2", tipo: "acao", acao: "iniciar_sequencia", parametros: { sequencia_id: "seq-1" }, posicao },
         { id: "a3", tipo: "acao", acao: "resolver_conversa", parametros: {}, posicao },
       ],
       ligacoes: [],
     }
-    expect(referenciasDoFluxo(fluxo).sequencias).toEqual(["seq-1"])
+    expect(referenciasDoFluxo(fluxo)).not.toHaveProperty("sequencias")
   })
 })
 

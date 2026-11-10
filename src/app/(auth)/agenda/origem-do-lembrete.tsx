@@ -1,16 +1,16 @@
 // De onde veio cada item da Agenda: o ícone e o nome, iguais na Minha Agenda e
 // na Agenda da equipe. O lembrete de automação (B28-01) diz de qual regra veio.
 
-import { Bell, ListChecks, Zap } from "lucide-react"
+import { Bell, Zap } from "lucide-react"
 import type { ItemAgenda } from "./actions"
 
 export function rotuloDaOrigem(item: Pick<ItemAgenda, "origem" | "automacaoNome">): string {
   if (item.origem === "automacao") return "Lembrete de automação"
-  return item.origem === "sequencia" ? "Lembrete de sequência" : "Follow-up avulso"
+  return "Follow-up avulso"
 }
 
 export function IconeDaOrigem({ item }: { item: Pick<ItemAgenda, "origem" | "automacaoNome"> }) {
-  const Icone = item.origem === "automacao" ? Zap : item.origem === "sequencia" ? ListChecks : Bell
+  const Icone = item.origem === "automacao" ? Zap : Bell
   return (
     <span className="mt-0.5 shrink-0 text-muted-foreground" title={rotuloDaOrigem(item)}>
       <Icone className="size-4" aria-label={rotuloDaOrigem(item)} />

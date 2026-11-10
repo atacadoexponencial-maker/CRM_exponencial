@@ -47,11 +47,8 @@ const { lerEnv, bancoDeServico, conferirEmpresaDeTeste } = require("./comum.cjs"
     await feito(db.from("conversation_labels").insert({ conversation_id: conversaBruno.id, label_id: etiqueta }))
   }
 
-  // B11-08: sequências criadas pelos roteiros (a empresa de teste não tem outras),
-  // com as execuções e os lembretes delas, e o horário comercial
+  // Lembretes criados pelos roteiros e o horário comercial (B28-07: as sequências saíram do banco)
   await feito(db.from("reminders").delete().eq("workspace_id", ws))
-  await feito(db.from("sequence_runs").delete().eq("workspace_id", ws))
-  await feito(db.from("sequences").delete().eq("workspace_id", ws))
   await feito(db.from("business_hours").delete().eq("workspace_id", ws))
   // B11-09: eventos que ficaram na fila (descartados ou de uma rodada interrompida)
   await feito(db.from("automation_queue").delete().eq("workspace_id", ws))

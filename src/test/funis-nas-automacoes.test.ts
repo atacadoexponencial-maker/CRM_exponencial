@@ -20,7 +20,7 @@ const posicao = { x: 0, y: 0 }
 
 function opcoes(nomeDoFunil = "Feira de Março", nomeDaEtapa = "Confirmou"): OpcoesEditor {
   return {
-    etiquetas: [], atendentes: [], tags: [], times: [], sequencias: [], mensagensRapidas: [], numeros: [],
+    etiquetas: [], atendentes: [], tags: [], times: [], mensagensRapidas: [], numeros: [],
     horarioComercial: { dias: [1, 2, 3, 4, 5], inicio: "08:00", fim: "18:00" },
     funis: [{ id: FEIRA, nome: nomeDoFunil, etapas: [{ id: "e-convidado", nome: "Convidado" }, { id: "e-confirmou", nome: nomeDaEtapa }, { id: "e-visitou", nome: "Visitou o estande" }] }],
   } as unknown as OpcoesEditor

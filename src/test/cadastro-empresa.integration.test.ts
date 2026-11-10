@@ -86,7 +86,6 @@ async function perfilPorEmail(email: string) {
 afterAll(async () => {
   await apagarConvitesDeTeste(service)
   for (const ws of empresasCriadas) {
-    await service.from("sequences").delete().eq("workspace_id", ws)
     await service.from("teams").delete().eq("workspace_id", ws)
     await service.from("profiles").delete().eq("workspace_id", ws)
   }

@@ -251,7 +251,7 @@ export async function buscarRegraParaEditor(
   return { regra: { id: data.id, nome: data.nome, fluxo, repeticao: lerRepeticao(data.repeticao), ativa: data.ativa } }
 }
 
-/** Etiquetas, atendentes, números, times, sequências e etapas citados no fluxo existem e são da empresa? */
+/** Etiquetas, atendentes, números, times e etapas citados no fluxo existem e são da empresa? */
 async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Fluxo): Promise<string | null> {
   const {
     etiquetas,
@@ -259,7 +259,6 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
     atendentesAtribuidos,
     conexoes,
     times,
-    sequencias,
     etapas,
     dadosDoContato,
     tiposDeContato,
@@ -314,7 +313,7 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
   }
 
   const contar = async (
-    tabela: "labels" | "profiles" | "whatsapp_connections" | "teams" | "sequences" | "quick_replies",
+    tabela: "labels" | "profiles" | "whatsapp_connections" | "teams" | "quick_replies",
     ids: string[]
   ) => {
     if (ids.length === 0) return 0
@@ -337,13 +336,12 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
       .in("id", ids)
     return count ?? 0
   }
-  const [nEtiquetas, nAtendentes, nAtribuidos, nConexoes, nTimes, nSequencias, nRapidas] = await Promise.all([
+  const [nEtiquetas, nAtendentes, nAtribuidos, nConexoes, nTimes, nRapidas] = await Promise.all([
     contar("labels", etiquetas),
     contar("profiles", atendentes),
     contarAtivos(atendentesAtribuidos),
     contar("whatsapp_connections", conexoes),
     contar("teams", times),
-    contar("sequences", sequencias),
     contar("quick_replies", mensagensRapidas),
   ])
   if (nEtiquetas !== etiquetas.length) return "Uma etiqueta escolhida não existe mais. Escolha de novo."
@@ -351,7 +349,6 @@ async function conferirReferencias({ supabase, workspaceId }: Admin, fluxo: Flux
   if (nAtribuidos !== atendentesAtribuidos.length) return "Um atendente escolhido está desativado. Escolha outro."
   if (nConexoes !== conexoes.length) return "Um número escolhido não existe mais. Escolha de novo."
   if (nTimes !== times.length) return "Um time escolhido não existe mais. Escolha de novo."
-  if (nSequencias !== sequencias.length) return "Uma sequência escolhida não existe mais. Escolha de novo."
   if (nRapidas !== mensagensRapidas.length) return "Uma mensagem rápida escolhida não existe mais. Escolha de novo."
   return null
 }
