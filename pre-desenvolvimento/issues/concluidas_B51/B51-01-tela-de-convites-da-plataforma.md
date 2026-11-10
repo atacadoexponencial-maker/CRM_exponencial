@@ -21,7 +21,7 @@ Marcelle entra no CRM, clica em "Convites" no menu, cria um link avulso de 7 dia
 - **CA-B51-15** (automática) — Validade personalizada. Dado Marcelle criando um convite, quando ela escolhe uma data e hora futuras, então o convite vale até esse momento e para de valer depois dele.
 - **CA-B51-16** (automática) — Validade fora do prazo recusada. Dado Marcelle criando um convite, quando ela escolhe uma data e hora que já passaram, ou mais de 90 dias à frente, então a tela avisa que a validade precisa estar entre agora e 90 dias, e nenhum convite é criado (o servidor recusa também quando a tela é contornada).
 - **CA-B51-21** (automática) — Lista mostra a situação de cada convite. Dado um convite pendente, um usado, um vencido e um cancelado, quando Marcelle abre a tela, então cada um aparece com a situação certa, e o usado mostra o nome da empresa criada.
-- **CA-B51-23** (automática) — Item no menu só para a plataforma. Dado Marcelle logada e um Admin de empresa logado, quando cada um abre o CRM, então o menu lateral da Marcelle tem o item "Convites", que leva a `/plataforma/convites`; o do Admin não tem.
+- **CA-B51-23** (automática) — Item no menu só para a plataforma. Dado Marcelle logada com uma conta da lista da plataforma e um Admin de empresa logado, quando cada um abre o CRM, então o menu lateral da Marcelle tem o item "Convites", que leva a `/plataforma/convites`; o do Admin não tem. Quem é da plataforma é reconhecido pela conta (id) da lista, não pelo e-mail (auditoria run-2, pista 5; texto trocado com o ok do Luan em 10/11/2026).
 
 ## Suposições
 

@@ -109,3 +109,9 @@ O Admin abre a galeria, usa um dos cinco modelos, lê as anotações, adapta, sa
 - [x] galeria e botão "Modelos"
 - [x] editor abre o modelo sem gravar, com rascunho próprio
 - [x] testes CA-B59-14 a 25 passando; tsc limpo; testes das telas do editor rodados
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B59-26 | Luan | 10/11/2026 |
