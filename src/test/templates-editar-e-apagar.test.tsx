@@ -78,7 +78,7 @@ describe("B54-02 — criar, editar e apagar template", () => {
     expect(within(linha("tpl_paused")).getByText("Pausado")).toBeTruthy()
   })
 
-  it("CA-B54-04: should abrir a edição preenchida, com categoria editável e nome e idioma travados, com o aviso da Meta", async () => {
+  it("CA-B54-04: should abrir a edição preenchida, com nome e idioma travados e a categoria travada só no aprovado, com os avisos da Meta", async () => {
     render(<TemplatesClient templates={[template("APPROVED")]} />)
     fireEvent.click(screen.getByRole("button", { name: "Editar tpl_approved" }))
 
@@ -86,7 +86,8 @@ describe("B54-02 — criar, editar e apagar template", () => {
     expect(nome.value).toBe("tpl_approved")
     expect(nome.disabled).toBe(true)
     expect((screen.getByLabelText("Idioma") as HTMLSelectElement).disabled).toBe(true)
-    expect((screen.getByLabelText("Categoria") as HTMLSelectElement).disabled).toBe(false)
+    expect((screen.getByLabelText("Categoria") as HTMLSelectElement).disabled).toBe(true)
+    expect(screen.getByText("A Meta não deixa mudar a categoria de um template aprovado")).toBeTruthy()
     expect((screen.getByLabelText("Cabeçalho") as HTMLSelectElement).value).toBe("texto")
     expect((screen.getByLabelText("Texto do cabeçalho") as HTMLInputElement).value).toBe("Oferta da semana")
     expect((screen.getByLabelText("Corpo da mensagem") as HTMLTextAreaElement).value).toBe("Olá {{1}}, temos novidades.")
@@ -95,6 +96,16 @@ describe("B54-02 — criar, editar e apagar template", () => {
     expect((screen.getByLabelText("Texto do botão 2") as HTMLInputElement).value).toBe("Abrir")
     expect((screen.getByLabelText("Endereço do botão 2") as HTMLInputElement).value).toBe("https://exemplo.com")
     expect(screen.getByText("A Meta não deixa mudar o nome nem o idioma de um template criado")).toBeTruthy()
+  })
+
+  it("CA-B54-04: should deixar a categoria editável no rejeitado e no pausado", async () => {
+    for (const status of ["REJECTED", "PAUSED"]) {
+      const { unmount } = render(<TemplatesClient templates={[template(status)]} />)
+      fireEvent.click(screen.getByRole("button", { name: `Editar tpl_${status.toLowerCase()}` }))
+      expect(((await screen.findByLabelText("Categoria")) as HTMLSelectElement).disabled).toBe(false)
+      expect(screen.queryByText("A Meta não deixa mudar a categoria de um template aprovado")).toBeNull()
+      unmount()
+    }
   })
 
   it("CA-B54-05: should mandar a edição à Meta pelo id do template, marcar Pendente e avisar da nova análise", async () => {
@@ -108,12 +119,32 @@ describe("B54-02 — criar, editar e apagar template", () => {
     await waitFor(() => expect(within(linha("tpl_approved")).getByText("Pendente")).toBeTruthy())
     const edicao = chamadas.find((c) => c.method === "POST")!
     expect(edicao.url).toContain(`/${VERSAO_DA_GRAPH}/id-APPROVED?access_token=tk-1`)
-    const body = edicao.body as { category: string; components: Array<{ type: string; text?: string }> }
-    expect(body.category).toBe("MARKETING")
+    const body = edicao.body as { category?: string; components: Array<{ type: string; text?: string }> }
+    // categoria do aprovado não muda, então não vai
+    expect(body).not.toHaveProperty("category")
     expect(body.components.find((c) => c.type === "BODY")).toEqual({ type: "BODY", text: "Olá {{1}}, texto novo.", example: { body_text: [["Maria"]] } })
     expect(body).not.toHaveProperty("name")
     expect(body).not.toHaveProperty("language")
     expect(avisos).toContain("Template enviado à Meta para nova análise")
+  })
+
+  it("CA-B54-05: should mandar a categoria nova só quando ela mudou num template fora do aprovado", async () => {
+    render(<TemplatesClient templates={[template("REJECTED")]} />)
+    fireEvent.click(screen.getByRole("button", { name: "Editar tpl_rejected" }))
+    fireEvent.change(await screen.findByLabelText("Categoria"), { target: { value: "UTILITY" } })
+    fireEvent.change(screen.getByLabelText("Exemplo da variável {{1}} do corpo"), { target: { value: "Maria" } })
+    fireEvent.click(screen.getByRole("button", { name: "Salvar e enviar à Meta" }))
+
+    await waitFor(() => expect(chamadas.some((c) => c.method === "POST")).toBe(true))
+    expect((chamadas.find((c) => c.method === "POST")!.body as { category?: string }).category).toBe("UTILITY")
+  })
+
+  it("CA-B54-05: should recusar no servidor a categoria nova num aprovado, sem chamar a Meta", async () => {
+    const { editarTemplate } = await import("@/app/(auth)/configuracoes/templates/actions")
+    const r = await editarTemplate({ id: "id-APPROVED", category: "UTILITY", partes: COMPLETO! })
+
+    expect(r).toEqual({ erro: "A Meta não deixa mudar a categoria de um template aprovado" })
+    expect(chamadas.filter((c) => c.method === "POST")).toEqual([])
   })
 
   it("CA-B54-06: should manter o formulário aberto com o motivo da Meta e a lista igual quando ela recusa a edição", async () => {
