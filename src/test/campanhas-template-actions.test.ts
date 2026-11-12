@@ -15,13 +15,16 @@ vi.mock("@/integrations/supabase/service", () => ({
   createServiceClient: () => ({
     from: () => {
       const filtros: Array<[string, unknown]> = []
+      const exclusoes: Array<[string, unknown]> = []
       let limite = Infinity
       const consulta = {
         select: () => consulta,
         eq: (coluna: string, valor: unknown) => { filtros.push([coluna, valor]); return consulta },
+        // B23-06: conexão removida fica no banco, e a consulta a deixa de fora
+        neq: (coluna: string, valor: unknown) => { exclusoes.push([coluna, valor]); return consulta },
         limit: (n: number) => { limite = n; return consulta },
         maybeSingle: async () => {
-          const linhas = conexoes.filter((l) => filtros.every(([c, v]) => l[c] === v)).slice(0, limite)
+          const linhas = conexoes.filter((l) => filtros.every(([c, v]) => l[c] === v) && exclusoes.every(([c, v]) => l[c] !== v)).slice(0, limite)
           if (linhas.length > 1) return { data: null, error: { message: "multiple rows" } }
           return { data: linhas[0] ?? null, error: null }
         },

@@ -12,6 +12,7 @@ vi.mock("@/integrations/supabase/service", () => ({
       const consulta = {
         select: () => consulta,
         eq: () => consulta,
+        neq: () => consulta,
         limit: () => consulta,
         maybeSingle: async () => ({ data: { waba_id: "waba-1", access_token: "tk-1" }, error: null }),
       }

@@ -22,6 +22,10 @@ export type MotivoDeTransicao =
   | "session_closed_on_device"
   | "banned_by_whatsapp"
   | "connection_lost"
+  // B23-06: número em uso no celular (coexistência) desligado do lado da Meta
+  | "desconectado_pelo_celular"
+  | "sem_uso_do_aplicativo"
+  | "mudou_de_aparelho"
 
 /** Cores no padrão que `page.tsx` já usava para conectado/desconectado. */
 const ESTILO: Record<EstadoConexao, { texto: string; classe: string }> = {

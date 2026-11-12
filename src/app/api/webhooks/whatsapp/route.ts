@@ -9,6 +9,10 @@ import { lerMensagemMeta, midiaDaMensagemMeta, type MensagemMeta } from "@/lib/w
 import { guardarMidiaDaMeta } from "@/lib/whatsapp/midia-recebida"
 import { converterVideoRecebido, eVideoHevc } from "@/lib/whatsapp/conversao-de-video"
 import { escolherConversaDoNumero, nomeDoPerfil, statusAoReabrir, traduzirConteudo } from "@/lib/whatsapp/recebimento"
+import { processarAgenda, processarHistorico, type ValorDaAgenda, type ValorDoHistorico } from "@/lib/whatsapp/historico-do-celular"
+import { processarEcos, type ValorDosEcos } from "@/lib/whatsapp/eco-do-celular"
+import { aplicarEdicaoOuExclusaoDaMeta, TIPOS_DE_EDICAO, type AvisoDeEdicaoDaMeta } from "@/lib/whatsapp/edicao-pelo-contato"
+import { processarAccountUpdate, type ValorDoAccountUpdate } from "@/lib/whatsapp/desconexao-do-celular"
 import { tirarDaLixeira } from "@/lib/lixeira"
 import { criarCardDeEntrada } from "@/lib/card-de-entrada"
 
@@ -84,7 +88,7 @@ export async function POST(request: NextRequest) {
     messages?: Array<MensagemMeta & { from: string; id: string; timestamp: string }>
     contacts?: Array<{ wa_id?: string; profile?: { name?: string } }>
   }
-  type WebhookBody = { entry?: Array<{ changes?: Array<{ value?: WebhookValue }> }> }
+  type WebhookBody = { entry?: Array<{ id?: string; changes?: Array<{ field?: string; value?: WebhookValue }> }> }
 
   let body: WebhookBody
   try {
@@ -95,15 +99,51 @@ export async function POST(request: NextRequest) {
 
   // B53-05: um pacote da Meta pode trazer várias entradas e várias mudanças;
   // antes só a primeira era lida e os outros avisos se perdiam.
+  // B23-02: o `field` diz o que a mudança é (mensagens, histórico, agenda…).
   const mudancas = (Array.isArray(body?.entry) ? body.entry : []).flatMap((e) =>
-    (Array.isArray(e?.changes) ? e.changes : []).map((c) => c?.value)
+    (Array.isArray(e?.changes) ? e.changes : []).map((c) => ({ field: c?.field, value: c?.value, entryId: e?.id }))
   )
 
   const supabase = createServiceClient()
 
-  for (const change of mudancas) {
+  for (const { field, value: change, entryId } of mudancas) {
+    // B23-06: `account_update` é da WABA (a entrada), sem phone_number_id: o número
+    // em uso no celular foi desligado do lado da Meta.
+    if (field === "account_update") {
+      try {
+        await processarAccountUpdate({ supabase, wabaId: entryId, valor: (change ?? {}) as unknown as ValorDoAccountUpdate })
+      } catch (erro) {
+        console.error("[whatsapp] erro na desconexão do celular:", erro)
+        return NextResponse.json({ error: "db error" }, { status: 500 })
+      }
+      continue
+    }
+
     const phoneNumberId = change?.metadata?.phone_number_id
     if (!phoneNumberId) continue
+
+    // B23-02: conversas antigas e agenda do celular (coexistência) têm caminho
+    // próprio: não disparam automação, não somam não lidas, não transmitem.
+    // B23-04: o eco do que o vendedor mandou pelo celular entra como no canal direto.
+    if (field === "history" || field === "smb_app_state_sync" || field === "smb_message_echoes") {
+      const { data: conexao } = await supabase
+        .from("whatsapp_connections")
+        .select("id, workspace_id, phone_number, access_token, em_uso_no_celular, criar_cards_do_historico")
+        .eq("phone_number_id", phoneNumberId)
+        // B23-06: número removido pode estar em outra empresa; só a conexão em uso recebe
+        .neq("status", "removed")
+        .maybeSingle()
+      if (!conexao) continue
+      try {
+        if (field === "history") await processarHistorico({ supabase, conexao, valor: change as unknown as ValorDoHistorico })
+        else if (field === "smb_message_echoes") await processarEcos({ supabase, conexao, valor: change as unknown as ValorDosEcos })
+        else await processarAgenda({ supabase, conexao, valor: change as unknown as ValorDaAgenda })
+      } catch (erro) {
+        console.error("[whatsapp] erro no histórico do celular:", erro)
+        return NextResponse.json({ error: "db error" }, { status: 500 })
+      }
+      continue
+    }
 
     const statuses = change?.statuses
     if (Array.isArray(statuses) && statuses.length > 0) {
@@ -132,8 +172,11 @@ export async function POST(request: NextRequest) {
       // B7-01: o `id` entrou junto do workspace para a conversa nascer sabendo
       // por qual número ela chegou. Nada mais mudou neste arquivo.
       // B53-07: e o token, que baixa a mídia recebida. Fica no servidor.
-      .select("id, workspace_id, access_token")
+      // B23-05: e se o número está em uso no celular, onde edição e exclusão existem.
+      .select("id, workspace_id, access_token, em_uso_no_celular")
       .eq("phone_number_id", phoneNumberId)
+      // B23-06: número removido pode estar em outra empresa; só a conexão em uso recebe
+      .neq("status", "removed")
       .single()
 
     if (!connection) continue
@@ -141,6 +184,23 @@ export async function POST(request: NextRequest) {
     const { id: connectionId, workspace_id } = connection
 
     for (const message of messages) {
+      // B23-05: o contato editou ou apagou uma mensagem (número em uso no celular,
+      // SUP-B23-09). Não é mensagem nova: a original é alterada, e nada dispara.
+      if (connection.em_uso_no_celular && TIPOS_DE_EDICAO.includes(message.type ?? "")) {
+        try {
+          await aplicarEdicaoOuExclusaoDaMeta({
+            supabase,
+            workspaceId: workspace_id,
+            de: message.from,
+            aviso: message as unknown as AvisoDeEdicaoDaMeta,
+            quando: new Date(Number(message.timestamp) * 1000).toISOString(),
+          })
+        } catch (erro) {
+          console.error("[whatsapp] erro ao aplicar edição do contato:", erro)
+        }
+        continue
+      }
+
       // B22-45: a Meta reentrega o mesmo evento quando não recebe resposta a tempo. O
       // id dela já gravado é tentativa repetida: sem isso, a conversa somava "não lida"
       // de novo e, se tivesse sido resolvida no meio, nascia outra, com "conversa criada"
