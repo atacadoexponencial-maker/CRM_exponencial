@@ -103,6 +103,7 @@ Um número desconectado pelo celular aparece assim no cartão, com o motivo e um
 - **Modificar:** `src/test/templates-editar-e-apagar.test.tsx` — o banco de mentira do teste passa a entender o filtro que deixa a conexão removida de fora.
 - **Modificar:** `src/test/templates-lista-e-nome.test.tsx` — o banco de mentira do teste passa a entender o filtro que deixa a conexão removida de fora.
 - **Modificar:** `src/test/campanhas-template-actions.test.ts` — o banco de mentira do teste passa a entender o filtro que deixa a conexão removida de fora.
+- **Modificar:** `src/test/ajuda-onde-falta-explicacao.test.tsx` — o banco de mentira do teste passa a entender o filtro que deixa a conexão removida de fora.
 - **Criar:** `src/test/acoes-numero-no-celular.test.tsx` — parte de tela do CA-B23-26 (cartão do número desconectado) e do CA-B23-30 e CA-B23-31 (diálogo de remover).
 
 ## Dependências Externas
