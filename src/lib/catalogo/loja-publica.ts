@@ -94,7 +94,7 @@ export const carregarLojaPublica = cache(async function carregarLojaPublica(ende
 export async function carregarVitrine(workspaceId: string): Promise<{ categorias: CategoriaVitrine[]; produtos: ProdutoVitrine[] }> {
   const service = createServiceClient()
   const [{ data: cats }, { data: prods }] = await Promise.all([
-    service.from("catalog_categories").select("id, name").eq("workspace_id", workspaceId).order("position").order("created_at"),
+    service.from("catalog_categories").select("id, name, photo_path").eq("workspace_id", workspaceId).order("position").order("created_at"),
     service
       .from("catalog_products")
       .select("id, name, description, price, compare_at_price, sku, category_id, featured, photos, variant_types, price_tiers, min_quantity, pack_quantities, pack_price, catalog_stock(combination, quantity)")
@@ -127,7 +127,13 @@ export async function carregarVitrine(workspaceId: string): Promise<{ categorias
   })
   // Só categorias com algum produto visível aparecem na loja.
   const comProduto = new Set(produtos.map((p) => p.categoriaId))
-  return { categorias: (cats ?? []).filter((c) => comProduto.has(c.id)).map((c) => ({ id: c.id, nome: c.name })), produtos }
+  // B61-02: o círculo da categoria usa a foto enviada; sem ela, a do primeiro produto visível com foto.
+  const fotoDaCategoria = (c: { id: string; photo_path: string | null }) =>
+    c.photo_path ? urlPublicaImagem(c.photo_path) : (produtos.find((p) => p.categoriaId === c.id && p.fotoUrl)?.fotoUrl ?? null)
+  return {
+    categorias: (cats ?? []).filter((c) => comProduto.has(c.id)).map((c) => ({ id: c.id, nome: c.name, fotoUrl: fotoDaCategoria(c) })),
+    produtos,
+  }
 }
 
 /** Um produto visível da loja, com variações e estoque (uma consulta por requisição, como a loja). */

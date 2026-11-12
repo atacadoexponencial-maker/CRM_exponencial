@@ -613,6 +613,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          photo_path: string | null
           position: number
           workspace_id: string
         }
@@ -620,6 +621,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          photo_path?: string | null
           position?: number
           workspace_id: string
         }
@@ -627,6 +629,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          photo_path?: string | null
           position?: number
           workspace_id?: string
         }

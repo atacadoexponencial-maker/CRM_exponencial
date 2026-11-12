@@ -1,7 +1,7 @@
 "use client"
 
 import { Vitrine, type CategoriaVitrine, type ProdutoVitrine } from "../components/vitrine"
-import { textoDoMinimo, type MinimoPedido } from "../components/pedido"
+import { minimoDaFaixa, type MinimoPedido } from "../components/pedido"
 import type { TemaLoja } from "../components/tema"
 import { resumoDoDesconto, type DescontoPedido } from "@/lib/catalogo/regras-de-venda"
 import { useCarrinhoLoja } from "./usar-carrinho-loja"
@@ -24,7 +24,7 @@ export function LojaClient({ endereco, tema, minimo, descontos, categorias, prod
         categorias={categorias}
         produtos={produtos}
         quantidadeNoCarrinho={pecas}
-        avisoMinimo={textoDoMinimo(minimo)}
+        avisoMinimo={minimoDaFaixa(minimo)}
         avisoDesconto={resumoDoDesconto(descontos)}
         hrefLoja={`/loja/${endereco}`}
         hrefProduto={(id) => `/loja/${endereco}/p/${id}`}

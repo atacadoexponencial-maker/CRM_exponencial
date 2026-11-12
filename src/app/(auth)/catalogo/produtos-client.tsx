@@ -9,11 +9,15 @@ import {
   alternarVisivel,
   criarCategoria,
   excluirCategoria,
+  prepararEnvioFotoCategoria,
   renomearCategoria,
   reordenarCategoria,
   reordenarProduto,
+  salvarFotoCategoria,
   type Catalogo,
 } from "./actions"
+import { createClient } from "@/integrations/supabase/client"
+import { BUCKET_CATALOGO } from "@/lib/catalogo/regras"
 import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 import { cn } from "@/lib/utils"
 
@@ -47,6 +51,15 @@ export function ProdutosClient({ inicial, hrefLoja }: { inicial: Catalogo; hrefL
     })
   }
 
+  /** B61-02: a foto vai direto do navegador ao armazenamento, com a URL assinada do servidor. */
+  async function enviarFotoCategoria(id: string, arquivo: File): Promise<{ erro?: string; catalogo?: Catalogo }> {
+    const preparo = await prepararEnvioFotoCategoria(id, { tipo: arquivo.type, tamanho: arquivo.size })
+    if (preparo.erro !== undefined) return { erro: preparo.erro }
+    const { error } = await createClient().storage.from(BUCKET_CATALOGO).uploadToSignedUrl(preparo.caminho, preparo.token, arquivo, { contentType: arquivo.type })
+    if (error) return { erro: "O envio falhou. Tente de novo." }
+    return salvarFotoCategoria(id, preparo.caminho)
+  }
+
   return (
     <div className={cn(CLASSE_DA_PAGINA, ALVOS_TOQUE_CELULAR)}>
       <h1 className="text-[26px] font-semibold leading-tight tracking-tight mb-4">Catálogo</h1>
@@ -74,6 +87,8 @@ export function ProdutosClient({ inicial, hrefLoja }: { inicial: Catalogo; hrefL
           onRenomear={(id, nome) => executar(() => renomearCategoria(id, nome))}
           onExcluir={(id) => executar(() => excluirCategoria(id))}
           onReordenar={(a, b) => executar(() => reordenarCategoria(a, b))}
+          onEnviarFoto={(id, arquivo) => executar(() => enviarFotoCategoria(id, arquivo))}
+          onRemoverFoto={(id) => executar(() => salvarFotoCategoria(id, null))}
         />
       </div>
     </div>

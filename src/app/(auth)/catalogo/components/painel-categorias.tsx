@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Check, GripVertical, Pencil, Plus, Trash2, X } from "lucide-react"
+import { Check, GripVertical, ImageOff, ImagePlus, Pencil, Plus, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
@@ -17,9 +17,12 @@ interface PainelCategoriasProps {
   onRenomear: (id: string, nome: string) => void
   onExcluir: (id: string) => void
   onReordenar: (idArrastado: string, idAlvo: string) => void
+  /** B61-02: a foto do círculo da categoria na loja. O servidor confere o arquivo. */
+  onEnviarFoto: (id: string, arquivo: File) => void
+  onRemoverFoto: (id: string) => void
 }
 
-export function PainelCategorias({ categorias, contagem, onCriar, onRenomear, onExcluir, onReordenar }: PainelCategoriasProps) {
+export function PainelCategorias({ categorias, contagem, onCriar, onRenomear, onExcluir, onReordenar, onEnviarFoto, onRemoverFoto }: PainelCategoriasProps) {
   const [nova, setNova] = useState("")
   const [editando, setEditando] = useState<{ id: string; nome: string } | null>(null)
   const [excluindo, setExcluindo] = useState<CategoriaCatalogo | null>(null)
@@ -55,7 +58,7 @@ export function PainelCategorias({ categorias, contagem, onCriar, onRenomear, on
   return (
     <aside className="rounded-md border bg-card p-5 space-y-3">
       <h2 className="text-sm font-semibold">Categorias</h2>
-      <p className="text-xs text-muted-foreground">Arraste para mudar a ordem em que aparecem na loja.</p>
+      <p className="text-xs text-muted-foreground">Arraste para mudar a ordem em que aparecem na loja. A foto aparece no círculo da categoria; sem ela, a loja usa a do primeiro produto.</p>
 
       <ul className="space-y-1">
         {categorias.map((c) => (
@@ -91,8 +94,31 @@ export function PainelCategorias({ categorias, contagem, onCriar, onRenomear, on
               </>
             ) : (
               <>
+                <span data-miniatura-categoria className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted/40 text-xs font-medium text-muted-foreground">
+                  {c.fotoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={c.fotoUrl} alt="" className="size-full object-cover" />
+                  ) : (
+                    <span aria-hidden>{c.nome.trim().charAt(0).toUpperCase()}</span>
+                  )}
+                </span>
                 <span className="flex-1 text-sm truncate">{c.nome}</span>
                 <span className="text-xs text-muted-foreground numero">{contagem[c.id] ?? 0}</span>
+                <Button size="icon-xs" variant="ghost" render={<label />} nativeButton={false} aria-label={c.fotoUrl ? `Trocar foto de ${c.nome}` : `Enviar foto de ${c.nome}`}>
+                  <ImagePlus />
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="sr-only"
+                    aria-label={`Arquivo da foto de ${c.nome}`}
+                    onChange={(e) => { const arquivo = e.target.files?.[0]; if (arquivo) onEnviarFoto(c.id, arquivo); e.target.value = "" }}
+                  />
+                </Button>
+                {c.fotoUrl && (
+                  <Button size="icon-xs" variant="ghost" onClick={() => onRemoverFoto(c.id)} aria-label={`Remover foto de ${c.nome}`}>
+                    <ImageOff />
+                  </Button>
+                )}
                 <Button size="icon-xs" variant="ghost" onClick={() => { setErro(null); setEditando({ id: c.id, nome: c.nome }) }} aria-label={`Renomear ${c.nome}`}>
                   <Pencil />
                 </Button>

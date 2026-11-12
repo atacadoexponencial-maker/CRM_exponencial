@@ -18,6 +18,8 @@ import { resumoDaGrade, resumoDasRegras, type FaixaPreco, type GradeFechada } fr
 export interface CategoriaVitrine {
   id: string
   nome: string
+  /** B61-02: foto do círculo (a enviada pelo lojista ou a do primeiro produto); `null` mostra a inicial. */
+  fotoUrl: string | null
 }
 
 export interface ProdutoVitrine {
@@ -48,7 +50,7 @@ interface VitrineProps {
   /** Só os visíveis, na ordem do lojista. */
   produtos: ProdutoVitrine[]
   quantidadeNoCarrinho?: number
-  /** Ex.: "Pedido mínimo: 12 peças". */
+  /** B61-02: o mínimo da loja para a faixa do atacado, ex.: "Mínimo 12 peças". */
   avisoMinimo?: string | null
   /** B31-02, ex.: "10% a menos a partir de 50 peças". */
   avisoDesconto?: string | null
@@ -281,10 +283,6 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
       <TopoLoja tema={tema} hrefLoja={hrefLoja} />
 
       <div className="px-4 pt-5 pb-10 space-y-5 max-w-6xl mx-auto">
-        {(avisoMinimo || avisoDesconto) && (
-          <p className="text-xs font-medium" style={{ color: cores.principal }}>{[avisoMinimo, avisoDesconto].filter(Boolean).join(" · ")}</p>
-        )}
-
         <div className="relative">
           <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: cores.suave }} />
           <input
@@ -298,6 +296,30 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
         </div>
 
         {categorias.length > 0 && (
+          <nav className="flex gap-3 overflow-x-auto -mx-4 px-4 pb-1" aria-label="Categorias em fotos">
+            {categorias.map((c) => {
+              const ativa = categoriaAtiva === c.id
+              return (
+                <button key={c.id} type="button" onClick={() => setCategoriaAtiva(c.id)} aria-pressed={ativa} data-circulo-categoria className="w-[4.5rem] shrink-0 flex flex-col items-center gap-1.5">
+                  <span
+                    className="flex size-16 items-center justify-center overflow-hidden rounded-full border-2"
+                    style={{ background: cores.superficie, borderColor: ativa ? cores.principal : cores.borda }}
+                  >
+                    {c.fotoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={c.fotoUrl} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
+                    ) : (
+                      <span aria-hidden className="text-xl font-semibold leading-none">{c.nome.trim().charAt(0).toUpperCase()}</span>
+                    )}
+                  </span>
+                  <span className={`w-full text-center text-xs leading-tight line-clamp-2 ${ativa ? "font-semibold" : ""}`}>{c.nome}</span>
+                </button>
+              )
+            })}
+          </nav>
+        )}
+
+        {categorias.length > 0 && (
           <nav className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1" aria-label="Categorias">
             {[{ id: null as string | null, nome: "Tudo" }, ...categorias].map((c) => {
               const ativa = categoriaAtiva === c.id
@@ -306,6 +328,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
                   key={c.id ?? "tudo"}
                   type="button"
                   onClick={() => setCategoriaAtiva(c.id)}
+                  aria-pressed={ativa}
                   className="shrink-0 rounded-full px-3.5 h-8 text-sm border"
                   style={chip(ativa)}
                 >
@@ -314,6 +337,13 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
               )
             })}
           </nav>
+        )}
+
+        {(avisoMinimo || avisoDesconto) && (
+          <div data-faixa-atacado className="rounded-xl px-4 py-2.5" style={{ background: cores.principal, color: cores.sobrePrincipal }}>
+            <p className="text-sm font-semibold">{["Atacado", avisoMinimo].filter(Boolean).join(" · ")}</p>
+            {avisoDesconto && <p className="text-xs">{avisoDesconto}</p>}
+          </div>
         )}
 
         <div className="flex items-center justify-between gap-3">

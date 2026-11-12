@@ -8,7 +8,7 @@ import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import type { CategoriaCatalogo, ProdutoResumo } from "./components/lista-produtos"
 import type { FotoProduto, ProdutoEditavel } from "./components/editor-produto"
-import { BUCKET_CATALOGO, caminhoDaEmpresa, ESTOQUE_MAXIMO, FORMATOS_FOTO, MAX_FOTOS, MAX_OPCOES_POR_TIPO, TAMANHO_MAX_FOTO } from "@/lib/catalogo/regras"
+import { BUCKET_CATALOGO, caminhoDaEmpresa, ESTOQUE_MAXIMO, FORMATOS_FOTO, FORMATOS_LOGO, MAX_FOTOS, MAX_OPCOES_POR_TIPO, TAMANHO_MAX_FOTO, TAMANHO_MAX_LOGO } from "@/lib/catalogo/regras"
 import { chaveCombinacao, combinacoes, MAX_TIPOS_VARIACAO, type TipoVariacao } from "@/lib/catalogo/combinacoes"
 import { faixasDoBanco, faixasParaBanco, gradeDoBanco, validarFaixas, validarGrade, validarMinimo } from "@/lib/catalogo/regras-de-venda"
 
@@ -41,7 +41,7 @@ export async function listarCatalogo(): Promise<Catalogo> {
   const { supabase, perfil } = s
 
   const [{ data: cats }, { data: prods }] = await Promise.all([
-    supabase.from("catalog_categories").select("id, name").eq("workspace_id", perfil.workspace_id).order("position").order("created_at"),
+    supabase.from("catalog_categories").select("id, name, photo_path").eq("workspace_id", perfil.workspace_id).order("position").order("created_at"),
     supabase
       .from("catalog_products")
       .select("id, name, category_id, price, visible, photos, catalog_stock(quantity)")
@@ -51,7 +51,7 @@ export async function listarCatalogo(): Promise<Catalogo> {
   ])
 
   return {
-    categorias: (cats ?? []).map((c) => ({ id: c.id, nome: c.name })),
+    categorias: (cats ?? []).map((c) => ({ id: c.id, nome: c.name, fotoUrl: c.photo_path ? urlPublica(c.photo_path) : null })),
     produtos: (prods ?? []).map((p) => ({
       id: p.id,
       nome: p.name,
@@ -324,9 +324,49 @@ export async function renomearCategoria(id: string, nome: string): Promise<Resul
 export async function excluirCategoria(id: string): Promise<Resultado<{ catalogo: Catalogo }>> {
   const s = await exigirGestor()
   if (!s.ok) return { erro: s.erro }
-  const { error, data } = await s.supabase.from("catalog_categories").delete().eq("id", id).eq("workspace_id", s.perfil.workspace_id).select("id")
+  const { error, data } = await s.supabase.from("catalog_categories").delete().eq("id", id).eq("workspace_id", s.perfil.workspace_id).select("id, photo_path")
   if (error) return { erro: "Não deu para excluir a categoria." }
   if (!data?.length) return { erro: "Categoria não encontrada." }
+  await apagarFotoDaCategoria(data[0].photo_path, s.perfil.workspace_id)
+  return { catalogo: await listarCatalogo() }
+}
+
+/** B44-07: só apaga arquivo da pasta da empresa; o banco pode ter caminho de fora. */
+async function apagarFotoDaCategoria(caminho: string | null, workspaceId: string) {
+  if (!caminhoDaEmpresa(caminho, workspaceId, "marca")) return
+  await createServiceClient().storage.from(BUCKET_CATALOGO).remove([caminho]).catch(() => {})
+}
+
+/**
+ * B61-02: URL assinada para a foto da categoria ir direto ao armazenamento. Mesmos
+ * formatos, limite e avisos da logo.
+ */
+export async function prepararEnvioFotoCategoria(categoriaId: string, arquivo: { tipo: string; tamanho: number }): Promise<Resultado<{ caminho: string; token: string }>> {
+  const s = await exigirGestor()
+  if (!s.ok) return { erro: s.erro }
+  const extensao = FORMATOS_LOGO[arquivo.tipo]
+  if (!extensao) return { erro: "Use PNG, JPG ou WebP." }
+  if (arquivo.tamanho > TAMANHO_MAX_LOGO) return { erro: "A imagem passa de 2 MB." }
+  if (!categoriaId || !(await categoriaDaEmpresa(s.supabase, s.perfil.workspace_id, categoriaId))) return { erro: "Categoria não encontrada." }
+
+  const caminho = `${s.perfil.workspace_id}/marca/categoria-${randomUUID()}.${extensao}`
+  const { data, error } = await createServiceClient().storage.from(BUCKET_CATALOGO).createSignedUploadUrl(caminho)
+  if (error || !data) return { erro: "Não deu para preparar o envio. Tente de novo." }
+  return { caminho, token: data.token }
+}
+
+/** B61-02: grava a foto enviada (ou `null` para remover) e apaga o arquivo anterior. */
+export async function salvarFotoCategoria(id: string, caminho: string | null): Promise<Resultado<{ catalogo: Catalogo }>> {
+  const s = await exigirGestor()
+  if (!s.ok) return { erro: s.erro }
+  const { supabase, perfil } = s
+  if (caminho !== null && !caminhoDaEmpresa(caminho, perfil.workspace_id, "marca")) return { erro: "Imagem inválida. Envie de novo." }
+
+  const { data: antes } = await supabase.from("catalog_categories").select("photo_path").eq("id", id).eq("workspace_id", perfil.workspace_id).maybeSingle()
+  if (!antes) return { erro: "Categoria não encontrada." }
+  const { error } = await supabase.from("catalog_categories").update({ photo_path: caminho }).eq("id", id).eq("workspace_id", perfil.workspace_id)
+  if (error) return { erro: "Não deu para salvar a foto. Tente de novo." }
+  if (antes.photo_path !== caminho) await apagarFotoDaCategoria(antes.photo_path, perfil.workspace_id)
   return { catalogo: await listarCatalogo() }
 }
 

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import { sessaoAtual } from "@/lib/sessao"
 import { carregarVitrine } from "@/lib/catalogo/loja-publica"
-import { textoDoMinimo, type MinimoPedido } from "@/app/loja/components/pedido"
+import { minimoDaFaixa, type MinimoPedido } from "@/app/loja/components/pedido"
 import { carregarTema } from "./actions"
 import { carregarConfiguracoes } from "../configuracoes/actions"
 import { AparenciaClient } from "./aparencia-client"
@@ -18,5 +18,5 @@ export default async function AparenciaPage() {
   if (!tema) redirect("/perfil")
   const minimo: MinimoPedido = dados?.config.minimo ?? { tipo: "nenhum", valor: null }
 
-  return <AparenciaClient inicial={tema} categorias={vitrine.categorias} produtos={vitrine.produtos} avisoMinimo={textoDoMinimo(minimo)} />
+  return <AparenciaClient inicial={tema} categorias={vitrine.categorias} produtos={vitrine.produtos} avisoMinimo={minimoDaFaixa(minimo)} />
 }

@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils"
 export interface CategoriaCatalogo {
   id: string
   nome: string
+  /** B61-02: foto enviada pelo lojista para o círculo da categoria na loja. */
+  fotoUrl: string | null
 }
 
 export interface ProdutoResumo {
