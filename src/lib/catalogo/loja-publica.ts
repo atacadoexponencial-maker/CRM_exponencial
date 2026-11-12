@@ -34,6 +34,7 @@ export function urlPublicaImagem(caminho: string): string {
 interface ColunasTema {
   store_name: string | null
   welcome_text: string
+  instagram: string | null
   logo_path: string | null
   banner_path: string | null
   primary_color: string
@@ -48,6 +49,7 @@ export function temaDasConfiguracoes(cfg: ColunasTema | null, nomeEmpresa: strin
   return {
     nomeLoja: cfg.store_name ?? nomeEmpresa,
     boasVindas: cfg.welcome_text,
+    instagram: cfg.instagram ?? "",
     logoUrl: cfg.logo_path ? urlPublicaImagem(cfg.logo_path) : null,
     bannerUrl: cfg.banner_path ? urlPublicaImagem(cfg.banner_path) : null,
     corPrincipal: cfg.primary_color,
@@ -66,7 +68,7 @@ export const carregarLojaPublica = cache(async function carregarLojaPublica(ende
   const service = createServiceClient()
   const { data: cfg } = await service
     .from("catalog_settings")
-    .select("workspace_id, slug, min_type, min_value, order_discounts, closing_message, published, store_name, welcome_text, logo_path, banner_path, primary_color, background_color, font_id, layout, orders_whatsapp, workspaces(name)")
+    .select("workspace_id, slug, min_type, min_value, order_discounts, closing_message, published, store_name, welcome_text, instagram, logo_path, banner_path, primary_color, background_color, font_id, layout, orders_whatsapp, workspaces(name)")
     .eq("slug", endereco.toLowerCase())
     .eq("published", true)
     .maybeSingle()

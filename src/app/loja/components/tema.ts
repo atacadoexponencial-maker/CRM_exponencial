@@ -8,6 +8,8 @@ export type LayoutVitrine = "grade" | "lista" | "destaque"
 export interface TemaLoja {
   nomeLoja: string
   boasVindas: string
+  /** B61-01: perfil do Instagram sem o @; vazio quando a loja não informou. */
+  instagram: string
   logoUrl: string | null
   bannerUrl: string | null
   /** Hex "#rrggbb": botões, preços, destaques. */
@@ -21,6 +23,7 @@ export interface TemaLoja {
 export const TEMA_PADRAO: TemaLoja = {
   nomeLoja: "Minha loja",
   boasVindas: "",
+  instagram: "",
   logoUrl: null,
   bannerUrl: null,
   corPrincipal: "#1f2937",

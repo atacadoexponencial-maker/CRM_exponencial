@@ -55,4 +55,5 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B58 | sem spec (limpeza do código legado sem uso, PR #5) | sem issue |
 | B59 | `../spec-modelos-de-automacao.md` (bloco de anotação e galeria com cinco modelos prontos; no ar desde 05/11/2026; falta o CA-B59-27 da B59-02, com chip) | `concluidas_B59/` |
 | B60 | sem spec (usabilidade do pipeline: áreas de ação rápida ao arrastar, card inteiro no arraste e agendar tarefa pelo painel; no ar desde 09/11/2026, PR #16) | sem issue |
+| B61 | `../spec-nova-vitrine-da-loja.md` (reservada em 10/11/2026: nova aparência da loja pública do catálogo — topo com logo redonda e compartilhar, categorias com foto e subcategorias, cartão em retrato com tamanhos e selo, lista contínua, página do produto com entrega e pagamento) | `concluidas_B61/` (quando houver) |
 | F1 | `docs/specs-arquivadas/spec-fluxo-com-prova.md` (melhoria do fluxo de desenvolvimento: critérios de aceite com código, auditor, lições) | `concluidas_F1/` |

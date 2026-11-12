@@ -883,6 +883,7 @@ export type Database = {
           banner_path: string | null
           closing_message: string
           font_id: string
+          instagram: string | null
           layout: string
           logo_path: string | null
           min_type: string
@@ -903,6 +904,7 @@ export type Database = {
           banner_path?: string | null
           closing_message?: string
           font_id?: string
+          instagram?: string | null
           layout?: string
           logo_path?: string | null
           min_type?: string
@@ -923,6 +925,7 @@ export type Database = {
           banner_path?: string | null
           closing_message?: string
           font_id?: string
+          instagram?: string | null
           layout?: string
           logo_path?: string | null
           min_type?: string

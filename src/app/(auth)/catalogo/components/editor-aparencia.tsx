@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 import { Vitrine, type CategoriaVitrine, type ProdutoVitrine } from "@/app/loja/components/vitrine"
 import { avisoContraste, corValida, luminancia, type LayoutVitrine, type TemaLoja } from "@/app/loja/components/tema"
 import { FONTES } from "@/app/loja/components/fontes"
-import { FORMATOS_FOTO, FORMATOS_LOGO, TAMANHO_MAX_BANNER, TAMANHO_MAX_LOGO } from "@/lib/catalogo/regras"
+import { FORMATOS_FOTO, FORMATOS_LOGO, LIMITE_BOAS_VINDAS, TAMANHO_MAX_BANNER, TAMANHO_MAX_LOGO } from "@/lib/catalogo/regras"
 
 export type TipoImagemLoja = "logo" | "banner"
 
@@ -211,7 +211,7 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          {tipo === "logo" ? "PNG, JPG ou WebP, até 2 MB. Sem logo, aparece o nome da loja." : "PNG, JPG ou WebP, até 5 MB. Formato largo (ex.: 1500 × 500)."}
+          {tipo === "logo" ? "PNG, JPG ou WebP, até 2 MB. Aparece dentro de um círculo: imagem quadrada fica melhor. Sem logo, aparece a inicial do nome." : "PNG, JPG ou WebP, até 5 MB. Formato largo (ex.: 1500 × 500)."}
         </p>
         {erroImagem[tipo] && <p className="text-xs text-erro">{erroImagem[tipo]}</p>}
         {tipo === "logo" && avisoLogo && (
@@ -262,7 +262,11 @@ export function EditorAparencia({ inicial, categorias, produtos, avisoMinimo, on
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="boasVindas">Texto de boas-vindas (opcional)</Label>
-            <Input id="boasVindas" value={tema.boasVindas} onChange={(e) => mudar("boasVindas", e.target.value)} maxLength={140} placeholder="Ex.: Moda feminina no atacado desde 2015" />
+            <Input id="boasVindas" value={tema.boasVindas} onChange={(e) => mudar("boasVindas", e.target.value)} maxLength={LIMITE_BOAS_VINDAS} placeholder="Ex.: Moda feminina no atacado desde 2015" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="instagram">Instagram da loja (opcional)</Label>
+            <Input id="instagram" value={tema.instagram} onChange={(e) => mudar("instagram", e.target.value)} placeholder="@sualoja" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
           </div>
         </section>
 

@@ -5,7 +5,7 @@
 import { randomUUID } from "node:crypto"
 import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
-import { BUCKET_CATALOGO, caminhoDaEmpresa, FORMATOS_FOTO, FORMATOS_LOGO, IDS_FONTE, LAYOUTS_VITRINE, TAMANHO_MAX_BANNER, TAMANHO_MAX_LOGO } from "@/lib/catalogo/regras"
+import { BUCKET_CATALOGO, caminhoDaEmpresa, FORMATOS_FOTO, FORMATOS_LOGO, IDS_FONTE, LAYOUTS_VITRINE, LIMITE_BOAS_VINDAS, AVISO_INSTAGRAM, normalizarInstagram, TAMANHO_MAX_BANNER, TAMANHO_MAX_LOGO } from "@/lib/catalogo/regras"
 import { temaDasConfiguracoes, urlPublicaImagem } from "@/lib/catalogo/loja-publica"
 import { corValida, type TemaLoja } from "@/app/loja/components/tema"
 
@@ -16,7 +16,7 @@ async function exigirGestor() {
   return { ok: true as const, supabase, perfil }
 }
 
-const COLUNAS_TEMA = "store_name, welcome_text, logo_path, banner_path, primary_color, background_color, font_id, layout"
+const COLUNAS_TEMA = "store_name, welcome_text, instagram, logo_path, banner_path, primary_color, background_color, font_id, layout"
 
 export async function carregarTema(): Promise<TemaLoja | null> {
   const s = await exigirGestor()
@@ -57,7 +57,9 @@ export async function salvarAparencia(tema: TemaLoja): Promise<{ erro?: string; 
 
   const nome = tema.nomeLoja.trim()
   if (!nome || nome.length > 60) return { erro: "O nome da loja precisa ter de 1 a 60 caracteres." }
-  if (tema.boasVindas.length > 140) return { erro: "O texto de boas-vindas passa de 140 caracteres." }
+  if (typeof tema.boasVindas !== "string" || tema.boasVindas.length > LIMITE_BOAS_VINDAS) return { erro: `O texto de boas-vindas passa de ${LIMITE_BOAS_VINDAS} caracteres.` }
+  const instagram = normalizarInstagram(tema.instagram)
+  if (instagram === false) return { erro: AVISO_INSTAGRAM }
   const principal = tema.corPrincipal.toLowerCase()
   const fundo = tema.corFundo.toLowerCase()
   if (!corValida(principal) || !corValida(fundo)) return { erro: "Use cores no formato #rrggbb." }
@@ -73,6 +75,7 @@ export async function salvarAparencia(tema: TemaLoja): Promise<{ erro?: string; 
     workspace_id: perfil.workspace_id,
     store_name: nome,
     welcome_text: tema.boasVindas.trim(),
+    instagram,
     logo_path: logo,
     banner_path: banner,
     primary_color: principal,

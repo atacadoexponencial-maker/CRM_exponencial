@@ -26,6 +26,7 @@ export function LojaClient({ endereco, tema, minimo, descontos, categorias, prod
         quantidadeNoCarrinho={pecas}
         avisoMinimo={textoDoMinimo(minimo)}
         avisoDesconto={resumoDoDesconto(descontos)}
+        hrefLoja={`/loja/${endereco}`}
         hrefProduto={(id) => `/loja/${endereco}/p/${id}`}
         onAbrirCarrinho={abrir}
         onRepetirPedido={repetir}

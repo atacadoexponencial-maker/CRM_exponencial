@@ -10,6 +10,7 @@ import { ImageOff, RotateCcw, Search, ShoppingBag } from "lucide-react"
 import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { coresDaVitrine, type TemaLoja } from "./tema"
 import { familiaDaFonte } from "./fontes"
+import { LogoRedonda, TopoLoja } from "./topo-loja"
 import { contemTermo } from "@/lib/normalizar-busca"
 import { LIMITE_POR_SECAO, ORDENS_VITRINE, ordemVitrineValida, ordenarProdutos, type OrdemVitrine } from "@/lib/catalogo/vitrine"
 import { resumoDaGrade, resumoDasRegras, type FaixaPreco, type GradeFechada } from "@/lib/catalogo/regras-de-venda"
@@ -51,6 +52,8 @@ interface VitrineProps {
   avisoMinimo?: string | null
   /** B31-02, ex.: "10% a menos a partir de 50 peças". */
   avisoDesconto?: string | null
+  /** B61-01: caminho da vitrine, para o "Compartilhar catálogo"; a prévia da Aparência não tem. */
+  hrefLoja?: string
   /** Endereço da página do produto: o cartão vira link de verdade (abre em nova aba, copia, pré-carrega). */
   hrefProduto?: (id: string) => string
   /** Sem `hrefProduto` (a prévia da Aparência), o cartão só chama isto. */
@@ -178,13 +181,9 @@ export function CabecalhoLoja({
   const cores = coresDaVitrine(tema)
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 border-b" style={{ background: cores.fundo, borderColor: cores.borda }}>
-      <button type="button" onClick={onAbrirLoja} className="min-w-0 text-left" aria-label={`Voltar para ${tema.nomeLoja}`} disabled={!onAbrirLoja}>
-        {tema.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={tema.logoUrl} alt={tema.nomeLoja} className="h-9 max-w-40 object-contain" />
-        ) : (
-          <span className="block text-lg font-semibold truncate">{tema.nomeLoja}</span>
-        )}
+      <button type="button" onClick={onAbrirLoja} className="min-w-0 flex items-center gap-2.5 text-left" aria-label={`Voltar para ${tema.nomeLoja}`} disabled={!onAbrirLoja}>
+        <LogoRedonda tema={tema} className="size-9 text-base" />
+        <span className="block text-base font-semibold truncate">{tema.nomeLoja}</span>
       </button>
       <div className="flex items-center gap-2 shrink-0">
       {onRepetirPedido && (
@@ -212,7 +211,7 @@ export function CabecalhoLoja({
   )
 }
 
-export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, avisoMinimo, avisoDesconto, hrefProduto, onAbrirProduto, onAbrirCarrinho, onRepetirPedido }: VitrineProps) {
+export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, avisoMinimo, avisoDesconto, hrefLoja, hrefProduto, onAbrirProduto, onAbrirCarrinho, onRepetirPedido }: VitrineProps) {
   const [categoriaAtiva, setCategoriaAtiva] = useState<string | null>(null)
   const [busca, setBusca] = useState("")
   const [ordem, setOrdem] = useState<OrdemVitrine>("loja")
@@ -279,19 +278,12 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
     <div className="@container min-h-full [&_:is(h1,h2,h3)]:[font-family:inherit]" style={{ background: cores.fundo, color: cores.texto, fontFamily: familiaDaFonte(tema.fonteId) }}>
       <CabecalhoLoja tema={tema} quantidadeNoCarrinho={quantidadeNoCarrinho} onAbrirCarrinho={onAbrirCarrinho} onRepetirPedido={onRepetirPedido} />
 
-      {tema.bannerUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={tema.bannerUrl} alt="" fetchPriority="high" className="w-full aspect-[3/1] @3xl:aspect-[4/1] object-cover" />
-      )}
+      <TopoLoja tema={tema} hrefLoja={hrefLoja} />
 
       <div className="px-4 pt-5 pb-10 space-y-5 max-w-6xl mx-auto">
-        <div className="space-y-1">
-          {tema.logoUrl ? <h1 className="text-2xl @3xl:text-3xl font-semibold">{tema.nomeLoja}</h1> : <h1 className="sr-only">{tema.nomeLoja}</h1>}
-          {tema.boasVindas && <p className="text-sm" style={{ color: cores.suave }}>{tema.boasVindas}</p>}
-          {(avisoMinimo || avisoDesconto) && (
-            <p className="text-xs font-medium" style={{ color: cores.principal }}>{[avisoMinimo, avisoDesconto].filter(Boolean).join(" · ")}</p>
-          )}
-        </div>
+        {(avisoMinimo || avisoDesconto) && (
+          <p className="text-xs font-medium" style={{ color: cores.principal }}>{[avisoMinimo, avisoDesconto].filter(Boolean).join(" · ")}</p>
+        )}
 
         <div className="relative">
           <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: cores.suave }} />
