@@ -44,7 +44,13 @@ export interface ProdutoVitrine {
   destaque: boolean
   /** Resumo das variações para o cartão (ex.: "P, M, G · 2 opções de cor"); `null` sem variação. */
   variacoes: string | null
+  /** B61-04: opções do primeiro tipo de variação, para os quadradinhos do cartão em retrato. */
+  opcoes?: { nome: string; esgotada: boolean }[]
+  /** B61-04: resumo do segundo tipo de variação, ex.: "2 opções de cor". */
+  outrasOpcoes?: string | null
   esgotado: boolean
+  /** B61-04: o servidor decide pelo limite do lojista; o cartão só mostra o selo. */
+  ultimasUnidades?: boolean
 }
 
 interface VitrineProps {
@@ -105,7 +111,7 @@ function Preco({ produto, cores }: { produto: ProdutoVitrine; cores: Cores }) {
   )
 }
 
-function Foto({ produto, cores, className }: { produto: ProdutoVitrine; cores: Cores; className: string }) {
+function Foto({ produto, cores, className, selo }: { produto: ProdutoVitrine; cores: Cores; className: string; selo?: string | null }) {
   return (
     <div className={`relative overflow-hidden ${className}`} style={{ background: cores.superficie }}>
       {produto.fotoUrl ? (
@@ -117,6 +123,11 @@ function Foto({ produto, cores, className }: { produto: ProdutoVitrine; cores: C
       {produto.esgotado && (
         <span className="absolute left-2 top-2 rounded px-1.5 py-0.5 text-[11px] font-medium" style={{ background: cores.texto, color: cores.fundo }}>
           Esgotado
+        </span>
+      )}
+      {!produto.esgotado && selo && (
+        <span data-selo-cartao className="absolute left-2 top-2 rounded px-1.5 py-0.5 text-[11px] font-semibold" style={{ background: cores.principal, color: cores.sobrePrincipal }}>
+          {selo}
         </span>
       )}
     </div>
@@ -133,6 +144,41 @@ function CartaoGrade({ produto, cores, href, onAbrir }: CartaoProps) {
         <p className="text-sm leading-snug line-clamp-2">{produto.nome}</p>
         {produto.variacoes && <p className="text-xs truncate" style={{ color: cores.suave }}>{produto.variacoes}</p>}
         <Preco produto={produto} cores={cores} />
+      </div>
+    </Cartao>
+  )
+}
+
+/** B61-04: cartão do modelo "grade": foto em retrato, REF, opções em quadradinhos e selo. */
+function CartaoRetrato({ produto, cores, href, onAbrir }: CartaoProps) {
+  const codigo = produto.codigo.trim()
+  const opcoes = produto.opcoes ?? []
+  return (
+    <Cartao href={href} onAbrir={onAbrir} className="text-left rounded-xl overflow-hidden border transition-transform active:scale-[0.98]" style={{ borderColor: cores.borda }}>
+      <div data-cartao-retrato>
+        <Foto produto={produto} cores={cores} className="aspect-[4/5]" selo={produto.ultimasUnidades ? "Últimas unidades!" : null} />
+        <div className="p-2.5 space-y-1.5">
+          {codigo && <p className="text-[11px] truncate" style={{ color: cores.suave }}>REF: {codigo}</p>}
+          <p className="text-sm leading-snug line-clamp-2">{produto.nome}</p>
+          <Preco produto={produto} cores={cores} />
+          {opcoes.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {opcoes.map((o) => (
+                <span
+                  key={o.nome}
+                  data-opcao-cartao
+                  data-esgotada={o.esgotada ? "sim" : "nao"}
+                  className="min-w-7 h-7 px-1.5 inline-flex items-center justify-center rounded border text-[11px] font-medium"
+                  style={{ borderColor: cores.borda, color: o.esgotada ? cores.suave : cores.texto, textDecoration: o.esgotada ? "line-through" : "none" }}
+                >
+                  {o.nome}
+                  {o.esgotada && <span className="sr-only"> (esgotado)</span>}
+                </span>
+              ))}
+            </div>
+          )}
+          {produto.outrasOpcoes && <p className="text-xs truncate" style={{ color: cores.suave }}>{produto.outrasOpcoes}</p>}
+        </div>
       </div>
     </Cartao>
   )
@@ -427,7 +473,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
                 <div>{mostrados.map((p) => <LinhaLista key={p.id} {...cartao(p)} />)}</div>
               ) : (
                 <div className="grid grid-cols-2 @xl:grid-cols-3 @3xl:grid-cols-4 gap-3">
-                  {mostrados.map((p) => <CartaoGrade key={p.id} {...cartao(p)} />)}
+                  {mostrados.map((p) => (tema.layout === "grade" ? <CartaoRetrato key={p.id} {...cartao(p)} /> : <CartaoGrade key={p.id} {...cartao(p)} />))}
                 </div>
               )}
               {restantes > 0 && (

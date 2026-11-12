@@ -899,6 +899,7 @@ export type Database = {
           instagram: string | null
           layout: string
           logo_path: string | null
+          low_stock_limit: number | null
           min_type: string
           min_value: number | null
           order_discounts: Json
@@ -920,6 +921,7 @@ export type Database = {
           instagram?: string | null
           layout?: string
           logo_path?: string | null
+          low_stock_limit?: number | null
           min_type?: string
           min_value?: number | null
           order_discounts?: Json
@@ -941,6 +943,7 @@ export type Database = {
           instagram?: string | null
           layout?: string
           logo_path?: string | null
+          low_stock_limit?: number | null
           min_type?: string
           min_value?: number | null
           order_discounts?: Json

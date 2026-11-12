@@ -22,6 +22,8 @@ export interface ConfigCatalogo {
   descontos: DescontoPedido[]
   mensagemFechamento: string
   publicado: boolean
+  /** B61-04: limite do selo "Últimas unidades!", como a pessoa digitou; vazio ou ausente = sem selo. O servidor confere. */
+  limiteSelo?: string
 }
 
 /** Endereço da loja: minúsculas, números e hífen, sem acento. */
@@ -242,6 +244,24 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
         {config.descontos.length < MAX_DESCONTOS && (
           <Button size="sm" variant="outline" onClick={() => mudar("descontos", [...config.descontos, { min: Number.NaN, percent: Number.NaN }])}>Adicionar desconto</Button>
         )}
+      </section>
+
+      <section className="rounded-md border bg-card p-5 space-y-3">
+        <h2 className="text-sm font-semibold">Selo Últimas unidades <span className="font-normal text-muted-foreground">· opcional</span></h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <Label htmlFor="limite-selo" className="font-normal">Mostrar com quantas peças ou menos</Label>
+          <Input
+            id="limite-selo"
+            inputMode="numeric"
+            value={config.limiteSelo ?? ""}
+            onChange={(e) => mudar("limiteSelo", e.target.value)}
+            className="w-20"
+            aria-describedby="limite-selo-ajuda"
+          />
+        </div>
+        <p id="limite-selo-ajuda" className="text-xs text-muted-foreground">
+          O cartão do produto mostra &quot;Últimas unidades!&quot; quando o estoque total dele chega a esse número. Vazio não mostra o selo.
+        </p>
       </section>
 
       <section className="rounded-md border bg-card p-5 space-y-2">

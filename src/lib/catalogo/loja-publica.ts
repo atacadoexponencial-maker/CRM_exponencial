@@ -5,9 +5,9 @@
 
 import { cache } from "react"
 import { createServiceClient } from "@/integrations/supabase/service"
-import { chaveCombinacao, combinacoes, type TipoVariacao } from "./combinacoes"
+import { chaveCombinacao, combinacoes, estoqueTotal, type TipoVariacao } from "./combinacoes"
 import { BUCKET_CATALOGO } from "./regras"
-import { resumoDasVariacoes } from "./vitrine"
+import { mostraUltimasUnidades, opcoesDoCartao, resumoDasVariacoes } from "./vitrine"
 import { descontosDoBanco, faixasDoBanco, gradeDoBanco, type DescontoPedido } from "./regras-de-venda"
 import { TEMA_PADRAO, type LayoutVitrine, type TemaLoja } from "@/app/loja/components/tema"
 import type { IdFonte } from "@/app/loja/components/fontes"
@@ -93,7 +93,7 @@ export const carregarLojaPublica = cache(async function carregarLojaPublica(ende
 /** Categorias e produtos visíveis da loja, na ordem do lojista. */
 export async function carregarVitrine(workspaceId: string): Promise<{ categorias: CategoriaVitrine[]; produtos: ProdutoVitrine[] }> {
   const service = createServiceClient()
-  const [{ data: cats }, { data: subs }, { data: prods }] = await Promise.all([
+  const [{ data: cats }, { data: subs }, { data: prods }, { data: cfg }] = await Promise.all([
     service.from("catalog_categories").select("id, name, photo_path").eq("workspace_id", workspaceId).order("position").order("created_at"),
     service.from("catalog_subcategories").select("id, name, category_id").eq("workspace_id", workspaceId).order("position").order("created_at"),
     service
@@ -103,12 +103,16 @@ export async function carregarVitrine(workspaceId: string): Promise<{ categorias
       .eq("visible", true)
       .order("position")
       .order("created_at"),
+    service.from("catalog_settings").select("low_stock_limit").eq("workspace_id", workspaceId).maybeSingle(),
   ])
+  // B61-04: com quantas peças ou menos o cartão mostra "Últimas unidades!"; `null` = sem selo.
+  const limiteDoSelo = cfg?.low_stock_limit ?? null
 
   const produtos = (prods ?? []).map((p) => {
     const estoque = Object.fromEntries(((p.catalog_stock as { combination: string; quantity: number }[]) ?? []).map((e) => [e.combination, e.quantity]))
     const fotos = (p.photos as string[]) ?? []
     const tipos = (p.variant_types as TipoVariacao[]) ?? []
+    const doCartao = opcoesDoCartao(tipos, estoque)
     return {
       id: p.id,
       nome: p.name,
@@ -124,7 +128,10 @@ export async function carregarVitrine(workspaceId: string): Promise<{ categorias
       subcategoriaId: p.subcategory_id,
       destaque: p.featured,
       variacoes: resumoDasVariacoes(tipos),
+      opcoes: doCartao.opcoes,
+      outrasOpcoes: doCartao.outras,
       esgotado: combinacoes(tipos).every((c) => (estoque[chaveCombinacao(c)] ?? 0) === 0),
+      ultimasUnidades: mostraUltimasUnidades(estoqueTotal(tipos, estoque), limiteDoSelo),
     }
   })
   // Só categorias com algum produto visível aparecem na loja.
