@@ -105,7 +105,7 @@ function montarSecoes(atrasados: number, pedidosNovos: number): SecaoNav[] {
         { href: "/configuracoes/campos", label: "Campos personalizados", icone: ListPlus, papeis: ["admin", "gerente"] },
         { href: "/configuracoes/mensagens-rapidas", label: "Mensagens Rápidas", icone: MessageSquareText, papeis: ["admin"] },
         { href: "/configuracoes/etiquetas", label: "Etiquetas", icone: Tags, papeis: ["admin"] },
-        { href: "/configuracoes/templates", label: "Templates", icone: FileBadge, papeis: ["admin"] },
+        { href: "/configuracoes/templates", label: "Templates", icone: FileBadge, papeis: ["admin", "gerente"] },
         { href: "/configuracoes/usuarios", label: "Usuários", icone: Users, papeis: ["admin"] },
         { href: "/configuracoes/times", label: "Times", icone: UsersRound, papeis: ["admin"] },
         { href: "/configuracoes/whatsapp", label: "WhatsApp", icone: Plug, papeis: ["admin"] },

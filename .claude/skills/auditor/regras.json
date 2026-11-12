@@ -2,7 +2,7 @@
   {
     "id": "segredo-no-frontend",
     "nome": "segredo ou chave de servidor em arquivo que roda no navegador",
-    "origem": "CLAUDE.md, regra 5: nunca exponha chaves de API ou secrets no frontend",
+    "origem": "AGENTS.md, regra 5: nunca exponha chaves de API ou secrets no frontend",
     "tipo": "conteudo",
     "arquivos": [
       "src/**/*.{ts,tsx}"
@@ -17,7 +17,7 @@
   {
     "id": "tipos-gerados",
     "nome": "arquivo de tipos gerado do banco mudou sem migration junto",
-    "origem": "CLAUDE.md, Backend: types.ts é auto-gerado, não editar",
+    "origem": "AGENTS.md, Arquitetura: types.ts é gerado, não editar à mão",
     "tipo": "intocavel",
     "arquivos": [
       "src/integrations/supabase/types.ts"

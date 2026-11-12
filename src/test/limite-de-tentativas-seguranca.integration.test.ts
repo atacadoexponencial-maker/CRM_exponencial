@@ -4,10 +4,14 @@
 // Auth, o "passado" (tentativas anteriores) é gravado direto na tabela de tentativas.
 
 import { createClient } from "@supabase/supabase-js"
-import { describe, it, expect, vi, beforeAll, afterAll } from "vitest"
+import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from "vitest"
 
 let ipDaVez = ""
-vi.mock("next/headers", () => ({ headers: async () => new Headers({ "x-forwarded-for": ipDaVez }) }))
+vi.mock("next/headers", () => ({
+  headers: async () => new Headers({ "x-forwarded-for": ipDaVez }),
+  // O login certo grava o cookie do tema antes do redirect
+  cookies: async () => ({ set: () => {} }),
+}))
 vi.mock("@/integrations/supabase/server", async () => {
   const { createClient } = await import("@supabase/supabase-js")
   return {
@@ -20,8 +24,14 @@ vi.mock("@/integrations/supabase/server", async () => {
 
 import { cadastrarEmpresa } from "@/app/cadastro/actions"
 import { realizarLogin } from "@/app/login/actions"
-import { AVISO_MUITAS_TENTATIVAS } from "@/app/login/avisos"
+import { AVISO_CONFIRME_QUE_E_PESSOA, AVISO_MUITAS_TENTATIVAS } from "@/app/login/avisos"
+import { AVISO_CONFERENCIA_HUMANA } from "@/lib/conferencia-humana"
 import { chaveDoEmail, chaveDoIp } from "@/lib/limite-de-tentativas"
+
+// Chaves e conferência de teste públicas da Cloudflare (B50-02): o vitest.config põe a
+// que aceita; a RECUSA recusa qualquer conferência
+const RECUSA = "2x0000000000000000000000000000000AA"
+const CONFERENCIA_DE_TESTE = "XXXX.DUMMY.TOKEN.XXXX"
 
 const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
   auth: { autoRefreshToken: false, persistSession: false },
@@ -70,12 +80,150 @@ describe("B20-05 — Freio de tentativas no cadastro e no login", { timeout: 30_
     expect(count).toBe(0)
   })
 
-  it("should reject a 11ª tentativa no mesmo e-mail mesmo com a senha certa", async () => {
-    ipDaVez = `ip-login-email-${ts}`
-    chavesUsadas.push(chaveDoIp(ipDaVez))
-    await passado("login", chaveDoEmail(emailUsuario), 10)
+  // Limite no cadastro e na senha nova (10/11/2026): a vaga é reservada numa operação só,
+  // como no login. Antes, cinco cadastros disparados juntos liam a mesma contagem e passavam.
+  it("should deixar passar só um de vários cadastros disparados juntos no endereço com 4", async () => {
+    ipDaVez = `ip-cadastro-rajada-${ts}`
+    await passado("cadastro", chaveDoIp(ipDaVez), 4)
 
-    expect(await realizarLogin(emailUsuario, SENHA)).toEqual({ erro: AVISO_MUITAS_TENTATIVAS })
+    // Convite inválido: a tentativa é contada antes dele e nada é criado
+    const resultados = await Promise.all(
+      Array.from({ length: 5 }, (_, i) =>
+        cadastrarEmpresa({
+          nomeEmpresa: `Rajada B20 ${ts} ${i}`, nomeResponsavel: "Robô", email: `b20-05-rajada-cad-${ts}-${i}@teste.com`,
+          senha: SENHA, confirmarSenha: SENHA, conferencia: CONFERENCIA_DE_TESTE, convite: "convite-que-nao-existe",
+        })
+      )
+    )
+    expect(resultados.filter((r) => "erro" in r && r.erro === "limite")).toHaveLength(4)
+    expect(resultados.filter((r) => "erro" in r && r.erro === "convite_invalido")).toHaveLength(1)
+    expect(await contar("cadastro", chaveDoIp(ipDaVez))).toBe(5)
+  })
+
+  // Pista 10 da auditoria run-2: o e-mail no limite pede a conferência humana em vez de
+  // travar, para ninguém deixar o dono de fora errando a senha dele de propósito.
+  describe("e-mail com 10 senhas erradas", () => {
+    const emailNoLimite = `b20-05-no-limite-${ts}@teste.com`
+    let usuarioNoLimite = ""
+
+    beforeAll(async () => {
+      usuarioNoLimite = (await service.auth.admin.createUser({ email: emailNoLimite, password: SENHA, email_confirm: true })).data.user!.id
+      await service.from("profiles").insert({ id: usuarioNoLimite, workspace_id: empresa, name: "No limite", role: "admin" })
+      await passado("login", chaveDoEmail(emailNoLimite), 10)
+    })
+
+    afterEach(() => {
+      vi.unstubAllEnvs()
+      vi.restoreAllMocks()
+    })
+
+    afterAll(async () => {
+      await service.from("profiles").delete().eq("id", usuarioNoLimite)
+      await service.auth.admin.deleteUser(usuarioNoLimite)
+    })
+
+    function deOutroEndereco(sufixo: string) {
+      ipDaVez = `ip-login-email-${sufixo}-${ts}`
+      chavesUsadas.push(chaveDoIp(ipDaVez))
+    }
+
+    it("should pedir a conferência, sem conferir a senha nem contar, quando ela não vem", async () => {
+      deOutroEndereco("sem")
+      const antes = await contar("login", chaveDoEmail(emailNoLimite))
+      expect(await realizarLogin(emailNoLimite, SENHA)).toEqual({ erro: AVISO_CONFIRME_QUE_E_PESSOA, pedirConferencia: true })
+      expect(await contar("login", chaveDoEmail(emailNoLimite))).toBe(antes)
+    })
+
+    it("should mandar à Cloudflare a conferência vazia (desafio que falhou no navegador)", async () => {
+      deOutroEndereco("vazia")
+      // A chave que aceita a conferência de teste recusa a vazia: a Cloudflare foi consultada
+      expect(await realizarLogin(emailNoLimite, SENHA, null, "")).toEqual({ erro: AVISO_CONFERENCIA_HUMANA, pedirConferencia: true })
+
+      // Com a Cloudflare fora do ar, passa (regra do B50)
+      deOutroEndereco("vazia-fora")
+      const fetchDeVerdade = globalThis.fetch
+      vi.spyOn(globalThis, "fetch").mockImplementation((alvo, opcoes) =>
+        String(alvo instanceof Request ? alvo.url : alvo).includes("challenges.cloudflare.com")
+          ? Promise.reject(new TypeError("fetch failed"))
+          : fetchDeVerdade(alvo, opcoes)
+      )
+      const r = await realizarLogin(emailNoLimite, SENHA, null, "").then((x) => x, (e: { digest?: string }) => e)
+      expect((r as { digest?: string }).digest).toMatch(/NEXT_REDIRECT.*\/dashboard/)
+    })
+
+    it("should recusar a conferência inválida", async () => {
+      deOutroEndereco("recusada")
+      vi.stubEnv("TURNSTILE_SECRET_KEY", RECUSA)
+      expect(await realizarLogin(emailNoLimite, SENHA, null, CONFERENCIA_DE_TESTE)).toEqual({
+        erro: AVISO_CONFERENCIA_HUMANA,
+        pedirConferencia: true,
+      })
+    })
+
+    it("should contar a senha errada e pedir conferência nova, mesmo com a conferência válida", async () => {
+      deOutroEndereco("errada")
+      const antes = await contar("login", chaveDoEmail(emailNoLimite))
+      expect(await realizarLogin(emailNoLimite, "senha-errada-1", null, CONFERENCIA_DE_TESTE)).toEqual({
+        erro: "E-mail ou senha incorretos",
+        pedirConferencia: true,
+      })
+      expect(await contar("login", chaveDoEmail(emailNoLimite))).toBe(antes + 1)
+    })
+
+    it("should deixar o dono entrar com a senha certa e a conferência válida", async () => {
+      deOutroEndereco("certa")
+      const erro = await realizarLogin(emailNoLimite, SENHA, null, CONFERENCIA_DE_TESTE).then(
+        (r) => r,
+        (e: { digest?: string }) => e
+      )
+      // Entrar termina no redirect para o Dashboard
+      expect((erro as { digest?: string }).digest).toMatch(/NEXT_REDIRECT.*\/dashboard/)
+    })
+  })
+
+  // Detalhes da auditoria (09/11/2026): a vaga é reservada numa operação só, como na loja
+  it("should deixar passar só uma de várias senhas erradas disparadas juntas no e-mail com 9 erros", async () => {
+    const email = `b20-05-rajada-${ts}@teste.com`
+    await passado("login", chaveDoEmail(email), 9)
+
+    // Cada pedido de um endereço próprio: o freio do endereço não pesa
+    let n = 0
+    const enderecos = Array.from({ length: 5 }, () => `ip-rajada-${ts}-${n++}`)
+    chavesUsadas.push(...enderecos.map(chaveDoIp))
+    const resultados = await Promise.all(
+      enderecos.map(async (endereco) => {
+        ipDaVez = endereco
+        return realizarLogin(email, "senha-errada-rajada")
+      })
+    )
+
+    const passaram = resultados.filter((r) => !r.pedirConferencia)
+    expect(passaram).toEqual([{ erro: "E-mail ou senha incorretos" }])
+    expect(resultados.filter((r) => r.pedirConferencia)).toHaveLength(4)
+    expect(await contar("login", chaveDoEmail(email))).toBe(10)
+  })
+
+  it("should devolver a vaga do endereço e do e-mail no login certo e quando falta a conferência", async () => {
+    ipDaVez = `ip-login-devolve-${ts}`
+    chavesUsadas.push(chaveDoIp(ipDaVez), chaveDoEmail(emailUsuario))
+    const antesEmail = await contar("login", chaveDoEmail(emailUsuario))
+    await realizarLogin(emailUsuario, SENHA).catch(() => {}) // acerto termina em redirect
+    expect(await contar("login", chaveDoIp(ipDaVez))).toBe(0)
+    expect(await contar("login", chaveDoEmail(emailUsuario))).toBe(antesEmail)
+
+    const email = `b20-05-devolve-${ts}@teste.com`
+    await passado("login", chaveDoEmail(email), 10)
+    expect(await realizarLogin(email, SENHA)).toEqual({ erro: AVISO_CONFIRME_QUE_E_PESSOA, pedirConferencia: true })
+    expect(await contar("login", chaveDoIp(ipDaVez))).toBe(0)
+  })
+
+  it("should travar o endereço com 30 erros mesmo com a conferência válida", async () => {
+    ipDaVez = `ip-login-ip-conferencia-${ts}`
+    await passado("login", chaveDoIp(ipDaVez), 30)
+
+    expect(await realizarLogin(`b20-05-qualquer-${ts}@teste.com`, "errada-123", null, CONFERENCIA_DE_TESTE)).toEqual({
+      erro: AVISO_MUITAS_TENTATIVAS,
+    })
   })
 
   it("should reject login a partir de 30 erros do mesmo endereço, para qualquer e-mail", async () => {

@@ -182,7 +182,6 @@ export function fraseAcao(bloco: BlocoAcao, opcoes: OpcoesEditor): string {
       return `Mover card para "${nomeOuApagado(etapasDoFunil(p.funil, opcoes), p.etapa)}" (${nomeOuApagado(funisDoEditor(opcoes), p.funil)})`
     }
     case "iniciar_sequencia":
-      return p.sequencia_id ? `Iniciar a sequência "${nomeOuApagado(opcoes.sequencias, p.sequencia_id)}"` : rotulo
     case "resolver_conversa":
     case "reabrir_conversa":
       return rotulo
@@ -233,6 +232,7 @@ export function rotuloDaSaidaDaEspera(bloco: BlocoEspera, saida: SaidaDaEspera):
 }
 
 export function fraseBloco(bloco: Bloco, opcoes: OpcoesEditor): string {
+  if (bloco.tipo === "anotacao") return bloco.texto
   if (bloco.tipo === "gatilho") return fraseGatilho(bloco, opcoes)
   if (bloco.tipo === "acao") return fraseAcao(bloco, opcoes)
   if (bloco.tipo === "espera") return saidasDaEspera(bloco).length === 0 ? "Nenhuma opção ligada" : `Esperar ${oQueEspera(bloco)}`

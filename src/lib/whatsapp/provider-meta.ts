@@ -1,6 +1,6 @@
 // Implementação do contrato de WhatsApp para a API Oficial da Meta (Cloud API).
 //
-// Este é o único arquivo do CRM que sabe o que é `wamid`, `v21.0`,
+// Este é o único arquivo do CRM que sabe o que é `wamid`,
 // `messaging_product` ou `graph.facebook.com`. Nenhum arquivo de negócio deve
 // voltar a conhecer esses nomes.
 //
@@ -16,8 +16,8 @@ import type {
   ResultadoEnvio,
   RecursoWhatsApp,
 } from "./tipos"
+import { GRAPH } from "./versao-da-graph"
 
-const VERSAO_API = "v21.0"
 
 /**
  * Tradução do vocabulário do CRM para o da Meta. A chave do objeto de mídia no
@@ -54,7 +54,7 @@ export function criarProviderMeta(
   phoneNumberId: string,
   accessToken: string
 ): ProviderWhatsApp {
-  const url = `https://graph.facebook.com/${VERSAO_API}/${phoneNumberId}/messages`
+  const url = `${GRAPH}/${phoneNumberId}/messages`
 
   /**
    * Faz o POST e traduz a resposta.
@@ -110,6 +110,44 @@ export function criarProviderMeta(
         to: destino,
         type: tipo,
         [tipo]: objeto,
+      })
+    },
+
+    // B54-06: template com os parâmetros de cada destinatário.
+    async enviarTemplate(destino, template) {
+      const components: Array<Record<string, unknown>> = []
+      if (template.cabecalho) {
+        if (template.cabecalho.tipo === "texto") {
+          if (template.cabecalho.valores.length > 0) {
+            components.push({ type: "header", parameters: template.cabecalho.valores.map((text) => ({ type: "text", text })) })
+          }
+        } else {
+          const tipo = TIPO_META[template.cabecalho.tipo]
+          const objeto: Record<string, unknown> = { link: template.cabecalho.link }
+          if (tipo === "document" && template.cabecalho.nomeArquivo !== undefined) objeto.filename = template.cabecalho.nomeArquivo
+          components.push({ type: "header", parameters: [{ type: tipo, [tipo]: objeto }] })
+        }
+      }
+      if (template.corpo.length > 0) {
+        components.push({ type: "body", parameters: template.corpo.map((text) => ({ type: "text", text })) })
+      }
+      for (const botao of template.botoes ?? []) {
+        components.push({
+          type: "button",
+          sub_type: "url",
+          index: String(botao.indice),
+          parameters: botao.valores.map((text) => ({ type: "text", text })),
+        })
+      }
+      return postar({
+        messaging_product: "whatsapp",
+        to: destino,
+        type: "template",
+        template: {
+          name: template.nome,
+          language: { code: template.idioma },
+          ...(components.length > 0 ? { components } : {}),
+        },
       })
     },
 

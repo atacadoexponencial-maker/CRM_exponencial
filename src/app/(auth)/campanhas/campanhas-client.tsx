@@ -153,6 +153,7 @@ export function CampanhasClient({ campanhasIniciais }: { campanhasIniciais: Camp
             <thead>
               <tr className="border-b">
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Campanha</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Mensagem</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Status</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Destinatários</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Envio</th>
@@ -168,6 +169,8 @@ export function CampanhasClient({ campanhasIniciais }: { campanhasIniciais: Camp
                       {c.nome}
                     </Link>
                   </td>
+                  {/* B54-06 (CA-B54-28): o que a campanha manda; "Template: nome" na campanha por template */}
+                  <td className="px-4 py-3 text-muted-foreground max-w-xs truncate" title={c.mensagem}>{c.mensagem}</td>
                   <td className="px-4 py-3">
                     <span className={cn("text-xs rounded-full px-2 py-0.5 font-medium", STATUS_CLASS[c.status])}>
                       {STATUS_LABEL[c.status] ?? c.status}

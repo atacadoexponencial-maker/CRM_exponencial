@@ -10,9 +10,9 @@ import { PainelConversa } from "./painel-conversa"
 import { PainelContato } from "./painel-contato"
 import { COOKIE_CAIXA_RECOLHIDA, gravarPreferencia } from "@/lib/preferencias-layout"
 import { buscarConversa, buscarMensagens, carregarMaisConversas, marcarComoLidas } from "../actions"
-import type { Conversa } from "../mock-conversas"
+import type { Conversa } from "../tipos-conversa"
 import { aplicarAtualizacaoDaConversa, type LinhaDaConversa } from "../conversa-atualizada"
-import type { Mensagem } from "../mock-mensagens"
+import type { Mensagem } from "../tipos-mensagem"
 import { aplicarMensagemRecebida, aplicarStatus, confirmarEnvio } from "../mensagens-locais"
 
 interface ChatLayoutProps {

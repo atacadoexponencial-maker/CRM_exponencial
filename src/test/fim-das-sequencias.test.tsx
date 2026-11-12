@@ -21,6 +21,8 @@ vi.mock("@/lib/limite-de-tentativas", () => ({
   ipDaRequisicao: async () => "10.0.0.1",
   passouDoLimite: async () => false,
   registrarTentativa: async () => {},
+  reservarTentativa: async () => ({ reservada: true, id: null }),
+  limparTentativasAntigas: async () => {},
 }))
 
 import nextConfig from "../../next.config"
@@ -53,7 +55,7 @@ const OPCOES: OpcoesEditor = {
   atendentes: [],
   tags: [],
   times: [],
-  sequencias: [],
+ 
   mensagensRapidas: [],
   numeros: [],
   horarioComercial: HORARIO_PADRAO,

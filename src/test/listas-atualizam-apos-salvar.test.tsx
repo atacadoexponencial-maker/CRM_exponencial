@@ -4,7 +4,7 @@
 
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import type { Contato } from "@/app/(auth)/contatos/mock-contatos"
+import type { Contato } from "@/app/(auth)/contatos/tipos-contato"
 import type { ItemAgenda } from "@/app/(auth)/agenda/actions"
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }) }))

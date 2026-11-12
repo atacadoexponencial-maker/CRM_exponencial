@@ -18,6 +18,7 @@ import { chaveDaVariavel, preencherVariaveis as preencherVariaveisDoTexto, varia
 import { formatarValor } from "@/lib/campos-personalizados"
 import { camposDaEmpresa, valoresDosContatos } from "@/lib/campos-personalizados-servidor"
 import { arquivoDaAutomacaoValido } from "./referencias"
+import { contatoDaLojaQueNaoEscreveu, MOTIVO_CONTATO_DA_LOJA } from "@/lib/contato-da-loja"
 
 export interface VariaveisDaMensagem {
   /** Nome do contato; sem nome, vazio, e entra o texto reserva da variável (B38-05). */
@@ -91,7 +92,16 @@ export async function enviarArquivo(
 /** Falha de rede com o WhatsApp: o pedido pode ter saído ou não, e ninguém confirmou (B22-24). */
 export const MOTIVO_FALHA_DE_REDE = "Sem conexão com o WhatsApp: o envio não foi confirmado"
 
+// Auditoria run-2 (pista 7): a regra do contato da loja fica em `lib/contato-da-loja.ts`,
+// usada também pelas campanhas
+export { MOTIVO_CONTATO_DA_LOJA }
+
 async function enviar(contexto: ContextoDaExecucao, contactId: string, conteudo: ConteudoDoEnvio): Promise<ResultadoAcao> {
+  // Auditoria run-2 (pista 7): o telefone do pedido da loja foi digitado por quem pediu,
+  // sem conferência. O número da empresa só escreve para ele depois que ele escrever.
+  if (await contatoDaLojaQueNaoEscreveu(contexto.supabase, contexto.gatilho.workspaceId, contactId)) {
+    return { ok: false, motivo: MOTIVO_CONTATO_DA_LOJA }
+  }
   const conversaId = await conversaDoEvento(contexto)
   try {
     return await enviarWhatsAppComMotivo(contexto.supabase, contexto.gatilho.workspaceId, contactId, conteudo, conversaId)

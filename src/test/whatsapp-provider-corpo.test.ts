@@ -12,6 +12,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 
 import { criarProviderMeta } from "@/lib/whatsapp/provider-meta"
+import { GRAPH } from "@/lib/whatsapp/versao-da-graph"
 
 const PHONE_NUMBER_ID = "1167696503100575"
 const ACCESS_TOKEN = "token-de-teste"
@@ -45,11 +46,11 @@ function requisicaoFeita() {
 }
 
 describe("URL e cabeçalhos", () => {
-  it("chama v21.0/{phone_number_id}/messages", async () => {
+  it("chama <versão da Graph>/{phone_number_id}/messages", async () => {
     await provider().enviarTexto(DESTINO, "olá")
 
     expect(requisicaoFeita().url).toBe(
-      `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`
+      `${GRAPH}/${PHONE_NUMBER_ID}/messages`
     )
   })
 

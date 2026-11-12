@@ -10,8 +10,8 @@
 // são colunas de `contacts` (ficam em `CAMPOS_LIGADOS`); o banco os calcula.
 
 import { z } from "zod"
-import { CLASSIFICACAO_LABEL, TIPO_LABEL, ICP_LABEL } from "@/app/(auth)/contatos/mock-contatos"
-import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
+import { CLASSIFICACAO_LABEL, TIPO_LABEL, ICP_LABEL } from "@/app/(auth)/contatos/tipos-contato"
+import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/etapas-e-tipos"
 import { UFS } from "@/lib/uf"
 import { PERFIS } from "@/lib/relatorios/rfv"
 import { normalizarTexto } from "@/lib/catalogo/planilha"
@@ -243,6 +243,10 @@ export const COLUNAS_FORA_DO_FILTRO = [
   "excluido_por",
   "photo_path",
   "photo_checked_at",
+  // B23 (coexistência): fora do filtro por decisão do Luan em 06/11/2026; a Marcelle não foi consultada
+  "importado_do_celular_em",
+  // Auditoria run-2 (pista 7): só para a trava das automações
+  "origem",
 ] as const
 
 export const ROTULO_DA_COMPARACAO: Record<Comparacao, string> = {

@@ -15,6 +15,7 @@ vi.mock("next/headers", () => ({
 
 import { pedirLinkDeSenhaNova } from "@/app/esqueci-minha-senha/actions"
 import { ASSUNTO_DA_SENHA_NOVA } from "@/lib/email-de-senha-nova"
+import { chaveDoEmail, chaveDoIp } from "@/lib/limite-de-tentativas"
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const service = createClient(URL, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
@@ -36,6 +37,8 @@ const original = globalThis.fetch
 const pedir = (email: string, extra: Record<string, unknown> = {}) => pedirLinkDeSenhaNova({ email, conferencia: CONFERENCIA, ...extra })
 const links = (userId: string) =>
   service.from("redefinicoes_de_senha").select("token_hash, expira_em, usado_em, cancelado_em").eq("user_id", userId).order("criado_em")
+const contarSenhaNova = async (chave: string) =>
+  (await service.from("tentativas_de_acesso").select("id", { count: "exact", head: true }).eq("tipo", "senha_nova").eq("chave", chave)).count ?? 0
 const hash = (codigo: string) => createHash("sha256").update(codigo).digest("hex")
 const codigoDoEnvio = (i: number) => envios[i].text.match(/redefinir-senha\?codigo=([\w-]+)/)![1]
 
@@ -77,6 +80,9 @@ afterAll(async () => {
 
 describe("B52-01 — Pedir o link de senha nova", { timeout: 60_000 }, () => {
   it("CA-B52-02: should mandar à conta ativa o link de 1 hora, guardando só o hash", async () => {
+    // Auditoria run-2 (pista 6): o domínio do link vem do deploy, não do `host` de quem pede
+    vi.stubEnv("VERCEL_ENV", "production")
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://crm.deploy")
     expect(await pedir(`  ${emailAtivo.toUpperCase()} `)).toEqual({ ok: true })
 
     expect(envios).toHaveLength(1)
@@ -85,7 +91,8 @@ describe("B52-01 — Pedir o link de senha nova", { timeout: 60_000 }, () => {
     expect(envios[0].subject).toBe(ASSUNTO_DA_SENHA_NOVA)
     expect(envios[0].text).toContain("1 hora")
     const codigo = codigoDoEnvio(0)
-    expect(envios[0].html).toContain(`href="https://crm.teste/redefinir-senha?codigo=${codigo}"`)
+    expect(envios[0].html).toContain(`href="https://crm.deploy/redefinir-senha?codigo=${codigo}"`)
+    expect(envios[0].html).not.toContain("crm.teste")
 
     const { data } = await links(ativoId)
     const ultimo = data!.at(-1)!
@@ -136,6 +143,40 @@ describe("B52-01 — Pedir o link de senha nova", { timeout: 60_000 }, () => {
     for (let i = 0; i < 10; i++) expect(await pedir(`b52-01-robo-${i}-${ts}@teste.com`)).toEqual({ ok: true })
     expect(await pedir(`b52-01-robo-11-${ts}@teste.com`)).toEqual({ erro: "limite" })
     expect(envios).toEqual([])
+  })
+
+  // Limite no cadastro e na senha nova (10/11/2026): a vaga é reservada numa operação só
+  it("should deixar passar só um de vários pedidos disparados juntos no e-mail com 2", async () => {
+    const email = `b52-01-rajada-${ts}@teste.com`
+    await service.from("tentativas_de_acesso").insert([{ tipo: "senha_nova", chave: chaveDoEmail(email) }, { tipo: "senha_nova", chave: chaveDoEmail(email) }])
+    // Cada pedido de um endereço próprio e conhecido: o freio do endereço não pesa e a
+    // limpeza sabe o que apagar
+    const enderecos = Array.from({ length: 5 }, (_, i) => `b52-01-ip-rajada-${ts}-${i}`)
+    try {
+      const resultados = await Promise.all(
+        enderecos.map((endereco) => {
+          ipDaVez = endereco
+          return pedir(email)
+        })
+      )
+      expect(resultados.filter((r) => "ok" in r)).toHaveLength(1)
+      expect(resultados.filter((r) => "erro" in r && r.erro === "limite")).toHaveLength(4)
+      expect(await contarSenhaNova(chaveDoEmail(email))).toBe(3)
+    } finally {
+      await service.from("tentativas_de_acesso").delete().in("chave", [chaveDoEmail(email), ...enderecos.map(chaveDoIp)])
+    }
+  })
+
+  it("should devolver a vaga do endereço quando o e-mail já está no limite", async () => {
+    const email = `b52-01-devolve-${ts}@teste.com`
+    ipDaVez = `b52-01-ip-devolve-${ts}`
+    await service.from("tentativas_de_acesso").insert(Array.from({ length: 3 }, () => ({ tipo: "senha_nova", chave: chaveDoEmail(email) })))
+    try {
+      expect(await pedir(email)).toEqual({ erro: "limite" })
+      expect(await contarSenhaNova(chaveDoIp(ipDaVez))).toBe(0)
+    } finally {
+      await service.from("tentativas_de_acesso").delete().in("chave", [chaveDoEmail(email), chaveDoIp(ipDaVez)])
+    }
   })
 
   it("CA-B52-07: should recusar o pedido sem conferência ou com ela recusada, sem gravar nem mandar", async () => {

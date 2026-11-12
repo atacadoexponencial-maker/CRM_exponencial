@@ -4,7 +4,7 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { BalaoMensagem } from "@/app/(auth)/chat/components/balao-mensagem"
-import type { Mensagem } from "@/app/(auth)/chat/mock-mensagens"
+import type { Mensagem } from "@/app/(auth)/chat/tipos-mensagem"
 
 const recebida: Mensagem = {
   id: "msg-1",

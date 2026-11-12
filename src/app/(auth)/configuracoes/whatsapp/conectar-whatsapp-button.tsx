@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { completarConexaoWhatsApp } from "./actions"
+import { VERSAO_DA_GRAPH } from "@/lib/whatsapp/versao-da-graph"
 
 declare global {
   interface Window {
@@ -32,7 +33,7 @@ export function ConectarWhatsAppButton() {
         appId: process.env.NEXT_PUBLIC_META_APP_ID,
         autoLogAppEvents: true,
         xfbml: true,
-        version: "v21.0",
+        version: VERSAO_DA_GRAPH,
       })
     }
 

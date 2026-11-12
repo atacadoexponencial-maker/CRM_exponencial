@@ -53,11 +53,6 @@ const CONVERSAS = [
   await feito(db.from("quick_replies").delete().eq("workspace_id", ws).like("title", `${MARCA}%`))
   await feito(db.from("automation_flows").delete().eq("workspace_id", ws).like("nome", `${MARCA}%`))
   await feito(db.from("campaigns").delete().eq("workspace_id", ws).like("nome", `${MARCA}%`))
-  const seqAntigas = (await feito(db.from("sequences").select("id").eq("workspace_id", ws).like("nome", `${MARCA}%`))).map((s) => s.id)
-  if (seqAntigas.length > 0) {
-    await feito(db.from("sequence_steps").delete().in("sequence_id", seqAntigas))
-    await feito(db.from("sequences").delete().in("id", seqAntigas))
-  }
 
   // Conversas: as primeiras ficam com a última mensagem do cliente (bloco "Esperando resposta").
   const etiqueta = (await feito(db.from("labels").select("id").eq("workspace_id", ws).eq("name", "Interessado")))[0]?.id
@@ -108,12 +103,6 @@ const CONVERSAS = [
     { workspace_id: ws, title: `${MARCA} saudacao`, content: "Olá! Tudo bem? Sou do atendimento, como posso ajudar?" },
     { workspace_id: ws, title: `${MARCA} pix`, content: "Segue a chave Pix para pagamento: atacado@exemplo.com" },
     { workspace_id: ws, title: `${MARCA} minimo`, content: "O pedido mínimo é de 12 peças, podendo misturar modelos." },
-  ]))
-
-  const sequencia = (await feito(db.from("sequences").insert({ workspace_id: ws, nome: `${MARCA} Pós-compra`, gatilho: "card_lead", ativa: false, predefinida: false }).select("id").single())).id
-  await feito(db.from("sequence_steps").insert([
-    { sequence_id: sequencia, ordem: 1, tipo: "mensagem", prazo_dias: 0, conteudo: "Obrigada pela compra! Qualquer dúvida, é só chamar." },
-    { sequence_id: sequencia, ordem: 2, tipo: "lembrete", prazo_dias: 7, instrucao: "Perguntar se a mercadoria chegou bem" },
   ]))
 
   await feito(db.from("campaigns").insert({

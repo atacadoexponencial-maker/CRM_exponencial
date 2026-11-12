@@ -21,7 +21,7 @@ const service = createClient(URL, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
 const ts = Date.now()
 const SENHA = "senha-segura-123"
 const AVISO_DE_FORA = { erro: "Anexe o arquivo pela própria campanha" }
-const AVISO_DE_TIPO = { erro: "Tipo de arquivo não aceito. Envie imagem JPG, PNG ou WebP, ou documento PDF, Word, Excel, PowerPoint ou TXT." }
+const AVISO_DE_TIPO = { erro: "Tipo de arquivo não aceito. Envie imagem JPG, PNG ou WebP, vídeo MP4, ou documento PDF, Word, Excel, PowerPoint ou TXT." }
 // Cabeçalho de um PNG de 1x1: o bastante para o Storage aceitar a imagem.
 const PNG = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="), (c) => c.charCodeAt(0))
 let empresaA = "", empresaB = "", gerenteA = "", contatoA = ""

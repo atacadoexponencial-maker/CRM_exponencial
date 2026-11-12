@@ -52,8 +52,6 @@ node e2e/preview/roteiro-b11-06.cjs https://crm-exponencial-xxxx.vercel.app
 node e2e/preview/resetar-empresa-teste.cjs
 node e2e/preview/roteiro-menus.cjs https://crm-exponencial-xxxx.vercel.app
 node e2e/preview/resetar-empresa-teste.cjs
-node e2e/preview/roteiro-b11-08.cjs https://crm-exponencial-xxxx.vercel.app
-node e2e/preview/resetar-empresa-teste.cjs
 node e2e/preview/roteiro-b11-09.cjs https://crm-exponencial-xxxx.vercel.app
 node e2e/preview/resetar-empresa-teste.cjs
 node e2e/preview/roteiro-b11-04.cjs https://crm-exponencial-xxxx.vercel.app
@@ -113,7 +111,6 @@ código de saída 0 só se tudo passou.
 | `roteiro-b22-resto.cjs` | Lote 4 (B22-22 em diante): o resto do QA. Cria um atendente temporário na empresa de teste e o apaga no fim. |
 | `conferir-b22-30-rls.cjs` | Depois da migration `20261014000003`: atendente não lê as regras pela API, admin lê. Fala direto com o banco, sem preview. |
 | `roteiro-b11-06.cjs` | Gatilhos de tag, etiqueta e dado do contato, e automação que não dispara automação. |
-| `roteiro-b11-08.cjs` | Horário comercial pelo diálogo, condição dentro e fora, atribuir ao time, resolver, reabrir e iniciar sequência. |
 | `roteiro-b11-09.cjs` | Fila das automações: a função do banco que entrega um evento por vez por contato, e uma ação com falha que não desfaz o movimento do card. |
 | `roteiro-b11-04.cjs` | Gatilho "mensagem recebida" com as condições de texto e tipo, por mensagens simuladas no webhook do gateway, e o tempo de resposta do webhook com as regras ativas (B11-09). |
 | `roteiro-b11-05.cjs` | ⚠️ Envia 2 mensagens de verdade. Gatilho "mensagem enviada pelo time": a resposta do chat move o card e põe a tag; a mesma frase mandada por uma automação não dispara. |

@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.18"
   }
   public: {
     Tables: {
@@ -322,6 +322,7 @@ export type Database = {
           id: string
           motivo: string | null
           nome_snapshot: string | null
+          reservado_em: string | null
           status: string
           telefone_snapshot: string
           wamid: string | null
@@ -335,6 +336,7 @@ export type Database = {
           id?: string
           motivo?: string | null
           nome_snapshot?: string | null
+          reservado_em?: string | null
           status?: string
           telefone_snapshot: string
           wamid?: string | null
@@ -348,6 +350,7 @@ export type Database = {
           id?: string
           motivo?: string | null
           nome_snapshot?: string | null
+          reservado_em?: string | null
           status?: string
           telefone_snapshot?: string
           wamid?: string | null
@@ -392,6 +395,7 @@ export type Database = {
           nome: string
           segmento: Json
           status: string
+          template: Json | null
           tipo_mensagem: string
           whatsapp_connection_id: string | null
           workspace_id: string
@@ -410,6 +414,7 @@ export type Database = {
           nome: string
           segmento?: Json
           status?: string
+          template?: Json | null
           tipo_mensagem?: string
           whatsapp_connection_id?: string | null
           workspace_id: string
@@ -428,6 +433,7 @@ export type Database = {
           nome?: string
           segmento?: Json
           status?: string
+          template?: Json | null
           tipo_mensagem?: string
           whatsapp_connection_id?: string | null
           workspace_id?: string
@@ -1140,6 +1146,7 @@ export type Database = {
           importado_do_celular_em: string | null
           name: string | null
           observacoes: string | null
+          origem: string | null
           phone_number: string
           photo_checked_at: string | null
           photo_path: string | null
@@ -1159,6 +1166,7 @@ export type Database = {
           importado_do_celular_em?: string | null
           name?: string | null
           observacoes?: string | null
+          origem?: string | null
           phone_number: string
           photo_checked_at?: string | null
           photo_path?: string | null
@@ -1178,6 +1186,7 @@ export type Database = {
           importado_do_celular_em?: string | null
           name?: string | null
           observacoes?: string | null
+          origem?: string | null
           phone_number?: string
           photo_checked_at?: string | null
           photo_path?: string | null
@@ -1407,6 +1416,50 @@ export type Database = {
           },
           {
             foreignKeyName: "conversations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      convites: {
+        Row: {
+          cancelado_em: string | null
+          criado_em: string
+          criado_por: string | null
+          email: string | null
+          expira_em: string
+          id: string
+          token_hash: string
+          usado_em: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          cancelado_em?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          email?: string | null
+          expira_em: string
+          id?: string
+          token_hash: string
+          usado_em?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          cancelado_em?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          email?: string | null
+          expira_em?: string
+          id?: string
+          token_hash?: string
+          usado_em?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convites_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -2100,6 +2153,24 @@ export type Database = {
           },
         ]
       }
+      plataforma_admins: {
+        Row: {
+          criado_em: string
+          email: string
+          user_id: string | null
+        }
+        Insert: {
+          criado_em?: string
+          email: string
+          user_id?: string | null
+        }
+        Update: {
+          criado_em?: string
+          email?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           colunas_ocultas_contatos: string[]
@@ -2173,6 +2244,36 @@ export type Database = {
           },
         ]
       }
+      redefinicoes_de_senha: {
+        Row: {
+          cancelado_em: string | null
+          criado_em: string
+          expira_em: string
+          id: string
+          token_hash: string
+          usado_em: string | null
+          user_id: string
+        }
+        Insert: {
+          cancelado_em?: string | null
+          criado_em?: string
+          expira_em: string
+          id?: string
+          token_hash: string
+          usado_em?: string | null
+          user_id: string
+        }
+        Update: {
+          cancelado_em?: string | null
+          criado_em?: string
+          expira_em?: string
+          id?: string
+          token_hash?: string
+          usado_em?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       reminders: {
         Row: {
           atendente_id: string
@@ -2184,7 +2285,6 @@ export type Database = {
           id: string
           instrucao: string
           origem: string
-          sequence_run_id: string | null
           status: string
           workspace_id: string
         }
@@ -2198,7 +2298,6 @@ export type Database = {
           id?: string
           instrucao: string
           origem: string
-          sequence_run_id?: string | null
           status?: string
           workspace_id: string
         }
@@ -2212,7 +2311,6 @@ export type Database = {
           id?: string
           instrucao?: string
           origem?: string
-          sequence_run_id?: string | null
           status?: string
           workspace_id?: string
         }
@@ -2232,161 +2330,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reminders_sequence_run_id_fkey"
-            columns: ["sequence_run_id"]
-            isOneToOne: false
-            referencedRelation: "sequence_runs"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "reminders_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sequence_runs: {
-        Row: {
-          atendente_id: string | null
-          contact_id: string
-          created_at: string
-          etapa_atual: number
-          finished_at: string | null
-          id: string
-          proxima_execucao: string | null
-          sequence_id: string
-          status: string
-          workspace_id: string
-        }
-        Insert: {
-          atendente_id?: string | null
-          contact_id: string
-          created_at?: string
-          etapa_atual?: number
-          finished_at?: string | null
-          id?: string
-          proxima_execucao?: string | null
-          sequence_id: string
-          status?: string
-          workspace_id: string
-        }
-        Update: {
-          atendente_id?: string | null
-          contact_id?: string
-          created_at?: string
-          etapa_atual?: number
-          finished_at?: string | null
-          id?: string
-          proxima_execucao?: string | null
-          sequence_id?: string
-          status?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sequence_runs_atendente_id_fkey"
-            columns: ["atendente_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sequence_runs_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sequence_runs_sequence_id_fkey"
-            columns: ["sequence_id"]
-            isOneToOne: false
-            referencedRelation: "sequences"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sequence_runs_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sequence_steps: {
-        Row: {
-          conteudo: string | null
-          created_at: string
-          id: string
-          instrucao: string | null
-          ordem: number
-          prazo_dias: number
-          sequence_id: string
-          tipo: string
-        }
-        Insert: {
-          conteudo?: string | null
-          created_at?: string
-          id?: string
-          instrucao?: string | null
-          ordem: number
-          prazo_dias?: number
-          sequence_id: string
-          tipo: string
-        }
-        Update: {
-          conteudo?: string | null
-          created_at?: string
-          id?: string
-          instrucao?: string | null
-          ordem?: number
-          prazo_dias?: number
-          sequence_id?: string
-          tipo?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sequence_steps_sequence_id_fkey"
-            columns: ["sequence_id"]
-            isOneToOne: false
-            referencedRelation: "sequences"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sequences: {
-        Row: {
-          ativa: boolean
-          created_at: string
-          gatilho: string
-          id: string
-          nome: string
-          predefinida: boolean
-          workspace_id: string
-        }
-        Insert: {
-          ativa?: boolean
-          created_at?: string
-          gatilho?: string
-          id?: string
-          nome: string
-          predefinida?: boolean
-          workspace_id: string
-        }
-        Update: {
-          ativa?: boolean
-          created_at?: string
-          gatilho?: string
-          id?: string
-          nome?: string
-          predefinida?: boolean
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sequences_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -2554,29 +2498,44 @@ export type Database = {
       workspaces: {
         Row: {
           created_at: string
+          dono_id: string | null
           fuso: string
           id: string
           name: string
         }
         Insert: {
           created_at?: string
+          dono_id?: string | null
           fuso?: string
           id?: string
           name: string
         }
         Update: {
           created_at?: string
+          dono_id?: string | null
           fuso?: string
           id?: string
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "workspaces_dono_id_fkey"
+            columns: ["dono_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      alinhar_donos_dos_contatos: {
+        Args: { p_workspace_id: string }
+        Returns: number
+      }
       apagar_contato_de_vez: {
         Args: { p_contact_id: string }
         Returns: boolean
@@ -2605,11 +2564,22 @@ export type Database = {
         }
         Returns: string
       }
+      cadastrar_empresa_com_convite: {
+        Args: {
+          p_convite_hash: string
+          p_email: string
+          p_nome_empresa: string
+          p_nome_responsavel: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       condicao_de_contato_sql: { Args: { p_cond: Json }; Returns: string }
       conferir_perfis_rfv: {
         Args: { p_dia: string; p_workspace?: string }
         Returns: number
       }
+      conta_ativa_por_email: { Args: { p_email: string }; Returns: string }
       contato_na_lixeira: { Args: { p_contact_id: string }; Returns: boolean }
       conversa_na_lixeira: {
         Args: { p_conversation_id: string }
@@ -2628,7 +2598,12 @@ export type Database = {
           trecho: string
         }[]
       }
+      criar_cards_de_entrada_que_faltam: {
+        Args: { p_workspace_id: string }
+        Returns: number
+      }
       criar_funil: { Args: { p_etapas: Json; p_nome: string }; Returns: string }
+      email_ja_tem_conta: { Args: { p_email: string }; Returns: boolean }
       filtrar_contatos: {
         Args: {
           p_busca?: string
@@ -2767,6 +2742,15 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      reservar_tentativa: {
+        Args: {
+          p_chave: string
+          p_janela_minutos: number
+          p_limite: number
+          p_tipo: string
+        }
+        Returns: number
+      }
       salvar_estoque_produto:
         | {
             Args: { p_estoque: Json; p_produto: string; p_tipos: Json }
@@ -2781,13 +2765,8 @@ export type Database = {
             }
             Returns: undefined
           }
-      salvar_sequencia: {
-        Args: {
-          p_etapas: Json
-          p_gatilho: string
-          p_id: string
-          p_nome: string
-        }
+      usar_redefinicao_de_senha: {
+        Args: { p_token_hash: string }
         Returns: string
       }
     }

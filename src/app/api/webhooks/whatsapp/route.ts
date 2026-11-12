@@ -174,6 +174,7 @@ export async function POST(request: NextRequest) {
           await aplicarEdicaoOuExclusaoDaMeta({
             supabase,
             workspaceId: workspace_id,
+            de: message.from,
             aviso: message as unknown as AvisoDeEdicaoDaMeta,
             quando: new Date(Number(message.timestamp) * 1000).toISOString(),
           })

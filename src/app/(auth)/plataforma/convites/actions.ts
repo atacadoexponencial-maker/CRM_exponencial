@@ -4,8 +4,8 @@
 // cancela e gera link novo; a tabela não tem política, então tudo passa pela chave de
 // serviço depois desta conferência.
 
-import { headers } from "next/headers"
 import { sessaoAtual } from "@/lib/sessao"
+import { enderecoDoApp } from "@/lib/endereco-do-app"
 import { ehDaPlataforma } from "@/lib/plataforma"
 import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 import { instanteNoFuso } from "@/lib/datas"
@@ -46,16 +46,16 @@ export type ConviteListado = {
 
 async function quemDaPlataforma(): Promise<string | null> {
   const { user } = await sessaoAtual()
-  if (!user || !(await ehDaPlataforma(user.email))) return null
+  if (!user || !(await ehDaPlataforma(user.id))) return null
   return user.id
 }
 
-/** Como em Catálogo → Configurações: o host de quem pediu, para o preview levar ao preview. */
+/**
+ * Auditoria run-2 (pista 6): o domínio vem do deploy (a prévia continua levando à
+ * prévia), não do cabeçalho de quem pede.
+ */
 async function linkDoConvite(codigo: string): Promise<string> {
-  const h = await headers()
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "crm-exponencial.vercel.app"
-  const protocolo = h.get("x-forwarded-proto") ?? "https"
-  return `${protocolo}://${host}/cadastro?convite=${codigo}`
+  return `${enderecoDoApp()}/cadastro?convite=${codigo}`
 }
 
 async function vencimento(validade: Validade): Promise<Date | null> {

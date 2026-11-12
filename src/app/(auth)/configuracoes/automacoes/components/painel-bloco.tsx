@@ -62,7 +62,7 @@ import { TextoComVariaveis } from "@/components/shared/texto-com-variaveis"
 const textareaClass =
   "w-full min-h-24 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 resize-y"
 
-const TITULO = { gatilho: "Gatilho", condicao: "Condição", acao: "Ação", espera: "Esperar" } as const
+const TITULO = { gatilho: "Gatilho", condicao: "Condição", acao: "Ação", espera: "Esperar", anotacao: "Anotação" } as const
 
 const paraItens = (opcoes: Opcao[]): ItemSelecao[] => opcoes.map((o) => ({ valor: o.id, rotulo: o.nome }))
 

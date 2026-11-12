@@ -3,7 +3,8 @@
 import { formatarDataDoCalendario } from "@/lib/datas"
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { FileText, Image as ImageIcon, Info, Loader2, MessageSquare, Paperclip, SlidersHorizontal } from "lucide-react"
+import { FileText,
+  FileBadge, Image as ImageIcon, Info, Loader2, MessageSquare, Paperclip, SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -30,6 +31,7 @@ import {
   contarDestinatarios,
   salvarRascunho,
   uploadArquivoCampanha,
+  templatesParaCampanha,
 } from "../actions"
 import type {
   AvaliacaoDoDisparo,
@@ -38,7 +40,25 @@ import type {
   DestinatarioPreview,
   NumeroParaCampanha,
   Segmento,
+  TemplateDaCampanha,
+  TemplateParaCampanha,
+  TipoDeMensagemDaCampanha,
 } from "../actions"
+import { OrigensDoTemplate } from "./origens-do-template"
+import { PreviaDoTemplate } from "@/components/shared/previa-do-template"
+import {
+  ORIGENS_FIXAS,
+  ROTULO_DO_CABECALHO,
+  ajustarVariaveis,
+  avisoDasVariaveisDoTemplate,
+  avisoDoArquivoDoCabecalho,
+  cabecalhoEhMidia,
+  partesComOrigens,
+  variaveisVazias,
+} from "@/lib/templates-da-meta"
+
+/** B54-04 (CA-B54-15): o template escolhido não existe no número novo. */
+export const AVISO_TEMPLATE_NAO_EXISTE_NO_NUMERO = "O template escolhido não existe neste número"
 
 /** B48-18: quantos destinatários a lista mostra antes do "Ver todos". */
 const DESTINATARIOS_VISIVEIS = 5
@@ -67,9 +87,15 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
 
   const [nome, setNome] = useState(campanha?.nome ?? "")
   const [segmento, setSegmento] = useState<Segmento>(campanha?.segmento ?? {})
-  const [tipoMensagem, setTipoMensagem] = useState<"texto" | "imagem" | "documento">(
+  const [tipoMensagem, setTipoMensagem] = useState<TipoDeMensagemDaCampanha>(
     campanha?.tipoMensagem ?? "texto"
   )
+  // B54-04: o template escolhido e a lista de aprovados do número da campanha.
+  const [template, setTemplate] = useState<TemplateDaCampanha | null>(campanha?.template ?? null)
+  const [templates, setTemplates] = useState<TemplateParaCampanha[]>([])
+  const [carregandoTemplates, setCarregandoTemplates] = useState(false)
+  const [erroDosTemplates, setErroDosTemplates] = useState<string | null>(null)
+  const [avisoDoTemplate, setAvisoDoTemplate] = useState<string | null>(null)
   const [conteudo, setConteudo] = useState(campanha?.conteudo ?? "")
   /**
    * B7-03: número de origem. Vazio significa "o número do workspace" — é o
@@ -102,9 +128,72 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
   // B53-06: o aviso das 24h só vale para número da API Oficial. Sem número
   // escolhido, a campanha sai pelo da empresa: só some se todos são do canal direto.
   const numeroDaCampanha = numeros.find((n) => n.id === numeroOrigem)
-  const avisoDas24h = numeroDaCampanha
+  const avisoDas24h = tipoMensagem !== "template" && (numeroDaCampanha
     ? !numeroDaCampanha.ehCanalDireto
-    : !(numeros.length > 0 && numeros.every((n) => n.ehCanalDireto))
+    : !(numeros.length > 0 && numeros.every((n) => n.ehCanalDireto)))
+  // B54-04: template só com um número da API Oficial escolhido (SUP-B54-04).
+  const numeroTemTemplates = Boolean(numeroDaCampanha && !numeroDaCampanha.ehCanalDireto)
+
+  /**
+   * B54-04: a lista de templates é do número. Ao trocar de número, um template que não
+   * existe no novo (ou número do canal direto) é apagado e o tipo volta a Texto
+   * (CA-B54-15).
+   */
+  async function trocarNumero(novo: string) {
+    setNumeroOrigem(novo)
+    setAvisoDoTemplate(null)
+    const numeroNovo = numeros.find((n) => n.id === novo)
+    const oficial = Boolean(numeroNovo && !numeroNovo.ehCanalDireto)
+    if (!oficial) {
+      setTemplates([])
+      if (tipoMensagem === "template" || template) {
+        setTemplate(null)
+        setTipoMensagem("texto")
+        setAvisoDoTemplate(AVISO_TEMPLATE_NAO_EXISTE_NO_NUMERO)
+      }
+      return
+    }
+    // Sem template em jogo, não há o que conferir: a lista só é pedida ao escolher o tipo.
+    if (!template && tipoMensagem !== "template") {
+      setTemplates([])
+      return
+    }
+    const lista = await carregarTemplates(novo)
+    if (template && !lista.some((t) => t.id === template.id)) {
+      setTemplate(null)
+      setTipoMensagem("texto")
+      setAvisoDoTemplate(AVISO_TEMPLATE_NAO_EXISTE_NO_NUMERO)
+    }
+  }
+
+  async function carregarTemplates(connectionId: string): Promise<TemplateParaCampanha[]> {
+    setCarregandoTemplates(true)
+    setErroDosTemplates(null)
+    const resultado = await templatesParaCampanha(connectionId)
+    setCarregandoTemplates(false)
+    if (resultado.erro) setErroDosTemplates(resultado.erro)
+    setTemplates(resultado.templates)
+    return resultado.templates
+  }
+
+  function escolherTipo(tipo: TipoDeMensagemDaCampanha) {
+    setTipoMensagem(tipo)
+    setAvisoDoTemplate(null)
+    if (tipo === "template" && numeroOrigem && templates.length === 0) void carregarTemplates(numeroOrigem)
+  }
+
+  function escolherTemplate(id: string) {
+    const t = templates.find((x) => x.id === id)
+    setTemplate(t ? { id: t.id, name: t.name, language: t.language, cabecalho: t.partes?.cabecalho?.tipo ?? null, variaveis: variaveisVazias(t.partes) } : null)
+  }
+
+  // Campanha reaberta já no tipo template: a lista do número vem ao abrir a etapa 2.
+  useEffect(() => {
+    if (etapa === 2 && tipoMensagem === "template" && numeroOrigem && templates.length === 0 && !carregandoTemplates && !erroDosTemplates) {
+      void carregarTemplates(numeroOrigem)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [etapa])
   // B42-02: quem recebe é o filtro de Contatos; o painel monta, o servidor conta.
   const [painelAberto, setPainelAberto] = useState(false)
   const filtro = segmento.filtro ?? FILTRO_VAZIO
@@ -183,6 +272,8 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
       arquivoUrl,
       arquivoNome,
       whatsappConnectionId: numeroOrigem || null,
+      // B54-04: só no tipo template.
+      template: tipoMensagem === "template" ? template : null,
     }
   }
 
@@ -224,6 +315,25 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
   }
 
   function avancarEtapa2() {
+    if (tipoMensagem === "template") {
+      if (!template) {
+        setErro("Escolha o template da campanha")
+        return
+      }
+      // B54-05: variáveis com origem e reserva (CA-B54-17) e arquivo do cabeçalho (CA-B54-18)
+      const avisoDasVariaveis = avisoDasVariaveisDoTemplate(variaveisDoTemplate)
+      if (avisoDasVariaveis) {
+        setErro(avisoDasVariaveis)
+        return
+      }
+      if (cabecalhoEhMidia(template.cabecalho) && !arquivoUrl) {
+        setErro(avisoDoArquivoDoCabecalho(template.cabecalho))
+        return
+      }
+      setErro(null)
+      setEtapa(3)
+      return
+    }
     if (!conteudo.trim()) {
       setErro("Escreva a mensagem da campanha")
       return
@@ -298,6 +408,13 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
 
   // B38-05: a prévia usa o primeiro contato da amostra; os campos mostram o texto reserva
   const previewMensagem = preencherVariaveis(conteudo, { nome_contato: amostra[0]?.nome ?? "Maria", nome_vendedor: "Vendedor(a)" })
+  // B54-05: o template escolhido como a Meta o devolveu, e de onde vem cada variável.
+  const partesDoTemplateEscolhido = templates.find((t) => t.id === template?.id)?.partes ?? null
+  const variaveisDoTemplate = ajustarVariaveis(partesDoTemplateEscolhido, template?.variaveis)
+  const rotuloDaOrigem = (origem: string) =>
+    ORIGENS_FIXAS.find((o) => o.valor === origem)?.rotulo ??
+    (opcoes.campos ?? []).find((c) => `campo:${chaveDaVariavel(c.nome)}` === origem)?.nome ??
+    origem
   const variaveis: VariavelDoBotao[] = [
     { chave: "nome_contato", rotulo: "Nome do contato" },
     { chave: "nome_vendedor", rotulo: "Nome do vendedor" },
@@ -441,6 +558,41 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
       {/* ─── Etapa 2: Mensagem ─── */}
       {etapa === 2 && (
         <div className="flex flex-col gap-5">
+          {/* B7-03: por qual número a campanha dispara. B54-03: escolhido antes da mensagem,
+              porque o tipo de mensagem depende do canal do número. */}
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="camp-numero">Enviar pelo número</Label>
+            {numeros.length === 0 ? (
+              <p className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
+                Nenhum número conectado. Conecte um número em Configurações &gt; WhatsApp antes de
+                disparar.
+              </p>
+            ) : (
+              <select
+                id="camp-numero"
+                className={selectClass}
+                value={numeroOrigem}
+                onChange={(e) => void trocarNumero(e.target.value)}
+              >
+                <option value="">Usar o número conectado da empresa</option>
+                {numeros.map((n) => (
+                  <option key={n.id} value={n.id}>
+                    {[n.numero ?? "número não confirmado", n.nomeExibicao, n.canalNome]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {avisoDoTemplate && (
+            <p className="flex gap-2 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-3 text-xs">
+              <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
+              <span>{avisoDoTemplate}</span>
+            </p>
+          )}
+
           <div className="flex flex-col gap-2">
             <Label>Tipo de mensagem</Label>
             <div className="flex gap-2">
@@ -449,12 +601,14 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
                   ["texto", "Texto", MessageSquare],
                   ["imagem", "Imagem + legenda", ImageIcon],
                   ["documento", "Documento + legenda", FileText],
-                ] as Array<["texto" | "imagem" | "documento", string, typeof MessageSquare]>
+                  // B54-04: o quarto tipo só aparece com número da API Oficial escolhido.
+                  ...(numeroTemTemplates ? [["template", "Template", FileBadge]] : []),
+                ] as Array<[TipoDeMensagemDaCampanha, string, typeof MessageSquare]>
               ).map(([tipo, label, Icone]) => (
                 <button
                   key={tipo}
                   type="button"
-                  onClick={() => setTipoMensagem(tipo)}
+                  onClick={() => escolherTipo(tipo)}
                   className={cn(
                     "flex-1 rounded-lg border p-3 text-sm flex flex-col items-center gap-1.5 transition-colors",
                     tipoMensagem === tipo
@@ -469,13 +623,55 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
             </div>
           </div>
 
-          {tipoMensagem !== "texto" && (
+          {!numeroTemTemplates && (
+            <p className="text-xs text-muted-foreground -mt-1">Template só existe na API Oficial</p>
+          )}
+
+          {tipoMensagem === "template" && (
             <div className="flex flex-col gap-1.5">
-              <Label>Arquivo</Label>
+              <Label htmlFor="camp-template">Template</Label>
+              {carregandoTemplates ? (
+                <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> Carregando templates…</p>
+              ) : erroDosTemplates ? (
+                <p className="rounded-md bg-erro-fundo px-3 py-2 text-sm text-erro">{erroDosTemplates}</p>
+              ) : templates.length === 0 ? (
+                <p className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
+                  Nenhum template aprovado neste número. Crie um em Configurações &gt; Templates e aguarde a aprovação da Meta.
+                </p>
+              ) : (
+                <select
+                  id="camp-template"
+                  className={selectClass}
+                  value={template?.id ?? ""}
+                  onChange={(e) => escolherTemplate(e.target.value)}
+                >
+                  <option value="">Escolha um template aprovado</option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name} · {t.language}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+
+          {/* B54-05: o template com variáveis e, se o cabeçalho é mídia, o arquivo */}
+          {tipoMensagem === "template" && template && partesDoTemplateEscolhido && (
+            <OrigensDoTemplate
+              partes={partesDoTemplateEscolhido}
+              variaveis={variaveisDoTemplate}
+              campos={(opcoes.campos ?? []).map((c) => ({ valor: `campo:${chaveDaVariavel(c.nome)}`, rotulo: c.nome }))}
+              onMudar={(variaveis) => setTemplate({ ...template, variaveis })}
+            />
+          )}
+
+          {((tipoMensagem !== "texto" && tipoMensagem !== "template") || (tipoMensagem === "template" && cabecalhoEhMidia(template?.cabecalho))) && (
+            <div className="flex flex-col gap-1.5">
+              <Label>{tipoMensagem === "template" ? `Arquivo do cabeçalho (${ROTULO_DO_CABECALHO[template!.cabecalho as "imagem" | "video" | "documento"].toLowerCase()})` : "Arquivo"}</Label>
               <input
                 ref={arquivoRef}
                 type="file"
-                accept={tipoMensagem === "imagem" ? "image/*" : undefined}
+                data-testid="arquivo-da-campanha"
+                accept={tipoMensagem === "imagem" || template?.cabecalho === "imagem" ? "image/*" : template?.cabecalho === "video" ? "video/mp4" : undefined}
                 className="hidden"
                 onChange={handleUpload}
               />
@@ -491,6 +687,14 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
             </div>
           )}
 
+          {tipoMensagem === "template" && template && partesDoTemplateEscolhido && (
+            <div className="rounded-lg border p-3">
+              <span className="text-xs text-muted-foreground block mb-1.5">Preview</span>
+              <PreviaDoTemplate partes={partesComOrigens(partesDoTemplateEscolhido, variaveisDoTemplate, rotuloDaOrigem)} />
+            </div>
+          )}
+
+          {tipoMensagem !== "template" && (<>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="camp-conteudo">
               {tipoMensagem === "texto" ? "Mensagem" : "Legenda"}
@@ -514,6 +718,7 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
               </div>
             </div>
           )}
+          </>)}
 
           {/* B53-06: a janela de 24h é regra da Meta; no canal direto não vale */}
           {avisoDas24h && (
@@ -532,60 +737,35 @@ export function EditorCampanhaClient({ campanha, opcoes, numeros, filtrosSalvos:
       {/* ─── Etapa 3: Agendamento ─── */}
       {etapa === 3 && (
         <div className="flex flex-col gap-5">
-          {/* B7-03: por qual número a campanha dispara. */}
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="camp-numero">Enviar pelo número</Label>
-            {numeros.length === 0 ? (
-              <p className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
-                Nenhum número conectado. Conecte um número em Configurações &gt; WhatsApp antes de
-                disparar.
-              </p>
-            ) : (
-              <>
-                <select
-                  id="camp-numero"
-                  className={selectClass}
-                  value={numeroOrigem}
-                  onChange={(e) => setNumeroOrigem(e.target.value)}
-                >
-                  <option value="">Usar o número conectado da empresa</option>
-                  {numeros.map((n) => (
-                    <option key={n.id} value={n.id}>
-                      {[n.numero ?? "número não confirmado", n.nomeExibicao, n.canalNome]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </option>
-                  ))}
-                </select>
-                {/* B8-01: o aviso e a estimativa vêm prontos do servidor. */}
-                {avaliacao?.aviso && (
-                  <p className="flex gap-2 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-3 text-xs ">
-                    <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
-                    <span>{avaliacao.aviso}</span>
-                  </p>
-                )}
-                {/* B26-03: número em aquecimento, com o dia e os limites que a fila usa */}
-                {avaliacao?.aquecimento && (
-                  <p className="flex gap-2 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-3 text-xs">
-                    <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
-                    <span>{avaliacao.aquecimento}</span>
-                  </p>
-                )}
-                {avaliacao?.estimativa && (
-                  <p className="rounded-lg border bg-muted/40 p-3 text-xs">
-                    <strong className="font-medium">Duração estimada:</strong> {avaliacao.estimativa}
-                    {!avaliacao.ritmoConfirmado && (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        Estimativa aproximada: o ritmo atual do número não pôde ser consultado, e o
-                        padrão do sistema foi usado.
-                      </span>
-                    )}
-                  </p>
-                )}
-              </>
-            )}
-          </div>
+          {/* B8-01/B26-03: a avaliação do disparo pelo número escolhido na etapa 2 (B54-03). */}
+          {numeros.length > 0 && (avaliacao?.aviso || avaliacao?.aquecimento || avaliacao?.estimativa) && (
+            <div className="flex flex-col gap-2">
+              {avaliacao?.aviso && (
+                <p className="flex gap-2 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-3 text-xs ">
+                  <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
+                  <span>{avaliacao.aviso}</span>
+                </p>
+              )}
+              {avaliacao?.aquecimento && (
+                <p className="flex gap-2 rounded-lg border border-aviso/30 bg-aviso-fundo text-aviso p-3 text-xs">
+                  <Info className="size-4 shrink-0 mt-0.5" aria-hidden />
+                  <span>{avaliacao.aquecimento}</span>
+                </p>
+              )}
+              {avaliacao?.estimativa && (
+                <p className="rounded-lg border bg-muted/40 p-3 text-xs">
+                  <strong className="font-medium">Duração estimada:</strong> {avaliacao.estimativa}
+                  {!avaliacao.ritmoConfirmado && (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      Estimativa aproximada: o ritmo atual do número não pôde ser consultado, e o
+                      padrão do sistema foi usado.
+                    </span>
+                  )}
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex flex-col gap-2">
             <Label>Quando enviar</Label>

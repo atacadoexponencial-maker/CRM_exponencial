@@ -52,9 +52,10 @@ const codigoDo = (link: string) => new globalThis.URL(link).searchParams.get("co
 const doUsuario = () => service.from("convites").select("id, email, expira_em, token_hash").eq("criado_por", plataformaId)
 
 beforeAll(async () => {
-  await service.from("plataforma_admins").insert({ email: emailPlataforma })
   const { data } = await service.auth.admin.createUser({ email: emailPlataforma, password: SENHA, email_confirm: true })
   plataformaId = data.user!.id
+  // Auditoria run-2 (pista 5): a lista da plataforma vale pela conta
+  await service.from("plataforma_admins").insert({ email: emailPlataforma, user_id: plataformaId })
   usuarios.push(plataformaId)
   const { data: outro } = await service.auth.admin.createUser({ email: emailComConta, password: SENHA, email_confirm: true })
   usuarios.push(outro.user!.id)

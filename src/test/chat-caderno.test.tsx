@@ -3,7 +3,7 @@
 
 import { render, screen, waitFor, within } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import type { Conversa } from "@/app/(auth)/chat/mock-conversas"
+import type { Conversa } from "@/app/(auth)/chat/tipos-conversa"
 import { resumoDeCompras } from "@/lib/resumo-de-compras"
 
 const AGORA = new Date("2026-10-22T15:00:00-03:00")

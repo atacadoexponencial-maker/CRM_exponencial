@@ -19,7 +19,7 @@ import {
   CLASSIFICACAO_LABEL,
   TIPO_LABEL,
   ICP_LABEL,
-} from "../../mock-contatos"
+} from "../../tipos-contato"
 import { TimelineContato } from "./timeline-contato"
 import { SecaoPedidosContato } from "../../../catalogo/components/secao-pedidos-contato"
 import { formatarWhatsapp } from "../../../catalogo/components/lista-pedidos"

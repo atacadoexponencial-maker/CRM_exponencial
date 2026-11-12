@@ -26,8 +26,8 @@ import {
 } from "lucide-react"
 import { SEM_COMPRAS, type AcaoTipo, type Fluxo, type GatilhoTipo, type VerificacaoTipo } from "@/lib/fluxo-automacao"
 import type { HorarioComercial } from "@/lib/horario-comercial"
-import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "../../../pipeline/mock-pipeline"
-import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "../../../contatos/mock-contatos"
+import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "../../../pipeline/etapas-e-tipos"
+import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "../../../contatos/tipos-contato"
 import { PERFIS } from "@/lib/relatorios/rfv"
 import { campoPersonalizado, type CampoParaFiltro } from "@/lib/filtro-contatos"
 import { variaveisSemReserva } from "@/lib/variaveis-mensagem"
@@ -40,7 +40,6 @@ export interface OpcoesEditor {
   atendentes: Opcao[]
   tags: Opcao[]
   times: Opcao[]
-  sequencias: Opcao[]
   mensagensRapidas: Opcao[]
   numeros: Opcao[]
   /** O da empresa, ou o padrão: o painel da condição de horário mostra qual vale. */
@@ -56,7 +55,6 @@ export type FonteOpcoes =
   | "atendentes"
   | "tags"
   | "times"
-  | "sequencias"
   | "mensagensRapidas"
   | "funis"
   | "classificacoes"
@@ -457,9 +455,9 @@ export const ACOES: Record<AcaoTipo, { rotulo: string; icone: LucideIcon; campos
   iniciar_sequencia: {
     rotulo: "Iniciar sequência",
     icone: FileText,
-    campos: [
-      { chave: "sequencia_id", rotulo: "Sequência", tipo: "opcoes", fonte: "sequencias", vazio: "Escolha a sequência…" },
-    ],
+    // B28-07: as sequências saíram do banco; o bloco só aparece na regra gravada antes,
+    // marcado como removido (ACOES_REMOVIDAS), e não tem mais o que escolher
+    campos: [],
   },
   resolver_conversa: { rotulo: "Resolver a conversa", icone: CircleCheck, campos: [] },
   reabrir_conversa: { rotulo: "Reabrir a conversa", icone: RotateCcw, campos: [] },
@@ -485,11 +483,11 @@ export const ACOES: Record<AcaoTipo, { rotulo: string; icone: LucideIcon; campos
 export const NAO_EXISTE_MAIS = "(não existe mais)"
 
 // Listas que vêm do banco da empresa: o escolhido pode ter sido apagado ou desativado
-const FONTES_DA_EMPRESA: readonly FonteOpcoes[] = ["etiquetas", "atendentes", "times", "sequencias", "mensagensRapidas", "canais"]
+const FONTES_DA_EMPRESA: readonly FonteOpcoes[] = ["etiquetas", "atendentes", "times", "mensagensRapidas", "canais"]
 
 /**
  * Escolhas do fluxo que não estão mais nas listas da empresa (etiqueta, time,
- * mensagem rápida, sequência ou número apagados, atendente desativado), por bloco.
+ * mensagem rápida ou número apagados, atendente desativado), por bloco.
  * O editor marca o bloco e a lista avisa; o Salvar e o Ativar conferem de novo no
  * servidor (B22-27). Na condição "atendente é", atendente desativado continua
  * valendo (B22-02).
@@ -527,8 +525,8 @@ export function referenciasQueSumiram(fluxo: Fluxo, opcoes: OpcoesEditor): Recor
         continue
       }
     }
-    // B28-02: o bloco "esperar" não escolhe nada da empresa
-    if (bloco.tipo === "espera") continue
+    // B28-02 e B59-01: o bloco "esperar" e a anotação não escolhem nada da empresa
+    if (bloco.tipo === "espera" || bloco.tipo === "anotacao") continue
     const campos = bloco.tipo === "gatilho" ? GATILHOS[bloco.gatilho]?.campos : ACOES[bloco.acao]?.campos
     for (const campo of campos ?? []) {
       if (campo.tipo === "opcoes" && sumiu(campo.fonte, bloco.parametros[campo.chave])) anotar(bloco.id, campo.rotulo)

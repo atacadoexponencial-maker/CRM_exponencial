@@ -4,8 +4,8 @@
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { Conversa } from "@/app/(auth)/chat/mock-conversas"
-import type { Contato } from "@/app/(auth)/contatos/mock-contatos"
+import type { Conversa } from "@/app/(auth)/chat/tipos-conversa"
+import type { Contato } from "@/app/(auth)/contatos/tipos-contato"
 import type { CampoComValor } from "@/app/(auth)/contatos/campos-personalizados"
 import type { CampoDaEmpresa, ValorGuardado } from "@/lib/campos-personalizados"
 

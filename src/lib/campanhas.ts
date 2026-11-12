@@ -6,17 +6,20 @@
 
 import { createServiceClient } from "@/integrations/supabase/service"
 import { anexoDaEmpresa } from "@/lib/anexo-da-campanha"
+import { MOTIVO_CONTATO_DA_LOJA, telefoneJaEscreveu } from "@/lib/contato-da-loja"
 import { linkParaEnvio } from "@/lib/anexos-do-chat"
 import { chaveDaVariavel, preencherVariaveis, variaveisSemReserva } from "@/lib/variaveis-mensagem"
+import { cabecalhoEhMidia, valoresDasVariaveis, type TipoDeCabecalho, type VariaveisDoTemplate } from "@/lib/templates-da-meta"
 import { formatarValor } from "@/lib/campos-personalizados"
 import { camposDaEmpresa, valoresDosContatos } from "@/lib/campos-personalizados-servidor"
 import { providerDaConexao, resolverProvider } from "@/lib/whatsapp"
 import {
+  MOTIVO_NUMERO_DESCONECTADO,
   MOTIVO_SEM_NUMERO,
   MOTIVO_SEM_RESPOSTA,
   motivoDaFalha,
 } from "@/lib/whatsapp/motivo-da-falha"
-import type { ConexaoParaProvider, ProviderWhatsApp, ResultadoEnvio } from "@/lib/whatsapp"
+import type { ConexaoParaProvider, ProviderWhatsApp, ResultadoEnvio, TemplateEnvio } from "@/lib/whatsapp"
 
 /**
  * Quantos destinatários um lote entrega ao canal.
@@ -43,6 +46,8 @@ export const MOTIVO_ANEXO_DE_FORA = "O anexo da campanha não é um arquivo da e
 /** B49-02: o arquivo existe na pasta da empresa, mas o link de envio não pôde ser gerado. */
 export const MOTIVO_ANEXO_SEM_LINK = "Não foi possível preparar o anexo para envio"
 export const MOTIVO_FORA_DA_EMPRESA = "Não é contato da empresa"
+/** B54-06: campanha gravada como template sem o template (direto no banco). */
+export const MOTIVO_TEMPLATE_SEM_DADOS = "A campanha não tem o template escolhido"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -68,12 +73,52 @@ async function reservarDestinatario(supabase: ServiceClient, destinatarioId: str
 type CampaignRow = {
   id: string
   workspace_id: string
-  tipo_mensagem: "texto" | "imagem" | "documento"
+  tipo_mensagem: "texto" | "imagem" | "documento" | "template"
   conteudo: string | null
   arquivo_url: string | null
   arquivo_nome: string | null
   /** B7-03: número de origem escolhido. Nulo na campanha criada antes dele. */
   whatsapp_connection_id?: string | null
+  /** B54-06: o template escolhido (B54-04) com a origem de cada variável (B54-05). */
+  template?: TemplateDaCampanhaRow | null
+}
+
+type TemplateDaCampanhaRow = {
+  id: string
+  name: string
+  language: string
+  cabecalho: TipoDeCabecalho | null
+  variaveis?: VariaveisDoTemplate
+}
+
+/**
+ * B54-06: o template com os valores deste destinatário. O cabeçalho de mídia leva o link
+ * assinado do arquivo da campanha (1 hora na API Oficial, B49-02); sem link, quem chama
+ * já falhou antes.
+ */
+export function templateParaDestinatario(
+  campanha: CampaignRow,
+  contexto: { nomeContato: string; nomeVendedor: string; campos: Record<string, string> },
+  linkDoAnexo: string | null
+): TemplateEnvio | null {
+  const t = campanha.template
+  if (!t) return null
+  const variaveis = t.variaveis ?? { corpo: [], cabecalho: [], botoes: {} }
+  const envio: TemplateEnvio = {
+    nome: t.name,
+    idioma: t.language,
+    corpo: valoresDasVariaveis(variaveis.corpo, contexto),
+  }
+  if (t.cabecalho === "texto" && variaveis.cabecalho.length > 0) {
+    envio.cabecalho = { tipo: "texto", valores: valoresDasVariaveis(variaveis.cabecalho, contexto) }
+  } else if (cabecalhoEhMidia(t.cabecalho) && linkDoAnexo) {
+    envio.cabecalho = { tipo: t.cabecalho, link: linkDoAnexo, ...(campanha.arquivo_nome ? { nomeArquivo: campanha.arquivo_nome } : {}) }
+  }
+  const botoes = Object.entries(variaveis.botoes)
+    .map(([i, lista]) => ({ indice: Number(i), valores: valoresDasVariaveis(lista, contexto) }))
+    .filter((b) => b.valores.length > 0)
+  if (botoes.length > 0) envio.botoes = botoes
+  return envio
 }
 
 /**
@@ -148,7 +193,16 @@ async function enviarParaDestinatario(
   try {
     let resultado: ResultadoEnvio
 
-    if (campanha.tipo_mensagem === "imagem" && linkDoAnexo) {
+    if (campanha.tipo_mensagem === "template") {
+      // B54-06: template da API Oficial com os valores deste destinatário
+      const envio = templateParaDestinatario(
+        campanha,
+        { nomeContato: destinatario.nome_snapshot ?? "", nomeVendedor, campos },
+        linkDoAnexo
+      )
+      if (!envio) return { ok: false, wamid: null, motivo: MOTIVO_TEMPLATE_SEM_DADOS }
+      resultado = await provider.enviarTemplate(destinatario.telefone_snapshot, envio, COMO_CAMPANHA)
+    } else if (campanha.tipo_mensagem === "imagem" && linkDoAnexo) {
       resultado = await provider.enviarMidia(
         destinatario.telefone_snapshot,
         { url: linkDoAnexo, tipo: "imagem", legenda: texto },
@@ -221,12 +275,13 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
   const provider = await providerDaCampanha(supabase, campanha)
 
   if (!provider) {
-    // Sem conexão: marca todos os pendentes como falhos e encerra
+    // Sem conexão: marca todos os pendentes como falhos e encerra.
+    // B54-06 (CA-B54-27): com número escolhido, o motivo diz que ele desconectou.
     await supabase
       .from("campaign_recipients")
       .update({
         status: "falhou",
-        motivo: MOTIVO_SEM_NUMERO,
+        motivo: campanha.whatsapp_connection_id ? MOTIVO_NUMERO_DESCONECTADO : MOTIVO_SEM_NUMERO,
         atualizado_em: new Date().toISOString(),
       })
       .eq("campaign_id", campanha.id)
@@ -255,16 +310,25 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
   const naLixeira = new Set<string>()
   // B47-01: só contato da empresa da campanha, e a mensagem vai para o telefone atual dele
   const telefoneAtual = new Map<string, string>()
+  // Auditoria run-2 (pista 7): contato que nasceu de um pedido da loja (telefone sem conferência)
+  const daLoja = new Set<string>()
   if (contactIds.length > 0) {
     const { data: contatos } = await supabase
       .from("contacts")
-      .select("id, phone_number, excluido_em, atendente:profiles!contacts_atendente_id_fkey(name)")
+      .select("id, phone_number, excluido_em, origem, atendente:profiles!contacts_atendente_id_fkey(name)")
       .in("id", contactIds)
       .eq("workspace_id", campanha.workspace_id)
-    for (const c of (contatos ?? []) as unknown as Array<{ id: string; phone_number: string; excluido_em: string | null; atendente: { name: string } | null }>) {
+    for (const c of (contatos ?? []) as unknown as Array<{
+      id: string
+      phone_number: string
+      excluido_em: string | null
+      origem: string | null
+      atendente: { name: string } | null
+    }>) {
       telefoneAtual.set(c.id, c.phone_number)
       if (c.atendente?.name) vendedorPorContato[c.id] = c.atendente.name
       if (c.excluido_em) naLixeira.add(c.id)
+      if (c.origem === "loja") daLoja.add(c.id)
     }
   }
 
@@ -312,6 +376,19 @@ async function processarCampanha(supabase: ServiceClient, campanha: CampaignRow)
         .update({ status: "excluido", atualizado_em: new Date().toISOString() })
         .eq("id", destinatario.id)
       continue
+    }
+
+    // Auditoria run-2 (pista 7): o número da empresa só escreve para o contato da loja
+    // depois que ele escrever. Na dúvida (erro no banco), não sai.
+    if (daLoja.has(destinatario.contact_id)) {
+      const jaEscreveu = await telefoneJaEscreveu(supabase, campanha.workspace_id, telefone).catch(() => false)
+      if (!jaEscreveu) {
+        await supabase
+          .from("campaign_recipients")
+          .update({ status: "excluido", motivo: MOTIVO_CONTATO_DA_LOJA, atualizado_em: new Date().toISOString() })
+          .eq("id", destinatario.id)
+        continue
+      }
     }
 
     const nomeVendedor = destinatario.contact_id
@@ -382,7 +459,7 @@ export async function processarCampanhasPendentes(): Promise<number> {
   // de quem pode sair (antes, três travadas de uma empresa seguravam as demais).
   const { data: enviando } = await supabase
     .from("campaigns")
-    .select("id, workspace_id, tipo_mensagem, conteudo, arquivo_url, arquivo_nome, whatsapp_connection_id")
+    .select("id, workspace_id, tipo_mensagem, conteudo, arquivo_url, arquivo_nome, whatsapp_connection_id, template")
     .eq("status", "enviando")
     .order("agendada_para", { ascending: true, nullsFirst: true })
     .order("created_at", { ascending: true })

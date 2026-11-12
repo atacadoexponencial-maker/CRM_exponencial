@@ -21,7 +21,7 @@ Marcelle entra no CRM, clica em "Convites" no menu, cria um link avulso de 7 dia
 - **CA-B51-15** (automática) — Validade personalizada. Dado Marcelle criando um convite, quando ela escolhe uma data e hora futuras, então o convite vale até esse momento e para de valer depois dele.
 - **CA-B51-16** (automática) — Validade fora do prazo recusada. Dado Marcelle criando um convite, quando ela escolhe uma data e hora que já passaram, ou mais de 90 dias à frente, então a tela avisa que a validade precisa estar entre agora e 90 dias, e nenhum convite é criado (o servidor recusa também quando a tela é contornada).
 - **CA-B51-21** (automática) — Lista mostra a situação de cada convite. Dado um convite pendente, um usado, um vencido e um cancelado, quando Marcelle abre a tela, então cada um aparece com a situação certa, e o usado mostra o nome da empresa criada.
-- **CA-B51-23** (automática) — Item no menu só para a plataforma. Dado Marcelle logada e um Admin de empresa logado, quando cada um abre o CRM, então o menu lateral da Marcelle tem o item "Convites", que leva a `/plataforma/convites`; o do Admin não tem.
+- **CA-B51-23** (automática) — Item no menu só para a plataforma. Dado Marcelle logada com uma conta da lista da plataforma e um Admin de empresa logado, quando cada um abre o CRM, então o menu lateral da Marcelle tem o item "Convites", que leva a `/plataforma/convites`; o do Admin não tem. Quem é da plataforma é reconhecido pela conta (id) da lista, não pelo e-mail (auditoria run-2, pista 5; texto trocado com o ok do Luan em 10/11/2026).
 
 ## Suposições
 
@@ -71,7 +71,7 @@ Marcelle entra no CRM, clica em "Convites" no menu, cria um link avulso de 7 dia
 | CA-B51-15 | automática | `src/test/convites-plataforma.integration.test.ts` | o convite grava a data escolhida e aparece pendente; passada a data (gravada no passado pela chave de serviço), aparece vencido |
 | CA-B51-16 | automática | `src/test/convites-plataforma.integration.test.ts` e `src/test/convites-plataforma.test.tsx` | a ação recusa data passada e data além de 90 dias sem gravar nada; a tela mostra o aviso |
 | CA-B51-21 | automática | `src/test/convites-plataforma.integration.test.ts` e `src/test/convites-plataforma.test.tsx` | a listagem devolve pendente, usado (com o nome da empresa), vencido e cancelado; a tela mostra cada situação e a empresa |
-| CA-B51-23 | automática | `src/test/menu-lateral.test.tsx` e `src/test/convites-plataforma.integration.test.ts` | o menu com a marca da plataforma tem "Convites" levando a `/plataforma/convites`, sem ela não tem; a conferência da plataforma diz sim para o e-mail da lista e não para o Admin de empresa |
+| CA-B51-23 | automática | `src/test/menu-lateral.test.tsx` e `src/test/convites-plataforma.integration.test.ts` | o menu com a marca da plataforma tem "Convites" levando a `/plataforma/convites`, sem ela não tem; a conferência da plataforma diz sim para a conta (id) da lista e não para o Admin de empresa (era pelo e-mail; mudou na auditoria run-2, pista 5, com o ok do Luan em 06/11/2026) |
 
 ## Banco de Dados
 

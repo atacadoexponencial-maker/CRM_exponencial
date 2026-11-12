@@ -9,6 +9,7 @@
 // do cliente desaparecer é pior.
 
 import type { createServiceClient } from "@/integrations/supabase/service"
+import { GRAPH } from "./versao-da-graph"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -45,7 +46,10 @@ export type MidiaGuardada = {
 export function mimeComCodec(mimeType: string | null, inicio: Uint8Array): string | null {
   if (!mimeType?.startsWith("video/")) return mimeType
   const texto = new TextDecoder("latin1").decode(inicio.subarray(0, 64))
-  if (!texto.includes("ftyp")) return mimeType
+  // Auditoria run-2 (pista 8): a caixa `ftyp` abre o arquivo (bytes 4 a 7), como em todo
+  // MP4 e MOV. Antes valia em qualquer ponto: um arquivo que não é vídeo (uma playlist
+  // com essas letras num comentário) era marcado como HEVC e ia para o ffmpeg.
+  if (texto.slice(4, 8) !== "ftyp") return mimeType
   if (/hvc1|hev1/.test(texto)) return `${mimeType}; codecs=hvc1`
   return mimeType
 }
@@ -178,8 +182,6 @@ async function subirParaOStorage(
   return { caminho, publicUrl, mimeType }
 }
 
-/** Versão da Graph API usada no resto do CRM. */
-const VERSAO_DA_GRAPH = "v21.0"
 
 /** B53-07: a mídia de uma mensagem recebida pela API Oficial, como o webhook da Meta manda. */
 export type MidiaDaMeta = {
@@ -236,7 +238,7 @@ export async function guardarMidiaDaMeta({
     let endereco = midia.url ?? null
     let mimeDaMeta: string | null = null
     if (midia.id) {
-      const resposta = await buscar(`https://graph.facebook.com/${VERSAO_DA_GRAPH}/${encodeURIComponent(midia.id)}`, {
+      const resposta = await buscar(`${GRAPH}/${encodeURIComponent(midia.id)}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
         signal: AbortSignal.timeout(TEMPO_LIMITE_DA_MIDIA_MS),
       })

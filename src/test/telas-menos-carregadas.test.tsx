@@ -4,9 +4,9 @@
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { Conversa } from "@/app/(auth)/chat/mock-conversas"
-import type { ContatoPerfil } from "@/app/(auth)/contatos/mock-contatos"
-import type { CardLead } from "@/app/(auth)/pipeline/mock-pipeline"
+import type { Conversa } from "@/app/(auth)/chat/tipos-conversa"
+import type { ContatoPerfil } from "@/app/(auth)/contatos/tipos-contato"
+import type { CardLead } from "@/app/(auth)/pipeline/etapas-e-tipos"
 import type { CampoComValor } from "@/app/(auth)/contatos/campos-personalizados"
 import type { AlertaComConversa } from "@/app/(auth)/alertas/actions"
 

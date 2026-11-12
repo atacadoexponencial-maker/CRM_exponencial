@@ -43,7 +43,7 @@ import { CamposClient } from "@/app/(auth)/configuracoes/campos/campos-client"
 import { FunisClient } from "@/app/(auth)/configuracoes/funis/funis-client"
 import { EditorClient as EditorProdutoClient } from "@/app/(auth)/catalogo/produtos/[id]/editor-client"
 import { criarNovoLead } from "@/app/(auth)/pipeline/actions"
-import type { Conversa } from "@/app/(auth)/chat/mock-conversas"
+import type { Conversa } from "@/app/(auth)/chat/tipos-conversa"
 
 const apertarEsc = () => fireEvent.keyDown(document, { key: "Escape" })
 

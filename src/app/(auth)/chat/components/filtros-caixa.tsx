@@ -5,7 +5,7 @@ import { Loader2, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ItemConversa } from "./item-conversa"
 import { formatarNumero } from "@/lib/whatsapp"
-import type { Conversa, FiltroStatus, FiltroVisibilidade } from "../mock-conversas"
+import type { Conversa, FiltroStatus, FiltroVisibilidade } from "../tipos-conversa"
 
 const FILTROS_STATUS: { label: string; valor: FiltroStatus }[] = [
   { label: "Todas", valor: "todas" },

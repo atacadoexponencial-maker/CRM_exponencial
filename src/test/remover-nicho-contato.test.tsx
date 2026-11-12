@@ -4,8 +4,8 @@
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { Conversa } from "@/app/(auth)/chat/mock-conversas"
-import type { Contato, ContatoPerfil } from "@/app/(auth)/contatos/mock-contatos"
+import type { Conversa } from "@/app/(auth)/chat/tipos-conversa"
+import type { Contato, ContatoPerfil } from "@/app/(auth)/contatos/tipos-contato"
 import { esquemaFiltro, esquemaRapidos } from "@/lib/filtro-contatos"
 
 const criarContato = vi.fn<(...a: unknown[]) => Promise<{ erro?: string; id?: string }>>(async () => ({ id: "c-9" }))

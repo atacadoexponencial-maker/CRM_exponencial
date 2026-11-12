@@ -3,7 +3,16 @@
 import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { conferirNomeDoTemplate } from "./nome-do-template"
-import { partesDoTemplate, type PartesDoTemplate } from "@/lib/templates-da-meta"
+import {
+  AVISO_CATEGORIA_DO_APROVADO,
+  AVISO_SEM_EXEMPLO_DO_CABECALHO,
+  componentsParaMeta,
+  motivoDaRecusaDaMeta,
+  type ExemplosDoTemplate,
+  type PartesDoTemplate,
+} from "@/lib/templates-da-meta"
+import { buscarTemplatesDaMeta } from "@/lib/templates-da-meta-graph"
+import { GRAPH } from "@/lib/whatsapp/versao-da-graph"
 
 export type Template = {
   id: string
@@ -38,7 +47,8 @@ async function obterConexao() {
   const { user, perfil } = await sessaoAtual()
   if (!user) return null
 
-  if (perfil?.role !== "admin") return null
+  // B54-04 (CA-B54-22): o Gerente vê e mexe em templates como o Admin.
+  if (!perfil || !["admin", "gerente"].includes(perfil.role)) return null
 
   // B19-03: `access_token` só é legível pela chave de serviço; o filtro de empresa fica.
   // B53-08: template só existe na API Oficial; com chip na mesma empresa, o filtro só
@@ -54,50 +64,57 @@ async function obterConexao() {
   return conexao
 }
 
-const ERRO_AO_CARREGAR_TEMPLATES = "Não foi possível carregar os templates da Meta"
-
 export async function listarTemplates(): Promise<{ templates: Template[]; erro?: string }> {
   const conexao = await obterConexao()
   if (!conexao) return { templates: [] }
 
   // B53-08: erro da Meta vira aviso na tela, não lista vazia.
-  let data: { data?: unknown[] }
-  try {
-    const res = await fetch(
-      `https://graph.facebook.com/v21.0/${conexao.waba_id}/message_templates?fields=id,name,status,category,language,rejected_reason,components&limit=50&access_token=${conexao.access_token}`
-    )
-    if (!res.ok) return { templates: [], erro: ERRO_AO_CARREGAR_TEMPLATES }
-    data = await res.json()
-  } catch {
-    return { templates: [], erro: ERRO_AO_CARREGAR_TEMPLATES }
-  }
+  // B54-04: a consulta é a mesma da campanha (`buscarTemplatesDaMeta`).
+  const { templates, erro } = await buscarTemplatesDaMeta(conexao.waba_id, conexao.access_token)
+  if (erro) return { templates: [], erro }
 
   return {
-    templates: ((data.data ?? []) as Array<Omit<Template, "partes"> & { rejected_reason?: unknown; components?: unknown }>).map(
-      ({ rejected_reason, components, ...t }) => ({
-        ...t,
-        partes: partesDoTemplate(components),
-        ...(t.status === "REJECTED" ? { motivo: motivoDaRejeicao(rejected_reason) } : {}),
-      })
-    ),
+    templates: templates.map(({ rejectedReason, ...t }) => ({
+      ...t,
+      ...(t.status === "REJECTED" ? { motivo: motivoDaRejeicao(rejectedReason) } : {}),
+    })),
   }
 }
 
-export async function criarTemplate(params: {
+// ── B54-02: criar, editar e apagar ───────────────────────────────────
+
+const ERRO_NO_EXEMPLO = "Não foi possível enviar o arquivo de exemplo à Meta"
+const TEMPLATE_NAO_ENCONTRADO = "Template não encontrado."
+const LIMITE_DO_EXEMPLO = 4 * 1024 * 1024
+
+export type DadosDoTemplate = {
   name: string
   category: string
   language: string
-  body: string
-}): Promise<{ erro?: string }> {
+  partes: PartesDoTemplate
+  /** Handle devolvido por `enviarExemploDoCabecalho`; obrigatório quando o cabeçalho é mídia. */
+  headerHandle?: string | null
+  /** Um exemplo por variável, pedido na tela (SUP-B54-09). */
+  exemplos?: ExemplosDoTemplate
+}
+
+function cabecalhoEhMidia(partes: PartesDoTemplate): boolean {
+  const tipo = partes.cabecalho?.tipo
+  return tipo === "imagem" || tipo === "video" || tipo === "documento"
+}
+
+export async function criarTemplate(params: DadosDoTemplate): Promise<{ erro?: string; id?: string }> {
   // B53-08: a mesma conversão da tela; nome que continua inválido nem chega à Meta.
   const conferido = conferirNomeDoTemplate(params.name)
   if ("erro" in conferido) return { erro: conferido.erro }
+  if (!params.partes.corpo.trim()) return { erro: "Corpo da mensagem é obrigatório" }
+  if (cabecalhoEhMidia(params.partes) && !params.headerHandle) return { erro: AVISO_SEM_EXEMPLO_DO_CABECALHO }
 
   const conexao = await obterConexao()
   if (!conexao) return { erro: "Sem permissão ou WhatsApp não conectado" }
 
   const res = await fetch(
-    `https://graph.facebook.com/v21.0/${conexao.waba_id}/message_templates?access_token=${conexao.access_token}`,
+    `${GRAPH}/${conexao.waba_id}/message_templates?access_token=${conexao.access_token}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -105,17 +122,107 @@ export async function criarTemplate(params: {
         name: conferido.nome,
         category: params.category,
         language: params.language,
-        components: [{ type: "BODY", text: params.body }],
+        components: componentsParaMeta(params.partes, { headerHandle: params.headerHandle, exemplos: params.exemplos }),
       }),
     }
   )
 
   const data = await res.json()
+  if (!res.ok) return { erro: motivoDaRecusaDaMeta(data?.error, "Erro ao criar template") }
+  return { id: typeof data?.id === "string" ? data.id : undefined }
+}
 
-  if (!res.ok) {
-    const msg = data?.error?.error_user_msg ?? data?.error?.message ?? "Erro ao criar template"
-    return { erro: msg }
-  }
+/**
+ * Edita o que a Meta deixa: as partes e a categoria (esta só fora do aprovado). Nome e
+ * idioma não vão (a Meta não aceita). Template aprovado editado volta a PENDING na Meta.
+ */
+export async function editarTemplate(params: {
+  id: string
+  category: string
+  partes: PartesDoTemplate
+  headerHandle?: string | null
+  exemplos?: ExemplosDoTemplate
+}): Promise<{ erro?: string }> {
+  if (!params.partes.corpo.trim()) return { erro: "Corpo da mensagem é obrigatório" }
+  if (cabecalhoEhMidia(params.partes) && !params.headerHandle) return { erro: AVISO_SEM_EXEMPLO_DO_CABECALHO }
 
+  const conexao = await obterConexao()
+  if (!conexao) return { erro: "Sem permissão ou WhatsApp não conectado" }
+
+  // Auditoria run-2 (pista 2): o id vem do navegador e a chamada leva o token da
+  // empresa. Só segue se for um template desta conta, pela mesma consulta da tela.
+  const { templates, erro } = await buscarTemplatesDaMeta(conexao.waba_id, conexao.access_token)
+  if (erro) return { erro }
+  const atual = templates.find((t) => t.id === params.id)
+  if (!atual) return { erro: TEMPLATE_NAO_ENCONTRADO }
+
+  // A Meta não deixa mudar a categoria de um template aprovado e recusa a edição inteira.
+  // A categoria só vai quando mudou, e nunca num aprovado.
+  const mudouCategoria = params.category !== atual.category
+  if (mudouCategoria && atual.status === "APPROVED") return { erro: AVISO_CATEGORIA_DO_APROVADO }
+
+  const res = await fetch(`${GRAPH}/${encodeURIComponent(params.id)}?access_token=${conexao.access_token}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ...(mudouCategoria ? { category: params.category } : {}),
+      components: componentsParaMeta(params.partes, { headerHandle: params.headerHandle, exemplos: params.exemplos }),
+    }),
+  })
+
+  const data = await res.json()
+  if (!res.ok) return { erro: motivoDaRecusaDaMeta(data?.error, "Erro ao editar template") }
   return {}
+}
+
+/** Apaga pelo nome: a Meta remove todas as versões de idioma daquele nome (SUP-B54-08). */
+export async function apagarTemplate(name: string): Promise<{ erro?: string }> {
+  const conexao = await obterConexao()
+  if (!conexao) return { erro: "Sem permissão ou WhatsApp não conectado" }
+
+  const res = await fetch(
+    `${GRAPH}/${conexao.waba_id}/message_templates?name=${encodeURIComponent(name)}&access_token=${conexao.access_token}`,
+    { method: "DELETE" }
+  )
+
+  const data = await res.json()
+  if (!res.ok) return { erro: motivoDaRecusaDaMeta(data?.error, "Erro ao apagar template") }
+  return {}
+}
+
+/**
+ * Sobe o arquivo de exemplo do cabeçalho pela Resumable Upload API da Meta e devolve o
+ * handle (`h`) que entra em `example.header_handle`. O arquivo não fica guardado no CRM
+ * (SUP-B54-10).
+ */
+export async function enviarExemploDoCabecalho(formData: FormData): Promise<{ handle?: string; erro?: string }> {
+  const conexao = await obterConexao()
+  if (!conexao) return { erro: "Sem permissão ou WhatsApp não conectado" }
+
+  const arquivo = formData.get("arquivo")
+  if (!(arquivo instanceof File) || arquivo.size === 0) return { erro: "Arquivo inválido" }
+  if (arquivo.size > LIMITE_DO_EXEMPLO) return { erro: "Arquivo de exemplo muito grande (máximo 4 MB)" }
+
+  const appId = process.env.NEXT_PUBLIC_META_APP_ID
+  if (!appId) return { erro: ERRO_NO_EXEMPLO }
+
+  try {
+    const sessao = await fetch(
+      `${GRAPH}/${appId}/uploads?file_name=${encodeURIComponent(arquivo.name)}&file_length=${arquivo.size}&file_type=${encodeURIComponent(arquivo.type)}&access_token=${conexao.access_token}`,
+      { method: "POST" }
+    )
+    const sessaoData = await sessao.json()
+    if (!sessao.ok || typeof sessaoData?.id !== "string") return { erro: ERRO_NO_EXEMPLO }
+
+    const envio = await fetch(`${GRAPH}/${sessaoData.id}`, {
+      method: "POST",
+      headers: { Authorization: `OAuth ${conexao.access_token}`, file_offset: "0", "Content-Type": arquivo.type || "application/octet-stream" },
+      body: Buffer.from(await arquivo.arrayBuffer()),
+    })
+    const envioData = await envio.json()
+    if (!envio.ok || typeof envioData?.h !== "string") return { erro: ERRO_NO_EXEMPLO }
+    return { handle: envioData.h }
+  } catch {
+    return { erro: ERRO_NO_EXEMPLO }
+  }
 }

@@ -5,7 +5,7 @@
 // do mouse sem mensagem nova. Só a mudança do `last_message_at` sobe a conversa.
 
 import { formatarHorarioDaLista } from "@/lib/datas"
-import type { Conversa, StatusConversa } from "./mock-conversas"
+import type { Conversa, StatusConversa } from "./tipos-conversa"
 
 export interface LinhaDaConversa {
   id: string

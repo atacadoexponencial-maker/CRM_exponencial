@@ -13,7 +13,7 @@ const ts = Date.now()
 
 type Empresa = {
   id: string; usuario: string; time: string; contato: string; conversa: string; etiqueta: string
-  card: string; sequencia: string; campanha: string; pedido: string; categoria: string; produto: string
+  card: string; campanha: string; pedido: string; categoria: string; produto: string
 }
 const empresas: Empresa[] = []
 const usuarios: string[] = []
@@ -28,12 +28,11 @@ async function montarEmpresa(sufixo: string): Promise<Empresa> {
   const conversa = (await service.from("conversations").insert({ workspace_id: id, contact_id: contato }).select("id").single()).data!.id
   const etiqueta = (await service.from("labels").insert({ workspace_id: id, name: "VIP", color: "#f00" }).select("id").single()).data!.id
   const card = (await service.from("pipeline_cards").insert({ workspace_id: id, contact_id: contato, etapa: "lead" }).select("id").single()).data!.id
-  const sequencia = (await service.from("sequences").insert({ workspace_id: id, nome: "Seq" }).select("id").single()).data!.id
   const campanha = (await service.from("campaigns").insert({ workspace_id: id, nome: "Camp" }).select("id").single()).data!.id
   const pedido = (await service.from("catalog_orders").insert({ workspace_id: id, number: 1, customer_name: "C", customer_whatsapp: "5521999990000", pieces: 1, total: 10 }).select("id").single()).data!.id
   const categoria = (await service.from("catalog_categories").insert({ workspace_id: id, name: "Cat" }).select("id").single()).data!.id
   const produto = (await service.from("catalog_products").insert({ workspace_id: id, name: "Camisa", price: 10 }).select("id").single()).data!.id
-  return { id, usuario, time, contato, conversa, etiqueta, card, sequencia, campanha, pedido, categoria, produto }
+  return { id, usuario, time, contato, conversa, etiqueta, card, campanha, pedido, categoria, produto }
 }
 
 beforeAll(async () => {
@@ -50,8 +49,6 @@ afterAll(async () => {
   await del("campaign_recipients", "workspace_id", ids)
   await del("campaigns", "workspace_id", ids)
   await del("reminders", "workspace_id", ids)
-  await del("sequence_runs", "workspace_id", ids)
-  await del("sequences", "workspace_id", ids)
   await del("pipeline_card_labels", "card_id", empresas.map((e) => e.card))
   await del("pipeline_card_notes", "workspace_id", ids)
   await del("pipeline_cards", "workspace_id", ids)
@@ -80,7 +77,6 @@ const casos: Array<{ nome: string; tabela: string; linha: (a: Empresa, alvo: Emp
   { nome: "card com contato de outra empresa", tabela: "pipeline_cards", linha: (a, alvo) => ({ workspace_id: a.id, contact_id: alvo.contato, etapa: "onboarding", funil: "recompra" }) },
   { nome: "nota em card de outra empresa", tabela: "pipeline_card_notes", linha: (a, alvo) => ({ workspace_id: a.id, card_id: alvo.card, texto: "x", autor_id: a.usuario }) },
   { nome: "tag em contato de outra empresa", tabela: "contact_tags", linha: (a, alvo) => ({ workspace_id: a.id, contact_id: alvo.contato, tag: `t${ts}` }) },
-  { nome: "sequência de outra empresa para o contato", tabela: "sequence_runs", linha: (a, alvo) => ({ workspace_id: a.id, sequence_id: alvo.sequencia, contact_id: a.contato }) },
   { nome: "lembrete para contato de outra empresa", tabela: "reminders", linha: (a, alvo) => ({ workspace_id: a.id, contact_id: alvo.contato, atendente_id: a.usuario, origem: "avulso", instrucao: "x", due_at: new Date().toISOString() }) },
   { nome: "destinatário de outra empresa numa campanha", tabela: "campaign_recipients", linha: (a, alvo) => ({ workspace_id: a.id, campaign_id: a.campanha, contact_id: alvo.contato, telefone_snapshot: "x" }) },
   { nome: "produto de outra empresa num pedido", tabela: "catalog_order_items", linha: (a, alvo) => ({ order_id: a.pedido, product_id: alvo.produto, product_name: "x", quantity: 1, unit_price: 1 }) },

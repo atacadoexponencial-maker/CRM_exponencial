@@ -264,6 +264,28 @@ function EditorFluxoInterno({
   const simulacaoVelha = simulacao !== null && simulacao.caminho !== caminhoAtual
   const selecionado = nos.find((n) => n.selected)
 
+  /** "Duplicar": a cópia fica solta e selecionada, para ligar onde quiser (B22-13). */
+  const duplicarBloco = useCallback(
+    (originalId: string) => {
+      const id = crypto.randomUUID()
+      setNos((atuais) => {
+        const original = atuais.find((n) => n.id === originalId)
+        if (!original || original.data.bloco.tipo === "gatilho") return atuais
+        const largura = original.measured?.width ?? LARGURA_BLOCO
+        const posicao = posicaoLivre(
+          { x: original.position.x + largura + DISTANCIA_DA_COPIA, y: original.position.y },
+          atuais
+        )
+        const copia = copiaDoBloco(original.data.bloco, id, posicao, () => crypto.randomUUID())
+        return [
+          ...atuais.map((n) => ({ ...n, selected: false })),
+          { id, type: copia.tipo, position: posicao, data: { bloco: copia }, selected: true },
+        ]
+      })
+    },
+    [setNos]
+  )
+
   const contexto = useMemo(
     () => ({
       opcoes,
@@ -272,8 +294,17 @@ function EditorFluxoInterno({
       simulacao: simulacao && !simulacaoVelha ? simulacao.resultado : null,
       repeticao,
       aoAdicionar: (de: string, saida: Saida) => setMenu({ de, saida }),
+      // B59-01
+      aoMudarAnotacao: (id: string, texto: string) =>
+        setNos((atuais) =>
+          atuais.map((n) => (n.id === id && n.data.bloco.tipo === "anotacao" ? { ...n, data: { bloco: { ...n.data.bloco, texto } } } : n))
+        ),
+      aoDuplicar: duplicarBloco,
+      aoApagar: (id: string) => {
+        deleteElements({ nodes: [{ id }] })
+      },
     }),
-    [opcoes, pendencias, destacarErros, simulacao, simulacaoVelha, repeticao]
+    [opcoes, pendencias, destacarErros, simulacao, simulacaoVelha, repeticao, setNos, duplicarBloco, deleteElements]
   )
 
   // Guarda o que não foi salvo um instante depois da última edição; sem alteração,
@@ -414,7 +445,9 @@ function EditorFluxoInterno({
         ? { id, tipo: "condicao", verificacoes: [], posicao }
         : item === "espera"
           ? esperaNova(id, posicao)
-          : { id, tipo: "acao", acao: item, parametros: {}, posicao }
+          : item === "anotacao"
+            ? { id, tipo: "anotacao", texto: "", posicao }
+            : { id, tipo: "acao", acao: item, parametros: {}, posicao }
 
     setNos((atuais) => [
       ...atuais.map((n) => ({ ...n, selected: false })),
@@ -428,23 +461,6 @@ function EditorFluxoInterno({
       ])
     }
     setMenu(null)
-  }
-
-  /** "Duplicar" do painel: a cópia fica solta e selecionada, para ligar onde quiser (B22-13). */
-  function duplicarBloco(original: NoFluxo) {
-    const bloco = original.data.bloco
-    if (bloco.tipo === "gatilho") return
-    const id = crypto.randomUUID()
-    const largura = original.measured?.width ?? LARGURA_BLOCO
-    const posicao = posicaoLivre(
-      { x: original.position.x + largura + DISTANCIA_DA_COPIA, y: original.position.y },
-      nos
-    )
-    const copia = copiaDoBloco(bloco, id, posicao, () => crypto.randomUUID())
-    setNos((atuais) => [
-      ...atuais.map((n) => ({ ...n, selected: false })),
-      { id, type: copia.tipo, position: posicao, data: { bloco: copia }, selected: true },
-    ])
   }
 
   function mudarBloco(bloco: Bloco) {
@@ -721,7 +737,8 @@ function EditorFluxoInterno({
           </ReactFlow>
         </ContextoEditorFluxo.Provider>
 
-        {selecionado && (
+        {/* B59-01: a anotação se edita no próprio bloco */}
+        {selecionado && selecionado.data.bloco.tipo !== "anotacao" && (
           <PainelBloco
             key={selecionado.id}
             bloco={selecionado.data.bloco}
@@ -734,7 +751,7 @@ function EditorFluxoInterno({
             guardarArquivo={guardarArquivo}
             onMudar={mudarBloco}
             onRemover={() => deleteElements({ nodes: [{ id: selecionado.id }] })}
-            onDuplicar={() => duplicarBloco(selecionado)}
+            onDuplicar={() => duplicarBloco(selecionado.id)}
             onFechar={fecharPainel}
           />
         )}

@@ -4,8 +4,8 @@
 // passa por cima da RLS: uma etiqueta de outra empresa gravada no fluxo seria
 // aplicada sem ninguém barrar.
 
-import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "@/app/(auth)/contatos/mock-contatos"
-import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/mock-pipeline"
+import { CLASSIFICACAO_LABEL, TIPO_LABEL } from "@/app/(auth)/contatos/tipos-contato"
+import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/etapas-e-tipos"
 import { horaDoGatilho, itensDaLista, SEM_COMPRAS, SEM_PERFIL_DE_DESTINO, type Fluxo } from "@/lib/fluxo-automacao"
 import { PERFIL_POR_ID } from "@/lib/relatorios/rfv"
 import { conferirValor, entradaDoCanonico, type TipoDeCampo } from "@/lib/campos-personalizados"
@@ -18,7 +18,6 @@ export interface ReferenciasDoFluxo {
   atendentesAtribuidos: string[]
   conexoes: string[]
   times: string[]
-  sequencias: string[]
   /** `bloco`: o nome do bloco que cita, para o aviso de "precisa de ajuste" (B41-04). */
   etapas: Array<{ funil: string; etapa: string; bloco?: string }>
   /** Campo e valor de cada "alterar dado do contato". */
@@ -50,7 +49,6 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
   const atendentesAtribuidos = new Set<string>()
   const conexoes = new Set<string>()
   const times = new Set<string>()
-  const sequencias = new Set<string>()
   const etapas: ReferenciasDoFluxo["etapas"] = []
   const dadosDoContato: ReferenciasDoFluxo["dadosDoContato"] = []
   const tiposDeContato: string[] = []
@@ -83,8 +81,8 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
       }
       continue
     }
-    // B28-02: o bloco "esperar" não escolhe nada da empresa
-    if (bloco.tipo === "espera") continue
+    // B28-02 e B59-01: o bloco "esperar" e a anotação não escolhem nada da empresa
+    if (bloco.tipo === "espera" || bloco.tipo === "anotacao") continue
 
     const p = bloco.parametros
     if (bloco.tipo === "gatilho" && bloco.gatilho === "entrou_perfil_rfv") {
@@ -101,7 +99,6 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
       atendentesAtribuidos.add(p.responsavel_id)
     }
     if (p.time_id) times.add(p.time_id)
-    if (p.sequencia_id) sequencias.add(p.sequencia_id)
     // Funil sozinho também é conferido: o gatilho "card movido" aceita "qualquer etapa"
     if (p.funil) etapas.push({ funil: p.funil, etapa: p.etapa ?? "", bloco: bloco.tipo === "gatilho" ? "Card movido para etapa" : "Mover card para etapa" })
     if (bloco.tipo === "acao" && bloco.acao === "alterar_dado_contato") {
@@ -122,7 +119,6 @@ export function referenciasDoFluxo(fluxo: Fluxo): ReferenciasDoFluxo {
     atendentesAtribuidos: [...atendentesAtribuidos],
     conexoes: [...conexoes],
     times: [...times],
-    sequencias: [...sequencias],
     etapas,
     dadosDoContato,
     tiposDeContato,

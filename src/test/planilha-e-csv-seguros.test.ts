@@ -36,7 +36,9 @@ function planilha({ areaDeclarada, celulaLonge }: { areaDeclarada: string; celul
   const entrada = XLSX.CFB.find(zip, "/xl/worksheets/sheet1.xml")!
   const xml = new TextDecoder().decode(entrada.content as Uint8Array)
   entrada.content = new TextEncoder().encode(xml.replace(/<dimension ref="[^"]*"\/>/, `<dimension ref="${areaDeclarada}"/>`)) as never
-  return (XLSX.CFB.write(zip, { type: "array", fileType: "zip" }) as Uint8Array).slice().buffer
+  // No Node, o que sai é um Buffer: `.slice()` devolve uma vista do bloco de memória
+  // inteiro (64 KB no Linux), não uma cópia. `new Uint8Array(...)` copia só os bytes.
+  return new Uint8Array(XLSX.CFB.write(zip, { type: "array", fileType: "zip" }) as Uint8Array).buffer
 }
 
 function formulario(bytes: ArrayBuffer, nome = "produtos.xlsx") {

@@ -11,7 +11,8 @@ import { CabecalhoDoPipeline } from "./cabecalho-do-pipeline"
 import { PainelCard } from "./painel-card"
 import { ModalNovoLead } from "./modal-novo-lead"
 import { ModalAdicionarContato } from "./modal-adicionar-contato"
-import { ETAPAS_ENTRADA, type CardLead } from "../mock-pipeline"
+import { ZonasDeAcaoRapida } from "./zonas-de-acao-rapida"
+import { ETAPAS_ENTRADA, type CardLead } from "../etapas-e-tipos"
 import { moverCard } from "../actions"
 
 interface FunilEntradaProps {
@@ -34,6 +35,8 @@ export function FunilEntrada({ cards, papel, atendentes, funis = [] }: FunilEntr
   // QA M27 (06/10): mover levava segundos sem nada na tela, e o erro era engolido.
   const [movendo, setMovendo] = useState(false)
   const [erroMover, setErroMover] = useState<string | null>(null)
+  // B60: com um card no ar, o rodapé mostra Ganho, Perdido e Excluir lead
+  const [arrastando, setArrastando] = useState(false)
 
   async function handleMoverCard(cardId: string, deEtapa: string, paraEtapa: string) {
     setMovendo(true)
@@ -80,6 +83,17 @@ export function FunilEntrada({ cards, papel, atendentes, funis = [] }: FunilEntr
           onFechar={() => setEtapaDoMais(null)}
         />
       )}
+      <ZonasDeAcaoRapida
+        arrastando={arrastando}
+        funil="entrada"
+        etapas={[
+          { etapaId: "ganho", rotulo: "Ganho", tom: "sucesso" },
+          { etapaId: "perdido", rotulo: "Perdido", tom: "erro" },
+        ]}
+        onMover={(cardId, deEtapa, paraEtapa) => { setArrastando(false); handleMoverCard(cardId, deEtapa, paraEtapa) }}
+        onExcluido={() => router.refresh()}
+        onErro={(mensagem) => { setArrastando(false); setErroMover(mensagem) }}
+      />
       {(movendo || erroMover) && (
         <div
           role={erroMover ? "alert" : "status"}
@@ -182,6 +196,7 @@ export function FunilEntrada({ cards, papel, atendentes, funis = [] }: FunilEntr
                 destaque={etapa.id === "ganho"}
                 onCardClick={(card) => setCardSelecionado(card as CardLead)}
                 onCardDrop={handleMoverCard}
+                onArrastar={setArrastando}
                 onAdicionar={papel !== "atendente" && etapa.id !== "ganho" && etapa.id !== "perdido" ? () => setEtapaDoMais(etapa) : undefined}
               />
             )

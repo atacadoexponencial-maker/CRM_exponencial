@@ -42,7 +42,8 @@ import TermosPage from "@/app/termos-de-servico/page"
 import NaoEncontrado from "@/app/not-found"
 import LojaLayout from "@/app/loja/[endereco]/layout"
 
-const CSS = readFileSync(path.resolve(__dirname, "../app/globals.css"), "utf-8")
+// No Windows o arquivo vem com \r\n; os seletores são procurados com \n.
+const CSS = readFileSync(path.resolve(__dirname, "../app/globals.css"), "utf-8").replace(/\r\n/g, "\n")
 
 /** Variáveis declaradas no bloco do seletor dado, lidas do globals.css. */
 function variaveis(seletor: string): Record<string, string> {

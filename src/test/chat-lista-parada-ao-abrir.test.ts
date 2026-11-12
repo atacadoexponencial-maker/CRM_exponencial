@@ -3,7 +3,7 @@
 
 import { describe, it, expect } from "vitest"
 import { aplicarAtualizacaoDaConversa } from "@/app/(auth)/chat/conversa-atualizada"
-import type { Conversa } from "@/app/(auth)/chat/mock-conversas"
+import type { Conversa } from "@/app/(auth)/chat/tipos-conversa"
 import { FUSO_DA_OPERACAO } from "@/lib/datas"
 
 function conversa(id: string, atividadeEm: string, naoLidas = 0): Conversa {

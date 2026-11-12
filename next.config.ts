@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 export const CABECALHOS_DE_SEGURANCA = [
   // Ninguém exibe o site dentro de moldura de outro site (golpe de clique disfarçado).
@@ -45,4 +46,20 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// B55: Sentry. No `next build` sobe os source maps (precisa de SENTRY_AUTH_TOKEN no
+// ambiente de build; sem ele, só avisa e o app funciona igual, com pilha minificada).
+export default withSentryConfig(nextConfig, {
+  org: "atacado-exponencial",
+  project: "crmatacado-exp",
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+
+  // Sobe mais arquivos do cliente para a pilha resolver nos chunks do próprio Next.
+  widenClientFileUpload: true,
+
+  // Os eventos do navegador passam pelo nosso domínio, fora do alcance de bloqueador
+  // de anúncio. Fica em /api/ porque o porteiro (middleware) já deixa /api/ passar.
+  tunnelRoute: "/api/monitoramento",
+
+  // Só fala no CI.
+  silent: !process.env.CI,
+});

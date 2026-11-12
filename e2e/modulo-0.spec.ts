@@ -20,8 +20,7 @@ async function apagarEmpresaDoLogin(email: string) {
   await service.auth.admin.deleteUser(user.id)
   if (!perfil) return
 
-  // A empresa não apaga em cascata os próprios times e sequências.
-  await service.from("sequences").delete().eq("workspace_id", perfil.workspace_id)
+  // A empresa não apaga em cascata os próprios times.
   await service.from("teams").delete().eq("workspace_id", perfil.workspace_id)
   await service.from("workspaces").delete().eq("id", perfil.workspace_id)
 }

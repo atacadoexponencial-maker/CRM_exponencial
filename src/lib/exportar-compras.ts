@@ -1,7 +1,7 @@
 // Exportação do histórico de compras do contato (B30-04): as mesmas colunas da tabela
 // do perfil, na mesma ordem, prontas para `gerarPlanilha`.
 
-import type { Compra } from "@/app/(auth)/contatos/mock-contatos"
+import type { Compra } from "@/app/(auth)/contatos/tipos-contato"
 import { ROTULO_FORMA_PAGAMENTO, ROTULO_ORIGEM_COMPRA } from "@/lib/compras"
 import type { ColunaPlanilha } from "@/lib/exportar-planilha"
 

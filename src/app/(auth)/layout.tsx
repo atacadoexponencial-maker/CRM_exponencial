@@ -33,7 +33,7 @@ async function dadosDoUsuario(): Promise<{
       // B16-10: pedidos do catálogo ainda Novos (o RLS limita à empresa).
       supabase.from("catalog_orders").select("id", { count: "exact", head: true }).eq("status", "novo"),
       // B51-01: quem cuida da plataforma vê "Convites" no menu
-      ehDaPlataforma(user.email),
+      ehDaPlataforma(user.id),
     ])
 
     return {

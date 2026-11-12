@@ -10,6 +10,7 @@ import {
   type PerfilComercial,
   trocarFotoDoPerfil,
 } from "@/lib/whatsapp/perfil-comercial-meta"
+import { GRAPH } from "@/lib/whatsapp/versao-da-graph"
 
 const cred = { phoneNumberId: "123", accessToken: "tok" }
 const vazio: PerfilComercial = { about: "", description: "", address: "", email: "", websites: [], vertical: "UNDEFINED", fotoUrl: null }
@@ -57,7 +58,7 @@ describe("perfil comercial da Meta", () => {
     expect(await salvarPerfilComercial(cred, vazio, dados)).toEqual({})
 
     const [url, init] = fetchMock.mock.calls[0]
-    expect(url).toBe("https://graph.facebook.com/v21.0/123/whatsapp_business_profile")
+    expect(url).toBe(`${GRAPH}/123/whatsapp_business_profile`)
     expect(init.method).toBe("POST")
     expect(JSON.parse(init.body)).toEqual({
       messaging_product: "whatsapp",
@@ -94,17 +95,17 @@ describe("perfil comercial da Meta", () => {
     expect(await trocarFotoDoPerfil(cred, "APP", { bytes, tipo: "image/png" })).toEqual({})
 
     const [u1, i1] = fetchMock.mock.calls[0]
-    expect(u1).toBe("https://graph.facebook.com/v21.0/APP/uploads?file_length=3&file_type=image%2Fpng")
+    expect(u1).toBe(`${GRAPH}/APP/uploads?file_length=3&file_type=image%2Fpng`)
     expect(i1.method).toBe("POST")
 
     const [u2, i2] = fetchMock.mock.calls[1]
-    expect(u2).toBe("https://graph.facebook.com/v21.0/upload:abc")
+    expect(u2).toBe(`${GRAPH}/upload:abc`)
     expect(i2.headers.Authorization).toBe("OAuth tok")
     expect(i2.headers.file_offset).toBe("0")
     expect(i2.body).toBe(bytes)
 
     const [u3, i3] = fetchMock.mock.calls[2]
-    expect(u3).toBe("https://graph.facebook.com/v21.0/123/whatsapp_business_profile")
+    expect(u3).toBe(`${GRAPH}/123/whatsapp_business_profile`)
     expect(JSON.parse(i3.body)).toEqual({ messaging_product: "whatsapp", profile_picture_handle: "handle-1" })
   })
 

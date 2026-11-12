@@ -44,12 +44,12 @@ export function assinatura(regra: RegraEditada): string {
 
 /**
  * Texto que muda só quando muda o que "Testar com um contato" percorre: arrastar
- * um bloco não conta. Diz se o resultado do teste ainda vale (B22-10).
+ * um bloco não conta, nem mexer numa anotação (B59-01). Diz se o resultado do teste
+ * ainda vale (B22-10).
  */
 export function assinaturaDoCaminho(fluxo: Fluxo): string {
-  return JSON.stringify(
-    ordenarChaves({ blocos: fluxo.blocos.map((b) => ({ ...b, posicao: null })), ligacoes: fluxo.ligacoes })
-  )
+  const blocos = fluxo.blocos.filter((b) => b.tipo !== "anotacao").map((b) => ({ ...b, posicao: null }))
+  return JSON.stringify(ordenarChaves({ blocos, ligacoes: fluxo.ligacoes }))
 }
 
 function lerBruto(chave: string): string | null {

@@ -152,10 +152,13 @@ outra pessoa a vê, nem Admin de empresa.
 
 #### CA-B51-23 — Item no menu só para a plataforma · prova: automática
 
-- **Dado** Marcelle logada e um Admin de empresa logado
+- **Dado** Marcelle logada com uma conta da lista da plataforma e um Admin de empresa
+  logado
 - **Quando** cada um abre o CRM
 - **Então** o menu lateral da Marcelle tem o item "Convites", que leva a
   `/plataforma/convites`; o do Admin não tem
+- Quem é da plataforma é reconhecido pela conta (id) da lista, não pelo e-mail
+  (auditoria run-2, pista 5; texto trocado com o ok do Luan em 10/11/2026)
 
 #### CA-B51-12 — Só a plataforma cria e cancela convite · prova: automática
 

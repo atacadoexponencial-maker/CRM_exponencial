@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, MessageSquare, ChevronDown, Phone, Clock, Tag, FileText, History, Trash2, UserRound } from "lucide-react"
+import { X, MessageSquare, ChevronDown, Phone, Clock, Tag, FileText, History, Trash2, UserRound, CalendarPlus } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA, type CardLead, type CardCliente, type CardDoFunil, type EtapaDoFunil, type HistoricoEtapa, type NotaInterna } from "../mock-pipeline"
+import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA, type CardLead, type CardCliente, type CardDoFunil, type EtapaDoFunil, type HistoricoEtapa, type NotaInterna } from "../etapas-e-tipos"
 import { buscarDadosPainel, moverCard, atribuirAtendente, adicionarNota, removerCardDoFunil } from "../actions"
 import { Button } from "@/components/ui/button"
 import { MenuMaisAcoes } from "@/components/shared/menu-mais-acoes"
@@ -13,6 +13,7 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { DialogoExcluirContato } from "../../contatos/components/dialogo-excluir-contato"
 import { resumoExclusaoPorCard, excluirContatoPorCard, type ResumoExclusao } from "../../contatos/lixeira/actions"
 import { TagsDoContato } from "./tags-do-contato"
+import { DialogoAgendarTarefa } from "./dialogo-agendar-tarefa"
 import { formatarNumero } from "@/lib/whatsapp"
 
 interface PainelCardProps {
@@ -40,6 +41,9 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
   const [erroExclusao, setErroExclusao] = useState<string | null>(null)
   const [tirandoDoFunil, setTirandoDoFunil] = useState(false)
   const [confirmarTirar, setConfirmarTirar] = useState(false)
+  // B60: agendar tarefa da Agenda já presa a este lead
+  const [agendarAberto, setAgendarAberto] = useState(false)
+  const [tarefaAgendada, setTarefaAgendada] = useState(false)
   const [painelData, setPainelData] = useState<{ historico: HistoricoEtapa[]; notas: NotaInterna[] }>({ historico: [], notas: [] })
   // Montado com key={card.id} nos funis — cada card abre uma instância nova,
   // então o estado começa como "carregando" e não precisa de reset em effect.
@@ -315,6 +319,29 @@ export function PainelCard({ card, onFechar, funil = "entrada", onMover, papel, 
                 <UserRound className="size-3.5" />
                 Abrir ficha completa
               </Link>
+            )}
+            {card.contactId && (
+              <>
+                <button
+                  onClick={() => { setTarefaAgendada(false); setAgendarAberto(true) }}
+                  className="w-full h-8 flex items-center justify-center gap-2 text-sm rounded-lg border border-input transition-colors hover:bg-muted text-muted-foreground hover:text-foreground"
+                >
+                  <CalendarPlus className="size-3.5" />
+                  Agendar tarefa
+                </button>
+                {tarefaAgendada && (
+                  <p role="status" className="text-xs text-sucesso">
+                    Tarefa agendada. Ela aparece na sua <Link href="/agenda" className="underline">Agenda</Link>.
+                  </p>
+                )}
+                <DialogoAgendarTarefa
+                  aberto={agendarAberto}
+                  onAbertoChange={setAgendarAberto}
+                  contactId={card.contactId}
+                  nome={card.contato.nome}
+                  onAgendada={() => setTarefaAgendada(true)}
+                />
+              </>
             )}
           </div>
 

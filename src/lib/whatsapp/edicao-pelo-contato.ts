@@ -8,7 +8,7 @@
 
 import type { createServiceClient } from "@/integrations/supabase/service"
 import { lerMensagemMeta, type MensagemMeta } from "./mensagem-meta"
-import { aplicarAvisoDeSistema } from "./recebimento"
+import { aplicarAvisoDeSistema, type EventoMensagemRecebida } from "./recebimento"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -26,19 +26,24 @@ export const TIPOS_DE_EDICAO = ["edit", "revoke"]
 export async function aplicarEdicaoOuExclusaoDaMeta({
   supabase,
   workspaceId,
+  de,
   aviso,
   quando,
 }: {
   supabase: ServiceClient
   /** Só mensagem da empresa do número por onde o aviso chegou. */
   workspaceId: string
+  /** Telefone de quem editou ou apagou (`from` do item): só mexe em mensagem dele (auditoria run-2). */
+  de: string
   aviso: AvisoDeEdicaoDaMeta
   quando: string
 }): Promise<boolean> {
+  const evento: EventoMensagemRecebida = { message_id: "", from: de, type: "system" }
+
   if (aviso.type === "revoke") {
     const alvo = aviso.revoke?.original_message_id
     if (!alvo) return false
-    return aplicarAvisoDeSistema({ supabase, workspaceId, aviso: { action: "deleted", target_message_id: alvo }, quando })
+    return aplicarAvisoDeSistema({ supabase, workspaceId, evento, aviso: { action: "deleted", target_message_id: alvo }, quando })
   }
 
   if (aviso.type !== "edit") return false
@@ -68,6 +73,7 @@ export async function aplicarEdicaoOuExclusaoDaMeta({
   return aplicarAvisoDeSistema({
     supabase,
     workspaceId,
+    evento,
     aviso: { action: "edited", target_message_id: alvo, new_text: textoNovo },
     quando,
   })

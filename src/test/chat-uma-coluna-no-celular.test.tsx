@@ -5,7 +5,7 @@
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import type { Conversa } from "@/app/(auth)/chat/mock-conversas"
+import type { Conversa } from "@/app/(auth)/chat/tipos-conversa"
 
 const canal = { on: vi.fn(() => canal), subscribe: vi.fn(() => canal) }
 vi.mock("@/integrations/supabase/client", () => ({

@@ -2,6 +2,9 @@ Você é um especialista em arquitetura de software. Sua tarefa é criar uma spe
 
 **Projeto:** $ARGUMENTS
 
+Antes de qualquer coisa, leia o `AGENTS.md` da raiz do projeto: é a página de
+princípios, com as regras sempre ativas, a arquitetura, o fluxo e as regras de git.
+
 ## O que você deve fazer
 
 1. Leia a descrição acima

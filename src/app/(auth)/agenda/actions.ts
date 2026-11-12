@@ -8,7 +8,7 @@ import { lerVencimento, vencimentoAoAdiar } from "./vencimento"
 
 export type ItemAgenda = {
   id: string
-  origem: "sequencia" | "avulso" | "automacao"
+  origem: "avulso" | "automacao"
   /** Nome da regra que criou o lembrete, quando a origem é automação (B28-01). */
   automacaoNome?: string | null
   contatoNome: string
@@ -28,7 +28,7 @@ async function perfilAtual() {
 
 type ReminderRow = {
   id: string
-  origem: "sequencia" | "avulso" | "automacao"
+  origem: "avulso" | "automacao"
   automacao_nome: string | null
   instrucao: string
   due_at: string

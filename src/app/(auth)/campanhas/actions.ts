@@ -4,6 +4,16 @@ import { revalidatePath } from "next/cache"
 import { createClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
 import { createServiceClient } from "@/integrations/supabase/service"
+import {
+  aprovadosParaCampanha,
+  avisoDasVariaveisDoTemplate,
+  avisoDoArquivoDoCabecalho,
+  cabecalhoEhMidia,
+  type PartesDoTemplate,
+  type TipoDeCabecalho,
+  type VariaveisDoTemplate,
+} from "@/lib/templates-da-meta"
+import { buscarTemplatesDaMeta } from "@/lib/templates-da-meta-graph"
 import { anexoDaEmpresa } from "@/lib/anexo-da-campanha"
 import { processarCampanhasPendentes } from "@/lib/campanhas"
 import { nomeDoCanal } from "@/lib/whatsapp"
@@ -22,6 +32,7 @@ import { condicoesComFunilApagado, esquemaFiltro } from "@/lib/filtro-contatos"
 import { filtroDoSegmento, type Segmento } from "@/lib/segmento-campanha"
 import { avisoDeSemReserva, variaveisSemReserva } from "@/lib/variaveis-mensagem"
 import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
+import { AVISO_TEMPLATE_NAO_APROVADO } from "@/lib/avisos-da-campanha"
 
 export type { Segmento } from "@/lib/segmento-campanha"
 
@@ -34,6 +45,8 @@ export type CampanhaListada = {
   criador: string | null
   /** B38-05: não enviada, com variável sem texto reserva (SUP-B38-18). */
   precisaDeAjuste: boolean
+  /** B54-06 (CA-B54-28): "Template: nome" na campanha por template; senão o começo do texto. */
+  mensagem: string
 }
 
 export type CampanhaDetalhe = {
@@ -41,13 +54,40 @@ export type CampanhaDetalhe = {
   nome: string
   status: string
   segmento: Segmento
-  tipoMensagem: "texto" | "imagem" | "documento"
+  tipoMensagem: TipoDeMensagemDaCampanha
   conteudo: string
   arquivoUrl: string | null
   arquivoNome: string | null
   agendadaPara: string | null
   /** B7-03: número de origem escolhido. Nulo: cai no número do workspace. */
   whatsappConnectionId: string | null
+  /** B54-04: o template escolhido, só no tipo `template`. Ausente nas campanhas antigas. */
+  template?: TemplateDaCampanha | null
+}
+
+/** B54-04: a campanha por template da API Oficial entra como quarto tipo. */
+export type TipoDeMensagemDaCampanha = "texto" | "imagem" | "documento" | "template"
+
+/**
+ * B54-04: o que a campanha guarda do template escolhido: a identificação na Meta e o
+ * tipo do cabeçalho (para a B54-05 pedir o arquivo quando é mídia).
+ */
+export type TemplateDaCampanha = {
+  id: string
+  name: string
+  language: string
+  cabecalho: TipoDeCabecalho | null
+  /** B54-05: de onde vem cada variável. Ausente nas campanhas gravadas pela B54-04. */
+  variaveis?: VariaveisDoTemplate
+}
+
+/** B54-04: um template que a campanha pode escolher, já filtrado no servidor. */
+export type TemplateParaCampanha = {
+  id: string
+  name: string
+  language: string
+  category: string
+  partes: PartesDoTemplate | null
 }
 
 /**
@@ -70,12 +110,14 @@ export type DestinatarioPreview = { id: string; nome: string; telefone: string }
 export type DadosCampanha = {
   nome: string
   segmento: Segmento
-  tipoMensagem: "texto" | "imagem" | "documento"
+  tipoMensagem: TipoDeMensagemDaCampanha
   conteudo: string
   arquivoUrl: string | null
   arquivoNome: string | null
   /** B7-03: número de origem. Nulo mantém o comportamento antigo. */
   whatsappConnectionId?: string | null
+  /** B54-04: só no tipo `template`. */
+  template?: TemplateDaCampanha | null
 }
 
 async function perfilGestor() {
@@ -159,7 +201,7 @@ export async function listarCampanhas(): Promise<CampanhaListada[]> {
 
   const { data } = await supabase
     .from("campaigns")
-    .select("id, nome, status, conteudo, agendada_para, enviada_em, criador:profiles!criado_por(name), campaign_recipients(id)")
+    .select("id, nome, status, conteudo, tipo_mensagem, template, agendada_para, enviada_em, criador:profiles!criado_por(name), campaign_recipients(id)")
     .eq("workspace_id", perfil.workspace_id)
     .order("created_at", { ascending: false })
 
@@ -168,6 +210,8 @@ export async function listarCampanhas(): Promise<CampanhaListada[]> {
     nome: string
     status: string
     conteudo: string | null
+    tipo_mensagem: string
+    template: { name?: string } | null
     agendada_para: string | null
     enviada_em: string | null
     criador: { name: string } | null
@@ -182,7 +226,18 @@ export async function listarCampanhas(): Promise<CampanhaListada[]> {
     dataEnvio: c.enviada_em ?? c.agendada_para,
     criador: c.criador?.name ?? null,
     precisaDeAjuste: ["rascunho", "agendada", "enviando"].includes(c.status) && variaveisSemReserva(c.conteudo ?? "").length > 0,
+    mensagem: resumoDaMensagem(c.tipo_mensagem, c.conteudo, c.template),
   }))
+}
+
+/** B54-06 (CA-B54-28): o que a lista mostra na coluna Mensagem. */
+function resumoDaMensagem(tipo: string, conteudo: string | null, template: { name?: string } | null): string {
+  if (tipo === "template") return `Template: ${template?.name ?? "—"}`
+  const texto = (conteudo ?? "").replace(/\s+/g, " ").trim()
+  const curto = texto.length > 60 ? `${texto.slice(0, 57)}…` : texto
+  if (tipo === "imagem") return curto ? `Imagem · ${curto}` : "Imagem"
+  if (tipo === "documento") return curto ? `Documento · ${curto}` : "Documento"
+  return curto || "—"
 }
 
 export async function buscarCampanha(id: string): Promise<CampanhaDetalhe | null> {
@@ -191,7 +246,7 @@ export async function buscarCampanha(id: string): Promise<CampanhaDetalhe | null
 
   const { data } = await supabase
     .from("campaigns")
-    .select("id, nome, status, segmento, tipo_mensagem, conteudo, arquivo_url, arquivo_nome, agendada_para, whatsapp_connection_id")
+    .select("id, nome, status, segmento, tipo_mensagem, conteudo, arquivo_url, arquivo_nome, agendada_para, whatsapp_connection_id, template")
     .eq("id", id)
     .eq("workspace_id", perfil.workspace_id)
     .single()
@@ -204,12 +259,40 @@ export async function buscarCampanha(id: string): Promise<CampanhaDetalhe | null
     status: data.status,
     // B42-02: campanha antiga abre com o filtro equivalente; reenvio segue sem filtro.
     segmento: paraATela((data.segmento ?? {}) as Segmento),
-    tipoMensagem: data.tipo_mensagem,
+    tipoMensagem: data.tipo_mensagem as TipoDeMensagemDaCampanha,
     conteudo: data.conteudo ?? "",
     arquivoUrl: data.arquivo_url,
     arquivoNome: data.arquivo_nome,
     agendadaPara: data.agendada_para,
     whatsappConnectionId: data.whatsapp_connection_id ?? null,
+    template: (data.template as TemplateDaCampanha | null) ?? null,
+  }
+}
+
+/**
+ * B54-04: os templates que a campanha pode usar no número escolhido: só os aprovados
+ * da API Oficial, sem os de autenticação (SUP-B54-02). O número tem de ser da empresa
+ * e da API Oficial; no canal direto não há template, e a lista volta vazia.
+ */
+export async function templatesParaCampanha(
+  connectionId: string
+): Promise<{ templates: TemplateParaCampanha[]; erro?: string }> {
+  const { perfil } = await perfilGestor()
+  if (!perfil) return { templates: [] }
+
+  // B19-03: `access_token` só pela chave de serviço, com o filtro de empresa.
+  const { data: conexao } = await createServiceClient()
+    .from("whatsapp_connections")
+    .select("waba_id, access_token, canal")
+    .eq("id", connectionId)
+    .eq("workspace_id", perfil.workspace_id)
+    .maybeSingle()
+  if (!conexao || (conexao.canal ?? "meta") !== "meta" || !conexao.waba_id || !conexao.access_token) return { templates: [] }
+
+  const { templates, erro } = await buscarTemplatesDaMeta(conexao.waba_id, conexao.access_token)
+  if (erro) return { templates: [], erro }
+  return {
+    templates: aprovadosParaCampanha(templates).map(({ id, name, language, category, partes }) => ({ id, name, language, category, partes })),
   }
 }
 
@@ -352,9 +435,11 @@ const EXTENSAO_DO_ANEXO: Record<string, string> = {
   "application/vnd.ms-powerpoint": "ppt",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
   "text/plain": "txt",
+  // B54-05 (SUP-B54-11): vídeo MP4, para o cabeçalho de vídeo do template.
+  "video/mp4": "mp4",
 }
 const AVISO_TIPO_DO_ANEXO =
-  "Tipo de arquivo não aceito. Envie imagem JPG, PNG ou WebP, ou documento PDF, Word, Excel, PowerPoint ou TXT."
+  "Tipo de arquivo não aceito. Envie imagem JPG, PNG ou WebP, vídeo MP4, ou documento PDF, Word, Excel, PowerPoint ou TXT."
 const AVISO_ANEXO_DE_FORA = "Anexe o arquivo pela própria campanha"
 
 function validarDados(dados: DadosCampanha, paraEnvio: boolean, workspaceId: string): string | null {
@@ -364,12 +449,35 @@ function validarDados(dados: DadosCampanha, paraEnvio: boolean, workspaceId: str
   // B38-05: toda variável tem texto reserva (CA-B38-48)
   const semReserva = avisoDeSemReserva(dados.conteudo ?? "")
   if (semReserva) return semReserva
+  // B54-04: template só com número da API Oficial escolhido (SUP-B54-04); o canal é
+  // conferido em `numeroEhDaApiOficial`, junto da conferência de empresa.
+  if (dados.tipoMensagem === "template") {
+    if (!dados.template?.id || !dados.template.name || !dados.template.language) return AVISO_ESCOLHA_O_TEMPLATE
+    if (!dados.whatsappConnectionId) return AVISO_TEMPLATE_SEM_NUMERO
+    // B54-05: toda variável do contato tem reserva e todo texto fixo está preenchido (CA-B54-17).
+    if (dados.template.variaveis) {
+      const avisoDasVariaveis = avisoDasVariaveisDoTemplate(dados.template.variaveis)
+      if (avisoDasVariaveis) return avisoDasVariaveis
+    }
+  }
   if (paraEnvio) {
+    if (dados.tipoMensagem === "template") {
+      // B54-05: cabeçalho de mídia leva o arquivo da campanha (CA-B54-18).
+      if (cabecalhoEhMidia(dados.template?.cabecalho) && !dados.arquivoUrl) return avisoDoArquivoDoCabecalho(dados.template!.cabecalho as "imagem" | "video" | "documento")
+      // B54-06: o template não tem texto livre nem anexo obrigatório fora do cabeçalho.
+      return null
+    }
     if (!dados.conteudo.trim()) return "Escreva a mensagem da campanha"
     if (dados.tipoMensagem !== "texto" && !dados.arquivoUrl) return "Anexe o arquivo da campanha"
   }
   return null
 }
+
+
+
+const AVISO_ESCOLHA_O_TEMPLATE = "Escolha o template da campanha"
+const AVISO_TEMPLATE_SEM_NUMERO = "Escolha o número da API Oficial que vai enviar o template"
+const AVISO_TEMPLATE_NO_CANAL_DIRETO = "Template só existe na API Oficial. Escolha um número da API Oficial ou troque o tipo de mensagem."
 
 export async function salvarRascunho(
   id: string | null,
@@ -385,11 +493,13 @@ export async function salvarRascunho(
   if (dados.whatsappConnectionId) {
     const { data: conexao } = await supabase
       .from("whatsapp_connections")
-      .select("id")
+      .select("id, canal")
       .eq("id", dados.whatsappConnectionId)
       .eq("workspace_id", perfil.workspace_id)
       .maybeSingle()
     if (!conexao) return { erro: "Número de WhatsApp inválido para esta campanha" }
+    // B54-04: template é da API Oficial; no canal direto não existe.
+    if (dados.tipoMensagem === "template" && (conexao.canal ?? "meta") !== "meta") return { erro: AVISO_TEMPLATE_NO_CANAL_DIRETO }
   }
 
   const payload = {
@@ -401,6 +511,8 @@ export async function salvarRascunho(
     arquivo_nome: dados.arquivoNome,
     // B7-03: nulo é válido e significa "o número do workspace", como antes.
     whatsapp_connection_id: dados.whatsappConnectionId ?? null,
+    // B54-04: o template escolhido; nulo fora do tipo template.
+    template: dados.tipoMensagem === "template" ? (dados.template ?? null) : null,
   }
 
   if (id) {
@@ -454,6 +566,13 @@ export async function confirmarCampanha(
   const { count: conectados } = await numeros
   if (!conectados) {
     return { erro: dados.whatsappConnectionId ? "O número escolhido não está conectado. Conecte-o ou escolha outro." : "Conecte um número de WhatsApp antes de enviar a campanha." }
+  }
+
+  // B54-06 (CA-B54-23): o template tem de continuar aprovado no número da campanha.
+  if (dados.tipoMensagem === "template" && dados.whatsappConnectionId && dados.template) {
+    const { templates, erro: erroDaMeta } = await templatesParaCampanha(dados.whatsappConnectionId)
+    if (erroDaMeta) return { erro: erroDaMeta }
+    if (!templates.some((t) => t.id === dados.template!.id)) return { erro: AVISO_TEMPLATE_NAO_APROVADO }
   }
 
   // B42-03: funil ou etapa apagada não confirma; ignorar a condição mandaria para mais gente.
@@ -681,6 +800,8 @@ export type RelatorioCampanha = {
   pendentes: number
   /** B8-02: aceitas pelo gateway, esperando a vez de sair. */
   naFila: number
+  /** B54-06 (CA-B54-28): o template usado; nulo fora da campanha por template. */
+  templateNome: string | null
   destinatarios: Array<{
     nome: string
     telefone: string
@@ -697,7 +818,7 @@ export async function relatorioCampanha(id: string): Promise<RelatorioCampanha |
 
   const { data } = await supabase
     .from("campaigns")
-    .select("id, nome, status, enviada_em, interrompida_motivo, campaign_recipients(nome_snapshot, telefone_snapshot, status, atualizado_em, motivo)")
+    .select("id, nome, status, enviada_em, interrompida_motivo, tipo_mensagem, template, campaign_recipients(nome_snapshot, telefone_snapshot, status, atualizado_em, motivo)")
     .eq("id", id)
     .eq("workspace_id", perfil.workspace_id)
     .single()
@@ -715,9 +836,11 @@ export async function relatorioCampanha(id: string): Promise<RelatorioCampanha |
 
   const porStatus = (s: string) => recipients.filter((r) => r.status === s).length
 
+  const template = data.template as { name?: string } | null
   return {
     id: data.id,
     nome: data.nome,
+    templateNome: data.tipo_mensagem === "template" ? (template?.name ?? "—") : null,
     status: data.status,
     enviadaEm: data.enviada_em,
     interrompidaMotivo: data.interrompida_motivo ?? null,
@@ -814,7 +937,7 @@ export async function criarReenvioParaFalhos(campanhaId: string): Promise<{ id?:
 
   const { data: origem } = await supabase
     .from("campaigns")
-    .select("nome, tipo_mensagem, conteudo, arquivo_url, arquivo_nome")
+    .select("nome, tipo_mensagem, conteudo, arquivo_url, arquivo_nome, whatsapp_connection_id, template")
     .eq("id", campanhaId)
     .eq("workspace_id", perfil.workspace_id)
     .single()
@@ -839,6 +962,9 @@ export async function criarReenvioParaFalhos(campanhaId: string): Promise<{ id?:
       conteudo: origem.conteudo,
       arquivo_url: origem.arquivo_url,
       arquivo_nome: origem.arquivo_nome,
+      // B54-04: o reenvio sai pelo mesmo número e com o mesmo template.
+      whatsapp_connection_id: origem.whatsapp_connection_id,
+      template: origem.template,
       criado_por: user!.id,
     })
     .select("id")

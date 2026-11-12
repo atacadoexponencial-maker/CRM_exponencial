@@ -57,10 +57,8 @@ describe("B53-06 — aviso das 24h só na API Oficial", () => {
     await abrirEtapaMensagem(campanha(DIRETO.id), [DIRETO, OFICIAL])
     expect(screen.queryByText(AVISO)).toBeNull()
 
-    // Na etapa 3 a pessoa troca para o número da API Oficial e volta à Mensagem
-    fireEvent.click(screen.getByRole("button", { name: "Próximo" }))
-    fireEvent.change(await screen.findByLabelText("Enviar pelo número"), { target: { value: OFICIAL.id } })
-    fireEvent.click(screen.getByRole("button", { name: "Anterior" }))
+    // B54-03: o número é escolhido na própria etapa da mensagem
+    fireEvent.change(screen.getByLabelText("Enviar pelo número"), { target: { value: OFICIAL.id } })
     expect(await screen.findByText(AVISO)).toBeTruthy()
   })
 

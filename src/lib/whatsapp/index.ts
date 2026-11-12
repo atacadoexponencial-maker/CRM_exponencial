@@ -30,6 +30,7 @@ export type {
   ProviderWhatsApp,
   RecursoWhatsApp,
   ResultadoEnvio,
+  TemplateEnvio,
 } from "./tipos"
 
 /**

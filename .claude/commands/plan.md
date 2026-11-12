@@ -2,6 +2,9 @@ Você vai planejar em detalhe a implementação da issue fornecida.
 
 **Issue:** $ARGUMENTS
 
+Antes de qualquer coisa, leia o `AGENTS.md` da raiz do projeto: é a página de
+princípios, com as regras sempre ativas, a arquitetura, o fluxo e as regras de git.
+
 ## O que você deve fazer
 
 ### Etapa 1: Lições e pesquisa interna na base de código
@@ -110,6 +113,6 @@ como sempre, sem a tabela Prova, e **não invente códigos** para ela.
 
 - Seja ESPECÍFICO nos caminhos de arquivo — sem genéricos como `src/components/X.tsx`
 - Liste APENAS os arquivos que precisam ser tocados — não mais
-- Sempre siga as regras de arquitetura do `CLAUDE.md` da raiz do projeto
+- Sempre siga as regras de arquitetura do `AGENTS.md` da raiz do projeto
 - Não comece a implementar — apenas planeje
 - Se encontrar código reutilizável na base de código, mencione explicitamente qual importar

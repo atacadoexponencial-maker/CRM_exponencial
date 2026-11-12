@@ -2,6 +2,7 @@
 // é conferido aqui, com dados do banco — preços, estoque e mínimo do navegador nunca valem.
 
 import { createServiceClient } from "@/integrations/supabase/service"
+import { formasDoNumero } from "@/lib/formas-do-numero"
 import { buscarEGuardarFotoDoContato } from "@/lib/whatsapp/foto-de-perfil"
 import { criarCardDeEntrada } from "@/lib/card-de-entrada"
 import { chaveCombinacao, combinacoes, type TipoVariacao } from "./combinacoes"
@@ -39,16 +40,9 @@ export type ResultadoPedido =
   | { ok: true; numero: number; mensagem: string; link: string }
   | { ok: false; erro: string; semEstoque?: ItemSemEstoque[]; precosNovos?: PrecoNovo[] }
 
-/**
- * Formas do mesmo celular brasileiro: o WhatsApp às vezes entrega o número sem o nono
- * dígito (55 + DDD + 8 dígitos), e a cliente digita com ele (55 + DDD + 9 + 8 dígitos).
- */
-export function formasDoNumero(whatsapp: string): string[] {
-  const m = /^55(\d{2})(9?)(\d{8})$/.exec(whatsapp)
-  if (!m) return [whatsapp]
-  const [, ddd, , resto] = m
-  return [`55${ddd}9${resto}`, `55${ddd}${resto}`]
-}
+// Auditoria run-2 (pista 7): mudou para `lib/formas-do-numero.ts`, para o motor das
+// automações usar; continua exportada daqui
+export { formasDoNumero }
 
 async function acharOuCriarContato(workspaceId: string, whatsapp: string, nome: string): Promise<string> {
   const svc = createServiceClient()
@@ -62,7 +56,14 @@ async function acharOuCriarContato(workspaceId: string, whatsapp: string, nome: 
   // B21-07: contato que já existe só recebe o pedido. Quem pede pela loja não tira o
   // contato da lixeira (a empresa vê o pedido e decide se restaura) nem escreve o nome dele.
   if (existente) return existente.id
-  const { data: criado, error } = await svc.from("contacts").insert({ workspace_id: workspaceId, phone_number: whatsapp, name: nome }).select("id").single()
+  // Auditoria run-2 (pista 7): o telefone foi digitado por quem pede, sem conferência.
+  // Com `origem: "loja"`, nenhuma automação manda mensagem a ele enquanto ele não
+  // escrever para a empresa (`automacoes/envio.ts`).
+  const { data: criado, error } = await svc
+    .from("contacts")
+    .insert({ workspace_id: workspaceId, phone_number: whatsapp, name: nome, origem: "loja" })
+    .select("id")
+    .single()
   if (error || !criado) throw new Error(`Não foi possível criar o contato: ${error?.message ?? "sem detalhe"}`)
   // B45-01: todo contato nasce com card na Entrada
   await criarCardDeEntrada(svc, workspaceId, criado.id)

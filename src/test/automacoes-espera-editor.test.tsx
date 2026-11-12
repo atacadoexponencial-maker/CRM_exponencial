@@ -28,7 +28,7 @@ const OPCOES: OpcoesEditor = {
   atendentes: [],
   tags: [],
   times: [],
-  sequencias: [],
+ 
   mensagensRapidas: [],
   numeros: [],
   horarioComercial: HORARIO_PADRAO,

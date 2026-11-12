@@ -94,7 +94,7 @@ Depois de conectar, o cartão do número mostra o andamento da importação até
   - `historico_situacao` (text, nulo; `importando` | `importado` | `recusado` | `falhou`) — andamento da importação das conversas antigas.
   - `historico_progresso` (integer, not null, default 0) — maior `progress` recebido (0 a 100).
   - `historico_pedido_em` (timestamptz, nulo) — quando o pedido `smb_app_data` foi feito; preenchido, não se pede de novo.
-  - `grant select` das três para `authenticated` (L-14).
+  - `grant select` das três para `authenticated` (L-15).
 - Tabela nova: `agenda_do_celular`
   - `id` (uuid), `workspace_id` (uuid → workspaces), `whatsapp_connection_id` (uuid → whatsapp_connections, on delete cascade), `phone_number` (text), `nome` (text), `created_at`; único por (`whatsapp_connection_id`, `phone_number`). RLS ligada, sem política: só o servidor (service role) lê e grava.
 

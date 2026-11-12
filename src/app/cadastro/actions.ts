@@ -3,7 +3,7 @@
 import { createServiceClient } from "@/integrations/supabase/service"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { schema } from "./schema"
-import { chaveDoIp, ipDaRequisicao, passouDoLimite, registrarTentativa } from "@/lib/limite-de-tentativas"
+import { chaveDoIp, ipDaRequisicao, limparTentativasAntigas, reservarTentativa } from "@/lib/limite-de-tentativas"
 import { passouNaConferenciaHumana } from "@/lib/conferencia-humana"
 import { conviteParaCadastro, hashDoCodigo } from "@/lib/convites"
 
@@ -31,11 +31,12 @@ export async function cadastrarEmpresa(dados: unknown): Promise<ResultadoCadastr
   const conferencia = (dados as { conferencia?: unknown }).conferencia
   if (!(await passouNaConferenciaHumana(conferencia, ip))) return { erro: "conferencia" }
 
-  const chaveIp = chaveDoIp(ip)
-  if (await passouDoLimite("cadastro", [{ chave: chaveIp, limite: LIMITE_CADASTROS_POR_HORA }], 60)) {
-    return { erro: "limite" }
-  }
-  await registrarTentativa("cadastro", [chaveIp])
+  // Limite no cadastro (10/11/2026): a vaga é reservada numa operação só no banco, como no
+  // login. Antes, o limite era lido e a tentativa gravada depois: cadastros disparados juntos
+  // liam a mesma contagem e passavam todos. A vaga fica: toda tentativa conta, como antes.
+  const vaga = await reservarTentativa("cadastro", chaveDoIp(ip), LIMITE_CADASTROS_POR_HORA, 60)
+  if (!vaga.reservada) return { erro: "limite" }
+  await limparTentativasAntigas()
 
   // B51-02: só com convite que ainda vale, e no e-mail dele quando ele tem um.
   // A função do banco confere de novo e gasta o convite junto com a empresa.

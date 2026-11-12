@@ -22,6 +22,10 @@ vi.mock("@/lib/limite-de-tentativas", () => ({
   ipDaRequisicao: async () => "203.0.113.9",
   passouDoLimite: vi.fn().mockResolvedValue(false),
   registrarTentativa: vi.fn(),
+  // Detalhes da auditoria (09/11/2026): o login reserva a vaga antes de conferir a senha
+  reservarTentativa: vi.fn().mockResolvedValue({ reservada: true, id: null }),
+  liberarTentativa: vi.fn(),
+  limparTentativasAntigas: vi.fn(),
 }))
 vi.mock("@/integrations/supabase/server", () => ({
   createClient: async () => ({

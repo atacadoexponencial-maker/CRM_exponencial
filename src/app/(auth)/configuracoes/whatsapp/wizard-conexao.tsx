@@ -6,6 +6,7 @@ import { MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { completarConexaoWhatsApp } from "./actions"
+import { VERSAO_DA_GRAPH } from "@/lib/whatsapp/versao-da-graph"
 
 declare global {
   interface Window {
@@ -60,7 +61,7 @@ export function WizardConexao() {
         appId: process.env.NEXT_PUBLIC_META_APP_ID,
         autoLogAppEvents: true,
         xfbml: true,
-        version: "v21.0",
+        version: VERSAO_DA_GRAPH,
       })
     }
 
