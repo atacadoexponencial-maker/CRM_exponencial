@@ -8,6 +8,7 @@ import { createServiceClient } from "@/integrations/supabase/service"
 import { chaveCombinacao, combinacoes, estoqueTotal, type TipoVariacao } from "./combinacoes"
 import { BUCKET_CATALOGO } from "./regras"
 import { mostraUltimasUnidades, opcoesDoCartao, resumoDasVariacoes } from "./vitrine"
+import { FORMAS_ENTREGA, FORMAS_PAGAMENTO, nomesDasFormas } from "./entrega-e-pagamento"
 import { descontosDoBanco, faixasDoBanco, gradeDoBanco, type DescontoPedido } from "./regras-de-venda"
 import { TEMA_PADRAO, type LayoutVitrine, type TemaLoja } from "@/app/loja/components/tema"
 import type { IdFonte } from "@/app/loja/components/fontes"
@@ -25,6 +26,9 @@ export interface LojaPublica {
   mensagemFechamento: string
   /** WhatsApp da loja, só dígitos com 55 (para o link do pedido). */
   whatsapp: string
+  /** B61-06: formas de entrega e de pagamento que o lojista marcou, pelos nomes, na ordem da lista pronta. */
+  formasEntrega: string[]
+  formasPagamento: string[]
 }
 
 export function urlPublicaImagem(caminho: string): string {
@@ -68,7 +72,7 @@ export const carregarLojaPublica = cache(async function carregarLojaPublica(ende
   const service = createServiceClient()
   const { data: cfg } = await service
     .from("catalog_settings")
-    .select("workspace_id, slug, min_type, min_value, order_discounts, closing_message, published, store_name, welcome_text, instagram, logo_path, banner_path, primary_color, background_color, font_id, layout, orders_whatsapp, workspaces(name)")
+    .select("workspace_id, slug, min_type, min_value, order_discounts, closing_message, published, store_name, welcome_text, instagram, logo_path, banner_path, primary_color, background_color, font_id, layout, orders_whatsapp, delivery_methods, payment_methods, workspaces(name)")
     .eq("slug", endereco.toLowerCase())
     .eq("published", true)
     .maybeSingle()
@@ -87,6 +91,8 @@ export const carregarLojaPublica = cache(async function carregarLojaPublica(ende
     descontos: descontosDoBanco(cfg.order_discounts),
     mensagemFechamento: cfg.closing_message,
     whatsapp: cfg.orders_whatsapp,
+    formasEntrega: nomesDasFormas(cfg.delivery_methods, FORMAS_ENTREGA),
+    formasPagamento: nomesDasFormas(cfg.payment_methods, FORMAS_PAGAMENTO),
   }
 })
 

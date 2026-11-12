@@ -95,5 +95,5 @@ export function useCarrinhoLoja(endereco: string, tema: TemaLoja, minimo: Minimo
     />
   )
 
-  return { carrinho, pecas, abrir: () => setAberto(true), gaveta, repetir: ultimoPedido ? repetir : undefined }
+  return { carrinho, pecas, aberto, abrir: () => setAberto(true), gaveta, repetir: ultimoPedido ? repetir : undefined }
 }

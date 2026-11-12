@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils"
 
 import type { TipoMinimo } from "@/app/loja/components/pedido"
 import { MAX_DESCONTOS, type DescontoPedido } from "@/lib/catalogo/regras-de-venda"
+import { FORMAS_ENTREGA, FORMAS_PAGAMENTO, type Forma } from "@/lib/catalogo/entrega-e-pagamento"
 
 export type { TipoMinimo }
 
@@ -24,6 +25,9 @@ export interface ConfigCatalogo {
   publicado: boolean
   /** B61-04: limite do selo "Últimas unidades!", como a pessoa digitou; vazio ou ausente = sem selo. O servidor confere. */
   limiteSelo?: string
+  /** B61-06: identificadores das formas de entrega e de pagamento marcadas; ausente = nada marcado. */
+  formasEntrega?: string[]
+  formasPagamento?: string[]
 }
 
 /** Endereço da loja: minúsculas, números e hífen, sem acento. */
@@ -118,6 +122,30 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
     }
     setSalvo(config)
     if (r.aviso) setMensagem({ tipo: "aviso", texto: r.aviso })
+  }
+
+  /** B61-06: caixas de uma lista pronta; o servidor confere o que chega. */
+  function caixasDeFormas(campo: "formasEntrega" | "formasPagamento", titulo: string, lista: Forma[]) {
+    const marcadas = config[campo] ?? []
+    return (
+      <section className="rounded-md border bg-card p-5 space-y-3">
+        <h2 className="text-sm font-semibold">{titulo} <span className="font-normal text-muted-foreground">· opcional</span></h2>
+        <div role="group" aria-label={titulo} className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+          {lista.map((f) => (
+            <label key={f.id} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={marcadas.includes(f.id)}
+                onChange={(e) => mudar(campo, e.target.checked ? [...marcadas, f.id] : marcadas.filter((m) => m !== f.id))}
+                className="accent-primary"
+              />
+              {f.nome}
+            </label>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">A loja mostra só o que estiver marcado, na página do produto e no rodapé.</p>
+      </section>
+    )
   }
 
   const campoTexto = "w-full min-h-20 rounded-lg border border-input bg-input/30 px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 resize-y"
@@ -263,6 +291,9 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
           O cartão do produto mostra &quot;Últimas unidades!&quot; quando o estoque total dele chega a esse número. Vazio não mostra o selo.
         </p>
       </section>
+
+      {caixasDeFormas("formasEntrega", "Formas de entrega", FORMAS_ENTREGA)}
+      {caixasDeFormas("formasPagamento", "Formas de pagamento", FORMAS_PAGAMENTO)}
 
       <section className="rounded-md border bg-card p-5 space-y-2">
         <Label htmlFor="fechamento">Mensagem de fechamento (opcional)</Label>

@@ -13,10 +13,12 @@ interface LojaClientProps {
   descontos: DescontoPedido[]
   categorias: CategoriaVitrine[]
   produtos: ProdutoVitrine[]
+  formasEntrega: string[]
+  formasPagamento: string[]
 }
 
-export function LojaClient({ endereco, tema, minimo, descontos, categorias, produtos }: LojaClientProps) {
-  const { pecas, abrir, gaveta, repetir } = useCarrinhoLoja(endereco, tema, minimo, descontos)
+export function LojaClient({ endereco, tema, minimo, descontos, categorias, produtos, formasEntrega, formasPagamento }: LojaClientProps) {
+  const { pecas, aberto, abrir, gaveta, repetir } = useCarrinhoLoja(endereco, tema, minimo, descontos)
   return (
     <>
       <Vitrine
@@ -26,6 +28,9 @@ export function LojaClient({ endereco, tema, minimo, descontos, categorias, prod
         quantidadeNoCarrinho={pecas}
         avisoMinimo={minimoDaFaixa(minimo)}
         avisoDesconto={resumoDoDesconto(descontos)}
+        formasEntrega={formasEntrega}
+        formasPagamento={formasPagamento}
+        carrinhoAberto={aberto}
         hrefLoja={`/loja/${endereco}`}
         hrefProduto={(id) => `/loja/${endereco}/p/${id}`}
         onAbrirCarrinho={abrir}

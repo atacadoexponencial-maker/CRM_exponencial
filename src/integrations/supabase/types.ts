@@ -895,6 +895,7 @@ export type Database = {
           background_color: string
           banner_path: string | null
           closing_message: string
+          delivery_methods: string[]
           font_id: string
           instagram: string | null
           layout: string
@@ -904,6 +905,7 @@ export type Database = {
           min_value: number | null
           order_discounts: Json
           orders_whatsapp: string | null
+          payment_methods: string[]
           primary_color: string
           published: boolean
           slug: string | null
@@ -917,6 +919,7 @@ export type Database = {
           background_color?: string
           banner_path?: string | null
           closing_message?: string
+          delivery_methods?: string[]
           font_id?: string
           instagram?: string | null
           layout?: string
@@ -926,6 +929,7 @@ export type Database = {
           min_value?: number | null
           order_discounts?: Json
           orders_whatsapp?: string | null
+          payment_methods?: string[]
           primary_color?: string
           published?: boolean
           slug?: string | null
@@ -939,6 +943,7 @@ export type Database = {
           background_color?: string
           banner_path?: string | null
           closing_message?: string
+          delivery_methods?: string[]
           font_id?: string
           instagram?: string | null
           layout?: string
@@ -948,6 +953,7 @@ export type Database = {
           min_value?: number | null
           order_discounts?: Json
           orders_whatsapp?: string | null
+          payment_methods?: string[]
           primary_color?: string
           published?: boolean
           slug?: string | null

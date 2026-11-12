@@ -8,6 +8,7 @@ import { ENDERECOS_RESERVADOS, enderecoDeLojaValido } from "@/lib/catalogo/regra
 import { normalizarWhatsapp } from "@/app/loja/components/pedido"
 import type { ConfigCatalogo } from "../components/form-configuracoes"
 import { descontosDoBanco, validarDescontos } from "@/lib/catalogo/regras-de-venda"
+import { FORMAS_ENTREGA, FORMAS_PAGAMENTO, formasValidas, idsDasFormas } from "@/lib/catalogo/entrega-e-pagamento"
 
 async function exigirGestor() {
   const { supabase, user, perfil } = await sessaoAtual()
@@ -30,6 +31,8 @@ const CONFIG_VAZIA: ConfigCatalogo = {
   mensagemFechamento: "",
   publicado: false,
   limiteSelo: "",
+  formasEntrega: [],
+  formasPagamento: [],
 }
 
 const AVISO_LIMITE_SELO = "Use um número inteiro de 1 a 999, ou deixe vazio para não mostrar o selo."
@@ -37,7 +40,7 @@ const AVISO_LIMITE_SELO = "Use um número inteiro de 1 a 999, ou deixe vazio par
 export async function carregarConfiguracoes(): Promise<{ config: ConfigCatalogo } | null> {
   const s = await exigirGestor()
   if (!s.ok) return null
-  const { data: cfg } = await s.supabase.from("catalog_settings").select("slug, orders_whatsapp, min_type, min_value, order_discounts, closing_message, published, low_stock_limit").eq("workspace_id", s.perfil.workspace_id).maybeSingle()
+  const { data: cfg } = await s.supabase.from("catalog_settings").select("slug, orders_whatsapp, min_type, min_value, order_discounts, closing_message, published, low_stock_limit, delivery_methods, payment_methods").eq("workspace_id", s.perfil.workspace_id).maybeSingle()
   return {
     config: cfg
       ? {
@@ -48,6 +51,9 @@ export async function carregarConfiguracoes(): Promise<{ config: ConfigCatalogo 
           mensagemFechamento: cfg.closing_message,
           publicado: cfg.published,
           limiteSelo: cfg.low_stock_limit === null ? "" : String(cfg.low_stock_limit),
+          // Só o que ainda está na lista pronta volta para a tela.
+          formasEntrega: idsDasFormas(cfg.delivery_methods, FORMAS_ENTREGA),
+          formasPagamento: idsDasFormas(cfg.payment_methods, FORMAS_PAGAMENTO),
         }
       : CONFIG_VAZIA,
   }
@@ -84,6 +90,12 @@ export async function salvarConfiguracoes(config: ConfigCatalogo): Promise<{ err
   const limiteDigitado = typeof config.limiteSelo === "string" ? config.limiteSelo.trim() : ""
   if (limiteDigitado && !/^[1-9]\d{0,2}$/.test(limiteDigitado)) return { erro: AVISO_LIMITE_SELO }
 
+  // B61-06: entrega e pagamento saem de uma lista pronta; o que não está nela é recusado.
+  const formasEntrega = formasValidas(config.formasEntrega ?? [], FORMAS_ENTREGA)
+  if (!formasEntrega) return { erro: "Forma de entrega inválida." }
+  const formasPagamento = formasValidas(config.formasPagamento ?? [], FORMAS_PAGAMENTO)
+  if (!formasPagamento) return { erro: "Forma de pagamento inválida." }
+
   const numeroPedidos = config.numeroPedidos.trim() ? normalizarWhatsapp(config.numeroPedidos) : null
   if (config.numeroPedidos.trim() && !numeroPedidos) return { erro: "Número dos pedidos inválido: informe o WhatsApp com DDD, ex.: (21) 99999-0000." }
   if (config.publicado && (!endereco || !numeroPedidos)) return { erro: "Para publicar, escolha o endereço da loja e informe o número que recebe os pedidos." }
@@ -99,6 +111,8 @@ export async function salvarConfiguracoes(config: ConfigCatalogo): Promise<{ err
     closing_message: config.mensagemFechamento.trim(),
     published: config.publicado,
     low_stock_limit: limiteDigitado ? Number(limiteDigitado) : null,
+    delivery_methods: formasEntrega,
+    payment_methods: formasPagamento,
     updated_at: new Date().toISOString(),
   })
   if (error) return { erro: error.code === "23505" ? "Esse endereço já é de outra loja. Escolha outro." : "Não deu para salvar. Tente de novo." }

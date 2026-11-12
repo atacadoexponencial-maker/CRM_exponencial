@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import Link from "next/link"
-import { ImageOff, RotateCcw, Search, ShoppingBag } from "lucide-react"
+import { ImageOff, MessageCircle, RotateCcw, Search, ShoppingBag } from "lucide-react"
 import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { coresDaVitrine, type TemaLoja } from "./tema"
 import { familiaDaFonte } from "./fontes"
@@ -64,6 +64,11 @@ interface VitrineProps {
   avisoMinimo?: string | null
   /** B31-02, ex.: "10% a menos a partir de 50 peças". */
   avisoDesconto?: string | null
+  /** B61-06: formas de entrega e de pagamento que a loja marcou, pelos nomes; o rodapé mostra só o que vier. */
+  formasEntrega?: string[]
+  formasPagamento?: string[]
+  /** B61-06: com o carrinho aberto, a barra do WhatsApp sai de cena. */
+  carrinhoAberto?: boolean
   /** B61-01: caminho da vitrine, para o "Compartilhar catálogo"; a prévia da Aparência não tem. */
   hrefLoja?: string
   /** Endereço da página do produto: o cartão vira link de verdade (abre em nova aba, copia, pré-carrega). */
@@ -263,7 +268,7 @@ export function CabecalhoLoja({
   )
 }
 
-export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, avisoMinimo, avisoDesconto, hrefLoja, hrefProduto, onAbrirProduto, onAbrirCarrinho, onRepetirPedido }: VitrineProps) {
+export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, avisoMinimo, avisoDesconto, formasEntrega = [], formasPagamento = [], carrinhoAberto = false, hrefLoja, hrefProduto, onAbrirProduto, onAbrirCarrinho, onRepetirPedido }: VitrineProps) {
   const [categoriaAtiva, setCategoriaAtiva] = useState<string | null>(null)
   // B61-03: `null` = "Todas" as subcategorias da categoria escolhida.
   const [subcategoriaAtiva, setSubcategoriaAtiva] = useState<string | null>(null)
@@ -519,6 +524,25 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
           )
         })}
       </div>
+
+      {/* B61-06: como a compra funciona; entrega e pagamento só quando a loja marcou. */}
+      <footer data-rodape-loja className="border-t px-4 py-6 text-center text-xs space-y-1.5" style={{ borderColor: cores.borda, color: cores.suave }}>
+        <p className="text-sm font-medium" style={{ color: cores.texto }}>Seu pedido será enviado para o WhatsApp da loja</p>
+        {formasEntrega.length > 0 && <p>Entrega: {formasEntrega.join(", ")}</p>}
+        {formasPagamento.length > 0 && <p>Pagamento: {formasPagamento.join(", ")}</p>}
+        <p>Catálogo digital · Compra assistida pelo WhatsApp da loja</p>
+      </footer>
+
+      {!carrinhoAberto && (
+        <div
+          data-barra-whatsapp
+          className="sticky bottom-0 z-10 flex items-center justify-center gap-1.5 px-4 py-2.5 text-center text-xs font-medium"
+          style={{ background: cores.principal, color: cores.sobrePrincipal }}
+        >
+          <MessageCircle className="size-4 shrink-0" />
+          Pedido enviado e finalizado pelo WhatsApp da loja
+        </div>
+      )}
     </div>
   )
 }

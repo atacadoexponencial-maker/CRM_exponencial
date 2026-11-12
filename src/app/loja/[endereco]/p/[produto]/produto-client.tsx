@@ -13,9 +13,11 @@ interface ProdutoClientProps {
   minimo: MinimoPedido
   descontos: DescontoPedido[]
   produto: ProdutoDetalhe
+  formasEntrega: string[]
+  formasPagamento: string[]
 }
 
-export function ProdutoClient({ endereco, tema, minimo, descontos, produto }: ProdutoClientProps) {
+export function ProdutoClient({ endereco, tema, minimo, descontos, produto, formasEntrega, formasPagamento }: ProdutoClientProps) {
   const router = useRouter()
   const { carrinho, pecas, abrir, gaveta, repetir } = useCarrinhoLoja(endereco, tema, minimo, descontos)
   return (
@@ -27,6 +29,8 @@ export function ProdutoClient({ endereco, tema, minimo, descontos, produto }: Pr
         noCarrinho={(combinacao) => carrinho.itens.find((i) => i.produtoId === produto.id && i.combinacao === combinacao)?.quantidade ?? 0}
         noCarrinhoDoProduto={carrinho.itens.filter((i) => i.produtoId === produto.id).reduce((s, i) => s + i.quantidade, 0)}
         avisoMinimo={textoDoMinimo(minimo)}
+        formasEntrega={formasEntrega}
+        formasPagamento={formasPagamento}
         onAdicionar={(itens) =>
           carrinho.adicionarVarios(
             itens.map(({ combinacao, quantidade }) => ({
