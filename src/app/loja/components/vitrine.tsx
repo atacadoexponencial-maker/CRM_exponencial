@@ -4,7 +4,7 @@
 // É a mesma na prévia da tela de Aparência e na loja pública. Reage à largura do próprio
 // quadro (container queries), não à da janela.
 
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { ImageOff, RotateCcw, Search, ShoppingBag } from "lucide-react"
 import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
@@ -272,6 +272,9 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
   const [soComEstoque, setSoComEstoque] = useState(false)
   // Seções que a cliente abriu por inteiro com "Ver mais" (chave: id da categoria ou "outros").
   const [abertas, setAbertas] = useState<string[]>([])
+  // B61-05: no modelo "grade" a lista é uma só e cresce de 24 em 24 ao rolar.
+  const [carregados, setCarregados] = useState(LIMITE_POR_SECAO)
+  const fimDaLista = useRef<HTMLDivElement>(null)
   const cores = coresDaVitrine(tema)
 
   // QA M31 (06/10): voltar do produto perdia filtro, busca e rolagem. Ficam guardados
@@ -283,7 +286,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
       const bruto = sessionStorage.getItem(chaveDaVitrine)
       if (!bruto) return
       sessionStorage.removeItem(chaveDaVitrine)
-      const guardado = JSON.parse(bruto) as { categoria: string | null; subcategoria?: string | null; busca: string; rolagem: number; ordem?: unknown; soComEstoque?: boolean; abertas?: string[] }
+      const guardado = JSON.parse(bruto) as { categoria: string | null; subcategoria?: string | null; busca: string; rolagem: number; ordem?: unknown; soComEstoque?: boolean; abertas?: string[]; carregados?: unknown }
       // Depois da hidratação: primeiro o filtro, no quadro seguinte a rolagem.
       requestAnimationFrame(() => {
         setCategoriaAtiva(guardado.categoria)
@@ -292,6 +295,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
         if (ordemVitrineValida(guardado.ordem)) setOrdem(guardado.ordem)
         setSoComEstoque(guardado.soComEstoque === true)
         setAbertas(Array.isArray(guardado.abertas) ? guardado.abertas.filter((a) => typeof a === "string") : [])
+        if (typeof guardado.carregados === "number" && guardado.carregados > LIMITE_POR_SECAO) setCarregados(guardado.carregados)
         requestAnimationFrame(() => window.scrollTo(0, guardado.rolagem))
       })
     } catch {
@@ -320,14 +324,32 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
   function escolherCategoria(id: string | null) {
     setCategoriaAtiva(id)
     setSubcategoriaAtiva(null)
+    setCarregados(LIMITE_POR_SECAO)
   }
+
+  // B61-05: lista única do modelo "grade". Um marco no fim da lista, ao se aproximar da
+  // tela, traz mais 24; busca, ordem e filtros já valeram sobre a lista inteira.
+  const listaUnica = tema.layout === "grade"
+  const haMais = listaUnica && filtrados.length > carregados
+  useEffect(() => {
+    const marco = fimDaLista.current
+    if (!haMais || !marco || typeof IntersectionObserver === "undefined") return
+    const observador = new IntersectionObserver(
+      (entradas) => {
+        if (entradas.some((e) => e.isIntersecting)) setCarregados((n) => n + LIMITE_POR_SECAO)
+      },
+      { rootMargin: "600px 0px" }
+    )
+    observador.observe(marco)
+    return () => observador.disconnect()
+  }, [haMais, carregados])
   const chip = (ativo: boolean) =>
     ativo ? { background: cores.principal, color: cores.sobrePrincipal, borderColor: cores.principal } : { borderColor: cores.borda }
 
   // Guarda filtro, busca e rolagem antes de sair; com `hrefProduto`, quem navega é o link.
   function abrir(id: string) {
     try {
-      if (chaveDaVitrine) sessionStorage.setItem(chaveDaVitrine, JSON.stringify({ categoria: categoriaAtiva, subcategoria: subcategoriaAtiva, busca, rolagem: window.scrollY, ordem, soComEstoque, abertas }))
+      if (chaveDaVitrine) sessionStorage.setItem(chaveDaVitrine, JSON.stringify({ categoria: categoriaAtiva, subcategoria: subcategoriaAtiva, busca, rolagem: window.scrollY, ordem, soComEstoque, abertas, carregados }))
     } catch {
       // armazenamento indisponível: volta sem o filtro
     }
@@ -347,7 +369,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
           <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: cores.suave }} />
           <input
             value={busca}
-            onChange={(e) => setBusca(e.target.value)}
+            onChange={(e) => { setBusca(e.target.value); setCarregados(LIMITE_POR_SECAO) }}
             placeholder="Buscar produto"
             className="w-full h-10 rounded-full pl-9 pr-4 text-sm outline-none border focus-visible:ring-2"
             style={{ background: cores.superficie, borderColor: cores.borda, color: cores.texto, ["--tw-ring-color" as string]: cores.principal }}
@@ -407,7 +429,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
                 <button
                   key={sub.id ?? "todas"}
                   type="button"
-                  onClick={() => setSubcategoriaAtiva(sub.id)}
+                  onClick={() => { setSubcategoriaAtiva(sub.id); setCarregados(LIMITE_POR_SECAO) }}
                   aria-pressed={ativa}
                   className="shrink-0 rounded-full px-3 h-7 text-xs border"
                   style={chip(ativa)}
@@ -429,7 +451,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
         <div className="flex items-center justify-between gap-3">
           <button
             type="button"
-            onClick={() => setSoComEstoque((v) => !v)}
+            onClick={() => { setSoComEstoque((v) => !v); setCarregados(LIMITE_POR_SECAO) }}
             aria-pressed={soComEstoque}
             className="shrink-0 rounded-full px-3.5 h-8 text-sm border"
             style={chip(soComEstoque)}
@@ -440,7 +462,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
             <span className="shrink-0">Ordenar</span>
             <select
               value={ordem}
-              onChange={(e) => setOrdem(ordemVitrineValida(e.target.value) ? e.target.value : "loja")}
+              onChange={(e) => { setOrdem(ordemVitrineValida(e.target.value) ? e.target.value : "loja"); setCarregados(LIMITE_POR_SECAO) }}
               className="h-8 max-w-44 rounded-full border px-2 text-sm outline-none focus-visible:ring-2"
               style={{ background: cores.superficie, borderColor: cores.borda, color: cores.texto, ["--tw-ring-color" as string]: cores.principal }}
               aria-label="Ordenar produtos"
@@ -459,9 +481,16 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
           </section>
         )}
 
-        {grupos.length === 0 && <p className="py-10 text-center text-sm" style={{ color: cores.suave }}>Nenhum produto encontrado.</p>}
+        {filtrados.length === 0 && <p className="py-10 text-center text-sm" style={{ color: cores.suave }}>Nenhum produto encontrado.</p>}
 
-        {grupos.map((g) => {
+        {listaUnica && filtrados.length > 0 && (
+          <div data-lista-produtos className="grid grid-cols-2 @xl:grid-cols-3 @3xl:grid-cols-4 gap-3">
+            {filtrados.slice(0, carregados).map((p) => <CartaoRetrato key={p.id} {...cartao(p)} />)}
+          </div>
+        )}
+        {haMais && <div ref={fimDaLista} data-fim-da-lista aria-hidden className="h-px" />}
+
+        {!listaUnica && grupos.map((g) => {
           // Seção longa carrega em blocos: as primeiras peças e um "Ver mais" com o resto.
           const aberta = abertas.includes(g.chave)
           const mostrados = aberta ? g.itens : g.itens.slice(0, LIMITE_POR_SECAO)
@@ -473,7 +502,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
                 <div>{mostrados.map((p) => <LinhaLista key={p.id} {...cartao(p)} />)}</div>
               ) : (
                 <div className="grid grid-cols-2 @xl:grid-cols-3 @3xl:grid-cols-4 gap-3">
-                  {mostrados.map((p) => (tema.layout === "grade" ? <CartaoRetrato key={p.id} {...cartao(p)} /> : <CartaoGrade key={p.id} {...cartao(p)} />))}
+                  {mostrados.map((p) => <CartaoGrade key={p.id} {...cartao(p)} />)}
                 </div>
               )}
               {restantes > 0 && (
