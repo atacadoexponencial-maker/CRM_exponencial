@@ -9,17 +9,26 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
+export interface SubcategoriaCatalogo {
+  id: string
+  nome: string
+}
+
 export interface CategoriaCatalogo {
   id: string
   nome: string
   /** B61-02: foto enviada pelo lojista para o círculo da categoria na loja. */
   fotoUrl: string | null
+  /** B61-03: na ordem do lojista. */
+  subcategorias: SubcategoriaCatalogo[]
 }
 
 export interface ProdutoResumo {
   id: string
   nome: string
   categoriaId: string | null
+  /** B61-03: `null` = direto na categoria. */
+  subcategoriaId: string | null
   preco: number
   estoqueTotal: number
   visivel: boolean

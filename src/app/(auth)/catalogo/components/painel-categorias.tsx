@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogClose, DialogDescription, DialogPopup, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import type { CategoriaCatalogo } from "./lista-produtos"
+import { SubcategoriasDaCategoria, type AcoesSubcategoria } from "./subcategorias-da-categoria"
 
 interface PainelCategoriasProps {
   /** Já na ordem do lojista. */
@@ -20,9 +21,12 @@ interface PainelCategoriasProps {
   /** B61-02: a foto do círculo da categoria na loja. O servidor confere o arquivo. */
   onEnviarFoto: (id: string, arquivo: File) => void
   onRemoverFoto: (id: string) => void
+  /** B61-03: subcategorias de cada categoria e quantos produtos cada uma tem. */
+  subcategorias: AcoesSubcategoria
+  contagemSubcategorias: Record<string, number>
 }
 
-export function PainelCategorias({ categorias, contagem, onCriar, onRenomear, onExcluir, onReordenar, onEnviarFoto, onRemoverFoto }: PainelCategoriasProps) {
+export function PainelCategorias({ categorias, contagem, onCriar, onRenomear, onExcluir, onReordenar, onEnviarFoto, onRemoverFoto, subcategorias, contagemSubcategorias }: PainelCategoriasProps) {
   const [nova, setNova] = useState("")
   const [editando, setEditando] = useState<{ id: string; nome: string } | null>(null)
   const [excluindo, setExcluindo] = useState<CategoriaCatalogo | null>(null)
@@ -73,11 +77,9 @@ export function PainelCategorias({ categorias, contagem, onCriar, onRenomear, on
               if (arrastando && arrastando !== c.id) onReordenar(arrastando, c.id)
               setArrastando(null)
             }}
-            className={cn(
-              "flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/40",
-              arrastando === c.id && "opacity-40"
-            )}
+            className={cn("space-y-0.5", arrastando === c.id && "opacity-40")}
           >
+            <div className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/40">
             <GripVertical className="size-3.5 text-muted-foreground/50 cursor-grab shrink-0" />
             {editando?.id === c.id ? (
               <>
@@ -127,6 +129,8 @@ export function PainelCategorias({ categorias, contagem, onCriar, onRenomear, on
                 </Button>
               </>
             )}
+            </div>
+            <SubcategoriasDaCategoria categoria={c} contagem={contagemSubcategorias} {...subcategorias} />
           </li>
         ))}
       </ul>
@@ -156,6 +160,8 @@ export function PainelCategorias({ categorias, contagem, onCriar, onRenomear, on
                 ? `O produto dela continua no catálogo, em "Sem categoria".`
                 : `Os ${contagem[excluindo?.id ?? ""]} produtos dela continuam no catálogo, em "Sem categoria".`
               : "A categoria está vazia."}
+            {(excluindo?.subcategorias.length ?? 0) > 0 &&
+              (excluindo?.subcategorias.length === 1 ? " A subcategoria dela também é apagada." : ` As ${excluindo?.subcategorias.length} subcategorias dela também são apagadas.`)}
           </DialogDescription>
           <div className="mt-5 flex justify-end gap-2">
             <DialogClose render={<Button variant="outline" size="sm" />}>Cancelar</DialogClose>

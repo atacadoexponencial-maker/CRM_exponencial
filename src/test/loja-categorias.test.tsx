@@ -160,7 +160,7 @@ describe("B61-02 — faixa do atacado", () => {
 
 describe("B61-02 — foto no painel de categorias", () => {
   const FOTO_NOVA = "https://exemplo.test/marca/categoria-nova.jpg"
-  const catalogo = (fotoUrl: string | null): Catalogo => ({ categorias: [{ id: "c1", nome: "Blusas", fotoUrl }], produtos: [] })
+  const catalogo = (fotoUrl: string | null): Catalogo => ({ categorias: [{ id: "c1", nome: "Blusas", fotoUrl, subcategorias: [] }], produtos: [] })
   const arquivo = (nome: string, tipo: string, tamanho: number) => new File([new Uint8Array(tamanho)], nome, { type: tipo })
 
   function abrirPainel(fotoUrl: string | null = null) {

@@ -93,11 +93,12 @@ export const carregarLojaPublica = cache(async function carregarLojaPublica(ende
 /** Categorias e produtos visíveis da loja, na ordem do lojista. */
 export async function carregarVitrine(workspaceId: string): Promise<{ categorias: CategoriaVitrine[]; produtos: ProdutoVitrine[] }> {
   const service = createServiceClient()
-  const [{ data: cats }, { data: prods }] = await Promise.all([
+  const [{ data: cats }, { data: subs }, { data: prods }] = await Promise.all([
     service.from("catalog_categories").select("id, name, photo_path").eq("workspace_id", workspaceId).order("position").order("created_at"),
+    service.from("catalog_subcategories").select("id, name, category_id").eq("workspace_id", workspaceId).order("position").order("created_at"),
     service
       .from("catalog_products")
-      .select("id, name, description, price, compare_at_price, sku, category_id, featured, photos, variant_types, price_tiers, min_quantity, pack_quantities, pack_price, catalog_stock(combination, quantity)")
+      .select("id, name, description, price, compare_at_price, sku, category_id, subcategory_id, featured, photos, variant_types, price_tiers, min_quantity, pack_quantities, pack_price, catalog_stock(combination, quantity)")
       .eq("workspace_id", workspaceId)
       .eq("visible", true)
       .order("position")
@@ -120,6 +121,7 @@ export async function carregarVitrine(workspaceId: string): Promise<{ categorias
       grade: gradeDoBanco(p.pack_quantities, p.pack_price, tipos),
       fotoUrl: fotos[0] ? urlPublicaImagem(fotos[0]) : null,
       categoriaId: p.category_id,
+      subcategoriaId: p.subcategory_id,
       destaque: p.featured,
       variacoes: resumoDasVariacoes(tipos),
       esgotado: combinacoes(tipos).every((c) => (estoque[chaveCombinacao(c)] ?? 0) === 0),
@@ -130,8 +132,14 @@ export async function carregarVitrine(workspaceId: string): Promise<{ categorias
   // B61-02: o círculo da categoria usa a foto enviada; sem ela, a do primeiro produto visível com foto.
   const fotoDaCategoria = (c: { id: string; photo_path: string | null }) =>
     c.photo_path ? urlPublicaImagem(c.photo_path) : (produtos.find((p) => p.categoriaId === c.id && p.fotoUrl)?.fotoUrl ?? null)
+  // B61-03: só subcategorias com algum produto visível, na ordem do lojista.
+  const subComProduto = new Set(produtos.map((p) => p.subcategoriaId))
+  const subcategoriasDa = (categoriaId: string) =>
+    (subs ?? []).filter((s) => s.category_id === categoriaId && subComProduto.has(s.id)).map((s) => ({ id: s.id, nome: s.name }))
   return {
-    categorias: (cats ?? []).filter((c) => comProduto.has(c.id)).map((c) => ({ id: c.id, nome: c.name, fotoUrl: fotoDaCategoria(c) })),
+    categorias: (cats ?? [])
+      .filter((c) => comProduto.has(c.id))
+      .map((c) => ({ id: c.id, nome: c.name, fotoUrl: fotoDaCategoria(c), subcategorias: subcategoriasDa(c.id) })),
     produtos,
   }
 }

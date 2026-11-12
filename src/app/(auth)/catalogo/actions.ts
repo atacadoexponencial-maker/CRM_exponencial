@@ -40,22 +40,29 @@ export async function listarCatalogo(): Promise<Catalogo> {
   if (!s.ok) return { categorias: [], produtos: [] }
   const { supabase, perfil } = s
 
-  const [{ data: cats }, { data: prods }] = await Promise.all([
+  const [{ data: cats }, { data: subs }, { data: prods }] = await Promise.all([
     supabase.from("catalog_categories").select("id, name, photo_path").eq("workspace_id", perfil.workspace_id).order("position").order("created_at"),
+    supabase.from("catalog_subcategories").select("id, name, category_id").eq("workspace_id", perfil.workspace_id).order("position").order("created_at"),
     supabase
       .from("catalog_products")
-      .select("id, name, category_id, price, visible, photos, catalog_stock(quantity)")
+      .select("id, name, category_id, subcategory_id, price, visible, photos, catalog_stock(quantity)")
       .eq("workspace_id", perfil.workspace_id)
       .order("position")
       .order("created_at"),
   ])
 
   return {
-    categorias: (cats ?? []).map((c) => ({ id: c.id, nome: c.name, fotoUrl: c.photo_path ? urlPublica(c.photo_path) : null })),
+    categorias: (cats ?? []).map((c) => ({
+      id: c.id,
+      nome: c.name,
+      fotoUrl: c.photo_path ? urlPublica(c.photo_path) : null,
+      subcategorias: (subs ?? []).filter((s) => s.category_id === c.id).map((s) => ({ id: s.id, nome: s.name })),
+    })),
     produtos: (prods ?? []).map((p) => ({
       id: p.id,
       nome: p.name,
       categoriaId: p.category_id,
+      subcategoriaId: p.subcategory_id,
       preco: Number(p.price),
       // As combinações que saíram da grade são apagadas ao salvar: somar todas as linhas basta.
       estoqueTotal: ((p.catalog_stock as { quantity: number }[] | null) ?? []).reduce((s, e) => s + e.quantity, 0),
@@ -70,7 +77,7 @@ export async function carregarProduto(id: string): Promise<ProdutoEditavel | nul
   if (!s.ok) return null
   const { data } = await s.supabase
     .from("catalog_products")
-    .select("id, name, description, price, compare_at_price, sku, category_id, visible, featured, photos, variant_types, price_tiers, min_quantity, pack_quantities, pack_price, catalog_stock(combination, quantity)")
+    .select("id, name, description, price, compare_at_price, sku, category_id, subcategory_id, visible, featured, photos, variant_types, price_tiers, min_quantity, pack_quantities, pack_price, catalog_stock(combination, quantity)")
     .eq("id", id)
     .eq("workspace_id", s.perfil.workspace_id)
     .maybeSingle()
@@ -86,6 +93,7 @@ export async function carregarProduto(id: string): Promise<ProdutoEditavel | nul
     minimo: data.min_quantity,
     grade: gradeDoBanco(data.pack_quantities, data.pack_price, data.variant_types),
     categoriaId: data.category_id,
+    subcategoriaId: data.subcategory_id,
     visivel: data.visible,
     destaque: data.featured,
     fotos: ((data.photos as string[]) ?? []).map(fotoDoCaminho),
@@ -153,6 +161,13 @@ async function categoriaDaEmpresa(supabase: Awaited<ReturnType<typeof sessaoAtua
   return !!data
 }
 
+async function subcategoriaDaCategoria(supabase: Awaited<ReturnType<typeof sessaoAtual>>["supabase"], workspaceId: string, subcategoriaId: string | null, categoriaId: string | null) {
+  if (!subcategoriaId) return true
+  if (!categoriaId) return false
+  const { data } = await supabase.from("catalog_subcategories").select("id").eq("id", subcategoriaId).eq("workspace_id", workspaceId).eq("category_id", categoriaId).maybeSingle()
+  return !!data
+}
+
 async function proximaPosicao(supabase: Awaited<ReturnType<typeof sessaoAtual>>["supabase"], workspaceId: string, categoriaId: string | null) {
   let q = supabase.from("catalog_products").select("position").eq("workspace_id", workspaceId).order("position", { ascending: false }).limit(1)
   q = categoriaId ? q.eq("category_id", categoriaId) : q.is("category_id", null)
@@ -174,6 +189,9 @@ export async function salvarProduto(produto: ProdutoEditavel): Promise<Resultado
   if (caminhos.length > MAX_FOTOS) return { erro: `O produto aceita até ${MAX_FOTOS} fotos.` }
   if (caminhos.some((c) => !caminhoDaEmpresa(c, perfil.workspace_id, "produtos"))) return { erro: "Foto inválida. Envie de novo." }
   if (!(await categoriaDaEmpresa(supabase, perfil.workspace_id, produto.categoriaId))) return { erro: "Categoria não encontrada." }
+  // B61-03: a subcategoria tem de ser da categoria do produto (o banco repete a regra).
+  const subcategoriaId = produto.subcategoriaId ?? null
+  if (!(await subcategoriaDaCategoria(supabase, perfil.workspace_id, subcategoriaId, produto.categoriaId))) return { erro: "Subcategoria não encontrada." }
   const variacoes = validarVariacoes(produto.tipos, produto.estoque)
   if ("erro" in variacoes) return { erro: variacoes.erro }
   // B31-01: regras de venda. O editor manda o que a pessoa digitou; a conferência é aqui.
@@ -195,6 +213,7 @@ export async function salvarProduto(produto: ProdutoEditavel): Promise<Resultado
     pack_quantities: grade.grade?.quantidades ?? null,
     pack_price: grade.grade?.preco ?? null,
     category_id: produto.categoriaId,
+    subcategory_id: subcategoriaId,
     visible: produto.visivel,
     featured: produto.destaque,
     photos: caminhos,
@@ -377,5 +396,76 @@ export async function reordenarCategoria(idArrastado: string, idAlvo: string): P
   const nova = reordenar(lista ?? [], idArrastado, idAlvo)
   if (!nova) return { erro: "Categoria não encontrada." }
   await Promise.all(nova.map((c, i) => s.supabase.from("catalog_categories").update({ position: i }).eq("id", c.id).eq("workspace_id", s.perfil.workspace_id)))
+  return { catalogo: await listarCatalogo() }
+}
+
+// ---- Subcategorias (B61-03) ----------------------------------------------------------
+
+function nomeSubcategoriaValido(nome: unknown): string | null {
+  const limpo = typeof nome === "string" ? nome.trim() : ""
+  if (!limpo) return "Dê um nome à subcategoria."
+  if (limpo.length > 60) return "O nome passa de 60 caracteres."
+  return null
+}
+
+const NOME_REPETIDO_SUBCATEGORIA = "Já existe uma subcategoria com esse nome."
+
+export async function criarSubcategoria(categoriaId: string, nome: string): Promise<Resultado<{ catalogo: Catalogo }>> {
+  const s = await exigirGestor()
+  if (!s.ok) return { erro: s.erro }
+  const problema = nomeSubcategoriaValido(nome)
+  if (problema) return { erro: problema }
+  if (!categoriaId || !(await categoriaDaEmpresa(s.supabase, s.perfil.workspace_id, categoriaId))) return { erro: "Categoria não encontrada." }
+  const { data: ultima } = await s.supabase
+    .from("catalog_subcategories")
+    .select("position")
+    .eq("workspace_id", s.perfil.workspace_id)
+    .eq("category_id", categoriaId)
+    .order("position", { ascending: false })
+    .limit(1)
+  const { error } = await s.supabase
+    .from("catalog_subcategories")
+    .insert({ workspace_id: s.perfil.workspace_id, category_id: categoriaId, name: nome.trim(), position: (ultima?.[0]?.position ?? -1) + 1 })
+  if (error) return { erro: error.code === "23505" ? NOME_REPETIDO_SUBCATEGORIA : "Não deu para criar a subcategoria." }
+  return { catalogo: await listarCatalogo() }
+}
+
+export async function renomearSubcategoria(id: string, nome: string): Promise<Resultado<{ catalogo: Catalogo }>> {
+  const s = await exigirGestor()
+  if (!s.ok) return { erro: s.erro }
+  const problema = nomeSubcategoriaValido(nome)
+  if (problema) return { erro: problema }
+  const { error, data } = await s.supabase.from("catalog_subcategories").update({ name: nome.trim() }).eq("id", id).eq("workspace_id", s.perfil.workspace_id).select("id")
+  if (error) return { erro: error.code === "23505" ? NOME_REPETIDO_SUBCATEGORIA : "Não deu para renomear." }
+  if (!data?.length) return { erro: "Subcategoria não encontrada." }
+  return { catalogo: await listarCatalogo() }
+}
+
+/** Os produtos dela continuam na categoria, sem subcategoria (o banco faz isso com on delete set null). */
+export async function excluirSubcategoria(id: string): Promise<Resultado<{ catalogo: Catalogo }>> {
+  const s = await exigirGestor()
+  if (!s.ok) return { erro: s.erro }
+  const { error, data } = await s.supabase.from("catalog_subcategories").delete().eq("id", id).eq("workspace_id", s.perfil.workspace_id).select("id")
+  if (error) return { erro: "Não deu para excluir a subcategoria." }
+  if (!data?.length) return { erro: "Subcategoria não encontrada." }
+  return { catalogo: await listarCatalogo() }
+}
+
+export async function reordenarSubcategoria(idArrastado: string, idAlvo: string): Promise<Resultado<{ catalogo: Catalogo }>> {
+  const s = await exigirGestor()
+  if (!s.ok) return { erro: s.erro }
+  const { supabase, perfil } = s
+  const { data: par } = await supabase.from("catalog_subcategories").select("id, category_id").in("id", [idArrastado, idAlvo]).eq("workspace_id", perfil.workspace_id)
+  if (!par || par.length !== 2 || par[0].category_id !== par[1].category_id) return { erro: "Subcategoria não encontrada." }
+  const { data: lista } = await supabase
+    .from("catalog_subcategories")
+    .select("id")
+    .eq("workspace_id", perfil.workspace_id)
+    .eq("category_id", par[0].category_id)
+    .order("position")
+    .order("created_at")
+  const nova = reordenar(lista ?? [], idArrastado, idAlvo)
+  if (!nova) return { erro: "Subcategoria não encontrada." }
+  await Promise.all(nova.map((sub, i) => supabase.from("catalog_subcategories").update({ position: i }).eq("id", sub.id).eq("workspace_id", perfil.workspace_id)))
   return { catalogo: await listarCatalogo() }
 }

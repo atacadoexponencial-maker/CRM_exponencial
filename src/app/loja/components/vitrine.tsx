@@ -20,6 +20,8 @@ export interface CategoriaVitrine {
   nome: string
   /** B61-02: foto do círculo (a enviada pelo lojista ou a do primeiro produto); `null` mostra a inicial. */
   fotoUrl: string | null
+  /** B61-03: subcategorias com produto visível, na ordem do lojista. */
+  subcategorias?: { id: string; nome: string }[]
 }
 
 export interface ProdutoVitrine {
@@ -37,6 +39,8 @@ export interface ProdutoVitrine {
   grade: GradeFechada | null
   fotoUrl: string | null
   categoriaId: string | null
+  /** B61-03: ausente ou `null` = direto na categoria. */
+  subcategoriaId?: string | null
   destaque: boolean
   /** Resumo das variações para o cartão (ex.: "P, M, G · 2 opções de cor"); `null` sem variação. */
   variacoes: string | null
@@ -215,6 +219,8 @@ export function CabecalhoLoja({
 
 export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, avisoMinimo, avisoDesconto, hrefLoja, hrefProduto, onAbrirProduto, onAbrirCarrinho, onRepetirPedido }: VitrineProps) {
   const [categoriaAtiva, setCategoriaAtiva] = useState<string | null>(null)
+  // B61-03: `null` = "Todas" as subcategorias da categoria escolhida.
+  const [subcategoriaAtiva, setSubcategoriaAtiva] = useState<string | null>(null)
   const [busca, setBusca] = useState("")
   const [ordem, setOrdem] = useState<OrdemVitrine>("loja")
   const [soComEstoque, setSoComEstoque] = useState(false)
@@ -231,10 +237,11 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
       const bruto = sessionStorage.getItem(chaveDaVitrine)
       if (!bruto) return
       sessionStorage.removeItem(chaveDaVitrine)
-      const guardado = JSON.parse(bruto) as { categoria: string | null; busca: string; rolagem: number; ordem?: unknown; soComEstoque?: boolean; abertas?: string[] }
+      const guardado = JSON.parse(bruto) as { categoria: string | null; subcategoria?: string | null; busca: string; rolagem: number; ordem?: unknown; soComEstoque?: boolean; abertas?: string[] }
       // Depois da hidratação: primeiro o filtro, no quadro seguinte a rolagem.
       requestAnimationFrame(() => {
         setCategoriaAtiva(guardado.categoria)
+        setSubcategoriaAtiva(typeof guardado.subcategoria === "string" ? guardado.subcategoria : null)
         setBusca(guardado.busca)
         if (ordemVitrineValida(guardado.ordem)) setOrdem(guardado.ordem)
         setSoComEstoque(guardado.soComEstoque === true)
@@ -252,6 +259,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
       (p) =>
         (!termo || contemTermo(p.nome, termo)) &&
         (categoriaAtiva === null || p.categoriaId === categoriaAtiva) &&
+        (subcategoriaAtiva === null || p.subcategoriaId === subcategoriaAtiva) &&
         (!soComEstoque || !p.esgotado)
     ),
     ordem
@@ -261,13 +269,19 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
     .filter((g) => g.itens.length > 0)
   const destaques = produtos.filter((p) => p.destaque)
   const filtrando = termo !== "" || categoriaAtiva !== null || soComEstoque
+  const subcategorias = categorias.find((c) => c.id === categoriaAtiva)?.subcategorias ?? []
+  /** Trocar de categoria volta a subcategoria para "Todas". */
+  function escolherCategoria(id: string | null) {
+    setCategoriaAtiva(id)
+    setSubcategoriaAtiva(null)
+  }
   const chip = (ativo: boolean) =>
     ativo ? { background: cores.principal, color: cores.sobrePrincipal, borderColor: cores.principal } : { borderColor: cores.borda }
 
   // Guarda filtro, busca e rolagem antes de sair; com `hrefProduto`, quem navega é o link.
   function abrir(id: string) {
     try {
-      if (chaveDaVitrine) sessionStorage.setItem(chaveDaVitrine, JSON.stringify({ categoria: categoriaAtiva, busca, rolagem: window.scrollY, ordem, soComEstoque, abertas }))
+      if (chaveDaVitrine) sessionStorage.setItem(chaveDaVitrine, JSON.stringify({ categoria: categoriaAtiva, subcategoria: subcategoriaAtiva, busca, rolagem: window.scrollY, ordem, soComEstoque, abertas }))
     } catch {
       // armazenamento indisponível: volta sem o filtro
     }
@@ -300,7 +314,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
             {categorias.map((c) => {
               const ativa = categoriaAtiva === c.id
               return (
-                <button key={c.id} type="button" onClick={() => setCategoriaAtiva(c.id)} aria-pressed={ativa} data-circulo-categoria className="w-[4.5rem] shrink-0 flex flex-col items-center gap-1.5">
+                <button key={c.id} type="button" onClick={() => escolherCategoria(c.id)} aria-pressed={ativa} data-circulo-categoria className="w-[4.5rem] shrink-0 flex flex-col items-center gap-1.5">
                   <span
                     className="flex size-16 items-center justify-center overflow-hidden rounded-full border-2"
                     style={{ background: cores.superficie, borderColor: ativa ? cores.principal : cores.borda }}
@@ -327,12 +341,32 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
                 <button
                   key={c.id ?? "tudo"}
                   type="button"
-                  onClick={() => setCategoriaAtiva(c.id)}
+                  onClick={() => escolherCategoria(c.id)}
                   aria-pressed={ativa}
                   className="shrink-0 rounded-full px-3.5 h-8 text-sm border"
                   style={chip(ativa)}
                 >
                   {c.nome}
+                </button>
+              )
+            })}
+          </nav>
+        )}
+
+        {subcategorias.length > 0 && (
+          <nav className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1" aria-label="Subcategorias">
+            {[{ id: null as string | null, nome: "Todas" }, ...subcategorias].map((sub) => {
+              const ativa = subcategoriaAtiva === sub.id
+              return (
+                <button
+                  key={sub.id ?? "todas"}
+                  type="button"
+                  onClick={() => setSubcategoriaAtiva(sub.id)}
+                  aria-pressed={ativa}
+                  className="shrink-0 rounded-full px-3 h-7 text-xs border"
+                  style={chip(ativa)}
+                >
+                  {sub.nome}
                 </button>
               )
             })}

@@ -8,11 +8,15 @@ import { ALVOS_TOQUE_CELULAR } from "./components/alvos-toque"
 import {
   alternarVisivel,
   criarCategoria,
+  criarSubcategoria,
   excluirCategoria,
+  excluirSubcategoria,
   prepararEnvioFotoCategoria,
   renomearCategoria,
+  renomearSubcategoria,
   reordenarCategoria,
   reordenarProduto,
+  reordenarSubcategoria,
   salvarFotoCategoria,
   type Catalogo,
 } from "./actions"
@@ -40,6 +44,23 @@ export function ProdutosClient({ inicial, hrefLoja }: { inicial: Catalogo; hrefL
   const [, iniciar] = useTransition()
 
   const contagem = Object.fromEntries(catalogo.categorias.map((c) => [c.id, catalogo.produtos.filter((p) => p.categoriaId === c.id).length]))
+
+  const contagemSubcategorias = Object.fromEntries(
+    catalogo.categorias.flatMap((c) => c.subcategorias).map((sub) => [sub.id, catalogo.produtos.filter((p) => p.subcategoriaId === sub.id).length])
+  )
+
+  /** Como `executar`, e conta a quem chamou se o servidor aceitou. */
+  function executarComResposta(acao: () => Promise<{ erro?: string; catalogo?: Catalogo }>): Promise<boolean> {
+    return new Promise((resolver) => {
+      setErro(null)
+      iniciar(async () => {
+        const r = await acao()
+        if (r.erro) setErro(r.erro)
+        else if (r.catalogo) setCatalogo(r.catalogo)
+        resolver(!r.erro)
+      })
+    })
+  }
 
   /** Chama a action e troca a lista pela que o servidor devolveu. */
   function executar(acao: () => Promise<{ erro?: string; catalogo?: Catalogo }>) {
@@ -89,6 +110,13 @@ export function ProdutosClient({ inicial, hrefLoja }: { inicial: Catalogo; hrefL
           onReordenar={(a, b) => executar(() => reordenarCategoria(a, b))}
           onEnviarFoto={(id, arquivo) => executar(() => enviarFotoCategoria(id, arquivo))}
           onRemoverFoto={(id) => executar(() => salvarFotoCategoria(id, null))}
+          contagemSubcategorias={contagemSubcategorias}
+          subcategorias={{
+            onCriar: (categoriaId, nome) => executarComResposta(() => criarSubcategoria(categoriaId, nome)),
+            onRenomear: (id, nome) => executarComResposta(() => renomearSubcategoria(id, nome)),
+            onExcluir: (id) => executar(() => excluirSubcategoria(id)),
+            onReordenar: (a, b) => executar(() => reordenarSubcategoria(a, b)),
+          }}
         />
       </div>
     </div>

@@ -816,6 +816,7 @@ export type Database = {
           price: number
           price_tiers: Json
           sku: string
+          subcategory_id: string | null
           updated_at: string
           variant_types: Json
           visible: boolean
@@ -837,6 +838,7 @@ export type Database = {
           price: number
           price_tiers?: Json
           sku?: string
+          subcategory_id?: string | null
           updated_at?: string
           variant_types?: Json
           visible?: boolean
@@ -858,6 +860,7 @@ export type Database = {
           price?: number
           price_tiers?: Json
           sku?: string
+          subcategory_id?: string | null
           updated_at?: string
           variant_types?: Json
           visible?: boolean
@@ -869,6 +872,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "catalog_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_products_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_subcategories"
             referencedColumns: ["id"]
           },
           {
@@ -990,6 +1000,48 @@ export type Database = {
           },
           {
             foreignKeyName: "catalog_stock_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_subcategories: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          name: string
+          position: number
+          workspace_id: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          workspace_id: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_subcategories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_subcategories_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
