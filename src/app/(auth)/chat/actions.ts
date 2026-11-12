@@ -8,7 +8,7 @@ import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 import { resumoDeCompras, type ResumoDeCompras } from "@/lib/resumo-de-compras"
 import { perfilDoMapa, perfisRfvDosContatos } from "@/lib/perfil-rfv-do-contato"
 import type { PerfilRfv } from "@/lib/relatorios/rfv"
-import { resolverProviderDaConversa, statusInicialDoEnvio } from "@/lib/whatsapp"
+import { motivoSemProvider, resolverProviderDaConversa, statusInicialDoEnvio } from "@/lib/whatsapp"
 import type { Mensagem, TipoMensagem, DirecaoMensagem, StatusMensagem } from "./tipos-mensagem"
 import type { Conversa } from "./tipos-conversa"
 import { listarConversas, TAMANHO_PAGINA_CONVERSAS } from "./conversas"
@@ -61,7 +61,8 @@ async function enviarMensagemSemMotivo(conversaId: string, texto: string): Promi
 
   const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
 
-  if (!provider) throw new AvisoDoEnvio("Conexão WhatsApp não encontrada")
+  // B23-06: número desconectado explica por quê, em vez de "não encontrada"
+  if (!provider) throw new AvisoDoEnvio(await motivoSemProvider(createServiceClient(), conversaId, workspace_id))
 
   const resultado = await provider.enviarTexto(contact.phone_number, texto)
 
@@ -137,7 +138,8 @@ async function enviarImagemSemMotivo(conversaId: string, formData: FormData): Pr
 
   const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
 
-  if (!provider) throw new AvisoDoEnvio("Conexão WhatsApp não encontrada")
+  // B23-06: número desconectado explica por quê, em vez de "não encontrada"
+  if (!provider) throw new AvisoDoEnvio(await motivoSemProvider(createServiceClient(), conversaId, workspace_id))
 
   const serviceClient = createServiceClient()
   const ext = EXTENSAO_DA_IMAGEM[tipoBase(arquivo.type)]
@@ -231,7 +233,8 @@ async function enviarDocumentoSemMotivo(conversaId: string, formData: FormData):
 
   const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
 
-  if (!provider) throw new AvisoDoEnvio("Conexão WhatsApp não encontrada")
+  // B23-06: número desconectado explica por quê, em vez de "não encontrada"
+  if (!provider) throw new AvisoDoEnvio(await motivoSemProvider(createServiceClient(), conversaId, workspace_id))
 
   const serviceClient = createServiceClient()
   const nomeArquivoSanitizado = arquivo.name.replace(/[^a-zA-Z0-9._-]/g, "_")
@@ -315,7 +318,8 @@ async function enviarVideoSemMotivo(conversaId: string, formData: FormData): Pro
 
   const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
 
-  if (!provider) throw new AvisoDoEnvio("Conexão WhatsApp não encontrada")
+  // B23-06: número desconectado explica por quê, em vez de "não encontrada"
+  if (!provider) throw new AvisoDoEnvio(await motivoSemProvider(createServiceClient(), conversaId, workspace_id))
 
   const serviceClient = createServiceClient()
   const ext = EXTENSAO_DO_VIDEO[tipoBase(arquivo.type)]
@@ -395,7 +399,8 @@ async function enviarAudioSemMotivo(conversaId: string, formData: FormData): Pro
 
   const provider = await resolverProviderDaConversa(createServiceClient(), conversaId, workspace_id)
 
-  if (!provider) throw new AvisoDoEnvio("Conexão WhatsApp não encontrada")
+  // B23-06: número desconectado explica por quê, em vez de "não encontrada"
+  if (!provider) throw new AvisoDoEnvio(await motivoSemProvider(createServiceClient(), conversaId, workspace_id))
 
   const serviceClient = createServiceClient()
   const ext = EXTENSAO_DO_AUDIO[tipoBase(arquivo.type)]

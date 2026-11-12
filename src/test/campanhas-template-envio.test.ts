@@ -189,7 +189,7 @@ describe("B54-06 — envio da campanha por template", () => {
     await processarCampanhasPendentes()
 
     expect(canal.enviarTemplate).not.toHaveBeenCalled()
-    expect(MOTIVO_NUMERO_DESCONECTADO).toBe("O número da campanha não está mais conectado")
+    expect(MOTIVO_NUMERO_DESCONECTADO).toBe("O número da campanha não está mais conectado. Conecte-o de novo em Configurações > WhatsApp.")
     for (const r of tabelas.campaign_recipients) expect(r).toMatchObject({ status: "falhou", motivo: MOTIVO_NUMERO_DESCONECTADO })
     expect(tabelas.campaigns[0].status).toBe("enviada")
   })

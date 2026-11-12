@@ -271,13 +271,16 @@ dele, um número que está em uso no celular.
   "O número mudou de aparelho ou de número").
 - Alerta na central de alertas.
 - Instrução de como desconectar pelo celular, exibida quando o Admin remove o número no CRM.
+- Aviso no diálogo de remover, para qualquer número da Meta: o que deixa de funcionar, o que
+  fica, que o número fica livre para qualquer empresa e que "Desconectar" só pausa.
 
 **Comportamentos:**
 - Ver o número como desconectado, com o motivo, quando a desconexão vem do celular.
 - Receber um alerta da desconexão.
 - Tentar enviar mensagem por um número desconectado.
 - Conectar de novo o mesmo número.
-- Remover o número no CRM.
+- Remover o número no CRM, sabendo que ele fica livre para qualquer empresa.
+- Conectar de novo um número removido e reencontrar as conversas.
 
 **Critérios de aceite:**
 
@@ -315,6 +318,22 @@ dele, um número que está em uso no celular.
 - **Então** a confirmação explica que é preciso desconectar também no aplicativo
   (Configurações > Conta > Plataforma Comercial) e, ao confirmar, o número sai da lista do
   CRM sem apagar conversas nem contatos
+
+#### CA-B23-31 — Remover deixa o número livre, com aviso claro · prova: automática
+
+- **Dado** um número da Meta conectado no CRM
+- **Quando** o Admin pede para removê-lo
+- **Então** a confirmação avisa que ninguém da empresa envia nem recebe mais por ele, que as
+  conversas e os contatos ficam só para consulta, que o número fica livre para qualquer
+  empresa conectar e que "Desconectar" é o caminho para só pausar; e, depois de confirmar,
+  outra empresa consegue conectar o mesmo número
+
+#### CA-B23-32 — Conectar de novo o número removido traz as conversas de volta · prova: automática
+
+- **Dado** um número que a empresa removeu, com conversas no CRM
+- **Quando** o Admin da mesma empresa conecta esse número de novo
+- **Então** a conexão antiga volta a "Conectado", sem nascer outra, e as conversas continuam
+  ligadas a ela; se o número estiver conectado em outra empresa, a conexão é recusada
 
 ## Fora de escopo
 
@@ -355,6 +374,8 @@ dele, um número que está em uso no celular.
 | SUP-B23-15 | Mídia antiga que a Meta entrega depois do marcador substitui o marcador; se chegar antes dele (sem como saber de qual contato é), é ignorada e o marcador fica. | confirmada | Marcelle, 30/10/2026. |
 | SUP-B23-16 | Os cards criados no fim da importação (opção marcada) valem como lead novo: entram no dashboard como entrada na etapa Lead e na central de alertas como qualquer card. | confirmada | Marcelle, 30/10/2026. |
 | SUP-B23-17 | O eco do celular pode trazer áudio, embora a referência da Meta liste só texto, foto, vídeo, documento, revoke e edit; o código aceita áudio se vier e o teste com chip (CA-B23-20) confere. | confirmada | Marcelle, 30/10/2026. |
+| SUP-B23-18 | Remover um número da Meta marca a conexão como removida (como o canal direto) em vez de apagar a linha, para as conversas continuarem ligadas a ela, e deixa o número livre: qualquer empresa pode conectá-lo. Quem quer guardar o número para a própria empresa usa "Desconectar". Se a mesma empresa conecta de novo o número que removeu, a conexão antiga volta, com as conversas. | confirmada | Marcelle, 12/11/2026: os dois botões são a escolha (Desconectar guarda, Remover libera), com aviso bem claro no diálogo de remover. A versão de 30/10, em que o número removido continuava reservado à empresa, foi descartada. |
+| SUP-B23-19 | Envio por conversa cujo número está desconectado é recusado, e não cai sozinho em outro número conectado da empresa (a queda para "o número do workspace" da B7-01 vale só quando a conversa não tem número). | confirmada | Marcelle, 12/11/2026: o CRM não troca de número escondido; a escolha de continuar por outro número é do atendente, no Chat, e vira issue própria (B23-07). |
 
 ## Perguntas em aberto
 

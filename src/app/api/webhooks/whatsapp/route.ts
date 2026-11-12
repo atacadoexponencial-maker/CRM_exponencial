@@ -12,6 +12,7 @@ import { escolherConversaDoNumero, nomeDoPerfil, statusAoReabrir, traduzirConteu
 import { processarAgenda, processarHistorico, type ValorDaAgenda, type ValorDoHistorico } from "@/lib/whatsapp/historico-do-celular"
 import { processarEcos, type ValorDosEcos } from "@/lib/whatsapp/eco-do-celular"
 import { aplicarEdicaoOuExclusaoDaMeta, TIPOS_DE_EDICAO, type AvisoDeEdicaoDaMeta } from "@/lib/whatsapp/edicao-pelo-contato"
+import { processarAccountUpdate, type ValorDoAccountUpdate } from "@/lib/whatsapp/desconexao-do-celular"
 import { tirarDaLixeira } from "@/lib/lixeira"
 import { criarCardDeEntrada } from "@/lib/card-de-entrada"
 
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
     messages?: Array<MensagemMeta & { from: string; id: string; timestamp: string }>
     contacts?: Array<{ wa_id?: string; profile?: { name?: string } }>
   }
-  type WebhookBody = { entry?: Array<{ changes?: Array<{ field?: string; value?: WebhookValue }> }> }
+  type WebhookBody = { entry?: Array<{ id?: string; changes?: Array<{ field?: string; value?: WebhookValue }> }> }
 
   let body: WebhookBody
   try {
@@ -100,12 +101,24 @@ export async function POST(request: NextRequest) {
   // antes só a primeira era lida e os outros avisos se perdiam.
   // B23-02: o `field` diz o que a mudança é (mensagens, histórico, agenda…).
   const mudancas = (Array.isArray(body?.entry) ? body.entry : []).flatMap((e) =>
-    (Array.isArray(e?.changes) ? e.changes : []).map((c) => ({ field: c?.field, value: c?.value }))
+    (Array.isArray(e?.changes) ? e.changes : []).map((c) => ({ field: c?.field, value: c?.value, entryId: e?.id }))
   )
 
   const supabase = createServiceClient()
 
-  for (const { field, value: change } of mudancas) {
+  for (const { field, value: change, entryId } of mudancas) {
+    // B23-06: `account_update` é da WABA (a entrada), sem phone_number_id: o número
+    // em uso no celular foi desligado do lado da Meta.
+    if (field === "account_update") {
+      try {
+        await processarAccountUpdate({ supabase, wabaId: entryId, valor: (change ?? {}) as unknown as ValorDoAccountUpdate })
+      } catch (erro) {
+        console.error("[whatsapp] erro na desconexão do celular:", erro)
+        return NextResponse.json({ error: "db error" }, { status: 500 })
+      }
+      continue
+    }
+
     const phoneNumberId = change?.metadata?.phone_number_id
     if (!phoneNumberId) continue
 
@@ -117,6 +130,8 @@ export async function POST(request: NextRequest) {
         .from("whatsapp_connections")
         .select("id, workspace_id, phone_number, access_token, em_uso_no_celular, criar_cards_do_historico")
         .eq("phone_number_id", phoneNumberId)
+        // B23-06: número removido pode estar em outra empresa; só a conexão em uso recebe
+        .neq("status", "removed")
         .maybeSingle()
       if (!conexao) continue
       try {
@@ -160,6 +175,8 @@ export async function POST(request: NextRequest) {
       // B23-05: e se o número está em uso no celular, onde edição e exclusão existem.
       .select("id, workspace_id, access_token, em_uso_no_celular")
       .eq("phone_number_id", phoneNumberId)
+      // B23-06: número removido pode estar em outra empresa; só a conexão em uso recebe
+      .neq("status", "removed")
       .single()
 
     if (!connection) continue
