@@ -55,4 +55,5 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B58 | sem spec (limpeza do código legado sem uso, PR #5) | sem issue |
 | B59 | `../spec-modelos-de-automacao.md` (bloco de anotação e galeria com cinco modelos prontos; no ar desde 05/11/2026; falta o CA-B59-27 da B59-02, com chip) | `concluidas_B59/` |
 | B60 | sem spec (usabilidade do pipeline: áreas de ação rápida ao arrastar, card inteiro no arraste e agendar tarefa pelo painel; no ar desde 09/11/2026, PR #16) | sem issue |
+| B62 | `../spec-tempo-na-etapa.md` (reservada em 13/11/2026: gatilho "Tempo na etapa" nas automações — o card anda sozinho depois de X tempo na etapa, contando da entrada na etapa atual, para o movimento à mão não ser desfeito por uma espera antiga) | `concluidas_B62/` (quando houver) |
 | F1 | `docs/specs-arquivadas/spec-fluxo-com-prova.md` (melhoria do fluxo de desenvolvimento: critérios de aceite com código, auditor, lições) | `concluidas_F1/` |
