@@ -50,7 +50,9 @@ export function DashboardClient({ painelInicial, atendentes, papel, cabecalho, p
 
   function aplicarFiltros(novos: FiltrosState, novoCampo = campo) {
     setFiltros(novos)
-    if (novos.periodo === "custom" && !novos.inicio) return
+    // Personalizado sem nenhuma data ainda não tem o que buscar. Com uma só, o servidor
+    // completa: só a final vale os 30 dias até ela (QA M17); só a inicial vai até hoje.
+    if (novos.periodo === "custom" && !novos.inicio && !novos.fim) return
     setErro(false)
     startTransition(async () => {
       try {
@@ -115,7 +117,7 @@ export function DashboardClient({ painelInicial, atendentes, papel, cabecalho, p
         destaque
         itens={[
           // B48-10: o período escrito, para não confundir com o mês dos Relatórios
-          { rotulo: `Faturado ${metricas.periodo ? `de ${formatarIntervalo(metricas.periodo.inicio, metricas.periodo.fim, fuso)}` : "no período"} (${metricas.receita.quantidadeCompras} compras)`, valor: formatarMoeda(metricas.receita.totalCompras), variacao: variacoes.totalCompras },
+          { rotulo: `Faturado ${metricas.periodo ? `de ${formatarIntervalo(metricas.periodo.inicio, metricas.periodo.fim, fuso)}` : "no período"} (${metricas.receita.quantidadeCompras} ${metricas.receita.quantidadeCompras === 1 ? "compra" : "compras"})`, valor: formatarMoeda(metricas.receita.totalCompras), variacao: variacoes.totalCompras },
           { rotulo: "Ticket médio", valor: formatarMoeda(metricas.receita.ticketMedioGeral), variacao: variacoes.ticketMedioGeral },
           { rotulo: "Novos leads", valor: metricas.entrada.novosLeads, variacao: variacoes.novosLeads },
           { rotulo: "Taxa de recompra", valor: metricas.recompra.taxaRecompra, sufixo: "%", variacao: variacoes.taxaRecompra },

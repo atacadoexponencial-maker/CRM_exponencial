@@ -19,6 +19,8 @@ export type MetricasDashboard = {
     novosLeads: number
     leadsAtivos: number
     leadsPorSemana: Array<{ label: string; valor: number }>
+    /** As barras de `leadsPorSemana` são meses, e não semanas (período acima de 26 semanas). */
+    leadsPorMes?: boolean
   }
   conversao: {
     taxaGeral: number | null // % de cards criados no período que chegaram em Ganho
@@ -284,7 +286,7 @@ export function calcularMetricas(
 
   return {
     periodo: { inicio: inicio.toISOString(), fim: fim.toISOString() },
-    entrada: { novosLeads: novosLeadsCards.length, leadsAtivos, leadsPorSemana },
+    entrada: { novosLeads: novosLeadsCards.length, leadsAtivos, leadsPorSemana, leadsPorMes: porMes },
     conversao: { taxaGeral, funil: funilComPercentual },
     recompra: { clientesAtivos, taxaRecompra, emRisco, inativos, perdidos, distribuicao },
     receita: {

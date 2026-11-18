@@ -97,6 +97,9 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
   const [salvandoTag, setSalvandoTag] = useState(false)
   const [editandoObs, setEditandoObs] = useState(false)
   const [textoObs, setTextoObs] = useState("")
+  // O que acabou de ser salvo, até a tela recarregar os dados: sem isto, a ficha mostrava
+  // o texto antigo por alguns segundos e parecia que não tinha salvado.
+  const [obsSalva, setObsSalva] = useState<{ de: string; texto: string } | null>(null)
   const [erroObs, setErroObs] = useState<string | null>(null)
   const [salvandoObs, setSalvandoObs] = useState(false)
   const [restaurando, setRestaurando] = useState(false)
@@ -185,8 +188,11 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
     setErroEdicao(null)
   }
 
+  // Enquanto a ficha ainda traz o texto de antes do salvamento, vale o que foi salvo.
+  const observacoesNaTela = obsSalva && obsSalva.de === contato.observacoes ? obsSalva.texto : contato.observacoes
+
   function iniciarEdicaoObs() {
-    setTextoObs(contato!.observacoes)
+    setTextoObs(observacoesNaTela)
     setErroObs(null)
     setEditandoObs(true)
   }
@@ -205,6 +211,7 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
       setErroObs(resultado.erro)
       return
     }
+    setObsSalva({ de: contato!.observacoes, texto: textoObs })
     setEditandoObs(false)
     router.refresh()
   }
@@ -626,8 +633,8 @@ export function PerfilContato({ contato, papel, contactId, naLixeira, atendentes
               </div>
             ) : (
               <>
-                {contato.observacoes ? (
-                  <p className="text-sm text-foreground whitespace-pre-wrap">{contato.observacoes}</p>
+                {observacoesNaTela ? (
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{observacoesNaTela}</p>
                 ) : (
                   <p className="text-sm text-muted-foreground">Sem observações</p>
                 )}

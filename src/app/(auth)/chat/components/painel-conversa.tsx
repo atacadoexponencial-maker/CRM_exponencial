@@ -465,7 +465,9 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
             )}
             <button
               onClick={onAbrirFicha}
-              className="font-semibold text-sm hover:underline truncate text-left"
+              // No celular o nome ficava com largura zero: o telefone, o responsável e o canal
+              // não encolhiam, e não dava para tocar no nome para abrir a ficha.
+              className="font-semibold text-sm hover:underline truncate text-left min-w-24 md:min-w-0"
             >
               {nomeExibido}
             </button>
@@ -482,13 +484,13 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
               </Link>
             )}
             {conversa.contato.nome && (
-              <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-1">
+              <span className="text-xs text-muted-foreground shrink-0 hidden md:flex items-center gap-1">
                 <Phone className="size-3" />
                 {conversa.contato.telefone}
               </span>
             )}
             {conversa.atribuidaA && (
-              <span className="text-xs text-muted-foreground shrink-0">
+              <span className="text-xs text-muted-foreground shrink-0 hidden md:inline">
                 · {conversa.atribuidaA === nomeUsuario ? "Você" : conversa.atribuidaA}
               </span>
             )}
@@ -497,7 +499,7 @@ export function PainelConversa({ conversa, mensagens, onMensagemEnviada, onMensa
                 Muda o que é possível fazer e muda o remetente que o cliente vê. */}
             {conversa.canal.nome && (
               <span
-                className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground shrink-0"
+                className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground min-w-0 truncate md:shrink-0"
                 title={
                   conversa.canal.numero
                     ? `Esta conversa acontece pelo ${conversa.canal.nome}, no número ${conversa.canal.numero}`
