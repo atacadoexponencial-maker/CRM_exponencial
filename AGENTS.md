@@ -110,7 +110,7 @@ node .claude/skills/auditor/scripts/auditor.mjs licao listar   # lições a apli
 - Erro em produção chega ao **Sentry** (projeto `crmatacado-exp`, organização
   `atacado-exponencial`). Depois de um merge, olhe o painel no dia seguinte.
 - Migration nova: primeiro `npm run db:teste:push` (banco de teste) e os testes da
-  série; só depois `npx supabase db push --linked` (produção).
+  série; só depois `npx supabase db push --remote` (produção).
 - Antes de dar uma issue por pronta, rode `npx tsc --noEmit`: o Vitest não confere tipos.
 - Depois de subir o `next dev`, desfaça o que ele reescrever no `AGENTS.md` antes de
   rodar o auditor.

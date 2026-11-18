@@ -23,10 +23,11 @@ Pendências que encontrei ao longo do caminho e quero que sejam trabalhadas:
    - 17/10: passo 2 virou a série B27 (porteiro rápido), no ar em `387ef37`. Lista do WhatsApp de 0,64 s para 0,435 s; Saúde de 0,86 s para 0,68 s; Ritmo de 0,95 s para 0,69 s. Faltam os 2 testes manuais da B27-01: aceitar a medição e o teste do usuário desativado.
 
 8. Testei enviar mensagem do aparelho, como se fosse um atendente usando o celular e não chegou no CRM. Logo se o atendente responder via aplicativo no celular, as informações serão perdidas.
-## 21/10/2026 (manhã) — dashboard não conta compra de hoje antes do meio-dia
+## ✅ 21/10/2026 (manhã) — dashboard não conta compra de hoje antes do meio-dia
 
 - `src/lib/metricas-dashboard.ts` (B30-03): a receita filtra `new Date(p.data + "T12:00:00") <= fim`, e `fim` é o agora. De manhã, a compra registrada hoje (data = hoje) fica fora até 12h. Os testes CA-B30-16/17/18 e CA-B30-02 falham quando rodam de manhã e passam à tarde.
 - Correção provável: `fim` no fim do dia (23:59:59) no `rangeDoPeriodo`, ou comparar só a data. Fora do escopo da B31; precisa de decisão para entrar como issue.
+- Resolvido na B32-01: o `rangeDoPeriodo` passou a ir até o fim do dia de hoje. Conferido no código em 18/11/2026.
 
 ## 30/10/2026 — campanha não aparece na conversa do Chat
 
