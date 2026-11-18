@@ -128,3 +128,9 @@ Reuso: `coresDaVitrine` e `corTextoSobre` (`tema.ts`), o padrão de compartilhar
 - [x] Testes da tabela Prova escritos e passando
 - [x] Testes que já renderizam a loja e a Aparência rodados (`catalogo-*`, `loja-*`, `tema*`)
 - [x] `npx tsc --noEmit` e `npm run lint` limpos
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B61-05 | Claude (medido no preview), com o ok da Marcelle | 18/11/2026 |

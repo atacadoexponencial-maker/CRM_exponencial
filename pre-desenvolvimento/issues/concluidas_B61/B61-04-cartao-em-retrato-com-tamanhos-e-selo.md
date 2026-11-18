@@ -121,3 +121,9 @@ Reuso: `combinacoes`, `chaveCombinacao` e `estoqueTotal` (`src/lib/catalogo/comb
 - [x] Campo do selo nas Configurações, com a conferência no servidor
 - [x] Testes da tabela Prova escritos e passando
 - [x] `npx tsc --noEmit` e lint dos arquivos da issue limpos
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B61-21 | Claude (medido no preview), com o ok da Marcelle | 18/11/2026 |
