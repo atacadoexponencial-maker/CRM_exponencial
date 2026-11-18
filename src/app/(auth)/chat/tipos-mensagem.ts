@@ -16,6 +16,10 @@ export interface Mensagem {
   replyDe?: { id: string; texto: string }
   /** B25-02: saiu do número pelo celular (ou WhatsApp Web), e não pelo CRM. */
   enviadaPeloCelular?: boolean
+  /** B23-05: o contato editou a mensagem depois de mandar; `conteudo` já é o texto novo. */
+  editada?: boolean
+  /** B23-05: o contato apagou a mensagem; o balão mostra "Mensagem apagada". */
+  apagada?: boolean
   /** Tipo do arquivo, com o codec quando é vídeo (ex.: "video/mp4; codecs=hvc1"). */
   tipoDoArquivo?: string
   /** Nome original do documento e a prévia dele, quando houver (20/10/2026). */

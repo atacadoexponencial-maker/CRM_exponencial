@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createClient as createSsrClient } from "@/integrations/supabase/server"
 import { sessaoAtual } from "@/lib/sessao"
+import { normalizarWhatsapp } from "@/lib/telefone"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { clienteGatewayDoAmbiente } from "@/lib/whatsapp/gateway/cliente"
 import {
@@ -24,6 +25,8 @@ import {
   type OperacaoDeCicloDeVida,
 } from "@/lib/whatsapp/gateway/ciclo-de-vida"
 import { aplicarEstadoDaInstancia } from "@/lib/whatsapp/eventos-de-operacao"
+import { pedirHistoricoDoCelular } from "@/lib/whatsapp/historico-do-celular"
+import { refletirEstadoNaCentral } from "@/lib/whatsapp/alertas-de-numero"
 import {
   esquemaPerfilComercial,
   FOTO_PERFIL,
@@ -41,6 +44,8 @@ export type ConexaoWhatsApp = {
   phoneNumber: string
   displayName: string
   status: string
+  /** B23-06: número que continua em uso no WhatsApp Business do celular. */
+  emUsoNoCelular: boolean
 }
 
 // O tipo NÃO é reexportado daqui: arquivo "use server" só pode exportar função,
@@ -53,10 +58,12 @@ export async function listarConexaoWhatsApp(): Promise<ConexaoWhatsApp | null> {
 
   const { data } = await ssrClient
     .from("whatsapp_connections")
-    .select("id, phone_number, display_name, status")
+    .select("id, phone_number, display_name, status, em_uso_no_celular")
     .eq("workspace_id", perfil.workspace_id)
     // Só a API Oficial (canal nulo é da Meta): número do canal direto não fecha o fluxo da Meta
     .or("canal.eq.meta,canal.is.null")
+    // B23-06: removida fica arquivada para as conversas, fora do fluxo
+    .neq("status", "removed")
     .maybeSingle()
 
   if (!data) return null
@@ -66,6 +73,7 @@ export async function listarConexaoWhatsApp(): Promise<ConexaoWhatsApp | null> {
     phoneNumber: data.phone_number,
     displayName: data.display_name,
     status: data.status,
+    emUsoNoCelular: data.em_uso_no_celular === true,
   }
 }
 
@@ -547,11 +555,52 @@ export async function sincronizarEstadoDoNumero(
 }
 
 const NUMERO_EM_OUTRA_EMPRESA = "Este número já está conectado em outra empresa."
+// B23-01: um número não fica no canal direto e na API Oficial ao mesmo tempo (decisão B1-01).
+const NUMERO_NO_CANAL_DIRETO =
+  "Este número já está conectado pelo canal direto. Desconecte-o lá antes de conectá-lo pela API Oficial."
+const ERRO_GENERICO = "Não foi possível conectar o número. Tente novamente."
+// B23-06: a Meta não deixa o CRM desligar nem religar número em uso no celular.
+const DESCONECTAR_SO_PELO_APLICATIVO =
+  "Este número está em uso no WhatsApp Business do celular. Para desconectá-lo, use o aplicativo: Configurações > Conta > Plataforma Comercial."
+const RECONECTAR_SO_PELA_META =
+  "Este número está em uso no WhatsApp Business do celular. Conecte-o de novo pela janela da Meta, nesta página."
+
+/** B23-06: a conexão da empresa é de número em uso no celular? Decidido no servidor, não pela tela. */
+async function emUsoNoCelular(id: string, workspaceId: string): Promise<boolean> {
+  const { data } = await createServiceClient()
+    .from("whatsapp_connections")
+    .select("em_uso_no_celular")
+    .eq("id", id)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle()
+  return data?.em_uso_no_celular === true
+}
+
+/**
+ * B23-01: o número que a Meta acabou de ligar à WABA. Quando a janela da Meta termina
+ * pelo caminho do WhatsApp Business do celular, o evento pode vir só com o `waba_id`;
+ * aí o número é o da WABA que está em uso no aplicativo (`is_on_biz_app`), ou o único
+ * que ela tem.
+ */
+async function descobrirNumeroDaWaba(wabaId: string, accessToken: string): Promise<string | null> {
+  const res = await fetch(
+    `${GRAPH}/${wabaId}/phone_numbers?fields=id,is_on_biz_app&access_token=${accessToken}`
+  )
+  if (!res.ok) return null
+  const { data } = (await res.json()) as { data?: { id: string; is_on_biz_app?: boolean }[] }
+  const numeros = data ?? []
+  const noCelular = numeros.find((n) => n.is_on_biz_app === true)
+  if (noCelular) return noCelular.id
+  return numeros.length === 1 ? numeros[0].id : null
+}
 
 export async function completarConexaoWhatsApp(params: {
   code: string
-  phoneNumberId: string
+  /** Pode faltar quando a Meta conclui pelo caminho do WhatsApp Business do celular (B23-01). */
+  phoneNumberId?: string
   wabaId: string
+  /** B23-01: escolha do Admin antes de conectar; gravada uma vez, lida na B23-03. */
+  criarCardsDoHistorico?: boolean
 }): Promise<{ erro?: string }> {
   const ssrClient = await createSsrClient()
   const { data: { user } } = await ssrClient.auth.getUser()
@@ -567,25 +616,46 @@ export async function completarConexaoWhatsApp(params: {
 
   const workspaceId: string = perfil.workspace_id
 
-  const { data: existente } = await ssrClient
+  // B23-06: a conexão desta empresa com o mesmo número é reconexão, e é atualizada no
+  // lugar (as conversas continuam ligadas a ela). Vale também para o número que a
+  // empresa removeu e conecta de novo: a conexão removida volta, com as conversas
+  // (SUP-B23-18). Qualquer outro número ativo barra, como antes.
+  const service = createServiceClient()
+  const { data: daEmpresa } = await service
     .from("whatsapp_connections")
-    .select("id")
+    .select("id, phone_number_id, status")
     .eq("workspace_id", workspaceId)
-    .maybeSingle()
-
-  if (existente) return { erro: "Já existe um número conectado" }
+    .order("created_at", { ascending: false })
+  function conexaoDoNumero(id: string) {
+    const doNumero = (daEmpresa ?? []).filter((c) => c.phone_number_id === id)
+    return doNumero.find((c) => c.status !== "removed") ?? doNumero[0] ?? null
+  }
+  function temOutroNumeroAtivo(id: string) {
+    return (daEmpresa ?? []).some((c) => c.status !== "removed" && c.phone_number_id !== id)
+  }
+  // Sem o id do número (caminho do celular, B23-01), a conferência fica para depois
+  // de descobri-lo pela WABA.
+  if (params.phoneNumberId && temOutroNumeroAtivo(params.phoneNumberId)) {
+    return { erro: "Já existe um número conectado" }
+  }
 
   // B44-01: um número da Meta é de uma empresa só. Confere antes de falar com a Meta,
   // pela chave de serviço, porque o navegador só enxerga as conexões da própria empresa.
-  const service = createServiceClient()
-  const { data: emOutraEmpresa } = await service
-    .from("whatsapp_connections")
-    .select("id")
-    .eq("phone_number_id", params.phoneNumberId)
-    .neq("workspace_id", workspaceId)
-    .limit(1)
+  // B23-06: número que a outra empresa removeu está livre (SUP-B23-18).
+  async function emOutraEmpresa(phoneNumberId: string) {
+    const { data } = await service
+      .from("whatsapp_connections")
+      .select("id")
+      .eq("phone_number_id", phoneNumberId)
+      .neq("workspace_id", workspaceId)
+      .neq("status", "removed")
+      .limit(1)
+    return Boolean(data?.length)
+  }
 
-  if (emOutraEmpresa?.length) return { erro: NUMERO_EM_OUTRA_EMPRESA }
+  if (params.phoneNumberId && (await emOutraEmpresa(params.phoneNumberId))) {
+    return { erro: NUMERO_EM_OUTRA_EMPRESA }
+  }
 
   const appId = process.env.NEXT_PUBLIC_META_APP_ID!
   const appSecret = process.env.META_APP_SECRET!
@@ -594,43 +664,73 @@ export async function completarConexaoWhatsApp(params: {
     `${GRAPH}/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&code=${params.code}`
   )
 
-  if (!tokenRes.ok) return { erro: "Não foi possível conectar o número. Tente novamente." }
+  if (!tokenRes.ok) return { erro: ERRO_GENERICO }
 
   const tokenData = await tokenRes.json()
   const accessToken: string = tokenData.access_token
-  if (!accessToken) return { erro: "Não foi possível conectar o número. Tente novamente." }
+  if (!accessToken) return { erro: ERRO_GENERICO }
+
+  // B23-01: sem o id do número no evento da Meta, ele é descoberto pela WABA.
+  let phoneNumberId = params.phoneNumberId
+  if (!phoneNumberId) {
+    phoneNumberId = (await descobrirNumeroDaWaba(params.wabaId, accessToken)) ?? undefined
+    if (!phoneNumberId) return { erro: ERRO_GENERICO }
+    if (temOutroNumeroAtivo(phoneNumberId)) return { erro: "Já existe um número conectado" }
+    if (await emOutraEmpresa(phoneNumberId)) return { erro: NUMERO_EM_OUTRA_EMPRESA }
+  }
+  const reconexao = conexaoDoNumero(phoneNumberId)
 
   const phoneRes = await fetch(
-    `${GRAPH}/${params.phoneNumberId}?fields=display_phone_number,verified_name&access_token=${accessToken}`
+    `${GRAPH}/${phoneNumberId}?fields=display_phone_number,verified_name,is_on_biz_app&access_token=${accessToken}`
   )
 
-  if (!phoneRes.ok) return { erro: "Não foi possível conectar o número. Tente novamente." }
+  if (!phoneRes.ok) return { erro: ERRO_GENERICO }
 
   const phoneData = await phoneRes.json()
   const phoneNumber: string = phoneData.display_phone_number
   const displayName: string = phoneData.verified_name
+  // B23-01: a Meta diz se o número continua em uso no WhatsApp Business do celular.
+  // É o servidor que decide, não o que o navegador recebeu na janela.
+  const emUsoNoCelular = phoneData.is_on_biz_app === true
 
-  if (!phoneNumber || !displayName) return { erro: "Não foi possível conectar o número. Tente novamente." }
+  if (!phoneNumber || !displayName) return { erro: ERRO_GENERICO }
 
-  const registerRes = await fetch(
-    `${GRAPH}/${params.phoneNumberId}/register`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        pin: "000000",
-      }),
+  // B23-01: número que já está no canal direto, em qualquer empresa, não entra pela
+  // API Oficial (SUP-B23-11). A Meta devolve "+55 11 9…" e o canal direto guarda só dígitos.
+  const digitos = normalizarWhatsapp(phoneNumber)
+  if (digitos) {
+    const { data: noCanalDireto } = await service
+      .from("whatsapp_connections")
+      .select("id")
+      .eq("canal", "gateway")
+      .eq("phone_number", digitos)
+      .neq("status", "removed")
+      .limit(1)
+    if (noCanalDireto?.length) return { erro: NUMERO_NO_CANAL_DIRETO }
+  }
+
+  // B23-01: número em uso no celular já está registrado; a Meta manda pular este passo.
+  if (!emUsoNoCelular) {
+    const registerRes = await fetch(
+      `${GRAPH}/${phoneNumberId}/register`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          pin: "000000",
+        }),
+      }
+    )
+
+    if (!registerRes.ok) {
+      const registerError = await registerRes.text()
+      console.error("[whatsapp] erro ao registrar número:", registerError)
+      return { erro: "Número conectado à WABA mas não foi possível registrá-lo no WhatsApp. Tente novamente." }
     }
-  )
-
-  if (!registerRes.ok) {
-    const registerError = await registerRes.text()
-    console.error("[whatsapp] erro ao registrar número:", registerError)
-    return { erro: "Número conectado à WABA mas não foi possível registrá-lo no WhatsApp. Tente novamente." }
   }
 
   const subscribeRes = await fetch(
@@ -647,8 +747,32 @@ export async function completarConexaoWhatsApp(params: {
     return { erro: "Número registrado mas não foi possível configurar o recebimento de mensagens. Tente novamente." }
   }
 
+  // B23-06: reconectar o mesmo número volta a conexão a "connected", com o token novo,
+  // sem criar outra: conversas e contatos continuam os mesmos.
+  if (reconexao) {
+    const { error } = await service
+      .from("whatsapp_connections")
+      .update({
+        phone_number: phoneNumber,
+        display_name: displayName,
+        status: "connected",
+        state_reason: null,
+        disconnected_at: null,
+        waba_id: params.wabaId,
+        access_token: accessToken,
+        em_uso_no_celular: emUsoNoCelular,
+      })
+      .eq("id", reconexao.id)
+    // Outra empresa conectou o mesmo número entre a conferência e aqui: o índice único recusa.
+    if (error?.code === "23505") return { erro: NUMERO_EM_OUTRA_EMPRESA }
+    if (error) return { erro: ERRO_GENERICO }
+    await refletirEstadoNaCentral({ supabase: service, workspaceId, connectionId: reconexao.id, estado: "connected" })
+    revalidatePath("/configuracoes/whatsapp")
+    return {}
+  }
+
   // B44-01: criar conexão é só do servidor; o navegador não grava mais nesta tabela.
-  const { error } = await service
+  const { data: criada, error } = await service
     .from("whatsapp_connections")
     .insert({
       workspace_id: workspaceId,
@@ -656,13 +780,24 @@ export async function completarConexaoWhatsApp(params: {
       display_name: displayName,
       status: "connected",
       waba_id: params.wabaId,
-      phone_number_id: params.phoneNumberId,
+      phone_number_id: phoneNumberId,
       access_token: accessToken,
+      // B23-01
+      em_uso_no_celular: emUsoNoCelular,
+      criar_cards_do_historico: params.criarCardsDoHistorico === true,
     })
+    .select("id")
+    .single()
 
   // Outra empresa gravou o mesmo número entre a conferência e aqui: o índice único recusa.
   if (error?.code === "23505") return { erro: NUMERO_EM_OUTRA_EMPRESA }
-  if (error) return { erro: "Não foi possível conectar o número. Tente novamente." }
+  if (error || !criada) return { erro: ERRO_GENERICO }
+
+  // B23-02: número em uso no celular tem conversas antigas; o pedido à Meta sai
+  // agora, sem ação do Admin, e o cartão passa a mostrar o andamento.
+  if (emUsoNoCelular) {
+    await pedirHistoricoDoCelular({ supabase: service, connectionId: criada.id, phoneNumberId, accessToken })
+  }
 
   revalidatePath("/configuracoes/whatsapp")
   return {}
@@ -683,9 +818,12 @@ export async function removerConexaoWhatsApp(
 
   if (perfil?.role !== "admin") return { erro: "Sem permissão" }
 
-  const { error } = await ssrClient
+  // B23-06: removida fica arquivada (como no canal direto), para as conversas e os
+  // contatos continuarem ligados a ela, e deixa de reservar o número: qualquer empresa
+  // pode conectá-lo (SUP-B23-18). Só o servidor altera conexão.
+  const { error } = await createServiceClient()
     .from("whatsapp_connections")
-    .delete()
+    .update({ status: "removed" })
     .eq("id", id)
     .eq("workspace_id", perfil.workspace_id)
 
@@ -713,7 +851,10 @@ export async function reinscreverWebhookWhatsApp(): Promise<{ erro?: string }> {
     .from("whatsapp_connections")
     .select("waba_id, access_token")
     .eq("workspace_id", perfil.workspace_id)
-    .single()
+    .or("canal.eq.meta,canal.is.null")
+    // B23-06: removida fica no banco, fora de uso
+    .neq("status", "removed")
+    .maybeSingle()
 
   if (!conexao) return { erro: "Nenhum número conectado" }
 
@@ -748,6 +889,7 @@ export async function desconectarWhatsApp(
     .single()
 
   if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+  if (await emUsoNoCelular(id, perfil.workspace_id)) return { erro: DESCONECTAR_SO_PELO_APLICATIVO }
 
   // B44-01: alterar conexão é só do servidor; o filtro da empresa fica.
   const { error } = await createServiceClient()
@@ -776,6 +918,7 @@ export async function reconectarWhatsApp(
     .single()
 
   if (perfil?.role !== "admin") return { erro: "Sem permissão" }
+  if (await emUsoNoCelular(id, perfil.workspace_id)) return { erro: RECONECTAR_SO_PELA_META }
 
   // B44-01: alterar conexão é só do servidor; o filtro da empresa fica.
   const { error } = await createServiceClient()
@@ -817,6 +960,8 @@ async function credenciaisDoNumeroMeta(): Promise<
     .select("phone_number_id, access_token")
     .eq("workspace_id", perfil.workspace_id)
     .or("canal.eq.meta,canal.is.null")
+    // B23-06: removida fica no banco, fora de uso
+    .neq("status", "removed")
     .maybeSingle()
 
   if (!conexao?.phone_number_id || !conexao.access_token) return { erro: "Nenhum número da API Oficial conectado" }

@@ -11,6 +11,7 @@ import { ListaNumeros } from "./canal-direto/lista-numeros"
 import type { NumeroConectado } from "./canal-direto/cartao-numero"
 import type { EstadoConexao } from "./canal-direto/estado-badge"
 import { situacaoDaPausa } from "@/lib/whatsapp/gateway/pausa"
+import { textoDaImportacao } from "@/lib/whatsapp/historico-do-celular"
 import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 
 export const metadata = { title: "WhatsApp" }
@@ -55,6 +56,10 @@ export default async function WhatsAppPage() {
     state_reason: (c.stateReason as NumeroConectado["state_reason"]) ?? null,
     // B9-03: "Desconectado há N dias", pausa longa e queda, decididos aqui.
     pausa: situacaoDaPausa({ status: c.status, stateReason: c.stateReason ?? null, disconnectedAt: c.disconnectedAt }),
+    // B23-01: selo "Em uso também no celular" no cartão do número da Meta.
+    em_uso_no_celular: c.emUsoNoCelular,
+    // B23-02: andamento das conversas antigas, em texto decidido aqui.
+    importacao: textoDaImportacao(c.historicoSituacao, c.historicoProgresso),
   }))
 
   return (
@@ -64,7 +69,8 @@ export default async function WhatsAppPage() {
       <ListaNumeros
         numeros={numeros}
         termoAceito={termoAceito}
-        fluxoMeta={conexao ? null : <WizardConexao />}
+        // B23-06: número em uso no celular desconectado volta pela janela da Meta
+        fluxoMeta={!conexao || (conexao.emUsoNoCelular && conexao.status !== "connected") ? <WizardConexao /> : null}
       />
 
       {/* O passo de conexão da Meta vive na escolha de canal, acima; aqui ficam
@@ -73,7 +79,7 @@ export default async function WhatsAppPage() {
         <div className="mt-10 border-t pt-8">
           <h2 className="text-base font-semibold mb-5">API Oficial da Meta</h2>
           <div className="rounded-lg border p-6 max-w-md">
-            <AcoesWhatsApp conexaoId={conexao.id} status={conexao.status} />
+            <AcoesWhatsApp conexaoId={conexao.id} status={conexao.status} emUsoNoCelular={conexao.emUsoNoCelular} />
           </div>
         </div>
       )}

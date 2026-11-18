@@ -15,9 +15,12 @@ import { Ajuda } from "@/components/shared/ajuda"
 export function AcoesWhatsApp({
   conexaoId,
   status,
+  emUsoNoCelular = false,
 }: {
   conexaoId: string
   status: string
+  /** B23-06: a Meta não deixa o CRM desligar número em uso no celular; reconectar é pela janela dela. */
+  emUsoNoCelular?: boolean
 }) {
   const router = useRouter()
 
@@ -113,22 +116,25 @@ export function AcoesWhatsApp({
         </span>
       </div>
 
-      <div className="flex gap-2 mt-3">
-        <Button
-          variant="outline"
-          disabled={status !== "connected"}
-          onClick={() => { setErroDesconectar(null); setDialogDesconectarAberto(true) }}
-        >
-          Desconectar
-        </Button>
-        <Button
-          variant="outline"
-          disabled={status !== "disconnected"}
-          onClick={() => { setErroReconectar(null); setDialogReconectarAberto(true) }}
-        >
-          Reconectar
-        </Button>
-      </div>
+      {/* B23-06: número em uso no celular só desliga pelo aplicativo, e volta pela janela da Meta */}
+      {!emUsoNoCelular && (
+        <div className="flex gap-2 mt-3">
+          <Button
+            variant="outline"
+            disabled={status !== "connected"}
+            onClick={() => { setErroDesconectar(null); setDialogDesconectarAberto(true) }}
+          >
+            Desconectar
+          </Button>
+          <Button
+            variant="outline"
+            disabled={status !== "disconnected"}
+            onClick={() => { setErroReconectar(null); setDialogReconectarAberto(true) }}
+          >
+            Reconectar
+          </Button>
+        </div>
+      )}
 
       {/* B48-16: remover é diferente de desconectar; fica em vermelho, numa linha só dele */}
       <div className="mt-4 border-t border-border pt-3">
@@ -204,16 +210,39 @@ export function AcoesWhatsApp({
               </p>
             )}
 
-            <p className="text-sm">
-              Tem certeza que deseja remover este número? O registro será excluído e você poderá conectar um novo número.
-            </p>
+            {/* B23-06 (SUP-B23-18): remover libera o número; o aviso diz o que isso significa */}
+            <div className="flex flex-col gap-3 text-sm">
+              <p className="font-medium">
+                Remover tira este número do CRM de vez. Veja o que muda antes de confirmar:
+              </p>
+              <ul className="flex list-disc flex-col gap-1.5 pl-5">
+                <li>Ninguém da sua empresa envia nem recebe mais mensagens por ele no CRM.</li>
+                <li>As conversas e os contatos ficam no CRM, só para consulta.</li>
+                <li>
+                  <strong>O número fica livre:</strong> qualquer empresa pode conectá-lo, não só a sua.
+                </li>
+                <li>Se a sua empresa conectar este número de novo, as conversas voltam a funcionar nele.</li>
+              </ul>
+              {emUsoNoCelular ? (
+                <p>
+                  Este número continua em uso no WhatsApp Business do celular. Remover aqui só o tira do CRM: para
+                  desligar de verdade, desconecte também no aplicativo, em Configurações &gt; Conta &gt; Plataforma
+                  Comercial.
+                </p>
+              ) : (
+                <p>
+                  Quer só parar de usar por um tempo? Cancele e use <strong>Desconectar</strong>: o número fica
+                  guardado para a sua empresa.
+                </p>
+              )}
+            </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <DialogClose render={<Button type="button" variant="outline" />}>
                 Cancelar
               </DialogClose>
               <Button variant="destructive" onClick={handleRemover} disabled={removendo}>
-                {removendo ? "Removendo..." : "Remover"}
+                {removendo ? "Removendo..." : "Remover e liberar o número"}
               </Button>
             </div>
           </div>

@@ -20,6 +20,7 @@ import type { createServiceClient } from "@/integrations/supabase/service"
 import { clienteGatewayDoAmbiente } from "./gateway/cliente"
 import { criarProviderGateway, RECURSOS_DO_GATEWAY } from "./provider-gateway"
 import { criarProviderMeta, RECURSOS_DA_META } from "./provider-meta"
+import { MOTIVO_NUMERO_DA_CONVERSA_DESCONECTADO } from "./motivo-da-falha"
 import type { CanalWhatsApp, ProviderWhatsApp, RecursoWhatsApp } from "./tipos"
 
 export type {
@@ -53,7 +54,37 @@ export type {
 export type ClienteSupabase = ReturnType<typeof createServiceClient>
 
 /** As colunas que a escolha do provider usa. Num lugar só: as três resoluções leem as mesmas. */
-const COLUNAS_DA_CONEXAO = "canal, phone_number_id, access_token, instance_id, instance_token"
+// B23-06: `status` entra para a conversa de número desconectado não enviar.
+const COLUNAS_DA_CONEXAO = "canal, phone_number_id, access_token, instance_id, instance_token, status"
+
+/**
+ * B23-06: a conexão gravada na conversa, quando está desconectada, não envia e
+ * não cai em outro número (SUP-B23-19): o atendente precisa saber que o número
+ * daquela conversa está fora, e não mandar por outro sem perceber.
+ */
+function conexaoUsavel(conexao: (ConexaoParaProvider & { status?: string | null }) | null | undefined): "usavel" | "desconectada" | "nenhuma" {
+  if (!conexao) return "nenhuma"
+  return conexao.status === "disconnected" ? "desconectada" : "usavel"
+}
+
+/**
+ * B23-06: por que não há provider para a conversa, em texto para quem envia.
+ * Número desconectado tem explicação própria; o resto é "não encontrada".
+ */
+export async function motivoSemProvider(
+  supabase: ClienteSupabase,
+  conversaId: string,
+  workspaceId: string
+): Promise<string> {
+  const { data: conversa } = await supabase
+    .from("conversations")
+    .select("conexao:whatsapp_connections(status)")
+    .eq("id", conversaId)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle()
+  const status = (conversa as { conexao?: { status?: string } | null } | null)?.conexao?.status
+  return status === "disconnected" ? MOTIVO_NUMERO_DA_CONVERSA_DESCONECTADO : "Conexão WhatsApp não encontrada"
+}
 
 /**
  * Resolve o provider a partir do número conectado do workspace.
@@ -102,9 +133,11 @@ export async function resolverProviderDaConversa(
     .eq("workspace_id", workspaceId)
     .maybeSingle()
 
-  const conexao = (conversa as { conexao?: ConexaoParaProvider | null } | null)?.conexao
+  const conexao = (conversa as { conexao?: (ConexaoParaProvider & { status?: string | null }) | null } | null)?.conexao
 
-  if (!conexao) return resolverProvider(supabase, workspaceId)
+  const situacao = conexaoUsavel(conexao)
+  if (situacao === "desconectada") return null
+  if (situacao === "nenhuma" || !conexao) return resolverProvider(supabase, workspaceId)
 
   // Conexão gravada mas incompleta para o canal dela: o degrau de queda vale
   // igual, em vez de devolver null e transformar em erro na cara do atendente.
@@ -133,9 +166,11 @@ export async function resolverProviderDoContato(
     .limit(1)
     .maybeSingle()
 
-  const conexao = (conversa as { conexao?: ConexaoParaProvider | null } | null)?.conexao
+  const conexao = (conversa as { conexao?: (ConexaoParaProvider & { status?: string | null }) | null } | null)?.conexao
 
-  if (!conexao) return resolverProvider(supabase, workspaceId)
+  const situacao = conexaoUsavel(conexao)
+  if (situacao === "desconectada") return null
+  if (situacao === "nenhuma" || !conexao) return resolverProvider(supabase, workspaceId)
 
   return providerDaConexao(conexao) ?? resolverProvider(supabase, workspaceId)
 }

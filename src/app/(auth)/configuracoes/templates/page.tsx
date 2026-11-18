@@ -23,6 +23,8 @@ export default async function TemplatesPage() {
     .from("whatsapp_connections")
     .select("canal, phone_number")
     .eq("workspace_id", perfil.workspace_id)
+    // B23-06: número removido fica no banco, fora de uso
+    .neq("status", "removed")
 
   const canais = (conexoes ?? []).map((c) => (c.canal ?? "meta") as CanalWhatsApp)
   const comTemplates = canais.filter((canal) => recursosDoCanal(canal).templates)

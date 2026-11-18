@@ -360,9 +360,17 @@ export function BalaoMensagem({ mensagem, termoBusca = "", onResponder }: BalaoM
           </div>
         )}
 
-        <ConteudoMensagem mensagem={mensagem} termoBusca={termoBusca} isEnviada={isEnviada} />
+        {/* B23-05: apagada pelo contato fica marcada no lugar do conteúdo, nunca some */}
+        {mensagem.apagada ? (
+          <span className="italic text-muted-foreground">Mensagem apagada</span>
+        ) : (
+          <ConteudoMensagem mensagem={mensagem} termoBusca={termoBusca} isEnviada={isEnviada} />
+        )}
 
         <div className="flex items-center justify-end gap-1 mt-1">
+          {mensagem.editada && !mensagem.apagada && (
+            <span className="text-[10px] text-muted-foreground">editada</span>
+          )}
           <span className={cn("text-[10px]", "numero text-muted-foreground")}>
             {mensagem.horario}
           </span>

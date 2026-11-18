@@ -1,7 +1,7 @@
 # Spec: Coexistência (WhatsApp Business no celular e CRM no mesmo número)
 
 > série: B23
-> estado: rascunho
+> estado: aprovada (Marcelle, 30/10/2026)
 
 ## Visão Geral
 
@@ -187,12 +187,12 @@ até 24 horas depois da conexão.
 - **Então** cada contato importado que ainda não tinha card ganha um card na primeira
   etapa do Funil de Entrada, e quem já tinha card continua com o mesmo, na mesma etapa
 
-#### CA-B23-18 — Conversa antiga não libera resposta livre · prova: automática
-
-- **Dado** um contato cuja última mensagem recebida veio só pelo histórico importado
-- **Quando** o atendente abre a conversa no CRM
-- **Então** o CRM exige mensagem de modelo (template) para escrever, como em conversa com
-  a janela de 24 horas fechada
+> **CA-B23-18 transferido** (PER-B23-06, Marcelle, 30/10/2026): "conversa antiga não libera
+> resposta livre" depende da regra da janela de 24 horas no Chat, que não existe hoje. Vai
+> para a série do template no Chat, com este texto:
+> *Dado um contato cuja última mensagem recebida veio só pelo histórico importado, quando o
+> atendente abre a conversa no CRM, então o CRM exige mensagem de modelo (template) para
+> escrever, como em conversa com a janela de 24 horas fechada.*
 
 ### Mensagens enviadas pelo celular
 
@@ -240,11 +240,11 @@ como resposta do time.
   calculado até essa mensagem e a sequência se comporta como se a resposta tivesse saído
   pelo CRM
 
-#### CA-B23-23 — Envio pelo celular não libera resposta livre · prova: automática
-
-- **Dado** um contato com a janela de 24 horas fechada
-- **Quando** o vendedor envia mensagem a ele pelo celular
-- **Então** o CRM continua exigindo mensagem de modelo para escrever por ele
+> **CA-B23-23 transferido** (PER-B23-06, Marcelle, 30/10/2026): "envio pelo celular não libera
+> resposta livre" depende da mesma regra da janela. Vai para a série do template no Chat, com
+> este texto: *Dado um contato com a janela de 24 horas fechada, quando o vendedor envia
+> mensagem a ele pelo celular, então o CRM continua exigindo mensagem de modelo para
+> escrever por ele.*
 
 #### CA-B23-24 — Mensagem editada pelo contato aparece editada · prova: automática
 
@@ -271,13 +271,16 @@ dele, um número que está em uso no celular.
   "O número mudou de aparelho ou de número").
 - Alerta na central de alertas.
 - Instrução de como desconectar pelo celular, exibida quando o Admin remove o número no CRM.
+- Aviso no diálogo de remover, para qualquer número da Meta: o que deixa de funcionar, o que
+  fica, que o número fica livre para qualquer empresa e que "Desconectar" só pausa.
 
 **Comportamentos:**
 - Ver o número como desconectado, com o motivo, quando a desconexão vem do celular.
 - Receber um alerta da desconexão.
 - Tentar enviar mensagem por um número desconectado.
 - Conectar de novo o mesmo número.
-- Remover o número no CRM.
+- Remover o número no CRM, sabendo que ele fica livre para qualquer empresa.
+- Conectar de novo um número removido e reencontrar as conversas.
 
 **Critérios de aceite:**
 
@@ -316,8 +319,27 @@ dele, um número que está em uso no celular.
   (Configurações > Conta > Plataforma Comercial) e, ao confirmar, o número sai da lista do
   CRM sem apagar conversas nem contatos
 
+#### CA-B23-31 — Remover deixa o número livre, com aviso claro · prova: automática
+
+- **Dado** um número da Meta conectado no CRM
+- **Quando** o Admin pede para removê-lo
+- **Então** a confirmação avisa que ninguém da empresa envia nem recebe mais por ele, que as
+  conversas e os contatos ficam só para consulta, que o número fica livre para qualquer
+  empresa conectar e que "Desconectar" é o caminho para só pausar; e, depois de confirmar,
+  outra empresa consegue conectar o mesmo número
+
+#### CA-B23-32 — Conectar de novo o número removido traz as conversas de volta · prova: automática
+
+- **Dado** um número que a empresa removeu, com conversas no CRM
+- **Quando** o Admin da mesma empresa conecta esse número de novo
+- **Então** a conexão antiga volta a "Conectado", sem nascer outra, e as conversas continuam
+  ligadas a ela; se o número estiver conectado em outra empresa, a conexão é recusada
+
 ## Fora de escopo
 
+- Exigir template no Chat quando a janela de 24 horas está fechada (CA-B23-18 e CA-B23-23,
+  transferidos em 30/10/2026 pela PER-B23-06): o Chat não tem essa regra hoje e a B54 a
+  deixou para a série do template no Chat.
 - Conectar o mesmo número ao canal direto e à API Oficial ao mesmo tempo (descartado em
   10/09/2026, `pre-desenvolvimento/decisoes/B1-01-camada-de-provider.md`).
 - Grupos, chamadas, status, listas de transmissão, catálogo e etiquetas do aplicativo do
@@ -335,15 +357,25 @@ dele, um número que está em uso no celular.
 
 | ID | Suposição | Status | Resolução |
 |---|---|---|---|
-| SUP-B23-01 | A configuração atual do Cadastro Incorporado do app "Atacado Exp" já oferece, na janela da Meta, a opção de conectar um número em uso no celular, sem nova aprovação. | aberta | — |
+| SUP-B23-01 | A configuração atual do Cadastro Incorporado do app "Atacado Exp" já oferece, na janela da Meta, a opção de conectar um número em uso no celular, sem nova aprovação. | confirmada | Marcelle, 30/10/2026: ela mesma vai abrir a janela da Meta e conferir se a opção aparece, no teste com chip (CA-B23-03). Se não aparecer, o CRM segue como hoje para número novo e a série espera a aprovação do app pela Meta. |
 | SUP-B23-02 | A opção de criar cards para os contatos das conversas antigas vem **desmarcada** por padrão. | confirmada | Marcelle, 10/10/2026. |
 | SUP-B23-03 | A opção de criar cards é escolhida uma vez, antes de conectar, e não pode ser mudada depois. | confirmada | Marcelle, 10/10/2026. |
 | SUP-B23-04 | Conversa antiga importada fica sem atendente responsável e segue a mesma regra de visibilidade de uma conversa nova sem responsável. | confirmada | Marcelle, 10/10/2026. |
 | SUP-B23-05 | Mensagens antigas importadas não entram em nenhum número do dashboard, nem os de períodos passados. | confirmada | Marcelle, 10/10/2026. |
 | SUP-B23-06 | Quando o contato já existe no CRM, o nome do CRM vale mais que o nome da agenda do celular. | confirmada | Marcelle, 10/10/2026. |
-| SUP-B23-07 | O ritmo atual de envio de campanhas fica abaixo do teto de 20 mensagens por segundo que a Meta impõe a número em uso no celular. | aberta | — |
+| SUP-B23-07 | O ritmo atual de envio de campanhas fica abaixo do teto de 20 mensagens por segundo que a Meta impõe a número em uso no celular. | confirmada | Conferido no código em 30/10/2026: `src/lib/campanhas.ts` envia um destinatário por vez, esperando a resposta da Meta e conferindo o status da campanha no banco antes de cada envio, em lotes de 40 e no máximo 3 campanhas por rodada. Fica em poucas mensagens por segundo, bem abaixo de 20. |
 | SUP-B23-08 | Remover o número no CRM continua só tirando-o do CRM; desligar de verdade é feito pelo dono, no celular. | confirmada | Marcelle, 10/10/2026. |
 | SUP-B23-09 | Edição e exclusão de mensagem pelo contato valem só para números em uso no celular; os outros números continuam como hoje. | confirmada | Marcelle, 10/10/2026. |
+| SUP-B23-10 | Na CA-B23-22, "sequência" é lida como as automações em fluxo: as sequências automáticas saíram na B28-06 e o que elas faziam hoje é a automação (gatilho de resposta do time). | confirmada | Marcelle, 30/10/2026. |
+| SUP-B23-11 | A recusa de número que já está no canal direto vale para toda conexão pela API Oficial, em uso no celular ou não (decisão B1-01: um número não fica nos dois canais). | confirmada | Marcelle, 30/10/2026. |
+| SUP-B23-12 | O Embedded Signup v3 (o que o CRM usa hoje, `sessionInfoVersion: "3"`) ainda aceita o `featureType` da coexistência; a documentação diz que v2 e v3 são descontinuados a partir de 15/10/2026, e a migração para o v4 fica fora desta issue. | invalidada | Marcelle pediu a migração agora (30/10/2026). Pela documentação "Versions" da Meta, desde 15/10/2026 toda chamada v3 (ou sem versão) é servida como v4, com os mesmos eventos e o mesmo `featureType`; a v4 ignora `sessionInfoVersion`. A migração foi só tirar esse parâmetro, na B23-01. |
+| SUP-B23-13 | Mensagem antiga que a empresa mandou pelo celular entra no chat com a marca "Enviada pelo celular" (como as da B23-04) e com o status que a Meta informa (lida, entregue ou enviada). | confirmada | Marcelle, 30/10/2026. |
+| SUP-B23-14 | Conversa criada pela importação nasce "em espera", sem não lidas, e a prévia da lista (`last_message`) só avança: mensagem antiga nunca faz a conversa parecer mais recente do que ela é. | confirmada | Marcelle, 30/10/2026. |
+| SUP-B23-15 | Mídia antiga que a Meta entrega depois do marcador substitui o marcador; se chegar antes dele (sem como saber de qual contato é), é ignorada e o marcador fica. | confirmada | Marcelle, 30/10/2026. |
+| SUP-B23-16 | Os cards criados no fim da importação (opção marcada) valem como lead novo: entram no dashboard como entrada na etapa Lead e na central de alertas como qualquer card. | confirmada | Marcelle, 30/10/2026. |
+| SUP-B23-17 | O eco do celular pode trazer áudio, embora a referência da Meta liste só texto, foto, vídeo, documento, revoke e edit; o código aceita áudio se vier e o teste com chip (CA-B23-20) confere. | confirmada | Marcelle, 30/10/2026. |
+| SUP-B23-18 | Remover um número da Meta marca a conexão como removida (como o canal direto) em vez de apagar a linha, para as conversas continuarem ligadas a ela, e deixa o número livre: qualquer empresa pode conectá-lo. Quem quer guardar o número para a própria empresa usa "Desconectar". Se a mesma empresa conecta de novo o número que removeu, a conexão antiga volta, com as conversas. | confirmada | Marcelle, 12/11/2026: os dois botões são a escolha (Desconectar guarda, Remover libera), com aviso bem claro no diálogo de remover. A versão de 30/10, em que o número removido continuava reservado à empresa, foi descartada. |
+| SUP-B23-19 | Envio por conversa cujo número está desconectado é recusado, e não cai sozinho em outro número conectado da empresa (a queda para "o número do workspace" da B7-01 vale só quando a conversa não tem número). | confirmada | Marcelle, 12/11/2026: o CRM não troca de número escondido; a escolha de continuar por outro número é do atendente, no Chat, e vira issue própria (B23-07). |
 
 ## Perguntas em aberto
 
@@ -353,4 +385,5 @@ dele, um número que está em uso no celular.
 | PER-B23-02 | O que fazer com a agenda de contatos do celular? | respondida | Só vira contato quem tem conversa; usa o nome da agenda quando houver. Marcelle, 10/10/2026. |
 | PER-B23-03 | Mensagem enviada pelo celular vale como resposta do time? | respondida | Sim: vale para sequências, automações e métricas, marcada como "Enviada pelo celular". Marcelle, 10/10/2026. |
 | PER-B23-04 | Contato vindo só das conversas antigas ganha card no Funil de Entrada? | respondida | É escolha do cliente na conexão. Marcelle, 10/10/2026. |
-| PER-B23-05 | Qual número com WhatsApp Business no celular será usado nos três testes com chip real (conexão, envio pelo celular, desconexão)? | aberta | Marcelle ainda não tem o número (10/10/2026). Só trava os três testes com chip real. |
+| PER-B23-05 | Qual número com WhatsApp Business no celular será usado nos três testes com chip real (conexão, envio pelo celular, desconexão)? | respondida | Marcelle ainda não tem o número (30/10/2026): o código segue, e os três testes com chip ficam pendentes no auditor até ela ter o número. |
+| PER-B23-06 | O CA-B23-18 (e o CA-B23-23, da B23-04) pedem que o CRM "exija template para escrever, como em conversa com a janela de 24 horas fechada". O Chat de hoje não tem essa regra: qualquer texto é enviado e é a Meta quem recusa fora da janela; a B54 deixa "template avulso pelo Chat" para uma série futura. O que fazer com esses dois critérios: tirá-los da B23 e levá-los para a série do template no Chat, ou criar a regra da janela agora, dentro da B23? | respondida | Tirar da B23 e levar para a série do template no Chat. Marcelle, 30/10/2026. |

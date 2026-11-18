@@ -20,6 +20,10 @@ export const TEXTO_DO_MOTIVO: Record<string, string> = {
   session_closed_on_device: "A sessão foi encerrada no aparelho.",
   banned_by_whatsapp: "O WhatsApp bloqueou este número.",
   connection_lost: "A conexão com o aparelho caiu.",
+  // B23-06: número em uso no WhatsApp Business do celular, desligado do lado da Meta.
+  desconectado_pelo_celular: "Desconectado pelo celular.",
+  sem_uso_do_aplicativo: "Desconectado por falta de uso do aplicativo.",
+  mudou_de_aparelho: "O número mudou de aparelho ou de número.",
 }
 
 /** Motivo legível, ou o próprio valor quando o gateway mandar um novo. */

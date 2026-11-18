@@ -4,7 +4,7 @@
 // mão, nela. As automações também mandam imagem e documento (B11-07).
 
 import type { createServiceClient } from "@/integrations/supabase/service"
-import { resolverProviderDaConversa, resolverProviderDoContato, statusInicialDoEnvio } from "@/lib/whatsapp"
+import { motivoSemProvider, resolverProviderDaConversa, resolverProviderDoContato, statusInicialDoEnvio } from "@/lib/whatsapp"
 import { linkParaEnvio } from "@/lib/anexos-do-chat"
 import { transmitirMensagem } from "@/lib/whatsapp/realtime"
 
@@ -84,7 +84,11 @@ export async function enviarWhatsAppComMotivo(
     supabase.from("contacts").select("phone_number").eq("id", contactId).single(),
   ])
 
-  if (!provider) return { ok: false, motivo: "Nenhum número de WhatsApp conectado" }
+  // B23-06: número da conversa desconectado explica por quê
+  if (!provider) {
+    const motivo = conversaId ? await motivoSemProvider(supabase, conversaId, workspaceId) : "Nenhum número de WhatsApp conectado"
+    return { ok: false, motivo: motivo === "Conexão WhatsApp não encontrada" ? "Nenhum número de WhatsApp conectado" : motivo }
+  }
   if (!contato) return { ok: false, motivo: "Contato não encontrado" }
   if (conteudo.tipo !== "texto" && !provider.suporta("midia")) {
     return { ok: false, motivo: "O número desta conversa não envia imagem nem documento" }

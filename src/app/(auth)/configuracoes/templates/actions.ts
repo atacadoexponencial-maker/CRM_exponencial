@@ -58,6 +58,8 @@ async function obterConexao() {
     .select("waba_id, access_token")
     .eq("workspace_id", perfil.workspace_id)
     .eq("canal", "meta")
+    // B23-06: número removido fica no banco, fora de uso
+    .neq("status", "removed")
     .limit(1)
     .maybeSingle()
 

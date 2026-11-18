@@ -27,7 +27,7 @@ import {
   traduzirConteudo,
   type EventoMensagemRecebida,
 } from "./recebimento"
-import { guardarMidiaRecebida, type MidiaDoEvento } from "./midia-recebida"
+import { guardarMidiaRecebida, type MidiaDoEvento, type MidiaGuardada } from "./midia-recebida"
 import { transmitirMensagem } from "./realtime"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
@@ -173,6 +173,7 @@ export async function registrarEnviadaPeloCelular({
   enviadaEm,
   instanceToken = null,
   connectionId = null,
+  midiaGuardada = null,
 }: {
   supabase: ServiceClient
   workspaceId: string
@@ -183,6 +184,8 @@ export async function registrarEnviadaPeloCelular({
   instanceToken?: string | null
   /** Conexão dona da instância: a conversa é a deste número. */
   connectionId?: string | null
+  /** B23-04: mídia já baixada por quem chamou (a Meta entrega por outro caminho). */
+  midiaGuardada?: MidiaGuardada | null
 }): Promise<ResultadoDaEnviadaPeloCelular> {
   const comoEvento = comoRecebida(evento)
 
@@ -191,9 +194,10 @@ export async function registrarEnviadaPeloCelular({
   const contactId = await acharOuCriarContato(supabase, workspaceId, identificadorDoContato(comoEvento), null)
 
   const midia =
-    comoEvento.media && TIPOS_COM_ARQUIVO.includes(comoEvento.type)
+    midiaGuardada ??
+    (comoEvento.media && TIPOS_COM_ARQUIVO.includes(comoEvento.type)
       ? await guardarMidiaRecebida({ supabase, workspaceId, midia: comoEvento.media, instanceToken })
-      : null
+      : null)
   const traduzido = traduzirConteudo(comoEvento, midia)
 
   const { conversationId, conversaCriada, conversaReaberta } = await abrirReabrirOuReusarConversa({

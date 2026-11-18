@@ -28,7 +28,9 @@ export const MOTIVO_SEM_RESPOSTA = "O canal não respondeu. A mensagem não cheg
 export const MOTIVO_CAMPANHA_INTERROMPIDA = "Não enviada: o disparo foi interrompido."
 export const MOTIVO_SEM_NUMERO = "Nenhum número de envio disponível no momento do disparo."
 /** B54-06 (CA-B54-27): a campanha tinha um número escolhido, e ele não está mais conectado. */
-export const MOTIVO_NUMERO_DESCONECTADO = "O número da campanha não está mais conectado"
+// B23-06 (CA-B23-27): e diz o que fazer.
+export const MOTIVO_NUMERO_DESCONECTADO =
+  "O número da campanha não está mais conectado. Conecte-o de novo em Configurações > WhatsApp."
 /** B54-06: campanha por template num número do canal direto. */
 export const MOTIVO_TEMPLATE_SEM_API_OFICIAL = "Template só existe na API Oficial; este número é do canal direto."
 
@@ -59,6 +61,9 @@ function motivoDaMeta(mensagem: string): string | null {
   const texto = /"error_user_msg"\s*:\s*"([^"]+)"/.exec(mensagem)?.[1] ?? /"message"\s*:\s*"([^"]+)"/.exec(mensagem)?.[1]
   return texto ? `A Meta recusou: ${texto}` : null
 }
+/** B23-06: o número por onde a conversa acontece está desconectado. */
+export const MOTIVO_NUMERO_DA_CONVERSA_DESCONECTADO =
+  "O número desta conversa está desconectado. Conecte-o de novo em Configurações > WhatsApp."
 
 /**
  * Traduz a recusa do canal para o operador.

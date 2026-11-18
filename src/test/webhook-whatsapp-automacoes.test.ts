@@ -48,7 +48,7 @@ function bancoFalso({
     }
     const resposta = respostas[tabela] ?? { data: null }
     const obj: Record<string, unknown> = {}
-    for (const m of ["select", "eq", "in", "order"]) obj[m] = vi.fn(() => obj)
+    for (const m of ["select", "eq", "neq", "in", "order"]) obj[m] = vi.fn(() => obj)
     for (const m of ["insert", "update"]) {
       obj[m] = vi.fn((linha: unknown) => {
         gravacoes.push(`${m} ${tabela}`)

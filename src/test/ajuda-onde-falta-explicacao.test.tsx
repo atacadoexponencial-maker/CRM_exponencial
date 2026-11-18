@@ -38,7 +38,7 @@ vi.mock("@/app/(auth)/catalogo/importar/actions", () => ({ importarLote: vi.fn()
 vi.mock("@/lib/sessao", () => ({ sessaoAtual: vi.fn(async () => ({ user: { id: "u-1" }, perfil: { role: "admin", workspace_id: "w-1" } })) }))
 vi.mock("@/integrations/supabase/service", () => ({
   createServiceClient: () => ({
-    from: () => ({ select: () => ({ eq: () => ({ eq: () => ({ limit: () => ({ maybeSingle: async () => ({ data: { waba_id: "waba-1", access_token: "tk" } }) }) }) }) }) }),
+    from: () => ({ select: () => ({ eq: () => ({ eq: () => ({ neq: () => ({ limit: () => ({ maybeSingle: async () => ({ data: { waba_id: "waba-1", access_token: "tk" } }) }) }) }) }) }) }),
   }),
 }))
 
