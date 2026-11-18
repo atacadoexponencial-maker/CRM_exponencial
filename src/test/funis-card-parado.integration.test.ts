@@ -114,9 +114,12 @@ describe("B41-05 — Prazo de parado nos funis da empresa", { timeout: 60_000 },
     expect(doAdmin.map((a) => a.cardId)).toContain(cards["Parado em Confirmou"])
     expect(doAdmin.map((a) => a.cardId)).not.toContain(cards["Parado em Convidado"])
 
+    // B45 (27/10/2026): o atendente vê o que é dele e o que está sem dono, e não o que é
+    // do colega. "Parado em Confirmou" não tem atendente; "Card da Ana" é só dela.
+    const paradosDe = async () => (await listarAlertas())!.alertas.filter((a) => a.tipo === "card_parado").map((a) => a.cardId).sort()
     como("ana")
-    expect((await listarAlertas())!.alertas.filter((a) => a.tipo === "card_parado").map((a) => a.cardId)).toEqual([cards["Card da Ana"]])
+    expect(await paradosDe()).toEqual([cards["Card da Ana"], cards["Parado em Confirmou"]].sort())
     como("bruno")
-    expect((await listarAlertas())!.alertas.filter((a) => a.tipo === "card_parado")).toEqual([])
+    expect(await paradosDe()).toEqual([cards["Parado em Confirmou"]])
   })
 })

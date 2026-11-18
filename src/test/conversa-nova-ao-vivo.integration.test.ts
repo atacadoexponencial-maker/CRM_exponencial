@@ -113,8 +113,10 @@ describe("conversa nova chegando com a caixa de entrada aberta", () => {
   const adminEmail = `admin-conv-nova-${sufixo}@test.com`
   const atendenteEmail = `atendente-conv-nova-${sufixo}@test.com`
   const outroAdminEmail = `outro-admin-conv-nova-${sufixo}@test.com`
+  const colegaEmail = `colega-conv-nova-${sufixo}@test.com`
   let semDono: string
   let doAtendente: string
+  let doColega: string
 
   beforeAll(async () => {
     const workspaceId = await criarWorkspace("WS Conversa Nova")
@@ -126,6 +128,8 @@ describe("conversa nova chegando com a caixa de entrada aberta", () => {
 
     semDono = await criarConversaNova(workspaceId, null)
     doAtendente = await criarConversaNova(workspaceId, atendenteId)
+    const colegaId = await criarUsuario(workspaceId, colegaEmail, "atendente")
+    doColega = await criarConversaNova(workspaceId, colegaId)
   })
 
   it("admin recebe a conversa pronta para a lista, com prévia e não lidas", async () => {
@@ -145,10 +149,19 @@ describe("conversa nova chegando com a caixa de entrada aberta", () => {
     expect(await buscarConversa(semDono)).toBeNull()
   })
 
-  it("atendente não recebe conversa que não é dele", async () => {
+  // B45 (27/10/2026): o atendente vê as conversas dele e as sem responsável (a fila
+  // aberta), e não vê as dos colegas. Antes, este teste esperava que a sem responsável
+  // também ficasse de fora.
+  it("atendente não recebe a conversa de um colega", async () => {
     await autenticarComo(atendenteEmail)
 
-    expect(await buscarConversa(semDono)).toBeNull()
+    expect(await buscarConversa(doColega)).toBeNull()
+  })
+
+  it("atendente recebe a conversa sem responsável (fila aberta)", async () => {
+    await autenticarComo(atendenteEmail)
+
+    expect((await buscarConversa(semDono))?.id).toBe(semDono)
   })
 
   it("atendente recebe a conversa atribuída a ele", async () => {
