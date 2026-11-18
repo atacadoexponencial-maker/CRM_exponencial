@@ -8,7 +8,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { ContatoPerfil } from "@/app/(auth)/contatos/tipos-contato"
 
 const refresh = vi.fn()
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh, replace: vi.fn() }), usePathname: () => "/dashboard" }))
+const caminho = vi.fn(() => "/dashboard")
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh, replace: vi.fn() }), usePathname: () => caminho() }))
+vi.mock("next/font/google", () => {
+  const fonte = () => ({ className: "", style: { fontFamily: "sans-serif" } })
+  return { Inter: fonte, Poppins: fonte, Montserrat: fonte, Nunito: fonte, Space_Grotesk: fonte, Playfair_Display: fonte, Lora: fonte, DM_Serif_Display: fonte }
+})
 vi.mock("@/app/(auth)/dashboard/actions", () => ({ buscarPainelDashboard: vi.fn() }))
 vi.mock("@/app/(auth)/agenda/actions", () => ({ marcarLembreteFeito: vi.fn(async () => ({})) }))
 vi.mock("@/app/(auth)/contatos/actions", () => ({
@@ -23,6 +28,9 @@ import { PerfilContato } from "@/app/(auth)/contatos/[id]/components/perfil-cont
 import { atualizarObservacoesContato } from "@/app/(auth)/contatos/actions"
 import { calcularMetricas } from "@/lib/metricas-dashboard"
 import { formatarIntervalo } from "@/lib/datas"
+import { Vitrine, type ProdutoVitrine } from "@/app/loja/components/vitrine"
+import { TEMA_PADRAO } from "@/app/loja/components/tema"
+import { FormConfiguracoes, type ConfigCatalogo } from "@/app/(auth)/catalogo/components/form-configuracoes"
 
 const FUSO = "America/Sao_Paulo"
 // 15:00 de Brasília
@@ -128,5 +136,51 @@ describe("Achados do checkup de 18/11/2026 — ficha do contato", () => {
     // Quando os dados novos chegam, vale o que veio do servidor
     tela.rerender(<PerfilContato contato={{ ...CONTATO, observacoes: "Prefere contato à tarde (revisado)" }} papel="admin" />)
     expect(screen.getByText("Prefere contato à tarde (revisado)")).toBeTruthy()
+  })
+})
+
+describe("Achados do checkup de 18/11/2026 — loja", () => {
+  const produto = (id: string, nome: string) =>
+    ({ id, nome, descricao: "", codigo: "", preco: 10, precoDe: null, faixas: [], minimo: null, grade: null, fotoUrl: null, categoriaId: null, destaque: false, variacoes: null, esgotado: false }) as unknown as ProdutoVitrine
+
+  it("voltar pelo botão da loja recupera a busca: a chave usa o endereço do roteador, não o da janela", async () => {
+    // Como no clique em "Voltar": o roteador já está na loja, e a janela ainda mostra o produto
+    caminho.mockReturnValue("/loja/teste")
+    window.history.pushState({}, "", "/loja/teste/p/1")
+    sessionStorage.setItem("vitrine:/loja/teste", JSON.stringify({ categoria: null, busca: "vestido", rolagem: 0 }))
+    window.scrollTo = vi.fn() as unknown as typeof window.scrollTo
+
+    render(<Vitrine tema={TEMA_PADRAO} categorias={[]} produtos={[produto("1", "Vestido midi"), produto("2", "Calça reta")]} hrefProduto={(id) => `/loja/teste/p/${id}`} />)
+
+    await waitFor(() => expect((screen.getByLabelText("Buscar produto") as HTMLInputElement).value).toBe("vestido"))
+    expect(screen.getByText("Vestido midi")).toBeTruthy()
+    expect(screen.queryByText("Calça reta")).toBeNull()
+    // O estado guardado é de uso único
+    expect(sessionStorage.getItem("vitrine:/loja/teste")).toBeNull()
+  })
+})
+
+describe("Achados do checkup de 18/11/2026 — configurações do catálogo", () => {
+  const CATALOGO: ConfigCatalogo = {
+    endereco: "loja-ana", numeroPedidos: "21999990000", minimo: { tipo: "nenhum", valor: null } as ConfigCatalogo["minimo"],
+    descontos: [], mensagemFechamento: "", publicado: true,
+  }
+
+  it.each([
+    ["reservado", "admin", "Esse endereço é reservado pelo sistema. Escolha outro."],
+    ["em_uso", "loja-bia", "Esse endereço já é de outra loja. Escolha outro."],
+  ] as const)("salvar com endereço %s diz o motivo certo, e não grava", async (situacao, endereco, aviso) => {
+    const onSalvar = vi.fn()
+    render(<FormConfiguracoes inicial={CATALOGO} prefixoLink="https://x/loja/" onVerificarEndereco={vi.fn(async () => situacao)} onSalvar={onSalvar} />)
+
+    const campo = screen.getByLabelText("Endereço da loja")
+    fireEvent.change(campo, { target: { value: endereco } })
+    fireEvent.blur(campo)
+    // A dica do campo aparece quando a conferência volta
+    await screen.findByText(situacao === "reservado" ? "Esse endereço é reservado pelo sistema" : "Já está em uso por outra loja")
+
+    fireEvent.click(screen.getByRole("button", { name: "Salvar configurações" }))
+    expect(await screen.findByText(aviso)).toBeTruthy()
+    expect(onSalvar).not.toHaveBeenCalled()
   })
 })
