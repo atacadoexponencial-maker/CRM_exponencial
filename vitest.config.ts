@@ -46,7 +46,8 @@ export default defineConfig(async ({ mode }) => {
       // `.claude/worktrees/` guarda cópias do repo criadas por agentes em
       // paralelo. Sem excluí-las, a suíte roda N vezes e os testes de
       // integração estouram o limite de autenticação do Supabase.
-      exclude: ['**/node_modules/**', 'e2e/**', '.claude/worktrees/**'],
+      // `.qa-agentes/` é a pasta local do QA com agentes (06/10/2026), fora do git.
+      exclude: ['**/node_modules/**', 'e2e/**', '.claude/worktrees/**', '.qa-agentes/**'],
     },
     resolve: {
       alias: {

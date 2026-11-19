@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Pasta local do QA com agentes (06/10/2026), fora do git: sem isto, o lint
+    // da máquina de quem a tem falha por arquivo que o CI nem vê.
+    ".qa-agentes/**",
   ]),
 ]);
 
