@@ -20,10 +20,14 @@ const producaoAdmin = createClient(envProducao.NEXT_PUBLIC_SUPABASE_URL, envProd
 const PASTA_MIGRATIONS = resolve(__dirname, "../../supabase/migrations")
 const VERSAO_DE_PROVA = "99991231000000"
 
-function executar(sql: string, onde: "teste" | "producao"): string {
+// A CLI (3.x) pede confirmação para rodar SQL em banco hospedado e, sem ninguém para
+// responder, recusa. Leitura vai com --read-only, que dispensa a confirmação e não
+// deixa gravar; o que grava (só a limpeza, e só no banco de teste) vai com --yes.
+function executar(sql: string, onde: "teste" | "producao", grava = false): string {
+  if (grava && onde !== "teste") throw new Error("este teste só grava no banco de teste")
   const alvo =
     onde === "teste" ? ["--db-url", enderecoDoBanco(envTeste)] : ["--linked", "--project-ref", REF_PRODUCAO]
-  const r = rodarSupabase(["db", "query", ...alvo, "--output-format", "json", sql])
+  const r = rodarSupabase(["db", "query", ...alvo, grava ? "--yes" : "--read-only", "--output-format", "json", sql])
   if (r.status !== 0) throw new Error(`consulta no banco de ${onde} falhou: ${r.stdout}`)
   return r.stdout
 }
@@ -101,8 +105,8 @@ describe("B46-01 — banco de teste no ar, igual à produção", () => {
     const pasta = mkdtempSync(join(tmpdir(), "b46-migrations-"))
 
     afterAll(() => {
-      executar("drop table if exists public._b46_prova", "teste")
-      executar(`delete from supabase_migrations.schema_migrations where version = '${VERSAO_DE_PROVA}'`, "teste")
+      executar("drop table if exists public._b46_prova", "teste", true)
+      executar(`delete from supabase_migrations.schema_migrations where version = '${VERSAO_DE_PROVA}'`, "teste", true)
       rmSync(pasta, { recursive: true, force: true })
     }, 60_000)
 
