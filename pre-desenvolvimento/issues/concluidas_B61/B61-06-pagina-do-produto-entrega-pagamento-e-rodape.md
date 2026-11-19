@@ -142,3 +142,12 @@ Reuso: `exigirGestor` e o padrão de `salvarConfiguracoes`; `CabecalhoLoja`, `co
 - [x] Vitrine: rodapé e barra do WhatsApp, que some com o carrinho aberto
 - [x] Testes da tabela Prova escritos e passando
 - [x] `npx tsc --noEmit` e lint dos arquivos da issue limpos
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B61-46 | Marcelle | 19/11/2026 |
+| CA-B61-73 | Marcelle | 19/11/2026 |
+| CA-B61-74 | Marcelle | 19/11/2026 |
+| CA-B61-75 | Marcelle | 19/11/2026 |
