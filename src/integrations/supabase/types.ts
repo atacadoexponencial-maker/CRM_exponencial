@@ -613,6 +613,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          photo_path: string | null
           position: number
           workspace_id: string
         }
@@ -620,6 +621,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          photo_path?: string | null
           position?: number
           workspace_id: string
         }
@@ -627,6 +629,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          photo_path?: string | null
           position?: number
           workspace_id?: string
         }
@@ -813,6 +816,7 @@ export type Database = {
           price: number
           price_tiers: Json
           sku: string
+          subcategory_id: string | null
           updated_at: string
           variant_types: Json
           visible: boolean
@@ -834,6 +838,7 @@ export type Database = {
           price: number
           price_tiers?: Json
           sku?: string
+          subcategory_id?: string | null
           updated_at?: string
           variant_types?: Json
           visible?: boolean
@@ -855,6 +860,7 @@ export type Database = {
           price?: number
           price_tiers?: Json
           sku?: string
+          subcategory_id?: string | null
           updated_at?: string
           variant_types?: Json
           visible?: boolean
@@ -866,6 +872,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "catalog_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_products_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_subcategories"
             referencedColumns: ["id"]
           },
           {
@@ -882,13 +895,17 @@ export type Database = {
           background_color: string
           banner_path: string | null
           closing_message: string
+          delivery_methods: string[]
           font_id: string
+          instagram: string | null
           layout: string
           logo_path: string | null
+          low_stock_limit: number | null
           min_type: string
           min_value: number | null
           order_discounts: Json
           orders_whatsapp: string | null
+          payment_methods: string[]
           primary_color: string
           published: boolean
           slug: string | null
@@ -902,13 +919,17 @@ export type Database = {
           background_color?: string
           banner_path?: string | null
           closing_message?: string
+          delivery_methods?: string[]
           font_id?: string
+          instagram?: string | null
           layout?: string
           logo_path?: string | null
+          low_stock_limit?: number | null
           min_type?: string
           min_value?: number | null
           order_discounts?: Json
           orders_whatsapp?: string | null
+          payment_methods?: string[]
           primary_color?: string
           published?: boolean
           slug?: string | null
@@ -922,13 +943,17 @@ export type Database = {
           background_color?: string
           banner_path?: string | null
           closing_message?: string
+          delivery_methods?: string[]
           font_id?: string
+          instagram?: string | null
           layout?: string
           logo_path?: string | null
+          low_stock_limit?: number | null
           min_type?: string
           min_value?: number | null
           order_discounts?: Json
           orders_whatsapp?: string | null
+          payment_methods?: string[]
           primary_color?: string
           published?: boolean
           slug?: string | null
@@ -984,6 +1009,48 @@ export type Database = {
           },
           {
             foreignKeyName: "catalog_stock_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_subcategories: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          name: string
+          position: number
+          workspace_id: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          workspace_id: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_subcategories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_subcategories_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

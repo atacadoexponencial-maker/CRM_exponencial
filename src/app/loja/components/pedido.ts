@@ -70,6 +70,12 @@ export function textoDoMinimo(minimo: MinimoPedido): string | null {
   return minimo.tipo === "pecas" ? `Pedido mínimo: ${minimo.valor} peças` : `Pedido mínimo: ${reais(minimo.valor)}`
 }
 
+/** B61-02: o mínimo da loja como aparece na faixa do atacado, ex.: "Mínimo 10 peças". */
+export function minimoDaFaixa(minimo: MinimoPedido): string | null {
+  if (minimo.tipo === "nenhum" || !minimo.valor) return null
+  return minimo.tipo === "pecas" ? `Mínimo ${minimo.valor} peças` : `Mínimo ${reais(minimo.valor)}`
+}
+
 /**
  * WhatsApp só com dígitos e com o 55 do Brasil. `null` quando não parece um celular
  * ou fixo brasileiro com DDD (10 ou 11 dígitos depois do 55).

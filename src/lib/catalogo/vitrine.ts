@@ -1,7 +1,7 @@
 // Apresentação da vitrine pública, sem tela nem banco: resumo das variações no cartão,
 // ordem dos produtos e carga em blocos. Funções puras, iguais no servidor e no navegador.
 
-import type { TipoVariacao } from "./combinacoes"
+import { chaveCombinacao, combinacoes, type EstoquePorCombinacao, type TipoVariacao } from "./combinacoes"
 
 /** Até quantos caracteres as opções aparecem listadas ("P, M, G, GG"); acima, viram contagem. */
 const LISTA_CURTA = 16
@@ -20,6 +20,40 @@ export function resumoDasVariacoes(tipos: TipoVariacao[]): string | null {
       return `${t.opcoes.length} opções de ${t.nome.trim().toLowerCase() || "variação"}`
     })
   return partes.length > 0 ? partes.join(" · ") : null
+}
+
+/** Uma opção do primeiro tipo de variação no cartão (B61-04). */
+export interface OpcaoDoCartao {
+  nome: string
+  /** Sem estoque em nenhuma combinação que a contém. */
+  esgotada: boolean
+}
+
+/**
+ * B61-04: o que o cartão em retrato mostra das variações. `opcoes` são as do primeiro tipo
+ * (o que o lojista cadastrou primeiro), em quadradinhos; `outras` resume o segundo tipo,
+ * ex.: "2 opções de cor". Produto sem variação devolve lista vazia e `null`.
+ */
+export function opcoesDoCartao(tipos: TipoVariacao[], estoque: EstoquePorCombinacao): { opcoes: OpcaoDoCartao[]; outras: string | null } {
+  const [primeiro, ...demais] = tipos.filter((t) => t.opcoes.length > 0)
+  if (!primeiro) return { opcoes: [], outras: null }
+  const todas = combinacoes(tipos)
+  const opcoes = primeiro.opcoes.map((nome) => ({
+    nome,
+    esgotada: todas.filter((c) => c[0] === nome).every((c) => (estoque[chaveCombinacao(c)] ?? 0) === 0),
+  }))
+  const outras = demais
+    .map((t) => `${t.opcoes.length} ${t.opcoes.length === 1 ? "opção" : "opções"} de ${t.nome.trim().toLowerCase() || "variação"}`)
+    .join(" · ")
+  return { opcoes, outras: outras || null }
+}
+
+/**
+ * B61-04: o selo "Últimas unidades!" vale para o produto que ainda tem estoque e cujo
+ * total, somando todas as combinações, está no limite do lojista ou abaixo. Sem limite, nunca.
+ */
+export function mostraUltimasUnidades(estoqueDoProduto: number, limite: number | null): boolean {
+  return limite !== null && estoqueDoProduto > 0 && estoqueDoProduto <= limite
 }
 
 export const ORDENS_VITRINE = [

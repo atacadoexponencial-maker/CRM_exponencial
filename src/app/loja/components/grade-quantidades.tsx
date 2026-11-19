@@ -60,7 +60,7 @@ export function GradeQuantidades({ cores, blocos, quantidades, estoque, disponiv
                 const qtd = quantidades[linha.combinacao] ?? 0
                 const travada = livre === 0
                 const nome = bloco.nome ? `${bloco.nome}, ${linha.rotulo}` : linha.rotulo
-                const aviso = total === 0 ? "esgotado" : livre === 0 ? "todas já no carrinho" : livre <= POUCAS_PECAS ? `${livre} ${livre === 1 ? "disponível" : "disponíveis"}` : null
+                const aviso = total === 0 ? "Esgotado" : livre === 0 ? "todas já no carrinho" : livre <= POUCAS_PECAS ? `${livre} ${livre === 1 ? "disponível" : "disponíveis"}` : null
                 return (
                   <li key={linha.combinacao} className="flex items-center gap-2 pl-3 pr-1 py-1" style={{ borderColor: cores.borda }}>
                     <div className="min-w-0 flex-1">

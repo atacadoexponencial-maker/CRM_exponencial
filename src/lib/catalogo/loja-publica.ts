@@ -5,9 +5,10 @@
 
 import { cache } from "react"
 import { createServiceClient } from "@/integrations/supabase/service"
-import { chaveCombinacao, combinacoes, type TipoVariacao } from "./combinacoes"
+import { chaveCombinacao, combinacoes, estoqueTotal, type TipoVariacao } from "./combinacoes"
 import { BUCKET_CATALOGO } from "./regras"
-import { resumoDasVariacoes } from "./vitrine"
+import { mostraUltimasUnidades, opcoesDoCartao, resumoDasVariacoes } from "./vitrine"
+import { FORMAS_ENTREGA, FORMAS_PAGAMENTO, nomesDasFormas } from "./entrega-e-pagamento"
 import { descontosDoBanco, faixasDoBanco, gradeDoBanco, type DescontoPedido } from "./regras-de-venda"
 import { TEMA_PADRAO, type LayoutVitrine, type TemaLoja } from "@/app/loja/components/tema"
 import type { IdFonte } from "@/app/loja/components/fontes"
@@ -25,6 +26,9 @@ export interface LojaPublica {
   mensagemFechamento: string
   /** WhatsApp da loja, só dígitos com 55 (para o link do pedido). */
   whatsapp: string
+  /** B61-06: formas de entrega e de pagamento que o lojista marcou, pelos nomes, na ordem da lista pronta. */
+  formasEntrega: string[]
+  formasPagamento: string[]
 }
 
 export function urlPublicaImagem(caminho: string): string {
@@ -34,6 +38,7 @@ export function urlPublicaImagem(caminho: string): string {
 interface ColunasTema {
   store_name: string | null
   welcome_text: string
+  instagram: string | null
   logo_path: string | null
   banner_path: string | null
   primary_color: string
@@ -48,6 +53,7 @@ export function temaDasConfiguracoes(cfg: ColunasTema | null, nomeEmpresa: strin
   return {
     nomeLoja: cfg.store_name ?? nomeEmpresa,
     boasVindas: cfg.welcome_text,
+    instagram: cfg.instagram ?? "",
     logoUrl: cfg.logo_path ? urlPublicaImagem(cfg.logo_path) : null,
     bannerUrl: cfg.banner_path ? urlPublicaImagem(cfg.banner_path) : null,
     corPrincipal: cfg.primary_color,
@@ -66,7 +72,7 @@ export const carregarLojaPublica = cache(async function carregarLojaPublica(ende
   const service = createServiceClient()
   const { data: cfg } = await service
     .from("catalog_settings")
-    .select("workspace_id, slug, min_type, min_value, order_discounts, closing_message, published, store_name, welcome_text, logo_path, banner_path, primary_color, background_color, font_id, layout, orders_whatsapp, workspaces(name)")
+    .select("workspace_id, slug, min_type, min_value, order_discounts, closing_message, published, store_name, welcome_text, instagram, logo_path, banner_path, primary_color, background_color, font_id, layout, orders_whatsapp, delivery_methods, payment_methods, workspaces(name)")
     .eq("slug", endereco.toLowerCase())
     .eq("published", true)
     .maybeSingle()
@@ -85,27 +91,34 @@ export const carregarLojaPublica = cache(async function carregarLojaPublica(ende
     descontos: descontosDoBanco(cfg.order_discounts),
     mensagemFechamento: cfg.closing_message,
     whatsapp: cfg.orders_whatsapp,
+    formasEntrega: nomesDasFormas(cfg.delivery_methods, FORMAS_ENTREGA),
+    formasPagamento: nomesDasFormas(cfg.payment_methods, FORMAS_PAGAMENTO),
   }
 })
 
 /** Categorias e produtos visíveis da loja, na ordem do lojista. */
 export async function carregarVitrine(workspaceId: string): Promise<{ categorias: CategoriaVitrine[]; produtos: ProdutoVitrine[] }> {
   const service = createServiceClient()
-  const [{ data: cats }, { data: prods }] = await Promise.all([
-    service.from("catalog_categories").select("id, name").eq("workspace_id", workspaceId).order("position").order("created_at"),
+  const [{ data: cats }, { data: subs }, { data: prods }, { data: cfg }] = await Promise.all([
+    service.from("catalog_categories").select("id, name, photo_path").eq("workspace_id", workspaceId).order("position").order("created_at"),
+    service.from("catalog_subcategories").select("id, name, category_id").eq("workspace_id", workspaceId).order("position").order("created_at"),
     service
       .from("catalog_products")
-      .select("id, name, description, price, compare_at_price, sku, category_id, featured, photos, variant_types, price_tiers, min_quantity, pack_quantities, pack_price, catalog_stock(combination, quantity)")
+      .select("id, name, description, price, compare_at_price, sku, category_id, subcategory_id, featured, photos, variant_types, price_tiers, min_quantity, pack_quantities, pack_price, catalog_stock(combination, quantity)")
       .eq("workspace_id", workspaceId)
       .eq("visible", true)
       .order("position")
       .order("created_at"),
+    service.from("catalog_settings").select("low_stock_limit").eq("workspace_id", workspaceId).maybeSingle(),
   ])
+  // B61-04: com quantas peças ou menos o cartão mostra "Últimas unidades!"; `null` = sem selo.
+  const limiteDoSelo = cfg?.low_stock_limit ?? null
 
   const produtos = (prods ?? []).map((p) => {
     const estoque = Object.fromEntries(((p.catalog_stock as { combination: string; quantity: number }[]) ?? []).map((e) => [e.combination, e.quantity]))
     const fotos = (p.photos as string[]) ?? []
     const tipos = (p.variant_types as TipoVariacao[]) ?? []
+    const doCartao = opcoesDoCartao(tipos, estoque)
     return {
       id: p.id,
       nome: p.name,
@@ -118,14 +131,30 @@ export async function carregarVitrine(workspaceId: string): Promise<{ categorias
       grade: gradeDoBanco(p.pack_quantities, p.pack_price, tipos),
       fotoUrl: fotos[0] ? urlPublicaImagem(fotos[0]) : null,
       categoriaId: p.category_id,
+      subcategoriaId: p.subcategory_id,
       destaque: p.featured,
       variacoes: resumoDasVariacoes(tipos),
+      opcoes: doCartao.opcoes,
+      outrasOpcoes: doCartao.outras,
       esgotado: combinacoes(tipos).every((c) => (estoque[chaveCombinacao(c)] ?? 0) === 0),
+      ultimasUnidades: mostraUltimasUnidades(estoqueTotal(tipos, estoque), limiteDoSelo),
     }
   })
   // Só categorias com algum produto visível aparecem na loja.
   const comProduto = new Set(produtos.map((p) => p.categoriaId))
-  return { categorias: (cats ?? []).filter((c) => comProduto.has(c.id)).map((c) => ({ id: c.id, nome: c.name })), produtos }
+  // B61-02: o círculo da categoria usa a foto enviada; sem ela, a do primeiro produto visível com foto.
+  const fotoDaCategoria = (c: { id: string; photo_path: string | null }) =>
+    c.photo_path ? urlPublicaImagem(c.photo_path) : (produtos.find((p) => p.categoriaId === c.id && p.fotoUrl)?.fotoUrl ?? null)
+  // B61-03: só subcategorias com algum produto visível, na ordem do lojista.
+  const subComProduto = new Set(produtos.map((p) => p.subcategoriaId))
+  const subcategoriasDa = (categoriaId: string) =>
+    (subs ?? []).filter((s) => s.category_id === categoriaId && subComProduto.has(s.id)).map((s) => ({ id: s.id, nome: s.name }))
+  return {
+    categorias: (cats ?? [])
+      .filter((c) => comProduto.has(c.id))
+      .map((c) => ({ id: c.id, nome: c.name, fotoUrl: fotoDaCategoria(c), subcategorias: subcategoriasDa(c.id) })),
+    produtos,
+  }
 }
 
 /** Um produto visível da loja, com variações e estoque (uma consulta por requisição, como a loja). */

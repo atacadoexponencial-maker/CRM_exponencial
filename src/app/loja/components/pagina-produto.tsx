@@ -4,7 +4,7 @@
 // Produto com variação compra por grade (B17): todas as combinações de uma vez.
 
 import { useState } from "react"
-import { ArrowLeft, Check, ImageOff, Minus, Plus, Share2, X } from "lucide-react"
+import { ArrowLeft, Check, ImageOff, Minus, Plus, Share2, ShieldCheck, X } from "lucide-react"
 import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { chaveCombinacao, combinacoes } from "@/lib/catalogo/combinacoes"
 import { blocosDaGrade, limitarQuantidade, totaisDaGrade } from "@/lib/catalogo/grade"
@@ -44,6 +44,9 @@ interface PaginaProdutoProps {
   noCarrinhoDoProduto?: number
   /** Texto do pedido mínimo da loja (ex.: "Pedido mínimo: 6 peças"); `null` quando não há. */
   avisoMinimo?: string | null
+  /** B61-06: formas de entrega e de pagamento que a loja marcou, pelos nomes; vazio não mostra o bloco. */
+  formasEntrega?: string[]
+  formasPagamento?: string[]
   /** Sem esta função, a página só mostra o produto (sem quantidade nem botão). */
   onAdicionar?: (itens: { combinacao: string; quantidade: number }[]) => void
   onVoltar: () => void
@@ -52,7 +55,7 @@ interface PaginaProdutoProps {
   onRepetirPedido?: () => void
 }
 
-export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarrinho = () => 0, noCarrinhoDoProduto = 0, avisoMinimo = null, onAdicionar, onVoltar, onAbrirCarrinho, onRepetirPedido }: PaginaProdutoProps) {
+export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarrinho = () => 0, noCarrinhoDoProduto = 0, avisoMinimo = null, formasEntrega = [], formasPagamento = [], onAdicionar, onVoltar, onAbrirCarrinho, onRepetirPedido }: PaginaProdutoProps) {
   const cores = coresDaVitrine(tema)
   const tipos = produto.tipos.filter((t) => t.opcoes.length > 0)
   const semVariacao = tipos.length === 0
@@ -141,12 +144,14 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
   }
 
   const fotos = produto.fotos
+  const codigo = produto.codigo.trim()
+  const maisInformacoes = Boolean(produto.descricao) || formasEntrega.length > 0 || formasPagamento.length > 0
 
   return (
     <div className="@container min-h-full [&_:is(h1,h2,h3)]:[font-family:inherit]" style={{ background: cores.fundo, color: cores.texto, fontFamily: familiaDaFonte(tema.fonteId) }}>
       <CabecalhoLoja tema={tema} quantidadeNoCarrinho={quantidadeNoCarrinho} onAbrirCarrinho={onAbrirCarrinho} onAbrirLoja={onVoltar} onRepetirPedido={onRepetirPedido} />
 
-      <div className={`max-w-5xl mx-auto px-4 py-4 space-y-4 ${onAdicionar && !esgotado ? "pb-24 @3xl:pb-4" : ""}`}>
+      <div className={`max-w-5xl mx-auto px-4 py-4 space-y-4 ${onAdicionar && !esgotado ? "pb-32 @3xl:pb-4" : ""}`}>
         <div className="flex items-center justify-between gap-3">
           <button type="button" onClick={onVoltar} className="inline-flex items-center gap-1.5 min-h-11 text-sm" style={{ color: cores.suave }}>
             <ArrowLeft className="size-4" />
@@ -202,10 +207,10 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
 
           <div className="space-y-5">
             <div className="space-y-1.5">
-              <h1 className="text-2xl font-semibold leading-tight">{produto.nome}</h1>
-              {produto.codigo.trim() && <p className="text-xs" style={{ color: cores.suave }}>Cód. {produto.codigo.trim()}</p>}
+              {codigo && <p data-ref-produto className="text-xs" style={{ color: cores.suave }}>REF: {codigo}</p>}
+              <h1 className="font-medium leading-snug" style={{ fontSize: "1.125rem" }}>{produto.nome}</h1>
               <p className="flex items-baseline gap-2">
-                <span className="text-xl font-semibold" style={{ color: cores.principal }}>{formatarPreco(produto.preco)}</span>
+                <span data-preco-produto className="font-bold leading-tight" style={{ color: cores.principal, fontSize: "1.875rem" }}>{formatarPreco(produto.preco)}</span>
                 {produto.precoDe && <span className="text-sm line-through" style={{ color: cores.suave }}>{formatarPreco(produto.precoDe)}</span>}
               </p>
               {grade && (
@@ -270,6 +275,7 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
                     className="w-full h-12 rounded-full font-semibold disabled:opacity-40"
                     style={{ background: cores.principal, color: cores.sobrePrincipal }}
                     aria-live="polite"
+                    data-botao-adicionar
                   >
                     {pecas === 0
                       ? grade ? "Escolha as grades" : "Escolha as quantidades"
@@ -277,11 +283,32 @@ export function PaginaProduto({ tema, produto, quantidadeNoCarrinho = 0, noCarri
                         ? `Adicionar ${totalPacotes} ${totalPacotes === 1 ? "grade" : "grades"} (${pecas} peças) · ${formatarPreco(valor)}`
                         : `Adicionar ${pecas} ${pecas === 1 ? "peça" : "peças"} · ${formatarPreco(valor)}`}
                   </button>
+                  <p className="mt-1.5 flex items-center justify-center gap-1 text-[11px]" style={{ color: cores.suave }}>
+                    <ShieldCheck className="size-3.5" />
+                    Compra segura · pedido finalizado no WhatsApp da loja
+                  </p>
                 </div>
               </div>
             )}
 
-            {produto.descricao && <p className="text-sm whitespace-pre-line leading-relaxed" style={{ color: cores.suave }}>{produto.descricao}</p>}
+            {maisInformacoes && (
+              <section data-mais-informacoes className="space-y-4 border-t pt-4" style={{ borderColor: cores.borda }}>
+                <h2 className="text-base font-semibold">Mais informações</h2>
+                {produto.descricao && <p className="text-sm whitespace-pre-line leading-relaxed" style={{ color: cores.suave }}>{produto.descricao}</p>}
+                {([["Formas de entrega", formasEntrega], ["Formas de pagamento", formasPagamento]] as const).map(([titulo, formas]) =>
+                  formas.length === 0 ? null : (
+                    <div key={titulo} className="space-y-1.5">
+                      <h3 className="text-sm font-semibold">{titulo}</h3>
+                      <ul aria-label={titulo} className="flex flex-wrap gap-1.5">
+                        {formas.map((f) => (
+                          <li key={f} className="rounded-full border px-2.5 py-1 text-xs" style={{ borderColor: cores.borda }}>{f}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )
+                )}
+              </section>
+            )}
           </div>
         </div>
       </div>

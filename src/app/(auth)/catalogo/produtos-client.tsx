@@ -8,12 +8,20 @@ import { ALVOS_TOQUE_CELULAR } from "./components/alvos-toque"
 import {
   alternarVisivel,
   criarCategoria,
+  criarSubcategoria,
   excluirCategoria,
+  excluirSubcategoria,
+  prepararEnvioFotoCategoria,
   renomearCategoria,
+  renomearSubcategoria,
   reordenarCategoria,
   reordenarProduto,
+  reordenarSubcategoria,
+  salvarFotoCategoria,
   type Catalogo,
 } from "./actions"
+import { createClient } from "@/integrations/supabase/client"
+import { BUCKET_CATALOGO } from "@/lib/catalogo/regras"
 import { CLASSE_DA_PAGINA } from "@/lib/pagina"
 import { cn } from "@/lib/utils"
 
@@ -37,6 +45,23 @@ export function ProdutosClient({ inicial, hrefLoja }: { inicial: Catalogo; hrefL
 
   const contagem = Object.fromEntries(catalogo.categorias.map((c) => [c.id, catalogo.produtos.filter((p) => p.categoriaId === c.id).length]))
 
+  const contagemSubcategorias = Object.fromEntries(
+    catalogo.categorias.flatMap((c) => c.subcategorias).map((sub) => [sub.id, catalogo.produtos.filter((p) => p.subcategoriaId === sub.id).length])
+  )
+
+  /** Como `executar`, e conta a quem chamou se o servidor aceitou. */
+  function executarComResposta(acao: () => Promise<{ erro?: string; catalogo?: Catalogo }>): Promise<boolean> {
+    return new Promise((resolver) => {
+      setErro(null)
+      iniciar(async () => {
+        const r = await acao()
+        if (r.erro) setErro(r.erro)
+        else if (r.catalogo) setCatalogo(r.catalogo)
+        resolver(!r.erro)
+      })
+    })
+  }
+
   /** Chama a action e troca a lista pela que o servidor devolveu. */
   function executar(acao: () => Promise<{ erro?: string; catalogo?: Catalogo }>) {
     setErro(null)
@@ -45,6 +70,15 @@ export function ProdutosClient({ inicial, hrefLoja }: { inicial: Catalogo; hrefL
       if (r.erro) setErro(r.erro)
       else if (r.catalogo) setCatalogo(r.catalogo)
     })
+  }
+
+  /** B61-02: a foto vai direto do navegador ao armazenamento, com a URL assinada do servidor. */
+  async function enviarFotoCategoria(id: string, arquivo: File): Promise<{ erro?: string; catalogo?: Catalogo }> {
+    const preparo = await prepararEnvioFotoCategoria(id, { tipo: arquivo.type, tamanho: arquivo.size })
+    if (preparo.erro !== undefined) return { erro: preparo.erro }
+    const { error } = await createClient().storage.from(BUCKET_CATALOGO).uploadToSignedUrl(preparo.caminho, preparo.token, arquivo, { contentType: arquivo.type })
+    if (error) return { erro: "O envio falhou. Tente de novo." }
+    return salvarFotoCategoria(id, preparo.caminho)
   }
 
   return (
@@ -74,6 +108,15 @@ export function ProdutosClient({ inicial, hrefLoja }: { inicial: Catalogo; hrefL
           onRenomear={(id, nome) => executar(() => renomearCategoria(id, nome))}
           onExcluir={(id) => executar(() => excluirCategoria(id))}
           onReordenar={(a, b) => executar(() => reordenarCategoria(a, b))}
+          onEnviarFoto={(id, arquivo) => executar(() => enviarFotoCategoria(id, arquivo))}
+          onRemoverFoto={(id) => executar(() => salvarFotoCategoria(id, null))}
+          contagemSubcategorias={contagemSubcategorias}
+          subcategorias={{
+            onCriar: (categoriaId, nome) => executarComResposta(() => criarSubcategoria(categoriaId, nome)),
+            onRenomear: (id, nome) => executarComResposta(() => renomearSubcategoria(id, nome)),
+            onExcluir: (id) => executar(() => excluirSubcategoria(id)),
+            onReordenar: (a, b) => executar(() => reordenarSubcategoria(a, b)),
+          }}
         />
       </div>
     </div>

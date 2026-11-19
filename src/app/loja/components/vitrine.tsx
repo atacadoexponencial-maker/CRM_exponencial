@@ -4,13 +4,14 @@
 // É a mesma na prévia da tela de Aparência e na loja pública. Reage à largura do próprio
 // quadro (container queries), não à da janela.
 
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ImageOff, RotateCcw, Search, ShoppingBag } from "lucide-react"
+import { ImageOff, MessageCircle, RotateCcw, Search, ShoppingBag } from "lucide-react"
 import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { coresDaVitrine, type TemaLoja } from "./tema"
 import { familiaDaFonte } from "./fontes"
+import { LogoRedonda, TopoLoja } from "./topo-loja"
 import { contemTermo } from "@/lib/normalizar-busca"
 import { LIMITE_POR_SECAO, ORDENS_VITRINE, ordemVitrineValida, ordenarProdutos, type OrdemVitrine } from "@/lib/catalogo/vitrine"
 import { resumoDaGrade, resumoDasRegras, type FaixaPreco, type GradeFechada } from "@/lib/catalogo/regras-de-venda"
@@ -18,6 +19,10 @@ import { resumoDaGrade, resumoDasRegras, type FaixaPreco, type GradeFechada } fr
 export interface CategoriaVitrine {
   id: string
   nome: string
+  /** B61-02: foto do círculo (a enviada pelo lojista ou a do primeiro produto); `null` mostra a inicial. */
+  fotoUrl: string | null
+  /** B61-03: subcategorias com produto visível, na ordem do lojista. */
+  subcategorias?: { id: string; nome: string }[]
 }
 
 export interface ProdutoVitrine {
@@ -35,10 +40,18 @@ export interface ProdutoVitrine {
   grade: GradeFechada | null
   fotoUrl: string | null
   categoriaId: string | null
+  /** B61-03: ausente ou `null` = direto na categoria. */
+  subcategoriaId?: string | null
   destaque: boolean
   /** Resumo das variações para o cartão (ex.: "P, M, G · 2 opções de cor"); `null` sem variação. */
   variacoes: string | null
+  /** B61-04: opções do primeiro tipo de variação, para os quadradinhos do cartão em retrato. */
+  opcoes?: { nome: string; esgotada: boolean }[]
+  /** B61-04: resumo do segundo tipo de variação, ex.: "2 opções de cor". */
+  outrasOpcoes?: string | null
   esgotado: boolean
+  /** B61-04: o servidor decide pelo limite do lojista; o cartão só mostra o selo. */
+  ultimasUnidades?: boolean
 }
 
 interface VitrineProps {
@@ -48,10 +61,17 @@ interface VitrineProps {
   /** Só os visíveis, na ordem do lojista. */
   produtos: ProdutoVitrine[]
   quantidadeNoCarrinho?: number
-  /** Ex.: "Pedido mínimo: 12 peças". */
+  /** B61-02: o mínimo da loja para a faixa do atacado, ex.: "Mínimo 12 peças". */
   avisoMinimo?: string | null
   /** B31-02, ex.: "10% a menos a partir de 50 peças". */
   avisoDesconto?: string | null
+  /** B61-06: formas de entrega e de pagamento que a loja marcou, pelos nomes; o rodapé mostra só o que vier. */
+  formasEntrega?: string[]
+  formasPagamento?: string[]
+  /** B61-06: com o carrinho aberto, a barra do WhatsApp sai de cena. */
+  carrinhoAberto?: boolean
+  /** B61-01: caminho da vitrine, para o "Compartilhar catálogo"; a prévia da Aparência não tem. */
+  hrefLoja?: string
   /** Endereço da página do produto: o cartão vira link de verdade (abre em nova aba, copia, pré-carrega). */
   hrefProduto?: (id: string) => string
   /** Sem `hrefProduto` (a prévia da Aparência), o cartão só chama isto. */
@@ -97,7 +117,7 @@ function Preco({ produto, cores }: { produto: ProdutoVitrine; cores: Cores }) {
   )
 }
 
-function Foto({ produto, cores, className }: { produto: ProdutoVitrine; cores: Cores; className: string }) {
+function Foto({ produto, cores, className, selo }: { produto: ProdutoVitrine; cores: Cores; className: string; selo?: string | null }) {
   return (
     <div className={`relative overflow-hidden ${className}`} style={{ background: cores.superficie }}>
       {produto.fotoUrl ? (
@@ -109,6 +129,11 @@ function Foto({ produto, cores, className }: { produto: ProdutoVitrine; cores: C
       {produto.esgotado && (
         <span className="absolute left-2 top-2 rounded px-1.5 py-0.5 text-[11px] font-medium" style={{ background: cores.texto, color: cores.fundo }}>
           Esgotado
+        </span>
+      )}
+      {!produto.esgotado && selo && (
+        <span data-selo-cartao className="absolute left-2 top-2 rounded px-1.5 py-0.5 text-[11px] font-semibold" style={{ background: cores.principal, color: cores.sobrePrincipal }}>
+          {selo}
         </span>
       )}
     </div>
@@ -125,6 +150,41 @@ function CartaoGrade({ produto, cores, href, onAbrir }: CartaoProps) {
         <p className="text-sm leading-snug line-clamp-2">{produto.nome}</p>
         {produto.variacoes && <p className="text-xs truncate" style={{ color: cores.suave }}>{produto.variacoes}</p>}
         <Preco produto={produto} cores={cores} />
+      </div>
+    </Cartao>
+  )
+}
+
+/** B61-04: cartão do modelo "grade": foto em retrato, REF, opções em quadradinhos e selo. */
+function CartaoRetrato({ produto, cores, href, onAbrir }: CartaoProps) {
+  const codigo = produto.codigo.trim()
+  const opcoes = produto.opcoes ?? []
+  return (
+    <Cartao href={href} onAbrir={onAbrir} className="text-left rounded-xl overflow-hidden border transition-transform active:scale-[0.98]" style={{ borderColor: cores.borda }}>
+      <div data-cartao-retrato>
+        <Foto produto={produto} cores={cores} className="aspect-[4/5]" selo={produto.ultimasUnidades ? "Últimas unidades!" : null} />
+        <div className="p-2.5 space-y-1.5">
+          {codigo && <p className="text-[11px] truncate" style={{ color: cores.suave }}>REF: {codigo}</p>}
+          <p className="text-sm leading-snug line-clamp-2">{produto.nome}</p>
+          <Preco produto={produto} cores={cores} />
+          {opcoes.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {opcoes.map((o) => (
+                <span
+                  key={o.nome}
+                  data-opcao-cartao
+                  data-esgotada={o.esgotada ? "sim" : "nao"}
+                  className="min-w-7 h-7 px-1.5 inline-flex items-center justify-center rounded border text-[11px] font-medium"
+                  style={{ borderColor: cores.borda, color: o.esgotada ? cores.suave : cores.texto, textDecoration: o.esgotada ? "line-through" : "none" }}
+                >
+                  {o.nome}
+                  {o.esgotada && <span className="sr-only"> (esgotado)</span>}
+                </span>
+              ))}
+            </div>
+          )}
+          {produto.outrasOpcoes && <p className="text-xs truncate" style={{ color: cores.suave }}>{produto.outrasOpcoes}</p>}
+        </div>
       </div>
     </Cartao>
   )
@@ -179,13 +239,9 @@ export function CabecalhoLoja({
   const cores = coresDaVitrine(tema)
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 border-b" style={{ background: cores.fundo, borderColor: cores.borda }}>
-      <button type="button" onClick={onAbrirLoja} className="min-w-0 text-left" aria-label={`Voltar para ${tema.nomeLoja}`} disabled={!onAbrirLoja}>
-        {tema.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={tema.logoUrl} alt={tema.nomeLoja} className="h-9 max-w-40 object-contain" />
-        ) : (
-          <span className="block text-lg font-semibold truncate">{tema.nomeLoja}</span>
-        )}
+      <button type="button" onClick={onAbrirLoja} className="min-w-0 flex items-center gap-2.5 text-left" aria-label={`Voltar para ${tema.nomeLoja}`} disabled={!onAbrirLoja}>
+        <LogoRedonda tema={tema} className="size-9 text-base" />
+        <span className="block text-base font-semibold truncate">{tema.nomeLoja}</span>
       </button>
       <div className="flex items-center gap-2 shrink-0">
       {onRepetirPedido && (
@@ -213,13 +269,18 @@ export function CabecalhoLoja({
   )
 }
 
-export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, avisoMinimo, avisoDesconto, hrefProduto, onAbrirProduto, onAbrirCarrinho, onRepetirPedido }: VitrineProps) {
+export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, avisoMinimo, avisoDesconto, formasEntrega = [], formasPagamento = [], carrinhoAberto = false, hrefLoja, hrefProduto, onAbrirProduto, onAbrirCarrinho, onRepetirPedido }: VitrineProps) {
   const [categoriaAtiva, setCategoriaAtiva] = useState<string | null>(null)
+  // B61-03: `null` = "Todas" as subcategorias da categoria escolhida.
+  const [subcategoriaAtiva, setSubcategoriaAtiva] = useState<string | null>(null)
   const [busca, setBusca] = useState("")
   const [ordem, setOrdem] = useState<OrdemVitrine>("loja")
   const [soComEstoque, setSoComEstoque] = useState(false)
   // Seções que a cliente abriu por inteiro com "Ver mais" (chave: id da categoria ou "outros").
   const [abertas, setAbertas] = useState<string[]>([])
+  // B61-05: no modelo "grade" a lista é uma só e cresce de 24 em 24 ao rolar.
+  const [carregados, setCarregados] = useState(LIMITE_POR_SECAO)
+  const fimDaLista = useRef<HTMLDivElement>(null)
   const cores = coresDaVitrine(tema)
 
   // QA M31 (06/10): voltar do produto perdia filtro, busca e rolagem. Ficam guardados
@@ -234,14 +295,16 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
       const bruto = sessionStorage.getItem(chaveDaVitrine)
       if (!bruto) return
       sessionStorage.removeItem(chaveDaVitrine)
-      const guardado = JSON.parse(bruto) as { categoria: string | null; busca: string; rolagem: number; ordem?: unknown; soComEstoque?: boolean; abertas?: string[] }
+      const guardado = JSON.parse(bruto) as { categoria: string | null; subcategoria?: string | null; busca: string; rolagem: number; ordem?: unknown; soComEstoque?: boolean; abertas?: string[]; carregados?: unknown }
       // Depois da hidratação: primeiro o filtro, no quadro seguinte a rolagem.
       requestAnimationFrame(() => {
         setCategoriaAtiva(guardado.categoria)
+        setSubcategoriaAtiva(typeof guardado.subcategoria === "string" ? guardado.subcategoria : null)
         setBusca(guardado.busca)
         if (ordemVitrineValida(guardado.ordem)) setOrdem(guardado.ordem)
         setSoComEstoque(guardado.soComEstoque === true)
         setAbertas(Array.isArray(guardado.abertas) ? guardado.abertas.filter((a) => typeof a === "string") : [])
+        if (typeof guardado.carregados === "number" && guardado.carregados > LIMITE_POR_SECAO) setCarregados(guardado.carregados)
         requestAnimationFrame(() => window.scrollTo(0, guardado.rolagem))
       })
     } catch {
@@ -255,6 +318,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
       (p) =>
         (!termo || contemTermo(p.nome, termo)) &&
         (categoriaAtiva === null || p.categoriaId === categoriaAtiva) &&
+        (subcategoriaAtiva === null || p.subcategoriaId === subcategoriaAtiva) &&
         (!soComEstoque || !p.esgotado)
     ),
     ordem
@@ -264,13 +328,37 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
     .filter((g) => g.itens.length > 0)
   const destaques = produtos.filter((p) => p.destaque)
   const filtrando = termo !== "" || categoriaAtiva !== null || soComEstoque
+  const subcategorias = categorias.find((c) => c.id === categoriaAtiva)?.subcategorias ?? []
+  /** Trocar de categoria volta a subcategoria para "Todas". */
+  function escolherCategoria(id: string | null) {
+    setCategoriaAtiva(id)
+    setSubcategoriaAtiva(null)
+    setCarregados(LIMITE_POR_SECAO)
+  }
+
+  // B61-05: lista única do modelo "grade". Um marco no fim da lista, ao se aproximar da
+  // tela, traz mais 24; busca, ordem e filtros já valeram sobre a lista inteira.
+  const listaUnica = tema.layout === "grade"
+  const haMais = listaUnica && filtrados.length > carregados
+  useEffect(() => {
+    const marco = fimDaLista.current
+    if (!haMais || !marco || typeof IntersectionObserver === "undefined") return
+    const observador = new IntersectionObserver(
+      (entradas) => {
+        if (entradas.some((e) => e.isIntersecting)) setCarregados((n) => n + LIMITE_POR_SECAO)
+      },
+      { rootMargin: "600px 0px" }
+    )
+    observador.observe(marco)
+    return () => observador.disconnect()
+  }, [haMais, carregados])
   const chip = (ativo: boolean) =>
     ativo ? { background: cores.principal, color: cores.sobrePrincipal, borderColor: cores.principal } : { borderColor: cores.borda }
 
   // Guarda filtro, busca e rolagem antes de sair; com `hrefProduto`, quem navega é o link.
   function abrir(id: string) {
     try {
-      if (chaveDaVitrine) sessionStorage.setItem(chaveDaVitrine, JSON.stringify({ categoria: categoriaAtiva, busca, rolagem: window.scrollY, ordem, soComEstoque, abertas }))
+      if (chaveDaVitrine) sessionStorage.setItem(chaveDaVitrine, JSON.stringify({ categoria: categoriaAtiva, subcategoria: subcategoriaAtiva, busca, rolagem: window.scrollY, ordem, soComEstoque, abertas, carregados }))
     } catch {
       // armazenamento indisponível: volta sem o filtro
     }
@@ -283,31 +371,44 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
     <div className="@container min-h-full [&_:is(h1,h2,h3)]:[font-family:inherit]" style={{ background: cores.fundo, color: cores.texto, fontFamily: familiaDaFonte(tema.fonteId) }}>
       <CabecalhoLoja tema={tema} quantidadeNoCarrinho={quantidadeNoCarrinho} onAbrirCarrinho={onAbrirCarrinho} onRepetirPedido={onRepetirPedido} />
 
-      {tema.bannerUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={tema.bannerUrl} alt="" fetchPriority="high" className="w-full aspect-[3/1] @3xl:aspect-[4/1] object-cover" />
-      )}
+      <TopoLoja tema={tema} hrefLoja={hrefLoja} />
 
       <div className="px-4 pt-5 pb-10 space-y-5 max-w-6xl mx-auto">
-        <div className="space-y-1">
-          {tema.logoUrl ? <h1 className="text-2xl @3xl:text-3xl font-semibold">{tema.nomeLoja}</h1> : <h1 className="sr-only">{tema.nomeLoja}</h1>}
-          {tema.boasVindas && <p className="text-sm" style={{ color: cores.suave }}>{tema.boasVindas}</p>}
-          {(avisoMinimo || avisoDesconto) && (
-            <p className="text-xs font-medium" style={{ color: cores.principal }}>{[avisoMinimo, avisoDesconto].filter(Boolean).join(" · ")}</p>
-          )}
-        </div>
-
         <div className="relative">
           <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: cores.suave }} />
           <input
             value={busca}
-            onChange={(e) => setBusca(e.target.value)}
+            onChange={(e) => { setBusca(e.target.value); setCarregados(LIMITE_POR_SECAO) }}
             placeholder="Buscar produto"
             className="w-full h-10 rounded-full pl-9 pr-4 text-sm outline-none border focus-visible:ring-2"
             style={{ background: cores.superficie, borderColor: cores.borda, color: cores.texto, ["--tw-ring-color" as string]: cores.principal }}
             aria-label="Buscar produto"
           />
         </div>
+
+        {categorias.length > 0 && (
+          <nav className="flex gap-3 overflow-x-auto -mx-4 px-4 pb-1" aria-label="Categorias em fotos">
+            {categorias.map((c) => {
+              const ativa = categoriaAtiva === c.id
+              return (
+                <button key={c.id} type="button" onClick={() => escolherCategoria(c.id)} aria-pressed={ativa} data-circulo-categoria className="w-[4.5rem] shrink-0 flex flex-col items-center gap-1.5">
+                  <span
+                    className="flex size-16 items-center justify-center overflow-hidden rounded-full border-2"
+                    style={{ background: cores.superficie, borderColor: ativa ? cores.principal : cores.borda }}
+                  >
+                    {c.fotoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={c.fotoUrl} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
+                    ) : (
+                      <span aria-hidden className="text-xl font-semibold leading-none">{c.nome.trim().charAt(0).toUpperCase()}</span>
+                    )}
+                  </span>
+                  <span className={`w-full text-center text-xs leading-tight line-clamp-2 ${ativa ? "font-semibold" : ""}`}>{c.nome}</span>
+                </button>
+              )
+            })}
+          </nav>
+        )}
 
         {categorias.length > 0 && (
           <nav className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1" aria-label="Categorias">
@@ -317,7 +418,8 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
                 <button
                   key={c.id ?? "tudo"}
                   type="button"
-                  onClick={() => setCategoriaAtiva(c.id)}
+                  onClick={() => escolherCategoria(c.id)}
+                  aria-pressed={ativa}
                   className="shrink-0 rounded-full px-3.5 h-8 text-sm border"
                   style={chip(ativa)}
                 >
@@ -328,10 +430,37 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
           </nav>
         )}
 
+        {subcategorias.length > 0 && (
+          <nav className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1" aria-label="Subcategorias">
+            {[{ id: null as string | null, nome: "Todas" }, ...subcategorias].map((sub) => {
+              const ativa = subcategoriaAtiva === sub.id
+              return (
+                <button
+                  key={sub.id ?? "todas"}
+                  type="button"
+                  onClick={() => { setSubcategoriaAtiva(sub.id); setCarregados(LIMITE_POR_SECAO) }}
+                  aria-pressed={ativa}
+                  className="shrink-0 rounded-full px-3 h-7 text-xs border"
+                  style={chip(ativa)}
+                >
+                  {sub.nome}
+                </button>
+              )
+            })}
+          </nav>
+        )}
+
+        {(avisoMinimo || avisoDesconto) && (
+          <div data-faixa-atacado className="rounded-xl px-4 py-2.5" style={{ background: cores.principal, color: cores.sobrePrincipal }}>
+            <p className="text-sm font-semibold">{["Atacado", avisoMinimo].filter(Boolean).join(" · ")}</p>
+            {avisoDesconto && <p className="text-xs">{avisoDesconto}</p>}
+          </div>
+        )}
+
         <div className="flex items-center justify-between gap-3">
           <button
             type="button"
-            onClick={() => setSoComEstoque((v) => !v)}
+            onClick={() => { setSoComEstoque((v) => !v); setCarregados(LIMITE_POR_SECAO) }}
             aria-pressed={soComEstoque}
             className="shrink-0 rounded-full px-3.5 h-8 text-sm border"
             style={chip(soComEstoque)}
@@ -342,7 +471,7 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
             <span className="shrink-0">Ordenar</span>
             <select
               value={ordem}
-              onChange={(e) => setOrdem(ordemVitrineValida(e.target.value) ? e.target.value : "loja")}
+              onChange={(e) => { setOrdem(ordemVitrineValida(e.target.value) ? e.target.value : "loja"); setCarregados(LIMITE_POR_SECAO) }}
               className="h-8 max-w-44 rounded-full border px-2 text-sm outline-none focus-visible:ring-2"
               style={{ background: cores.superficie, borderColor: cores.borda, color: cores.texto, ["--tw-ring-color" as string]: cores.principal }}
               aria-label="Ordenar produtos"
@@ -361,9 +490,16 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
           </section>
         )}
 
-        {grupos.length === 0 && <p className="py-10 text-center text-sm" style={{ color: cores.suave }}>Nenhum produto encontrado.</p>}
+        {filtrados.length === 0 && <p className="py-10 text-center text-sm" style={{ color: cores.suave }}>Nenhum produto encontrado.</p>}
 
-        {grupos.map((g) => {
+        {listaUnica && filtrados.length > 0 && (
+          <div data-lista-produtos className="grid grid-cols-2 @xl:grid-cols-3 @3xl:grid-cols-4 gap-3">
+            {filtrados.slice(0, carregados).map((p) => <CartaoRetrato key={p.id} {...cartao(p)} />)}
+          </div>
+        )}
+        {haMais && <div ref={fimDaLista} data-fim-da-lista aria-hidden className="h-px" />}
+
+        {!listaUnica && grupos.map((g) => {
           // Seção longa carrega em blocos: as primeiras peças e um "Ver mais" com o resto.
           const aberta = abertas.includes(g.chave)
           const mostrados = aberta ? g.itens : g.itens.slice(0, LIMITE_POR_SECAO)
@@ -392,6 +528,25 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
           )
         })}
       </div>
+
+      {/* B61-06: como a compra funciona; entrega e pagamento só quando a loja marcou. */}
+      <footer data-rodape-loja className="border-t px-4 py-6 text-center text-xs space-y-1.5" style={{ borderColor: cores.borda, color: cores.suave }}>
+        <p className="text-sm font-medium" style={{ color: cores.texto }}>Seu pedido será enviado para o WhatsApp da loja</p>
+        {formasEntrega.length > 0 && <p>Entrega: {formasEntrega.join(", ")}</p>}
+        {formasPagamento.length > 0 && <p>Pagamento: {formasPagamento.join(", ")}</p>}
+        <p>Catálogo digital · Compra assistida pelo WhatsApp da loja</p>
+      </footer>
+
+      {!carrinhoAberto && (
+        <div
+          data-barra-whatsapp
+          className="sticky bottom-0 z-10 flex items-center justify-center gap-1.5 px-4 py-2.5 text-center text-xs font-medium"
+          style={{ background: cores.principal, color: cores.sobrePrincipal }}
+        >
+          <MessageCircle className="size-4 shrink-0" />
+          Pedido enviado e finalizado pelo WhatsApp da loja
+        </div>
+      )}
     </div>
   )
 }

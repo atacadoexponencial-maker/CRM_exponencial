@@ -24,6 +24,28 @@ export const TAMANHO_MAX_BANNER = 5 * 1024 * 1024
 /** B44-07: logo aceita os mesmos formatos da foto; SVG saiu (o bucket é público e SVG roda código). */
 export const FORMATOS_LOGO: Record<string, string> = { ...FORMATOS_FOTO }
 
+/** B61-01: o texto de boas-vindas serve de bio no topo da loja. Mesma regra do banco. */
+export const LIMITE_BOAS_VINDAS = 300
+export const AVISO_INSTAGRAM = "Use só letras, números, ponto e sublinhado, com até 30 caracteres."
+
+/**
+ * B61-01: o perfil do Instagram como é guardado (minúsculas, sem @). Aceita "@loja",
+ * "loja" e o link do perfil. Devolve `null` para campo vazio e `false` para o que não é
+ * um perfil. Mesma regra do banco.
+ */
+export function normalizarInstagram(valor: unknown): string | null | false {
+  if (typeof valor !== "string") return false
+  const perfil = valor
+    .trim()
+    .replace(/^(?:https?:\/\/)?(?:www\.)?instagram\.com\//i, "")
+    .replace(/[?#].*$/, "")
+    .replace(/\/+$/, "")
+    .replace(/^@/, "")
+    .toLowerCase()
+  if (!perfil) return null
+  return /^[a-z0-9._]{1,30}$/.test(perfil) ? perfil : false
+}
+
 /**
  * B44-07: o caminho é de um arquivo da pasta da empresa (`<empresa>/produtos/` ou
  * `<empresa>/marca/`), com nome simples, sem `..` nem subpasta. Vale para aceitar

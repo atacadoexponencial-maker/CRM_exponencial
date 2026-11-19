@@ -31,6 +31,8 @@ export interface ProdutoEditavel {
   /** B31-03: grade fechada (quantidade por opção do primeiro tipo e preço próprio); `null` = venda avulsa. */
   grade: GradeFechada | null
   categoriaId: string | null
+  /** B61-03: subcategoria da categoria escolhida; ausente ou `null` = nenhuma. */
+  subcategoriaId?: string | null
   visivel: boolean
   destaque: boolean
   fotos: FotoProduto[]
@@ -387,11 +389,30 @@ export function EditorProduto({ inicial, categorias, hrefVoltar, onAdicionarFoto
               <select
                 id="categoria"
                 value={produto.categoriaId ?? ""}
-                onChange={(e) => mudar("categoriaId", e.target.value || null)}
+                onChange={(e) => setProduto((atual) => ({ ...atual, categoriaId: e.target.value || null, subcategoriaId: null }))}
                 className="h-8 w-full rounded-lg border border-input bg-transparent dark:bg-input/30 px-2 text-sm"
               >
                 <option value="">Sem categoria</option>
                 {categorias.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="subcategoria">Subcategoria</Label>
+              <select
+                id="subcategoria"
+                value={produto.categoriaId ? (produto.subcategoriaId ?? "") : ""}
+                onChange={(e) => mudar("subcategoriaId", e.target.value || null)}
+                disabled={!produto.categoriaId}
+                className="h-8 w-full rounded-lg border border-input bg-transparent dark:bg-input/30 px-2 text-sm disabled:opacity-60"
+              >
+                {produto.categoriaId ? (
+                  <>
+                    <option value="">Nenhuma</option>
+                    {(categorias.find((c) => c.id === produto.categoriaId)?.subcategorias ?? []).map((sub) => <option key={sub.id} value={sub.id}>{sub.nome}</option>)}
+                  </>
+                ) : (
+                  <option value="">Escolha uma categoria primeiro</option>
+                )}
               </select>
             </div>
             <label className="flex items-start gap-2 text-sm cursor-pointer">
