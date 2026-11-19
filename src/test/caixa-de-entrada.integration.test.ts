@@ -53,7 +53,8 @@ describe("Issue 14 — Nova conversa de número desconhecido", () => {
       from: vi.fn().mockImplementation((table: string) => {
         if (table === "whatsapp_connections") {
           return {
-            select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: { workspace_id: "ws-1" } }) }) }),
+            // B23-06: a busca da conexão ignora número removido (.neq("status", "removed"))
+            select: () => ({ eq: () => ({ neq: () => ({ single: () => Promise.resolve({ data: { workspace_id: "ws-1" } }) }) }) }),
           }
         }
         if (table === "contacts") {

@@ -54,7 +54,7 @@ export function SecoesMetricas({ metricas, semResumo = false }: { metricas: Metr
   return (
     <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
       <Secao titulo="Entrada de Leads" numeros={entrada}>
-        <CaixaDoGrafico titulo="Leads criados por semana">
+        <CaixaDoGrafico titulo={metricas.entrada.leadsPorMes ? "Leads criados por mês" : "Leads criados por semana"}>
           <GraficoBarras dados={metricas.entrada.leadsPorSemana} />
         </CaixaDoGrafico>
       </Secao>

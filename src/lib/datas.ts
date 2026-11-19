@@ -161,7 +161,10 @@ export function paraCamposDoFormulario(iso: string, fuso: string): { data: strin
 
 /** Período entre dois instantes, no fuso: `01/10 a 27/10` (B48-10). */
 export function formatarIntervalo(inicioIso: string, fimIso: string, fuso: string): string {
-  return `${formatarDiaDoMes(inicioIso, fuso)} a ${formatarDiaDoMes(fimIso, fuso)}`
+  // Atravessando a virada do ano, o ano aparece: um ano inteiro saía como "18/11 a 18/11".
+  const ano = (iso: string) => diaNoFuso(new Date(iso), fuso).slice(0, 4)
+  const formatar = ano(inicioIso) === ano(fimIso) ? formatarDiaDoMes : formatarData
+  return `${formatar(inicioIso, fuso)} a ${formatar(fimIso, fuso)}`
 }
 
 /** Período entre dois dias de calendário (`2026-10-01`, `2026-10-27`): `01/10 a 27/10`. */
