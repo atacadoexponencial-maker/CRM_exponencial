@@ -11,7 +11,8 @@ vi.mock("next/font/google", () => {
   const fonte = () => ({ className: "", style: { fontFamily: "sans-serif" } })
   return { Inter: fonte, Poppins: fonte, Montserrat: fonte, Nunito: fonte, Space_Grotesk: fonte, Playfair_Display: fonte, Lora: fonte, DM_Serif_Display: fonte }
 })
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }))
+// A vitrine lê o endereço do roteador para achar o filtro guardado ao voltar do produto
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), usePathname: () => "/loja/teste" }))
 // O Turnstile não roda fora do navegador: a conferência sai pronta.
 vi.mock("@/components/shared/conferencia-humana", () => ({
   ConferenciaHumana: ({ aoMudar, aoAguardar }: { aoMudar: (t: string | null) => void; aoAguardar: (a: boolean) => void }) => {

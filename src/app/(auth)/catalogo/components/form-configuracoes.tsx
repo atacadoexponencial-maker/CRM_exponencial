@@ -98,7 +98,13 @@ export function FormConfiguracoes({ inicial, prefixoLink, onVerificarEndereco, o
       return
     }
     if (disponibilidade === "em_uso" || disponibilidade === "reservado" || disponibilidade === "invalido") {
-      setMensagem({ tipo: "erro", texto: "Esse endereço já é de outra loja. Escolha outro." })
+      // O aviso do Salvar diz o mesmo que a dica do campo: reservado e inválido não são "de outra loja".
+      const motivo = {
+        em_uso: "Esse endereço já é de outra loja. Escolha outro.",
+        reservado: "Esse endereço é reservado pelo sistema. Escolha outro.",
+        invalido: "Endereço inválido: use de 3 a 40 letras minúsculas, números e hífen.",
+      }
+      setMensagem({ tipo: "erro", texto: motivo[disponibilidade] })
       return
     }
     if (config.minimo.tipo !== "nenhum" && !(config.minimo.valor && config.minimo.valor > 0)) {

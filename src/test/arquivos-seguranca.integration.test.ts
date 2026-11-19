@@ -37,11 +37,22 @@ afterAll(async () => {
 
 describe("B19-05 — Arquivos guardados sem listagem e sem gravação por fora", { timeout: 30_000 }, () => {
   for (const [bucket, caminho] of Object.entries(arquivos)) {
-    it(`should continuar abrindo o arquivo de ${bucket} pelo link`, async () => {
-      const { data: { publicUrl } } = service.storage.from(bucket).getPublicUrl(caminho)
-      const resposta = await fetch(publicUrl)
-      expect(resposta.status).toBe(200)
-    })
+    // B49 (29/10/2026): os anexos do chat ficaram privados. O link público deixou de
+    // abrir, e quem abre é o link assinado, de quem é da empresa.
+    if (bucket === "chat-attachments") {
+      it(`should não abrir o arquivo de ${bucket} pelo link público, e abrir pelo link assinado`, async () => {
+        const { data: { publicUrl } } = service.storage.from(bucket).getPublicUrl(caminho)
+        expect((await fetch(publicUrl)).status).not.toBe(200)
+        const { data: assinado } = await service.storage.from(bucket).createSignedUrl(caminho, 60)
+        expect((await fetch(assinado!.signedUrl)).status).toBe(200)
+      })
+    } else {
+      it(`should continuar abrindo o arquivo de ${bucket} pelo link`, async () => {
+        const { data: { publicUrl } } = service.storage.from(bucket).getPublicUrl(caminho)
+        const resposta = await fetch(publicUrl)
+        expect(resposta.status).toBe(200)
+      })
+    }
 
     it(`should not listar as pastas de ${bucket} para anônimo`, async () => {
       const anon = createClient(URL, ANON_KEY, { auth: { autoRefreshToken: false, persistSession: false } })

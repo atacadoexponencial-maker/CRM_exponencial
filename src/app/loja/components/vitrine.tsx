@@ -6,6 +6,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { ImageOff, MessageCircle, RotateCcw, Search, ShoppingBag } from "lucide-react"
 import { formatarPreco } from "@/app/(auth)/catalogo/components/lista-produtos"
 import { coresDaVitrine, type TemaLoja } from "./tema"
@@ -284,7 +285,10 @@ export function Vitrine({ tema, categorias, produtos, quantidadeNoCarrinho = 0, 
 
   // QA M31 (06/10): voltar do produto perdia filtro, busca e rolagem. Ficam guardados
   // no aparelho, só para esta aba, enquanto a cliente navega pela loja.
-  const chaveDaVitrine = typeof window === "undefined" ? "" : `vitrine:${window.location.pathname}`
+  // O endereço vem do roteador, e não da janela: voltando pelo botão "Voltar" da loja, a
+  // vitrine é desenhada antes de a janela trocar de endereço, e a chave saía com o do produto.
+  const caminho = usePathname()
+  const chaveDaVitrine = typeof window === "undefined" ? "" : `vitrine:${caminho ?? window.location.pathname}`
   useEffect(() => {
     if (!chaveDaVitrine) return
     try {
