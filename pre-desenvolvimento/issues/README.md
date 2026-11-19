@@ -1,6 +1,6 @@
 # issues
 
-- **Arquivos soltos nesta pasta = issues abertas.** Hoje (10/11/2026), todas já no ar e esperando só teste manual: B28-05 (relógio das esperas no gateway, teste com chip), B46-04 (banco de teste sempre acordado), B54-02 (criar e editar template, CA-B54-10 no número da Marcelle), B54-06 (envio e relatório da campanha de template) e B59-02 (galeria de modelos, CA-B59-27 com chip).
+- **Arquivos soltos nesta pasta = issues abertas.** Hoje (18/11/2026), todas já no ar e esperando só teste manual: B23-01, B23-04 e B23-06 (coexistência, os três testes com chip), B28-05 (relógio das esperas no gateway, teste com chip), B54-02 (criar e editar template, CA-B54-10 no número da Marcelle), B54-06 (envio e relatório da campanha de template) e B59-02 (galeria de modelos, CA-B59-27 com chip).
 - `concluidas_<série>/` = entregues e no ar. Não se mexe mais nelas.
 - `bloqueadas_modulo6/` = escritas, mas sem como fazer (API da Meta não tem grupos).
 
@@ -17,7 +17,7 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B12 | `docs/specs-arquivadas/spec-renomear-funis.md` | `concluidas_B12/` |
 | B13 | `docs/specs-arquivadas/spec-lixeira-contatos.md` (excluir lead e contato, com lixeira) | `concluidas_B13/` |
 | B22 | `../analise-qa/qa-automacoes-2026-10-09.md` (correções do QA das automações v2) | `concluidas_B22/` |
-| B23 | `../spec-coexistencia.md` (em andamento: WhatsApp Business no celular e CRM no mesmo número, pela API Oficial; só as migrations estão no master, PR #10) | `concluidas_B23/` (quando houver) |
+| B23 | `../spec-coexistencia.md` (WhatsApp Business no celular e CRM no mesmo número, pela API Oficial; no ar desde 12/11/2026, PR #22; faltam os testes com chip da B23-01, da B23-04 e da B23-06) | `concluidas_B23/` |
 | B24 | `docs/specs-arquivadas/spec-landing-crmatacado-exp.md` (concluída em 23/10/2026: landing pública em `/` no tema Caderno, com prints reais e demonstração pelo WhatsApp; política e termos com a SETE ADS 2 LTDA) | `concluidas_B24/` |
 | B25 | `docs/specs-arquivadas/spec-canal-direto-envio-pelo-celular.md` (mensagem enviada pelo celular aparece no CRM, canal direto) | `concluidas_B25/` |
 | B26 | `docs/specs-arquivadas/spec-mensagem-na-fila.md` (mensagem na fila do número e aviso de aquecimento, canal direto) | `concluidas_B26/` |
@@ -40,7 +40,7 @@ Fluxo de uma issue: `/plan` → `/execute` → testes → `/revisildo` → mover
 | B43 | `docs/specs-arquivadas/spec-automacao-por-perfil-rfv.md` (concluída em 29/10/2026: perfil RFV no contato, na lista e no chat; condição e gatilho "Entrou no perfil RFV" nas automações) | `concluidas_B43/` |
 | B44 | `docs/specs-arquivadas/spec-seguranca-rodada-4.md` (concluída: correção das 13 suspeitas da auditoria security-audit run-1) | `concluidas_B44/` |
 | B45 | `docs/specs-arquivadas/spec-dono-do-contato.md` (concluída: todo contato nasce com card e o atendente é dono do que é dele) | `concluidas_B45/` |
-| B46 | `../spec-banco-de-teste.md` (banco de teste separado do de produção, no ar desde 28/10/2026; falta a B46-04, teste manual) | `concluidas_B46/` |
+| B46 | `../spec-banco-de-teste.md` (banco de teste separado do de produção, no ar desde 28/10/2026; as cinco issues concluídas em 18/11/2026; falta o auditor liberar a série para arquivar a spec) | `concluidas_B46/` |
 | B47 | `docs/specs-arquivadas/spec-seguranca-rodada-5.md` (28/10/2026: rodada 2 da auditoria Cloudflare — envio de campanha que reconfere anexo e destinatários, tempo real e fotos de contato presos à empresa; no ar e arquivada em 28/10/2026) | `concluidas_B47/` |
 | B48 | `docs/specs-arquivadas/spec-correcoes-qa-ux.md` (27/10/2026: correções do teste de UI/UX do CRM inteiro, achados em `analise-qa/qa-ux-2026-10-27.md`; nasceu como "B46" e passou por "B47" no branch `b46-correcoes-qa-ux`; no ar e arquivada em 28/10/2026, relatório em `docs/relatorios/relatorio-b48-correcoes-qa-ux.md`) | `concluidas_B48/` |
 | B49 | `docs/specs-arquivadas/spec-anexos-do-chat-privados.md` (concluída em 29/10/2026: anexos do chat, das campanhas e das automações só abrem para quem é da empresa, por link assinado de 1 hora na tela e na Meta e de 30 dias no gateway; bucket fechado na produção) | `concluidas_B49/` |

@@ -48,7 +48,7 @@ São dois projetos Supabase separados (B46, desde 28/10/2026):
   recusa a rodar contra a produção ("os testes de integração só rodam no banco
   de teste"). Sem o `.env.teste.local`, nenhum teste roda.
 - **Migration nova:** primeiro `npm run db:teste:push` (aplica no banco de
-  teste) e os testes da série; só depois `npx supabase db push --linked`
+  teste) e os testes da série; só depois `npx supabase db push --remote`
   (produção).
 - **Banco de teste acordado:** o plano grátis pausa o projeto depois de 7 dias
   sem uso. O GitHub Actions ("Banco de teste acordado") entra nele uma vez por
@@ -90,7 +90,7 @@ E2E usa Playwright (`playwright.config.ts`).
 
 ## Architecture
 
-Aplicação Next.js 15 (App Router), TypeScript, Supabase.
+Aplicação Next.js 16 (App Router), TypeScript, Supabase.
 
 ### Routing & Layout
 
@@ -142,8 +142,8 @@ Rotas existentes:
 
 - **Database**: PostgreSQL com RLS (Row Level Security) para isolamento por workspace.
 - **Auth**: Supabase Auth via SSR cookies — o middleware gerencia o redirecionamento.
-- **Types**: `src/integrations/supabase/types.ts` é auto-gerado (`supabase gen types typescript --linked`) — não editar.
-- **Migrations**: adicionar novos `.sql` em `supabase/migrations/`. Aplique primeiro no banco de teste (`npm run db:teste:push`) e só depois na produção (`npx supabase db push --linked`); veja "Bancos de dados".
+- **Types**: `src/integrations/supabase/types.ts` é auto-gerado (`supabase gen types typescript --remote`) — não editar.
+- **Migrations**: adicionar novos `.sql` em `supabase/migrations/`. Aplique primeiro no banco de teste (`npm run db:teste:push`) e só depois na produção (`npx supabase db push --remote`); veja "Bancos de dados".
 - **Server Actions**: lógica backend fica em arquivos `actions.ts` co-localizados com a rota. Ex: `src/app/cadastro/actions.ts`.
 
 ### Key Directories

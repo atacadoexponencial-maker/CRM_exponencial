@@ -79,3 +79,9 @@ Fora do código: os segredos `BANCO_TESTE_URL`, `BANCO_TESTE_ANON_KEY`, `BANCO_T
 - [x] Escrever o workflow diário
 - [x] Gravar os segredos no GitHub
 - [x] Rodar o `tsc` no projeto inteiro
+
+## Testes manuais
+
+| Critério | Conferido por | Dia |
+|---|---|---|
+| CA-B46-20 | Claude, com o ok da Marcelle | 18/11/2026 |
