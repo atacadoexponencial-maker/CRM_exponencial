@@ -1,7 +1,9 @@
 // @vitest-environment node
-// B53-02 — "Atribuir ao time" escolhe só entre os Atendentes ativos do time, e o
-// card e o dono do contato acompanham a pessoa escolhida. Roda a ação do motor
-// no banco de teste, com a service role, como a automação.
+// B53-02 — "Atribuir ao time": o card e o dono do contato acompanham a pessoa
+// escolhida. B63-04 (SUP-B63-03, Luan, 19/11/2026) desfaz o "só Atendentes" da B53-02:
+// a escolha volta a ser entre todos os membros ativos do time, de qualquer cargo; os
+// CA-B53-03 e 04, que conferiam o contrário, deram lugar aos CA-B63-16 a 18. Roda a
+// ação do motor no banco de teste, com a service role, como a automação.
 
 import { createClient } from "@supabase/supabase-js"
 import { describe, it, expect, beforeAll, afterAll } from "vitest"
@@ -16,11 +18,12 @@ const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.
 const ts = Date.now()
 let empresa = ""
 let timeMisto = ""
-let timeSemAtendente = ""
+let timeComAdmin = ""
+let timeDesativado = ""
 const pessoas: Record<string, string> = {}
 let contatos = 0
 
-async function pessoa(nome: string, role: "admin" | "gerente" | "atendente") {
+async function pessoa(nome: string, role: "admin" | "gerente" | "atendente", status: "active" | "inactive" = "active") {
   const { data, error } = await service.auth.admin.createUser({
     email: `b53-02-${nome.toLowerCase()}-${ts}@teste.com`,
     password: "senha-segura-123",
@@ -30,7 +33,7 @@ async function pessoa(nome: string, role: "admin" | "gerente" | "atendente") {
   pessoas[nome] = data.user.id
   const { error: erroPerfil } = await service
     .from("profiles")
-    .insert({ id: data.user.id, workspace_id: empresa, name: nome, role, status: "active" })
+    .insert({ id: data.user.id, workspace_id: empresa, name: nome, role, status })
   if (erroPerfil) throw erroPerfil
 }
 
@@ -101,14 +104,17 @@ const donoDaConversa = async (id: string) =>
 
 beforeAll(async () => {
   empresa = (await service.from("workspaces").insert({ name: `Atribuir ao time B53-02 ${ts}` }).select("id").single()).data!.id
-  // "Aaron" vem antes no nome: no empate de carga ele ganharia, se o papel não contasse
   await pessoa("Aaron", "gerente")
   await pessoa("Zelia", "atendente")
   await pessoa("Abel", "admin")
+  await pessoa("Dora", "atendente", "inactive")
+  await pessoa("Gil", "gerente", "inactive")
   timeMisto = await time("Vendas B53", ["Aaron", "Zelia"])
-  timeSemAtendente = await time("Só chefia B53", ["Aaron", "Abel"])
-  // A Zelia começa com 3 conversas abertas; o Aaron, com nenhuma
+  timeComAdmin = await time("Loja B63", ["Zelia", "Abel"])
+  timeDesativado = await time("Desativados B63", ["Dora", "Gil"])
+  // A Zelia começa com 3 conversas abertas; o Abel, com 1; o Aaron, com nenhuma
   for (let i = 0; i < 3; i++) await contatoComConversa({ conversaCom: "Zelia", status: "em_atendimento" })
+  await contatoComConversa({ conversaCom: "Abel", status: "em_atendimento" })
 }, 120_000)
 
 afterAll(async () => {
@@ -124,25 +130,47 @@ afterAll(async () => {
   await service.from("workspaces").delete().eq("id", empresa)
 }, 120_000)
 
-describe("B53-02 — Atribuir ao time escolhe só Atendentes e leva card e contato", () => {
-  it("CA-B53-03: conversa sem dono vai para o Atendente com 3 conversas, e não para o Gerente sem nenhuma", async () => {
-    const { count } = await service
+const abertasDe = async (nome: string) =>
+  (
+    await service
       .from("conversations")
       .select("id", { count: "exact", head: true })
-      .eq("assigned_to", pessoas.Zelia)
+      .eq("assigned_to", pessoas[nome])
       .in("status", ["em_espera", "em_atendimento"])
-    expect(count).toBe(3)
+  ).count
+
+describe("B53-02 e B63-04 — Atribuir ao time escolhe qualquer membro ativo e leva card e contato", () => {
+  it("CA-B63-16: should mandar o lead novo para o Admin do time, com 1 conversa aberta, e não para a atendente com 3", async () => {
+    expect([await abertasDe("Zelia"), await abertasDe("Abel")]).toEqual([3, 1])
 
     const { contato, conversa } = await contatoComConversa()
-    expect(await atribuirAoTime(timeMisto, contato, conversa)).toEqual({ ok: true })
-    expect(await donoDaConversa(conversa)).toBe(pessoas.Zelia)
+    expect(await atribuirAoTime(timeComAdmin, contato, conversa)).toEqual({ ok: true })
+    expect(await donoDaConversa(conversa)).toBe(pessoas.Abel)
   })
 
-  it("CA-B53-04: time só com Gerente e Admin falha com o motivo, e a conversa continua sem dono", async () => {
+  it("CA-B63-17: should manter com o Gerente do time a conversa que já é dele, registrando que manteve", async () => {
+    const { contato, conversa } = await contatoComConversa({ conversaCom: "Aaron", dono: "Aaron", status: "em_atendimento" })
+    // O Aaron tem menos carga que a Zelia, mas a prova é a conversa ficar com quem já está
+    expect(await atribuirAoTime(timeMisto, contato, conversa)).toEqual({ ok: true })
+    expect(await donoDaConversa(conversa)).toBe(pessoas.Aaron)
+
+    const { data } = await service.rpc("atribuir_conversa_ao_time", {
+      p_workspace_id: empresa,
+      p_team_id: timeMisto,
+      p_conversation_id: conversa,
+    })
+    expect(data).toEqual([{ atendente_id: pessoas.Aaron, manteve: true }])
+    expect(await donoDaConversa(conversa)).toBe(pessoas.Aaron)
+  })
+
+  it("CA-B63-18: should falhar com 'O time não tem membro ativo' no time só de desativados, e deixar a conversa sem dono", async () => {
+    const { data: membros } = await service.from("profiles").select("status").in("id", [pessoas.Dora, pessoas.Gil])
+    expect(membros?.map((m) => m.status)).toEqual(["inactive", "inactive"])
+
     const { contato, conversa } = await contatoComConversa()
-    expect(await atribuirAoTime(timeSemAtendente, contato, conversa)).toEqual({
+    expect(await atribuirAoTime(timeDesativado, contato, conversa)).toEqual({
       ok: false,
-      motivo: "O time não tem atendente ativo",
+      motivo: "O time não tem membro ativo",
     })
     expect(await donoDaConversa(conversa)).toBeNull()
   })

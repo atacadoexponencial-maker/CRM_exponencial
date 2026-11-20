@@ -176,12 +176,12 @@ describe("atribuir a um time (B22-04: escolha e conversa gravadas pela função 
     const b = banco({ teams: { um: { id: "time-1" } } }, { atribuir_conversa_ao_time: { data: [] } })
     expect(await executarAcao(b.contexto(conversaCriada), acao("atribuir_time", { time_id: "time-1" }))).toEqual({
       ok: false,
-      motivo: "O time não tem atendente ativo",
+      motivo: "O time não tem membro ativo",
     })
     expect(b.gravacoes("pipeline_cards")).toEqual([])
   })
 
-  it("B22-27: time apagado falha com o motivo certo, e não 'sem atendente ativo'", async () => {
+  it("B22-27: time apagado falha com o motivo certo, e não 'sem membro ativo'", async () => {
     const b = banco({ teams: { um: null } }, { atribuir_conversa_ao_time: { data: [] } })
     expect(await executarAcao(b.contexto(conversaCriada), acao("atribuir_time", { time_id: "time-1" }))).toEqual({
       ok: false,
