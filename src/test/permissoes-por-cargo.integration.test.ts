@@ -1,7 +1,8 @@
 // @vitest-environment node
 // B63-01 — o que Atendente e Gerente veem segue a escolha da empresa para o cargo:
 // só os atribuídos, os dele e os sem dono, ou todos. Bate no Supabase real: o client
-// SSR é o "navegador" de quem age. A escolha é gravada direto no banco (a tela é da B63-02).
+// SSR é o "navegador" de quem age. Na B63-01 a escolha é gravada direto no banco; a
+// B63-02 confere a leitura e a gravação pelas actions da tela de Permissões.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest"
@@ -21,6 +22,7 @@ import { carregarMaisConversas, atribuirConversa, buscarConversa } from "@/app/(
 import { listarCardsEntrada } from "@/app/(auth)/pipeline/actions"
 import { listarLixeira } from "@/app/(auth)/contatos/lixeira/actions"
 import { listarEsperandoResposta } from "@/app/(auth)/dashboard/actions"
+import { carregarPermissoes, salvarPermissoes } from "@/app/(auth)/configuracoes/permissoes/actions"
 import type { Alcance } from "@/lib/alcance"
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -32,6 +34,8 @@ const ts = Date.now()
 const fim = String(ts).slice(-6)
 const SENHA = "senha-segura-123"
 let ws = "", adminId = "", anaId = "", colegaId = "", gerenteId = ""
+// B63-02: a empresa B, recém-criada, com o padrão
+let wsB = "", adminBId = "", atendenteBId = ""
 const navegadores: Record<string, SupabaseClient> = {}
 type Contato = { id: string; card: string; conversa: string }
 // X é da Ana, Y do colega, Z sem dono; W, sem dono, está na lixeira
@@ -39,10 +43,10 @@ let x: Contato, y: Contato, z: Contato, w: Contato
 let telefone = 0
 const FUTURO = new Date(Date.now() + 86_400_000).toISOString()
 
-async function criarPessoa(nome: string, role: string) {
+async function criarPessoa(nome: string, role: string, empresa = ws) {
   const email = `b63-01-${nome.toLowerCase()}-${ts}@teste.com`
   const id = (await service.auth.admin.createUser({ email, password: SENHA, email_confirm: true })).data.user!.id
-  await service.from("profiles").insert({ id, workspace_id: ws, name: nome, role, status: "active" })
+  await service.from("profiles").insert({ id, workspace_id: empresa, name: nome, role, status: "active" })
   const navegador = createClient(URL, ANON_KEY, { auth: { autoRefreshToken: false, persistSession: false } })
   const { error } = await navegador.auth.signInWithPassword({ email, password: SENHA })
   if (error) throw new Error(error.message)
@@ -52,12 +56,12 @@ async function criarPessoa(nome: string, role: string) {
 const entrarComo = (id: string) => { clienteDaVez = navegadores[id] }
 
 /** Contato com um dono só: o mesmo no contato, no card da Entrada e na conversa, com uma mensagem sem resposta. */
-async function contatoDe(nome: string, dono: string | null): Promise<Contato> {
+async function contatoDe(nome: string, dono: string | null, empresa = ws): Promise<Contato> {
   telefone += 1
-  const id = (await service.from("contacts").insert({ workspace_id: ws, name: nome, phone_number: `55819${fim}${String(telefone).padStart(2, "0")}`, atendente_id: dono }).select("id").single()).data!.id
-  const card = (await service.from("pipeline_cards").insert({ workspace_id: ws, contact_id: id, funil: "entrada", etapa: "lead", atendente_id: dono }).select("id").single()).data!.id
-  const conversa = (await service.from("conversations").insert({ workspace_id: ws, contact_id: id, assigned_to: dono, status: dono ? "em_atendimento" : "em_espera" }).select("id").single()).data!.id
-  await service.from("messages").insert({ workspace_id: ws, conversation_id: conversa, direction: "recebida", type: "texto", content: `oi, aqui é ${nome}` })
+  const id = (await service.from("contacts").insert({ workspace_id: empresa, name: nome, phone_number: `55819${fim}${String(telefone).padStart(2, "0")}`, atendente_id: dono }).select("id").single()).data!.id
+  const card = (await service.from("pipeline_cards").insert({ workspace_id: empresa, contact_id: id, funil: "entrada", etapa: "lead", atendente_id: dono }).select("id").single()).data!.id
+  const conversa = (await service.from("conversations").insert({ workspace_id: empresa, contact_id: id, assigned_to: dono, status: dono ? "em_atendimento" : "em_espera" }).select("id").single()).data!.id
+  await service.from("messages").insert({ workspace_id: empresa, conversation_id: conversa, direction: "recebida", type: "texto", content: `oi, aqui é ${nome}` })
   return { id, card, conversa }
 }
 
@@ -115,18 +119,19 @@ beforeAll(async () => {
 }, 120_000)
 
 afterAll(async () => {
-  await service.from("carteira_historico").delete().eq("workspace_id", ws)
-  const { data: conversas } = await service.from("conversations").select("id").eq("workspace_id", ws)
+  const empresas = [ws, wsB].filter(Boolean)
+  await service.from("carteira_historico").delete().in("workspace_id", empresas)
+  const { data: conversas } = await service.from("conversations").select("id").in("workspace_id", empresas)
   const ids = (conversas ?? []).map((c) => c.id)
   if (ids.length) await service.from("messages").delete().in("conversation_id", ids)
-  await service.from("conversations").delete().eq("workspace_id", ws)
-  await service.from("contact_purchases").delete().eq("workspace_id", ws)
-  await service.from("contacts").delete().eq("workspace_id", ws)
-  for (const id of [adminId, anaId, colegaId, gerenteId]) {
+  await service.from("conversations").delete().in("workspace_id", empresas)
+  await service.from("contact_purchases").delete().in("workspace_id", empresas)
+  await service.from("contacts").delete().in("workspace_id", empresas)
+  for (const id of [adminId, anaId, colegaId, gerenteId, adminBId, atendenteBId].filter(Boolean)) {
     await service.from("profiles").delete().eq("id", id)
     await service.auth.admin.deleteUser(id)
   }
-  await service.from("workspaces").delete().eq("id", ws)
+  await service.from("workspaces").delete().in("id", empresas)
 }, 120_000)
 
 describe("B63-01 — Cada cargo vê o que a empresa escolheu", { timeout: 60_000 }, () => {
@@ -216,5 +221,74 @@ describe("B63-01 — Cada cargo vê o que a empresa escolheu", { timeout: 60_000
 
     confereQueVe(await oQueVe(anaId), [], [x])
     confereQueVe(await oQueVe(colegaId), [x, y], [z])
+  })
+})
+
+const guardado = async (empresa: string) =>
+  (await service.from("workspaces").select("alcance_atendente, alcance_gerente").eq("id", empresa).single()).data
+
+describe("B63-02 — Tela de Permissões pelo servidor", { timeout: 60_000 }, () => {
+  let xB: Contato, zB: Contato
+
+  beforeAll(async () => {
+    // Recém-criada como no cadastro: só o nome, o resto é o padrão do banco
+    wsB = (await service.from("workspaces").insert({ name: `[TESTE] B63-02 B ${ts}` }).select("id").single()).data!.id
+    adminBId = await criarPessoa("AdminB", "admin", wsB)
+    atendenteBId = await criarPessoa("AtendenteB", "atendente", wsB)
+    xB = await contatoDe("Xuxa B", atendenteBId, wsB)
+    zB = await contatoDe("Zilda B", null, wsB)
+  }, 120_000)
+
+  it("CA-B63-05: should abrir a tela da empresa recém-criada com Atendente em 'atribuidos' e Gerente em 'todos'", async () => {
+    expect(await guardado(wsB)).toEqual({ alcance_atendente: "atribuidos", alcance_gerente: "todos" })
+    entrarComo(adminBId)
+    expect(await carregarPermissoes()).toEqual({ atendente: "atribuidos", gerente: "todos" })
+  })
+
+  it("CA-B63-01: should trazer para a tela do Admin a escolha gravada da empresa", async () => {
+    await escolher("atendente", "atribuidos_e_sem_dono")
+    await escolher("gerente", "todos")
+    entrarComo(adminId)
+    expect(await carregarPermissoes()).toEqual({ atendente: "atribuidos_e_sem_dono", gerente: "todos" })
+  })
+
+  it("CA-B63-02: should recusar ao Gerente e ao Atendente abrir e salvar as permissões, sem mudar a escolha guardada", async () => {
+    await escolher("atendente", "atribuidos_e_sem_dono")
+    const antes = await guardado(ws)
+    for (const id of [gerenteId, anaId]) {
+      entrarComo(id)
+      expect(await carregarPermissoes()).toBeNull()
+      expect(await salvarPermissoes({ atendente: "todos", gerente: "atribuidos" })).toEqual({ erro: "Sem permissão" })
+    }
+    expect(await guardado(ws)).toEqual(antes)
+  })
+
+  it("CA-B63-03: should tirar do Chat da atendente a conversa sem dono depois de o Admin salvar 'Só os atribuídos a ele'", async () => {
+    await escolher("atendente", "atribuidos_e_sem_dono")
+    expect((await oQueVe(anaId)).conversas).toContain(z.conversa)
+
+    entrarComo(adminId)
+    expect(await salvarPermissoes({ atendente: "atribuidos", gerente: "todos" })).toEqual({})
+    expect(await guardado(ws)).toEqual({ alcance_atendente: "atribuidos", alcance_gerente: "todos" })
+
+    expect((await oQueVe(anaId)).conversas).not.toContain(z.conversa)
+  })
+
+  it("B63-02, cenário de erro: should recusar opção fora das três sem gravar", async () => {
+    entrarComo(adminId)
+    const antes = await guardado(ws)
+    expect(await salvarPermissoes({ atendente: "qualquer" as never, gerente: "todos" })).toEqual({ erro: "Escolha uma das opções." })
+    expect(await guardado(ws)).toEqual(antes)
+  })
+
+  it("CA-B63-04: should manter o atendente da empresa B vendo só o dele quando o Admin da A salva", async () => {
+    await escolher("atendente", "todos")
+    confereQueVe(await oQueVe(atendenteBId), [xB], [zB])
+
+    entrarComo(adminId)
+    expect(await salvarPermissoes({ atendente: "atribuidos_e_sem_dono", gerente: "todos" })).toEqual({})
+
+    expect(await guardado(wsB)).toEqual({ alcance_atendente: "atribuidos", alcance_gerente: "todos" })
+    confereQueVe(await oQueVe(atendenteBId), [xB], [zB])
   })
 })

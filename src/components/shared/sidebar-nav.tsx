@@ -18,6 +18,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plug,
+  ShieldCheck,
   ShoppingBag,
   Store,
   Tags,
@@ -110,6 +111,8 @@ function montarSecoes(atrasados: number, pedidosNovos: number): SecaoNav[] {
         { href: "/configuracoes/times", label: "Times", icone: UsersRound, papeis: ["admin"] },
         { href: "/configuracoes/whatsapp", label: "WhatsApp", icone: Plug, papeis: ["admin"] },
         { href: "/configuracoes/empresa", label: "Empresa", icone: Building2, papeis: ["admin"] },
+        // B63-02: o que cada cargo vê, só para o Admin
+        { href: "/configuracoes/permissoes", label: "Permissões", icone: ShieldCheck, papeis: ["admin"] },
       ],
     },
     {

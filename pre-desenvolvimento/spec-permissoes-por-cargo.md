@@ -305,6 +305,7 @@ A conversa que já está com um membro ativo do time fica com ele.
 | SUP-B63-05 | As empresas que já existem passam, no dia do merge, para o padrão novo: Atendente em "Só os atribuídos a ele" e Gerente em "Todos da empresa". Na D'Rô, a Vivianne deixa de ver as 4 conversas sem dono. | confirmada | Luan, 19/11/2026 |
 | SUP-B63-06 | Ver dá direito a atender (responder, mover o card), mas não a atribuir: o Atendente em "Todos da empresa" responde a conversa de um colega sem virar dono dela. | confirmada | Luan, 19/11/2026 |
 | SUP-B63-07 | A troca da fila aberta como padrão substitui a decisão da Marcelle de 27/10/2026 (PER-B45-04); a fila aberta fica como opção na tela. | confirmada | Luan, 19/11/2026 |
+| SUP-B63-08 | O texto curto das outras duas opções (a spec só escreve o de "Só os atribuídos a ele"): "Os dele e os sem dono" → "Vê também o lead novo que ainda não tem dono, e quem responde primeiro vira o dono."; "Todos da empresa" → "Vê e atende tudo da empresa, mas só o Admin e o Gerente trocam o dono." Uma escolha só para os dois cargos, um botão Salvar. | confirmada | Luan, 19/11/2026 |
 
 ## Perguntas em aberto
 
