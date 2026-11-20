@@ -41,7 +41,7 @@ async function lerComToken(tabela: string, token: string) {
 }
 
 beforeAll(async () => {
-  empresa = (await service.from("workspaces").insert({ name: `Desativado B20 ${ts}` }).select("id").single()).data!.id
+  empresa = (await service.from("workspaces").insert({ name: `Desativado B20 ${ts}`, alcance_atendente: "atribuidos_e_sem_dono" }).select("id").single()).data!.id
   admin = (await service.auth.admin.createUser({ email: emailAdmin, password: SENHA, email_confirm: true })).data.user!.id
   atendente = (await service.auth.admin.createUser({ email: emailAtendente, password: SENHA, email_confirm: true })).data.user!.id
   await service.from("profiles").insert([

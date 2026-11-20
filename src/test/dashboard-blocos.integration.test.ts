@@ -56,7 +56,7 @@ async function conversa(nome: string, responsavel: string, mensagens: Array<{ di
 }
 
 beforeAll(async () => {
-  ws = (await service.from("workspaces").insert({ name: `B36-04 ${ts}` }).select("id").single()).data!.id
+  ws = (await service.from("workspaces").insert({ name: `B36-04 ${ts}`, alcance_atendente: "atribuidos_e_sem_dono" }).select("id").single()).data!.id
   adminId = await criarUsuario("Admin", "admin")
   anaId = await criarUsuario("Ana", "atendente")
   caioId = await criarUsuario("Caio", "atendente")

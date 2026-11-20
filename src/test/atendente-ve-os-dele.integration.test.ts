@@ -63,10 +63,11 @@ async function contatoDe(nome: string, dono: string | null): Promise<Contato> {
 }
 
 const conversasDe = async (id: string) =>
-  (await listarConversas(navegadores[id] as never, { workspaceId: ws, papel: "atendente", userId: id })).map((c) => c.id)
+  (await listarConversas(navegadores[id] as never, { workspaceId: ws, alcance: "atribuidos_e_sem_dono", userId: id })).map((c) => c.id)
 
 beforeAll(async () => {
-  ws = (await service.from("workspaces").insert({ name: `[TESTE] B45-03 ${ts}` }).select("id").single()).data!.id
+  // B63: a fila aberta virou uma das escolhas da empresa; este teste confere essa
+  ws = (await service.from("workspaces").insert({ name: `[TESTE] B45-03 ${ts}`, alcance_atendente: "atribuidos_e_sem_dono" }).select("id").single()).data!.id
   adminId = await criarPessoa("Admin", "admin")
   atendenteId = await criarPessoa("Atendente", "atendente")
   brunoId = await criarPessoa("Bruno", "atendente")

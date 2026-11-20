@@ -11,6 +11,7 @@
 
 import { revalidatePath } from "next/cache"
 import { sessaoAtual, type PerfilDaSessao } from "@/lib/sessao"
+import { alcanceDaSessao } from "@/lib/alcance"
 import { createServiceClient } from "@/integrations/supabase/service"
 import { transmitirContatoExcluido } from "@/lib/whatsapp/realtime"
 import { formatarDataCurta, formatarHoraDoDia } from "@/lib/datas"
@@ -238,7 +239,8 @@ async function idsVisiveisNaLixeira(svc: Svc, perfil: PerfilDaSessao, userId: st
     .eq("workspace_id", perfil.workspace_id)
     .not("excluido_em", "is", null)
   const ids = (data ?? []).map((c) => c.id)
-  if (perfil.role === "admin" || perfil.role === "gerente") return ids
+  // B63: quem vê a empresa toda vê a lixeira toda; os outros, só os contatos deles
+  if ((await alcanceDaSessao((await sessaoAtual()).supabase)) === "todos") return ids
   const meus = await contatosDoAtendente(svc, userId, ids)
   return ids.filter((id) => meus.has(id))
 }
@@ -260,7 +262,7 @@ async function contatoNaLixeiraVisivel(
     .maybeSingle()
   if (!contato) return null
   if (!contato.excluido_em) return "nao_esta"
-  if (perfil.role !== "admin" && perfil.role !== "gerente") {
+  if ((await alcanceDaSessao((await sessaoAtual()).supabase)) !== "todos") {
     const meus = await contatosDoAtendente(svc, userId, [contactId])
     if (!meus.has(contactId)) return null
   }

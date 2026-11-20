@@ -11,6 +11,7 @@ import { PainelContato } from "./painel-contato"
 import { COOKIE_CAIXA_RECOLHIDA, gravarPreferencia } from "@/lib/preferencias-layout"
 import { buscarConversa, buscarMensagens, carregarMaisConversas, marcarComoLidas } from "../actions"
 import type { Conversa } from "../tipos-conversa"
+import type { Alcance } from "@/lib/alcance"
 import { aplicarAtualizacaoDaConversa, type LinhaDaConversa } from "../conversa-atualizada"
 import type { Mensagem } from "../tipos-mensagem"
 import { aplicarMensagemRecebida, aplicarStatus, confirmarEnvio } from "../mensagens-locais"
@@ -20,6 +21,8 @@ interface ChatLayoutProps {
   /** A primeira página veio cheia: há mais para carregar ao rolar. */
   temMaisConversas?: boolean
   papel: string
+  /** B63: o que a pessoa vê; escolhe os canais do tempo real. */
+  alcance: Alcance
   /** B21-01: o atendente ouve a mensagem nova no tópico dele, `usuario:<id>`. */
   userId: string
   nomeUsuario: string
@@ -33,9 +36,9 @@ interface ChatLayoutProps {
   caixaRecolhidaInicial?: boolean
 }
 
-export function ChatLayout({ conversas, temMaisConversas = false, papel, userId, nomeUsuario, workspaceId, atendentes, atendentesTransferir, etiquetasDisponiveis, mensagensRapidas, conversaInicialId, caixaRecolhidaInicial = false }: ChatLayoutProps) {
+export function ChatLayout({ conversas, temMaisConversas = false, papel, alcance, userId, nomeUsuario, workspaceId, atendentes, atendentesTransferir, etiquetasDisponiveis, mensagensRapidas, conversaInicialId, caixaRecolhidaInicial = false }: ChatLayoutProps) {
   const fuso = useFuso()
-  // Os canais do tempo real vivem enquanto a empresa e o papel não mudam; o fuso que
+  // Os canais do tempo real vivem enquanto a empresa e o alcance não mudam; o fuso que
   // eles usam é sempre o atual, sem reabrir os canais quando o Admin troca o fuso.
   const fusoAtual = useRef(fuso)
   useEffect(() => {
@@ -189,12 +192,12 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
     }
     const canalMensagens = supabase
       .channel(
-        papel === "atendente" ? `usuario:${userId}` : `workspace:${workspaceId}:gestao`,
+        alcance === "todos" ? `workspace:${workspaceId}:gestao` : `usuario:${userId}`,
         { config: { private: true } }
       )
       .on("broadcast", { event: "nova_mensagem" }, aoReceberMensagem)
-    // B45-03: fila aberta: o atendente ouve também as conversas sem responsável
-    const canalSemResponsavel = papel === "atendente"
+    // B45-03/B63: quem vê a fila aberta ouve também as conversas sem responsável
+    const canalSemResponsavel = alcance === "atribuidos_e_sem_dono"
       ? supabase
           .channel(`workspace:${workspaceId}:sem-responsavel`, { config: { private: true } })
           .on("broadcast", { event: "nova_mensagem" }, aoReceberMensagem)
@@ -221,7 +224,7 @@ export function ChatLayout({ conversas, temMaisConversas = false, papel, userId,
       supabase.removeChannel(canalMensagens)
       if (canalSemResponsavel) supabase.removeChannel(canalSemResponsavel)
     }
-  }, [workspaceId, papel, userId])
+  }, [workspaceId, alcance, userId])
 
   useEffect(() => {
     if (!conversaInicialId) return

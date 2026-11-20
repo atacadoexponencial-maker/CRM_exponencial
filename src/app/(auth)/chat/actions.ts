@@ -16,6 +16,7 @@ import { listarConversas, TAMANHO_PAGINA_CONVERSAS } from "./conversas"
 /** Mesmo teto do painel: limite da requisição no Vercel, não do WhatsApp. */
 const LIMITE_ANEXO_BYTES = 4 * 1024 * 1024
 import { sessaoAtual } from "@/lib/sessao"
+import { alcanceDaSessao } from "@/lib/alcance"
 import { AVISO_ARQUIVO_SEM_LINK, comLinksDosAnexos, linkParaEnvio } from "@/lib/anexos-do-chat"
 import { passarContatosPara } from "@/lib/carteira"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/etapas-e-tipos"
@@ -963,7 +964,7 @@ export async function buscarConversa(conversaId: string): Promise<Conversa | nul
 
   const [conversa] = await listarConversas(supabase, {
     workspaceId: perfil.workspace_id,
-    papel: perfil.role,
+    alcance: await alcanceDaSessao(supabase),
     userId: user.id,
     conversaId,
   })
@@ -980,7 +981,7 @@ export async function carregarMaisConversas(antesDe: string): Promise<Conversa[]
 
   return listarConversas(supabase, {
     workspaceId: perfil.workspace_id,
-    papel: perfil.role,
+    alcance: await alcanceDaSessao(supabase),
     userId: user.id,
     antesDe,
     limite: TAMANHO_PAGINA_CONVERSAS,
