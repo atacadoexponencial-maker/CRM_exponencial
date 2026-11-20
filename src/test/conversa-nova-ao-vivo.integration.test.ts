@@ -33,7 +33,7 @@ const criados = {
 }
 
 async function criarWorkspace(nome: string) {
-  const { data: ws, error } = await serviceClient.from("workspaces").insert({ name: nome }).select().single()
+  const { data: ws, error } = await serviceClient.from("workspaces").insert({ name: nome, alcance_atendente: "atribuidos_e_sem_dono" }).select().single()
   if (!ws) throw new Error(`Falha ao criar workspace ${nome}: ${error?.message ?? "sem dados"}`)
   criados.workspaceIds.push(ws.id)
   return ws.id as string

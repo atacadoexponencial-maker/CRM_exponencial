@@ -2564,6 +2564,8 @@ export type Database = {
       }
       workspaces: {
         Row: {
+          alcance_atendente: string
+          alcance_gerente: string
           created_at: string
           dono_id: string | null
           fuso: string
@@ -2571,6 +2573,8 @@ export type Database = {
           name: string
         }
         Insert: {
+          alcance_atendente?: string
+          alcance_gerente?: string
           created_at?: string
           dono_id?: string | null
           fuso?: string
@@ -2578,6 +2582,8 @@ export type Database = {
           name: string
         }
         Update: {
+          alcance_atendente?: string
+          alcance_gerente?: string
           created_at?: string
           dono_id?: string | null
           fuso?: string
@@ -2599,6 +2605,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      alcance_do_usuario: { Args: never; Returns: string }
       alinhar_donos_dos_contatos: {
         Args: { p_workspace_id: string }
         Returns: number
@@ -2738,6 +2745,7 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: boolean
       }
+      pode_ver_dono: { Args: { p_dono: string }; Returns: boolean }
       produtos_dos_pedidos: {
         Args: never
         Returns: {

@@ -2,6 +2,7 @@ import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { COOKIE_CAIXA_RECOLHIDA } from "@/lib/preferencias-layout"
 import { sessaoAtual } from "@/lib/sessao"
+import { alcanceDaSessao } from "@/lib/alcance"
 import { ChatLayout } from "./components/chat-layout"
 import { listarConversas, TAMANHO_PAGINA_CONVERSAS } from "./conversas"
 
@@ -49,7 +50,9 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
   const [{ supabase, user, perfil }, cookieStore] = await Promise.all([sessaoAtual(), cookies()])
   if (!user || !perfil) redirect("/login")
 
-  const escopo = { workspaceId: perfil.workspace_id, papel: perfil.role, userId: user.id }
+  // B63: o que a pessoa vê vem da escolha da empresa para o cargo dela
+  const alcance = await alcanceDaSessao(supabase)
+  const escopo = { workspaceId: perfil.workspace_id, alcance, userId: user.id }
 
   // B10-04: nada aqui depende de nada; tudo sai de uma vez.
   const [atendentesRows, atendentesTransferirCalc, labelsRows, quickRepliesRows, conversas, conversaDaUrl] =
@@ -99,6 +102,7 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
       conversas={conversasIniciais}
       temMaisConversas={conversas.length === TAMANHO_PAGINA_CONVERSAS}
       papel={perfil.role}
+      alcance={alcance}
       userId={user.id}
       nomeUsuario={perfil.name}
       workspaceId={perfil.workspace_id}

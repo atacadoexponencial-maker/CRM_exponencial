@@ -28,7 +28,7 @@ beforeAll(async () => {
   await navegador.auth.signInWithPassword({ email, password: SENHA })
   vi.mocked(createSsrClient).mockResolvedValue(navegador as never)
 
-  contato = (await service.from("contacts").insert({ workspace_id: ws, name: "Moda Sol", phone_number: `5534977${String(ts).slice(-6)}` }).select("id").single()).data!.id
+  contato = (await service.from("contacts").insert({ workspace_id: ws, name: "Moda Sol", atendente_id: ana, phone_number: `5534977${String(ts).slice(-6)}` }).select("id").single()).data!.id
   conversa = (await service.from("conversations").insert({ workspace_id: ws, contact_id: contato, assigned_to: ana, status: "em_atendimento" }).select("id").single()).data!.id
   for (const [valor, dias] of [[1000, 40], [2000, 25], [3000, 10]]) {
     await service.from("contact_purchases").insert({ workspace_id: ws, contact_id: contato, valor, data: diasAntes(dias) })

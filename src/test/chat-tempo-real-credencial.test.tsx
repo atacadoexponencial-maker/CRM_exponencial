@@ -37,11 +37,12 @@ vi.mock("@/app/(auth)/chat/components/painel-conversa", () => ({ PainelConversa:
 
 import { ChatLayout } from "@/app/(auth)/chat/components/chat-layout"
 
-function renderizar(papel: string) {
+function renderizar(papel: string, alcance: "atribuidos" | "atribuidos_e_sem_dono" | "todos") {
   return render(
     <ChatLayout
       conversas={[]}
       papel={papel}
+      alcance={alcance}
       userId="user-1"
       nomeUsuario="Usuário"
       workspaceId="ws-1"
@@ -60,23 +61,30 @@ describe("tempo real da caixa de entrada", () => {
   })
 
   it("entrega a credencial do usuário aos canais antes de começar a escutar", async () => {
-    renderizar("admin")
+    renderizar("admin", "todos")
 
     // B21-01: dois canais — o da empresa e o das mensagens novas.
     await waitFor(() => expect(canal.subscribe).toHaveBeenCalledTimes(2))
     expect(ordem).toEqual(["setAuth:token-do-usuario", "subscribe", "subscribe"])
   })
 
-  it("should ouvir mensagens novas no tópico da gestão quando é admin ou gerente", async () => {
-    renderizar("gerente")
+  // B63: os canais seguem o que a pessoa vê, não o cargo
+  it("should ouvir mensagens novas no tópico da gestão quando vê a empresa toda", async () => {
+    renderizar("atendente", "todos")
     await waitFor(() => expect(canal.subscribe).toHaveBeenCalledTimes(2))
     const topicos = supabaseFalso.channel.mock.calls.map((c) => (c as unknown as [string])[0])
     expect(topicos).toEqual(["workspace:ws-1", "workspace:ws-1:gestao"])
   })
 
-  it("should ouvir mensagens novas só no tópico dele quando é atendente", async () => {
-    renderizar("atendente")
-    // B45-03: fila aberta: o atendente ouve também as conversas sem responsável
+  it("should ouvir mensagens novas só no tópico dele quando vê só os atribuídos", async () => {
+    renderizar("gerente", "atribuidos")
+    await waitFor(() => expect(canal.subscribe).toHaveBeenCalledTimes(2))
+    const topicos = supabaseFalso.channel.mock.calls.map((c) => (c as unknown as [string])[0])
+    expect(topicos).toEqual(["workspace:ws-1", "usuario:user-1"])
+  })
+
+  it("should ouvir também as conversas sem responsável quando vê a fila aberta", async () => {
+    renderizar("atendente", "atribuidos_e_sem_dono")
     await waitFor(() => expect(canal.subscribe).toHaveBeenCalledTimes(3))
     const topicos = supabaseFalso.channel.mock.calls.map((c) => (c as unknown as [string])[0])
     expect(topicos).toEqual(["workspace:ws-1", "usuario:user-1", "workspace:ws-1:sem-responsavel"])

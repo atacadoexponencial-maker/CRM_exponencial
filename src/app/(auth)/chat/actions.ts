@@ -16,6 +16,7 @@ import { listarConversas, TAMANHO_PAGINA_CONVERSAS } from "./conversas"
 /** Mesmo teto do painel: limite da requisição no Vercel, não do WhatsApp. */
 const LIMITE_ANEXO_BYTES = 4 * 1024 * 1024
 import { sessaoAtual } from "@/lib/sessao"
+import { alcanceDaSessao } from "@/lib/alcance"
 import { AVISO_ARQUIVO_SEM_LINK, comLinksDosAnexos, linkParaEnvio } from "@/lib/anexos-do-chat"
 import { passarContatosPara } from "@/lib/carteira"
 import { ETAPAS_ENTRADA, ETAPAS_RECOMPRA } from "@/app/(auth)/pipeline/etapas-e-tipos"
@@ -467,14 +468,14 @@ export type ResultadoDoEnvio = { erro?: string; mensagemId?: string; status?: St
 type MensagemGravada = { id: string; status: StatusMensagem }
 
 /**
- * B45-03: fila aberta. O atendente que responde uma conversa sem responsável vira o
- * dono dela, do contato, dos cards e das outras conversas. A tomada é uma gravação só,
- * "se ainda estiver sem responsável": de dois que respondem juntos, um fica com ela e o
- * outro não envia. Admin e Gerente que respondem não mudam o dono (SUP-B45-04).
+ * B45-03: fila aberta. Quem responde uma conversa sem responsável vira o dono dela, do
+ * contato, dos cards e das outras conversas. A tomada é uma gravação só, "se ainda
+ * estiver sem responsável": de dois que respondem juntos, um fica com ela e o outro não
+ * envia. B63-03 (PER-B63-01): vale para todos os cargos, Admin e Gerente também.
  */
 async function assumirSeSemResponsavel(conversaId: string): Promise<void> {
   const { supabase, user, perfil } = await sessaoAtual()
-  if (!user || !perfil || perfil.role !== "atendente") return
+  if (!user || !perfil) return
   const { data: conversa } = await supabase.from("conversations").select("assigned_to").eq("id", conversaId).maybeSingle()
   if (!conversa || conversa.assigned_to) return
 
@@ -963,7 +964,7 @@ export async function buscarConversa(conversaId: string): Promise<Conversa | nul
 
   const [conversa] = await listarConversas(supabase, {
     workspaceId: perfil.workspace_id,
-    papel: perfil.role,
+    alcance: await alcanceDaSessao(supabase),
     userId: user.id,
     conversaId,
   })
@@ -980,7 +981,7 @@ export async function carregarMaisConversas(antesDe: string): Promise<Conversa[]
 
   return listarConversas(supabase, {
     workspaceId: perfil.workspace_id,
-    papel: perfil.role,
+    alcance: await alcanceDaSessao(supabase),
     userId: user.id,
     antesDe,
     limite: TAMANHO_PAGINA_CONVERSAS,

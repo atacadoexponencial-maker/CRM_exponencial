@@ -11,6 +11,7 @@ import { formatarDataCurta, formatarHorarioDaLista } from "@/lib/datas"
 import { fusoDaEmpresa } from "@/lib/fuso-da-empresa"
 import { nomeDoCanal, recursosDoCanal } from "@/lib/whatsapp"
 import type { CanalWhatsApp } from "@/lib/whatsapp"
+import type { Alcance } from "@/lib/alcance"
 import type { Conversa, StatusConversa } from "./tipos-conversa"
 
 type Cliente = Awaited<ReturnType<typeof createClient>>
@@ -22,14 +23,15 @@ export async function listarConversas(
   supabase: Cliente,
   {
     workspaceId,
-    papel,
+    alcance,
     userId,
     conversaId,
     limite,
     antesDe,
   }: {
     workspaceId: string
-    papel: string
+    /** B63: o que quem está logado vê, pela escolha da empresa para o cargo. */
+    alcance: Alcance
     userId: string
     /** Restringe a uma conversa só. */
     conversaId?: string
@@ -47,8 +49,11 @@ export async function listarConversas(
     .eq("workspace_id", workspaceId)
     .order("last_message_at", { ascending: false })
 
-  // B45-03: fila aberta: o atendente vê as conversas dele e as sem responsável
-  if (papel === "atendente") {
+  // B63: o banco já esconde o que a pessoa não vê; o filtro repete a regra para a
+  // lista sair igual à da carga e à que chega ao vivo
+  if (alcance === "atribuidos") {
+    query = query.eq("assigned_to", userId)
+  } else if (alcance === "atribuidos_e_sem_dono") {
     query = query.or(`assigned_to.eq.${userId},assigned_to.is.null`)
   }
 

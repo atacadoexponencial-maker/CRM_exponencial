@@ -35,7 +35,7 @@ const criados = {
 async function criarWorkspaceComAdmin(nome: string, email: string) {
   const { data: ws } = await serviceClient
     .from("workspaces")
-    .insert({ name: nome })
+    .insert({ name: nome, alcance_atendente: "atribuidos_e_sem_dono" })
     .select()
     .single()
   if (!ws) throw new Error(`Falha ao criar workspace ${nome}`)

@@ -59,7 +59,7 @@ async function funilPorNome(nome: string) {
 }
 
 beforeAll(async () => {
-  wsA = (await service.from("workspaces").insert({ name: `[TESTE] B41 A ${ts}` }).select("id").single()).data!.id
+  wsA = (await service.from("workspaces").insert({ name: `[TESTE] B41 A ${ts}`, alcance_atendente: "atribuidos_e_sem_dono" }).select("id").single()).data!.id
   wsB = (await service.from("workspaces").insert({ name: `[TESTE] B41 B ${ts}` }).select("id").single()).data!.id
   await criarPessoa("admin", wsA, "admin")
   await criarPessoa("gerente", wsA, "gerente")

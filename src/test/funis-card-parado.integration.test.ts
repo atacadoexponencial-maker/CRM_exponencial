@@ -48,7 +48,7 @@ async function cardParado(nome: string, n: number, etapaId: string, dias: number
 }
 
 beforeAll(async () => {
-  ws = (await service.from("workspaces").insert({ name: `[TESTE] B41-05 ${ts}` }).select("id").single()).data!.id
+  ws = (await service.from("workspaces").insert({ name: `[TESTE] B41-05 ${ts}`, alcance_atendente: "atribuidos_e_sem_dono" }).select("id").single()).data!.id
   await criarPessoa("admin", "admin")
   await criarPessoa("ana", "atendente")
   await criarPessoa("bruno", "atendente")

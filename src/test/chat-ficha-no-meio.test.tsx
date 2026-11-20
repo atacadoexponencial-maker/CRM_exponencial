@@ -64,6 +64,7 @@ function renderizar() {
     <ChatLayout
       conversas={[CONVERSA]}
       papel="admin"
+      alcance="todos"
       userId="u-1"
       nomeUsuario="Admin"
       workspaceId="ws-1"
