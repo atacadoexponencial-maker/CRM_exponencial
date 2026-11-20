@@ -11,6 +11,13 @@ let clienteDaVez: SupabaseClient
 vi.mock("@/integrations/supabase/server", () => ({ createClient: async () => clienteDaVez }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("@/lib/automacoes/fila", () => ({ dispararAutomacoes: vi.fn().mockResolvedValue(undefined) }))
+vi.mock("@/lib/whatsapp", async (original) => ({
+  ...(await original<typeof import("@/lib/whatsapp")>()),
+  resolverProviderDaConversa: vi.fn(async () => ({
+    canal: "meta",
+    enviarTexto: async () => ({ ok: true, mensagemId: `wamid.b63.${Math.random()}` }),
+  })),
+}))
 vi.mock("@/lib/whatsapp/realtime", () => ({
   transmitirMensagem: vi.fn().mockResolvedValue(undefined),
   transmitirContatoExcluido: vi.fn().mockResolvedValue(undefined),
@@ -18,7 +25,7 @@ vi.mock("@/lib/whatsapp/realtime", () => ({
 }))
 
 import { listarContatos, buscarDadosContato, filtrarContatos } from "@/app/(auth)/contatos/actions"
-import { carregarMaisConversas, atribuirConversa, buscarConversa } from "@/app/(auth)/chat/actions"
+import { carregarMaisConversas, atribuirConversa, buscarConversa, enviarMensagem } from "@/app/(auth)/chat/actions"
 import { listarCardsEntrada } from "@/app/(auth)/pipeline/actions"
 import { listarLixeira } from "@/app/(auth)/contatos/lixeira/actions"
 import { listarEsperandoResposta } from "@/app/(auth)/dashboard/actions"
@@ -290,5 +297,46 @@ describe("B63-02 — Tela de Permissões pelo servidor", { timeout: 60_000 }, ()
 
     expect(await guardado(wsB)).toEqual({ alcance_atendente: "atribuidos", alcance_gerente: "todos" })
     confereQueVe(await oQueVe(atendenteBId), [xB], [zB])
+  })
+})
+
+/** O dono gravado na conversa, no contato e no card. */
+async function donos(c: Contato) {
+  const [conversa, contato, card] = await Promise.all([
+    service.from("conversations").select("assigned_to").eq("id", c.conversa).single(),
+    service.from("contacts").select("atendente_id").eq("id", c.id).single(),
+    service.from("pipeline_cards").select("atendente_id").eq("id", c.card).single(),
+  ])
+  return [conversa.data?.assigned_to, contato.data?.atendente_id, card.data?.atendente_id]
+}
+
+describe("B63-03 — Quem responde conversa sem dono vira o dono", { timeout: 60_000 }, () => {
+  it("CA-B63-14: should fazer do Admin o dono da conversa, do contato e do card ao responder a conversa sem dono, e tirá-la da atendente", async () => {
+    const nina = await contatoDe("Nina", null)
+    await escolher("atendente", "atribuidos_e_sem_dono")
+    expect(await donos(nina)).toEqual([null, null, null])
+    expect((await oQueVe(anaId)).conversas).toContain(nina.conversa)
+
+    entrarComo(adminId)
+    expect((await enviarMensagem(nina.conversa, "Oi, Nina! Posso ajudar?")).erro).toBeUndefined()
+
+    expect(await donos(nina)).toEqual([adminId, adminId, adminId])
+    const { data: historico } = await service.from("carteira_historico").select("de_atendente_id, para_atendente_id, motivo").eq("contact_id", nina.id)
+    expect(historico).toEqual([{ de_atendente_id: null, para_atendente_id: adminId, motivo: "pelo_chat" }])
+    confereQueVe(await oQueVe(anaId), [], [nina])
+  })
+
+  it("CA-B63-15: should manter com o colega a conversa dele quando o Admin e o Gerente respondem", async () => {
+    await escolher("gerente", "todos")
+    expect(await donos(y)).toEqual([colegaId, colegaId, colegaId])
+
+    for (const id of [adminId, gerenteId]) {
+      entrarComo(id)
+      expect((await enviarMensagem(y.conversa, "Oi, Yara!")).erro).toBeUndefined()
+    }
+
+    const { data: enviadas } = await service.from("messages").select("id").eq("conversation_id", y.conversa).eq("direction", "enviada")
+    expect(enviadas).toHaveLength(2)
+    expect(await donos(y)).toEqual([colegaId, colegaId, colegaId])
   })
 })

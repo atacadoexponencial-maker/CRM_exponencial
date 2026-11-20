@@ -468,14 +468,14 @@ export type ResultadoDoEnvio = { erro?: string; mensagemId?: string; status?: St
 type MensagemGravada = { id: string; status: StatusMensagem }
 
 /**
- * B45-03: fila aberta. O atendente que responde uma conversa sem responsável vira o
- * dono dela, do contato, dos cards e das outras conversas. A tomada é uma gravação só,
- * "se ainda estiver sem responsável": de dois que respondem juntos, um fica com ela e o
- * outro não envia. Admin e Gerente que respondem não mudam o dono (SUP-B45-04).
+ * B45-03: fila aberta. Quem responde uma conversa sem responsável vira o dono dela, do
+ * contato, dos cards e das outras conversas. A tomada é uma gravação só, "se ainda
+ * estiver sem responsável": de dois que respondem juntos, um fica com ela e o outro não
+ * envia. B63-03 (PER-B63-01): vale para todos os cargos, Admin e Gerente também.
  */
 async function assumirSeSemResponsavel(conversaId: string): Promise<void> {
   const { supabase, user, perfil } = await sessaoAtual()
-  if (!user || !perfil || perfil.role !== "atendente") return
+  if (!user || !perfil) return
   const { data: conversa } = await supabase.from("conversations").select("assigned_to").eq("id", conversaId).maybeSingle()
   if (!conversa || conversa.assigned_to) return
 
